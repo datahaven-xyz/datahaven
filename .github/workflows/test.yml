@@ -1,4 +1,4 @@
-name: CI
+name: Foundry AVS Smart Contract Tests
 
 on:
   push:
@@ -9,12 +9,17 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
+  test:
     strategy:
-      fail-fast: true
+      fail-fast: false
+      matrix:
+        partition: [1]
 
     name: Foundry project
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
     steps:
       - uses: actions/checkout@v4
         with:

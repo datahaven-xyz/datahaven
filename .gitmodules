@@ -1,6 +1,3 @@
-[submodule "contracts/hello_foundry/lib/forge-std"]
-	path = contracts/hello_foundry/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
 [submodule "contracts/lib/eigenlayer-contracts"]
 	path = contracts/lib/eigenlayer-contracts
 	url = https://github.com/Layr-Labs/eigenlayer-contracts

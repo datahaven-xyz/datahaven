@@ -130,8 +130,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
     function updateAVSMetadataURI(
         string memory _metadataURI
     ) public virtual onlyOwner {
-        // TODO: Implement
-        revert("Not implemented");
+        _allocationManager.updateAVSMetadataURI(address(this), _metadataURI);
     }
 
     /**
@@ -232,27 +231,25 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
     }
 
     /**
-     * @notice Forwards a call to EigenLayer's AVSDirectory contract to confirm operator registration with the AVS
+     * @notice Forwards a call to EigenLayer's AllocationManager contract to confirm operator registration with the AVS
      * @param operator The address of the operator to register.
-     * @param operatorSignature The signature, salt, and expiry of the operator's signature.
+     * @param params The AVS-specific parameters for the operator who wants to register.
      */
     function registerOperatorToAVS(
         address operator,
-        ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature
+        IAllocationManagerTypes.RegisterParams memory params
     ) public virtual onlyRegistryCoordinator {
-        // TODO: Implement
-        revert("Not implemented");
+        _allocationManager.registerForOperatorSets(operator, params);
     }
 
     /**
-     * @notice Forwards a call to EigenLayer's AVSDirectory contract to confirm operator deregistration from the AVS
-     * @param operator The address of the operator to deregister.
+     * @notice Forwards a call to EigenLayer's AllocationManager contract to confirm operator deregistration from the AVS
+     * @param params The parameters for the operator to deregister.
      */
     function deregisterOperatorFromAVS(
-        address operator
+        IAllocationManagerTypes.DeregisterParams memory params
     ) public virtual onlyRegistryCoordinator {
-        // TODO: Implement
-        revert("Not implemented");
+        _allocationManager.deregisterFromOperatorSets(params);
     }
 
     function deregisterOperatorFromOperatorSets(

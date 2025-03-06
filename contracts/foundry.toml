@@ -1,6 +1,113 @@
 [profile.default]
-src = "src"
-out = "out"
-libs = ["lib"]
+    # Project Configuration
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+    # Path to contract sources relative to the root of the project.
+    src = "src"
+    # Path to the test contract sources relative to the root of the project.
+    test = "test"
+    # Path to the script contract sources relative to the root of the project.
+    script = "script"
+    # Path to store contract artifacts relative to the root of the project.
+    out = "out"
+    # Array of paths that contain libraries, relative to the root of the project.
+    libs = ["lib"]
+
+    # Solidity Compiler Configuration
+
+    # # Defines paths for Solidity imports.
+    # remappings = [
+    #     "forge-std/=lib/forge-std/src/",
+    #     "ds-test/=lib/ds-test/src/",
+    #     "@openzeppelin/=lib/openzeppelin-contracts/",
+    #     "@openzeppelin-upgrades/=lib/openzeppelin-contracts-upgradeable/",
+    #     "eigenlayer-contracts/=lib/eigenlayer-contracts/",
+
+    # ]
+    # Specifies the exact version of Solidity to use, overriding auto-detection.
+    solc_version = '0.8.27'
+    # If enabled, treats Solidity compiler warnings as errors, preventing artifact generation if warnings are present.
+    deny_warnings = false 
+    # If set to true, changes compilation pipeline to go through the new IR optimizer.
+    via_ir = false
+    # Whether or not to enable the Solidity optimizer.
+    optimizer = true
+    # The number of runs specifies roughly how often each opcode of the deployed code will be executed 
+    # across the life-time of the contract. This means it is a trade-off parameter between code size (deploy cost) 
+    # and code execution cost (cost after deployment).
+    optimizer_runs = 200
+
+    # Test Configuration
+
+    # Verbosity level during test execution. Higher levels provide more detailed information:
+    # - 2 (-vv): Logs emitted during tests are displayed.
+    # - 3 (-vvv): Stack traces for failing tests are displayed.
+    # - 4 (-vvvv): Stack traces for all tests and setup traces for failing tests are displayed.
+    # - 5 (-vvvvv): Stack and setup traces are always displayed.
+    verbosity = 0
+    # Enables the Foreign Function Interface (FFI) cheatcode. 
+    # WARNING: This allows arbitrary programs to run on your computer, which poses security risks.
+    ffi = true
+    # Contracts to include in gas reports. By default, all contracts are included.
+    gas_reports = ["./src/**/*"]
+    # Show test execution progress if set to true.
+    show_progress = true
+    # Sparse mode only compiles files that match certain criteria.
+    sparse_mode = true
+    
+    gas_limit = 5000000000
+    no-match-contract = "FFI"
+    fs_permissions = [{ access = "read-write", path = "./" }]
+
+[profile.default.fmt]
+    # Single-line vs multi-line statement blocks
+    single_line_statement_blocks = "preserve"  # Options: "single", "multi", "preserve"
+    # Formatting style for long function headers
+    multiline_func_header = "params_first"  # Options: "attributes_first", "params_first", "all"
+    # Sort import statements alphabetically
+    sort_imports = false  
+    # Maximum line length where formatter will wrap the line
+    line_length = 100  # Default: 120
+    # Number of spaces per indentation level
+    tab_width = 4  # Default: 4
+    # Whether to print spaces between brackets
+    bracket_spacing = false  
+    # Style of uint/int256 types
+    int_types = "long"  # Options: "long", "short", "preserve"
+    # Quotation mark style
+    quote_style = "double"  # Options: "double", "single", "preserve"
+    # Style of underscores in number literals
+    number_underscore = "remove"  # Options: "preserve", "thousands", "remove"
+    # Whether or not to wrap comments at line_length
+    wrap_comments = false  
+    # List of files to ignore during formatting (can use glob patterns)
+    # ignore = [
+    #     "./script/**/*",
+    #     "./test/**/*"
+    # ]
+
+# TODO: Decide if we want to enable this.
+# [profile.test.fmt]
+#     int_types = "short"
+#     line_length = 140
+#     ignore = [
+#         "./src/**/*"
+#     ]
+
+[profile.ci.fuzz]
+    optimizer = false
+    runs = 32
+
+[profile.intense.fuzz]
+    optimizer = false
+    runs = 5000
+
+[profile.forktest.fuzz]
+    runs = 16
+
+[rpc_endpoints]
+    mainnet = "${RPC_MAINNET}"
+    holesky = "${RPC_HOLESKY}"
+
+[etherscan]
+    mainnet = { key = "${ETHERSCAN_API_KEY}" }
+    holesky = { key = "${ETHERSCAN_API_KEY}" }

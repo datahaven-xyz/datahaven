@@ -3,6 +3,8 @@ name: Foundry AVS Smart Contract Tests
 on:
   push:
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:

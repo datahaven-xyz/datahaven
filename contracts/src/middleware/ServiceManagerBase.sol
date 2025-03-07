@@ -8,6 +8,7 @@ import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISi
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IAllocationManager, IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
@@ -22,9 +23,8 @@ import {LibMergeSort} from "../libraries/LibMergeSort.sol";
 /**
  * @title Minimal implementation of a ServiceManager-type contract.
  * This contract can be inherited from or simply used as a point-of-reference.
- * @author Layr Labs, Inc.
  */
-abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
+abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar {
     using SafeERC20 for IERC20;
     using BitmapUtils for *;
 
@@ -70,58 +70,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
         _setRewardsInitiator(_rewardsInitiator);
     }
 
-    /// @inheritdoc IServiceManager
-    function addPendingAdmin(address admin) external onlyOwner {
-        _permissionController.addPendingAdmin({
-            account: address(this),
-            admin: admin
-        });
-    }
-
-    /// @inheritdoc IServiceManager
-    function removePendingAdmin(address pendingAdmin) external onlyOwner {
-        _permissionController.removePendingAdmin({
-            account: address(this),
-            admin: pendingAdmin
-        });
-    }
-
-    /// @inheritdoc IServiceManager
-    function removeAdmin(address admin) external onlyOwner {
-        _permissionController.removeAdmin({
-            account: address(this),
-            admin: admin
-        });
-    }
-
-    /// @inheritdoc IServiceManager
-    function setAppointee(
-        address appointee,
-        address target,
-        bytes4 selector
-    ) external onlyOwner {
-        _permissionController.setAppointee({
-            account: address(this),
-            appointee: appointee,
-            target: target,
-            selector: selector
-        });
-    }
-
-    /// @inheritdoc IServiceManager
-    function removeAppointee(
-        address appointee,
-        address target,
-        bytes4 selector
-    ) external onlyOwner {
-        _permissionController.removeAppointee({
-            account: address(this),
-            appointee: appointee,
-            target: target,
-            selector: selector
-        });
-    }
-
     /**
      * @notice Updates the metadata URI for the AVS
      * @param _metadataURI is the metadata URI for the AVS
@@ -131,39 +79,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
         string memory _metadataURI
     ) public virtual onlyOwner {
         _allocationManager.updateAVSMetadataURI(address(this), _metadataURI);
-    }
-
-    /**
-     * @notice Creates a new rewards submission to the EigenLayer RewardsCoordinator contract, to be split amongst the
-     * set of stakers delegated to operators who are registered to this `avs`
-     * @param rewardsSubmissions The rewards submissions being created
-     * @dev Only callable by the permissioned rewardsInitiator address
-     * @dev The duration of the `rewardsSubmission` cannot exceed `MAX_REWARDS_DURATION`
-     * @dev The tokens are sent to the `RewardsCoordinator` contract
-     * @dev Strategies must be in ascending order of addresses to check for duplicates
-     * @dev This function will revert if the `rewardsSubmission` is malformed,
-     * e.g. if the `strategies` and `weights` arrays are of non-equal lengths
-     * @dev This function may fail to execute with a large number of submissions due to gas limits. Use a
-     * smaller array of submissions if necessary.
-     */
-    function createAVSRewardsSubmission(
-        IRewardsCoordinator.RewardsSubmission[] calldata rewardsSubmissions
-    ) public virtual onlyRewardsInitiator {
-        for (uint256 i = 0; i < rewardsSubmissions.length; ++i) {
-            // transfer token to ServiceManager and approve RewardsCoordinator to transfer again
-            // in createAVSRewardsSubmission() call
-            rewardsSubmissions[i].token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                rewardsSubmissions[i].amount
-            );
-            rewardsSubmissions[i].token.safeIncreaseAllowance(
-                address(_rewardsCoordinator),
-                rewardsSubmissions[i].amount
-            );
-        }
-
-        _rewardsCoordinator.createAVSRewardsSubmission(rewardsSubmissions);
     }
 
     /**
@@ -221,6 +136,58 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
         );
     }
 
+    /// @inheritdoc IServiceManager
+    function addPendingAdmin(address admin) external onlyOwner {
+        _permissionController.addPendingAdmin({
+            account: address(this),
+            admin: admin
+        });
+    }
+
+    /// @inheritdoc IServiceManager
+    function removePendingAdmin(address pendingAdmin) external onlyOwner {
+        _permissionController.removePendingAdmin({
+            account: address(this),
+            admin: pendingAdmin
+        });
+    }
+
+    /// @inheritdoc IServiceManager
+    function removeAdmin(address admin) external onlyOwner {
+        _permissionController.removeAdmin({
+            account: address(this),
+            admin: admin
+        });
+    }
+
+    /// @inheritdoc IServiceManager
+    function setAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external onlyOwner {
+        _permissionController.setAppointee({
+            account: address(this),
+            appointee: appointee,
+            target: target,
+            selector: selector
+        });
+    }
+
+    /// @inheritdoc IServiceManager
+    function removeAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external onlyOwner {
+        _permissionController.removeAppointee({
+            account: address(this),
+            appointee: appointee,
+            target: target,
+            selector: selector
+        });
+    }
+
     /**
      * @notice Forwards a call to Eigenlayer's RewardsCoordinator contract to set the address of the entity that can call `processClaim` on behalf of this contract.
      * @param claimer The address of the entity that can call `processClaim` on behalf of the earner
@@ -228,41 +195,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage {
      */
     function setClaimerFor(address claimer) public virtual onlyOwner {
         _rewardsCoordinator.setClaimerFor(claimer);
-    }
-
-    /**
-     * @notice Forwards a call to EigenLayer's AllocationManager contract to confirm operator registration with the AVS
-     * @param operator The address of the operator to register.
-     * @param params The AVS-specific parameters for the operator who wants to register.
-     */
-    function registerOperatorToAVS(
-        address operator,
-        IAllocationManagerTypes.RegisterParams memory params
-    ) public virtual onlyRegistryCoordinator {
-        _allocationManager.registerForOperatorSets(operator, params);
-    }
-
-    /**
-     * @notice Forwards a call to EigenLayer's AllocationManager contract to confirm operator deregistration from the AVS
-     * @param params The parameters for the operator to deregister.
-     */
-    function deregisterOperatorFromAVS(
-        IAllocationManagerTypes.DeregisterParams memory params
-    ) public virtual onlyRegistryCoordinator {
-        _allocationManager.deregisterFromOperatorSets(params);
-    }
-
-    function deregisterOperatorFromOperatorSets(
-        address operator,
-        uint32[] memory operatorSetIds
-    ) public virtual onlyRegistryCoordinator {
-        IAllocationManager.DeregisterParams
-            memory params = IAllocationManagerTypes.DeregisterParams({
-                operator: operator,
-                avs: address(this),
-                operatorSetIds: operatorSetIds
-            });
-        _allocationManager.deregisterFromOperatorSets(params);
     }
 
     /**

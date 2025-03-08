@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtils.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {IAllocationManager, IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
@@ -24,7 +25,10 @@ import {LibMergeSort} from "../libraries/LibMergeSort.sol";
  * @title Minimal implementation of a ServiceManager-type contract.
  * This contract can be inherited from or simply used as a point-of-reference.
  */
-abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar {
+abstract contract ServiceManagerBase is
+    ServiceManagerBaseStorage,
+    IAVSRegistrar
+{
     using SafeERC20 for IERC20;
     using BitmapUtils for *;
 
@@ -77,13 +81,64 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      */
     function updateAVSMetadataURI(
         string memory _metadataURI
-    ) public virtual onlyOwner {
+    ) external virtual onlyOwner {
         _allocationManager.updateAVSMetadataURI(address(this), _metadataURI);
     }
 
     /**
+     * Forwards the call to the AllocationManager.createOperatorSets() function
+     */
+    function createOperatorSets(
+        address avs,
+        IAllocationManager.CreateSetParams[] calldata params
+    ) external virtual onlyOwner {
+        _allocationManager.createOperatorSets(avs, params);
+    }
+
+    /**
+     * Forwards the call to the AllocationManager.addStrategiesToOperatorSet() function
+     */
+    function addStrategiesToOperatorSet(
+        address avs,
+        uint32 operatorSetId,
+        IStrategy[] calldata strategies
+    ) external virtual onlyOwner {
+        _allocationManager.addStrategiesToOperatorSet(
+            avs,
+            operatorSetId,
+            strategies
+        );
+    }
+
+    /**
+     * Forwards the call to the AllocationManager.removeStrategiesFromOperatorSet() function
+     */
+    function removeStrategiesFromOperatorSet(
+        address avs,
+        uint32 operatorSetId,
+        IStrategy[] calldata strategies
+    ) external virtual onlyOwner {
+        _allocationManager.removeStrategiesFromOperatorSet(
+            avs,
+            operatorSetId,
+            strategies
+        );
+    }
+
+    /**
+     * Forwards the call to the AllocationManager.slashOperator() function
+     */
+    function slashOperator(
+        address avs,
+        IAllocationManager.SlashingParams calldata params
+    ) external virtual onlyOwner {
+        _allocationManager.slashOperator(avs, params);
+    }
+
+    /**
      * @notice Creates a new operator-directed rewards submission, to be split amongst the operators and
-     * set of stakers delegated to operators who are registered to this `avs`.
+     * set of stakers delegated to operators who are registered to this AVS' OperatorSet.
+     * @param operatorSet The OperatorSet to create the rewards submission for
      * @param operatorDirectedRewardsSubmissions The operator-directed rewards submissions being created.
      * @dev Only callable by the permissioned rewardsInitiator address
      * @dev The duration of the `rewardsSubmission` cannot exceed `MAX_REWARDS_DURATION`
@@ -95,7 +150,8 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      * @dev This function may fail to execute with a large number of submissions due to gas limits. Use a
      * smaller array of submissions if necessary.
      */
-    function createOperatorDirectedAVSRewardsSubmission(
+    function createOperatorDirectedOperatorSetRewardsSubmission(
+        OperatorSet calldata operatorSet,
         IRewardsCoordinator.OperatorDirectedRewardsSubmission[]
             calldata operatorDirectedRewardsSubmissions
     ) public virtual onlyRewardsInitiator {
@@ -104,7 +160,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
             i < operatorDirectedRewardsSubmissions.length;
             ++i
         ) {
-            // Calculate total amount of token to transfer
+            // Calculate total amount of tokens to transfer
             uint256 totalAmount = 0;
             for (
                 uint256 j = 0;
@@ -118,7 +174,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
             }
 
             // Transfer token to ServiceManager and approve RewardsCoordinator to transfer again
-            // in createOperatorDirectedAVSRewardsSubmission() call
+            // in createOperatorDirectedOperatorSetRewardsSubmission() call
             operatorDirectedRewardsSubmissions[i].token.safeTransferFrom(
                 msg.sender,
                 address(this),
@@ -130,10 +186,31 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
             );
         }
 
-        _rewardsCoordinator.createOperatorDirectedAVSRewardsSubmission(
-            address(this),
+        _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
+            operatorSet,
             operatorDirectedRewardsSubmissions
         );
+    }
+
+    /// @inheritdoc IAVSRegistrar
+    function registerOperator(
+        address, // operator,
+        address, // avs,
+        uint32[] calldata, // operatorSetIds,
+        bytes calldata // data
+    ) external virtual {
+        // Always accepts Operator registration.
+        return;
+    }
+
+    /// @inheritdoc IAVSRegistrar
+    function deregisterOperator(
+        address, // operator,
+        address, // avs,
+        uint32[] calldata // operatorSetIds
+    ) external virtual {
+        // Always rejects Operator deregistration.
+        revert("ServiceManagerBase: deregistration not supported");
     }
 
     /// @inheritdoc IServiceManager

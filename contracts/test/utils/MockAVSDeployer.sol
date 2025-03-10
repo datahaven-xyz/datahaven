@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtils.sol";
+import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IStrategyManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {IAVSDirectory} from "eigenlayer-contracts/src/contracts/interfaces/IAVSDirectory.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
@@ -52,40 +53,29 @@ contract MockAVSDeployer is Test {
 
     address public proxyAdminOwner =
         address(uint160(uint256(keccak256("proxyAdminOwner"))));
-    address public registryCoordinatorOwner =
-        address(uint160(uint256(keccak256("registryCoordinatorOwner"))));
+    address public avsOwner = address(uint160(uint256(keccak256("avsOwner"))));
+    address public rewardsInitiator =
+        address(uint160(uint256(keccak256("rewardsInitiator"))));
     address public pauser = address(uint160(uint256(keccak256("pauser"))));
     address public unpauser = address(uint160(uint256(keccak256("unpauser"))));
+    address public rewardsUpdater =
+        address(uint160(uint256(keccak256("rewardsUpdater"))));
 
-    uint256 churnApproverPrivateKey =
-        uint256(keccak256("churnApproverPrivateKey"));
-    address churnApprover = cheats.addr(churnApproverPrivateKey);
-    bytes32 defaultSalt = bytes32(uint256(keccak256("defaultSalt")));
+    uint32 CALCULATION_INTERVAL_SECONDS = 7 days;
+    uint32 MAX_REWARDS_DURATION = 70 days;
+    uint32 MAX_RETROACTIVE_LENGTH = 84 days;
+    uint32 MAX_FUTURE_LENGTH = 28 days;
+    uint32 GENESIS_REWARDS_TIMESTAMP = 1712188800;
 
-    address ejector = address(uint160(uint256(keccak256("ejector"))));
-
-    address defaultOperator =
-        address(uint160(uint256(keccak256("defaultOperator"))));
-    bytes32 defaultOperatorId;
-    string defaultSocket = "69.69.69.69:420";
-    uint96 defaultStake = 1 ether;
-    uint8 defaultQuorumNumber = 0;
-
-    uint32 defaultMaxOperatorCount = 10;
-    uint16 defaultKickBIPsOfOperatorStake = 15000;
-    uint16 defaultKickBIPsOfTotalStake = 150;
-    uint8 numQuorums = 192;
-
-    uint8 maxQuorumsToRegisterFor = 4;
-    uint256 maxOperatorsToRegister = 4;
-    uint32 registrationBlockNumber = 100;
-    uint32 blocksBetweenRegistrations = 10;
-
-    uint256 MAX_QUORUM_BITMAP = type(uint192).max;
+    /// @notice Delay in timestamp before a posted root can be claimed against
+    uint32 activationDelay = 7 days;
+    /// @notice the commission for all operators across all AVSs
+    uint16 globalCommissionBips = 1000;
 
     function _deployMockEigenLayerAndAVS() internal {
         emptyContract = new EmptyContract();
 
+        // Deploy EigenLayer core contracts.
         cheats.startPrank(proxyAdminOwner);
         proxyAdmin = new ProxyAdmin();
         address[] memory pausers = new address[](1);
@@ -100,7 +90,10 @@ contract MockAVSDeployer is Test {
         strategyManagerMock.setDelegationManager(delegationMock);
         cheats.stopPrank();
 
-        cheats.startPrank(registryCoordinatorOwner);
+        // Deploying proxy contracts for ServiceManager, and AllocationManager.
+        // The `proxyAdmin` contract is set as the admin of the proxy contracts,
+        // which will be later upgraded to the actual implementation.
+        cheats.startPrank(avsOwner);
         serviceManager = ServiceManagerMock(
             address(
                 new TransparentUpgradeableProxy(
@@ -121,17 +114,7 @@ contract MockAVSDeployer is Test {
         );
         cheats.stopPrank();
 
-        cheats.startPrank(proxyAdminOwner);
-        serviceManagerImplementation = new ServiceManagerMock(
-            IRewardsCoordinator(address(rewardsCoordinatorMock)),
-            permissionControllerMock,
-            allocationManagerMock
-        );
-        proxyAdmin.upgrade(
-            ITransparentUpgradeableProxy(address(serviceManager)),
-            address(serviceManagerImplementation)
-        );
-
+        // Deploying AllocationManager implementation and upgrading the proxy.
         allocationManagerImplementation = new AllocationManager(
             delegationMock,
             pauserRegistry,
@@ -144,10 +127,59 @@ contract MockAVSDeployer is Test {
             address(allocationManagerImplementation)
         );
 
-        serviceManager.initialize({
-            initialOwner: registryCoordinatorOwner,
-            rewardsInitiator: proxyAdminOwner
-        });
+        // Deploying RewardsCoordinator implementation and its proxy.
+        // When the proxy is deployed, the `initialize` function is called.
+        rewardsCoordinatorImplementation = new RewardsCoordinator(
+            delegationMock,
+            IStrategyManager(address(strategyManagerMock)),
+            allocationManagerMock,
+            pauserRegistry,
+            permissionControllerMock,
+            CALCULATION_INTERVAL_SECONDS,
+            MAX_REWARDS_DURATION,
+            MAX_RETROACTIVE_LENGTH,
+            MAX_FUTURE_LENGTH,
+            GENESIS_REWARDS_TIMESTAMP
+        );
+
+        rewardsCoordinator = RewardsCoordinator(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(rewardsCoordinatorImplementation),
+                    address(proxyAdmin),
+                    abi.encodeWithSelector(
+                        RewardsCoordinator.initialize.selector,
+                        msg.sender,
+                        0 /*initialPausedStatus*/,
+                        rewardsUpdater,
+                        activationDelay,
+                        globalCommissionBips
+                    )
+                )
+            )
+        );
+
+        // Deploying ServiceManager implementation and its proxy.
+        // When the proxy is deployed, the `initialize` function is called.
+        cheats.startPrank(proxyAdminOwner);
+        serviceManagerImplementation = new ServiceManagerMock(
+            rewardsCoordinator,
+            permissionControllerMock,
+            allocationManager
+        );
+        serviceManager = ServiceManagerMock(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(serviceManagerImplementation),
+                    address(proxyAdmin),
+                    abi.encodeWithSelector(
+                        ServiceManagerMock.initialize.selector,
+                        avsOwner,
+                        rewardsInitiator
+                    )
+                )
+            )
+        );
     }
 
     function _labelContracts() internal {

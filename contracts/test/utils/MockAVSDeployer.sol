@@ -53,6 +53,8 @@ contract MockAVSDeployer is Test {
 
     address public proxyAdminOwner =
         address(uint160(uint256(keccak256("proxyAdminOwner"))));
+    address public regularDeployer =
+        address(uint160(uint256(keccak256("regularDeployer"))));
     address public avsOwner = address(uint160(uint256(keccak256("avsOwner"))));
     address public rewardsInitiator =
         address(uint160(uint256(keccak256("rewardsInitiator"))));
@@ -78,6 +80,11 @@ contract MockAVSDeployer is Test {
         // Deploy EigenLayer core contracts.
         cheats.startPrank(proxyAdminOwner);
         proxyAdmin = new ProxyAdmin();
+        cheats.stopPrank();
+
+        console.log("ProxyAdmin deployed");
+
+        cheats.startPrank(regularDeployer);
         address[] memory pausers = new address[](1);
         pausers[0] = pauser;
         pauserRegistry = new PauserRegistry(pausers, unpauser);
@@ -90,19 +97,12 @@ contract MockAVSDeployer is Test {
         strategyManagerMock.setDelegationManager(delegationMock);
         cheats.stopPrank();
 
+        console.log("EigenLayer contracts deployed");
+
         // Deploying proxy contracts for ServiceManager, and AllocationManager.
         // The `proxyAdmin` contract is set as the admin of the proxy contracts,
         // which will be later upgraded to the actual implementation.
-        cheats.startPrank(avsOwner);
-        serviceManager = ServiceManagerMock(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(proxyAdmin),
-                    ""
-                )
-            )
-        );
+        cheats.prank(regularDeployer);
         allocationManager = AllocationManager(
             address(
                 new TransparentUpgradeableProxy(
@@ -112,9 +112,11 @@ contract MockAVSDeployer is Test {
                 )
             )
         );
-        cheats.stopPrank();
+
+        console.log("Proxy contracts deployed");
 
         // Deploying AllocationManager implementation and upgrading the proxy.
+        cheats.prank(regularDeployer);
         allocationManagerImplementation = new AllocationManager(
             delegationMock,
             pauserRegistry,
@@ -122,13 +124,17 @@ contract MockAVSDeployer is Test {
             uint32(7 days), // DEALLOCATION_DELAY
             uint32(1 days) // ALLOCATION_CONFIGURATION_DELAY
         );
+        cheats.prank(proxyAdminOwner);
         proxyAdmin.upgrade(
             ITransparentUpgradeableProxy(address(allocationManager)),
             address(allocationManagerImplementation)
         );
 
+        console.log("AllocationManager implementation deployed");
+
         // Deploying RewardsCoordinator implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
+        cheats.startPrank(regularDeployer);
         rewardsCoordinatorImplementation = new RewardsCoordinator(
             delegationMock,
             IStrategyManager(address(strategyManagerMock)),
@@ -141,7 +147,6 @@ contract MockAVSDeployer is Test {
             MAX_FUTURE_LENGTH,
             GENESIS_REWARDS_TIMESTAMP
         );
-
         rewardsCoordinator = RewardsCoordinator(
             address(
                 new TransparentUpgradeableProxy(
@@ -158,10 +163,13 @@ contract MockAVSDeployer is Test {
                 )
             )
         );
+        cheats.stopPrank();
+
+        console.log("RewardsCoordinator implementation deployed");
 
         // Deploying ServiceManager implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
-        cheats.startPrank(proxyAdminOwner);
+        cheats.startPrank(regularDeployer);
         serviceManagerImplementation = new ServiceManagerMock(
             rewardsCoordinator,
             permissionControllerMock,
@@ -180,6 +188,8 @@ contract MockAVSDeployer is Test {
                 )
             )
         );
+        cheats.stopPrank();
+        console.log("ServiceManager implementation deployed");
     }
 
     function _labelContracts() internal {

@@ -27,4 +27,11 @@ contract ServiceManagerMock is ServiceManagerBase {
             __allocationManager
         )
     {}
+
+    function initialize(
+        address initialOwner,
+        address rewardsInitiator
+    ) public virtual initializer {
+        __ServiceManagerBase_init(initialOwner, rewardsInitiator);
+    }
 }

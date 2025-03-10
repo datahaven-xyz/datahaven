@@ -8,8 +8,10 @@ import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
 
 import {ServiceManagerMock} from "./mocks/ServiceManagerMock.sol";
+import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
+import {IServiceManagerBaseEvents} from "./events/IServiceManagerBaseEvents.sol";
 
-contract ServiceManagerMockTest is Test {
+contract ServiceManagerBaseTest is MockAVSDeployer, IServiceManagerBaseEvents {
     ServiceManagerMock public avs;
 
     // RewardsCoordinator config
@@ -45,80 +47,5 @@ contract ServiceManagerMockTest is Test {
 
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
-        // Deploy rewards coordinator
-        rewardsCoordinatorImplementation = new RewardsCoordinator(
-            delegationMock,
-            IStrategyManager(address(strategyManagerMock)),
-            allocationManagerMock,
-            pauserRegistry,
-            permissionControllerMock,
-            CALCULATION_INTERVAL_SECONDS,
-            MAX_REWARDS_DURATION,
-            MAX_RETROACTIVE_LENGTH,
-            MAX_FUTURE_LENGTH,
-            GENESIS_REWARDS_TIMESTAMP
-        );
-
-        rewardsCoordinator = RewardsCoordinator(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(rewardsCoordinatorImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        RewardsCoordinator.initialize.selector,
-                        msg.sender,
-                        0 /*initialPausedStatus*/,
-                        rewardsUpdater,
-                        activationDelay,
-                        globalCommissionBips
-                    )
-                )
-            )
-        );
-        // Deploy ServiceManager
-        serviceManagerImplementation = new ServiceManagerMock(
-            avsDirectory,
-            rewardsCoordinator,
-            registryCoordinatorImplementation,
-            stakeRegistryImplementation,
-            permissionControllerMock,
-            allocationManagerMock
-        );
-
-        serviceManager = ServiceManagerMock(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(serviceManagerImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        ServiceManagerMock.initialize.selector,
-                        serviceManager.owner(),
-                        msg.sender,
-                        msg.sender
-                    )
-                )
-            )
-        );
-
-        serviceManagerOwner = serviceManager.owner();
-        cheats.prank(serviceManagerOwner);
-        serviceManager.setRewardsInitiator(rewardsInitiator);
-
-        _setUpDefaultStrategiesAndMultipliers();
-
-        cheats.warp(GENESIS_REWARDS_TIMESTAMP + 2 weeks);
-
-        addressIsExcludedFromFuzzedInputs[address(pauserRegistry)] = true;
-        addressIsExcludedFromFuzzedInputs[address(proxyAdmin)] = true;
-    }
-
-    function test_Increment() public {
-        avs.increment();
-        assertEq(avs.number(), 1);
-    }
-
-    function testFuzz_SetNumber(uint256 x) public {
-        avs.setNumber(x);
-        assertEq(avs.number(), x);
     }
 }

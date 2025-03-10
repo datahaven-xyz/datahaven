@@ -13,13 +13,9 @@ import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSR
 import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
-import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
-import {IServiceManager} from "../interfaces/IServiceManager.sol";
-import {ISlashingRegistryCoordinator} from "../interfaces/ISlashingRegistryCoordinator.sol";
-import {IStakeRegistry} from "../interfaces/IStakeRegistry.sol";
+import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
 
-import {BitmapUtils} from "../libraries/BitmapUtils.sol";
-import {LibMergeSort} from "../libraries/LibMergeSort.sol";
+import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
 
 /**
  * @title Minimal implementation of a ServiceManager-type contract.
@@ -30,16 +26,6 @@ abstract contract ServiceManagerBase is
     IAVSRegistrar
 {
     using SafeERC20 for IERC20;
-    using BitmapUtils for *;
-
-    /// @notice when applied to a function, only allows the RegistryCoordinator to call it
-    modifier onlyRegistryCoordinator() {
-        require(
-            msg.sender == address(_registryCoordinator),
-            OnlyRegistryCoordinator()
-        );
-        _;
-    }
 
     /// @notice only rewardsInitiator can call createAVSRewardsSubmission
     modifier onlyRewardsInitiator() {
@@ -50,15 +36,11 @@ abstract contract ServiceManagerBase is
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
-        ISlashingRegistryCoordinator __registryCoordinator,
-        IStakeRegistry __stakeRegistry,
         IPermissionController __permissionController,
         IAllocationManager __allocationManager
     )
         ServiceManagerBaseStorage(
             __rewardsCoordinator,
-            __registryCoordinator,
-            __stakeRegistry,
             __permissionController,
             __allocationManager
         )
@@ -192,6 +174,27 @@ abstract contract ServiceManagerBase is
         );
     }
 
+    /// @inheritdoc IServiceManager
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] memory operatorSetIds
+    ) external virtual override {
+        IAllocationManagerTypes.DeregisterParams
+            memory params = IAllocationManagerTypes.DeregisterParams({
+                operator: operator,
+                avs: address(this),
+                operatorSetIds: operatorSetIds
+            });
+        _allocationManager.deregisterFromOperatorSets(params);
+    }
+
+    /// @inheritdoc IAVSRegistrar
+    function supportsAVS(
+        address avs
+    ) external view virtual override returns (bool) {
+        return avs == address(this);
+    }
+
     /// @inheritdoc IAVSRegistrar
     function registerOperator(
         address, // operator,
@@ -302,31 +305,8 @@ abstract contract ServiceManagerBase is
         virtual
         returns (address[] memory)
     {
-        uint256 quorumCount = _registryCoordinator.quorumCount();
-
-        if (quorumCount == 0) {
-            return new address[](0);
-        }
-
-        uint256 strategyCount;
-        for (uint256 i = 0; i < quorumCount; i++) {
-            strategyCount += _stakeRegistry.strategyParamsLength(uint8(i));
-        }
-
-        address[] memory restakedStrategies = new address[](strategyCount);
-        uint256 index = 0;
-        for (uint256 i = 0; i < _registryCoordinator.quorumCount(); i++) {
-            uint256 strategyParamsLength = _stakeRegistry.strategyParamsLength(
-                uint8(i)
-            );
-            for (uint256 j = 0; j < strategyParamsLength; j++) {
-                restakedStrategies[index] = address(
-                    _stakeRegistry.strategyParamsByIndex(uint8(i), j).strategy
-                );
-                index++;
-            }
-        }
-        return restakedStrategies;
+        // TODO: Implement this
+        return new address[](0);
     }
 
     /**
@@ -339,43 +319,35 @@ abstract contract ServiceManagerBase is
     function getOperatorRestakedStrategies(
         address operator
     ) external view virtual returns (address[] memory) {
-        bytes32 operatorId = _registryCoordinator.getOperatorId(operator);
-        uint192 operatorBitmap = _registryCoordinator.getCurrentQuorumBitmap(
-            operatorId
-        );
-
-        if (operatorBitmap == 0 || _registryCoordinator.quorumCount() == 0) {
-            return new address[](0);
-        }
-
-        // Get number of strategies for each quorum in operator bitmap
-        bytes memory operatorRestakedQuorums = BitmapUtils.bitmapToBytesArray(
-            operatorBitmap
-        );
-        uint256 strategyCount;
-        for (uint256 i = 0; i < operatorRestakedQuorums.length; i++) {
-            strategyCount += _stakeRegistry.strategyParamsLength(
-                uint8(operatorRestakedQuorums[i])
-            );
-        }
-
-        // Get strategies for each quorum in operator bitmap
-        address[] memory restakedStrategies = new address[](strategyCount);
-        uint256 index = 0;
-        for (uint256 i = 0; i < operatorRestakedQuorums.length; i++) {
-            uint8 quorum = uint8(operatorRestakedQuorums[i]);
-            uint256 strategyParamsLength = _stakeRegistry.strategyParamsLength(
-                quorum
-            );
-            for (uint256 j = 0; j < strategyParamsLength; j++) {
-                restakedStrategies[index] = address(
-                    _stakeRegistry.strategyParamsByIndex(quorum, j).strategy
-                );
-                index++;
-            }
-        }
-        return restakedStrategies;
+        // TODO: Implement this
+        return new address[](0);
     }
+
+    /// @dev DEPRECATED ❗️ This function is not used in the ServiceManagerBase contract
+    /// as it would use the deprecated `IAVSRegistrar` interface.
+    /// Calling this function will revert.
+    function registerOperatorToAVS(
+        address, // operator
+        ISignatureUtils.SignatureWithSaltAndExpiry calldata // operatorSignature
+    ) external virtual override {
+        revert("ServiceManagerBase: registerOperatorToAVS is deprecated");
+    }
+
+    /// @dev DEPRECATED ❗️ This function is not used in the ServiceManagerBase contract
+    /// as it would use the deprecated `IAVSRegistrar` interface.
+    /// Calling this function will revert.
+    function deregisterOperatorFromAVS(
+        address // operator
+    ) external virtual override {
+        revert("ServiceManagerBase: deregisterOperatorFromAVS is deprecated");
+    }
+
+    /// @dev NOT IMPLEMENTED ❗️ This function is not implemented in the ServiceManagerBase
+    /// contract as this contract only handles operator-directed rewards submissions.
+    /// Calling this function will revert.
+    function createAVSRewardsSubmission(
+        IRewardsCoordinator.RewardsSubmission[] calldata rewardsSubmissions
+    ) external virtual override {}
 
     function _checkRewardsInitiator() internal view {
         require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());

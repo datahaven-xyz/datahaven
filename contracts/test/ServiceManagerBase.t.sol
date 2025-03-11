@@ -4,9 +4,13 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IRewardsCoordinator} from
+    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
-import {IAllocationManagerErrors, IAllocationManager} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerErrors,
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {ServiceManagerMock} from "./mocks/ServiceManagerMock.sol";
 import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
@@ -23,50 +27,38 @@ contract ServiceManagerBaseTest is MockAVSDeployer {
     function beforeTestSetup(
         bytes4 testSelector
     ) public pure returns (bytes[] memory beforeTestCalldata) {
-        if (testSelector == this.test_createOperatorSets.selector) {
+        if (testSelector == this.test_createOperatorSetsWithEmptyParams.selector) {
             beforeTestCalldata = new bytes[](1);
-            beforeTestCalldata[0] = abi.encodePacked(
-                this.test_registerAVS.selector
-            );
+            beforeTestCalldata[0] = abi.encodePacked(this.test_registerAVS.selector);
         }
     }
 
     function test_registerAVS() public {
         vm.prank(avsOwner);
-        IServiceManagerUI(address(serviceManager)).updateAVSMetadataURI(
-            "https://example.com"
-        );
+        IServiceManagerUI(address(serviceManager)).updateAVSMetadataURI("https://example.com");
     }
 
     function test_registerAVSRevertsIfNotAVSOwner() public {
         vm.prank(rewardsUpdater);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        IServiceManagerUI(address(serviceManager)).updateAVSMetadataURI(
-            "https://example.com"
-        );
+        IServiceManagerUI(address(serviceManager)).updateAVSMetadataURI("https://example.com");
     }
 
     function test_createOperatorSetsRevertsIfNoMetadataExists() public {
         vm.prank(avsOwner);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IAllocationManagerErrors.NonexistentAVSMetadata.selector
-            )
+            abi.encodeWithSelector(IAllocationManagerErrors.NonexistentAVSMetadata.selector)
         );
 
-        IAllocationManager.CreateSetParams[]
-            memory emptyParams = new IAllocationManager.CreateSetParams[](0);
-        ServiceManagerBase(address(serviceManager)).createOperatorSets(
-            emptyParams
-        );
+        IAllocationManager.CreateSetParams[] memory emptyParams =
+            new IAllocationManager.CreateSetParams[](0);
+        ServiceManagerBase(address(serviceManager)).createOperatorSets(emptyParams);
     }
 
-    function test_createOperatorSets() public {
+    function test_createOperatorSetsWithEmptyParams() public {
         vm.prank(avsOwner);
-        IAllocationManager.CreateSetParams[]
-            memory emptyParams = new IAllocationManager.CreateSetParams[](0);
-        ServiceManagerBase(address(serviceManager)).createOperatorSets(
-            emptyParams
-        );
+        IAllocationManager.CreateSetParams[] memory emptyParams =
+            new IAllocationManager.CreateSetParams[](0);
+        ServiceManagerBase(address(serviceManager)).createOperatorSets(emptyParams);
     }
 }

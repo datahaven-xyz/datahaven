@@ -11,9 +11,13 @@ import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IS
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {IAVSDirectory} from "eigenlayer-contracts/src/contracts/interfaces/IAVSDirectory.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
-import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
-import {IRewardsCoordinator, IRewardsCoordinatorTypes} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IRewardsCoordinator,
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
 
@@ -56,19 +60,14 @@ contract MockAVSDeployer is Test {
     PermissionControllerMock public permissionControllerMock;
 
     // Addresses
-    address public proxyAdminOwner =
-        address(uint160(uint256(keccak256("proxyAdminOwner"))));
-    address public regularDeployer =
-        address(uint160(uint256(keccak256("regularDeployer"))));
+    address public proxyAdminOwner = address(uint160(uint256(keccak256("proxyAdminOwner"))));
+    address public regularDeployer = address(uint160(uint256(keccak256("regularDeployer"))));
     address public avsOwner = address(uint160(uint256(keccak256("avsOwner"))));
-    address public rewardsInitiator =
-        address(uint160(uint256(keccak256("rewardsInitiator"))));
+    address public rewardsInitiator = address(uint160(uint256(keccak256("rewardsInitiator"))));
     address public pauser = address(uint160(uint256(keccak256("pauser"))));
     address public unpauser = address(uint160(uint256(keccak256("unpauser"))));
-    address public rewardsUpdater =
-        address(uint160(uint256(keccak256("rewardsUpdater"))));
-    address public strategyOwner =
-        address(uint160(uint256(keccak256("strategyOwner"))));
+    address public rewardsUpdater = address(uint160(uint256(keccak256("rewardsUpdater"))));
+    address public strategyOwner = address(uint160(uint256(keccak256("strategyOwner"))));
 
     // RewardsCoordinator constants
     uint32 CALCULATION_INTERVAL_SECONDS = 7 days;
@@ -123,11 +122,7 @@ contract MockAVSDeployer is Test {
         cheats.prank(regularDeployer);
         allocationManager = AllocationManager(
             address(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(proxyAdmin),
-                    ""
-                )
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
 
@@ -154,23 +149,20 @@ contract MockAVSDeployer is Test {
         // Deploying RewardsCoordinator implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
-        IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams
-            memory params = IRewardsCoordinatorTypes
-                .RewardsCoordinatorConstructorParams({
-                    delegationManager: delegationMock,
-                    strategyManager: IStrategyManager(
-                        address(strategyManagerMock)
-                    ),
-                    allocationManager: allocationManagerMock,
-                    pauserRegistry: pauserRegistry,
-                    permissionController: permissionControllerMock,
-                    CALCULATION_INTERVAL_SECONDS: CALCULATION_INTERVAL_SECONDS,
-                    MAX_REWARDS_DURATION: MAX_REWARDS_DURATION,
-                    MAX_RETROACTIVE_LENGTH: MAX_RETROACTIVE_LENGTH,
-                    MAX_FUTURE_LENGTH: MAX_FUTURE_LENGTH,
-                    GENESIS_REWARDS_TIMESTAMP: GENESIS_REWARDS_TIMESTAMP,
-                    version: "v-mock"
-                });
+        IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams memory params =
+        IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams({
+            delegationManager: delegationMock,
+            strategyManager: IStrategyManager(address(strategyManagerMock)),
+            allocationManager: allocationManagerMock,
+            pauserRegistry: pauserRegistry,
+            permissionController: permissionControllerMock,
+            CALCULATION_INTERVAL_SECONDS: CALCULATION_INTERVAL_SECONDS,
+            MAX_REWARDS_DURATION: MAX_REWARDS_DURATION,
+            MAX_RETROACTIVE_LENGTH: MAX_RETROACTIVE_LENGTH,
+            MAX_FUTURE_LENGTH: MAX_FUTURE_LENGTH,
+            GENESIS_REWARDS_TIMESTAMP: GENESIS_REWARDS_TIMESTAMP,
+            version: "v-mock"
+        });
         rewardsCoordinatorImplementation = new RewardsCoordinator(params);
         rewardsCoordinator = RewardsCoordinator(
             address(
@@ -180,7 +172,7 @@ contract MockAVSDeployer is Test {
                     abi.encodeWithSelector(
                         RewardsCoordinator.initialize.selector,
                         msg.sender,
-                        0 /*initialPausedStatus*/,
+                        0, /*initialPausedStatus*/
                         rewardsUpdater,
                         activationDelay,
                         globalCommissionBips
@@ -195,20 +187,15 @@ contract MockAVSDeployer is Test {
         // Deploying ServiceManager implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
-        serviceManagerImplementation = new ServiceManagerMock(
-            rewardsCoordinator,
-            permissionControllerMock,
-            allocationManager
-        );
+        serviceManagerImplementation =
+            new ServiceManagerMock(rewardsCoordinator, permissionControllerMock, allocationManager);
         serviceManager = ServiceManagerMock(
             address(
                 new TransparentUpgradeableProxy(
                     address(serviceManagerImplementation),
                     address(proxyAdmin),
                     abi.encodeWithSelector(
-                        ServiceManagerMock.initialize.selector,
-                        avsOwner,
-                        rewardsInitiator
+                        ServiceManagerMock.initialize.selector, avsOwner, rewardsInitiator
                     )
                 )
             )
@@ -220,41 +207,23 @@ contract MockAVSDeployer is Test {
     function _setUpDefaultStrategiesAndMultipliers() internal virtual {
         // Deploy mock tokens to be used for strategies.
         vm.startPrank(strategyOwner);
-        IERC20 token1 = new ERC20FixedSupply(
-            "dog wif hat",
-            "MOCK1",
-            mockTokenInitialSupply,
-            address(this)
-        );
-        IERC20 token2 = new ERC20FixedSupply(
-            "jeo boden",
-            "MOCK2",
-            mockTokenInitialSupply,
-            address(this)
-        );
-        IERC20 token3 = new ERC20FixedSupply(
-            "pepe wif avs",
-            "MOCK3",
-            mockTokenInitialSupply,
-            address(this)
-        );
+        IERC20 token1 =
+            new ERC20FixedSupply("dog wif hat", "MOCK1", mockTokenInitialSupply, address(this));
+        IERC20 token2 =
+            new ERC20FixedSupply("jeo boden", "MOCK2", mockTokenInitialSupply, address(this));
+        IERC20 token3 =
+            new ERC20FixedSupply("pepe wif avs", "MOCK3", mockTokenInitialSupply, address(this));
 
         // Deploy mock strategies.
         strategyImplementation = new StrategyBase(
-            IStrategyManager(address(strategyManagerMock)),
-            pauserRegistry,
-            "v-mock"
+            IStrategyManager(address(strategyManagerMock)), pauserRegistry, "v-mock"
         );
         strategyMock1 = StrategyBase(
             address(
                 new TransparentUpgradeableProxy(
                     address(strategyImplementation),
                     address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        StrategyBase.initialize.selector,
-                        token1,
-                        pauserRegistry
-                    )
+                    abi.encodeWithSelector(StrategyBase.initialize.selector, token1, pauserRegistry)
                 )
             )
         );
@@ -263,11 +232,7 @@ contract MockAVSDeployer is Test {
                 new TransparentUpgradeableProxy(
                     address(strategyImplementation),
                     address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        StrategyBase.initialize.selector,
-                        token2,
-                        pauserRegistry
-                    )
+                    abi.encodeWithSelector(StrategyBase.initialize.selector, token2, pauserRegistry)
                 )
             )
         );
@@ -276,11 +241,7 @@ contract MockAVSDeployer is Test {
                 new TransparentUpgradeableProxy(
                     address(strategyImplementation),
                     address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        StrategyBase.initialize.selector,
-                        token3,
-                        pauserRegistry
-                    )
+                    abi.encodeWithSelector(StrategyBase.initialize.selector, token3, pauserRegistry)
                 )
             )
         );
@@ -299,22 +260,13 @@ contract MockAVSDeployer is Test {
         vm.stopPrank();
 
         defaultStrategyAndMultipliers.push(
-            IRewardsCoordinatorTypes.StrategyAndMultiplier(
-                IStrategy(address(strategies[0])),
-                1e18
-            )
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(IStrategy(address(strategies[0])), 1e18)
         );
         defaultStrategyAndMultipliers.push(
-            IRewardsCoordinatorTypes.StrategyAndMultiplier(
-                IStrategy(address(strategies[1])),
-                2e18
-            )
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(IStrategy(address(strategies[1])), 2e18)
         );
         defaultStrategyAndMultipliers.push(
-            IRewardsCoordinatorTypes.StrategyAndMultiplier(
-                IStrategy(address(strategies[2])),
-                3e18
-            )
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(IStrategy(address(strategies[2])), 3e18)
         );
     }
 
@@ -328,15 +280,9 @@ contract MockAVSDeployer is Test {
         vm.label(address(allocationManagerMock), "AllocationManagerMock");
         vm.label(address(rewardsCoordinatorMock), "RewardsCoordinatorMock");
         vm.label(address(allocationManager), "AllocationManager");
-        vm.label(
-            address(allocationManagerImplementation),
-            "AllocationManagerImplementation"
-        );
+        vm.label(address(allocationManagerImplementation), "AllocationManagerImplementation");
         vm.label(address(serviceManager), "ServiceManager");
-        vm.label(
-            address(serviceManagerImplementation),
-            "ServiceManagerImplementation"
-        );
+        vm.label(address(serviceManagerImplementation), "ServiceManagerImplementation");
     }
 
     /// @dev Sort to ensure that the array is in ascending order for strategies
@@ -356,17 +302,11 @@ contract MockAVSDeployer is Test {
         return arr;
     }
 
-    function _incrementAddress(
-        address start,
-        uint256 inc
-    ) internal pure returns (address) {
+    function _incrementAddress(address start, uint256 inc) internal pure returns (address) {
         return address(uint160(uint256(uint160(start) + inc)));
     }
 
-    function _incrementBytes32(
-        bytes32 start,
-        uint256 inc
-    ) internal pure returns (bytes32) {
+    function _incrementBytes32(bytes32 start, uint256 inc) internal pure returns (bytes32) {
         return bytes32(uint256(start) + inc);
     }
 }

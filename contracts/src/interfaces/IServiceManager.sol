@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
-import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IRewardsCoordinator} from
+    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IServiceManagerUI} from "./IServiceManagerUI.sol";
-import {IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IAllocationManager} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManagerTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 
@@ -25,17 +28,10 @@ interface IServiceManagerEvents {
      * @param prevRewardsInitiator The previous rewards initiator address.
      * @param newRewardsInitiator The new rewards initiator address.
      */
-    event RewardsInitiatorUpdated(
-        address prevRewardsInitiator,
-        address newRewardsInitiator
-    );
+    event RewardsInitiatorUpdated(address prevRewardsInitiator, address newRewardsInitiator);
 }
 
-interface IServiceManager is
-    IServiceManagerUI,
-    IServiceManagerErrors,
-    IServiceManagerEvents
-{
+interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceManagerEvents {
     /**
      * @notice Creates a new rewards submission to the EigenLayer RewardsCoordinator contract.
      * @dev Only callable by the permissioned rewardsInitiator address.
@@ -60,21 +56,27 @@ interface IServiceManager is
      * @dev Only callable by the owner of the contract.
      * @param admin The address of the admin to add.
      */
-    function addPendingAdmin(address admin) external;
+    function addPendingAdmin(
+        address admin
+    ) external;
 
     /**
      * @notice Calls `removePendingAdmin` on the `PermissionController` contract.
      * @dev Only callable by the owner of the contract.
      * @param pendingAdmin The address of the pending admin to remove.
      */
-    function removePendingAdmin(address pendingAdmin) external;
+    function removePendingAdmin(
+        address pendingAdmin
+    ) external;
 
     /**
      * @notice Calls `removeAdmin` on the `PermissionController` contract.
      * @dev Only callable by the owner of the contract.
      * @param admin The address of the admin to remove.
      */
-    function removeAdmin(address admin) external;
+    function removeAdmin(
+        address admin
+    ) external;
 
     /**
      * @notice Calls `setAppointee` on the `PermissionController` contract.
@@ -83,11 +85,7 @@ interface IServiceManager is
      * @param target The address of the target to set the appointee for.
      * @param selector The function selector to set the appointee for.
      */
-    function setAppointee(
-        address appointee,
-        address target,
-        bytes4 selector
-    ) external;
+    function setAppointee(address appointee, address target, bytes4 selector) external;
 
     /**
      * @notice Calls `removeAppointee` on the `PermissionController` contract.
@@ -96,11 +94,7 @@ interface IServiceManager is
      * @param target The address of the target to remove the appointee for.
      * @param selector The function selector to remove the appointee for.
      */
-    function removeAppointee(
-        address appointee,
-        address target,
-        bytes4 selector
-    ) external;
+    function removeAppointee(address appointee, address target, bytes4 selector) external;
 
     /**
      * @notice Deregisters an operator from specified operator sets

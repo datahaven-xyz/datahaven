@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.27;
 
-import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {IPermissionController} from
+    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 contract PermissionControllerIntermediate is IPermissionController {
     function addPendingAdmin(address account, address admin) external virtual {}
 
-    function removePendingAdmin(
-        address account,
-        address admin
-    ) external virtual {}
+    function removePendingAdmin(address account, address admin) external virtual {}
 
-    function acceptAdmin(address account) external virtual {}
+    function acceptAdmin(
+        address account
+    ) external virtual {}
 
     function removeAdmin(address account, address admin) external virtual {}
 
@@ -29,10 +29,7 @@ contract PermissionControllerIntermediate is IPermissionController {
         bytes4 selector
     ) external virtual {}
 
-    function isAdmin(
-        address account,
-        address caller
-    ) external view virtual returns (bool) {}
+    function isAdmin(address account, address caller) external view virtual returns (bool) {}
 
     function isPendingAdmin(
         address account,
@@ -71,8 +68,8 @@ contract PermissionControllerIntermediate is IPermissionController {
 }
 
 contract PermissionControllerMock is PermissionControllerIntermediate {
-    mapping(address => mapping(address => mapping(address => mapping(bytes4 => bool))))
-        internal _canCall;
+    mapping(address => mapping(address => mapping(address => mapping(bytes4 => bool)))) internal
+        _canCall;
 
     function setCanCall(
         address account,

@@ -12,11 +12,15 @@ contract EigenPodManagerMock is Test, Pausable, IEigenPodManager {
 
     mapping(address => int256) public podShares;
 
-    constructor(IPauserRegistry _pauserRegistry) Pausable(_pauserRegistry) {
+    constructor(
+        IPauserRegistry _pauserRegistry
+    ) Pausable(_pauserRegistry) {
         _setPausedStatus(0);
     }
 
-    function podOwnerShares(address podOwner) external view returns (int256) {
+    function podOwnerShares(
+        address podOwner
+    ) external view returns (int256) {
         return podShares[podOwner];
     }
 
@@ -42,9 +46,13 @@ contract EigenPodManagerMock is Test, Pausable, IEigenPodManager {
         uint64 proportionPodBalanceDecrease
     ) external {}
 
-    function ownerToPod(address podOwner) external view returns (IEigenPod) {}
+    function ownerToPod(
+        address podOwner
+    ) external view returns (IEigenPod) {}
 
-    function getPod(address podOwner) external view returns (IEigenPod) {}
+    function getPod(
+        address podOwner
+    ) external view returns (IEigenPod) {}
 
     function ethPOS() external view returns (IETHPOSDeposit) {}
 
@@ -52,7 +60,9 @@ contract EigenPodManagerMock is Test, Pausable, IEigenPodManager {
 
     function strategyManager() external view returns (IStrategyManager) {}
 
-    function hasPod(address podOwner) external view returns (bool) {}
+    function hasPod(
+        address podOwner
+    ) external view returns (bool) {}
 
     function numPods() external view returns (uint256) {}
 
@@ -93,10 +103,7 @@ contract EigenPodManagerMock is Test, Pausable, IEigenPodManager {
 
     function burnableETHShares() external view returns (uint256) {}
 
-    function increaseBurnableShares(
-        IStrategy strategy,
-        uint256 addedSharesToBurn
-    ) external {}
+    function increaseBurnableShares(IStrategy strategy, uint256 addedSharesToBurn) external {}
 
     function addShares(
         address staker,

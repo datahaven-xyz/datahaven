@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
-import {ISignatureUtilsMixinTypes} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
+import {ISignatureUtilsMixinTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
 
 /**
  * @title Minimal interface for a ServiceManager-type contract that AVS ServiceManager contracts must implement
@@ -21,7 +22,9 @@ interface IServiceManagerUI {
      *         "twitter": "https://twitter.com/eigenlayer"
      *     }
      */
-    function updateAVSMetadataURI(string memory metadataURI) external;
+    function updateAVSMetadataURI(
+        string memory metadataURI
+    ) external;
 
     /**
      * @notice Forwards a call to EigenLayer's AVSDirectory contract to confirm operator registration with the AVS.
@@ -30,15 +33,16 @@ interface IServiceManagerUI {
      */
     function registerOperatorToAVS(
         address operator,
-        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry
-            memory operatorSignature
+        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry memory operatorSignature
     ) external;
 
     /**
      * @notice Forwards a call to EigenLayer's AVSDirectory contract to confirm operator deregistration from the AVS.
      * @param operator The address of the operator to deregister.
      */
-    function deregisterOperatorFromAVS(address operator) external;
+    function deregisterOperatorFromAVS(
+        address operator
+    ) external;
 
     /**
      * @notice Returns the list of strategies that the operator has potentially restaked on the AVS.
@@ -57,8 +61,5 @@ interface IServiceManagerUI {
      * @dev No guarantee is made on uniqueness of each element in the returned array.
      *      The off-chain service should do that validation separately.
      */
-    function getRestakeableStrategies()
-        external
-        view
-        returns (address[] memory);
+    function getRestakeableStrategies() external view returns (address[] memory);
 }

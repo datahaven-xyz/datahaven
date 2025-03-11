@@ -3,10 +3,14 @@ pragma solidity ^0.8.27;
 
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 
-import {IAllocationManager} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {IAllocationManager} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IRewardsCoordinator} from
+    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IPermissionController} from
+    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 import {IServiceManager} from "../interfaces/IServiceManager.sol";
 
@@ -15,10 +19,7 @@ import {IServiceManager} from "../interfaces/IServiceManager.sol";
  * @author Layr Labs, Inc.
  * @notice This storage contract is separate from the logic to simplify the upgrade process.
  */
-abstract contract ServiceManagerBaseStorage is
-    IServiceManager,
-    OwnableUpgradeable
-{
+abstract contract ServiceManagerBaseStorage is IServiceManager, OwnableUpgradeable {
     /**
      *
      *                            CONSTANTS AND IMMUTABLES

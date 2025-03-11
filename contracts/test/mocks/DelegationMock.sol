@@ -4,7 +4,8 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {console2 as console} from "forge-std/Test.sol";
 
-import {IDelegationManager} from "eigenlayer-contracts/src/contracts/interfaces/IDelegationManager.sol";
+import {IDelegationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IDelegationManager.sol";
 import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IStrategyManager.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -12,10 +13,7 @@ import {IPauserRegistry} from "eigenlayer-contracts/src/contracts/interfaces/IPa
 import {SlashingLib} from "eigenlayer-contracts/src/contracts/libraries/SlashingLib.sol";
 
 contract DelegationIntermediate is IDelegationManager {
-    function initialize(
-        address initialOwner,
-        uint256 initialPausedStatus
-    ) external virtual {}
+    function initialize(address initialOwner, uint256 initialPausedStatus) external virtual {}
 
     function registerAsOperator(
         OperatorDetails calldata registeringOperatorDetails,
@@ -110,7 +108,9 @@ contract DelegationIntermediate is IDelegationManager {
         address staker
     ) external view virtual returns (uint256) {}
 
-    function isDelegated(address staker) external view virtual returns (bool) {}
+    function isDelegated(
+        address staker
+    ) external view virtual returns (bool) {}
 
     function isOperator(
         address operator
@@ -147,10 +147,7 @@ contract DelegationIntermediate is IDelegationManager {
         view
         virtual
         override
-        returns (
-            uint256[] memory withdrawableShares,
-            uint256[] memory depositShares
-        )
+        returns (uint256[] memory withdrawableShares, uint256[] memory depositShares)
     {}
 
     function getDepositedShares(
@@ -188,21 +185,9 @@ contract DelegationIntermediate is IDelegationManager {
         uint256 expiry
     ) external view virtual returns (bytes32) {}
 
-    function beaconChainETHStrategy()
-        external
-        view
-        virtual
-        override
-        returns (IStrategy)
-    {}
+    function beaconChainETHStrategy() external view virtual override returns (IStrategy) {}
 
-    function DELEGATION_APPROVAL_TYPEHASH()
-        external
-        view
-        virtual
-        override
-        returns (bytes32)
-    {}
+    function DELEGATION_APPROVAL_TYPEHASH() external view virtual override returns (bytes32) {}
 
     function registerAsOperator(
         address initDelegationApprover,
@@ -239,13 +224,7 @@ contract DelegationIntermediate is IDelegationManager {
         uint64 beaconChainSlashingFactorDecrease
     ) external virtual {}
 
-    function minWithdrawalDelayBlocks()
-        external
-        view
-        virtual
-        override
-        returns (uint32)
-    {}
+    function minWithdrawalDelayBlocks() external view virtual override returns (uint32) {}
 
     function slashOperatorShares(
         address operator,
@@ -266,12 +245,7 @@ contract DelegationIntermediate is IDelegationManager {
 
     function getQueuedWithdrawal(
         bytes32 withdrawalRoot
-    )
-        external
-        view
-        override
-        returns (Withdrawal memory withdrawal, uint256[] memory shares)
-    {}
+    ) external view override returns (Withdrawal memory withdrawal, uint256[] memory shares) {}
 
     function domainSeparator() external view returns (bytes32) {}
 
@@ -317,26 +291,17 @@ contract DelegationMock is DelegationIntermediate {
         address[] memory operators,
         IStrategy[] memory strategies
     ) external view override returns (uint256[][] memory) {
-        uint256[][] memory operatorSharesArray = new uint256[][](
-            operators.length
-        );
+        uint256[][] memory operatorSharesArray = new uint256[][](operators.length);
         for (uint256 i = 0; i < operators.length; i++) {
             operatorSharesArray[i] = new uint256[](strategies.length);
             for (uint256 j = 0; j < strategies.length; j++) {
-                operatorSharesArray[i][j] = _weightOf[operators[i]][
-                    strategies[j]
-                ];
+                operatorSharesArray[i][j] = _weightOf[operators[i]][strategies[j]];
             }
         }
         return operatorSharesArray;
     }
 
-    function minWithdrawalDelayBlocks()
-        external
-        pure
-        override
-        returns (uint32)
-    {
+    function minWithdrawalDelayBlocks() external pure override returns (uint32) {
         return 10000;
     }
 }

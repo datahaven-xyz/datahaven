@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.27;
 
-import {IAllocationManager, OperatorSet} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager,
+    OperatorSet
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IPauserRegistry} from "eigenlayer-contracts/src/contracts/interfaces/IPauserRegistry.sol";
 
 contract AllocationManagerIntermediate is IAllocationManager {
-    function initialize(
-        address initialOwner,
-        uint256 initialPausedStatus
-    ) external virtual {}
+    function initialize(address initialOwner, uint256 initialPausedStatus) external virtual {}
 
-    function slashOperator(
-        address avs,
-        SlashingParams calldata params
-    ) external virtual {}
+    function slashOperator(address avs, SlashingParams calldata params) external virtual {}
 
     function modifyAllocations(
         address operator,
@@ -37,25 +34,13 @@ contract AllocationManagerIntermediate is IAllocationManager {
         DeregisterParams calldata params
     ) external virtual {}
 
-    function setAllocationDelay(
-        address operator,
-        uint32 delay
-    ) external virtual {}
+    function setAllocationDelay(address operator, uint32 delay) external virtual {}
 
-    function setAVSRegistrar(
-        address avs,
-        IAVSRegistrar registrar
-    ) external virtual {}
+    function setAVSRegistrar(address avs, IAVSRegistrar registrar) external virtual {}
 
-    function updateAVSMetadataURI(
-        address avs,
-        string calldata metadataURI
-    ) external virtual {}
+    function updateAVSMetadataURI(address avs, string calldata metadataURI) external virtual {}
 
-    function createOperatorSets(
-        address avs,
-        CreateSetParams[] calldata params
-    ) external virtual {}
+    function createOperatorSets(address avs, CreateSetParams[] calldata params) external virtual {}
 
     function addStrategiesToOperatorSet(
         address avs,
@@ -97,12 +82,7 @@ contract AllocationManagerIntermediate is IAllocationManager {
     function getStrategyAllocations(
         address operator,
         IStrategy strategy
-    )
-        external
-        view
-        virtual
-        returns (OperatorSet[] memory, Allocation[] memory)
-    {}
+    ) external view virtual returns (OperatorSet[] memory, Allocation[] memory) {}
 
     function getAllocatableMagnitude(
         address operator,

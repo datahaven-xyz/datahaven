@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {IAllocationManager} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IRewardsCoordinator} from
+    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IPermissionController} from
+    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";
 import {ServiceManagerBaseStorage} from "../../src/middleware/ServiceManagerBaseStorage.sol";
@@ -20,13 +23,7 @@ contract ServiceManagerMock is ServiceManagerBase {
         IRewardsCoordinator __rewardsCoordinator,
         IPermissionController __permissionController,
         IAllocationManager __allocationManager
-    )
-        ServiceManagerBase(
-            __rewardsCoordinator,
-            __permissionController,
-            __allocationManager
-        )
-    {}
+    ) ServiceManagerBase(__rewardsCoordinator, __permissionController, __allocationManager) {}
 
     function initialize(
         address initialOwner,

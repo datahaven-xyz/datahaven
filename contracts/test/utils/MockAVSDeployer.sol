@@ -3,19 +3,21 @@ pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtils.sol";
 import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IStrategyManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {IAVSDirectory} from "eigenlayer-contracts/src/contracts/interfaces/IAVSDirectory.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
-import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IRewardsCoordinator, IRewardsCoordinatorTypes} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
+import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
 
+import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 
 // Mocks
@@ -37,9 +39,11 @@ contract MockAVSDeployer is Test {
 
     EmptyContract public emptyContract;
 
+    // AVS contracts
     ServiceManagerMock public serviceManager;
     ServiceManagerMock public serviceManagerImplementation;
 
+    // EigenLayer contracts
     StrategyManagerMock public strategyManagerMock;
     DelegationMock public delegationMock;
     EigenPodManagerMock public eigenPodManagerMock;
@@ -51,6 +55,7 @@ contract MockAVSDeployer is Test {
     RewardsCoordinatorMock public rewardsCoordinatorMock;
     PermissionControllerMock public permissionControllerMock;
 
+    // Addresses
     address public proxyAdminOwner =
         address(uint160(uint256(keccak256("proxyAdminOwner"))));
     address public regularDeployer =
@@ -62,7 +67,10 @@ contract MockAVSDeployer is Test {
     address public unpauser = address(uint160(uint256(keccak256("unpauser"))));
     address public rewardsUpdater =
         address(uint160(uint256(keccak256("rewardsUpdater"))));
+    address public strategyOwner =
+        address(uint160(uint256(keccak256("strategyOwner"))));
 
+    // RewardsCoordinator constants
     uint32 CALCULATION_INTERVAL_SECONDS = 7 days;
     uint32 MAX_REWARDS_DURATION = 70 days;
     uint32 MAX_RETROACTIVE_LENGTH = 84 days;
@@ -73,6 +81,15 @@ contract MockAVSDeployer is Test {
     uint32 activationDelay = 7 days;
     /// @notice the commission for all operators across all AVSs
     uint16 globalCommissionBips = 1000;
+
+    // Mock strategies
+    IERC20[] rewardTokens;
+    uint256 mockTokenInitialSupply = 10e50;
+    IStrategy strategyMock1;
+    IStrategy strategyMock2;
+    IStrategy strategyMock3;
+    StrategyBase strategyImplementation;
+    IRewardsCoordinator.StrategyAndMultiplier[] defaultStrategyAndMultipliers;
 
     function _deployMockEigenLayerAndAVS() internal {
         emptyContract = new EmptyContract();
@@ -90,12 +107,13 @@ contract MockAVSDeployer is Test {
         pauserRegistry = new PauserRegistry(pausers, unpauser);
         delegationMock = new DelegationMock();
         eigenPodManagerMock = new EigenPodManagerMock(pauserRegistry);
-        strategyManagerMock = new StrategyManagerMock(delegationMock);
         allocationManagerMock = new AllocationManagerMock();
         permissionControllerMock = new PermissionControllerMock();
         rewardsCoordinatorMock = new RewardsCoordinatorMock();
-        strategyManagerMock.setDelegationManager(delegationMock);
         cheats.stopPrank();
+
+        cheats.prank(strategyOwner);
+        strategyManagerMock = new StrategyManagerMock(delegationMock);
 
         console.log("EigenLayer contracts deployed");
 
@@ -122,7 +140,8 @@ contract MockAVSDeployer is Test {
             pauserRegistry,
             permissionControllerMock,
             uint32(7 days), // DEALLOCATION_DELAY
-            uint32(1 days) // ALLOCATION_CONFIGURATION_DELAY
+            uint32(1 days), // ALLOCATION_CONFIGURATION_DELAY
+            "v-mock"
         );
         cheats.prank(proxyAdminOwner);
         proxyAdmin.upgrade(
@@ -135,18 +154,24 @@ contract MockAVSDeployer is Test {
         // Deploying RewardsCoordinator implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
-        rewardsCoordinatorImplementation = new RewardsCoordinator(
-            delegationMock,
-            IStrategyManager(address(strategyManagerMock)),
-            allocationManagerMock,
-            pauserRegistry,
-            permissionControllerMock,
-            CALCULATION_INTERVAL_SECONDS,
-            MAX_REWARDS_DURATION,
-            MAX_RETROACTIVE_LENGTH,
-            MAX_FUTURE_LENGTH,
-            GENESIS_REWARDS_TIMESTAMP
-        );
+        IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams
+            memory params = IRewardsCoordinatorTypes
+                .RewardsCoordinatorConstructorParams({
+                    delegationManager: delegationMock,
+                    strategyManager: IStrategyManager(
+                        address(strategyManagerMock)
+                    ),
+                    allocationManager: allocationManagerMock,
+                    pauserRegistry: pauserRegistry,
+                    permissionController: permissionControllerMock,
+                    CALCULATION_INTERVAL_SECONDS: CALCULATION_INTERVAL_SECONDS,
+                    MAX_REWARDS_DURATION: MAX_REWARDS_DURATION,
+                    MAX_RETROACTIVE_LENGTH: MAX_RETROACTIVE_LENGTH,
+                    MAX_FUTURE_LENGTH: MAX_FUTURE_LENGTH,
+                    GENESIS_REWARDS_TIMESTAMP: GENESIS_REWARDS_TIMESTAMP,
+                    version: "v-mock"
+                });
+        rewardsCoordinatorImplementation = new RewardsCoordinator(params);
         rewardsCoordinator = RewardsCoordinator(
             address(
                 new TransparentUpgradeableProxy(
@@ -192,6 +217,107 @@ contract MockAVSDeployer is Test {
         console.log("ServiceManager implementation deployed");
     }
 
+    function _setUpDefaultStrategiesAndMultipliers() internal virtual {
+        // Deploy mock tokens to be used for strategies.
+        vm.startPrank(strategyOwner);
+        IERC20 token1 = new ERC20FixedSupply(
+            "dog wif hat",
+            "MOCK1",
+            mockTokenInitialSupply,
+            address(this)
+        );
+        IERC20 token2 = new ERC20FixedSupply(
+            "jeo boden",
+            "MOCK2",
+            mockTokenInitialSupply,
+            address(this)
+        );
+        IERC20 token3 = new ERC20FixedSupply(
+            "pepe wif avs",
+            "MOCK3",
+            mockTokenInitialSupply,
+            address(this)
+        );
+
+        // Deploy mock strategies.
+        strategyImplementation = new StrategyBase(
+            IStrategyManager(address(strategyManagerMock)),
+            pauserRegistry,
+            "v-mock"
+        );
+        strategyMock1 = StrategyBase(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(strategyImplementation),
+                    address(proxyAdmin),
+                    abi.encodeWithSelector(
+                        StrategyBase.initialize.selector,
+                        token1,
+                        pauserRegistry
+                    )
+                )
+            )
+        );
+        strategyMock2 = StrategyBase(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(strategyImplementation),
+                    address(proxyAdmin),
+                    abi.encodeWithSelector(
+                        StrategyBase.initialize.selector,
+                        token2,
+                        pauserRegistry
+                    )
+                )
+            )
+        );
+        strategyMock3 = StrategyBase(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(strategyImplementation),
+                    address(proxyAdmin),
+                    abi.encodeWithSelector(
+                        StrategyBase.initialize.selector,
+                        token3,
+                        pauserRegistry
+                    )
+                )
+            )
+        );
+        vm.stopPrank();
+
+        IStrategy[] memory strategies = new IStrategy[](3);
+        strategies[0] = strategyMock1;
+        strategies[1] = strategyMock2;
+        strategies[2] = strategyMock3;
+        strategies = _sortArrayAsc(strategies);
+
+        vm.startPrank(strategyOwner);
+        strategyManagerMock.setStrategyWhitelist(strategies[0], true);
+        strategyManagerMock.setStrategyWhitelist(strategies[1], true);
+        strategyManagerMock.setStrategyWhitelist(strategies[2], true);
+        vm.stopPrank();
+
+        defaultStrategyAndMultipliers.push(
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(
+                IStrategy(address(strategies[0])),
+                1e18
+            )
+        );
+        defaultStrategyAndMultipliers.push(
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(
+                IStrategy(address(strategies[1])),
+                2e18
+            )
+        );
+        defaultStrategyAndMultipliers.push(
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(
+                IStrategy(address(strategies[2])),
+                3e18
+            )
+        );
+    }
+
     function _labelContracts() internal {
         vm.label(address(emptyContract), "EmptyContract");
         vm.label(address(proxyAdmin), "ProxyAdmin");
@@ -211,6 +337,23 @@ contract MockAVSDeployer is Test {
             address(serviceManagerImplementation),
             "ServiceManagerImplementation"
         );
+    }
+
+    /// @dev Sort to ensure that the array is in ascending order for strategies
+    function _sortArrayAsc(
+        IStrategy[] memory arr
+    ) internal pure returns (IStrategy[] memory) {
+        uint256 l = arr.length;
+        for (uint256 i = 0; i < l; i++) {
+            for (uint256 j = i + 1; j < l; j++) {
+                if (address(arr[i]) > address(arr[j])) {
+                    IStrategy temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                }
+            }
+        }
+        return arr;
     }
 
     function _incrementAddress(

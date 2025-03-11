@@ -190,4 +190,8 @@ contract RewardsCoordinatorMock is IRewardsCoordinator {
         override
         returns (uint32)
     {}
+
+    function version() external pure override returns (string memory) {
+        return "mock";
+    }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
-import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtils.sol";
+import {ISignatureUtilsMixinTypes} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
 
 /**
  * @title Minimal interface for a ServiceManager-type contract that AVS ServiceManager contracts must implement
@@ -30,7 +30,8 @@ interface IServiceManagerUI {
      */
     function registerOperatorToAVS(
         address operator,
-        ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature
+        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry
+            memory operatorSignature
     ) external;
 
     /**

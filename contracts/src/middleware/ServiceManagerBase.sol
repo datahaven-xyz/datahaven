@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtils.sol";
+import {ISignatureUtilsMixinTypes} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
@@ -71,22 +71,20 @@ abstract contract ServiceManagerBase is
      * Forwards the call to the AllocationManager.createOperatorSets() function
      */
     function createOperatorSets(
-        address avs,
         IAllocationManager.CreateSetParams[] calldata params
     ) external virtual onlyOwner {
-        _allocationManager.createOperatorSets(avs, params);
+        _allocationManager.createOperatorSets(address(this), params);
     }
 
     /**
      * Forwards the call to the AllocationManager.addStrategiesToOperatorSet() function
      */
     function addStrategiesToOperatorSet(
-        address avs,
         uint32 operatorSetId,
         IStrategy[] calldata strategies
     ) external virtual onlyOwner {
         _allocationManager.addStrategiesToOperatorSet(
-            avs,
+            address(this),
             operatorSetId,
             strategies
         );
@@ -96,12 +94,11 @@ abstract contract ServiceManagerBase is
      * Forwards the call to the AllocationManager.removeStrategiesFromOperatorSet() function
      */
     function removeStrategiesFromOperatorSet(
-        address avs,
         uint32 operatorSetId,
         IStrategy[] calldata strategies
     ) external virtual onlyOwner {
         _allocationManager.removeStrategiesFromOperatorSet(
-            avs,
+            address(this),
             operatorSetId,
             strategies
         );
@@ -111,10 +108,9 @@ abstract contract ServiceManagerBase is
      * Forwards the call to the AllocationManager.slashOperator() function
      */
     function slashOperator(
-        address avs,
         IAllocationManager.SlashingParams calldata params
     ) external virtual onlyOwner {
-        _allocationManager.slashOperator(avs, params);
+        _allocationManager.slashOperator(address(this), params);
     }
 
     /**
@@ -157,11 +153,8 @@ abstract contract ServiceManagerBase is
 
             // Transfer token to ServiceManager and approve RewardsCoordinator to transfer again
             // in createOperatorDirectedOperatorSetRewardsSubmission() call
-            operatorDirectedRewardsSubmissions[i].token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                totalAmount
-            );
+            IERC20(operatorDirectedRewardsSubmissions[i].token)
+                .safeTransferFrom(msg.sender, address(this), totalAmount);
             operatorDirectedRewardsSubmissions[i].token.safeIncreaseAllowance(
                 address(_rewardsCoordinator),
                 totalAmount
@@ -328,7 +321,7 @@ abstract contract ServiceManagerBase is
     /// Calling this function will revert.
     function registerOperatorToAVS(
         address, // operator
-        ISignatureUtils.SignatureWithSaltAndExpiry calldata // operatorSignature
+        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry calldata // operatorSignature
     ) external virtual override {
         revert("ServiceManagerBase: registerOperatorToAVS is deprecated");
     }

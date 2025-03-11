@@ -9,7 +9,6 @@ import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IS
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IPauserRegistry} from "eigenlayer-contracts/src/contracts/interfaces/IPauserRegistry.sol";
-import {ISignatureUtils} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtils.sol";
 import {SlashingLib} from "eigenlayer-contracts/src/contracts/libraries/SlashingLib.sol";
 
 contract DelegationIntermediate is IDelegationManager {
@@ -255,10 +254,6 @@ contract DelegationIntermediate is IDelegationManager {
         uint64 newMaxMagnitude
     ) external {}
 
-    function getQueuedWithdrawal(
-        bytes32 withdrawalRoot
-    ) external view override returns (Withdrawal memory) {}
-
     function getQueuedWithdrawalRoots(
         address staker
     ) external view override returns (bytes32[] memory) {}
@@ -268,6 +263,21 @@ contract DelegationIntermediate is IDelegationManager {
         IStrategy[] memory strategies,
         uint256[] memory withdrawableShares
     ) external view override returns (uint256[] memory) {}
+
+    function getQueuedWithdrawal(
+        bytes32 withdrawalRoot
+    )
+        external
+        view
+        override
+        returns (Withdrawal memory withdrawal, uint256[] memory shares)
+    {}
+
+    function domainSeparator() external view returns (bytes32) {}
+
+    function version() external pure returns (string memory) {
+        return "v-mock";
+    }
 }
 
 contract DelegationMock is DelegationIntermediate {

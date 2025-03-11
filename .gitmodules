@@ -1,12 +1,3 @@
-[submodule "contracts/lib/eigenlayer-contracts"]
-	path = contracts/lib/eigenlayer-contracts
-	url = https://github.com/Layr-Labs/eigenlayer-contracts
 [submodule "contracts/lib/forge-std"]
 	path = contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "contracts/lib/openzeppelin-contracts"]
-	path = contracts/lib/openzeppelin-contracts
-	url = https://github.com/Openzeppelin/openzeppelin-contracts
-[submodule "contracts/lib/openzeppelin-contracts-upgradeable"]
-	path = contracts/lib/openzeppelin-contracts-upgradeable
-	url = https://github.com/Openzeppelin/openzeppelin-contracts-upgradeable

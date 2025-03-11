@@ -22,7 +22,14 @@ contract ServiceManagerBaseTest is MockAVSDeployer {
 
     function beforeTestSetup(
         bytes4 testSelector
-    ) public pure returns (bytes[] memory beforeTestCalldata) {}
+    ) public pure returns (bytes[] memory beforeTestCalldata) {
+        if (testSelector == this.test_createOperatorSets.selector) {
+            beforeTestCalldata = new bytes[](1);
+            beforeTestCalldata[0] = abi.encodePacked(
+                this.test_registerAVS.selector
+            );
+        }
+    }
 
     function test_registerAVS() public {
         vm.prank(avsOwner);
@@ -47,6 +54,15 @@ contract ServiceManagerBaseTest is MockAVSDeployer {
             )
         );
 
+        IAllocationManager.CreateSetParams[]
+            memory emptyParams = new IAllocationManager.CreateSetParams[](0);
+        ServiceManagerBase(address(serviceManager)).createOperatorSets(
+            emptyParams
+        );
+    }
+
+    function test_createOperatorSets() public {
+        vm.prank(avsOwner);
         IAllocationManager.CreateSetParams[]
             memory emptyParams = new IAllocationManager.CreateSetParams[](0);
         ServiceManagerBase(address(serviceManager)).createOperatorSets(

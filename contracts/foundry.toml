@@ -19,18 +19,19 @@
         "forge-std/=lib/forge-std/src/",
         "ds-test/=lib/ds-test/src/",
         "eigenlayer-contracts/=lib/eigenlayer-contracts/",
+        "snowbridge/=lib/snowbridge/contracts/"
 
     ]
     # Specifies the exact version of Solidity to use, overriding auto-detection.
     solc_version = '0.8.27'
     # If enabled, treats Solidity compiler warnings as errors, preventing artifact generation if warnings are present.
-    deny_warnings = false 
+    deny_warnings = false
     # If set to true, changes compilation pipeline to go through the new IR optimizer.
     via_ir = false
     # Whether or not to enable the Solidity optimizer.
     optimizer = true
-    # The number of runs specifies roughly how often each opcode of the deployed code will be executed 
-    # across the life-time of the contract. This means it is a trade-off parameter between code size (deploy cost) 
+    # The number of runs specifies roughly how often each opcode of the deployed code will be executed
+    # across the life-time of the contract. This means it is a trade-off parameter between code size (deploy cost)
     # and code execution cost (cost after deployment).
     optimizer_runs = 200
 
@@ -42,7 +43,7 @@
     # - 4 (-vvvv): Stack traces for all tests and setup traces for failing tests are displayed.
     # - 5 (-vvvvv): Stack and setup traces are always displayed.
     verbosity = 0
-    # Enables the Foreign Function Interface (FFI) cheatcode. 
+    # Enables the Foreign Function Interface (FFI) cheatcode.
     # WARNING: This allows arbitrary programs to run on your computer, which poses security risks.
     ffi = true
     # Contracts to include in gas reports. By default, all contracts are included.
@@ -51,7 +52,7 @@
     show_progress = true
     # Sparse mode only compiles files that match certain criteria.
     sparse_mode = true
-    
+
     gas_limit = 5000000000
     no-match-contract = "FFI"
     fs_permissions = [{ access = "read-write", path = "./" }]
@@ -62,13 +63,13 @@
     # Formatting style for long function headers
     multiline_func_header = "params_first"  # Options: "attributes_first", "params_first", "all"
     # Sort import statements alphabetically
-    sort_imports = false  
+    sort_imports = false
     # Maximum line length where formatter will wrap the line
     line_length = 100  # Default: 120
     # Number of spaces per indentation level
     tab_width = 4  # Default: 4
     # Whether to print spaces between brackets
-    bracket_spacing = false  
+    bracket_spacing = false
     # Style of uint/int256 types
     int_types = "long"  # Options: "long", "short", "preserve"
     # Quotation mark style
@@ -76,7 +77,7 @@
     # Style of underscores in number literals
     number_underscore = "remove"  # Options: "preserve", "thousands", "remove"
     # Whether or not to wrap comments at line_length
-    wrap_comments = false  
+    wrap_comments = false
     # List of files to ignore during formatting (can use glob patterns)
     # ignore = [
     #     "./script/**/*",

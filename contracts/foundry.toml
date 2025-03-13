@@ -19,8 +19,7 @@
         "forge-std/=lib/forge-std/src/",
         "ds-test/=lib/ds-test/src/",
         "eigenlayer-contracts/=lib/eigenlayer-contracts/",
-        "snowbridge/=lib/snowbridge/contracts/"
-
+        # "snowbridge/=lib/snowbridge/contracts/"
     ]
     # Specifies the exact version of Solidity to use, overriding auto-detection.
     solc_version = '0.8.27'

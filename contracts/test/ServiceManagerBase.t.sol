@@ -61,4 +61,8 @@ contract ServiceManagerBaseTest is MockAVSDeployer {
             new IAllocationManager.CreateSetParams[](0);
         ServiceManagerBase(address(serviceManager)).createOperatorSets(emptyParams);
     }
+
+    function test_returnsAVSAddress() public view {
+        assertEq(serviceManager.avs(), address(serviceManager));
+    }
 }

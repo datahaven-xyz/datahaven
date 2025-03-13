@@ -163,7 +163,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     function supportsAVS(
         address avs
     ) external view virtual override returns (bool) {
-        return avs == address(this);
+        return avs == this.avs();
     }
 
     /// @inheritdoc IAVSRegistrar
@@ -230,6 +230,11 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
             target: target,
             selector: selector
         });
+    }
+
+    /// @inheritdoc IServiceManager
+    function avs() external view virtual returns (address) {
+        return address(this);
     }
 
     /**

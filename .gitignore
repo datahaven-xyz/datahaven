@@ -16,6 +16,7 @@ Cargo.lock
 # IDE directories
 .vscode/
 .idea/
+.zed/
 
 # cspell
 cspell.json

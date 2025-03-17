@@ -13,18 +13,18 @@ use alloc::vec::Vec;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiAddress, MultiSignature,
+    MultiAddress,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+use fp_account::EthereumSignature;
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -115,7 +115,7 @@ pub fn native_version() -> NativeVersion {
 }
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = MultiSignature;
+pub type Signature = EthereumSignature;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
@@ -243,4 +243,19 @@ mod runtime {
 
     #[runtime::pallet_index(12)]
     pub type Mmr = pallet_mmr;
+
+    #[runtime::pallet_index(13)]
+    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+
+    #[runtime::pallet_index(20)]
+    pub type AuthorInherent = pallet_author_inherent;
+
+    #[runtime::pallet_index(31)]
+    pub type Ethereum = pallet_ethereum;
+
+    #[runtime::pallet_index(32)]
+    pub type Evm = pallet_evm;
+
+    #[runtime::pallet_index(33)]
+    pub type EvmChainId = pallet_evm_chain_id;
 }

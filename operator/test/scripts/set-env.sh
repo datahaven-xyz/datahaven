@@ -10,6 +10,7 @@ scripts_dir="$root_dir/test/scripts"
 zombienet_data_dir="$output_dir/zombienet"
 ethereum_data_dir="$output_dir/ethereum"
 assets_dir="$root_dir/test/assets"
+helpers_dir="$root_dir/test/helpers"
 artifacts_dir="$output_dir/artifacts"
 mkdir -p "$artifacts_dir"
 logs_dir="$artifacts_dir/logs"
@@ -34,7 +35,11 @@ etherscan_api_key="${ETHERSCAN_API_KEY:-}"
 reset_ethereum="${RESET_ETHEREUM:-true}"
 
 beefy_relay_eth_key="${BEEFY_RELAY_ETH_KEY:-0x935b65c833ced92c43ef9de6bff30703d941bd92a2637cb00cfad389f5862109}"
+beacon_endpoint_http="${BEACON_HTTP_ENDPOINT:-http://127.0.0.1:9596}"
+# Beacon relay account (//BeaconRelay 5GWFwdZb6JyU46e6ZiLxjGxogAHe8SenX76btfq8vGNAaq8c in testnet)
+beacon_relayer_pub_key="${BEACON_RELAYER_PUB_KEY:-0xc46e141b5083721ad5f5056ba1cded69dce4a65f}"
 
+export RELAYCHAIN_ENDPOINT=ws://127.0.0.1:30444
 ## Deployment key
 export PRIVATE_KEY="${DEPLOYER_ETH_KEY:-0x4e9444a6efd6d42725a250b650a781da2737ea308c839eaccb0f7f3dbd2fea77}"
 export ETHERSCAN_API_KEY="${ETHERSCAN_API_KEY:-0x0}"

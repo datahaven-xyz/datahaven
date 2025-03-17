@@ -2,8 +2,14 @@
     "name": "beefy-client-helpers",
     "version": "1.0.0",
     "description": "Helper scripts for testing BeefyClient",
-    "main": "getBeefyBlock.js",
+    "scripts": {
+        "beefy-client": "node getBeefyBlock.js",
+        "submit-checkpoint": "node submit-checkpoint.js"
+    },
     "dependencies": {
-        "ethers": "^6.11.1"
+        "ethers": "6.13.5",
+        "@polkadot/api": "15.5.1",
+        "@polkadot/util": "13.4.3",
+        "@polkadot/util-crypto": "13.4.3"
     }
 }

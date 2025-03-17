@@ -4,6 +4,9 @@ set -eu
 source scripts/set-env.sh
 
 config_relayer() {
+    data_store_dir="$output_dir/relayer_data"
+    mkdir -p $data_store_dir
+
     # Configure beefy relay
     jq \
         --arg k1 "$(address_for BeefyClient)" \
@@ -19,6 +22,21 @@ config_relayer() {
     | ."on-demand-sync"."asset-hub-channel-id" = $assetHubChannelID
     ' \
         config/beefy-relay.json >$output_dir/beefy-relay.json
+
+# Configure beacon relay
+    local deneb_forked_epoch=0
+    jq \
+        --arg beacon_endpoint_http $beacon_endpoint_http \
+        --argjson deneb_forked_epoch $deneb_forked_epoch \
+        --arg relay_chain_endpoint $RELAYCHAIN_ENDPOINT \
+        --arg data_store_dir $data_store_dir \
+        '
+      .source.beacon.endpoint = $beacon_endpoint_http
+    | .source.beacon.spec.denebForkedEpoch = $deneb_forked_epoch
+    | .sink.parachain.endpoint = $relay_chain_endpoint
+    | .source.beacon.datastore.location = $data_store_dir
+    ' \
+        $assets_dir/beacon-relay.json >$output_dir/beacon-relay.json
 }
 
 start_relayer() {
@@ -32,6 +50,19 @@ start_relayer() {
                 --config "$output_dir/beefy-relay.json" \
                 --ethereum.private-key $beefy_relay_eth_key \
                 >>"$output_dir"/beefy-relay.log 2>&1 || true
+            sleep 20
+        done
+    ) &
+
+    # Launch beacon relay
+    (
+        : >"$output_dir"/beacon-relay.log
+        while :; do
+            echo "Starting beacon relay at $(date)"
+            "${relayer_bin}" run beacon \
+                --config $output_dir/beacon-relay.json \
+                --substrate.private-key "//BeaconRelay" \
+                >>"$output_dir"/beacon-relay.log 2>&1 || true
             sleep 20
         done
     ) &
@@ -51,5 +82,6 @@ if [ -z "${from_start_services:-}" ]; then
     echo "start relayers only!"
     trap kill_all SIGINT SIGTERM EXIT
     deploy_relayer
+    
     wait
 fi

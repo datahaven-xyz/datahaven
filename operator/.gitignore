@@ -21,5 +21,11 @@ tools/build
 # RustRover
 .idea/
 
+# VSCode
+.vscode/
+
+# Environment variables
+.env
+
 # Temporary files
 **/tmp

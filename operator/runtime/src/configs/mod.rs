@@ -23,6 +23,9 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+use crate::AuthorInherent;
+use crate::EvmChainId;
+use crate::Timestamp;
 use crate::{Historical, SessionKeys, ValidatorSet};
 
 // Local module imports
@@ -33,11 +36,15 @@ use super::{
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
-use flamingo_runtime_constants::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
-use frame_support::traits::KeyOwnerProofSystem;
+use flamingo_runtime_common::gas::WEIGHT_PER_GAS;
+use flamingo_runtime_common::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
 use frame_support::{
     derive_impl, parameter_types,
-    traits::{ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf},
+    traits::{
+        fungible::{Balanced, Credit, Inspect},
+        ConstU128, ConstU32, ConstU64, ConstU8, FindAuthor, KeyOwnerProofSystem, OnUnbalanced,
+        VariantCountOf,
+    },
     weights::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
         IdentityFee, Weight,
@@ -45,17 +52,40 @@ use frame_support::{
 };
 use frame_system::limits::{BlockLength, BlockWeights};
 use frame_system::EnsureRoot;
-use pallet_transaction_payment::{ConstFeeMultiplier, FungibleAdapter, Multiplier};
+use pallet_ethereum::PostLogContent;
+use pallet_evm::{
+    EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
+    FrameSystemAccountProvider, IdentityAddressMapping,
+    OnChargeEVMTransaction as OnChargeEVMTransactionT,
+};
+use pallet_transaction_payment::{
+    ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
+};
 use polkadot_primitives::Moment;
+use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
-use sp_core::{crypto::KeyTypeId, H256};
+use sp_core::{crypto::KeyTypeId, H160, H256, U256};
 use sp_runtime::{
-    traits::{ConvertInto, Keccak256, One, OpaqueKeys},
-    Perbill,
+    traits::{AccountIdLookup, ConvertInto, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
+    FixedPointNumber, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
+use sp_std::{
+    convert::{From, Into},
+    prelude::*,
+};
 use sp_version::RuntimeVersion;
+
+// TODO: We need to define what do we want here as max PoV size
+pub const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
+
+// Todo: import all currency constants from moonbeam
+pub const WEIGHT_FEE: Balance = 50_000 / 4;
+
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND, u64::MAX)
+    .saturating_mul(2)
+    .set_proof_size(MAX_POV_SIZE as u64);
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
@@ -89,6 +119,8 @@ impl frame_system::Config for Runtime {
     type BlockLength = RuntimeBlockLength;
     /// The identifier used to distinguish between accounts.
     type AccountId = AccountId;
+    /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
+    type Lookup = AccountIdLookup<AccountId, ()>;
     /// The type for storing how many extrinsics an account has signed.
     type Nonce = Nonce;
     /// The type for hashing blocks and tries.
@@ -274,4 +306,178 @@ impl pallet_mmr::Config for Runtime {
     type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+// Frontier
+
+// TODO: configure pallet author-inherent correctly
+impl pallet_author_inherent::Config for Runtime {
+    type SlotBeacon = ();
+    type AccountLookup = ();
+    type CanAuthor = ();
+    type AuthorId = AccountId;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
+}
+
+impl pallet_ethereum::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type StateRoot = pallet_ethereum::IntermediateStateRoot<Self::Version>;
+    type PostLogContent = PostBlockAndTxnHashes;
+    type ExtraDataLength = ConstU32<30>;
+}
+
+// Ported from Moonbeam, please check for reference: https://github.com/moonbeam-foundation/moonbeam/pull/1765
+pub struct TransactionPaymentAsGasPrice;
+impl FeeCalculator for TransactionPaymentAsGasPrice {
+    fn min_gas_price() -> (U256, Weight) {
+        // note: transaction-payment differs from EIP-1559 in that its tip and length fees are not
+        //       scaled by the multiplier, which means its multiplier will be overstated when
+        //       applied to an ethereum transaction
+        // note: transaction-payment uses both a congestion modifier (next_fee_multiplier, which is
+        //       updated once per block in on_finalize) and a 'WeightToFee' implementation. Our
+        //       runtime implements this as a 'ConstantModifier', so we can get away with a simple
+        //       multiplication here.
+        let min_gas_price: u128 = TransactionPayment::<Runtime>::next_fee_multiplier()
+            .saturating_mul_int((WEIGHT_FEE).saturating_mul(WEIGHT_PER_GAS as u128));
+        (
+            min_gas_price.into(),
+            <Runtime as frame_system::Config>::DbWeight::get().reads(1),
+        )
+    }
+}
+
+pub struct FindAuthorAdapter;
+impl FindAuthor<H160> for FindAuthorAdapter {
+    fn find_author<'a, I>(digests: I) -> Option<H160>
+    where
+        I: 'a + IntoIterator<Item = (sp_runtime::ConsensusEngineId, &'a [u8])>,
+    {
+        if let Some(author) = AuthorInherent::find_author(digests) {
+            return Some(H160::from_slice(&author.encode()[0..20]));
+        }
+        None
+    }
+}
+
+flamingo_runtime_common::impl_on_charge_evm_transaction!();
+
+parameter_types! {
+    pub BlockGasLimit: U256
+        = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
+    // pub PrecompilesValue: TemplatePrecompiles<Runtime> = TemplatePrecompiles::<_>::new();
+    pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
+    pub SuicideQuickClearLimit: u32 = 0;
+    pub GasLimitPovSizeRatio: u32 = 16;
+    pub GasLimitStorageGrowthRatio: u64 = 366;
+}
+
+impl pallet_evm::Config for Runtime {
+    type AccountProvider = FrameSystemAccountProvider<Runtime>;
+    type FeeCalculator = TransactionPaymentAsGasPrice;
+    type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
+    type WeightPerGas = WeightPerGas;
+    type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+    type CallOrigin = EnsureAddressRoot<AccountId>;
+    type WithdrawOrigin = EnsureAddressNever<AccountId>;
+    type AddressMapping = IdentityAddressMapping;
+    type Currency = Balances;
+    type RuntimeEvent = RuntimeEvent;
+    type PrecompilesType = ();
+    type PrecompilesValue = ();
+    type ChainId = EvmChainId;
+    type BlockGasLimit = BlockGasLimit;
+    type Runner = pallet_evm::runner::stack::Runner<Self>;
+    type OnChargeTransaction = OnChargeEVMTransaction<()>;
+    type OnCreate = ();
+    type FindAuthor = FindAuthorAdapter;
+    type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
+    type GasLimitStorageGrowthRatio = ();
+    type Timestamp = Timestamp;
+    type WeightInfo = ();
+}
+
+impl pallet_evm_chain_id::Config for Runtime {}
+
+// For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
+#[cfg(any(
+    feature = "std",
+    feature = "fast-runtime",
+    feature = "runtime-benchmarks",
+    test
+))]
+parameter_types! {
+    pub const ChainForkVersions: ForkVersions = ForkVersions {
+        genesis: Fork {
+            version: [0, 0, 0, 0], // 0x00000000
+            epoch: 0,
+        },
+        altair: Fork {
+            version: [1, 0, 0, 0], // 0x01000000
+            epoch: 0,
+        },
+        bellatrix: Fork {
+            version: [2, 0, 0, 0], // 0x02000000
+            epoch: 0,
+        },
+        capella: Fork {
+            version: [3, 0, 0, 0], // 0x03000000
+            epoch: 0,
+        },
+        deneb: Fork {
+            version: [4, 0, 0, 0], // 0x04000000
+            epoch: 0,
+        },
+        electra: Fork {
+            version: [5, 0, 0, 0], // 0x05000000
+            epoch: 0,
+        },
+    };
+}
+
+// Holesky: https://github.com/eth-clients/holesky
+// Fork versions: https://github.com/eth-clients/holesky/blob/main/metadata/config.yaml
+#[cfg(not(any(
+    feature = "std",
+    feature = "fast-runtime",
+    feature = "runtime-benchmarks",
+    test
+)))]
+parameter_types! {
+    pub const ChainForkVersions: ForkVersions = ForkVersions {
+        genesis: Fork {
+            version: hex_literal::hex!("01017000"), // 0x01017000
+            epoch: 0,
+        },
+        altair: Fork {
+            version: hex_literal::hex!("02017000"), // 0x02017000
+            epoch: 0,
+        },
+        bellatrix: Fork {
+            version: hex_literal::hex!("03017000"), // 0x03017000
+            epoch: 0,
+        },
+        capella: Fork {
+            version: hex_literal::hex!("04017000"), // 0x04017000
+            epoch: 256,
+        },
+        deneb: Fork {
+            version: hex_literal::hex!("05017000"), // 0x05017000
+            epoch: 29696,
+        },
+        electra: Fork {
+            version: hex_literal::hex!("06017000"), // 0x06017000
+            epoch: 115968,
+        },
+    };
+}
+
+impl snowbridge_pallet_ethereum_client::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ForkVersions = ChainForkVersions;
+    type FreeHeadersInterval = ();
+    type WeightInfo = ();
 }

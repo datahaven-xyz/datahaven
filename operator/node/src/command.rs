@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec,
+    chain_spec::{self, alith},
     cli::{Cli, Subcommand},
     service,
 };
@@ -10,7 +10,6 @@ use flamingo_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
-use sp_keyring::Sr25519Keyring;
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -183,7 +182,7 @@ pub fn run() -> sc_cli::Result<()> {
                             Box::new(RemarkBuilder::new(client.clone())),
                             Box::new(TransferKeepAliveBuilder::new(
                                 client.clone(),
-                                Sr25519Keyring::Alice.to_account_id(),
+                                alith(),
                                 EXISTENTIAL_DEPOSIT,
                             )),
                         ]);

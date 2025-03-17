@@ -7,7 +7,7 @@ generate_beefy_checkpoint()
 {
     pushd "$test_helpers_dir"
     pnpm install
-    RELAYCHAIN_ENDPOINT=ws://127.0.0.1:30444 pnpm generateBeefyCheckpoint
+    pnpm generateBeefyCheckpoint
     popd
 }
 

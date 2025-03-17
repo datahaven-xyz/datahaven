@@ -5,13 +5,13 @@
 use crate::service::FullClient;
 
 use flamingo_runtime as runtime;
+use fp_account::EthereumSignature;
 use runtime::{AccountId, Balance, BalancesCall, SystemCall};
 use sc_cli::Result;
 use sc_client_api::BlockBackend;
-use sp_core::{Encode, Pair};
+use sp_core::{ecdsa, Encode, Pair};
 use sp_inherents::{InherentData, InherentDataProvider};
-use sp_keyring::Sr25519Keyring;
-use sp_runtime::{OpaqueExtrinsic, SaturatedConversion};
+use sp_runtime::{MultiSignature, OpaqueExtrinsic, SaturatedConversion};
 
 use std::{sync::Arc, time::Duration};
 
@@ -39,10 +39,9 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
     }
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
-        let acc = Sr25519Keyring::Bob.pair();
         let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
-            acc,
+            ecdsa::Pair::from_string("//Bob", None).expect("static values are valid; qed"),
             SystemCall::remark { remark: vec![] }.into(),
             nonce,
         )
@@ -82,10 +81,9 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
     }
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
-        let acc = Sr25519Keyring::Bob.pair();
         let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
-            acc,
+            ecdsa::Pair::from_string("//Bob", None).expect("static values are valid; qed"),
             BalancesCall::transfer_keep_alive {
                 dest: self.dest.clone().into(),
                 value: self.value,
@@ -104,7 +102,7 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 /// Note: Should only be used for benchmarking.
 pub fn create_benchmark_extrinsic(
     client: &FullClient,
-    sender: sp_core::sr25519::Pair,
+    sender: ecdsa::Pair,
     call: runtime::RuntimeCall,
     nonce: u32,
 ) -> runtime::UncheckedExtrinsic {
@@ -151,11 +149,13 @@ pub fn create_benchmark_extrinsic(
         ),
     );
     let signature = raw_payload.using_encoded(|e| sender.sign(e));
+    let signature = MultiSignature::Ecdsa(signature);
+    let signature = EthereumSignature::from(signature);
 
     runtime::UncheckedExtrinsic::new_signed(
         call,
-        sp_runtime::AccountId32::from(sender.public()).into(),
-        runtime::Signature::Sr25519(signature),
+        runtime::AccountId::from(sender.public()).into(),
+        runtime::Signature::from(signature),
         extra,
     )
 }

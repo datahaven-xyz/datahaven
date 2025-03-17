@@ -1,12 +1,12 @@
-# Datahaven Operator Node 🫎
+# Datahaven 🫎 
 
-Substrate runtime and node, featuring DataHaven AVS, Frontier, Snowbridge and StorageHub integration.
+Based on https://github.com/paritytech/polkadot-sdk-solochain-template
 
-# Testing
+# Zombienet testing
 
-1. Install [zombienet](https://github.com/paritytech/zombienet).
+First, install [zombienet](https://github.com/paritytech/zombienet).
 
-2. Spawn a local solo chain with validators and BABE finality:
+To spawn a local solo chain with four validators and BABE finality, run:
 
 ```bash
 zombienet -p native spawn test/config/zombie-flamingo-local.toml

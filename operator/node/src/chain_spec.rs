@@ -1,15 +1,13 @@
 use flamingo_runtime::{
     configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, SessionKeys, Signature, WASM_BINARY,
 };
+use hex_literal::hex;
 use sc_service::ChainType;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{ecdsa, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
-
-// The URL for the telemetry server.
-// const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec;
@@ -42,7 +40,7 @@ where
 /// Generate a Babe authority key.
 pub fn authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId, BeefyId) {
     (
-        get_account_id_from_seed::<sr25519::Public>(s),
+        get_account_id_from_seed::<ecdsa::Public>(s),
         get_from_seed::<BabeId>(s),
         get_from_seed::<GrandpaId>(s),
         get_from_seed::<BeefyId>(s),
@@ -50,6 +48,10 @@ pub fn authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId, Beefy
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
+    let mut default_funded_accounts = pre_funded_accounts();
+    default_funded_accounts.sort();
+    default_funded_accounts.dedup();
+
     Ok(ChainSpec::builder(
         WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         None,
@@ -61,14 +63,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
         // Initial PoA authorities
         vec![authority_keys_from_seed("Alice")],
         // Sudo account
-        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        alith(),
         // Pre-funded accounts
-        vec![
-            get_account_id_from_seed::<sr25519::Public>("Alice"),
-            get_account_id_from_seed::<sr25519::Public>("Bob"),
-            get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-        ],
+        default_funded_accounts.clone(),
         true,
     ))
     .build())
@@ -93,21 +90,15 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
             authority_keys_from_seed("Ferdie"),
         ],
         // Sudo account
-        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        alith(),
         // Pre-funded accounts
         vec![
-            get_account_id_from_seed::<sr25519::Public>("Alice"),
-            get_account_id_from_seed::<sr25519::Public>("Bob"),
-            get_account_id_from_seed::<sr25519::Public>("Charlie"),
-            get_account_id_from_seed::<sr25519::Public>("Dave"),
-            get_account_id_from_seed::<sr25519::Public>("Eve"),
-            get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-            get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-            get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+            alith(),
+            baltathar(),
+            charleth(),
+            dorothy(),
+            ethan(),
+            frank(),
         ],
         true,
     ))
@@ -143,4 +134,47 @@ fn testnet_genesis(
             }).collect::<Vec<_>>(),
         },
     })
+}
+
+pub fn alith() -> AccountId {
+    AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac"))
+}
+
+pub fn baltathar() -> AccountId {
+    AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0"))
+}
+
+pub fn charleth() -> AccountId {
+    AccountId::from(hex!("798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc"))
+}
+
+pub fn dorothy() -> AccountId {
+    AccountId::from(hex!("773539d4Ac0e786233D90A233654ccEE26a613D9"))
+}
+
+pub fn ethan() -> AccountId {
+    AccountId::from(hex!("Ff64d3F6efE2317EE2807d2235B1ac2AA69d9E87"))
+}
+
+pub fn frank() -> AccountId {
+    AccountId::from(hex!("C0F0f4ab324C46e55D02D0033343B4Be8A55532d"))
+}
+
+pub fn beacon_relayer() -> AccountId {
+    AccountId::from(hex!("c46e141b5083721ad5f5056ba1cded69dce4a65f"))
+}
+
+/// Get pre-funded accounts
+pub fn pre_funded_accounts() -> Vec<AccountId> {
+    // These addresses are derived from Substrate's canonical mnemonic:
+    // bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    vec![
+        alith(),
+        baltathar(),
+        charleth(),
+        dorothy(),
+        ethan(),
+        frank(),
+        beacon_relayer(),
+    ]
 }

@@ -13,13 +13,13 @@ trap kill_all SIGINT SIGTERM EXIT
 echo "Check building tools"
 check_tool
 
-# 1. Buid Flamingo Binary
+# 1. Buid Datahaven Binary
 build_binary
 
-# 2. Start Flamingo Nodes
-echo "Starting Flamingo Nodes"
-source scripts/deploy-flamingo.sh
-deploy_flamingo
+# 2. Start Datahaven Nodes
+echo "Starting Datahaven Nodes"
+source scripts/deploy-datahaven.sh
+deploy_datahaven
 
 # 3. generate beefy checkpoint
 echo "Generate beefy checkpoint"

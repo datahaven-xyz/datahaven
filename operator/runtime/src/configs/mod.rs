@@ -36,8 +36,8 @@ use super::{
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
-use flamingo_runtime_common::gas::WEIGHT_PER_GAS;
-use flamingo_runtime_common::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
+use datahaven_runtime_common::gas::WEIGHT_PER_GAS;
+use datahaven_runtime_common::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
 use frame_support::{
     derive_impl, parameter_types,
     traits::{
@@ -363,7 +363,7 @@ impl FindAuthor<H160> for FindAuthorAdapter {
     }
 }
 
-flamingo_runtime_common::impl_on_charge_evm_transaction!();
+datahaven_runtime_common::impl_on_charge_evm_transaction!();
 
 parameter_types! {
     pub BlockGasLimit: U256

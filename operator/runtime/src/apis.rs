@@ -27,7 +27,7 @@
 use crate::configs::BABE_GENESIS_EPOCH_CONFIG;
 use alloc::{vec, vec::Vec};
 use codec::Encode;
-use flamingo_runtime_common::time::EpochDurationInBlocks;
+use datahaven_runtime_common::time::EpochDurationInBlocks;
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     weights::Weight,

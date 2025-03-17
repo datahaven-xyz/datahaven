@@ -1,6 +1,6 @@
 [package]
-name = "flamingo-runtime-common"
-description = "Common code used through the Flamingo network"
+name = "datahaven-runtime-common"
+description = "Common code used through the Datahaven network"
 version = "0.1.0"
 edition.workspace = true
 

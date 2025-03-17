@@ -1,4 +1,4 @@
-# Datahaven 🫎 
+# Datahaven 🫎
 
 Based on https://github.com/paritytech/polkadot-sdk-solochain-template
 
@@ -9,5 +9,5 @@ First, install [zombienet](https://github.com/paritytech/zombienet).
 To spawn a local solo chain with four validators and BABE finality, run:
 
 ```bash
-zombienet -p native spawn test/config/zombie-flamingo-local.toml
+zombienet -p native spawn test/config/zombie-datahaven-local.toml
 ```

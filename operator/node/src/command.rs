@@ -6,7 +6,7 @@ use crate::{
     cli::{Cli, Subcommand},
     service,
 };
-use flamingo_runtime::{Block, EXISTENTIAL_DEPOSIT};
+use datahaven_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
@@ -39,7 +39,7 @@ impl SubstrateCli for Cli {
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "dev" => Box::new(chain_spec::development_config()?),
-            "" | "flamingo-local" => Box::new(chain_spec::local_testnet_config()?),
+            "" | "datahaven-local" => Box::new(chain_spec::local_testnet_config()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
@@ -205,8 +205,8 @@ pub fn run() -> sc_cli::Result<()> {
                 match config.network.network_backend {
                     sc_network::config::NetworkBackendType::Libp2p => service::new_full::<
                         sc_network::NetworkWorker<
-                            flamingo_runtime::opaque::Block,
-                            <flamingo_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
+                            datahaven_runtime::opaque::Block,
+                            <datahaven_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
                         >,
                     >(config)
                     .map_err(sc_cli::Error::Service),

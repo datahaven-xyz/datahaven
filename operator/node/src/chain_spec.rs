@@ -1,4 +1,4 @@
-use flamingo_runtime::{
+use datahaven_runtime::{
     configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, SessionKeys, Signature, WASM_BINARY,
 };
 use hex_literal::hex;

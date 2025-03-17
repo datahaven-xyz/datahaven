@@ -1,6 +1,6 @@
 [package]
-name = "flamingo-runtime"
-description = "flamingo runtime template built with polkadot-sdk."
+name = "datahaven-runtime"
+description = "datahaven runtime template built with polkadot-sdk."
 version = "0.1.0"
 license = "Unlicense"
 authors.workspace = true
@@ -16,7 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { features = ["derive"], workspace = true }
 hex = { workspace = true }
 scale-info = { features = ["derive", "serde"], workspace = true }
-flamingo-runtime-common.workspace = true
+datahaven-runtime-common.workspace = true
 frame-support = { features = ["experimental"], workspace = true }
 frame-system.workspace = true
 frame-try-runtime = { optional = true, workspace = true }
@@ -85,7 +85,7 @@ std = [
     "frame-benchmarking?/std",
     "frame-try-runtime?/std",
 
-    "flamingo-runtime-common/std",
+    "datahaven-runtime-common/std",
 
 	"pallet-babe/std",
 	"pallet-beefy/std",
@@ -138,7 +138,7 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system-benchmarking/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
-    "flamingo-runtime-common/runtime-benchmarks",
+    "datahaven-runtime-common/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
@@ -177,7 +177,7 @@ try-runtime = [
 ]
 
 fast-runtime = [
-    "flamingo-runtime-common/fast-runtime",
+    "datahaven-runtime-common/fast-runtime",
 ]
 
 # Enable the metadata hash generation.

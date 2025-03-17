@@ -1,7 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use crate::rpc::BeefyDeps;
-use flamingo_runtime::{self, apis::RuntimeApi, opaque::Block};
+use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block};
 use futures::FutureExt;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::ImportQueueParams;

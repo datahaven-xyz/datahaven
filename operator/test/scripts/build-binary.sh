@@ -7,14 +7,14 @@ build_binary() {
     pushd $root_dir
     check_local_changes $root_dir
 
-    # Check if flamingo binary exists
-    if [ ! -f "target/release/flamingo-node" ] || [ $changes_detected -eq 1 ]; then
-        echo "Building flamingo-node..."
+    # Check if datahaven binary exists
+    if [ ! -f "target/release/datahaven-node" ] || [ $changes_detected -eq 1 ]; then
+        echo "Building datahaven-node..."
         cargo build --release --features fast-runtime
     fi
 
     # Copy binary to output directory
-    cp target/release/flamingo-node "$output_bin_dir"
+    cp target/release/datahaven-node "$output_bin_dir"
     
     popd
 }
@@ -30,8 +30,8 @@ check_local_changes() {
 }
 
 if [ -z "${from_build_binary:-}" ]; then
-    echo "Building Flamingo Binary"
+    echo "Building Datahaven Binary"
     trap kill_all SIGINT SIGTERM EXIT
     build_binary
-    echo "Flamingo Binary built"
+    echo "Datahaven Binary built"
 fi

@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use flamingo_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Nonce};
+use datahaven_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Nonce};
 use jsonrpsee::RpcModule;
 use sc_consensus_beefy::communication::notification::{
     BeefyBestBlockStream, BeefyVersionedFinalityProofStream,

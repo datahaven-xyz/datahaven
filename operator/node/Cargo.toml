@@ -1,5 +1,5 @@
 [package]
-name = "flamingo-node"
+name = "datahaven-node"
 description = "A solochain node template built with Substrate, part of Polkadot Sdk."
 version = "0.1.0"
 license = "Unlicense"
@@ -83,7 +83,7 @@ substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-benchmarking-cli.default-features = true
-flamingo-runtime.workspace = true
+datahaven-runtime.workspace = true
 
 # RPC
 sc-rpc = { workspace = true, default-features = true }
@@ -103,14 +103,14 @@ substrate-build-script-utils.default-features = true
 [features]
 default = ["std"]
 std = [
-	"flamingo-runtime/std",
+	"datahaven-runtime/std",
 ]
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
 	"frame-benchmarking-cli/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"sc-service/runtime-benchmarks",
-	"flamingo-runtime/runtime-benchmarks",
+	"datahaven-runtime/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
@@ -118,6 +118,6 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-system/try-runtime",
 	"pallet-transaction-payment/try-runtime",
-	"flamingo-runtime/try-runtime",
+	"datahaven-runtime/try-runtime",
 	"sp-runtime/try-runtime",
 ]

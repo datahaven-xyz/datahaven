@@ -2,7 +2,7 @@
 license = "GPL-3"
 authors = ["MoonsongLabs <dev@moonsonglabs.com>"]
 homepage = "https://moonbeam.network/"
-repository = "https://github.com/Moonsong-Labs/flamingo.git"
+repository = "https://github.com/Moonsong-Labs/datahaven.git"
 edition = "2021"
 
 [workspace]
@@ -17,8 +17,8 @@ resolver = "2"
 [workspace.dependencies]
 
 # Local
-flamingo-runtime = { path = "./runtime", default-features = false }
-flamingo-runtime-common = { path = "./runtime/common", default-features = false }
+datahaven-runtime = { path = "./runtime", default-features = false }
+datahaven-runtime-common = { path = "./runtime/common", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 
 # Crates.io (wasm)

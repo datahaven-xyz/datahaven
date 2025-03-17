@@ -9,9 +9,11 @@ on:
 env:
     CARGO_TERM_COLOR: always
     WORKING_DIR: operator
+    RUSTFLAGS: "-C target-feature=+crt-static"
+    CARGO_BUILD_JOBS: 4
 
 jobs:
-    cargo-check:
+    check:
         name: Cargo Check
         runs-on: ubuntu-latest
         defaults:
@@ -20,24 +22,25 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - name: Install protoc
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y protobuf-compiler
-                  protoc --version
-
             - name: Install Rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
                   components: rustfmt
+                  targets: wasm32-unknown-unknown
 
             - name: Cache dependencies
               uses: Swatinem/rust-cache@v2
+              with:
+                  shared-key: "cargo-check-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}"
+                  prefix-key: |
+                      ${{ runner.os }}-
+                      ${{ hashFiles('**/Cargo.lock') }}
+                      ${{ hashFiles('**/Cargo.toml') }}
 
             - name: Run cargo check
-              run: cargo check
+              run: cargo check --jobs ${{ env.CARGO_BUILD_JOBS }}
 
-    cargo-fmt:
+    fmt:
         name: Cargo Format
         runs-on: ubuntu-latest
         defaults:
@@ -46,24 +49,15 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - name: Install protoc
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y protobuf-compiler
-                  protoc --version
-
             - name: Install Rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
                   components: rustfmt
 
-            - name: Cache dependencies
-              uses: Swatinem/rust-cache@v2
-
-            - name: Run cargo fmt
+            - name: Check formatting
               run: cargo fmt --all -- --check
 
-    cargo-test:
+    test:
         name: Cargo Test
         runs-on: ubuntu-latest
         defaults:
@@ -72,19 +66,20 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - name: Install protoc
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y protobuf-compiler
-                  protoc --version
-
             - name: Install Rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
                   components: rustfmt
+                  targets: wasm32-unknown-unknown
 
             - name: Cache dependencies
               uses: Swatinem/rust-cache@v2
+              with:
+                  shared-key: "cargo-test-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}"
+                  prefix-key: |
+                      ${{ runner.os }}-
+                      ${{ hashFiles('**/Cargo.lock') }}
+                      ${{ hashFiles('**/Cargo.toml') }}
 
             - name: Run tests
-              run: cargo test --verbose
+              run: cargo test --jobs ${{ env.CARGO_BUILD_JOBS }} --verbose

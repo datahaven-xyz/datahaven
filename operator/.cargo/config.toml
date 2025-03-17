@@ -1,0 +1,10 @@
+[build]
+target-dir = "target"
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.'cfg(target_os = "linux")'.rustflags]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[env]
+CARGO_BUILD_JOBS = "4"
+RUSTFLAGS = "-C target-feature=+crt-static" 

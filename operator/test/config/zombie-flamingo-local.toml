@@ -1,0 +1,32 @@
+[settings]
+timeout = 120
+
+[relaychain]
+default_command = "${output_bin_dir:-./target/release}/flamingo-node"
+chain = "flamingo-local"
+default_args = [ "-l=debug", "--pruning=archive", "--enable-offchain-indexing=true" ]
+
+[[relaychain.nodes]]
+name = "alice"
+validator = true
+ws_port = 30444
+
+[[relaychain.nodes]]
+name = "bob"
+validator = true
+
+[[relaychain.nodes]]
+name = "charlie"
+validator = true
+
+[[relaychain.nodes]]
+name = "dave"
+validator = true
+
+[[relaychain.nodes]]
+name = "eve"
+validator = true
+
+[[relaychain.nodes]]
+name = "ferdie"
+validator = true

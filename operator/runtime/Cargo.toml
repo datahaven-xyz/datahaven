@@ -1,0 +1,166 @@
+[package]
+name = "flamingo-runtime"
+description = "flamingo runtime template built with polkadot-sdk."
+version = "0.1.0"
+license = "Unlicense"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { features = ["derive"], workspace = true }
+scale-info = { features = ["derive", "serde"], workspace = true }
+flamingo-runtime-constants.workspace = true
+frame-support = { features = ["experimental"], workspace = true }
+frame-system.workspace = true
+frame-try-runtime = { optional = true, workspace = true }
+frame-executive.workspace = true
+frame-metadata-hash-extension.workspace = true
+pallet-babe.workspace = true
+pallet-balances.workspace = true
+pallet-grandpa.workspace = true
+pallet-session.workspace = true
+pallet-sudo.workspace = true
+pallet-timestamp.workspace = true
+pallet-transaction-payment.workspace = true
+pallet-validator-set.workspace = true
+pallet-beefy.workspace = true
+pallet-beefy-mmr.workspace = true
+pallet-mmr.workspace = true
+sp-api.workspace = true
+sp-block-builder.workspace = true
+sp-consensus-babe = { features = ["serde"], workspace = true }
+sp-consensus-beefy = { features = ["serde"], workspace = true }
+sp-consensus-grandpa = { features = ["serde"], workspace = true }
+sp-core = { features = ["serde"], workspace = true }
+sp-inherents.workspace = true
+sp-offchain.workspace = true
+sp-runtime = { features = ["serde"], workspace = true }
+sp-session.workspace = true
+sp-staking.workspace = true
+sp-storage.workspace = true
+sp-transaction-pool.workspace = true
+sp-version = { features = ["serde"], workspace = true }
+sp-genesis-builder.workspace = true
+frame-system-rpc-runtime-api.workspace = true
+pallet-transaction-payment-rpc-runtime-api.workspace = true
+polkadot-runtime-common.workspace = true
+frame-benchmarking = { optional = true, workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
+polkadot-primitives.workspace = true
+
+[build-dependencies]
+substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "scale-info/std",
+
+    "frame-executive/std",
+    "frame-metadata-hash-extension/std",
+    "frame-support/std",
+    "frame-system-benchmarking?/std",
+    "frame-system-rpc-runtime-api/std",
+    "frame-system/std",
+
+    "frame-benchmarking?/std",
+    "frame-try-runtime?/std",
+
+    "flamingo-runtime-constants/std",
+
+	"pallet-babe/std",
+	"pallet-beefy/std",
+	"pallet-beefy-mmr/std",
+	"pallet-balances/std",
+	"pallet-grandpa/std",
+	"pallet-mmr/std",
+	"pallet-session/std",
+    "pallet-session/std",
+    "pallet-sudo/std",
+    "pallet-timestamp/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
+    "pallet-transaction-payment/std",
+    "pallet-validator-set/std",
+
+    "polkadot-primitives/std",
+	"polkadot-runtime-common/std",
+
+    "sp-api/std",
+    "sp-block-builder/std",
+    "sp-consensus-babe/std",
+    "sp-consensus-grandpa/std",
+    "sp-core/std",
+    "sp-genesis-builder/std",
+    "sp-inherents/std",
+    "sp-offchain/std",
+    "sp-runtime/std",
+    "sp-session/std",
+    "sp-staking/std",
+    "sp-storage/std",
+    "sp-transaction-pool/std",
+    "sp-version/std",
+
+    "substrate-wasm-builder",
+
+    "pallet-mmr/std",
+]
+
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system-benchmarking/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "flamingo-runtime-constants/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+    "pallet-grandpa/runtime-benchmarks",
+    "pallet-sudo/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "pallet-beefy-mmr/runtime-benchmarks",
+    "pallet-mmr/runtime-benchmarks",
+    "polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+]
+
+try-runtime = [
+    "frame-executive/try-runtime",
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "frame-try-runtime/try-runtime",
+    "pallet-babe/try-runtime",
+    "pallet-balances/try-runtime",
+    "pallet-grandpa/try-runtime",
+    "pallet-session/try-runtime",
+    "pallet-sudo/try-runtime",
+    "pallet-timestamp/try-runtime",
+    "pallet-transaction-payment/try-runtime",
+    "pallet-beefy/try-runtime",
+    "pallet-beefy-mmr/try-runtime",
+    "pallet-mmr/try-runtime",
+    "polkadot-runtime-common/try-runtime",
+    "sp-runtime/try-runtime",
+]
+
+fast-runtime = [
+    "flamingo-runtime-constants/fast-runtime",
+]
+
+# Enable the metadata hash generation.
+#
+# This is hidden behind a feature because it increases the compile time.
+# The wasm binary needs to be compiled twice, once to fetch the metadata,
+# generate the metadata hash and then a second time with the
+# `RUNTIME_METADATA_HASH` environment variable set for the `CheckMetadataHash`
+# extension.
+metadata-hash = ["substrate-wasm-builder/metadata-hash"]
+
+# A convenience feature for enabling things when doing a build
+# for an on-chain release.
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]

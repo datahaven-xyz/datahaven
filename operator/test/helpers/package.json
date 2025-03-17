@@ -1,0 +1,9 @@
+{
+    "name": "beefy-client-helpers",
+    "version": "1.0.0",
+    "description": "Helper scripts for testing BeefyClient",
+    "main": "getBeefyBlock.js",
+    "dependencies": {
+        "ethers": "^6.11.1"
+    }
+}

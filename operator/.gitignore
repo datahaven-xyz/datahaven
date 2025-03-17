@@ -1,0 +1,25 @@
+# MacOS thing
+**/.DS_Store
+
+# Rust directories
+target
+
+# Typescript directories
+**/node_modules
+**/.yarn
+
+# Spec/Wasm build directory
+/build/
+
+# Moonbeam-Launch
+*.log
+tools/specFiles
+tools/*-local.json
+tools/*-local-raw.json
+tools/build
+
+# RustRover
+.idea/
+
+# Temporary files
+**/tmp

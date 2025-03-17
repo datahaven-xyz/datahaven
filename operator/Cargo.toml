@@ -1,0 +1,92 @@
+[workspace.package]
+license = "GPL-3"
+authors = ["MoonsongLabs <dev@moonsonglabs.com>"]
+homepage = "https://moonbeam.network/"
+repository = "https://github.com/Moonsong-Labs/flamingo.git"
+edition = "2021"
+
+[workspace]
+members = [
+    "node",
+    "runtime",
+    "pallets/validator-set",
+    "runtime/constants",
+]
+resolver = "2"
+
+[workspace.dependencies]
+flamingo-runtime = { path = "./runtime", default-features = false }
+flamingo-runtime-constants = { path = "./runtime/constants", default-features = false }
+clap = { version = "4.5.10" }
+frame-benchmarking-cli = { version = "43.0.0", default-features = false }
+frame-metadata-hash-extension = { version = "0.6.0", default-features = false }
+frame-system = { version = "38.0.0", default-features = false }
+futures = { version = "0.3.30" }
+jsonrpsee = { version = "0.24.3" }
+pallet-transaction-payment = { version = "38.0.0", default-features = false }
+pallet-transaction-payment-rpc = { version = "41.0.0", default-features = false }
+sc-basic-authorship = { version = "0.45.0", default-features = false }
+sc-cli = { version = "0.47.0", default-features = false }
+sc-client-api = { version = "37.0.0", default-features = false }
+sc-consensus = { version = "0.44.0", default-features = false }
+sc-consensus-babe = { version = "0.45.0", default-features = false }
+sc-consensus-grandpa = { version = "0.30.0", default-features = false }
+sc-executor = { version = "0.40.1", default-features = false }
+sc-network = { version = "0.45.0", default-features = false }
+sc-offchain = { version = "40.0.0", default-features = false }
+sc-rpc = { version = "40.0.0", default-features = false }
+sc-service = { version = "0.46.0", default-features = false }
+sc-telemetry = { version = "25.0.0", default-features = false }
+sc-transaction-pool = { version = "37.0.0", default-features = false }
+sc-transaction-pool-api = { version = "37.0.0", default-features = false }
+serde_json = { version = "1.0.127", default-features = false }
+sp-api = { version = "34.0.0", default-features = false }
+sp-block-builder = { version = "34.0.0", default-features = false }
+sp-blockchain = { version = "37.0.1", default-features = false }
+sp-consensus-babe = { version = "0.40.0", default-features = false }
+sp-consensus-grandpa = { version = "21.0.0", default-features = false }
+sp-core = { version = "34.0.0", default-features = false }
+sp-inherents = { version = "34.0.0", default-features = false }
+sp-io = { version = "38.0.0", default-features = false }
+sp-keyring = { version = "39.0.0", default-features = false }
+sp-runtime = { version = "39.0.1", default-features = false }
+sp-staking = { version = "36.0.0", default-features = false }
+sp-timestamp = { version = "34.0.0", default-features = false }
+substrate-frame-rpc-system = { version = "39.0.0", default-features = false }
+substrate-build-script-utils = { version = "11.0.0", default-features = false }
+codec = { version = "3.6.12", default-features = false, package = "parity-scale-codec" }
+frame-benchmarking = { version = "38.0.0", default-features = false }
+frame-executive = { version = "38.0.0", default-features = false }
+frame-support = { version = "38.0.0", default-features = false }
+frame-system-benchmarking = { version = "38.0.0", default-features = false }
+frame-system-rpc-runtime-api = { version = "34.0.0", default-features = false }
+frame-try-runtime = { version = "0.44.0", default-features = false }
+pallet-babe = { version = "38.0.0", default-features = false }
+pallet-balances = { version = "39.0.0", default-features = false }
+pallet-grandpa = { version = "38.0.0", default-features = false }
+pallet-session = { version = "38.0.0", default-features = false }
+pallet-sudo = { version = "38.0.0", default-features = false }
+pallet-timestamp = { version = "37.0.0", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { version = "38.0.0", default-features = false }
+polkadot-primitives = { version = "16.0.0", default-features = false }
+polkadot-runtime-common = { version = "17.0.0", default-features = false }
+scale-info = { version = "2.11.1", default-features = false }
+sp-genesis-builder = { version = "0.15.1", default-features = false }
+sp-offchain = { version = "34.0.0", default-features = false }
+sp-session = { version = "36.0.0", default-features = false }
+sp-storage = { version = "21.0.0", default-features = false }
+sp-transaction-pool = { version = "34.0.0", default-features = false }
+sp-version = { version = "37.0.0", default-features = false }
+substrate-wasm-builder = { version = "24.0.1", default-features = false }
+log = { version = "0.4.25" }
+pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
+
+
+# BEEFY
+sp-consensus-beefy = { version = "22.1.0", default-features = false }
+sc-consensus-beefy = { version = "24.0.0", default-features = false }
+sc-consensus-beefy-rpc = { version = "24.0.0", default-features = false }
+mmr-rpc = { version = "38.0.0", default-features = false }
+pallet-beefy = { version = "39.0.0", default-features = false }
+pallet-beefy-mmr = { version = "39.0.0", default-features = false }
+pallet-mmr = { version = "38.0.0", default-features = false }

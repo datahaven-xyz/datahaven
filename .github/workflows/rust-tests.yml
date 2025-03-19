@@ -50,6 +50,9 @@ jobs:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: ./operator
     steps:
       - uses: actions/checkout@v4
         with:
@@ -86,6 +89,9 @@ jobs:
       fail-fast: false
       matrix:
         partition: [1, 2]
+    defaults:
+      run:
+        working-directory: ./operator
     steps:
       - uses: actions/checkout@v4
         with:

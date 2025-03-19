@@ -22,13 +22,10 @@ jobs:
   check-rust-fmt:
     name: "Check format with rustfmt"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./operator
-    env:
-      CARGO_HOME: ./operator
     steps:
       - uses: actions/checkout@v4
+      - name: Change to operator directory
+        run: cd operator
       - uses: actions-rust-lang/setup-rust-toolchain@v1.8
         with:
           components: rustfmt
@@ -38,13 +35,10 @@ jobs:
   check-rust-lint:
     name: "Check lint with clippy"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./operator
-    env:
-      CARGO_HOME: ./operator
     steps:
       - uses: actions/checkout@v4
+      - name: Change to operator directory
+        run: cd operator
       - uses: actions-rust-lang/setup-rust-toolchain@v1.8
         with:
           components: clippy

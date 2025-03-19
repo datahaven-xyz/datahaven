@@ -1,0 +1,52 @@
+# Lint and Format: CI for Rust components (DataHaven runtime and node Rust tests)
+#
+# Overview:
+# 1. Check Rust Format: Check that the Rust code is formatted correctly
+# 2. Check Rust Lint: Check that the Rust code is linted correctly
+
+name: Lint and Format
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - perm-*
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: set to pull_request number to execute on external pr
+        required: false
+
+jobs:
+  check-rust-fmt:
+    name: "Check format with rustfmt"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.8
+        with:
+          components: rustfmt
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
+
+  check-rust-lint:
+    name: "Check lint with clippy"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.8
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install libpq-dev
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked
+        env:
+          RUSTFLAGS: -D warnings

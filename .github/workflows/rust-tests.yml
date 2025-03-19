@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nextest-archive
-          path: nextest-archive.tar.zst
+          path: ./operator/nextest-archive.tar.zst
 
   all-rust-tests:
     needs: [setup, prepare]

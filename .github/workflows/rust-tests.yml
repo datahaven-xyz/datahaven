@@ -105,5 +105,5 @@ jobs:
       - name: Run Tests for All Projects!
         run: |
           ~/.cargo/bin/cargo-nextest nextest run \
-            --archive-file ./operator/nextest-archive.tar.zst \
+            --archive-file ../nextest-archive.tar.zst \
             --partition count:${{ matrix.partition }}/2

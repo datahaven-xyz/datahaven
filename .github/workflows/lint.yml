@@ -27,8 +27,6 @@ jobs:
         working-directory: ./operator
     steps:
       - uses: actions/checkout@v4
-      - name: Change to operator directory
-        run: cd operator
       - uses: actions-rs/toolchain@v1
         with:
           components: rustfmt
@@ -40,8 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Change to operator directory
-        run: cd operator
       - uses: actions-rs/toolchain@v1
         with:
           components: clippy

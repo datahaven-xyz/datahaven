@@ -23,7 +23,33 @@ env:
   WORKING_DIR: operator
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      node_changed: ${{ steps.node_check.outputs.changed }}
+    env:
+      SKIP_BUILD_LABEL_PRESENT: ${{ contains(github.event.pull_request.labels.*.name, 'skip-node-build') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Substrate Node needs rebuild
+        id: node_check
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          if [[ "${{ env.SKIP_BUILD_LABEL_PRESENT }}" != "true" ]] && git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^operator/(client|node|pallets|runtime)/|^operator/Cargo\.toml$'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Comparing changes from $BASE_SHA to $HEAD_SHA"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
   cargo-fmt:
+    needs: [setup]
+    if: needs.setup.outputs.node_changed == 'true'
     name: "Check format with rustfmt"
     runs-on: ubuntu-latest
     defaults:
@@ -52,6 +78,8 @@ jobs:
         run: cargo fmt --all -- --check
 
   check-rust-lint:
+    needs: [setup]
+    if: needs.setup.outputs.node_changed == 'true'
     name: "Check lint with clippy"
     runs-on: ubuntu-latest
     defaults:

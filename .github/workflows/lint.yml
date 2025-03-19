@@ -40,12 +40,23 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
+      # ! If this action starts failing, it may be because of this,
+      # ! For now this is not needed, and makes the workflow slower
+      # - name: Install protoc
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y protobuf-compiler
+      #     protoc --version
+
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
   check-rust-lint:
     name: "Check lint with clippy"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
     steps:
       - uses: actions/checkout@v4
 

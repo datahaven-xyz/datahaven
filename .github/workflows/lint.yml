@@ -22,6 +22,9 @@ jobs:
   check-rust-fmt:
     name: "Check format with rustfmt"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./operator
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1.8
@@ -33,6 +36,9 @@ jobs:
   check-rust-lint:
     name: "Check lint with clippy"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./operator
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1.8

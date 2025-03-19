@@ -18,20 +18,36 @@ on:
         description: set to pull_request number to execute on external pr
         required: false
 
+env:
+  CARGO_TERM_COLOR: always
+  WORKING_DIR: operator
+
 jobs:
-  check-rust-fmt:
+  cargo-fmt:
     name: "Check format with rustfmt"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./operator
+        working-directory: ${{ env.WORKING_DIR }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      - name: Rustfmt Check
-        uses: actions-rust-lang/rustfmt@v1
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
 
   check-rust-lint:
     name: "Check lint with clippy"

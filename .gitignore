@@ -12,6 +12,7 @@ target/
 # IDE directories
 .vscode/
 .idea/
+.zed/
 
 # cspell
 cspell.json

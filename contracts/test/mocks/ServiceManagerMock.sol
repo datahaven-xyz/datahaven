@@ -10,6 +10,7 @@ import {IAllocationManager} from
 
 import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";
 import {ServiceManagerBaseStorage} from "../../src/middleware/ServiceManagerBaseStorage.sol";
+import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 
 /**
  * @title Minimal implementation of a ServiceManager-type contract.
@@ -30,5 +31,16 @@ contract ServiceManagerMock is ServiceManagerBase {
         address rewardsInitiator
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
+    }
+
+    /**
+     * @notice Sets the slasher contract
+     * @param slasher The slasher contract address
+     * @dev Only callable by the owner
+     */
+    function setSlasher(
+        IVetoableSlasher slasher
+    ) external override onlyOwner {
+        _slasher = slasher;
     }
 }

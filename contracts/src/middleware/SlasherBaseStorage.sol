@@ -20,19 +20,12 @@ abstract contract SlasherStorage is ISlasher {
     IAllocationManager public immutable allocationManager;
     /// @notice the ServiceManager of the AVS
     IServiceManager public immutable serviceManager;
-    /// @notice the address of the slasher
-    address public immutable slasher;
 
     uint256 public nextRequestId;
 
-    constructor(
-        IAllocationManager _allocationManager,
-        IServiceManager _serviceManager,
-        address _slasher
-    ) {
+    constructor(IAllocationManager _allocationManager, IServiceManager _serviceManager) {
         allocationManager = _allocationManager;
         serviceManager = _serviceManager;
-        slasher = _slasher;
     }
 
     uint256[49] private __gap;

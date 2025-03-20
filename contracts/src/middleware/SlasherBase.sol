@@ -20,13 +20,11 @@ abstract contract SlasherBase is SlasherStorage {
 
     /// @notice Constructs the base slasher contract
     /// @param _allocationManager The EigenLayer allocation manager contract
-    /// @param _serviceManager The service manager for this AVS
-    /// @param _slasher The address of the slasher
+    /// @param _serviceManager The service manager that will manage this slasher
     constructor(
         IAllocationManager _allocationManager,
-        IServiceManager _serviceManager,
-        address _slasher
-    ) SlasherStorage(_allocationManager, _serviceManager, _slasher) {}
+        IServiceManager _serviceManager
+    ) SlasherStorage(_allocationManager, _serviceManager) {}
 
     /// @notice Internal function to execute a slashing request
     /// @param _requestId The ID of the slashing request to fulfill
@@ -48,10 +46,16 @@ abstract contract SlasherBase is SlasherStorage {
 
     /// @notice Internal function to verify if an account is the authorized slasher
     /// @param account The address to check
-    /// @dev Reverts if the account is not the authorized slasher
+    /// @dev Reverts if the account is not the ServiceManager
     function _checkSlasher(
         address account
     ) internal view virtual {
-        require(account == slasher, OnlySlasher());
+        require(account == address(serviceManager), OnlySlasher());
+    }
+
+    /// @notice Returns the address of the ServiceManager
+    /// @return The address of the ServiceManager
+    function slasher() external view returns (address) {
+        return address(serviceManager);
     }
 }

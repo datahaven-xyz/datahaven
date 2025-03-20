@@ -12,6 +12,7 @@ import {IAllocationManager} from
 import {IPermissionController} from
     "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
+import {IVetoableSlasher} from "../interfaces/IVetoableSlasher.sol";
 import {IServiceManager} from "../interfaces/IServiceManager.sol";
 
 /**
@@ -35,10 +36,13 @@ abstract contract ServiceManagerBaseStorage is IServiceManager, OwnableUpgradeab
      *
      */
 
+    /// @notice The slasher contract that handles operator slashing
+    IVetoableSlasher internal _slasher;
+
     /// @notice The address of the entity that can initiate rewards
     address public rewardsInitiator;
 
-    /// @notice Sets the (immutable) `_avsDirectory`, `_rewardsCoordinator`, `_registryCoordinator`, `_stakeRegistry`, and `_allocationManager` addresses
+    /// @notice Sets the (immutable) rewardsCoordinator`, `_permissionController`, and `_allocationManager` addresses
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
         IPermissionController __permissionController,

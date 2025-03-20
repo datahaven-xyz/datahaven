@@ -1,0 +1,44 @@
+[package]
+name = 'pallet-validator-set'
+version = '1.0.0'
+authors = ['Gautam Dhameja <quasijatt@outlook.com>', 'Parity Technologies <admin@parity.io>']
+edition = '2021'
+license = 'Apache-2.0'
+
+[dependencies]
+codec = { features = [
+	"derive",
+], workspace = true }
+scale-info = { features = [
+	"derive",
+	"serde",
+], workspace = true }
+
+sp-core.workspace = true
+sp-io.workspace = true
+sp-runtime.workspace = true
+sp-staking.workspace = true
+log.workspace = true
+
+frame-support.workspace = true
+frame-benchmarking.workspace = true
+frame-benchmarking.optional = true
+frame-system.workspace = true
+
+pallet-session = { workspace = true, features = ['historical'] }
+
+[features]
+default = ['std']
+runtime-benchmarks = ['frame-benchmarking/runtime-benchmarks']
+std = [
+    'codec/std',
+    'frame-benchmarking/std',
+    'frame-support/std',
+    'frame-system/std',
+    'scale-info/std',
+    'sp-core/std',
+    'sp-io/std',
+    'sp-runtime/std',
+    'pallet-session/std',
+]
+try-runtime = ['frame-support/try-runtime']

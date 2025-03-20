@@ -1,0 +1,26 @@
+{
+    "source": {
+        "beacon": {
+            "endpoint": "http://127.0.0.1:9596",
+            "stateEndpoint": "http://127.0.0.1:9596",
+            "spec": {
+                "syncCommitteeSize": 512,
+                "slotsInEpoch": 32,
+                "epochsPerSyncCommitteePeriod": 256,
+                "denebForkedEpoch": 0
+            },
+            "datastore": {
+                "location": "",
+                "maxEntries": 100
+            }
+        }
+    },
+    "sink": {
+        "parachain": {
+            "endpoint": "",
+            "maxWatchedExtrinsics": 8,
+            "headerRedundancy": 20
+        },
+        "updateSlotInterval": 30
+    }
+}

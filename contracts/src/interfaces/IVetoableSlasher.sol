@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.27;
 
-import {IAllocationManager} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {ISlasher} from "./ISlasher.sol";
 
 interface IVetoableSlasherErrors {
@@ -72,10 +73,14 @@ interface IVetoableSlasher is
     /// @notice Cancels a pending slashing request
     /// @param requestId The ID of the slashing request to cancel
     /// @dev Can only be called by the veto committee during the veto period
-    function cancelSlashingRequest(uint256 requestId) external;
+    function cancelSlashingRequest(
+        uint256 requestId
+    ) external;
 
     /// @notice Executes a slashing request after the veto period has passed
     /// @param requestId The ID of the slashing request to fulfill
     /// @dev Can only be called by the authorized slasher after the veto period
-    function fulfillSlashingRequest(uint256 requestId) external;
+    function fulfillSlashingRequest(
+        uint256 requestId
+    ) external;
 }

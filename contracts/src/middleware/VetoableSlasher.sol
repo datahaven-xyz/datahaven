@@ -52,10 +52,10 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
     }
 
     /// @inheritdoc IVetoableSlasher
-    function fulfillSlashingRequest(
+    function fulfilSlashingRequest(
         uint256 requestId
     ) external override {
-        _fulfillSlashingRequestAndMarkAsCompleted(requestId);
+        _fulfilSlashingRequestAndMarkAsCompleted(requestId);
     }
 
     /// @notice Internal function to create and store a new slashing request
@@ -94,8 +94,8 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
     }
 
     /// @notice Internal function to fullfill a slashing request and mark it as completed
-    /// @param requestId The ID of the slashing request to fulfill
-    function _fulfillSlashingRequestAndMarkAsCompleted(
+    /// @param requestId The ID of the slashing request to fulfil
+    function _fulfilSlashingRequestAndMarkAsCompleted(
         uint256 requestId
     ) internal virtual {
         IVetoableSlasherTypes.VetoableSlashingRequest storage request = slashingRequests[requestId];
@@ -107,7 +107,7 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
 
         request.status = IVetoableSlasherTypes.SlashingStatus.Completed;
 
-        _fulfillSlashingRequest(requestId, request.params);
+        _fulfilSlashingRequest(requestId, request.params);
     }
 
     /// @notice Internal function to verify if an account is the veto committee

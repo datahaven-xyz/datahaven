@@ -27,10 +27,10 @@ abstract contract SlasherBase is SlasherStorage {
     ) SlasherStorage(_allocationManager, _serviceManager) {}
 
     /// @notice Internal function to execute a slashing request
-    /// @param _requestId The ID of the slashing request to fulfill
+    /// @param _requestId The ID of the slashing request to fulfil
     /// @param _params Parameters defining the slashing request including operator, strategies, and amounts
     /// @dev Calls AllocationManager.slashOperator to perform the actual slashing
-    function _fulfillSlashingRequest(
+    function _fulfilSlashingRequest(
         uint256 _requestId,
         IAllocationManager.SlashingParams memory _params
     ) internal virtual {

@@ -4,21 +4,14 @@ pragma solidity ^0.8.27;
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ISignatureUtilsMixinTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
+import {ISignatureUtilsMixinTypes} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
-import {
-    IAllocationManager,
-    IAllocationManagerTypes
-} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManager, IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {IPermissionController} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
 import {IVetoableSlasher} from "../interfaces/IVetoableSlasher.sol";
@@ -28,7 +21,10 @@ import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
  * @title Minimal implementation of a ServiceManager-type contract.
  * This contract can be inherited from or simply used as a point-of-reference.
  */
-abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar {
+abstract contract ServiceManagerBase is
+    ServiceManagerBaseStorage,
+    IAVSRegistrar
+{
     using SafeERC20 for IERC20;
 
     /// @notice only rewardsInitiator can call createAVSRewardsSubmission
@@ -43,7 +39,11 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         IPermissionController __permissionController,
         IAllocationManager __allocationManager
     )
-        ServiceManagerBaseStorage(__rewardsCoordinator, __permissionController, __allocationManager)
+        ServiceManagerBaseStorage(
+            __rewardsCoordinator,
+            __permissionController,
+            __allocationManager
+        )
     {
         _disableInitializers();
     }
@@ -61,9 +61,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      * @param slasher The slasher contract address
      * @dev Only callable by the owner
      */
-    function setSlasher(
-        IVetoableSlasher slasher
-    ) external virtual onlyOwner {
+    function setSlasher(IVetoableSlasher slasher) external virtual onlyOwner {
         _slasher = slasher;
     }
 
@@ -94,7 +92,11 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         uint32 operatorSetId,
         IStrategy[] calldata strategies
     ) external virtual onlyOwner {
-        _allocationManager.addStrategiesToOperatorSet(address(this), operatorSetId, strategies);
+        _allocationManager.addStrategiesToOperatorSet(
+            address(this),
+            operatorSetId,
+            strategies
+        );
     }
 
     /**
@@ -104,17 +106,11 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         uint32 operatorSetId,
         IStrategy[] calldata strategies
     ) external virtual onlyOwner {
-        _allocationManager.removeStrategiesFromOperatorSet(address(this), operatorSetId, strategies);
-    }
-
-    /**
-     * Forwards the slashing request to the set slasher
-     * @dev This function is now an alias for queueSlashingRequest for compatibility
-     */
-    function slashOperator(
-        IAllocationManager.SlashingParams calldata params
-    ) external virtual onlyOwner {
-        this.queueSlashingRequest(params);
+        _allocationManager.removeStrategiesFromOperatorSet(
+            address(this),
+            operatorSetId,
+            strategies
+        );
     }
 
     /**
@@ -130,15 +126,13 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * Fulfills a slashing request that has passed the veto period
-     * @param requestId The ID of the slashing request to fulfill
+     * fulfils a slashing request that has passed the veto period
+     * @param requestId The ID of the slashing request to fulfil
      * @dev Can be called by anyone
      */
-    function fulfillSlashingRequest(
-        uint256 requestId
-    ) external virtual {
+    function fulfilSlashingRequest(uint256 requestId) external virtual {
         require(address(_slasher) != address(0), "Slasher not set");
-        _slasher.fulfillSlashingRequest(requestId);
+        _slasher.fulfilSlashingRequest(requestId);
     }
 
     /**
@@ -158,30 +152,40 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      */
     function createOperatorDirectedOperatorSetRewardsSubmission(
         OperatorSet calldata operatorSet,
-        IRewardsCoordinator.OperatorDirectedRewardsSubmission[] calldata
-            operatorDirectedRewardsSubmissions
+        IRewardsCoordinator.OperatorDirectedRewardsSubmission[]
+            calldata operatorDirectedRewardsSubmissions
     ) public virtual onlyRewardsInitiator {
-        for (uint256 i = 0; i < operatorDirectedRewardsSubmissions.length; ++i) {
+        for (
+            uint256 i = 0;
+            i < operatorDirectedRewardsSubmissions.length;
+            ++i
+        ) {
             // Calculate total amount of tokens to transfer
             uint256 totalAmount = 0;
             for (
-                uint256 j = 0; j < operatorDirectedRewardsSubmissions[i].operatorRewards.length; ++j
+                uint256 j = 0;
+                j <
+                operatorDirectedRewardsSubmissions[i].operatorRewards.length;
+                ++j
             ) {
-                totalAmount += operatorDirectedRewardsSubmissions[i].operatorRewards[j].amount;
+                totalAmount += operatorDirectedRewardsSubmissions[i]
+                    .operatorRewards[j]
+                    .amount;
             }
 
             // Transfer token to ServiceManager and approve RewardsCoordinator to transfer again
             // in createOperatorDirectedOperatorSetRewardsSubmission() call
-            IERC20(operatorDirectedRewardsSubmissions[i].token).safeTransferFrom(
-                msg.sender, address(this), totalAmount
-            );
+            IERC20(operatorDirectedRewardsSubmissions[i].token)
+                .safeTransferFrom(msg.sender, address(this), totalAmount);
             operatorDirectedRewardsSubmissions[i].token.safeIncreaseAllowance(
-                address(_rewardsCoordinator), totalAmount
+                address(_rewardsCoordinator),
+                totalAmount
             );
         }
 
         _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
-            operatorSet, operatorDirectedRewardsSubmissions
+            operatorSet,
+            operatorDirectedRewardsSubmissions
         );
     }
 
@@ -190,8 +194,12 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         address operator,
         uint32[] memory operatorSetIds
     ) external virtual override {
-        IAllocationManagerTypes.DeregisterParams memory params = IAllocationManagerTypes
-            .DeregisterParams({operator: operator, avs: address(this), operatorSetIds: operatorSetIds});
+        IAllocationManagerTypes.DeregisterParams
+            memory params = IAllocationManagerTypes.DeregisterParams({
+                operator: operator,
+                avs: address(this),
+                operatorSetIds: operatorSetIds
+            });
         _allocationManager.deregisterFromOperatorSets(params);
     }
 
@@ -224,28 +232,35 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /// @inheritdoc IServiceManager
-    function addPendingAdmin(
-        address admin
-    ) external onlyOwner {
-        _permissionController.addPendingAdmin({account: address(this), admin: admin});
+    function addPendingAdmin(address admin) external onlyOwner {
+        _permissionController.addPendingAdmin({
+            account: address(this),
+            admin: admin
+        });
     }
 
     /// @inheritdoc IServiceManager
-    function removePendingAdmin(
-        address pendingAdmin
-    ) external onlyOwner {
-        _permissionController.removePendingAdmin({account: address(this), admin: pendingAdmin});
+    function removePendingAdmin(address pendingAdmin) external onlyOwner {
+        _permissionController.removePendingAdmin({
+            account: address(this),
+            admin: pendingAdmin
+        });
     }
 
     /// @inheritdoc IServiceManager
-    function removeAdmin(
-        address admin
-    ) external onlyOwner {
-        _permissionController.removeAdmin({account: address(this), admin: admin});
+    function removeAdmin(address admin) external onlyOwner {
+        _permissionController.removeAdmin({
+            account: address(this),
+            admin: admin
+        });
     }
 
     /// @inheritdoc IServiceManager
-    function setAppointee(address appointee, address target, bytes4 selector) external onlyOwner {
+    function setAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external onlyOwner {
         _permissionController.setAppointee({
             account: address(this),
             appointee: appointee,
@@ -278,9 +293,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      * @param claimer The address of the entity that can call `processClaim` on behalf of the earner
      * @dev Only callable by the owner.
      */
-    function setClaimerFor(
-        address claimer
-    ) public virtual onlyOwner {
+    function setClaimerFor(address claimer) public virtual onlyOwner {
         _rewardsCoordinator.setClaimerFor(claimer);
     }
 
@@ -295,9 +308,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         _setRewardsInitiator(newRewardsInitiator);
     }
 
-    function _setRewardsInitiator(
-        address newRewardsInitiator
-    ) internal {
+    function _setRewardsInitiator(address newRewardsInitiator) internal {
         emit RewardsInitiatorUpdated(rewardsInitiator, newRewardsInitiator);
         rewardsInitiator = newRewardsInitiator;
     }
@@ -308,7 +319,12 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      * @dev No guarantee is made on uniqueness of each element in the returned array.
      *      The off-chain service should do that validation separately
      */
-    function getRestakeableStrategies() external view virtual returns (address[] memory) {
+    function getRestakeableStrategies()
+        external
+        view
+        virtual
+        returns (address[] memory)
+    {
         // TODO: Implement this
         return new address[](0);
     }

@@ -4,29 +4,18 @@ pragma solidity ^0.8.27;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {
-    IAllocationManagerErrors,
-    IAllocationManager,
-    IAllocationManagerTypes
-} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {IAllocationManagerErrors, IAllocationManager, IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
 import {IServiceManager} from "../src/interfaces/IServiceManager.sol";
 import {ISlasher, ISlasherErrors, ISlasherEvents} from "../src/interfaces/ISlasher.sol";
-import {
-    IVetoableSlasher,
-    IVetoableSlasherTypes,
-    IVetoableSlasherErrors,
-    IVetoableSlasherEvents
-} from "../src/interfaces/IVetoableSlasher.sol";
+import {IVetoableSlasher, IVetoableSlasherTypes, IVetoableSlasherErrors, IVetoableSlasherEvents} from "../src/interfaces/IVetoableSlasher.sol";
 import {SlasherBase} from "../src/middleware/SlasherBase.sol";
 import {VetoableSlasher} from "../src/middleware/VetoableSlasher.sol";
 
 contract VetoableSlasherTest is MockAVSDeployer {
     address public nonServiceManagerRole;
-    address public vetoCommittee;
     address public nonVetoCommittee;
 
     // Events for testing
@@ -46,12 +35,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
 
         // Set up roles for testing
         nonServiceManagerRole = address(0x5678);
-        vetoCommittee = address(0xabcd);
         nonVetoCommittee = address(0xdcba);
-
-        // Deploy the VetoableSlasher contract
-        vetoableSlasher =
-            new VetoableSlasher(allocationManager, serviceManager, vetoCommittee, vetoWindowBlocks);
     }
 
     // Test constructor initializes state correctly
@@ -66,11 +50,21 @@ contract VetoableSlasherTest is MockAVSDeployer {
             address(serviceManager),
             "ServiceManager address mismatch"
         );
-        assertEq(vetoableSlasher.vetoCommittee(), vetoCommittee, "Veto committee address mismatch");
         assertEq(
-            vetoableSlasher.vetoWindowBlocks(), vetoWindowBlocks, "Veto window blocks mismatch"
+            vetoableSlasher.vetoCommittee(),
+            vetoCommitteeMember,
+            "Veto committee address mismatch"
         );
-        assertEq(vetoableSlasher.nextRequestId(), 0, "NextRequestId should be initialized to 0");
+        assertEq(
+            vetoableSlasher.vetoWindowBlocks(),
+            vetoWindowBlocks,
+            "Veto window blocks mismatch"
+        );
+        assertEq(
+            vetoableSlasher.nextRequestId(),
+            0,
+            "NextRequestId should be initialized to 0"
+        );
     }
 
     // Test queueSlashingRequest reverts when called by non-ServiceManager
@@ -78,7 +72,9 @@ contract VetoableSlasherTest is MockAVSDeployer {
         IAllocationManagerTypes.SlashingParams memory params;
 
         vm.prank(nonServiceManagerRole);
-        vm.expectRevert(abi.encodeWithSelector(ISlasherErrors.OnlySlasher.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISlasherErrors.OnlySlasher.selector)
+        );
         vetoableSlasher.queueSlashingRequest(params);
     }
 
@@ -93,21 +89,25 @@ contract VetoableSlasherTest is MockAVSDeployer {
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Test slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
-            operator: operator,
-            operatorSetId: operatorSetId,
-            strategies: strategies,
-            wadsToSlash: wadsToSlash,
-            description: description
-        });
+        IAllocationManagerTypes.SlashingParams
+            memory params = IAllocationManagerTypes.SlashingParams({
+                operator: operator,
+                operatorSetId: operatorSetId,
+                strategies: strategies,
+                wadsToSlash: wadsToSlash,
+                description: description
+            });
 
         uint256 requestId = 0; // First request
 
         vm.prank(address(serviceManager));
         vm.expectEmit(true, true, true, true);
         emit IVetoableSlasherEvents.SlashingRequested(
-            requestId, operator, operatorSetId, wadsToSlash, description
+            requestId,
+            operator,
+            operatorSetId,
+            wadsToSlash,
+            description
         );
         vetoableSlasher.queueSlashingRequest(params);
 
@@ -116,19 +116,33 @@ contract VetoableSlasherTest is MockAVSDeployer {
             IAllocationManagerTypes.SlashingParams memory storedParams,
             uint256 requestBlock,
             IVetoableSlasherTypes.SlashingStatus status
-        ) = getSlashingRequest(requestId);
+        ) = _getSlashingRequest(requestId);
 
         assertEq(storedParams.operator, operator, "Operator mismatch");
-        assertEq(storedParams.operatorSetId, operatorSetId, "OperatorSetId mismatch");
-        assertEq(storedParams.wadsToSlash[0], wadsToSlash[0], "WadsToSlash mismatch");
+        assertEq(
+            storedParams.operatorSetId,
+            operatorSetId,
+            "OperatorSetId mismatch"
+        );
+        assertEq(
+            storedParams.wadsToSlash[0],
+            wadsToSlash[0],
+            "WadsToSlash mismatch"
+        );
         assertEq(storedParams.description, description, "Description mismatch");
         assertEq(requestBlock, block.number, "Request block mismatch");
         assertEq(
-            uint8(status), uint8(IVetoableSlasherTypes.SlashingStatus.Requested), "Status mismatch"
+            uint8(status),
+            uint8(IVetoableSlasherTypes.SlashingStatus.Requested),
+            "Status mismatch"
         );
 
         // Verify nextRequestId is incremented
-        assertEq(vetoableSlasher.nextRequestId(), 1, "NextRequestId should be incremented");
+        assertEq(
+            vetoableSlasher.nextRequestId(),
+            1,
+            "NextRequestId should be incremented"
+        );
     }
 
     // Test cancelSlashingRequest reverts when called by non-veto committee
@@ -137,7 +151,11 @@ contract VetoableSlasherTest is MockAVSDeployer {
         _createSlashingRequest();
 
         vm.prank(nonVetoCommittee);
-        vm.expectRevert(abi.encodeWithSelector(IVetoableSlasherErrors.OnlyVetoCommittee.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVetoableSlasherErrors.OnlyVetoCommittee.selector
+            )
+        );
         vetoableSlasher.cancelSlashingRequest(0);
     }
 
@@ -146,13 +164,15 @@ contract VetoableSlasherTest is MockAVSDeployer {
         // First create a request
         uint256 requestId = _createSlashingRequest();
 
-        vm.prank(vetoCommittee);
+        vm.prank(vetoCommitteeMember);
         vm.expectEmit(true, false, false, false);
         emit IVetoableSlasherEvents.SlashingRequestCancelled(requestId);
         vetoableSlasher.cancelSlashingRequest(requestId);
 
         // Verify request status is updated
-        (,, IVetoableSlasherTypes.SlashingStatus status) = getSlashingRequest(requestId);
+        (, , IVetoableSlasherTypes.SlashingStatus status) = _getSlashingRequest(
+            requestId
+        );
         assertEq(
             uint8(status),
             uint8(IVetoableSlasherTypes.SlashingStatus.Cancelled),
@@ -168,8 +188,12 @@ contract VetoableSlasherTest is MockAVSDeployer {
         // Fast forward past veto period
         vm.roll(block.number + vetoWindowBlocks + 1);
 
-        vm.prank(vetoCommittee);
-        vm.expectRevert(abi.encodeWithSelector(IVetoableSlasherErrors.VetoPeriodPassed.selector));
+        vm.prank(vetoCommitteeMember);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVetoableSlasherErrors.VetoPeriodPassed.selector
+            )
+        );
         vetoableSlasher.cancelSlashingRequest(requestId);
     }
 
@@ -179,34 +203,40 @@ contract VetoableSlasherTest is MockAVSDeployer {
         uint256 requestId = _createSlashingRequest();
 
         // Cancel it once
-        vm.prank(vetoCommittee);
+        vm.prank(vetoCommitteeMember);
         vetoableSlasher.cancelSlashingRequest(requestId);
 
         // Try to cancel it again
-        vm.prank(vetoCommittee);
+        vm.prank(vetoCommitteeMember);
         vm.expectRevert(
-            abi.encodeWithSelector(IVetoableSlasherErrors.SlashingRequestNotRequested.selector)
+            abi.encodeWithSelector(
+                IVetoableSlasherErrors.SlashingRequestNotRequested.selector
+            )
         );
         vetoableSlasher.cancelSlashingRequest(requestId);
     }
 
-    // Test fulfillSlashingRequest reverts before veto period has passed
-    function test_fulfillSlashingRequest_beforeVetoPeriod() public {
+    // Test fulfilSlashingRequest reverts before veto period has passed
+    function test_fulfilSlashingRequest_beforeVetoPeriod() public {
         // First create a request
         uint256 requestId = _createSlashingRequest();
 
         vm.prank(address(serviceManager));
-        vm.expectRevert(abi.encodeWithSelector(IVetoableSlasherErrors.VetoPeriodNotPassed.selector));
-        vetoableSlasher.fulfillSlashingRequest(requestId);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IVetoableSlasherErrors.VetoPeriodNotPassed.selector
+            )
+        );
+        vetoableSlasher.fulfilSlashingRequest(requestId);
     }
 
-    // Test fulfillSlashingRequest reverts when request is cancelled
-    function test_fulfillSlashingRequest_cancelled() public {
+    // Test fulfilSlashingRequest reverts when request is cancelled
+    function test_fulfilSlashingRequest_cancelled() public {
         // First create a request
         uint256 requestId = _createSlashingRequest();
 
         // Cancel it
-        vm.prank(vetoCommittee);
+        vm.prank(vetoCommitteeMember);
         vetoableSlasher.cancelSlashingRequest(requestId);
 
         // Fast forward past veto period
@@ -214,13 +244,15 @@ contract VetoableSlasherTest is MockAVSDeployer {
 
         vm.prank(address(serviceManager));
         vm.expectRevert(
-            abi.encodeWithSelector(IVetoableSlasherErrors.SlashingRequestIsCancelled.selector)
+            abi.encodeWithSelector(
+                IVetoableSlasherErrors.SlashingRequestIsCancelled.selector
+            )
         );
-        vetoableSlasher.fulfillSlashingRequest(requestId);
+        vetoableSlasher.fulfilSlashingRequest(requestId);
     }
 
-    // Test fulfillSlashingRequest succeeds after veto period has passed
-    function test_fulfillSlashingRequest_afterVetoPeriod() public {
+    // Test fulfilSlashingRequest succeeds after veto period has passed
+    function test_fulfilSlashingRequest_afterVetoPeriod() public {
         // First create a request
         uint256 requestId = _createSlashingRequest();
         address operator = address(0x1111);
@@ -228,12 +260,14 @@ contract VetoableSlasherTest is MockAVSDeployer {
 
         // Setup the mock for slashing
         IAllocationManagerTypes.SlashingParams memory params;
-        (params,,) = getSlashingRequest(requestId);
+        (params, , ) = _getSlashingRequest(requestId);
 
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
-                IAllocationManager.slashOperator.selector, serviceManager.avs(), params
+                IAllocationManager.slashOperator.selector,
+                serviceManager.avs(),
+                params
             ),
             abi.encode()
         );
@@ -244,12 +278,18 @@ contract VetoableSlasherTest is MockAVSDeployer {
         vm.prank(address(serviceManager));
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
-            requestId, operator, operatorSetId, params.wadsToSlash, params.description
+            requestId,
+            operator,
+            operatorSetId,
+            params.wadsToSlash,
+            params.description
         );
-        vetoableSlasher.fulfillSlashingRequest(requestId);
+        vetoableSlasher.fulfilSlashingRequest(requestId);
 
         // Verify request status is updated
-        (,, IVetoableSlasherTypes.SlashingStatus status) = getSlashingRequest(requestId);
+        (, , IVetoableSlasherTypes.SlashingStatus status) = _getSlashingRequest(
+            requestId
+        );
         assertEq(
             uint8(status),
             uint8(IVetoableSlasherTypes.SlashingStatus.Completed),
@@ -271,14 +311,14 @@ contract VetoableSlasherTest is MockAVSDeployer {
         wadsToSlash2[0] = 2e16; // 2% of the operator's stake
         string memory description2 = "Second slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params2 = IAllocationManagerTypes
-            .SlashingParams({
-            operator: operator2,
-            operatorSetId: operatorSetId2,
-            strategies: strategies2,
-            wadsToSlash: wadsToSlash2,
-            description: description2
-        });
+        IAllocationManagerTypes.SlashingParams
+            memory params2 = IAllocationManagerTypes.SlashingParams({
+                operator: operator2,
+                operatorSetId: operatorSetId2,
+                strategies: strategies2,
+                wadsToSlash: wadsToSlash2,
+                description: description2
+            });
 
         uint256 requestId2 = 1; // Second request
 
@@ -286,14 +326,16 @@ contract VetoableSlasherTest is MockAVSDeployer {
         vetoableSlasher.queueSlashingRequest(params2);
 
         // Cancel the first request
-        vm.prank(vetoCommittee);
+        vm.prank(vetoCommitteeMember);
         vetoableSlasher.cancelSlashingRequest(requestId1);
 
         // Setup the mock for slashing the second request
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
-                IAllocationManager.slashOperator.selector, serviceManager.avs(), params2
+                IAllocationManager.slashOperator.selector,
+                serviceManager.avs(),
+                params2
             ),
             abi.encode()
         );
@@ -301,20 +343,30 @@ contract VetoableSlasherTest is MockAVSDeployer {
         // Fast forward past veto period
         vm.roll(block.number + vetoWindowBlocks + 1);
 
-        // Try to fulfill the first (cancelled) request - should revert
+        // Try to fulfil the first (cancelled) request - should revert
         vm.prank(address(serviceManager));
         vm.expectRevert(
-            abi.encodeWithSelector(IVetoableSlasherErrors.SlashingRequestIsCancelled.selector)
+            abi.encodeWithSelector(
+                IVetoableSlasherErrors.SlashingRequestIsCancelled.selector
+            )
         );
-        vetoableSlasher.fulfillSlashingRequest(requestId1);
+        vetoableSlasher.fulfilSlashingRequest(requestId1);
 
-        // Fulfill the second request - should succeed
+        // fulfil the second request - should succeed
         vm.prank(address(serviceManager));
-        vetoableSlasher.fulfillSlashingRequest(requestId2);
+        vetoableSlasher.fulfilSlashingRequest(requestId2);
 
         // Verify states
-        (,, IVetoableSlasherTypes.SlashingStatus status1) = getSlashingRequest(requestId1);
-        (,, IVetoableSlasherTypes.SlashingStatus status2) = getSlashingRequest(requestId2);
+        (
+            ,
+            ,
+            IVetoableSlasherTypes.SlashingStatus status1
+        ) = _getSlashingRequest(requestId1);
+        (
+            ,
+            ,
+            IVetoableSlasherTypes.SlashingStatus status2
+        ) = _getSlashingRequest(requestId2);
 
         assertEq(
             uint8(status1),
@@ -338,14 +390,14 @@ contract VetoableSlasherTest is MockAVSDeployer {
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Test slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
-            operator: operator,
-            operatorSetId: operatorSetId,
-            strategies: strategies,
-            wadsToSlash: wadsToSlash,
-            description: description
-        });
+        IAllocationManagerTypes.SlashingParams
+            memory params = IAllocationManagerTypes.SlashingParams({
+                operator: operator,
+                operatorSetId: operatorSetId,
+                strategies: strategies,
+                wadsToSlash: wadsToSlash,
+                description: description
+            });
 
         uint256 requestId = vetoableSlasher.nextRequestId();
 
@@ -356,7 +408,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
     }
 
     // Helper function to extract SlashingRequest from storage
-    function getSlashingRequest(
+    function _getSlashingRequest(
         uint256 requestId
     )
         internal
@@ -367,6 +419,8 @@ contract VetoableSlasherTest is MockAVSDeployer {
             IVetoableSlasherTypes.SlashingStatus status
         )
     {
-        (params, requestBlock, status) = vetoableSlasher.slashingRequests(requestId);
+        (params, requestBlock, status) = vetoableSlasher.slashingRequests(
+            requestId
+        );
     }
 }

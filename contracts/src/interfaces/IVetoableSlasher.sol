@@ -78,9 +78,9 @@ interface IVetoableSlasher is
     ) external;
 
     /// @notice Executes a slashing request after the veto period has passed
-    /// @param requestId The ID of the slashing request to fulfill
+    /// @param requestId The ID of the slashing request to fulfil
     /// @dev Can only be called by the authorized slasher after the veto period
-    function fulfillSlashingRequest(
+    function fulfilSlashingRequest(
         uint256 requestId
     ) external;
 }

@@ -31,7 +31,7 @@ interface ISlasherEvents is ISlasherTypes {
 /// @title ISlasher
 /// @notice Base interface containing shared functionality for all slasher implementations
 interface ISlasher is ISlasherErrors, ISlasherEvents {
-    /// @notice Returns the address authorized to create and fulfill slashing requests
+    /// @notice Returns the address authorized to create and fulfil slashing requests
     function slasher() external view returns (address);
 
     /// @notice Returns the next slashing request ID

@@ -38,10 +38,13 @@ impl-serde = { version = "0.5.0", default-features = false }
 libsecp256k1 = { version = "0.7", default-features = false }
 sha3 = { version = "0.10", default-features = false }
 hex = { version = "0.4.3", default-features = false }
+flume = "0.10.9"
+url = "2.2.2"
 
 # Polkadot
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
@@ -88,7 +91,6 @@ pallet-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = 
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
-pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sp-genesis-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
@@ -117,7 +119,26 @@ snowbridge-pallet-ethereum-client = { git = "https://github.com/paritytech/polka
 pallet-author-inherent = { git = "https://github.com/Moonsong-Labs/moonkit", rev = "002c1a5ae3ce82e1136d5321bff124ab93ed050f", default-features = false }
 
 # Frontier (wasm)
-fp-account = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
 pallet-ethereum = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2409", default-features = false }
 pallet-evm = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2409", default-features = false }
 pallet-evm-chain-id = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2409", default-features = false }
+pallet-base-fee = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+pallet-dynamic-fee = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+pallet-evm-precompile-modexp = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+pallet-evm-precompile-sha3fips = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+pallet-evm-precompile-simple = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+pallet-hotfix-sufficients = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fp-evm = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fp-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fp-self-contained = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fp-account = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fp-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+
+# Frontier (client)
+fc-cli = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-consensus = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-db = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }

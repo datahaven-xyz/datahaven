@@ -20,6 +20,8 @@ futures = { features = ["thread-pool"], workspace = true }
 serde_json = { workspace = true, default-features = true }
 jsonrpsee = { features = ["server"], workspace = true }
 hex-literal.workspace = true
+flume = { workspace = true }
+url = { workspace = true }
 fp-account = { workspace = true }
 sc-cli.workspace = true
 sc-cli.default-features = true
@@ -79,11 +81,13 @@ pallet-transaction-payment.workspace = true
 pallet-transaction-payment.default-features = true
 pallet-transaction-payment-rpc.workspace = true
 pallet-transaction-payment-rpc.default-features = true
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = [ "std" ] }
 substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-benchmarking-cli.default-features = true
 datahaven-runtime.workspace = true
+frame-system-rpc-runtime-api = { workspace = true }
 
 # RPC
 sc-rpc = { workspace = true, default-features = true }
@@ -96,6 +100,18 @@ sc-consensus-beefy-rpc = { workspace = true, default-features = true }
 # MMR
 mmr-rpc = { workspace = true, default-features = true }
 
+# Frontier
+fc-cli = { workspace = true }
+fc-consensus = { workspace = true }
+fc-db = { workspace = true }
+fc-mapping-sync = { workspace = true }
+fc-rpc = { workspace = true }
+fc-rpc-core = { workspace = true }
+fc-storage = { workspace = true }
+fp-evm = { workspace = true }
+fp-rpc = { workspace = true }
+pallet-ethereum = { workspace = true }
+
 [build-dependencies]
 substrate-build-script-utils.workspace = true
 substrate-build-script-utils.default-features = true
@@ -105,6 +121,7 @@ default = ["std"]
 std = [
 	"datahaven-runtime/std",
 ]
+
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
 	"frame-benchmarking-cli/runtime-benchmarks",

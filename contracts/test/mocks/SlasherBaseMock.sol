@@ -2,7 +2,10 @@
 pragma solidity ^0.8.27;
 
 import {SlasherBase} from "../../src/middleware/SlasherBase.sol";
-import {IAllocationManager, IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager,
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 
 // SlasherMock implementation for testing
@@ -26,7 +29,9 @@ contract SlasherMock is SlasherBase {
     }
 
     // Expose the internal _checkSlasher function for testing
-    function checkSlasher(address account) external view {
+    function checkSlasher(
+        address account
+    ) external view {
         _checkSlasher(account);
     }
 }

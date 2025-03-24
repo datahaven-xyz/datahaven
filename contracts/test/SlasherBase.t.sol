@@ -4,8 +4,13 @@ pragma solidity ^0.8.27;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {IAllocationManagerErrors, IAllocationManager, IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IRewardsCoordinator} from
+    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IAllocationManagerErrors,
+    IAllocationManager,
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
 import {IServiceManager} from "../src/interfaces/IServiceManager.sol";
@@ -40,19 +45,13 @@ contract SlasherBaseTest is MockAVSDeployer {
             address(serviceManager),
             "ServiceManager address mismatch"
         );
-        assertEq(
-            slasherContract.nextRequestId(),
-            0,
-            "NextRequestId should be initialized to 0"
-        );
+        assertEq(slasherContract.nextRequestId(), 0, "NextRequestId should be initialized to 0");
     }
 
     // Test that a function with the onlySlasher modifier reverts when called by non-ServiceManager
     function test_onlySlasherModifier_nonSlasher() public {
         vm.prank(nonServiceManagerRole);
-        vm.expectRevert(
-            abi.encodeWithSelector(ISlasherErrors.OnlySlasher.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ISlasherErrors.OnlySlasher.selector));
         slasherContract.restrictedFunction();
     }
 
@@ -74,22 +73,20 @@ contract SlasherBaseTest is MockAVSDeployer {
         wadsToSlash[0] = 1e16;
         string memory description = "Test slashing by non-ServiceManager";
 
-        IAllocationManagerTypes.SlashingParams
-            memory params = IAllocationManagerTypes.SlashingParams({
-                operator: operator,
-                operatorSetId: operatorSetId,
-                strategies: strategies,
-                wadsToSlash: wadsToSlash,
-                description: description
-            });
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
+            .SlashingParams({
+            operator: operator,
+            operatorSetId: operatorSetId,
+            strategies: strategies,
+            wadsToSlash: wadsToSlash,
+            description: description
+        });
 
         // Mock the allocationManager.slashOperator call
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
-                IAllocationManager.slashOperator.selector,
-                serviceManager.avs(),
-                params
+                IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
             abi.encode()
         );
@@ -100,11 +97,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         vm.prank(nonServiceManagerRole);
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
-            requestId,
-            operator,
-            operatorSetId,
-            wadsToSlash,
-            description
+            requestId, operator, operatorSetId, wadsToSlash, description
         );
         slasherContract.fulfilSlashingRequest(requestId, params);
     }
@@ -116,9 +109,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         slasherContract.checkSlasher(address(serviceManager));
 
         // Should revert for non-ServiceManager
-        vm.expectRevert(
-            abi.encodeWithSelector(ISlasherErrors.OnlySlasher.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ISlasherErrors.OnlySlasher.selector));
         slasherContract.checkSlasher(nonServiceManagerRole);
     }
 
@@ -135,22 +126,20 @@ contract SlasherBaseTest is MockAVSDeployer {
         wadsToSlash[1] = 2e16; // 2% of the operator's stake
         string memory description = "Multiple strategy slashing";
 
-        IAllocationManagerTypes.SlashingParams
-            memory params = IAllocationManagerTypes.SlashingParams({
-                operator: operator,
-                operatorSetId: operatorSetId,
-                strategies: strategies,
-                wadsToSlash: wadsToSlash,
-                description: description
-            });
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
+            .SlashingParams({
+            operator: operator,
+            operatorSetId: operatorSetId,
+            strategies: strategies,
+            wadsToSlash: wadsToSlash,
+            description: description
+        });
 
         // Mock the allocationManager.slashOperator call
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
-                IAllocationManager.slashOperator.selector,
-                serviceManager.avs(),
-                params
+                IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
             abi.encode()
         );
@@ -161,11 +150,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         vm.prank(address(serviceManager));
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
-            requestId,
-            operator,
-            operatorSetId,
-            wadsToSlash,
-            description
+            requestId, operator, operatorSetId, wadsToSlash, description
         );
         slasherContract.fulfilSlashingRequest(requestId, params);
     }
@@ -181,22 +166,20 @@ contract SlasherBaseTest is MockAVSDeployer {
         wadsToSlash[0] = 0; // Zero tokens
         string memory description = "Zero wad slashing";
 
-        IAllocationManagerTypes.SlashingParams
-            memory params = IAllocationManagerTypes.SlashingParams({
-                operator: operator,
-                operatorSetId: operatorSetId,
-                strategies: strategies,
-                wadsToSlash: wadsToSlash,
-                description: description
-            });
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
+            .SlashingParams({
+            operator: operator,
+            operatorSetId: operatorSetId,
+            strategies: strategies,
+            wadsToSlash: wadsToSlash,
+            description: description
+        });
 
         // Mock the allocationManager.slashOperator call
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
-                IAllocationManager.slashOperator.selector,
-                serviceManager.avs(),
-                params
+                IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
             abi.encode()
         );
@@ -207,11 +190,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         vm.prank(address(serviceManager));
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
-            requestId,
-            operator,
-            operatorSetId,
-            wadsToSlash,
-            description
+            requestId, operator, operatorSetId, wadsToSlash, description
         );
         slasherContract.fulfilSlashingRequest(requestId, params);
     }
@@ -227,22 +206,20 @@ contract SlasherBaseTest is MockAVSDeployer {
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Revert test";
 
-        IAllocationManagerTypes.SlashingParams
-            memory params = IAllocationManagerTypes.SlashingParams({
-                operator: operator,
-                operatorSetId: operatorSetId,
-                strategies: strategies,
-                wadsToSlash: wadsToSlash,
-                description: description
-            });
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
+            .SlashingParams({
+            operator: operator,
+            operatorSetId: operatorSetId,
+            strategies: strategies,
+            wadsToSlash: wadsToSlash,
+            description: description
+        });
 
         // Mock the allocationManager.slashOperator call to revert
         vm.mockCallRevert(
             address(allocationManager),
             abi.encodeWithSelector(
-                IAllocationManager.slashOperator.selector,
-                serviceManager.avs(),
-                params
+                IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
             abi.encodeWithSignature("SomeError()")
         );

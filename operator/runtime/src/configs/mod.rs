@@ -23,7 +23,6 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-use crate::AuthorInherent;
 use crate::EvmChainId;
 use crate::Timestamp;
 use crate::{Historical, SessionKeys, ValidatorSet};
@@ -310,15 +309,6 @@ impl pallet_mmr::Config for Runtime {
 
 // Frontier
 
-// TODO: configure pallet author-inherent correctly
-impl pallet_author_inherent::Config for Runtime {
-    type SlotBeacon = ();
-    type AccountLookup = ();
-    type CanAuthor = ();
-    type AuthorId = AccountId;
-    type WeightInfo = ();
-}
-
 parameter_types! {
     pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
 }
@@ -356,7 +346,7 @@ impl FindAuthor<H160> for FindAuthorAdapter {
     where
         I: 'a + IntoIterator<Item = (sp_runtime::ConsensusEngineId, &'a [u8])>,
     {
-        if let Some(author) = AuthorInherent::find_author(digests) {
+        if let Some(author) = Babe::find_author(digests) {
             return Some(H160::from_slice(&author.encode()[0..20]));
         }
         None

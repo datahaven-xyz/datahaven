@@ -7,6 +7,8 @@ mod cli;
 mod command;
 mod rpc;
 mod service;
+mod eth;
+mod client;
 
 fn main() -> sc_cli::Result<()> {
     command::run()

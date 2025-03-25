@@ -19,6 +19,7 @@ clap = { features = ["derive"], workspace = true }
 futures = { features = ["thread-pool"], workspace = true }
 serde_json = { workspace = true, default-features = true }
 jsonrpsee = { features = ["server"], workspace = true }
+codec = { package = "parity-scale-codec", workspace = true }
 hex-literal.workspace = true
 flume = { workspace = true }
 url = { workspace = true }
@@ -31,6 +32,7 @@ sc-executor.workspace = true
 sc-executor.default-features = true
 sc-network.workspace = true
 sc-network.default-features = true
+sc-network-sync.workspace = true
 sc-service.workspace = true
 sc-service.default-features = true
 sc-telemetry.workspace = true
@@ -73,6 +75,9 @@ sp-blockchain.workspace = true
 sp-blockchain.default-features = true
 sp-block-builder.workspace = true
 sp-block-builder.default-features = true
+sp-offchain = { workspace = true, features = ["default"] }
+sp-session = { workspace = true, features = ["default"] }
+sp-transaction-pool = { workspace = true, features = ["default"] }
 frame-system.workspace = true
 frame-system.default-features = true
 frame-metadata-hash-extension.workspace = true
@@ -104,7 +109,7 @@ mmr-rpc = { workspace = true, default-features = true }
 fc-cli = { workspace = true }
 fc-consensus = { workspace = true }
 fc-db = { workspace = true }
-fc-mapping-sync = { workspace = true }
+fc-mapping-sync = { workspace = true, features = ["sql"] }
 fc-rpc = { workspace = true }
 fc-rpc-core = { workspace = true }
 fc-storage = { workspace = true }

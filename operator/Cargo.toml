@@ -32,7 +32,7 @@ clap = { version = "4.5.10" }
 futures = { version = "0.3.30" }
 jsonrpsee = { version = "0.24.3" }
 hex-literal = { version = "0.3.4" }
-codec = { version = "3.6.12", default-features = false, package = "parity-scale-codec" }
+codec = { package = "parity-scale-codec", version = "3.6.12", default-features = false, features = ["derive"] }
 blake2-rfc = { version = "0.2.18", default-features = false }
 impl-serde = { version = "0.5.0", default-features = false }
 libsecp256k1 = { version = "0.7", default-features = false }
@@ -53,6 +53,7 @@ sc-consensus-babe = { git = "https://github.com/paritytech/polkadot-sdk", branch
 sc-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-network = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+sc-network-sync = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }

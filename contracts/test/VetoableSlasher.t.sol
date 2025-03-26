@@ -38,7 +38,13 @@ contract VetoableSlasherTest is MockAVSDeployer {
         string description
     );
 
-    event SlashingRequestCancelled(uint256 indexed requestId);
+    event SlashingRequestCancelled(
+        address indexed operator, uint32 operatorSetId, uint256[] wadsToSlash, string description
+    );
+
+    event SlashingRequestFulfilled(
+        address indexed operator, uint32 operatorSetId, uint256[] wadsToSlash, string description
+    );
 
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
@@ -115,7 +121,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
         (
             IAllocationManagerTypes.SlashingParams memory storedParams,
             uint256 requestBlock,
-            IVetoableSlasherTypes.SlashingStatus status
+            bool isPending
         ) = getSlashingRequest(requestId);
 
         assertEq(storedParams.operator, operator, "Operator mismatch");
@@ -123,9 +129,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
         assertEq(storedParams.wadsToSlash[0], wadsToSlash[0], "WadsToSlash mismatch");
         assertEq(storedParams.description, description, "Description mismatch");
         assertEq(requestBlock, block.number, "Request block mismatch");
-        assertEq(
-            uint8(status), uint8(IVetoableSlasherTypes.SlashingStatus.Requested), "Status mismatch"
-        );
+        assertEq(isPending, true, "Status mismatch");
 
         // Verify nextRequestId is incremented
         assertEq(vetoableSlasher.nextRequestId(), 1, "NextRequestId should be incremented");
@@ -145,19 +149,18 @@ contract VetoableSlasherTest is MockAVSDeployer {
     function test_cancelSlashingRequest_withinVetoPeriod() public {
         // First create a request
         uint256 requestId = _createSlashingRequest();
+        (IAllocationManagerTypes.SlashingParams memory params,,) = getSlashingRequest(requestId);
 
         vm.prank(vetoCommittee);
         vm.expectEmit(true, false, false, false);
-        emit IVetoableSlasherEvents.SlashingRequestCancelled(requestId);
+        emit IVetoableSlasherEvents.SlashingRequestCancelled(
+            params.operator, params.operatorSetId, params.wadsToSlash, params.description
+        );
         vetoableSlasher.cancelSlashingRequest(requestId);
 
         // Verify request status is updated
-        (,, IVetoableSlasherTypes.SlashingStatus status) = getSlashingRequest(requestId);
-        assertEq(
-            uint8(status),
-            uint8(IVetoableSlasherTypes.SlashingStatus.Cancelled),
-            "Status should be Cancelled"
-        );
+        (,, bool isPending) = getSlashingRequest(requestId);
+        assertEq(isPending, false, "Status should be Cancelled");
     }
 
     // Test cancelSlashingRequest reverts when veto period has passed
@@ -246,15 +249,49 @@ contract VetoableSlasherTest is MockAVSDeployer {
         emit ISlasherEvents.OperatorSlashed(
             requestId, operator, operatorSetId, params.wadsToSlash, params.description
         );
+        vm.expectEmit(true, true, true, true);
+        emit SlashingRequestFulfilled(
+            operator, operatorSetId, params.wadsToSlash, params.description
+        );
         vetoableSlasher.fulfillSlashingRequest(requestId);
 
-        // Verify request status is updated
-        (,, IVetoableSlasherTypes.SlashingStatus status) = getSlashingRequest(requestId);
+        // Verify request is deleted from storage
+        (
+            IAllocationManagerTypes.SlashingParams memory emptyParams,
+            uint256 requestBlock,
+            bool isPending
+        ) = getSlashingRequest(requestId);
         assertEq(
-            uint8(status),
-            uint8(IVetoableSlasherTypes.SlashingStatus.Completed),
-            "Status should be Completed"
+            emptyParams.operator, address(0), "Request should be deleted - operator not zeroed"
         );
+        assertEq(requestBlock, 0, "Request should be deleted - requestBlock not zeroed");
+        assertEq(isPending, false, "Request should be deleted - isPending not false");
+    }
+
+    // Test cancelSlashingRequest properly deletes the request from storage
+    function test_cancelSlashingRequest_deletesFromStorage() public {
+        // First create a request
+        uint256 requestId = _createSlashingRequest();
+        (IAllocationManagerTypes.SlashingParams memory params,,) = getSlashingRequest(requestId);
+
+        vm.prank(vetoCommittee);
+        vm.expectEmit(true, true, true, true);
+        emit SlashingRequestCancelled(
+            params.operator, params.operatorSetId, params.wadsToSlash, params.description
+        );
+        vetoableSlasher.cancelSlashingRequest(requestId);
+
+        // Verify request is deleted from storage
+        (
+            IAllocationManagerTypes.SlashingParams memory emptyParams,
+            uint256 requestBlock,
+            bool isPending
+        ) = getSlashingRequest(requestId);
+        assertEq(
+            emptyParams.operator, address(0), "Request should be deleted - operator not zeroed"
+        );
+        assertEq(requestBlock, 0, "Request should be deleted - requestBlock not zeroed");
+        assertEq(isPending, false, "Request should be deleted - isPending not false");
     }
 
     // Test multiple requests flow
@@ -313,19 +350,11 @@ contract VetoableSlasherTest is MockAVSDeployer {
         vetoableSlasher.fulfillSlashingRequest(requestId2);
 
         // Verify states
-        (,, IVetoableSlasherTypes.SlashingStatus status1) = getSlashingRequest(requestId1);
-        (,, IVetoableSlasherTypes.SlashingStatus status2) = getSlashingRequest(requestId2);
+        (,, bool isPending1) = getSlashingRequest(requestId1);
+        (,, bool isPending2) = getSlashingRequest(requestId2);
 
-        assertEq(
-            uint8(status1),
-            uint8(IVetoableSlasherTypes.SlashingStatus.Cancelled),
-            "Request 1 status should be Cancelled"
-        );
-        assertEq(
-            uint8(status2),
-            uint8(IVetoableSlasherTypes.SlashingStatus.Completed),
-            "Request 2 status should be Completed"
-        );
+        assertEq(isPending1, false, "Request 1 status should be Cancelled");
+        assertEq(isPending2, false, "Request 2 status should be Completed");
     }
 
     // Helper function to create a standard slashing request
@@ -364,9 +393,9 @@ contract VetoableSlasherTest is MockAVSDeployer {
         returns (
             IAllocationManagerTypes.SlashingParams memory params,
             uint256 requestBlock,
-            IVetoableSlasherTypes.SlashingStatus status
+            bool isPending
         )
     {
-        (params, requestBlock, status) = vetoableSlasher.slashingRequests(requestId);
+        (params, requestBlock, isPending) = vetoableSlasher.slashingRequests(requestId);
     }
 }

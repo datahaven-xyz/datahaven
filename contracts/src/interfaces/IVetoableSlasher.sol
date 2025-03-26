@@ -20,18 +20,11 @@ interface IVetoableSlasherErrors {
 }
 
 interface IVetoableSlasherTypes {
-    /// @notice Represents the status of a slashing request
-    enum SlashingStatus {
-        Requested,
-        Cancelled,
-        Completed
-    }
-
     /// @notice Structure containing details about a vetoable slashing request
     struct VetoableSlashingRequest {
         IAllocationManager.SlashingParams params;
         uint256 requestBlock;
-        SlashingStatus status;
+		bool isPending;
     }
 }
 
@@ -46,7 +39,14 @@ interface IVetoableSlasherEvents {
     );
 
     /// @notice Emitted when a slashing request is cancelled by the veto committee
-    event SlashingRequestCancelled(uint256 indexed requestId);
+    event SlashingRequestCancelled(
+        address indexed operator, uint32 operatorSetId, uint256[] wadsToSlash, string description
+    );
+
+    /// @notice Emitted when a slashing request is fulfilled
+    event SlashingRequestFulfilled(
+        address indexed operator, uint32 operatorSetId, uint256[] wadsToSlash, string description
+    );
 }
 
 /// @title IVetoableSlasher

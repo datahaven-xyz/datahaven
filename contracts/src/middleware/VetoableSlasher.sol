@@ -67,7 +67,7 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
         slashingRequests[requestId] = IVetoableSlasherTypes.VetoableSlashingRequest({
             params: params,
             requestBlock: block.number,
-            status: IVetoableSlasherTypes.SlashingStatus.Requested
+            isPending: true
         });
 
         emit SlashingRequested(
@@ -80,17 +80,18 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
     function _cancelSlashingRequest(
         uint256 requestId
     ) internal virtual {
-        require(
-            block.number < slashingRequests[requestId].requestBlock + vetoWindowBlocks,
-            VetoPeriodPassed()
-        );
-        require(
-            slashingRequests[requestId].status == IVetoableSlasherTypes.SlashingStatus.Requested,
-            SlashingRequestNotRequested()
+        IVetoableSlasherTypes.VetoableSlashingRequest storage request = slashingRequests[requestId];
+        require(block.number < request.requestBlock + vetoWindowBlocks, VetoPeriodPassed());
+        require(request.isPending, SlashingRequestNotRequested());
+
+        emit SlashingRequestCancelled(
+            request.params.operator,
+            request.params.operatorSetId,
+            request.params.wadsToSlash,
+            request.params.description
         );
 
-        slashingRequests[requestId].status = IVetoableSlasherTypes.SlashingStatus.Cancelled;
-        emit SlashingRequestCancelled(requestId);
+        delete slashingRequests[requestId];
     }
 
     /// @notice Internal function to fullfill a slashing request and mark it as completed
@@ -100,14 +101,20 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
     ) internal virtual {
         IVetoableSlasherTypes.VetoableSlashingRequest storage request = slashingRequests[requestId];
         require(block.number >= request.requestBlock + vetoWindowBlocks, VetoPeriodNotPassed());
-        require(
-            request.status == IVetoableSlasherTypes.SlashingStatus.Requested,
-            SlashingRequestIsCancelled()
-        );
+        require(request.isPending, SlashingRequestIsCancelled());
 
-        request.status = IVetoableSlasherTypes.SlashingStatus.Completed;
+        request.isPending = false;
 
         _fulfillSlashingRequest(requestId, request.params);
+
+        emit SlashingRequestFulfilled(
+            request.params.operator,
+            request.params.operatorSetId,
+            request.params.wadsToSlash,
+            request.params.description
+        );
+
+        delete slashingRequests[requestId];
     }
 
     /// @notice Internal function to verify if an account is the veto committee

@@ -145,7 +145,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
     function test_cancelSlashingRequest_withinVetoPeriod() public {
         // First create a request
         uint256 requestId = _createSlashingRequest();
-        (IAllocationManagerTypes.SlashingParams memory params,,) = getSlashingRequest(requestId);
+        (IAllocationManagerTypes.SlashingParams memory params,,) = _getSlashingRequest(requestId);
 
         vm.prank(vetoCommitteeMember);
         vm.expectEmit(true, false, false, false);
@@ -270,7 +270,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
         uint256 requestId = _createSlashingRequest();
         (IAllocationManagerTypes.SlashingParams memory params,,) = _getSlashingRequest(requestId);
 
-        vm.prank(vetoCommittee);
+        vm.prank(vetoCommitteeMember);
         vm.expectEmit(true, true, true, true);
         emit SlashingRequestCancelled(
             params.operator, params.operatorSetId, params.wadsToSlash, params.description

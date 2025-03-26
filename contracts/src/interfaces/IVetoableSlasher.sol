@@ -23,7 +23,7 @@ interface IVetoableSlasherTypes {
     struct VetoableSlashingRequest {
         IAllocationManager.SlashingParams params;
         uint256 requestBlock;
-		bool isPending;
+        bool isPending;
     }
 }
 

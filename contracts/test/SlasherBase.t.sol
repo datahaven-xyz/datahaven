@@ -16,34 +16,7 @@ import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
 import {IServiceManager} from "../src/interfaces/IServiceManager.sol";
 import {ISlasher, ISlasherErrors, ISlasherEvents} from "../src/interfaces/ISlasher.sol";
 import {SlasherBase} from "../src/middleware/SlasherBase.sol";
-
-// SlasherMock implementation for testing
-contract SlasherMock is SlasherBase {
-    constructor(
-        IAllocationManager _allocationManager,
-        IServiceManager _serviceManager
-    ) SlasherBase(_allocationManager, _serviceManager) {}
-
-    // Expose the internal _fulfillSlashingRequest function for testing
-    function fulfillSlashingRequest(
-        uint256 _requestId,
-        IAllocationManagerTypes.SlashingParams memory _params
-    ) external {
-        _fulfillSlashingRequest(_requestId, _params);
-    }
-
-    // Function with the onlySlasher modifier for testing
-    function restrictedFunction() external onlySlasher {
-        // Do nothing, just for testing the modifier
-    }
-
-    // Expose the internal _checkSlasher function for testing
-    function checkSlasher(
-        address account
-    ) external view {
-        _checkSlasher(account);
-    }
-}
+import {SlasherMock} from "./mocks/SlasherBaseMock.sol";
 
 contract SlasherBaseTest is MockAVSDeployer {
     SlasherMock public slasherContract;
@@ -56,7 +29,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         // Set up roles for testing
         nonServiceManagerRole = address(0x5678);
 
-        // Deploy the SlasherMock contract
+        // Deploy the SlasherMock contract, to specifically test the SlasherBase contract
         slasherContract = new SlasherMock(allocationManager, serviceManager);
     }
 
@@ -89,8 +62,8 @@ contract SlasherBaseTest is MockAVSDeployer {
         slasherContract.restrictedFunction();
     }
 
-    // Test that fulfillSlashingRequest can be called by anyone now that the onlySlasher modifier has been removed
-    function test_fulfillSlashingRequest_anyoneCanCall() public {
+    // Test that fulfilSlashingRequest can be called by anyone now that the onlySlasher modifier has been removed
+    function test_fulfilSlashingRequest_anyoneCanCall() public {
         // Setup mock params
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
@@ -120,13 +93,13 @@ contract SlasherBaseTest is MockAVSDeployer {
 
         uint256 requestId = 5;
 
-        // A random address should be able to call fulfillSlashingRequest
+        // A random address should be able to call fulfilSlashingRequest
         vm.prank(nonServiceManagerRole);
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
             requestId, operator, operatorSetId, wadsToSlash, description
         );
-        slasherContract.fulfillSlashingRequest(requestId, params);
+        slasherContract.fulfilSlashingRequest(requestId, params);
     }
 
     // Test the _checkSlasher internal function
@@ -140,8 +113,8 @@ contract SlasherBaseTest is MockAVSDeployer {
         slasherContract.checkSlasher(nonServiceManagerRole);
     }
 
-    // Test the _fulfillSlashingRequest internal function with different parameters
-    function test_fulfillSlashingRequest_withMultipleStrategies() public {
+    // Test the _fulfilSlashingRequest internal function with different parameters
+    function test_fulfilSlashingRequest_withMultipleStrategies() public {
         // Setup mock params with multiple strategies
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
@@ -173,17 +146,17 @@ contract SlasherBaseTest is MockAVSDeployer {
 
         uint256 requestId = 2;
 
-        // ServiceManager should be able to call fulfillSlashingRequest
+        // ServiceManager should be able to call fulfilSlashingRequest
         vm.prank(address(serviceManager));
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
             requestId, operator, operatorSetId, wadsToSlash, description
         );
-        slasherContract.fulfillSlashingRequest(requestId, params);
+        slasherContract.fulfilSlashingRequest(requestId, params);
     }
 
-    // Test fulfillSlashingRequest with zero wads to slash
-    function test_fulfillSlashingRequest_zeroWadsToSlash() public {
+    // Test fulfilSlashingRequest with zero wads to slash
+    function test_fulfilSlashingRequest_zeroWadsToSlash() public {
         // Setup mock params with zero wads
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
@@ -213,17 +186,17 @@ contract SlasherBaseTest is MockAVSDeployer {
 
         uint256 requestId = 3;
 
-        // ServiceManager should be able to call fulfillSlashingRequest
+        // ServiceManager should be able to call fulfilSlashingRequest
         vm.prank(address(serviceManager));
         vm.expectEmit(true, true, true, true);
         emit ISlasherEvents.OperatorSlashed(
             requestId, operator, operatorSetId, wadsToSlash, description
         );
-        slasherContract.fulfillSlashingRequest(requestId, params);
+        slasherContract.fulfilSlashingRequest(requestId, params);
     }
 
     // Test error handling when allocationManager.slashOperator reverts
-    function test_fulfillSlashingRequest_allocationManagerReverts() public {
+    function test_fulfilSlashingRequest_allocationManagerReverts() public {
         // Setup mock params
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
@@ -253,9 +226,9 @@ contract SlasherBaseTest is MockAVSDeployer {
 
         uint256 requestId = 4;
 
-        // ServiceManager should be able to call fulfillSlashingRequest
+        // ServiceManager should be able to call fulfilSlashingRequest
         vm.prank(address(serviceManager));
         vm.expectRevert(abi.encodeWithSignature("SomeError()"));
-        slasherContract.fulfillSlashingRequest(requestId, params);
+        slasherContract.fulfilSlashingRequest(requestId, params);
     }
 }

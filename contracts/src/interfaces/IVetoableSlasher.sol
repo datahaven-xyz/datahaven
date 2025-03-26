@@ -4,7 +4,6 @@ pragma solidity ^0.8.27;
 import {IAllocationManager} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {ISlasher} from "./ISlasher.sol";
-import {IServiceManager} from "./IServiceManager.sol";
 
 interface IVetoableSlasherErrors {
     /// @notice Thrown when a caller without veto committee privileges attempts a restricted operation
@@ -79,9 +78,9 @@ interface IVetoableSlasher is
     ) external;
 
     /// @notice Executes a slashing request after the veto period has passed
-    /// @param requestId The ID of the slashing request to fulfill
+    /// @param requestId The ID of the slashing request to fulfil
     /// @dev Can only be called by the authorized slasher after the veto period
-    function fulfillSlashingRequest(
+    function fulfilSlashingRequest(
         uint256 requestId
     ) external;
 }

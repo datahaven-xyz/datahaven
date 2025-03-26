@@ -1,0 +1,109 @@
+# Rust Tests: CI for Rust components (DataHaven runtime and node Rust tests)
+#
+# Overview:
+# 1. Prepare: This job handles the setup phase where the cargo nextest archive is created
+#    and uploaded to the workflow for use in the subsequent jobs
+# 2. All Rust Tests: Executes the full suite of Rust tests across two partitions to
+#    to reduce total execution time.
+
+name: DataHave Operator Rust Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      node_changed: ${{ steps.node_check.outputs.changed }}
+    env:
+      SKIP_BUILD_LABEL_PRESENT: ${{ contains(github.event.pull_request.labels.*.name, 'skip-node-build') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Substrate Node needs rebuild
+        id: node_check
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          if [[ "${{ env.SKIP_BUILD_LABEL_PRESENT }}" != "true" ]] && git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^operator/(client|node|pallets|runtime)/|^operator/Cargo\.toml$'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Comparing changes from $BASE_SHA to $HEAD_SHA"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  prepare:
+    needs: [setup]
+    if: needs.setup.outputs.node_changed == 'true'
+    name: Prepare artifacts for Rust tests
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # By default actions/checkout checks out a merge commit. Check out the PR head instead.
+          # https://github.com/actions/checkout#checkout-pull-request-head-commit-instead-of-merge-commit
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.8
+        with:
+          cache: false
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - uses: rui314/setup-mold@v1
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      # Install libpq-dev
+      - name: Install libpq-dev
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+      - name: Build and archive tests
+        run: cargo nextest archive --archive-file nextest-archive.tar.zst
+      - name: Upload archive to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextest-archive
+          path: ./operator/nextest-archive.tar.zst
+
+  all-rust-tests:
+    needs: [setup, prepare]
+    if: needs.setup.outputs.node_changed == 'true'
+    name: Run all Operator Rust tests (/w partitioning)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2]
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Download archive
+        uses: actions/download-artifact@v4
+        with:
+          name: nextest-archive
+      - name: Run Tests for All Projects!
+        run: |
+          ~/.cargo/bin/cargo-nextest nextest run \
+            --archive-file ../nextest-archive.tar.zst \
+            --partition count:${{ matrix.partition }}/2

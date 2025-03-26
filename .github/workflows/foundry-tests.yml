@@ -1,3 +1,8 @@
+# Foundry Tests: CI for Foundry components (smart contracts for EigenLayer and Snowbridge interaction)
+#
+# Overview:
+# 1. All Foundry Tests: Executes the full suite of Foundry tests found within the `./contracts` directory
+
 name: Foundry AVS Smart Contract Tests
 
 on:

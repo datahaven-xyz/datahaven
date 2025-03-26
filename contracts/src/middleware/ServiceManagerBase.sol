@@ -108,16 +108,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * Forwards the slashing request to the set slasher
-     * @dev This function is now an alias for queueSlashingRequest for compatibility
-     */
-    function slashOperator(
-        IAllocationManager.SlashingParams calldata params
-    ) external virtual onlyOwner {
-        this.queueSlashingRequest(params);
-    }
-
-    /**
      * Queue a slashing request in the vetoable slasher
      * @param params Parameters defining the slashing request
      * @dev Can only be called by the owner
@@ -130,15 +120,15 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * Fulfills a slashing request that has passed the veto period
-     * @param requestId The ID of the slashing request to fulfill
+     * fulfils a slashing request that has passed the veto period
+     * @param requestId The ID of the slashing request to fulfil
      * @dev Can be called by anyone
      */
-    function fulfillSlashingRequest(
+    function fulfilSlashingRequest(
         uint256 requestId
     ) external virtual {
         require(address(_slasher) != address(0), "Slasher not set");
-        _slasher.fulfillSlashingRequest(requestId);
+        _slasher.fulfilSlashingRequest(requestId);
     }
 
     /**

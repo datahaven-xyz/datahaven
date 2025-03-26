@@ -1,0 +1,24 @@
+# Rust Audit: CI for Rust audit of the operator node
+#
+# Overview:
+# 1. Check all the dependencies from Cargo.lock for reported vulnerabilities
+
+name: Audit Rust dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  push:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cargo audit
+        run: cargo install cargo-audit --locked
+      - name: Scan for vulnerabilities
+        run: cd operator && cargo audit

@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec::{self, alith},
-    cli::{Cli, Subcommand},
-    service,
-};
+use crate::{benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder}, chain_spec::{self, alith}, cli, cli::{Cli, Subcommand}, service};
 use datahaven_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
@@ -199,6 +194,7 @@ pub fn run() -> sc_cli::Result<()> {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run::<Block>(&config))
         }
+        &Some(cli::Subcommand::FrontierDb(_)) => todo!(),
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {

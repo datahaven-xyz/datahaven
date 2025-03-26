@@ -3,14 +3,24 @@
 use crate::rpc::BeefyDeps;
 use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block};
 use futures::FutureExt;
-use sc_client_api::{Backend, BlockBackend};
+use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvider};
 use sc_consensus_babe::ImportQueueParams;
-use sc_consensus_grandpa::SharedVoterState;
+use sc_consensus_grandpa::{SharedVoterState};
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_beefy::ecdsa_crypto;
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration, path::Path, sync::Mutex};
+use fc_db::DatabaseSource;
+use sp_api::ProvideRuntimeApi;
+use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use sp_runtime::traits::BlakeTwo256;
+use crate::{
+    eth::{
+        StorageOverrideHandler, EthConfiguration, FrontierBackendConfig
+    },
+};
+use crate::eth::BackendType;
 
 pub(crate) type FullClient = sc_service::TFullClient<
     Block,
@@ -34,6 +44,79 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId> =
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
+pub fn frontier_database_dir(config: &Configuration, path: &str) -> std::path::PathBuf {
+    config
+        .base_path
+        .config_dir(config.chain_spec.id())
+        .join("frontier")
+        .join(path)
+}
+pub fn open_frontier_backend<C, BE>(
+    client: Arc<C>,
+    config: &Configuration,
+    eth_config: EthConfiguration,
+) -> Result<fc_db::Backend<Block, C>, String>
+where
+    C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
+    C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
+    C: Send + Sync + 'static,
+    C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
+    BE: Backend<Block> + 'static,
+    BE::State: StateBackend<BlakeTwo256>,
+{
+    let frontier_backend = match eth_config.frontier_backend_type {
+        BackendType::KeyValue => {
+            fc_db::Backend::KeyValue(Arc::new(fc_db::kv::Backend::<Block, C>::new(
+                client,
+                &fc_db::kv::DatabaseSettings {
+                    source: match config.database {
+                        DatabaseSource::RocksDb { .. } => DatabaseSource::RocksDb {
+                            path: frontier_database_dir(config, "db"),
+                            cache_size: 0,
+                        },
+                        DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
+                            path: frontier_database_dir(config, "paritydb"),
+                        },
+                        DatabaseSource::Auto { .. } => DatabaseSource::Auto {
+                            rocksdb_path: frontier_database_dir(config, "db"),
+                            paritydb_path: frontier_database_dir(config, "paritydb"),
+                            cache_size: 0,
+                        },
+                        _ => {
+                            return Err(
+                                "Supported db sources: `rocksdb` | `paritydb` | `auto`".to_string()
+                            )
+                        }
+                    },
+                },
+            )?))
+        }
+        BackendType::Sql => {
+            let overrides = Arc::new(StorageOverrideHandler::new(client.clone()));
+            let sqlite_db_path = frontier_database_dir(config, "sql");
+            std::fs::create_dir_all(&sqlite_db_path).expect("failed creating sql db directory");
+            let backend = futures::executor::block_on(fc_db::sql::Backend::new(
+                fc_db::sql::BackendConfig::Sqlite(fc_db::sql::SqliteBackendConfig {
+                    path: Path::new("sqlite:///")
+                        .join(sqlite_db_path)
+                        .join("frontier.db3")
+                        .to_str()
+                        .expect("frontier sql path error"),
+                    create_if_missing: true,
+                    thread_count: eth_config.frontier_sql_backend_thread_count,
+                    cache_size: eth_config.frontier_sql_backend_cache_size,
+                }),
+                eth_config.frontier_sql_backend_pool_size,
+                std::num::NonZeroU32::new(eth_config.frontier_sql_backend_num_ops_timeout),
+                overrides.clone(),
+            ))
+                .unwrap_or_else(|err| panic!("failed creating sql backend: {:?}", err));
+            fc_db::Backend::Sql(Arc::new(backend))
+        }
+    };
+
+    Ok(frontier_backend)
+}
 pub type Service = sc_service::PartialComponents<
     FullClient,
     FullBackend,

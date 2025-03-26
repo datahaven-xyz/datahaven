@@ -39,6 +39,18 @@ pub enum BackendType {
 	Sql,
 }
 
+#[derive(Debug, Copy, Clone, Default)]
+pub enum FrontierBackendConfig {
+	#[default]
+	KeyValue,
+	Sql {
+		pool_size: u32,
+		num_ops_timeout: u32,
+		thread_count: u32,
+		cache_size: u64,
+	},
+}
+
 /// The ethereum-compatibility configuration used to run a node.
 #[derive(Clone, Debug, clap::Parser)]
 pub struct EthConfiguration {

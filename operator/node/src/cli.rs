@@ -1,12 +1,30 @@
 use sc_cli::RunCmd;
+use crate::eth::EthConfiguration;
+// Available Sealing methods.
+#[derive(Copy, Clone, Debug, Default, clap::ValueEnum)]
+pub enum Sealing {
+    /// Seal using rpc method.
+    #[default]
+    Manual,
+    /// Seal when transaction is executed.
+    Instant,
+}
 
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
     #[command(subcommand)]
     pub subcommand: Option<Subcommand>,
 
-    #[clap(flatten)]
+    #[allow(missing_docs)]
+    #[command(flatten)]
     pub run: RunCmd,
+
+    /// Choose sealing method.
+    #[arg(long, value_enum, ignore_case = true)]
+    pub sealing: Option<Sealing>,
+
+    #[command(flatten)]
+    pub eth: EthConfiguration,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -43,4 +61,7 @@ pub enum Subcommand {
 
     /// Db meta columns information.
     ChainInfo(sc_cli::ChainInfoCmd),
+
+    /// Db meta columns information.
+    FrontierDb(fc_cli::FrontierDbCmd),
 }

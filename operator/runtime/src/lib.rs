@@ -247,9 +247,6 @@ mod runtime {
     #[runtime::pallet_index(13)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
-    #[runtime::pallet_index(20)]
-    pub type AuthorInherent = pallet_author_inherent;
-
     #[runtime::pallet_index(31)]
     pub type Ethereum = pallet_ethereum;
 

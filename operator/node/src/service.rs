@@ -1,44 +1,46 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use crate::rpc::BeefyDeps;
-use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block};
+use crate::client::RuntimeApiCollection;
+use crate::eth::BackendType;
+use crate::eth::{EthConfiguration, StorageOverrideHandler};
+use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block, Balance};
+use fc_consensus::FrontierBlockImport as TFrontierBlockImport;
+use fc_db::DatabaseSource;
 use futures::FutureExt;
-use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvider};
+use sc_client_api::{AuxStore, Backend, StateBackend, StorageProvider};
 use sc_consensus_babe::ImportQueueParams;
-use sc_consensus_grandpa::{SharedVoterState};
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
+use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
+use sc_service::{error::Error as ServiceError, Configuration, TFullClient};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use sp_consensus_beefy::ecdsa_crypto;
-use std::{sync::Arc, time::Duration, path::Path, sync::Mutex};
-use fc_db::DatabaseSource;
-use sp_api::ProvideRuntimeApi;
+use sp_api::{ConstructRuntimeApi, ProvideRuntimeApi};
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use sp_consensus_beefy::ecdsa_crypto;
 use sp_runtime::traits::BlakeTwo256;
-use crate::{
-    eth::{
-        StorageOverrideHandler, EthConfiguration, FrontierBackendConfig
-    },
-};
-use crate::eth::BackendType;
+use std::{path::Path, sync::Arc};
 
-pub(crate) type FullClient = sc_service::TFullClient<
-    Block,
-    RuntimeApi,
-    sc_executor::WasmExecutor<sp_io::SubstrateHostFunctions>,
->;
+pub type HostFunctions = sp_io::SubstrateHostFunctions;
+
+pub(crate) type FullClient<RuntimeApi> =
+    TFullClient<Block, RuntimeApi, WasmExecutor<HostFunctions>>;
+
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
-type FullGrandpaBlockImport =
-    sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
+type FullGrandpaBlockImport = sc_consensus_grandpa::GrandpaBlockImport<
+    FullBackend,
+    Block,
+    FullClient<RuntimeApi>,
+    FullSelectChain,
+>;
 type FullBeefyBlockImport<InnerBlockImport, AuthorityId> =
     sc_consensus_beefy::import::BeefyBlockImport<
         Block,
         FullBackend,
-        FullClient,
+        FullClient<RuntimeApi>,
         InnerBlockImport,
         AuthorityId,
     >;
+type FrontierBlockImport<Client> = TFrontierBlockImport<Block, Arc<Client>, Client>;
 
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
@@ -54,7 +56,7 @@ pub fn frontier_database_dir(config: &Configuration, path: &str) -> std::path::P
 pub fn open_frontier_backend<C, BE>(
     client: Arc<C>,
     config: &Configuration,
-    eth_config: EthConfiguration,
+    eth_config: &EthConfiguration,
 ) -> Result<fc_db::Backend<Block, C>, String>
 where
     C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
@@ -110,7 +112,7 @@ where
                 std::num::NonZeroU32::new(eth_config.frontier_sql_backend_num_ops_timeout),
                 overrides.clone(),
             ))
-                .unwrap_or_else(|err| panic!("failed creating sql backend: {:?}", err));
+            .unwrap_or_else(|err| panic!("failed creating sql backend: {:?}", err));
             fc_db::Backend::Sql(Arc::new(backend))
         }
     };
@@ -118,26 +120,47 @@ where
     Ok(frontier_backend)
 }
 pub type Service = sc_service::PartialComponents<
-    FullClient,
+    FullClient<RuntimeApi>,
     FullBackend,
     FullSelectChain,
     sc_consensus::DefaultImportQueue<Block>,
-    sc_transaction_pool::FullPool<Block, FullClient>,
+    sc_transaction_pool::FullPool<Block, FullClient<RuntimeApi>>,
     (
         sc_consensus_babe::BabeBlockImport<
             Block,
-            FullClient,
+            FullClient<RuntimeApi>,
             FullBeefyBlockImport<FullGrandpaBlockImport, ecdsa_crypto::AuthorityId>,
         >,
-        sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+        sc_consensus_grandpa::LinkHalf<Block, FullClient<RuntimeApi>, FullSelectChain>,
         sc_consensus_babe::BabeLink<Block>,
         sc_consensus_beefy::BeefyVoterLinks<Block, ecdsa_crypto::AuthorityId>,
         sc_consensus_beefy::BeefyRPCLinks<Block, ecdsa_crypto::AuthorityId>,
+        Arc<fc_db::Backend<Block, FullClient<RuntimeApi>>>,
         Option<Telemetry>,
     ),
 >;
 
-pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
+pub trait ClientCustomizations {
+    /// The host function ed25519_verify has changed its behavior in the substrate history,
+    /// because of the change from lib ed25519-dalek to lib ed25519-zebra.
+    /// Some networks may have old blocks that are not compatible with ed25519-zebra,
+    /// for these networks this function should return the 1st block compatible with the new lib.
+    /// If this function returns None (default behavior), it implies that all blocks are compatible
+    /// with the new lib (ed25519-zebra).
+    fn first_block_number_compatible_with_ed25519_zebra() -> Option<u32> {
+        None
+    }
+}
+
+pub fn new_partial<RuntimeApi, Customizations>(
+    config: &Configuration,
+    eth_config: &EthConfiguration,
+) -> Result<Service, ServiceError>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: RuntimeApiCollection<Block, Balance>,
+    Customizations: ClientCustomizations + 'static,
+{
     let telemetry = config
         .telemetry_endpoints
         .clone()
@@ -149,14 +172,31 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
         })
         .transpose()?;
 
-    let executor = sc_service::new_wasm_executor::<sp_io::SubstrateHostFunctions>(&config.executor);
+    let heap_pages = config
+        .executor
+        .default_heap_pages
+        .map_or(DEFAULT_HEAP_ALLOC_STRATEGY, |h| HeapAllocStrategy::Static {
+            extra_pages: h as _,
+        });
+
+    let mut wasm_builder = WasmExecutor::builder()
+        .with_execution_method(config.executor.wasm_method)
+        .with_onchain_heap_alloc_strategy(heap_pages)
+        .with_offchain_heap_alloc_strategy(heap_pages)
+        .with_ignore_onchain_heap_pages(true)
+        .with_max_runtime_instances(config.executor.max_runtime_instances)
+        .with_runtime_cache_size(config.executor.runtime_cache_size);
+
+    let executor = wasm_builder.build();
+
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, _>(
             config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
             executor,
         )?;
-    let client = Arc::new(client);
+
+    let telemetry_worker_handle = telemetry.as_ref().map(|(worker, _)| worker.handle());
 
     let telemetry = telemetry.map(|(worker, telemetry)| {
         task_manager
@@ -196,7 +236,11 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
         beefy_block_import,
         client.clone(),
     )?;
+
     let slot_duration = babe_link.config().slot_duration();
+
+    let frontier_backend = Arc::new(open_frontier_backend(client.clone(), config, eth_config)?);
+    let frontier_block_import = FrontierBlockImport::new(client.clone(), client.clone());
 
     let (import_queue, babe_worker_handle) = sc_consensus_babe::import_queue(ImportQueueParams {
         link: babe_link.clone(),
@@ -238,6 +282,7 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
             babe_link,
             beefy_voter_links,
             beefy_rpc_links,
+            frontier_backend,
             telemetry,
         ),
     })

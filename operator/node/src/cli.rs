@@ -1,5 +1,5 @@
-use sc_cli::RunCmd;
 use crate::eth::EthConfiguration;
+use sc_cli::RunCmd;
 // Available Sealing methods.
 #[derive(Copy, Clone, Debug, Default, clap::ValueEnum)]
 pub enum Sealing {

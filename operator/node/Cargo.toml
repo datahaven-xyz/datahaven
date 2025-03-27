@@ -19,7 +19,7 @@ clap = { features = ["derive"], workspace = true }
 futures = { features = ["thread-pool"], workspace = true }
 serde_json = { workspace = true, default-features = true }
 jsonrpsee = { features = ["server"], workspace = true }
-codec = { package = "parity-scale-codec", workspace = true }
+codec = { workspace = true }
 hex-literal.workspace = true
 flume = { workspace = true }
 url = { workspace = true }
@@ -86,7 +86,7 @@ pallet-transaction-payment.workspace = true
 pallet-transaction-payment.default-features = true
 pallet-transaction-payment-rpc.workspace = true
 pallet-transaction-payment-rpc.default-features = true
-pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = [ "std" ] }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = ["std"] }
 substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
@@ -124,22 +124,22 @@ substrate-build-script-utils.default-features = true
 [features]
 default = ["std"]
 std = [
-	"datahaven-runtime/std",
+    "datahaven-runtime/std",
 ]
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
-	"frame-benchmarking-cli/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"sc-service/runtime-benchmarks",
-	"datahaven-runtime/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "sc-service/runtime-benchmarks",
+    "datahaven-runtime/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = [
-	"frame-system/try-runtime",
-	"pallet-transaction-payment/try-runtime",
-	"datahaven-runtime/try-runtime",
-	"sp-runtime/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-transaction-payment/try-runtime",
+    "datahaven-runtime/try-runtime",
+    "sp-runtime/try-runtime",
 ]

@@ -59,39 +59,15 @@ contract ServiceManagerMock is ServiceManagerBase {
     }
 
     /**
-     * @notice Implementation for the abstract function in the parent class
+     * @notice Override the internal _ensureOperatorIsPartOfOperatorSet function to simplify testing
+     * @param operator The operator address
+     * @param operatorSetId The operator set ID
+     * @dev This should be removed once the AllocationManagerMock is updated to be able to handle operator sets
      */
-    function getRestakeableStrategies() external pure override returns (address[] memory) {
-        // Return an empty array for testing purposes
-        return new address[](0);
-    }
-
-    /**
-     * @notice Implementation for the abstract function in the parent class
-     */
-    function getOperatorRestakedStrategies(
-        address
-    ) external pure override returns (address[] memory) {
-        // Return an empty array for testing purposes
-        return new address[](0);
-    }
-
-    /**
-     * @notice Implementation for the abstract function in the parent class
-     */
-    function registerOperatorToAVS(
-        address,
-        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry calldata
-    ) external pure override {
-        // No-op for testing
-    }
-
-    /**
-     * @notice Implementation for the abstract function in the parent class
-     */
-    function deregisterOperatorFromAVS(
-        address
-    ) external pure override {
+    function _ensureOperatorIsPartOfOperatorSet(
+        address operator,
+        uint32 operatorSetId
+    ) internal view override {
         // No-op for testing
     }
 }

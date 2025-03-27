@@ -128,3 +128,4 @@ jobs:
             fi
           else
             echo "No relevant changes — skipping rust tests"
+          fi

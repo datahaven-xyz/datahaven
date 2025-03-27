@@ -10,6 +10,8 @@ members = [
     "node",
     "runtime",
     "pallets/validator-set",
+    "pallets/inbound-queue",
+    "primitives/snowbridge/router",
     "runtime/common",
 ]
 resolver = "2"
@@ -22,7 +24,11 @@ datahaven-runtime-common = { path = "./runtime/common", default-features = false
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 
 # Crates.io (wasm)
+alloy-core = { version = "0.8.15", default-features = false }
+alloy-primitives = { version = "0.4.2", default-features = false }
+alloy-sol-types = { version = "0.4.2", default-features = false }
 async-trait = { version = "0.1.42" }
+impl-trait-for-tuples = { version = "0.2.2" }
 parity-scale-codec = { version = "3.0.0", default-features = false, features = ["derive"] }
 scale-info = { version = "2.11.6", default-features = false}
 serde = { version = "1.0.197", default-features = false, features = [ "derive" ]}
@@ -56,6 +62,9 @@ sc-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sta
 sc-telemetry = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-transaction-pool-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+snowbridge-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+snowbridge-pallet-inbound-queue-fixtures = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+snowbridge-router-primitives = { path = "primitives/snowbridge/router", default-features = false }
 sp-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sp-application-crypto = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sp-block-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
@@ -99,6 +108,8 @@ sp-storage = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sta
 sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sp-version = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false, package = "staging-xcm" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false, package = "staging-xcm-executor" }
 
 # BEEFY
 sp-consensus-beefy = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }

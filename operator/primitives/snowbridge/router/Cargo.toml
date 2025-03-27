@@ -1,0 +1,54 @@
+[package]
+name = "snowbridge-router-primitives"
+description = "Snowbridge Router Primitives"
+version = "0.9.0"
+authors = ["Snowfork <contact@snowfork.com>"]
+edition.workspace = true
+repository.workspace = true
+license = "Apache-2.0"
+categories = ["cryptography::cryptocurrencies"]
+
+[dependencies]
+alloy-primitives = { features = ["rlp"], workspace = true }
+alloy-sol-types = { workspace = true }
+codec = { workspace = true }
+impl-trait-for-tuples = { workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+log = { workspace = true }
+
+frame-support = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+xcm = { workspace = true }
+xcm-executor = { workspace = true }
+
+snowbridge-core = { workspace = true }
+
+hex-literal = { workspace = true, default-features = true }
+
+[dev-dependencies]
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-support/std",
+	"log/std",
+	"scale-info/std",
+	"snowbridge-core/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"xcm-executor/std",
+	"xcm/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+]

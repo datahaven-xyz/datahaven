@@ -20,19 +20,13 @@ contract RewardsRegistryTest is MockAVSDeployer {
     // Test data
     bytes32 public merkleRoot;
     bytes32 public newMerkleRoot;
-    bytes32 public operatorId;
     uint256 public operatorPoints;
     bytes32[] public validProof;
     bytes32[] public invalidProof;
 
     // Events
     event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 newRoot);
-    event RewardsClaimed(
-        address indexed operatorAddress,
-        bytes32 indexed operatorId,
-        uint256 points,
-        uint256 rewardsAmount
-    );
+    event RewardsClaimed(address indexed operatorAddress, uint256 points, uint256 rewardsAmount);
 
     function setUp() public {
         _deployMockEigenLayerAndAVS();
@@ -46,14 +40,12 @@ contract RewardsRegistryTest is MockAVSDeployer {
         rewardsRegistry = new RewardsRegistry(address(serviceManager), rewardsAgent);
 
         // Set up test data
-        operatorId = bytes32(uint256(3));
         operatorPoints = 100;
 
         // For testing MerkleProof verification, we'll use the simplest case:
         // A binary tree with just our target leaf and a sibling leaf
-
         // Our leaf (the one we want to prove exists in the tree)
-        bytes32 leaf = keccak256(abi.encode(operatorId, operatorPoints));
+        bytes32 leaf = keccak256(abi.encode(operatorAddress, operatorPoints));
 
         // Sibling leaf (another element in the Merkle tree)
         bytes32 siblingLeaf = keccak256(abi.encodePacked("sibling"));
@@ -82,7 +74,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
     // Helper to test our proof construction
     function test_verifyProofConstruction() public view {
-        bytes32 leaf = keccak256(abi.encode(operatorId, operatorPoints));
+        bytes32 leaf = keccak256(abi.encode(operatorAddress, operatorPoints));
         bool result = MerkleProof.verify(validProof, merkleRoot, leaf);
         assertTrue(result, "Proof verification should succeed");
     }
@@ -183,13 +175,13 @@ contract RewardsRegistryTest is MockAVSDeployer {
         vm.prank(address(serviceManager));
 
         vm.expectEmit(true, true, true, true);
-        emit RewardsClaimed(operatorAddress, operatorId, operatorPoints, operatorPoints);
+        emit RewardsClaimed(operatorAddress, operatorPoints, operatorPoints);
 
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
 
         // Verify state changes
         assertEq(
-            rewardsRegistry.operatorIdToLastClaimedRoot(operatorId),
+            rewardsRegistry.operatorToLastClaimedRoot(operatorAddress),
             merkleRoot,
             "Operator's last claimed root should be updated"
         );
@@ -208,7 +200,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.OnlyAVS.selector));
 
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
     }
 
     function test_claimRewards_AlreadyClaimed() public {
@@ -221,14 +213,14 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
 
         // Second claim fails
         vm.prank(address(serviceManager));
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimed.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
     }
 
     function test_claimRewards_InvalidProof() public {
@@ -237,7 +229,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
         vm.prank(address(serviceManager));
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleProof.selector));
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, invalidProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, invalidProof);
     }
 
     function test_claimRewards_NoMerkleRoot() public {
@@ -246,7 +238,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsMerkleRootNotSet.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
     }
 
     function test_claimRewards_DifferentRoot() public {
@@ -259,7 +251,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
 
         // Update to new merkle root
         vm.prank(rewardsAgent);
@@ -272,10 +264,10 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
         // Operator can claim again with new merkle root
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, newProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, newProof);
 
         assertEq(
-            rewardsRegistry.operatorIdToLastClaimedRoot(operatorId),
+            rewardsRegistry.operatorToLastClaimedRoot(operatorAddress),
             newMerkleRoot,
             "Operator's last claimed root should be updated to new root"
         );
@@ -293,7 +285,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsTransferFailed.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, operatorId, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
     }
 
     function test_receive() public {

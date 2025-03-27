@@ -21,6 +21,7 @@ import {IPermissionController} from
     "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
+import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
 
 import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
 
@@ -233,6 +234,55 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
+     * @notice Sets the rewards initiator address
+     * @param newRewardsInitiator The new rewards initiator address
+     * @dev only callable by the owner
+     */
+    function setRewardsInitiator(
+        address newRewardsInitiator
+    ) external virtual onlyOwner {
+        _setRewardsInitiator(newRewardsInitiator);
+    }
+
+    /**
+     * @notice Sets the rewards registry for an operator set
+     * @param operatorSetId The ID of the operator set
+     * @param rewardsRegistry The address of the rewards registry
+     * @dev Only callable by the owner
+     */
+    function setRewardsRegistry(
+        uint32 operatorSetId,
+        IRewardsRegistry rewardsRegistry
+    ) external virtual override onlyOwner {
+        operatorSetToRewardsRegistry[operatorSetId] = rewardsRegistry;
+        emit RewardsRegistrySet(operatorSetId, address(rewardsRegistry));
+    }
+
+    /**
+     * @notice Claim rewards for an operator from the specified operator set
+     * @param operatorSetId The ID of the operator set
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     */
+    function claimOperatorRewards(
+        uint32 operatorSetId,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external virtual override {
+        // Get the rewards registry for this operator set
+        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
+        if (address(rewardsRegistry) == address(0)) {
+            revert NoRewardsRegistryForOperatorSet();
+        }
+
+        // Ensure the operator is part of the operator set
+        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
+
+        // Forward the claim to the rewards registry
+        rewardsRegistry.claimRewards(msg.sender, operatorPoints, proof);
+    }
+
+    /**
      * @notice Forwards a call to Eigenlayer's RewardsCoordinator contract to set the address of the entity that can call `processClaim` on behalf of this contract.
      * @param claimer The address of the entity that can call `processClaim` on behalf of the earner
      * @dev Only callable by the owner.
@@ -241,24 +291,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         address claimer
     ) public virtual onlyOwner {
         _rewardsCoordinator.setClaimerFor(claimer);
-    }
-
-    /**
-     * @notice Sets the rewards initiator address
-     * @param newRewardsInitiator The new rewards initiator address
-     * @dev only callable by the owner
-     */
-    function setRewardsInitiator(
-        address newRewardsInitiator
-    ) external onlyOwner {
-        _setRewardsInitiator(newRewardsInitiator);
-    }
-
-    function _setRewardsInitiator(
-        address newRewardsInitiator
-    ) internal {
-        emit RewardsInitiatorUpdated(rewardsInitiator, newRewardsInitiator);
-        rewardsInitiator = newRewardsInitiator;
     }
 
     /**
@@ -312,6 +344,39 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         IRewardsCoordinator.RewardsSubmission[] calldata rewardsSubmissions
     ) external virtual override {}
 
+    /**
+     * @notice Ensure the operator is part of the operator set
+     * @param operator The operator address
+     * @param operatorSetId The operator set ID
+     * @dev Reverts if the operator is not part of the operator set
+     */
+    function _ensureOperatorIsPartOfOperatorSet(
+        address operator,
+        uint32 operatorSetId
+    ) internal view virtual {
+        // Make sure the operator is part of the received operator
+		OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: operatorSetId});
+		if (!_allocationManager.isMemberOfOperatorSet(operator, operatorSet)) {
+			revert OperatorNotInOperatorSet();
+		}
+    }
+
+    /**
+     * @dev Internal function to handle setting a rewards initiator
+     * @param _rewardsInitiator The new rewards initiator
+     */
+
+    function _setRewardsInitiator(
+        address _rewardsInitiator
+    ) internal {
+        address prevRewardsInitiator = rewardsInitiator;
+        rewardsInitiator = _rewardsInitiator;
+        emit RewardsInitiatorUpdated(prevRewardsInitiator, _rewardsInitiator);
+    }
+
+    /**
+     * @dev Verifies that the caller is the appointed rewardsInitiator
+     */
     function _checkRewardsInitiator() internal view {
         require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
     }

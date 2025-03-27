@@ -10,6 +10,7 @@ import {IAllocationManager} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
+import {IRewardsRegistry} from "./IRewardsRegistry.sol";
 
 interface IServiceManagerErrors {
     /// @notice Thrown when a function is called by an address that is not the RegistryCoordinator.
@@ -20,6 +21,10 @@ interface IServiceManagerErrors {
     error OnlyStakeRegistry();
     /// @notice Thrown when a slashing proposal delay has not been met yet.
     error DelayPeriodNotPassed();
+    /// @notice Thrown when the operator set does not have a rewards registry set.
+    error NoRewardsRegistryForOperatorSet();
+    /// @notice Thrown when the operator is not part of the specified operator set.
+    error OperatorNotInOperatorSet();
 }
 
 interface IServiceManagerEvents {
@@ -29,6 +34,13 @@ interface IServiceManagerEvents {
      * @param newRewardsInitiator The new rewards initiator address.
      */
     event RewardsInitiatorUpdated(address prevRewardsInitiator, address newRewardsInitiator);
+
+    /**
+     * @notice Emitted when a rewards registry is set for an operator set.
+     * @param operatorSetId The ID of the operator set.
+     * @param rewardsRegistry The address of the rewards registry.
+     */
+    event RewardsRegistrySet(uint32 indexed operatorSetId, address indexed rewardsRegistry);
 }
 
 interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceManagerEvents {
@@ -105,5 +117,25 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
     function deregisterOperatorFromOperatorSets(
         address operator,
         uint32[] memory operatorSetIds
+    ) external;
+
+    /**
+     * @notice Sets the rewards registry for an operator set
+     * @param operatorSetId The ID of the operator set
+     * @param rewardsRegistry The address of the rewards registry
+     * @dev Only callable by the owner
+     */
+    function setRewardsRegistry(uint32 operatorSetId, IRewardsRegistry rewardsRegistry) external;
+
+    /**
+     * @notice Claim rewards for an operator from the specified operator set
+     * @param operatorSetId The ID of the operator set
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     */
+    function claimOperatorRewards(
+        uint32 operatorSetId,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
     ) external;
 }

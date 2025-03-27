@@ -13,6 +13,7 @@ import {IPermissionController} from
     "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 import {IServiceManager} from "../interfaces/IServiceManager.sol";
+import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
 
 /**
  * @title Storage variables for the `ServiceManagerBase` contract.
@@ -37,6 +38,9 @@ abstract contract ServiceManagerBaseStorage is IServiceManager, OwnableUpgradeab
 
     /// @notice The address of the entity that can initiate rewards
     address public rewardsInitiator;
+
+    /// @notice Mapping from operator set ID to its respective RewardsRegistry
+    mapping(uint32 => IRewardsRegistry) public operatorSetToRewardsRegistry;
 
     /// @notice Sets the (immutable) `_avsDirectory`, `_rewardsCoordinator`, `_registryCoordinator`, `_stakeRegistry`, and `_allocationManager` addresses
     constructor(

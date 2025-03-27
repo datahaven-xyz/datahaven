@@ -63,14 +63,12 @@ contract RewardsRegistry is RewardsRegistryStorage {
     /**
      * @notice Claim rewards for an operator
      * @param operatorAddress Address of the operator to receive rewards
-     * @param operatorId ID of the operator
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
     function claimRewards(
         address operatorAddress,
-        bytes32 operatorId,
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external override onlyAVS {
@@ -80,12 +78,12 @@ contract RewardsRegistry is RewardsRegistryStorage {
         }
 
         // Check if operator has already claimed for this merkle root
-        if (operatorIdToLastClaimedRoot[operatorId] == lastRewardsMerkleRoot) {
+        if (operatorToLastClaimedRoot[operatorAddress] == lastRewardsMerkleRoot) {
             revert RewardsAlreadyClaimed();
         }
 
         // Verify the merkle proof
-        bytes32 leaf = keccak256(abi.encode(operatorId, operatorPoints));
+        bytes32 leaf = keccak256(abi.encode(operatorAddress, operatorPoints));
         if (!MerkleProof.verify(proof, lastRewardsMerkleRoot, leaf)) {
             revert InvalidMerkleProof();
         }
@@ -95,7 +93,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
         uint256 rewardsAmount = operatorPoints;
 
         // Update the operator's last claimed root
-        operatorIdToLastClaimedRoot[operatorId] = lastRewardsMerkleRoot;
+        operatorToLastClaimedRoot[operatorAddress] = lastRewardsMerkleRoot;
 
         // Transfer rewards to the operator
         (bool success,) = operatorAddress.call{value: rewardsAmount}("");
@@ -103,7 +101,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
             revert RewardsTransferFailed();
         }
 
-        emit RewardsClaimed(operatorAddress, operatorId, operatorPoints, rewardsAmount);
+        emit RewardsClaimed(operatorAddress, operatorPoints, rewardsAmount);
     }
 
     /**

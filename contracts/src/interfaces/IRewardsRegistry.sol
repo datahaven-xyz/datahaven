@@ -33,16 +33,10 @@ interface IRewardsRegistryEvents {
     /**
      * @notice Emitted when rewards are claimed
      * @param operatorAddress Address of the operator receiving rewards
-     * @param operatorId ID of the operator
      * @param points Points earned by the operator
      * @param rewardsAmount Amount of rewards transferred
      */
-    event RewardsClaimed(
-        address indexed operatorAddress,
-        bytes32 indexed operatorId,
-        uint256 points,
-        uint256 rewardsAmount
-    );
+    event RewardsClaimed(address indexed operatorAddress, uint256 points, uint256 rewardsAmount);
 }
 
 /**
@@ -62,14 +56,12 @@ interface IRewardsRegistry is IRewardsRegistryErrors, IRewardsRegistryEvents {
     /**
      * @notice Claim rewards for an operator
      * @param operatorAddress Address of the operator to receive rewards
-     * @param operatorId ID of the operator
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
     function claimRewards(
         address operatorAddress,
-        bytes32 operatorId,
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external;

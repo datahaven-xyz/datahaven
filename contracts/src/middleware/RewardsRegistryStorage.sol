@@ -30,7 +30,7 @@ abstract contract RewardsRegistryStorage is IRewardsRegistry {
     bytes32 public lastRewardsMerkleRoot;
 
     /// @notice Mapping from operator ID to the last claimed merkle root
-    mapping(bytes32 => bytes32) public operatorIdToLastClaimedRoot;
+    mapping(address => bytes32) public operatorToLastClaimedRoot;
 
     /**
      * @notice Constructor to set up the immutable AVS address

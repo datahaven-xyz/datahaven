@@ -22,7 +22,7 @@ import {IPermissionController} from
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
 import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
-
+import {IVetoableSlasher} from "../interfaces/IVetoableSlasher.sol";
 import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
 
 /**
@@ -55,6 +55,17 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     ) internal virtual onlyInitializing {
         _transferOwnership(initialOwner);
         _setRewardsInitiator(_rewardsInitiator);
+    }
+
+    /**
+     * @notice Sets the slasher contract
+     * @param slasher The slasher contract address
+     * @dev Only callable by the owner
+     */
+    function setSlasher(
+        IVetoableSlasher slasher
+    ) external virtual onlyOwner {
+        _slasher = slasher;
     }
 
     /**
@@ -98,12 +109,27 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * Forwards the call to the AllocationManager.slashOperator() function
+     * Queue a slashing request in the vetoable slasher
+     * @param params Parameters defining the slashing request
+     * @dev Can only be called by the owner
      */
-    function slashOperator(
+    function queueSlashingRequest(
         IAllocationManager.SlashingParams calldata params
     ) external virtual onlyOwner {
-        _allocationManager.slashOperator(address(this), params);
+        require(address(_slasher) != address(0), "Slasher not set");
+        _slasher.queueSlashingRequest(params);
+    }
+
+    /**
+     * fulfils a slashing request that has passed the veto period
+     * @param requestId The ID of the slashing request to fulfil
+     * @dev Can be called by anyone
+     */
+    function fulfilSlashingRequest(
+        uint256 requestId
+    ) external virtual {
+        require(address(_slasher) != address(0), "Slasher not set");
+        _slasher.fulfilSlashingRequest(requestId);
     }
 
     /**
@@ -162,9 +188,9 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
 
     /// @inheritdoc IAVSRegistrar
     function supportsAVS(
-        address avs
+        address avsAddress
     ) external view virtual override returns (bool) {
-        return avs == address(this);
+        return avsAddress == this.avs();
     }
 
     /// @inheritdoc IAVSRegistrar
@@ -231,6 +257,11 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
             target: target,
             selector: selector
         });
+    }
+
+    /// @inheritdoc IServiceManager
+    function avs() external view virtual returns (address) {
+        return address(this);
     }
 
     /**
@@ -355,17 +386,16 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         uint32 operatorSetId
     ) internal view virtual {
         // Make sure the operator is part of the received operator
-		OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: operatorSetId});
-		if (!_allocationManager.isMemberOfOperatorSet(operator, operatorSet)) {
-			revert OperatorNotInOperatorSet();
-		}
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: operatorSetId});
+        if (!_allocationManager.isMemberOfOperatorSet(operator, operatorSet)) {
+            revert OperatorNotInOperatorSet();
+        }
     }
 
     /**
      * @dev Internal function to handle setting a rewards initiator
      * @param _rewardsInitiator The new rewards initiator
      */
-
     function _setRewardsInitiator(
         address _rewardsInitiator
     ) internal {

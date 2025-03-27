@@ -120,6 +120,12 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
     ) external;
 
     /**
+     * @notice Returns the address of the AVS
+     * @return The address of the AVS
+     */
+    function avs() external view returns (address);
+
+    /**
      * @notice Sets the rewards registry for an operator set
      * @param operatorSetId The ID of the operator set
      * @param rewardsRegistry The address of the rewards registry

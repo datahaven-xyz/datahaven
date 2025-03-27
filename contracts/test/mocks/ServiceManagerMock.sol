@@ -13,6 +13,7 @@ import {ISignatureUtilsMixinTypes} from
 
 import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";
 import {ServiceManagerBaseStorage} from "../../src/middleware/ServiceManagerBaseStorage.sol";
+import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 
 /**
  * @title Minimal implementation of a ServiceManager-type contract.
@@ -36,6 +37,17 @@ contract ServiceManagerMock is ServiceManagerBase {
     }
 
     /**
+     * @notice Sets the slasher contract
+     * @param slasher The slasher contract address
+     * @dev Only callable by the owner
+     */
+    function setSlasher(
+        IVetoableSlasher slasher
+    ) external override onlyOwner {
+        _slasher = slasher;
+    }
+
+    /**
      * @notice Get the rewards registry for an operator set (exposing for testing)
      * @param operatorSetId The ID of the operator set
      * @return The rewards registry for the operator set
@@ -44,18 +56,6 @@ contract ServiceManagerMock is ServiceManagerBase {
         uint32 operatorSetId
     ) external view returns (IRewardsRegistry) {
         return operatorSetToRewardsRegistry[operatorSetId];
-    }
-
-    /**
-     * @notice Override the internal _ensureOperatorIsPartOfOperatorSet function to simplify testing
-     * @param operator The operator address
-     * @param operatorSetId The operator set ID
-     */
-    function _ensureOperatorIsPartOfOperatorSet(
-        address operator,
-        uint32 operatorSetId
-    ) internal view override {
-        // No-op for testing
     }
 
     /**

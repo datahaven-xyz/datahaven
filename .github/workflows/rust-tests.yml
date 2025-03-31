@@ -59,9 +59,6 @@ jobs:
           # By default actions/checkout checks out a merge commit. Check out the PR head instead.
           # https://github.com/actions/checkout#checkout-pull-request-head-commit-instead-of-merge-commit
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.8
-        with:
-          cache: false
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
       - uses: rui314/setup-mold@v1

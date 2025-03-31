@@ -94,7 +94,10 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
         console.log("Gateway deployed at", address(gateway));
     }
 
-    function _connectSnowbridgeToAVS() internal {}
+    function _connectSnowbridgeToAVS() internal {
+        cheats.prank(avsOwner);
+        serviceManager.setRewardsAgent(0, address(rewardsAgent));
+    }
 
     function _buildValidatorSet(
         uint128 id,

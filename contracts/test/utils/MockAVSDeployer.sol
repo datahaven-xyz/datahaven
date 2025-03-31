@@ -231,7 +231,11 @@ contract MockAVSDeployer is Test {
         cheats.prank(regularDeployer);
         rewardsRegistry = new RewardsRegistry(address(serviceManager), mockRewardsAgent);
 
-        console.log("RewardsRegistry deployed");
+        // Set the rewards registry in the ServiceManager
+        cheats.prank(avsOwner);
+        serviceManager.setRewardsRegistry(0, rewardsRegistry);
+
+        console.log("RewardsRegistry deployed and configured");
     }
 
     function _setUpDefaultStrategiesAndMultipliers() internal virtual {

@@ -81,7 +81,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
         );
         assertEq(
             rewardsRegistry.rewardsAgent(),
-            rewardsAgent,
+            mockRewardsAgent,
             "Rewards agent address should be set correctly"
         );
     }
@@ -92,7 +92,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
      *
      */
     function test_updateRewardsMerkleRoot() public {
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
 
         vm.expectEmit(true, true, true, true);
         emit RewardsMerkleRootUpdated(bytes32(0), merkleRoot);
@@ -114,11 +114,11 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
     function test_updateRewardsMerkleRoot_EmitEvent() public {
         // First update
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         // Second update with expectation of emitting event with correct old and new roots
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
 
         vm.expectEmit(true, true, true, true);
         emit RewardsMerkleRootUpdated(merkleRoot, newMerkleRoot);
@@ -155,7 +155,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
      */
     function test_claimRewards() public {
         // First update merkle root
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         // Add ETH to contract for rewards
@@ -184,7 +184,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
     }
 
     function test_claimRewards_NotAVS() public {
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         vm.prank(nonRewardsAgent);
@@ -196,7 +196,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
     function test_claimRewards_AlreadyClaimed() public {
         // First update merkle root
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         // Add ETH to contract for rewards
@@ -215,7 +215,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
     }
 
     function test_claimRewards_InvalidProof() public {
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         vm.prank(address(serviceManager));
@@ -234,7 +234,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
     function test_claimRewards_DifferentRoot() public {
         // First merkle root
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         // Add ETH to contract for rewards
@@ -245,7 +245,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
         rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
 
         // Update to new merkle root
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
 
         // Create a new valid proof for the new root
@@ -266,7 +266,7 @@ contract RewardsRegistryTest is MockAVSDeployer {
 
     function test_claimRewards_InsufficientBalance() public {
         // Set merkle root
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         // No ETH in contract for rewards - ensure contract has 0 balance

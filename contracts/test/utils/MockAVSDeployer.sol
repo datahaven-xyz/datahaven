@@ -56,7 +56,7 @@ contract MockAVSDeployer is Test {
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
 
     // RewardsRegistry roles and parameters
-    address public rewardsAgent = address(uint160(uint256(keccak256("rewardsAgent"))));
+    address public mockRewardsAgent = address(uint160(uint256(keccak256("rewardsAgent"))));
 
     // EigenLayer contracts
     StrategyManagerMock public strategyManagerMock;
@@ -229,7 +229,9 @@ contract MockAVSDeployer is Test {
 
         // Deploy the RewardsRegistry contract
         cheats.prank(regularDeployer);
-        rewardsRegistry = new RewardsRegistry(address(serviceManager), rewardsAgent);
+        rewardsRegistry = new RewardsRegistry(address(serviceManager), mockRewardsAgent);
+
+        console.log("RewardsRegistry deployed");
     }
 
     function _setUpDefaultStrategiesAndMultipliers() internal virtual {

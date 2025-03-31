@@ -50,7 +50,7 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
         serviceManager.setRewardsRegistry(operatorSetId, IRewardsRegistry(address(rewardsRegistry)));
 
         // Set the merkle root
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
         // Add funds to the registry for rewards
@@ -60,7 +60,7 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
     function test_setRewardsRegistry() public {
         uint32 newOperatorSetId = 2;
         RewardsRegistry newRewardsRegistry =
-            new RewardsRegistry(address(serviceManager), rewardsAgent);
+            new RewardsRegistry(address(serviceManager), mockRewardsAgent);
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, true, true);
@@ -80,7 +80,7 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
     function test_setRewardsRegistry_NotOwner() public {
         uint32 newOperatorSetId = 2;
         RewardsRegistry newRewardsRegistry =
-            new RewardsRegistry(address(serviceManager), rewardsAgent);
+            new RewardsRegistry(address(serviceManager), mockRewardsAgent);
 
         vm.prank(nonOperatorAddress);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
@@ -134,7 +134,8 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
     function test_integration_multipleOperatorSets() public {
         // Set up a second operator set with a different registry
         uint32 secondOperatorSetId = 2;
-        RewardsRegistry secondRegistry = new RewardsRegistry(address(serviceManager), rewardsAgent);
+        RewardsRegistry secondRegistry =
+            new RewardsRegistry(address(serviceManager), mockRewardsAgent);
 
         // Set up the second registry
         vm.prank(avsOwner);
@@ -151,7 +152,7 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
         bytes32 secondMerkleRoot = keccak256(abi.encodePacked(leftLeaf, rightLeaf));
 
         // Set the merkle root in the second registry
-        vm.prank(rewardsAgent);
+        vm.prank(mockRewardsAgent);
         secondRegistry.updateRewardsMerkleRoot(secondMerkleRoot);
 
         // Fund the second registry

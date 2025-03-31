@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {Gateway} from "snowbridge/src/Gateway.sol";
+import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
 import {AgentExecutor} from "snowbridge/src/AgentExecutor.sol";
 import {Agent} from "snowbridge/src/Agent.sol";
@@ -17,7 +18,7 @@ import "forge-std/Test.sol";
 contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     // Snowbridge contracts
     BeefyClient public beefyClient;
-    GatewayProxy public gateway;
+    IGatewayV2 public gateway;
     Gateway public gatewayImplementation;
     AgentExecutor public agentExecutor;
     Agent public rewardsAgent;
@@ -89,14 +90,27 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
         });
 
         cheats.prank(regularDeployer);
-        gateway = new GatewayProxy(address(gatewayImplementation), abi.encode(config));
+        gateway = IGatewayV2(
+            address(new GatewayProxy(address(gatewayImplementation), abi.encode(config)))
+        );
 
         console.log("Gateway deployed at", address(gateway));
     }
 
     function _connectSnowbridgeToAVS() internal {
+        cheats.prank(regularDeployer);
+        gateway.v2_createAgent(bytes32(0));
+
+        // Get the agent address after creation
+        address payable agentAddress = payable(gateway.agentOf(bytes32(0)));
+        rewardsAgent = Agent(agentAddress);
+
+        console.log("Rewards agent deployed at", address(rewardsAgent));
+
         cheats.prank(avsOwner);
         serviceManager.setRewardsAgent(0, address(rewardsAgent));
+
+        console.log("Rewards agent set for operator set 0");
     }
 
     function _buildValidatorSet(

@@ -23,6 +23,8 @@ import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/Strate
 
 import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
+import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
+import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 
 // Mocks
 import {StrategyManagerMock} from "eigenlayer-contracts/src/test/mocks/StrategyManagerMock.sol";
@@ -46,6 +48,11 @@ contract MockAVSDeployer is Test {
     // AVS contracts
     ServiceManagerMock public serviceManager;
     ServiceManagerMock public serviceManagerImplementation;
+    VetoableSlasher public vetoableSlasher;
+
+    // Roles and parameters
+    address public vetoCommitteeMember = address(uint160(uint256(keccak256("vetoCommitteeMember"))));
+    uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
 
     // EigenLayer contracts
     StrategyManagerMock public strategyManagerMock;
@@ -202,6 +209,19 @@ contract MockAVSDeployer is Test {
         );
         cheats.stopPrank();
         console.log("ServiceManager implementation deployed");
+
+        // Deploy and configure the VetoableSlasher
+        cheats.startPrank(regularDeployer);
+        vetoableSlasher = new VetoableSlasher(
+            allocationManager, serviceManager, vetoCommitteeMember, vetoWindowBlocks
+        );
+        cheats.stopPrank();
+
+        // Set the slasher in the ServiceManager
+        cheats.prank(avsOwner);
+        serviceManager.setSlasher(vetoableSlasher);
+
+        console.log("VetoableSlasher deployed and configured");
     }
 
     function _setUpDefaultStrategiesAndMultipliers() internal virtual {
@@ -283,6 +303,7 @@ contract MockAVSDeployer is Test {
         vm.label(address(allocationManagerImplementation), "AllocationManagerImplementation");
         vm.label(address(serviceManager), "ServiceManager");
         vm.label(address(serviceManagerImplementation), "ServiceManagerImplementation");
+        vm.label(address(vetoableSlasher), "VetoableSlasher");
     }
 
     /// @dev Sort to ensure that the array is in ascending order for strategies

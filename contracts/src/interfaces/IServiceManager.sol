@@ -106,4 +106,10 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
         address operator,
         uint32[] memory operatorSetIds
     ) external;
+
+    /**
+     * @notice Returns the address of the AVS
+     * @return The address of the AVS
+     */
+    function avs() external view returns (address);
 }

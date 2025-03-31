@@ -11,11 +11,7 @@ import {ServiceManagerMock} from "./mocks/ServiceManagerMock.sol";
 import {IServiceManager, IServiceManagerErrors} from "../src/interfaces/IServiceManager.sol";
 
 contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
-    // Contract instances
-    RewardsRegistry public rewardsRegistry;
-
     // Test addresses
-    address public rewardsAgent;
     address public operatorAddress;
     address public nonOperatorAddress;
 
@@ -33,12 +29,8 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
         _deployMockEigenLayerAndAVS();
 
         // Set up test addresses
-        rewardsAgent = address(0x1234);
         operatorAddress = address(0xABCD);
         nonOperatorAddress = address(0x5678);
-
-        // Deploy the RewardsRegistry contract
-        rewardsRegistry = new RewardsRegistry(address(serviceManager), rewardsAgent);
 
         // Configure test data
         operatorSetId = 1;

@@ -9,11 +9,6 @@ import {RewardsRegistry} from "../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry, IRewardsRegistryErrors} from "../src/interfaces/IRewardsRegistry.sol";
 
 contract RewardsRegistryTest is MockAVSDeployer {
-    // Contract instances
-    RewardsRegistry public rewardsRegistry;
-
-    // Test addresses
-    address public rewardsAgent;
     address public nonRewardsAgent;
     address public operatorAddress;
 
@@ -32,12 +27,8 @@ contract RewardsRegistryTest is MockAVSDeployer {
         _deployMockEigenLayerAndAVS();
 
         // Set up test addresses
-        rewardsAgent = address(0x1234);
         nonRewardsAgent = address(0x5678);
         operatorAddress = address(0xABCD);
-
-        // Deploy the RewardsRegistry contract
-        rewardsRegistry = new RewardsRegistry(address(serviceManager), rewardsAgent);
 
         // Set up test data
         operatorPoints = 100;

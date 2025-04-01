@@ -24,6 +24,7 @@
 // For more information, please refer to <http://unlicense.org>
 
 use crate::EvmChainId;
+use crate::OriginCaller;
 use crate::Timestamp;
 use crate::{Historical, SessionKeys, ValidatorSet};
 
@@ -37,6 +38,7 @@ use super::{
 use codec::{Decode, Encode};
 use datahaven_runtime_common::gas::WEIGHT_PER_GAS;
 use datahaven_runtime_common::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
+use frame_support::traits::EqualPrivilegeOnly;
 use frame_support::{
     derive_impl, parameter_types,
     traits::{
@@ -225,6 +227,25 @@ impl pallet_balances::Config for Runtime {
     type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeHoldReason;
+}
+
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
+	pub const NoPreimagePostponement: Option<u32> = Some(10);
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
+	type PalletsOrigin = OriginCaller;
+	type RuntimeCall = RuntimeCall;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = ConstU32<50>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+    type Preimages = ();
+	// type Preimages = Preimage;
+    type WeightInfo = ();
 }
 
 impl pallet_validator_set::Config for Runtime {

@@ -116,9 +116,6 @@ pallet-mmr = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sta
 snowbridge-beacon-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 snowbridge-pallet-ethereum-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 
-# Moonkit
-pallet-author-inherent = { git = "https://github.com/Moonsong-Labs/moonkit", rev = "002c1a5ae3ce82e1136d5321bff124ab93ed050f", default-features = false }
-
 # Frontier (wasm)
 pallet-ethereum = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2409", default-features = false }
 pallet-evm = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2409", default-features = false }

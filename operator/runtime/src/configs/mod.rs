@@ -23,7 +23,6 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-use crate::AuthorInherent;
 use crate::EvmChainId;
 use crate::Timestamp;
 use crate::{Historical, SessionKeys, ValidatorSet};
@@ -310,15 +309,6 @@ impl pallet_mmr::Config for Runtime {
 
 // Frontier
 
-// TODO: configure pallet author-inherent correctly
-impl pallet_author_inherent::Config for Runtime {
-    type SlotBeacon = ();
-    type AccountLookup = ();
-    type CanAuthor = ();
-    type AuthorId = AccountId;
-    type WeightInfo = ();
-}
-
 parameter_types! {
     pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
 }
@@ -350,16 +340,18 @@ impl FeeCalculator for TransactionPaymentAsGasPrice {
     }
 }
 
-pub struct FindAuthorAdapter;
-impl FindAuthor<H160> for FindAuthorAdapter {
+pub struct FindAuthorAdapter<T>(core::marker::PhantomData<T>);
+impl<T> FindAuthor<H160> for FindAuthorAdapter<T>
+where
+    T: frame_system::Config + pallet_session::Config,
+    <T as pallet_session::Config>::ValidatorId: Into<H160>,
+{
     fn find_author<'a, I>(digests: I) -> Option<H160>
     where
         I: 'a + IntoIterator<Item = (sp_runtime::ConsensusEngineId, &'a [u8])>,
     {
-        if let Some(author) = AuthorInherent::find_author(digests) {
-            return Some(H160::from_slice(&author.encode()[0..20]));
-        }
-        None
+        pallet_session::FindAccountFromAuthorIndex::<T, Babe>::find_author(digests)
+            .map(|author| author.into())
     }
 }
 
@@ -393,7 +385,7 @@ impl pallet_evm::Config for Runtime {
     type Runner = pallet_evm::runner::stack::Runner<Self>;
     type OnChargeTransaction = OnChargeEVMTransaction<()>;
     type OnCreate = ();
-    type FindAuthor = FindAuthorAdapter;
+    type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
     type GasLimitStorageGrowthRatio = ();
     type Timestamp = Timestamp;

@@ -22,7 +22,6 @@ frame-system.workspace = true
 frame-try-runtime = { optional = true, workspace = true }
 frame-executive.workspace = true
 frame-metadata-hash-extension.workspace = true
-pallet-author-inherent.workspace = true
 hex-literal.workspace = true
 pallet-babe.workspace = true
 pallet-balances.workspace = true
@@ -99,7 +98,6 @@ std = [
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
-    "pallet-author-inherent/std",
     "pallet-validator-set/std",
 
     "polkadot-primitives/std",
@@ -150,7 +148,6 @@ runtime-benchmarks = [
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
-    "pallet-author-inherent/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks",
 ]
 

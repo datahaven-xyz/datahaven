@@ -7,9 +7,13 @@ import {IPermissionController} from
     "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 import {IAllocationManager} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
+import {ISignatureUtilsMixinTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
 
 import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";
 import {ServiceManagerBaseStorage} from "../../src/middleware/ServiceManagerBaseStorage.sol";
+import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 
 /**
  * @title Minimal implementation of a ServiceManager-type contract.
@@ -30,5 +34,40 @@ contract ServiceManagerMock is ServiceManagerBase {
         address rewardsInitiator
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
+    }
+
+    /**
+     * @notice Sets the slasher contract
+     * @param slasher The slasher contract address
+     * @dev Only callable by the owner
+     */
+    function setSlasher(
+        IVetoableSlasher slasher
+    ) external override onlyOwner {
+        _slasher = slasher;
+    }
+
+    /**
+     * @notice Get the rewards registry for an operator set (exposing for testing)
+     * @param operatorSetId The ID of the operator set
+     * @return The rewards registry for the operator set
+     */
+    function getOperatorSetRewardsRegistry(
+        uint32 operatorSetId
+    ) external view returns (IRewardsRegistry) {
+        return operatorSetToRewardsRegistry[operatorSetId];
+    }
+
+    /**
+     * @notice Override the internal _ensureOperatorIsPartOfOperatorSet function to simplify testing
+     * @param operator The operator address
+     * @param operatorSetId The operator set ID
+     * @dev This should be removed once the AllocationManagerMock is updated to be able to handle operator sets
+     */
+    function _ensureOperatorIsPartOfOperatorSet(
+        address operator,
+        uint32 operatorSetId
+    ) internal view override {
+        // No-op for testing
     }
 }

@@ -25,6 +25,9 @@
 
 use crate::EvmChainId;
 use crate::Timestamp;
+use crate::STORAGE_BYTE_FEE;
+use crate::SUPPLY_FACTOR;
+use crate::UNIT;
 use crate::{Historical, SessionKeys, ValidatorSet};
 
 // Local module imports
@@ -37,6 +40,8 @@ use super::{
 use codec::{Decode, Encode};
 use datahaven_runtime_common::gas::WEIGHT_PER_GAS;
 use datahaven_runtime_common::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
+use frame_support::traits::fungible::HoldConsideration;
+use frame_support::traits::LinearStoragePrice;
 use frame_support::{
     derive_impl, parameter_types,
     traits::{
@@ -225,6 +230,26 @@ impl pallet_balances::Config for Runtime {
     type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeHoldReason;
+}
+
+parameter_types! {
+    pub const PreimageBaseDeposit: Balance = 5 * UNIT * SUPPLY_FACTOR ;
+    pub const PreimageByteDeposit: Balance = STORAGE_BYTE_FEE;
+    pub const PreimageHoldReason: RuntimeHoldReason =
+        RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
+}
+
+impl pallet_preimage::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type ManagerOrigin = EnsureRoot<AccountId>;
+    type Consideration = HoldConsideration<
+        AccountId,
+        Balances,
+        PreimageHoldReason,
+        LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+    >;
+    type WeightInfo = ();
 }
 
 impl pallet_validator_set::Config for Runtime {

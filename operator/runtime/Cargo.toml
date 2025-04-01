@@ -26,6 +26,7 @@ hex-literal.workspace = true
 pallet-babe.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
+pallet-multisig.workspace = true
 pallet-session.workspace = true
 pallet-sudo.workspace = true
 pallet-timestamp.workspace = true
@@ -91,6 +92,7 @@ std = [
 	"pallet-beefy-mmr/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
+    "pallet-multisig/std",
 	"pallet-mmr/std",
 	"pallet-session/std",
     "pallet-session/std",
@@ -139,6 +141,7 @@ runtime-benchmarks = [
     "datahaven-runtime-common/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
+    "pallet-multisig/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-beefy-mmr/runtime-benchmarks",
@@ -159,6 +162,7 @@ try-runtime = [
     "pallet-babe/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-grandpa/try-runtime",
+    "pallet-multisig/try-runtime",
     "pallet-session/try-runtime",
     "pallet-sudo/try-runtime",
     "pallet-timestamp/try-runtime",

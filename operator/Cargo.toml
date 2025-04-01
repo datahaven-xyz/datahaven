@@ -82,9 +82,12 @@ frame-support-test = { git = "https://github.com/paritytech/polkadot-sdk", branc
 frame-system-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+pallet-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-babe = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+pallet-im-online = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+pallet-offences = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }

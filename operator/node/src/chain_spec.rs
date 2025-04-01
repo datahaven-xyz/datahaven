@@ -2,6 +2,7 @@ use datahaven_runtime::{
     configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, SessionKeys, Signature, WASM_BINARY,
 };
 use hex_literal::hex;
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::ChainType;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
@@ -19,10 +20,16 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
         .public()
 }
 
-fn session_keys(babe: BabeId, grandpa: GrandpaId, beefy: BeefyId) -> SessionKeys {
+fn session_keys(
+    babe: BabeId,
+    grandpa: GrandpaId,
+    im_online: ImOnlineId,
+    beefy: BeefyId,
+) -> SessionKeys {
     SessionKeys {
         babe,
         grandpa,
+        im_online,
         beefy,
     }
 }
@@ -38,11 +45,12 @@ where
 }
 
 /// Generate a Babe authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId, BeefyId) {
+pub fn authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId, ImOnlineId, BeefyId) {
     (
         get_account_id_from_seed::<ecdsa::Public>(s),
         get_from_seed::<BabeId>(s),
         get_from_seed::<GrandpaId>(s),
+        get_from_seed::<ImOnlineId>(s),
         get_from_seed::<BeefyId>(s),
     )
 }
@@ -107,7 +115,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
-    initial_authorities: Vec<(AccountId, BabeId, GrandpaId, BeefyId)>,
+    initial_authorities: Vec<(AccountId, BabeId, GrandpaId, ImOnlineId, BeefyId)>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
@@ -120,6 +128,7 @@ fn testnet_genesis(
         "babe": {
             "epochConfig": Some(BABE_GENESIS_EPOCH_CONFIG),
         },
+        "im_online": {},
         "grandpa": {},
         "sudo": {
             // Assign network admin rights.
@@ -130,7 +139,7 @@ fn testnet_genesis(
         },
         "session": {
             "keys": initial_authorities.iter().map(|x| {
-                (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone(), x.3.clone()))
+                (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone(), x.3.clone(), x.4.clone()))
             }).collect::<Vec<_>>(),
         },
     })

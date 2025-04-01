@@ -75,6 +75,7 @@ frame-system.workspace = true
 frame-system.default-features = true
 frame-metadata-hash-extension.workspace = true
 frame-metadata-hash-extension.default-features = true
+pallet-im-online.workspace = true
 pallet-transaction-payment.workspace = true
 pallet-transaction-payment.default-features = true
 pallet-transaction-payment-rpc.workspace = true

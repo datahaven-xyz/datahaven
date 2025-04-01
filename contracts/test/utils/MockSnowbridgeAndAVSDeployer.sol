@@ -22,6 +22,7 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     Gateway public gatewayImplementation;
     AgentExecutor public agentExecutor;
     Agent public rewardsAgent;
+    Agent public wrongAgent;
 
     // Snowbridge contracts params
     bytes32[] public initialValidators = [
@@ -57,6 +58,7 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     uint256 public constant MIN_NUM_REQUIRED_SIGNATURES = 2;
     uint64 public constant START_BLOCK = 1;
     bytes32 public constant REWARDS_MESSAGE_ORIGIN = bytes32(0);
+    bytes32 public constant WRONG_MESSAGE_ORIGIN = bytes32("wrong origin");
 
     function _deployMockAllContracts() internal {
         _deployMockSnowbridge();
@@ -126,6 +128,15 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
         serviceManager.setRewardsAgent(0, address(rewardsAgent));
 
         console.log("Rewards agent set for operator set 0");
+
+        cheats.prank(regularDeployer);
+        gateway.v2_createAgent(WRONG_MESSAGE_ORIGIN);
+
+        // Get the agent address after creation
+        address payable wrongAgentAddress = payable(gateway.agentOf(WRONG_MESSAGE_ORIGIN));
+        wrongAgent = Agent(wrongAgentAddress);
+
+        console.log("Wrong agent deployed at", address(wrongAgent));
     }
 
     function _buildValidatorSet(

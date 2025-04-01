@@ -6,11 +6,20 @@ import {CommandV2, CommandKind, IGatewayV2} from "snowbridge/src/Types.sol";
 import {CallContractParams} from "snowbridge/src/v2/Types.sol";
 import {BeefyVerification} from "snowbridge/src/BeefyVerification.sol";
 
+import {
+    IRewardsRegistryEvents, IRewardsRegistryErrors
+} from "../src/interfaces/IRewardsRegistry.sol";
+
 import {MockSnowbridgeAndAVSDeployer} from "./utils/MockSnowbridgeAndAVSDeployer.sol";
 
 import "forge-std/Test.sol";
 
 contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
+    // Storage variables to reduce stack depth
+    uint128[] internal _validatorPoints;
+    address[] internal _validatorAddresses;
+    bytes32 internal _validatorPointsMerkleRoot;
+
     function setUp() public {
         _deployMockAllContracts();
     }
@@ -35,60 +44,193 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
     }
 
     function test_newRewardsMessage() public {
-        // Build validator points merkle tree
-        uint128[] memory validatorPoints = new uint128[](10);
-        validatorPoints[0] = uint128(1111);
-        validatorPoints[1] = uint128(2222);
-        validatorPoints[2] = uint128(3333);
-        validatorPoints[3] = uint128(4444);
-        validatorPoints[4] = uint128(5555);
-        validatorPoints[5] = uint128(6666);
-        validatorPoints[6] = uint128(7777);
-        validatorPoints[7] = uint128(8888);
-        validatorPoints[8] = uint128(9999);
-        validatorPoints[9] = uint128(101010);
+        // Setup validator data.
+        _setupValidatorData();
 
-        bytes32 validatorPointsMerkleRoot =
-            _buildValidatorPointsMerkleTree(initialValidators, validatorPoints);
+        // Build proofs and merkle trees.
+        bytes32[] memory rewardsProof =
+            _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 0);
+
+        // Create and submit the rewards message.
+        InboundMessageV2 memory updateRewardsMessage = _createRewardsMessage();
 
         // Build messages merkle tree
+        // We want a proof of the first message, i.e. the actual rewards message
+        bytes32[] memory messagesProof =
+            _buildMessagesProofForGoodRewardsMessage(updateRewardsMessage);
+
+        // Create BEEFY proof.
+        BeefyVerification.Proof memory beefyProof = _createBeefyProof();
+
+        // Submit message to Gateway.
+        // We don't care about the rewardAddress that will get the Snowbridge rewards for relaying this message.
+        bytes32 rewardAddress = keccak256(abi.encodePacked("rewardAddress"));
+        vm.expectEmit(address(gateway));
+        emit IGatewayV2.InboundMessageDispatched(0, bytes32(0), true, rewardAddress);
+        gateway.v2_submit(updateRewardsMessage, messagesProof, beefyProof, rewardAddress);
+
+        // Fund the RewardsRegistry to be able to distribute rewards
+        vm.deal(address(rewardsRegistry), 1000000 ether);
+
+        // Claim rewards.
+        vm.startPrank(_validatorAddresses[0]);
+        vm.expectEmit(address(rewardsRegistry));
+        emit IRewardsRegistryEvents.RewardsClaimed(
+            _validatorAddresses[0], _validatorPoints[0], uint256(_validatorPoints[0])
+        );
+        serviceManager.claimOperatorRewards(0, _validatorPoints[0], rewardsProof);
+        vm.stopPrank();
+
+        // Check that the validator has received the rewards.
+        assertEq(
+            address(_validatorAddresses[0]).balance,
+            _validatorPoints[0],
+            "Validator should receive rewards"
+        );
+    }
+
+    function test_newRewardsMessage_OnlyRewardsAgent() public {
+        // Setup validator data.
+        _setupValidatorData();
+
+        // Build proofs and merkle trees.
+        bytes32[] memory rewardsProof =
+            _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 0);
+
+        // Create and submit the rewards message.
+        InboundMessageV2 memory updateRewardsMessage = _createRewardsMessage();
+
+        // Build messages merkle tree.
+        // We want a proof of the third message, i.e. the attempt at setting the new rewards root
+        // with a wrong origin.
+        (InboundMessageV2 memory badUpdateRewardsMessage, bytes32[] memory messagesProof) =
+            _buildMessagesProofForBadRewardsMessage(updateRewardsMessage);
+
+        // Create BEEFY proof.
+        BeefyVerification.Proof memory beefyProof = _createBeefyProof();
+
+        // Submit message to Gateway.
+        // We don't care about the rewardAddress that will get the Snowbridge rewards for relaying this message.
+        // We expect this to fail in the RewardsRegistry contract because the Agent trying to
+        // set the new rewards root is not the authorised Agent. Therefore there should be an
+        // event emitted by the Gateway saying that the message was dispatched but it failed.
+        bytes32 rewardAddress = keccak256(abi.encodePacked("rewardAddress"));
+        emit IGatewayV2.InboundMessageDispatched(0, bytes32(0), false, rewardAddress);
+        gateway.v2_submit(badUpdateRewardsMessage, messagesProof, beefyProof, rewardAddress);
+    }
+
+    function _setupValidatorData() internal {
+        // Build validator points and addresses.
+        _validatorPoints = new uint128[](10);
+        _validatorPoints[0] = uint128(1111);
+        _validatorPoints[1] = uint128(2222);
+        _validatorPoints[2] = uint128(3333);
+        _validatorPoints[3] = uint128(4444);
+        _validatorPoints[4] = uint128(5555);
+        _validatorPoints[5] = uint128(6666);
+        _validatorPoints[6] = uint128(7777);
+        _validatorPoints[7] = uint128(8888);
+        _validatorPoints[8] = uint128(9999);
+        _validatorPoints[9] = uint128(101010);
+
+        _validatorAddresses = new address[](10);
+        _validatorAddresses[0] = address(0x1);
+        _validatorAddresses[1] = address(0x2);
+        _validatorAddresses[2] = address(0x3);
+        _validatorAddresses[3] = address(0x4);
+        _validatorAddresses[4] = address(0x5);
+        _validatorAddresses[5] = address(0x6);
+        _validatorAddresses[6] = address(0x7);
+        _validatorAddresses[7] = address(0x8);
+        _validatorAddresses[8] = address(0x9);
+        _validatorAddresses[9] = address(0xA);
+
+        _validatorPointsMerkleRoot =
+            _buildValidatorPointsMerkleTree(_validatorAddresses, _validatorPoints);
+    }
+
+    function _createRewardsMessage() internal view returns (InboundMessageV2 memory) {
         CallContractParams memory updateRewardsCommandParams = CallContractParams({
             target: address(rewardsRegistry),
             data: abi.encodeWithSelector(
-                bytes4(keccak256("updateRewardsMerkleRoot(bytes32)")), validatorPointsMerkleRoot
+                bytes4(keccak256("updateRewardsMerkleRoot(bytes32)")), _validatorPointsMerkleRoot
             ),
             value: 0
         });
+
         CommandV2 memory updateRewardsCommand = CommandV2({
             kind: CommandKind.CallContract,
             gas: 1000000,
             payload: abi.encode(updateRewardsCommandParams)
         });
+
         CommandV2[] memory commands = new CommandV2[](1);
         commands[0] = updateRewardsCommand;
 
-        InboundMessageV2 memory updateRewardsMessage = InboundMessageV2({
+        return InboundMessageV2({
             origin: REWARDS_MESSAGE_ORIGIN,
             nonce: 0,
             topic: bytes32(0),
             commands: commands
         });
+    }
 
+    function _buildMessagesProofForGoodRewardsMessage(
+        InboundMessageV2 memory updateRewardsMessage
+    ) internal returns (bytes32[] memory) {
         InboundMessageV2[] memory messages = new InboundMessageV2[](3);
+        // The first message is the actual rewards message that we want to submit and then claim.
         messages[0] = updateRewardsMessage;
+
+        // The second message is a dummy message with a different origin.
         messages[1] = InboundMessageV2({
-            origin: bytes32(0),
+            origin: WRONG_MESSAGE_ORIGIN,
             nonce: 1,
             topic: bytes32(0),
             commands: new CommandV2[](0)
         });
-        messages[2] =
-            InboundMessageV2({origin: bytes32(0), nonce: 2, topic: bytes32(0), commands: commands});
 
-        bytes32 messagesMerkleRoot = _buildMessagesMerkleTree(messages);
-        bytes32[] memory messagesProof = _buildMessagesProof(messages, 0);
+        // The third message is an attempt at setting the new rewards root, but with a wrong origin
+        // i.e. not the origin of the authorised Agent.
+        messages[2] = InboundMessageV2({
+            origin: WRONG_MESSAGE_ORIGIN,
+            nonce: 2,
+            topic: bytes32(0),
+            commands: updateRewardsMessage.commands
+        });
 
-        // Build BEEFY partial leaf
+        return _buildMessagesProof(messages, 0);
+    }
+
+    function _buildMessagesProofForBadRewardsMessage(
+        InboundMessageV2 memory goodUpdateRewardsMessage
+    ) internal returns (InboundMessageV2 memory, bytes32[] memory) {
+        InboundMessageV2[] memory messages = new InboundMessageV2[](3);
+        // The first message is the actual rewards message that we want to submit and then claim.
+        messages[0] = goodUpdateRewardsMessage;
+
+        // The second message is a dummy message with a different origin.
+        messages[1] = InboundMessageV2({
+            origin: WRONG_MESSAGE_ORIGIN,
+            nonce: 1,
+            topic: bytes32(0),
+            commands: new CommandV2[](0)
+        });
+
+        // The third message is an attempt at setting the new rewards root, but with a wrong origin
+        // i.e. not the origin of the authorised Agent.
+        messages[2] = InboundMessageV2({
+            origin: WRONG_MESSAGE_ORIGIN,
+            nonce: 2,
+            topic: bytes32(0),
+            commands: goodUpdateRewardsMessage.commands
+        });
+
+        return (messages[2], _buildMessagesProof(messages, 2));
+    }
+
+    function _createBeefyProof() internal pure returns (BeefyVerification.Proof memory) {
+        // Build BEEFY partial leaf.
         BeefyVerification.MMRLeafPartial memory partialLeaf = BeefyVerification.MMRLeafPartial({
             version: 0,
             parentNumber: 18122022,
@@ -98,36 +240,17 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
             nextAuthoritySetRoot: keccak256(abi.encode(18122022))
         });
 
-        // Build BEEFY proof
-        // Any non-empty BEEFY proof will do for the mock
+        // Build BEEFY proof.
+        // Any non-empty BEEFY proof will do for the mock.
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = keccak256(abi.encode(18122022));
 
-        BeefyVerification.Proof memory beefyProof =
+        return
             BeefyVerification.Proof({leafPartial: partialLeaf, leafProof: proof, leafProofOrder: 0});
-
-        // Call gateway.v2_submit with a proof of the message and a valid BEEFY proof
-        // Expect an IGatewayV2.InboundMessageDispatched event to be emitted
-        bytes32 rewardAddress = keccak256(abi.encodePacked("rewardAddress"));
-        vm.expectEmit(address(gateway));
-        emit IGatewayV2.InboundMessageDispatched(0, bytes32(0), true, rewardAddress);
-        gateway.v2_submit(updateRewardsMessage, messagesProof, beefyProof, rewardAddress);
-
-        // TODO: Call serviceManager.claimOperatorRewards with a proof of the rewards
-        // TODO: The Validator should receive the rewards
     }
 
-    // function test_newRewardsMessage_NotRewardsAgent() public {
-    //     // TODO: Create merkle tree of rewards for validators
-    //     // TODO: Create merkle tree of messages with message from wrong origin
-    //     // TODO: Create new BEEFY leaf with messages merkle root in the extra field
-    //     // TODO: Add that new BEEFY leaf to BeefyClient
-    //     // TODO: Call gateway.v2_submit with a proof of the message and a valid BEEFY proof
-    //     // TODO: Should fail because the message is from the wrong agent
-    // }
-
     function _buildValidatorPointsMerkleTree(
-        bytes32[] memory validators,
+        address[] memory validators,
         uint128[] memory points
     ) internal returns (bytes32) {
         require(
@@ -141,6 +264,24 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
         }
 
         return _calculateMerkleRoot(leaves);
+    }
+
+    function _buildValidatorPointsProof(
+        address[] memory validators,
+        uint128[] memory points,
+        uint256 leafIndex
+    ) internal returns (bytes32[] memory) {
+        require(
+            validators.length == points.length,
+            "Validators and points arrays must be of the same length"
+        );
+
+        bytes32[] memory leaves = new bytes32[](validators.length);
+        for (uint256 i = 0; i < validators.length; i++) {
+            leaves[i] = keccak256(abi.encode(validators[i], points[i]));
+        }
+
+        return _buildMerkleProof(leaves, leafIndex);
     }
 
     function _buildMessagesMerkleTree(

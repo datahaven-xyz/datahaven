@@ -27,12 +27,26 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     bytes32[] public initialValidators = [
         keccak256(abi.encodePacked("validator1")),
         keccak256(abi.encodePacked("validator2")),
-        keccak256(abi.encodePacked("validator3"))
-    ];
-    bytes32[] public nextValidators = [
+        keccak256(abi.encodePacked("validator3")),
         keccak256(abi.encodePacked("validator4")),
         keccak256(abi.encodePacked("validator5")),
-        keccak256(abi.encodePacked("validator6"))
+        keccak256(abi.encodePacked("validator6")),
+        keccak256(abi.encodePacked("validator7")),
+        keccak256(abi.encodePacked("validator8")),
+        keccak256(abi.encodePacked("validator9")),
+        keccak256(abi.encodePacked("validator10"))
+    ];
+    bytes32[] public nextValidators = [
+        keccak256(abi.encodePacked("validator11")),
+        keccak256(abi.encodePacked("validator12")),
+        keccak256(abi.encodePacked("validator13")),
+        keccak256(abi.encodePacked("validator14")),
+        keccak256(abi.encodePacked("validator15")),
+        keccak256(abi.encodePacked("validator16")),
+        keccak256(abi.encodePacked("validator17")),
+        keccak256(abi.encodePacked("validator18")),
+        keccak256(abi.encodePacked("validator19")),
+        keccak256(abi.encodePacked("validator20"))
     ];
     // In reality this should be set to MAX_SEED_LOOKAHEAD (4 epochs = 128 blocks/slots)
     // https://eth2book.info/capella/part3/config/preset/#time-parameters
@@ -42,6 +56,7 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     // In reality this is set to 17 https://etherscan.io/address/0x6eD05bAa904df3DE117EcFa638d4CB84e1B8A00C#readContract#F7
     uint256 public constant MIN_NUM_REQUIRED_SIGNATURES = 2;
     uint64 public constant START_BLOCK = 1;
+    bytes32 public constant REWARDS_MESSAGE_ORIGIN = bytes32(0);
 
     function _deployMockAllContracts() internal {
         _deployMockSnowbridge();
@@ -99,10 +114,10 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
 
     function _connectSnowbridgeToAVS() internal {
         cheats.prank(regularDeployer);
-        gateway.v2_createAgent(bytes32(0));
+        gateway.v2_createAgent(REWARDS_MESSAGE_ORIGIN);
 
         // Get the agent address after creation
-        address payable agentAddress = payable(gateway.agentOf(bytes32(0)));
+        address payable agentAddress = payable(gateway.agentOf(REWARDS_MESSAGE_ORIGIN));
         rewardsAgent = Agent(agentAddress);
 
         console.log("Rewards agent deployed at", address(rewardsAgent));

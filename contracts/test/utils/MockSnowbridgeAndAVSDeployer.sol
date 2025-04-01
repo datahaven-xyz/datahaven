@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {Gateway} from "snowbridge/src/Gateway.sol";
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
@@ -12,12 +11,13 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 
 import {MockAVSDeployer} from "./MockAVSDeployer.sol";
+import {BeefyClientMock} from "../mocks/BeefyClientMock.sol";
 
 import "forge-std/Test.sol";
 
 contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     // Snowbridge contracts
-    BeefyClient public beefyClient;
+    BeefyClientMock public beefyClient;
     IGatewayV2 public gateway;
     Gateway public gatewayImplementation;
     AgentExecutor public agentExecutor;
@@ -50,11 +50,11 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     }
 
     function _deployMockSnowbridge() internal {
-        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
-        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);
+        BeefyClientMock.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
+        BeefyClientMock.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);
 
         cheats.prank(regularDeployer);
-        beefyClient = new BeefyClient(
+        beefyClient = new BeefyClientMock(
             RANDAO_COMMIT_DELAY,
             RANDAO_COMMIT_EXPIRATION,
             MIN_NUM_REQUIRED_SIGNATURES,
@@ -116,32 +116,35 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     function _buildValidatorSet(
         uint128 id,
         bytes32[] memory validators
-    ) internal pure returns (BeefyClient.ValidatorSet memory) {
+    ) internal pure returns (BeefyClientMock.ValidatorSet memory) {
         // Calculate the merkle root from the validators array
         bytes32 merkleRoot = _calculateMerkleRoot(validators);
 
         // Create and return the validator set with the calculated merkle root
-        return
-            BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
+        return BeefyClientMock.ValidatorSet({
+            id: id,
+            length: uint128(validators.length),
+            root: merkleRoot
+        });
     }
 
     function _calculateMerkleRoot(
-        bytes32[] memory validators
+        bytes32[] memory leaves
     ) internal pure returns (bytes32) {
         // If there are no validators, return empty hash
-        if (validators.length == 0) {
+        if (leaves.length == 0) {
             return bytes32(0);
         }
 
         // If there's only one validator, its hash is the root
-        if (validators.length == 1) {
-            return validators[0];
+        if (leaves.length == 1) {
+            return leaves[0];
         }
 
         // Create a new array to hold the current layer's hashes
-        bytes32[] memory currentLayer = new bytes32[](validators.length);
-        for (uint256 i = 0; i < validators.length; i++) {
-            currentLayer[i] = validators[i];
+        bytes32[] memory currentLayer = new bytes32[](leaves.length);
+        for (uint256 i = 0; i < leaves.length; i++) {
+            currentLayer[i] = leaves[i];
         }
 
         // Iterate until we reach the root
@@ -174,6 +177,92 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
 
         // Return the root (the only element left in currentLayer)
         return currentLayer[0];
+    }
+
+    function _buildMerkleProof(
+        bytes32[] memory leaves,
+        uint256 leafIndex
+    ) internal pure returns (bytes32[] memory) {
+        require(leaves.length > 0, "Empty leaves");
+        require(leafIndex < leaves.length, "Leaf index out of bounds");
+
+        // For a single leaf, there's no proof needed
+        if (leaves.length == 1) {
+            return new bytes32[](0);
+        }
+
+        // Initialize proof array with maximum possible length
+        // The maximum depth of a binary tree with n leaves is log2(n) rounded up
+        uint256 maxDepth = 0;
+        uint256 layerSize = leaves.length;
+        while (layerSize > 1) {
+            layerSize = (layerSize + 1) / 2;
+            maxDepth++;
+        }
+
+        bytes32[] memory proof = new bytes32[](maxDepth);
+        uint256 proofIndex = 0;
+
+        // Create a copy of the leaves array
+        bytes32[] memory currentLayer = new bytes32[](leaves.length);
+        for (uint256 i = 0; i < leaves.length; i++) {
+            currentLayer[i] = leaves[i];
+        }
+
+        // Track the current position of our target leaf
+        uint256 currentPosition = leafIndex;
+
+        // Traverse from leaves to root
+        while (currentLayer.length > 1) {
+            // Calculate size of the next layer
+            uint256 nextLayerSize = currentLayer.length / 2;
+            if (currentLayer.length % 2 == 1) {
+                nextLayerSize += 1;
+            }
+
+            bytes32[] memory nextLayer = new bytes32[](nextLayerSize);
+
+            // Collect the sibling for our proof and build the next layer
+            uint256 nextIndex = 0;
+            for (uint256 i = 0; i < currentLayer.length; i += 2) {
+                if (i + 1 >= currentLayer.length) {
+                    // Handle the case of an odd number of elements
+                    nextLayer[nextIndex] = currentLayer[i];
+
+                    // If our target is the last unpaired element
+                    if (currentPosition == i) {
+                        // For odd element at the end with no pair, we don't add anything to the proof here
+                        // But we update the position for the next layer
+                        currentPosition = nextIndex;
+                    }
+                } else {
+                    // Normal case: pair of elements
+                    nextLayer[nextIndex] = _hashPair(currentLayer[i], currentLayer[i + 1]);
+
+                    // If our target is in this pair, add the sibling to the proof
+                    if (currentPosition == i) {
+                        proof[proofIndex] = currentLayer[i + 1];
+                        proofIndex++;
+                        currentPosition = nextIndex;
+                    } else if (currentPosition == i + 1) {
+                        proof[proofIndex] = currentLayer[i];
+                        proofIndex++;
+                        currentPosition = nextIndex;
+                    }
+                }
+                nextIndex++;
+            }
+
+            currentLayer = nextLayer;
+        }
+
+        // Resize the proof array to the actual number of elements
+        bytes32[] memory finalProof = new bytes32[](proofIndex);
+        for (uint256 i = 0; i < proofIndex; i++) {
+            finalProof[i] = proof[i];
+        }
+
+        return finalProof;
     }
 
     function _hashPair(bytes32 a, bytes32 b) private pure returns (bytes32) {

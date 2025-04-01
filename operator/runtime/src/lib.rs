@@ -97,13 +97,22 @@ pub const DAYS: BlockNumber = HOURS * 24;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
+// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
+pub const SUPPLY_FACTOR: Balance = 1;
+
 // Unit = the base number of indivisible units for balances
 pub const UNIT: Balance = 1_000_000_000_000;
 pub const MILLI_UNIT: Balance = 1_000_000_000;
 pub const MICRO_UNIT: Balance = 1_000_000;
 
+pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+
 /// Existential deposit.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+    items as Balance * 1 * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -246,6 +255,9 @@ mod runtime {
 
     #[runtime::pallet_index(13)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+
+    #[runtime::pallet_index(23)]
+    pub type Identity = pallet_identity;
 
     #[runtime::pallet_index(31)]
     pub type Ethereum = pallet_ethereum;

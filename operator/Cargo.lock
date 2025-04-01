@@ -1607,6 +1607,7 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-grandpa",
+ "pallet-identity",
  "pallet-mmr",
  "pallet-session",
  "pallet-sudo",

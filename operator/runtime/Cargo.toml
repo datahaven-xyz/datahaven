@@ -27,6 +27,7 @@ pallet-authorship.workspace = true
 pallet-babe.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
+pallet-identity.workspace = true
 pallet-im-online.workspace = true
 pallet-multisig.workspace = true
 pallet-offences.workspace = true
@@ -100,6 +101,7 @@ std = [
 	"pallet-balances/std",
     "pallet-im-online/std",
 	"pallet-grandpa/std",
+    "pallet-identity/std",
     "pallet-multisig/std",
 	"pallet-mmr/std",
 	"pallet-offences/std",
@@ -153,6 +155,7 @@ runtime-benchmarks = [
     "pallet-balances/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
+    "pallet-identity/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
@@ -179,6 +182,7 @@ try-runtime = [
     "pallet-babe/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-grandpa/try-runtime",
+    "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-offences/try-runtime",

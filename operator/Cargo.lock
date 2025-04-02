@@ -1609,6 +1609,7 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-grandpa",
+ "pallet-identity",
  "pallet-im-online",
  "pallet-mmr",
  "pallet-multisig",

@@ -28,14 +28,14 @@ use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EvmChainId,
     Hash, Historical, ImOnline, Nonce, Offences, OriginCaller, PalletInfo, Preimage, Runtime,
     RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Session, SessionKeys, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
+    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
-    time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES},
+    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
 };
 use frame_support::{
     derive_impl,
@@ -355,6 +355,49 @@ impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 20;
+    pub const PendingUsernameExpiration: u32 = 7 * DAYS;
+    pub const MaxSuffixLength: u32 = 7;
+    pub const MaxUsernameLength: u32 = 32;
+}
+
+type IdentityForceOrigin = EnsureRoot<AccountId>;
+type IdentityRegistrarOrigin = EnsureRoot<AccountId>;
+// TODO: Add governance origin when available
+// type IdentityForceOrigin =
+// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+// type IdentityRegistrarOrigin =
+// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+
+impl pallet_identity::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    // Add one item in storage and take 258 bytes
+    type BasicDeposit = ConstU128<{ deposit(1, 258) }>;
+    // Does not add any item to the storage but takes 1 bytes
+    type ByteDeposit = ConstU128<{ deposit(0, 1) }>;
+    // Add one item in storage and take 53 bytes
+    type SubAccountDeposit = ConstU128<{ deposit(1, 53) }>;
+    type MaxSubAccounts = MaxSubAccounts;
+    type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
+    type MaxRegistrars = MaxRegistrars;
+    type Slashed = ();
+    // TODO: Slashed funds should be sent to the treasury (when added to the runtime)
+    // type Slashed = Treasury;
+    type ForceOrigin = IdentityForceOrigin;
+    type RegistrarOrigin = IdentityRegistrarOrigin;
+    type OffchainSignature = Signature;
+    type SigningPublicKey = <Signature as sp_runtime::traits::Verify>::Signer;
+    type UsernameAuthorityOrigin = EnsureRoot<AccountId>;
+    type PendingUsernameExpiration = PendingUsernameExpiration;
+    type MaxSuffixLength = MaxSuffixLength;
+    type MaxUsernameLength = MaxUsernameLength;
+    type WeightInfo = ();
 }
 
 parameter_types! {

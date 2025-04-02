@@ -268,6 +268,9 @@ mod runtime {
     #[runtime::pallet_index(22)]
     pub type Preimage = pallet_preimage;
 
+    #[runtime::pallet_index(23)]
+    pub type Identity = pallet_identity;
+
     #[runtime::pallet_index(24)]
     pub type Multisig = pallet_multisig;
 

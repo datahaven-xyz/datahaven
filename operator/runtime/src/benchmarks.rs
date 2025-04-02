@@ -27,7 +27,7 @@ frame_benchmarking::define_benchmarks!(
     [frame_benchmarking, BaselineBench::<Runtime>]
     [frame_system, SystemBench::<Runtime>]
     [pallet_balances, Balances]
-    [pallet_im_online, ImOnline]    
+    [pallet_im_online, ImOnline]
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]
     [pallet_scheduler, Scheduler]

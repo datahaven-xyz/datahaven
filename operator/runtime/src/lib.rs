@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
+#![recursion_limit = "256"]
 
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -13,7 +15,6 @@ use alloc::vec::Vec;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiAddress,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -98,13 +99,22 @@ pub const DAYS: BlockNumber = HOURS * 24;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
+// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
+pub const SUPPLY_FACTOR: Balance = 1;
+
 // Unit = the base number of indivisible units for balances
 pub const UNIT: Balance = 1_000_000_000_000;
 pub const MILLI_UNIT: Balance = 1_000_000_000;
 pub const MICRO_UNIT: Balance = 1_000_000;
 
+pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+
 /// Existential deposit.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+    items as Balance * 1 * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -135,7 +145,7 @@ pub type Hash = sp_core::H256;
 pub type BlockNumber = u32;
 
 /// The address format for describing accounts.
-pub type Address = MultiAddress<AccountId, ()>;
+pub type Address = AccountId;
 
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -246,8 +256,20 @@ mod runtime {
     #[runtime::pallet_index(10)]
     pub type Grandpa = pallet_grandpa;
 
-    #[runtime::pallet_index(20)]
+    #[runtime::pallet_index(11)]
     pub type TransactionPayment = pallet_transaction_payment;
+
+    #[runtime::pallet_index(20)]
+    pub type Utility = pallet_utility;
+
+    #[runtime::pallet_index(21)]
+    pub type Scheduler = pallet_scheduler;
+
+    #[runtime::pallet_index(22)]
+    pub type Preimage = pallet_preimage;
+
+    #[runtime::pallet_index(24)]
+    pub type Multisig = pallet_multisig;
 
     // Frontier
     #[runtime::pallet_index(30)]

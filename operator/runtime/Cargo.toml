@@ -27,6 +27,7 @@ pallet-babe.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
 pallet-multisig.workspace = true
+pallet-preimage.workspace = true
 pallet-session.workspace = true
 pallet-sudo.workspace = true
 pallet-timestamp.workspace = true
@@ -95,7 +96,7 @@ std = [
 	"pallet-grandpa/std",
     "pallet-multisig/std",
 	"pallet-mmr/std",
-	"pallet-session/std",
+	"pallet-preimage/std",
     "pallet-session/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
@@ -144,6 +145,7 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
+    "pallet-preimage/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
@@ -166,6 +168,7 @@ try-runtime = [
     "pallet-balances/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-multisig/try-runtime",
+    "pallet-preimage/try-runtime",
     "pallet-session/try-runtime",
     "pallet-sudo/try-runtime",
     "pallet-timestamp/try-runtime",

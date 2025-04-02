@@ -1609,6 +1609,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-mmr",
  "pallet-multisig",
+ "pallet-preimage",
  "pallet-session",
  "pallet-sudo",
  "pallet-timestamp",
@@ -5951,6 +5952,22 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-preimage"
+version = "38.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
  "sp-io",
  "sp-runtime",
 ]

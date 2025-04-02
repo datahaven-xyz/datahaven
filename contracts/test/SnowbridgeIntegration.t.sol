@@ -6,10 +6,11 @@ import {CommandV2, CommandKind, IGatewayV2} from "snowbridge/src/Types.sol";
 import {CallContractParams} from "snowbridge/src/v2/Types.sol";
 import {BeefyVerification} from "snowbridge/src/BeefyVerification.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
+
+import {MerkleUtils} from "../src/libraries/MerkleUtils.sol";
 import {
     IRewardsRegistryEvents, IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
-
 import {MockSnowbridgeAndAVSDeployer} from "./utils/MockSnowbridgeAndAVSDeployer.sol";
 
 import "forge-std/Test.sol";
@@ -304,7 +305,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(validators[i], points[i]));
         }
 
-        return _calculateMerkleRoot(leaves);
+        return MerkleUtils.calculateMerkleRoot(leaves);
     }
 
     function _buildValidatorPointsProof(
@@ -333,7 +334,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(messages[i]));
         }
 
-        return _calculateMerkleRoot(leaves);
+        return MerkleUtils.calculateMerkleRoot(leaves);
     }
 
     function _buildMessagesProof(

@@ -5,7 +5,7 @@ import {InboundMessageV2} from "snowbridge/src/Types.sol";
 import {CommandV2, CommandKind, IGatewayV2} from "snowbridge/src/Types.sol";
 import {CallContractParams} from "snowbridge/src/v2/Types.sol";
 import {BeefyVerification} from "snowbridge/src/BeefyVerification.sol";
-
+import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {
     IRewardsRegistryEvents, IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
@@ -57,6 +57,11 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
 
         // Create BEEFY proof.
         BeefyVerification.Proof memory beefyProof = _createBeefyProof();
+
+        // This is to mock that the `BeefyClient.verifyMMRLeafProof` function returns true
+        // despite the fact that we never registered a BEEFY leaf with this message in the
+        // `BeefyClient` contract.
+        _mockBeefyVerification();
 
         // Submit message to Gateway.
         // We don't care about the rewardAddress that will get the Snowbridge rewards for relaying this message.
@@ -128,6 +133,11 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
 
         // Create BEEFY proof.
         BeefyVerification.Proof memory beefyProof = _createBeefyProof();
+
+        // This is to mock that the `BeefyClient.verifyMMRLeafProof` function returns true
+        // despite the fact that we never registered a BEEFY leaf with this message in the
+        // `BeefyClient` contract.
+        _mockBeefyVerification();
 
         // Submit message to Gateway.
         // We don't care about the rewardAddress that will get the Snowbridge rewards for relaying this message.
@@ -267,6 +277,17 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
 
         return
             BeefyVerification.Proof({leafPartial: partialLeaf, leafProof: proof, leafProofOrder: 0});
+    }
+
+    function _mockBeefyVerification() internal {
+        // Mock the BeefyVerification.verifyBeefyMMRLeaf to always return true
+        bytes memory encodedReturn = abi.encode(true);
+
+        // Create the function selector for verifyBeefyMMRLeaf
+        bytes4 selector = BeefyClient.verifyMMRLeafProof.selector;
+
+        // Mock any call to this function with any parameters to return true
+        vm.mockCall(address(beefyClient), abi.encodeWithSelector(selector), encodedReturn);
     }
 
     function _buildValidatorPointsMerkleTree(

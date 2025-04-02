@@ -9,15 +9,14 @@ import {Agent} from "snowbridge/src/Agent.sol";
 import {Initializer} from "snowbridge/src/Initializer.sol";
 import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
-
+import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {MockAVSDeployer} from "./MockAVSDeployer.sol";
-import {BeefyClientMock} from "../mocks/BeefyClientMock.sol";
 
 import "forge-std/Test.sol";
 
 contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     // Snowbridge contracts
-    BeefyClientMock public beefyClient;
+    BeefyClient public beefyClient;
     IGatewayV2 public gateway;
     Gateway public gatewayImplementation;
     AgentExecutor public agentExecutor;
@@ -67,11 +66,11 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     }
 
     function _deployMockSnowbridge() internal {
-        BeefyClientMock.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
-        BeefyClientMock.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);
+        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
+        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);
 
         cheats.prank(regularDeployer);
-        beefyClient = new BeefyClientMock(
+        beefyClient = new BeefyClient(
             RANDAO_COMMIT_DELAY,
             RANDAO_COMMIT_EXPIRATION,
             MIN_NUM_REQUIRED_SIGNATURES,
@@ -142,16 +141,13 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     function _buildValidatorSet(
         uint128 id,
         bytes32[] memory validators
-    ) internal pure returns (BeefyClientMock.ValidatorSet memory) {
+    ) internal pure returns (BeefyClient.ValidatorSet memory) {
         // Calculate the merkle root from the validators array
         bytes32 merkleRoot = _calculateMerkleRoot(validators);
 
         // Create and return the validator set with the calculated merkle root
-        return BeefyClientMock.ValidatorSet({
-            id: id,
-            length: uint128(validators.length),
-            root: merkleRoot
-        });
+        return
+            BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
     }
 
     function _calculateMerkleRoot(

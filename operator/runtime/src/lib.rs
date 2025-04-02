@@ -104,10 +104,14 @@ pub const UNIT: Balance = 1_000_000_000_000;
 pub const MILLI_UNIT: Balance = 1_000_000_000;
 pub const MICRO_UNIT: Balance = 1_000_000;
 
+pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+
 /// Existential deposit.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
 
-pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+    items as Balance * 1 * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -256,6 +260,9 @@ mod runtime {
 
     #[runtime::pallet_index(22)]
     pub type Preimage = pallet_preimage;
+
+    #[runtime::pallet_index(24)]
+    pub type Multisig = pallet_multisig;
 
     #[runtime::pallet_index(31)]
     pub type Ethereum = pallet_ethereum;

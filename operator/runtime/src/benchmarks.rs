@@ -28,6 +28,7 @@ frame_benchmarking::define_benchmarks!(
     [frame_system, SystemBench::<Runtime>]
     [pallet_balances, Balances]
     [pallet_preimage, Preimage]
+    [pallet_multisig, Multisig]
     [pallet_timestamp, Timestamp]
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]

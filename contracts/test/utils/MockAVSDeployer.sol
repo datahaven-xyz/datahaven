@@ -25,7 +25,7 @@ import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
-
+import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 // Mocks
 import {StrategyManagerMock} from "eigenlayer-contracts/src/test/mocks/StrategyManagerMock.sol";
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
@@ -49,10 +49,14 @@ contract MockAVSDeployer is Test {
     ServiceManagerMock public serviceManager;
     ServiceManagerMock public serviceManagerImplementation;
     VetoableSlasher public vetoableSlasher;
+    RewardsRegistry public rewardsRegistry;
 
-    // Roles and parameters
+    // VetoableSlasher roles and parameters
     address public vetoCommitteeMember = address(uint160(uint256(keccak256("vetoCommitteeMember"))));
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
+
+    // RewardsRegistry roles and parameters
+    address public mockRewardsAgent = address(uint160(uint256(keccak256("rewardsAgent"))));
 
     // EigenLayer contracts
     StrategyManagerMock public strategyManagerMock;
@@ -222,6 +226,16 @@ contract MockAVSDeployer is Test {
         serviceManager.setSlasher(vetoableSlasher);
 
         console.log("VetoableSlasher deployed and configured");
+
+        // Deploy the RewardsRegistry contract
+        cheats.prank(regularDeployer);
+        rewardsRegistry = new RewardsRegistry(address(serviceManager), mockRewardsAgent);
+
+        // Set the rewards registry in the ServiceManager
+        cheats.prank(avsOwner);
+        serviceManager.setRewardsRegistry(0, rewardsRegistry);
+
+        console.log("RewardsRegistry deployed and configured");
     }
 
     function _setUpDefaultStrategiesAndMultipliers() internal virtual {

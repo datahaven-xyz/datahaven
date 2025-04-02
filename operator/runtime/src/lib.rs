@@ -251,7 +251,7 @@ mod runtime {
     pub type Session = pallet_session;
 
     #[runtime::pallet_index(9)]
-    pub type ImOnline = pallet_im_online::Pallet<Runtime>;
+    pub type ImOnline = pallet_im_online;
 
     #[runtime::pallet_index(10)]
     pub type Grandpa = pallet_grandpa;

@@ -65,4 +65,13 @@ interface IRewardsRegistry is IRewardsRegistryErrors, IRewardsRegistryEvents {
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external;
+
+    /**
+     * @notice Sets the rewards agent address in the RewardsRegistry contract
+     * @param rewardsAgent New rewards agent address
+     * @dev Only callable by the AVS (Service Manager)
+     */
+    function setRewardsAgent(
+        address rewardsAgent
+    ) external;
 }

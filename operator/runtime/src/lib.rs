@@ -13,7 +13,6 @@ use alloc::vec::Vec;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiAddress,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -143,7 +142,7 @@ pub type Hash = sp_core::H256;
 pub type BlockNumber = u32;
 
 /// The address format for describing accounts.
-pub type Address = MultiAddress<AccountId, ()>;
+pub type Address = AccountId;
 
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -255,6 +254,9 @@ mod runtime {
 
     #[runtime::pallet_index(13)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+
+    #[runtime::pallet_index(20)]
+    pub type Utility = pallet_utility;
 
     #[runtime::pallet_index(24)]
     pub type Multisig = pallet_multisig;

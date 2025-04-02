@@ -24,6 +24,7 @@
 // For more information, please refer to <http://unlicense.org>
 
 use crate::EvmChainId;
+use crate::OriginCaller;
 use crate::Timestamp;
 use crate::{Historical, SessionKeys, ValidatorSet};
 
@@ -65,8 +66,9 @@ use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
+use sp_runtime::traits::IdentityLookup;
 use sp_runtime::{
-    traits::{AccountIdLookup, ConvertInto, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
+    traits::{ConvertInto, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
@@ -119,7 +121,7 @@ impl frame_system::Config for Runtime {
     /// The identifier used to distinguish between accounts.
     type AccountId = AccountId;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-    type Lookup = AccountIdLookup<AccountId, ()>;
+    type Lookup = IdentityLookup<AccountId>;
     /// The type for storing how many extrinsics an account has signed.
     type Nonce = Nonce;
     /// The type for hashing blocks and tries.
@@ -199,6 +201,13 @@ impl pallet_session::Config for Runtime {
 impl pallet_session::historical::Config for Runtime {
     type FullIdentification = AccountId;
     type FullIdentificationOf = ConvertInto;
+}
+
+impl pallet_utility::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = ();
 }
 
 impl pallet_timestamp::Config for Runtime {

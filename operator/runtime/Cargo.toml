@@ -23,10 +23,13 @@ frame-try-runtime = { optional = true, workspace = true }
 frame-executive.workspace = true
 frame-metadata-hash-extension.workspace = true
 hex-literal.workspace = true
+pallet-authorship.workspace = true
 pallet-babe.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
+pallet-im-online.workspace = true
 pallet-multisig.workspace = true
+pallet-offences.workspace = true
 pallet-preimage.workspace = true
 pallet-scheduler.workspace = true
 pallet-session.workspace = true
@@ -90,13 +93,16 @@ std = [
 
     "datahaven-runtime-common/std",
 
+    "pallet-authorship/std",
 	"pallet-babe/std",
 	"pallet-beefy/std",
 	"pallet-beefy-mmr/std",
 	"pallet-balances/std",
+    "pallet-im-online/std",
 	"pallet-grandpa/std",
     "pallet-multisig/std",
 	"pallet-mmr/std",
+	"pallet-offences/std",
 	"pallet-preimage/std",
 	"pallet-scheduler/std",
     "pallet-session/std",
@@ -144,9 +150,11 @@ runtime-benchmarks = [
     "frame-system-benchmarking/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "datahaven-runtime-common/runtime-benchmarks",
-	"pallet-balances/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-im-online/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
+    "pallet-offences/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
@@ -167,10 +175,13 @@ try-runtime = [
     "frame-support/try-runtime",
     "frame-system/try-runtime",
     "frame-try-runtime/try-runtime",
+    "pallet-authorship/try-runtime",
     "pallet-babe/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-grandpa/try-runtime",
+    "pallet-im-online/try-runtime",
     "pallet-multisig/try-runtime",
+    "pallet-offences/try-runtime",
     "pallet-preimage/try-runtime",
     "pallet-scheduler/try-runtime",
     "pallet-session/try-runtime",

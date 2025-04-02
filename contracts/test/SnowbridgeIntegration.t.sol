@@ -119,10 +119,6 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
         // Setup validator data.
         _setupValidatorData();
 
-        // Build proofs and merkle trees.
-        bytes32[] memory rewardsProof =
-            _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 0);
-
         // Create and submit the rewards message.
         InboundMessageV2 memory updateRewardsMessage = _createRewardsMessage();
 
@@ -208,7 +204,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
 
     function _buildMessagesProofForGoodRewardsMessage(
         InboundMessageV2 memory updateRewardsMessage
-    ) internal returns (bytes32[] memory) {
+    ) internal pure returns (bytes32[] memory) {
         InboundMessageV2[] memory messages = new InboundMessageV2[](3);
         // The first message is the actual rewards message that we want to submit and then claim.
         messages[0] = updateRewardsMessage;
@@ -235,7 +231,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
 
     function _buildMessagesProofForBadRewardsMessage(
         InboundMessageV2 memory goodUpdateRewardsMessage
-    ) internal returns (InboundMessageV2 memory, bytes32[] memory) {
+    ) internal pure returns (InboundMessageV2 memory, bytes32[] memory) {
         InboundMessageV2[] memory messages = new InboundMessageV2[](3);
         // The first message is the actual rewards message that we want to submit and then claim.
         messages[0] = goodUpdateRewardsMessage;
@@ -294,7 +290,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
     function _buildValidatorPointsMerkleTree(
         address[] memory validators,
         uint128[] memory points
-    ) internal returns (bytes32) {
+    ) internal pure returns (bytes32) {
         require(
             validators.length == points.length,
             "Validators and points arrays must be of the same length"
@@ -312,7 +308,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
         address[] memory validators,
         uint128[] memory points,
         uint256 leafIndex
-    ) internal returns (bytes32[] memory) {
+    ) internal pure returns (bytes32[] memory) {
         require(
             validators.length == points.length,
             "Validators and points arrays must be of the same length"
@@ -328,7 +324,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
 
     function _buildMessagesMerkleTree(
         InboundMessageV2[] memory messages
-    ) internal returns (bytes32) {
+    ) internal pure returns (bytes32) {
         bytes32[] memory leaves = new bytes32[](messages.length);
         for (uint256 i = 0; i < messages.length; i++) {
             leaves[i] = keccak256(abi.encode(messages[i]));
@@ -340,7 +336,7 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
     function _buildMessagesProof(
         InboundMessageV2[] memory messages,
         uint256 leafIndex
-    ) internal returns (bytes32[] memory) {
+    ) internal pure returns (bytes32[] memory) {
         bytes32[] memory leaves = new bytes32[](messages.length);
         for (uint256 i = 0; i < messages.length; i++) {
             leaves[i] = keccak256(abi.encode(messages[i]));

@@ -57,6 +57,11 @@ contract Deploy is Script, DeployParams {
         uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80) // First pre-funded account from Anvil
     );
 
+    uint256 internal avsOwnerPrivateKey = vm.envOr(
+        "AVS_OWNER_PRIVATE_KEY",
+        uint256(0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e) // Sixth pre-funded account from Anvil
+    );
+
     // EigenLayer Contract declarations
     EmptyContract internal emptyContract;
     RewardsCoordinator internal rewardsCoordinator;
@@ -83,6 +88,8 @@ contract Deploy is Script, DeployParams {
     string internal constant SEMVER = "v1.0.0";
 
     function run() public {
+        console.log("Deploying DataHaven contracts...");
+
         // Load configurations
         SnowbridgeConfig memory snowbridgeConfig = getSnowbridgeConfig();
         AVSConfig memory avsConfig = getAVSConfig();
@@ -182,26 +189,39 @@ contract Deploy is Script, DeployParams {
 
         console.log("[Deployment] RewardsRegistry deployed at", address(rewardsRegistry));
 
+        // This needs to be executed by the AVS owner
+        vm.stopBroadcast();
+        vm.startBroadcast(avsOwnerPrivateKey);
+
         // Set the slasher in the ServiceManager
         serviceManager.setSlasher(vetoableSlasher);
         console.log("[Deployment] Slasher set in ServiceManager");
+
+        // Set the RewardsRegistry in the ServiceManager
+        serviceManager.setRewardsRegistry(0, rewardsRegistry);
+        console.log("[Deployment] RewardsRegistry set in ServiceManager");
+
         console.log("[Deployment] =========== DataHaven custom contracts deployed ===========");
+
+        // Going back to the deployer to deploy Snowbridge
+        vm.stopBroadcast();
+        vm.startBroadcast(deployerPrivateKey);
 
         // Deploy Snowbridge and configure Agent
         (
             BeefyClient beefyClient,
             AgentExecutor agentExecutor,
             IGatewayV2 gateway,
-            address payable agentAddress
+            address payable rewardsAgentAddress
         ) = deploySnowbridge(snowbridgeConfig);
 
-        // Set the Agent in the RewardsRegistry
-        rewardsRegistry.setRewardsAgent(agentAddress);
-        console.log("[Deployment] Agent set in RewardsRegistry at", agentAddress);
+        // This needs to be executed by the AVS owner
+        vm.stopBroadcast();
+        vm.startBroadcast(avsOwnerPrivateKey);
 
-        // Set the RewardsRegistry in the ServiceManager
-        serviceManager.setRewardsRegistry(0, rewardsRegistry);
-        console.log("[Deployment] RewardsRegistry set in ServiceManager");
+        // Set the Agent in the RewardsRegistry
+        serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
+        console.log("[Deployment] Agent set in RewardsRegistry at", rewardsAgentAddress);
 
         vm.stopBroadcast();
 
@@ -213,7 +233,7 @@ contract Deploy is Script, DeployParams {
             serviceManager,
             vetoableSlasher,
             rewardsRegistry,
-            agentAddress
+            rewardsAgentAddress
         );
     }
 
@@ -250,12 +270,12 @@ contract Deploy is Script, DeployParams {
 
         // Create Agent
         gateway.v2_createAgent(config.rewardsMessageOrigin);
-        address payable agentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
+        address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
 
-        console.log("[Deployment] Agent created at", agentAddress);
+        console.log("[Deployment] Agent created at", rewardsAgentAddress);
         console.log("[Deployment] =========== Snowbridge deployment completed ===========");
 
-        return (beefyClient, agentExecutor, gateway, agentAddress);
+        return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
     }
 
     function deployProxies(
@@ -555,7 +575,7 @@ contract Deploy is Script, DeployParams {
         console.log("==========================================");
 
         // Write to deployment file for future reference
-        string memory network = vm.envOr("NETWORK", string("localhost"));
+        string memory network = vm.envOr("NETWORK", string("anvil"));
         string memory deploymentPath =
             string.concat(vm.projectRoot(), "/deployments/", network, ".json");
 

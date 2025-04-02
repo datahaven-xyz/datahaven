@@ -216,8 +216,7 @@ contract DeployParams is Script, Config {
         string memory path
     ) internal pure returns (bytes32[] memory) {
         // Load validators from JSON config
-        bytes memory validatorsJson = vm.parseJsonBytes(configJson, path);
-        string[] memory validatorsArray = abi.decode(validatorsJson, (string[]));
+        string[] memory validatorsArray = vm.parseJsonStringArray(configJson, path);
 
         bytes32[] memory validators = new bytes32[](validatorsArray.length);
         for (uint256 i = 0; i < validatorsArray.length; i++) {
@@ -232,8 +231,7 @@ contract DeployParams is Script, Config {
         string memory path
     ) internal pure returns (address[] memory) {
         // Load addresses from JSON config
-        bytes memory addressesJson = vm.parseJsonBytes(configJson, path);
-        string[] memory addressStrings = abi.decode(addressesJson, (string[]));
+        string[] memory addressStrings = vm.parseJsonStringArray(configJson, path);
 
         address[] memory addresses = new address[](addressStrings.length);
         for (uint256 i = 0; i < addressStrings.length; i++) {

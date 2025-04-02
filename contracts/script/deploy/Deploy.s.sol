@@ -52,6 +52,17 @@ import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 
 contract Deploy is Script, DeployParams {
+    // Logging helper constants
+    string private constant HEADER1 = "============================================================";
+    string private constant HEADER2 = "                                                            ";
+    string private constant FOOTER = "============================================================";
+    string private constant SEPARATOR =
+        "------------------------------------------------------------";
+
+    // Progress indicator
+    uint16 private deploymentStep = 0;
+    uint16 private totalSteps = 4; // Total major deployment steps
+
     uint256 internal deployerPrivateKey = vm.envOr(
         "DEPLOYER_PRIVATE_KEY",
         uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80) // First pre-funded account from Anvil
@@ -87,8 +98,62 @@ contract Deploy is Script, DeployParams {
     // EigenLayer required semver
     string internal constant SEMVER = "v1.0.0";
 
+    // Logging helper functions
+    function logHeader(
+        string memory title
+    ) internal pure {
+        console.log("");
+        console.log(HEADER1);
+        console.log("|  %s  |", title);
+        console.log(SEPARATOR);
+    }
+
+    function logSection(
+        string memory title
+    ) internal pure {
+        console.log("");
+        console.log("|  %s:", title);
+        console.log(SEPARATOR);
+    }
+
+    function logContractDeployed(string memory name, address contractAddress) internal pure {
+        console.log("|  [+] %s: %s", name, contractAddress);
+    }
+
+    function logStep(
+        string memory message
+    ) internal pure {
+        console.log("|  >>> %s", message);
+    }
+
+    function logInfo(
+        string memory message
+    ) internal pure {
+        console.log("|  [i] %s", message);
+    }
+
+    function logFooter() internal pure {
+        console.log(FOOTER);
+        console.log("");
+    }
+
+    function logProgress() internal {
+        deploymentStep++;
+        console.log("");
+        console.log(
+            "Progress: Step %d/%d completed (%d%%)",
+            deploymentStep,
+            totalSteps,
+            (deploymentStep * 100) / totalSteps
+        );
+        console.log("");
+    }
+
     function run() public {
-        console.log("Deploying DataHaven contracts...");
+        logHeader("DATAHAVEN DEPLOYMENT SCRIPT");
+        console.log("|  Network: %s", vm.envOr("NETWORK", string("anvil")));
+        console.log("|  Timestamp: %s", vm.toString(block.timestamp));
+        logFooter();
 
         // Load configurations
         SnowbridgeConfig memory snowbridgeConfig = getSnowbridgeConfig();
@@ -99,61 +164,68 @@ contract Deploy is Script, DeployParams {
         vm.startBroadcast(deployerPrivateKey);
 
         // Deploy EigenLayer core contracts
-        console.log(
-            "[Deployment] =========== Starting EigenLayer core contracts deployment ==========="
-        );
+        logHeader("EIGENLAYER CORE CONTRACTS DEPLOYMENT");
+        logInfo("Deploying core infrastructure contracts");
 
         // Deploy proxy admin for ability to upgrade proxy contracts
         ProxyAdmin proxyAdmin = new ProxyAdmin();
-        console.log("[Deployment] ProxyAdmin deployed at", address(proxyAdmin));
+        logContractDeployed("ProxyAdmin", address(proxyAdmin));
 
         // Deploy pauser registry
         PauserRegistry pauserRegistry = deployPauserRegistry(eigenLayerConfig);
-        console.log("[Deployment] PauserRegistry deployed at", address(pauserRegistry));
+        logContractDeployed("PauserRegistry", address(pauserRegistry));
 
         // Deploy empty contract to use as initial implementation for proxies
         emptyContract = new EmptyContract();
-        console.log("[Deployment] EmptyContract deployed at", address(emptyContract));
+        logContractDeployed("EmptyContract", address(emptyContract));
 
         // Deploy proxies that will point to implementations
+        logSection("Deploying Proxy Contracts");
         deployProxies(proxyAdmin);
-        console.log("[Deployment] Initial proxies deployed");
+        logStep("Initial proxies deployed successfully");
 
         // Setup ETH2 deposit contract for EigenPod functionality
         ethPOSDeposit = IETHPOSDeposit(getETHPOSDepositAddress());
+        logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
 
         // Deploy EigenPod implementation and beacon
         eigenPodImplementation = new EigenPod(
             ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp, SEMVER
         );
         eigenPodBeacon = new UpgradeableBeacon(address(eigenPodImplementation));
-        console.log("[Deployment] EigenPod implementation and beacon deployed");
+        logContractDeployed("EigenPod Implementation", address(eigenPodImplementation));
+        logContractDeployed("EigenPod Beacon", address(eigenPodBeacon));
 
         // Deploy implementation contracts
+        logSection("Deploying Implementation Contracts");
         deployImplementations(eigenLayerConfig, pauserRegistry);
-        console.log("[Deployment] Implementation contracts deployed");
+        logStep("Implementation contracts deployed successfully");
 
         // Upgrade proxies to point to implementations and initialize
+        logSection("Initializing Contracts");
         upgradeAndInitializeProxies(eigenLayerConfig, proxyAdmin);
-        console.log("[Deployment] Proxies upgraded and initialized");
+        logStep("Proxies upgraded and initialized successfully");
 
         // Deploy strategy implementation and create strategy proxies
+        logSection("Deploying Strategy Contracts");
         deployStrategies(eigenLayerConfig, pauserRegistry, proxyAdmin);
-        console.log("[Deployment] Strategy contracts deployed");
+        logStep("Strategy contracts deployed successfully");
 
         // Transfer ownership of core contracts
         proxyAdmin.transferOwnership(eigenLayerConfig.executorMultisig);
         eigenPodBeacon.transferOwnership(eigenLayerConfig.executorMultisig);
-        console.log("[Deployment] =========== EigenLayer core contracts deployed ===========");
+        logStep("Ownership transferred to multisig");
+
+        logFooter();
+        logProgress();
 
         // Deploy DataHaven custom contracts
-        console.log(
-            "[Deployment] =========== Starting DataHaven custom contracts deployment ==========="
-        );
+        logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
         DataHavenServiceManager serviceManagerImplementation =
             new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
+        logContractDeployed("ServiceManager Implementation", address(serviceManagerImplementation));
 
         DataHavenServiceManager serviceManager = DataHavenServiceManager(
             address(
@@ -168,8 +240,7 @@ contract Deploy is Script, DeployParams {
                 )
             )
         );
-
-        console.log("[Deployment] ServiceManager deployed at", address(serviceManager));
+        logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
         // Deploy VetoableSlasher
         VetoableSlasher vetoableSlasher = new VetoableSlasher(
@@ -178,36 +249,38 @@ contract Deploy is Script, DeployParams {
             avsConfig.vetoCommitteeMember,
             avsConfig.vetoWindowBlocks
         );
-
-        console.log("[Deployment] VetoableSlasher deployed at", address(vetoableSlasher));
+        logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 
         // Deploy RewardsRegistry
         RewardsRegistry rewardsRegistry = new RewardsRegistry(
             address(serviceManager),
             address(0) // Will be set to the Agent address after creation
         );
-
-        console.log("[Deployment] RewardsRegistry deployed at", address(rewardsRegistry));
+        logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         // This needs to be executed by the AVS owner
         vm.stopBroadcast();
         vm.startBroadcast(avsOwnerPrivateKey);
 
         // Set the slasher in the ServiceManager
+        logSection("Configuring Service Manager");
         serviceManager.setSlasher(vetoableSlasher);
-        console.log("[Deployment] Slasher set in ServiceManager");
+        logStep("Slasher set in ServiceManager");
 
         // Set the RewardsRegistry in the ServiceManager
         serviceManager.setRewardsRegistry(0, rewardsRegistry);
-        console.log("[Deployment] RewardsRegistry set in ServiceManager");
+        logStep("RewardsRegistry set in ServiceManager");
 
-        console.log("[Deployment] =========== DataHaven custom contracts deployed ===========");
+        logFooter();
+        logProgress();
 
         // Going back to the deployer to deploy Snowbridge
         vm.stopBroadcast();
         vm.startBroadcast(deployerPrivateKey);
 
         // Deploy Snowbridge and configure Agent
+        logHeader("SNOWBRIDGE DEPLOYMENT");
+
         (
             BeefyClient beefyClient,
             AgentExecutor agentExecutor,
@@ -215,15 +288,22 @@ contract Deploy is Script, DeployParams {
             address payable rewardsAgentAddress
         ) = deploySnowbridge(snowbridgeConfig);
 
+        logFooter();
+        logProgress();
+
         // This needs to be executed by the AVS owner
         vm.stopBroadcast();
         vm.startBroadcast(avsOwnerPrivateKey);
 
         // Set the Agent in the RewardsRegistry
+        logHeader("FINAL CONFIGURATION");
         serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
-        console.log("[Deployment] Agent set in RewardsRegistry at", rewardsAgentAddress);
+        logStep("Agent set in RewardsRegistry");
+        logContractDeployed("Agent Address", rewardsAgentAddress);
 
         vm.stopBroadcast();
+        logFooter();
+        logProgress();
 
         // Output all deployed contract addresses
         outputDeployedAddresses(
@@ -240,13 +320,16 @@ contract Deploy is Script, DeployParams {
     function deploySnowbridge(
         SnowbridgeConfig memory config
     ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
-        console.log("[Deployment] =========== Starting Snowbridge deployment ===========");
+        logSection("Deploying Snowbridge Core Components");
 
         BeefyClient beefyClient = deployBeefyClient(config);
-        AgentExecutor agentExecutor = new AgentExecutor();
-        Gateway gatewayImplementation = new Gateway(address(beefyClient), address(agentExecutor));
+        logContractDeployed("BeefyClient", address(beefyClient));
 
-        console.log("[Deployment] Snowbridge base contracts deployed");
+        AgentExecutor agentExecutor = new AgentExecutor();
+        logContractDeployed("AgentExecutor", address(agentExecutor));
+
+        Gateway gatewayImplementation = new Gateway(address(beefyClient), address(agentExecutor));
+        logContractDeployed("Gateway Implementation", address(gatewayImplementation));
 
         // Configure and deploy Gateway proxy
         OperatingMode defaultOperatingMode = OperatingMode.Normal;
@@ -265,15 +348,13 @@ contract Deploy is Script, DeployParams {
         IGatewayV2 gateway = IGatewayV2(
             address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig)))
         );
-
-        console.log("[Deployment] Gateway proxy deployed at", address(gateway));
+        logContractDeployed("Gateway Proxy", address(gateway));
 
         // Create Agent
+        logSection("Creating Snowbridge Agent");
         gateway.v2_createAgent(config.rewardsMessageOrigin);
         address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
-
-        console.log("[Deployment] Agent created at", rewardsAgentAddress);
-        console.log("[Deployment] =========== Snowbridge deployment completed ===========");
+        logContractDeployed("Rewards Agent", rewardsAgentAddress);
 
         return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
     }
@@ -287,36 +368,49 @@ contract Deploy is Script, DeployParams {
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("DelegationManager Proxy", address(delegation));
+
         strategyManager = StrategyManager(
             address(
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("StrategyManager Proxy", address(strategyManager));
+
         avsDirectory = AVSDirectory(
             address(
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("AVSDirectory Proxy", address(avsDirectory));
+
         eigenPodManager = EigenPodManager(
             address(
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("EigenPodManager Proxy", address(eigenPodManager));
+
         rewardsCoordinator = RewardsCoordinator(
             address(
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("RewardsCoordinator Proxy", address(rewardsCoordinator));
+
         allocationManager = AllocationManager(
             address(
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("AllocationManager Proxy", address(allocationManager));
+
         permissionController = PermissionController(
             address(
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        logContractDeployed("PermissionController Proxy", address(permissionController));
     }
 
     function deployImplementations(
@@ -333,13 +427,21 @@ contract Deploy is Script, DeployParams {
             config.minWithdrawalDelayBlocks,
             SEMVER
         );
+        logContractDeployed("DelegationManager Implementation", address(delegationImplementation));
 
         strategyManagerImplementation = new StrategyManager(delegation, pauserRegistry, SEMVER);
+        logContractDeployed(
+            "StrategyManager Implementation", address(strategyManagerImplementation)
+        );
 
         avsDirectoryImplementation = new AVSDirectory(delegation, pauserRegistry, SEMVER);
+        logContractDeployed("AVSDirectory Implementation", address(avsDirectoryImplementation));
 
         eigenPodManagerImplementation =
             new EigenPodManager(ethPOSDeposit, eigenPodBeacon, delegation, pauserRegistry, SEMVER);
+        logContractDeployed(
+            "EigenPodManager Implementation", address(eigenPodManagerImplementation)
+        );
 
         rewardsCoordinatorImplementation = new RewardsCoordinator(
             IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams(
@@ -356,6 +458,9 @@ contract Deploy is Script, DeployParams {
                 SEMVER
             )
         );
+        logContractDeployed(
+            "RewardsCoordinator Implementation", address(rewardsCoordinatorImplementation)
+        );
 
         allocationManagerImplementation = new AllocationManager(
             delegation,
@@ -365,8 +470,14 @@ contract Deploy is Script, DeployParams {
             config.allocationConfigurationDelay,
             SEMVER
         );
+        logContractDeployed(
+            "AllocationManager Implementation", address(allocationManagerImplementation)
+        );
 
         permissionControllerImplementation = new PermissionController(SEMVER);
+        logContractDeployed(
+            "PermissionController Implementation", address(permissionControllerImplementation)
+        );
     }
 
     function upgradeAndInitializeProxies(
@@ -390,6 +501,7 @@ contract Deploy is Script, DeployParams {
                     withdrawalDelayBlocks
                 )
             );
+            logStep("DelegationManager initialized");
         }
 
         // Initialize StrategyManager
@@ -403,6 +515,7 @@ contract Deploy is Script, DeployParams {
                 config.strategyManagerInitPausedStatus
             )
         );
+        logStep("StrategyManager initialized");
 
         // Initialize AVSDirectory
         proxyAdmin.upgradeAndCall(
@@ -414,6 +527,7 @@ contract Deploy is Script, DeployParams {
                 0 // Initial paused status
             )
         );
+        logStep("AVSDirectory initialized");
 
         // Initialize EigenPodManager
         proxyAdmin.upgradeAndCall(
@@ -425,6 +539,7 @@ contract Deploy is Script, DeployParams {
                 config.eigenPodManagerInitPausedStatus
             )
         );
+        logStep("EigenPodManager initialized");
 
         // Initialize RewardsCoordinator
         proxyAdmin.upgradeAndCall(
@@ -439,6 +554,7 @@ contract Deploy is Script, DeployParams {
                 config.globalCommissionBips
             )
         );
+        logStep("RewardsCoordinator initialized");
 
         // Initialize AllocationManager
         proxyAdmin.upgradeAndCall(
@@ -450,12 +566,14 @@ contract Deploy is Script, DeployParams {
                 config.allocationManagerInitPausedStatus
             )
         );
+        logStep("AllocationManager initialized");
 
         // Initialize PermissionController (no initialization function)
         proxyAdmin.upgrade(
             ITransparentUpgradeableProxy(payable(address(permissionController))),
             address(permissionControllerImplementation)
         );
+        logStep("PermissionController upgraded");
     }
 
     function deployStrategies(
@@ -466,6 +584,7 @@ contract Deploy is Script, DeployParams {
         // Deploy base strategy implementation
         baseStrategyImplementation =
             new StrategyBaseTVLLimits(strategyManager, pauserRegistry, SEMVER);
+        logContractDeployed("Strategy Implementation", address(baseStrategyImplementation));
 
         // Create default test token and strategy if needed
         // In a production environment, this would be replaced with actual token addresses
@@ -476,6 +595,7 @@ contract Deploy is Script, DeployParams {
                     "TestToken", "TEST", 1000000 ether, config.executorMultisig
                 )
             );
+            logContractDeployed("TestToken", testToken);
 
             // Create strategy for test token
             StrategyBaseTVLLimits strategy = StrategyBaseTVLLimits(
@@ -494,8 +614,7 @@ contract Deploy is Script, DeployParams {
             );
 
             deployedStrategies.push(strategy);
-            console.log("[Deployment] TestToken deployed at", testToken);
-            console.log("[Deployment] Test Strategy deployed at", address(strategy));
+            logContractDeployed("Test Strategy", address(strategy));
         }
     }
 
@@ -552,27 +671,30 @@ contract Deploy is Script, DeployParams {
         RewardsRegistry rewardsRegistry,
         address agent
     ) internal {
-        console.log("==========================================");
-        console.log("Deployed Contract Addresses:");
-        console.log("==========================================");
-        console.log("BeefyClient:        ", address(beefyClient));
-        console.log("AgentExecutor:      ", address(agentExecutor));
-        console.log("Gateway:            ", address(gateway));
-        console.log("ServiceManager:     ", address(serviceManager));
-        console.log("VetoableSlasher:    ", address(vetoableSlasher));
-        console.log("RewardsRegistry:    ", address(rewardsRegistry));
-        console.log("Agent:              ", agent);
-        console.log("==========================================");
-        console.log("EigenLayer Core Contracts:");
-        console.log("==========================================");
-        console.log("DelegationManager:  ", address(delegation));
-        console.log("StrategyManager:    ", address(strategyManager));
-        console.log("AVSDirectory:       ", address(avsDirectory));
-        console.log("EigenPodManager:    ", address(eigenPodManager));
-        console.log("RewardsCoordinator: ", address(rewardsCoordinator));
-        console.log("AllocationManager:  ", address(allocationManager));
-        console.log("PermissionController:", address(permissionController));
-        console.log("==========================================");
+        logHeader("DEPLOYMENT SUMMARY");
+
+        logSection("Snowbridge Contracts");
+        logContractDeployed("BeefyClient", address(beefyClient));
+        logContractDeployed("AgentExecutor", address(agentExecutor));
+        logContractDeployed("Gateway", address(gateway));
+        logContractDeployed("Agent", agent);
+
+        logSection("DataHaven Contracts");
+        logContractDeployed("ServiceManager", address(serviceManager));
+        logContractDeployed("VetoableSlasher", address(vetoableSlasher));
+        logContractDeployed("RewardsRegistry", address(rewardsRegistry));
+
+        logSection("EigenLayer Core Contracts");
+        logContractDeployed("DelegationManager", address(delegation));
+        logContractDeployed("StrategyManager", address(strategyManager));
+        logContractDeployed("AVSDirectory", address(avsDirectory));
+        logContractDeployed("EigenPodManager", address(eigenPodManager));
+        logContractDeployed("EigenPodBeacon", address(eigenPodBeacon));
+        logContractDeployed("RewardsCoordinator", address(rewardsCoordinator));
+        logContractDeployed("AllocationManager", address(allocationManager));
+        logContractDeployed("PermissionController", address(permissionController));
+
+        logFooter();
 
         // Write to deployment file for future reference
         string memory network = vm.envOr("NETWORK", string("anvil"));
@@ -621,6 +743,6 @@ contract Deploy is Script, DeployParams {
 
         // Write to file
         vm.writeFile(deploymentPath, json);
-        console.log("Deployment info saved to:", deploymentPath);
+        logInfo(string.concat("Deployment info saved to: ", deploymentPath));
     }
 }

@@ -26,10 +26,10 @@
 // Local module imports
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EvmChainId,
-    Hash, Historical, Nonce, OriginCaller, PalletInfo, Runtime, RuntimeCall, RuntimeEvent,
-    RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
-    System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE,
-    SUPPLY_FACTOR, UNIT, VERSION,
+    Hash, Historical, Nonce, OriginCaller, PalletInfo, Preimage, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
+    SessionKeys, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
@@ -287,8 +287,7 @@ impl pallet_scheduler::Config for Runtime {
     type ScheduleOrigin = EnsureRoot<AccountId>;
     type MaxScheduledPerBlock = ConstU32<50>;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
-    type Preimages = ();
-    // type Preimages = Preimage;
+    type Preimages = Preimage;
     type WeightInfo = ();
 }
 

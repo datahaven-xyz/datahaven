@@ -26,10 +26,12 @@ hex-literal.workspace = true
 pallet-babe.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
+pallet-multisig.workspace = true
 pallet-session.workspace = true
 pallet-sudo.workspace = true
 pallet-timestamp.workspace = true
 pallet-transaction-payment.workspace = true
+pallet-utility.workspace = true
 pallet-validator-set.workspace = true
 pallet-beefy.workspace = true
 pallet-beefy-mmr.workspace = true
@@ -91,6 +93,7 @@ std = [
 	"pallet-beefy-mmr/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
+    "pallet-multisig/std",
 	"pallet-mmr/std",
 	"pallet-session/std",
     "pallet-session/std",
@@ -98,6 +101,7 @@ std = [
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
+    "pallet-utility/std",
     "pallet-validator-set/std",
 
     "polkadot-primitives/std",
@@ -139,8 +143,10 @@ runtime-benchmarks = [
     "datahaven-runtime-common/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
+    "pallet-multisig/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks",
     "pallet-beefy-mmr/runtime-benchmarks",
     "pallet-mmr/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
@@ -159,9 +165,11 @@ try-runtime = [
     "pallet-babe/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-grandpa/try-runtime",
+    "pallet-multisig/try-runtime",
     "pallet-session/try-runtime",
     "pallet-sudo/try-runtime",
     "pallet-timestamp/try-runtime",
+    "pallet-utility/try-runtime",
     "pallet-transaction-payment/try-runtime",
     "pallet-beefy/try-runtime",
     "pallet-beefy-mmr/try-runtime",

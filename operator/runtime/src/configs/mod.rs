@@ -24,14 +24,15 @@
 // For more information, please refer to <http://unlicense.org>
 
 use crate::EvmChainId;
+use crate::OriginCaller;
 use crate::Timestamp;
 use crate::{Historical, SessionKeys, ValidatorSet};
 
 // Local module imports
 use super::{
-    AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Hash, Nonce, PalletInfo,
-    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Session, System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Hash, Nonce,
+    PalletInfo, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    RuntimeOrigin, RuntimeTask, Session, System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
@@ -65,8 +66,9 @@ use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
+use sp_runtime::traits::IdentityLookup;
 use sp_runtime::{
-    traits::{AccountIdLookup, ConvertInto, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
+    traits::{ConvertInto, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
@@ -119,7 +121,7 @@ impl frame_system::Config for Runtime {
     /// The identifier used to distinguish between accounts.
     type AccountId = AccountId;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-    type Lookup = AccountIdLookup<AccountId, ()>;
+    type Lookup = IdentityLookup<AccountId>;
     /// The type for storing how many extrinsics an account has signed.
     type Nonce = Nonce;
     /// The type for hashing blocks and tries.
@@ -201,6 +203,13 @@ impl pallet_session::historical::Config for Runtime {
     type FullIdentificationOf = ConvertInto;
 }
 
+impl pallet_utility::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = ();
+}
+
 impl pallet_timestamp::Config for Runtime {
     /// A timestamp: milliseconds since the unix epoch.
     type Moment = u64;
@@ -225,6 +234,24 @@ impl pallet_balances::Config for Runtime {
     type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
     type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = RuntimeHoldReason;
+}
+
+parameter_types! {
+    // One storage item; key size is 32 + 20; value is size 4+4+16+20 bytes = 44 bytes.
+    pub const DepositBase: Balance = deposit(1, 96);
+    // Additional storage item size of 20 bytes.
+    pub const DepositFactor: Balance = deposit(0, 20);
+    pub const MaxSignatories: u32 = 100;
+}
+
+impl pallet_multisig::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type Currency = Balances;
+    type DepositBase = DepositBase;
+    type DepositFactor = DepositFactor;
+    type MaxSignatories = MaxSignatories;
+    type WeightInfo = ();
 }
 
 impl pallet_validator_set::Config for Runtime {

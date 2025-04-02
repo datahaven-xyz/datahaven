@@ -191,7 +191,7 @@ impl_runtime_apis! {
         }
     }
 
-        impl fg_primitives::GrandpaApi<Block> for Runtime {
+    impl sp_consensus_grandpa::GrandpaApi<Block> for Runtime {
         fn grandpa_authorities() -> Vec<(GrandpaId, u64)> {
             Grandpa::grandpa_authorities()
         }
@@ -219,7 +219,6 @@ impl_runtime_apis! {
             _set_id: fg_primitives::SetId,
             authority_id: fg_primitives::AuthorityId,
         ) -> Option<fg_primitives::OpaqueKeyOwnershipProof> {
-
 
             Historical::prove((fg_primitives::KEY_TYPE, authority_id))
                 .map(|p| p.encode())

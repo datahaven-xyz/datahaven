@@ -128,8 +128,8 @@ fn testnet_genesis(
         "babe": {
             "epochConfig": Some(BABE_GENESIS_EPOCH_CONFIG),
         },
-        "im_online": {},
         "grandpa": {},
+        "imOnline": {},        
         "sudo": {
             // Assign network admin rights.
             "key": Some(root_key),

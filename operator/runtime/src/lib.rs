@@ -251,6 +251,9 @@ mod runtime {
     #[runtime::pallet_index(13)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
+    #[runtime::pallet_index(20)]
+    pub type Utility = pallet_utility;
+
     #[runtime::pallet_index(22)]
     pub type Preimage = pallet_preimage;
 

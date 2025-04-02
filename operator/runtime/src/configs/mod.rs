@@ -24,6 +24,7 @@
 // For more information, please refer to <http://unlicense.org>
 
 use crate::EvmChainId;
+use crate::OriginCaller;
 use crate::Timestamp;
 use crate::STORAGE_BYTE_FEE;
 use crate::SUPPLY_FACTOR;
@@ -205,6 +206,13 @@ impl pallet_session::Config for Runtime {
 impl pallet_session::historical::Config for Runtime {
     type FullIdentification = AccountId;
     type FullIdentificationOf = ConvertInto;
+}
+
+impl pallet_utility::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = ();
 }
 
 impl pallet_timestamp::Config for Runtime {

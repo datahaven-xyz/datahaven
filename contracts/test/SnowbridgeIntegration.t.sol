@@ -47,10 +47,6 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
         // Setup validator data.
         _setupValidatorData();
 
-        // Build proofs and merkle trees.
-        bytes32[] memory rewardsProof =
-            _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 0);
-
         // Create and submit the rewards message.
         InboundMessageV2 memory updateRewardsMessage = _createRewardsMessage();
 
@@ -72,13 +68,17 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
         // Fund the RewardsRegistry to be able to distribute rewards
         vm.deal(address(rewardsRegistry), 1000000 ether);
 
-        // Claim rewards.
+        // Build proof for the first validator to claim rewards.
+        bytes32[] memory rewardsProofFirstValidator =
+            _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 0);
+
+        // Claim rewards for the first validator.
         vm.startPrank(_validatorAddresses[0]);
         vm.expectEmit(address(rewardsRegistry));
         emit IRewardsRegistryEvents.RewardsClaimed(
             _validatorAddresses[0], _validatorPoints[0], uint256(_validatorPoints[0])
         );
-        serviceManager.claimOperatorRewards(0, _validatorPoints[0], rewardsProof);
+        serviceManager.claimOperatorRewards(0, _validatorPoints[0], rewardsProofFirstValidator);
         vm.stopPrank();
 
         // Check that the validator has received the rewards.
@@ -86,6 +86,26 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
             address(_validatorAddresses[0]).balance,
             _validatorPoints[0],
             "Validator should receive rewards"
+        );
+
+        // Build proof for the last validator to claim rewards.
+        bytes32[] memory rewardsProofLastValidator =
+            _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 9);
+
+        // Claim rewards for the last validator.
+        vm.startPrank(_validatorAddresses[9]);
+        vm.expectEmit(address(rewardsRegistry));
+        emit IRewardsRegistryEvents.RewardsClaimed(
+            _validatorAddresses[9], _validatorPoints[9], uint256(_validatorPoints[9])
+        );
+        serviceManager.claimOperatorRewards(0, _validatorPoints[9], rewardsProofLastValidator);
+        vm.stopPrank();
+
+        // Check that the last validator has received the rewards.
+        assertEq(
+            address(_validatorAddresses[9]).balance,
+            _validatorPoints[9],
+            "Last validator should receive rewards"
         );
     }
 
@@ -134,16 +154,16 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
         _validatorPoints[9] = uint128(101010);
 
         _validatorAddresses = new address[](10);
-        _validatorAddresses[0] = address(0x1);
-        _validatorAddresses[1] = address(0x2);
-        _validatorAddresses[2] = address(0x3);
-        _validatorAddresses[3] = address(0x4);
-        _validatorAddresses[4] = address(0x5);
-        _validatorAddresses[5] = address(0x6);
-        _validatorAddresses[6] = address(0x7);
-        _validatorAddresses[7] = address(0x8);
-        _validatorAddresses[8] = address(0x9);
-        _validatorAddresses[9] = address(0xA);
+        _validatorAddresses[0] = address(0xFFFF1);
+        _validatorAddresses[1] = address(0xFFFF2);
+        _validatorAddresses[2] = address(0xFFFF3);
+        _validatorAddresses[3] = address(0xFFFF4);
+        _validatorAddresses[4] = address(0xFFFF5);
+        _validatorAddresses[5] = address(0xFFFF6);
+        _validatorAddresses[6] = address(0xFFFF7);
+        _validatorAddresses[7] = address(0xFFFF8);
+        _validatorAddresses[8] = address(0xFFFF9);
+        _validatorAddresses[9] = address(0xFFFFA);
 
         _validatorPointsMerkleRoot =
             _buildValidatorPointsMerkleTree(_validatorAddresses, _validatorPoints);

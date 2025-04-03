@@ -314,6 +314,24 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
+     * @notice Sets the rewards agent address in the RewardsRegistry contract
+     * @param operatorSetId The ID of the operator set
+     * @param rewardsAgent New rewards agent address
+     * @dev Only callable by the owner
+     */
+    function setRewardsAgent(
+        uint32 operatorSetId,
+        address rewardsAgent
+    ) external virtual override onlyOwner {
+        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
+        if (address(rewardsRegistry) == address(0)) {
+            revert NoRewardsRegistryForOperatorSet();
+        }
+
+        rewardsRegistry.setRewardsAgent(rewardsAgent);
+    }
+
+    /**
      * @notice Forwards a call to Eigenlayer's RewardsCoordinator contract to set the address of the entity that can call `processClaim` on behalf of this contract.
      * @param claimer The address of the entity that can call `processClaim` on behalf of the earner
      * @dev Only callable by the owner.

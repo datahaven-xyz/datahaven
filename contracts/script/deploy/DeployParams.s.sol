@@ -10,7 +10,7 @@ contract DeployParams is Script, Config {
         SnowbridgeConfig memory config;
 
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
         );
         string memory configJson = vm.readFile(configPath);
 
@@ -44,7 +44,7 @@ contract DeployParams is Script, Config {
         AVSConfig memory config;
 
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
         );
         string memory configJson = vm.readFile(configPath);
 
@@ -61,7 +61,7 @@ contract DeployParams is Script, Config {
         EigenLayerConfig memory config;
 
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
         );
         string memory configJson = vm.readFile(configPath);
 
@@ -178,7 +178,7 @@ contract DeployParams is Script, Config {
 
     function getETHPOSDepositAddress() public returns (address) {
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
         );
         string memory configJson = vm.readFile(configPath);
 

@@ -19,12 +19,12 @@ use std::{sync::Arc, time::Duration};
 ///
 /// Note: Should only be used for benchmarking.
 pub struct RemarkBuilder {
-    client: Arc<FullClient<RuntimeApi>>,
+    client: Arc<FullClient>,
 }
 
 impl RemarkBuilder {
     /// Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient<RuntimeApi>>) -> Self {
+    pub fn new(client: Arc<FullClient>) -> Self {
         Self { client }
     }
 }
@@ -55,14 +55,14 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
 ///
 /// Note: Should only be used for benchmarking.
 pub struct TransferKeepAliveBuilder {
-    client: Arc<FullClient<RuntimeApi>>,
+    client: Arc<FullClient>,
     dest: AccountId,
     value: Balance,
 }
 
 impl TransferKeepAliveBuilder {
     /// Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient<RuntimeApi>>, dest: AccountId, value: Balance) -> Self {
+    pub fn new(client: Arc<FullClient>, dest: AccountId, value: Balance) -> Self {
         Self {
             client,
             dest,
@@ -101,7 +101,7 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 ///
 /// Note: Should only be used for benchmarking.
 pub fn create_benchmark_extrinsic(
-    client: &FullClient<RuntimeApi>,
+    client: &FullClient,
     sender: ecdsa::Pair,
     call: runtime::RuntimeCall,
     nonce: u32,

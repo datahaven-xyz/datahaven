@@ -1627,6 +1627,9 @@ version = "0.1.0"
 dependencies = [
  "datahaven-runtime-common",
  "fp-account",
+ "fp-evm",
+ "fp-rpc",
+ "fp-self-contained",
  "frame-benchmarking",
  "frame-executive",
  "frame-metadata-hash-extension",
@@ -2753,6 +2756,18 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-state-machine",
+]
+
+[[package]]
+name = "fp-self-contained"
+version = "1.0.0-dev"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2409#a012990acd6f9ecd90c15e63abbb3f12704c4bd8"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
 ]
 
 [[package]]

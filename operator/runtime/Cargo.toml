@@ -64,7 +64,11 @@ polkadot-runtime-common.workspace = true
 frame-benchmarking = { optional = true, workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 polkadot-primitives.workspace = true
-fp-account = { workspace = true,  features = [ "serde" ]}
+fp-account = { workspace = true, features = ["serde"] }
+fp-rpc = { workspace = true }
+fp-evm = { workspace = true, features = ["serde"] }
+fp-self-contained = { workspace = true, features = ["serde"] }
+
 pallet-evm.workspace = true
 pallet-evm-chain-id.workspace = true
 pallet-ethereum.workspace = true
@@ -81,17 +85,14 @@ default = ["std"]
 std = [
     "codec/std",
     "scale-info/std",
-
     "frame-executive/std",
     "frame-metadata-hash-extension/std",
     "frame-support/std",
     "frame-system-benchmarking?/std",
     "frame-system-rpc-runtime-api/std",
     "frame-system/std",
-
     "frame-benchmarking?/std",
     "frame-try-runtime?/std",
-
     "datahaven-runtime-common/std",
 
     "pallet-authorship/std",
@@ -107,6 +108,13 @@ std = [
 	"pallet-offences/std",
 	"pallet-preimage/std",
 	"pallet-scheduler/std",
+    "pallet-babe/std",
+    "pallet-beefy/std",
+    "pallet-beefy-mmr/std",
+    "pallet-balances/std",
+    "pallet-grandpa/std",
+    "pallet-mmr/std",
+    "pallet-session/std",
     "pallet-session/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
@@ -114,13 +122,10 @@ std = [
     "pallet-transaction-payment/std",
     "pallet-utility/std",
     "pallet-validator-set/std",
-
     "polkadot-primitives/std",
-	"polkadot-runtime-common/std",
-
+    "polkadot-runtime-common/std",
     "snowbridge-beacon-primitives/std",
     "snowbridge-pallet-ethereum-client/std",
-
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-babe/std",
@@ -136,9 +141,7 @@ std = [
     "sp-std/std",
     "sp-transaction-pool/std",
     "sp-version/std",
-
     "substrate-wasm-builder",
-
     "pallet-mmr/std",
     "fp-account/std",
     "pallet-evm/std",
@@ -166,7 +169,7 @@ runtime-benchmarks = [
     "pallet-beefy-mmr/runtime-benchmarks",
     "pallet-mmr/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks",
+    "polkadot-primitives/runtime-benchmarks",
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",

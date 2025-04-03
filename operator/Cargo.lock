@@ -1548,6 +1548,7 @@ dependencies = [
  "hex-literal 0.3.4",
  "jsonrpsee",
  "mmr-rpc",
+ "pallet-im-online",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
@@ -1599,6 +1600,7 @@ dependencies = [
  "frame-try-runtime",
  "hex",
  "hex-literal 0.3.4",
+ "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
  "pallet-beefy",
@@ -1607,9 +1609,13 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-grandpa",
+ "pallet-identity",
+ "pallet-im-online",
  "pallet-mmr",
  "pallet-multisig",
+ "pallet-offences",
  "pallet-preimage",
+ "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
  "pallet-timestamp",
@@ -5906,6 +5912,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-im-online"
+version = "37.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-authorship",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-message-queue"
 version = "41.0.2"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
@@ -5957,6 +5982,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-offences"
+version = "37.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "38.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
@@ -5970,6 +6011,23 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-scheduler"
+version = "39.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-weights",
 ]
 
 [[package]]

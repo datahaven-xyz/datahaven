@@ -23,32 +23,28 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-use crate::EvmChainId;
-use crate::OriginCaller;
-use crate::Timestamp;
-use crate::STORAGE_BYTE_FEE;
-use crate::SUPPLY_FACTOR;
-use crate::UNIT;
-use crate::{Historical, SessionKeys, ValidatorSet};
-
 // Local module imports
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Hash, Nonce,
-    PalletInfo, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
-    RuntimeOrigin, RuntimeTask, Session, System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EvmChainId,
+    Hash, Historical, ImOnline, Nonce, Offences, OriginCaller, PalletInfo, Preimage, Runtime,
+    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
+    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
+    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
-use datahaven_runtime_common::gas::WEIGHT_PER_GAS;
-use datahaven_runtime_common::time::{EpochDurationInBlocks, MILLISECS_PER_BLOCK, MINUTES};
-use frame_support::traits::fungible::HoldConsideration;
-use frame_support::traits::LinearStoragePrice;
+use datahaven_runtime_common::{
+    gas::WEIGHT_PER_GAS,
+    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
+};
 use frame_support::{
-    derive_impl, parameter_types,
+    derive_impl,
+    pallet_prelude::TransactionPriority,
+    parameter_types,
     traits::{
-        fungible::{Balanced, Credit, Inspect},
-        ConstU128, ConstU32, ConstU64, ConstU8, FindAuthor, KeyOwnerProofSystem, OnUnbalanced,
-        VariantCountOf,
+        fungible::{Balanced, Credit, HoldConsideration, Inspect},
+        ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
+        KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
@@ -63,6 +59,8 @@ use pallet_evm::{
     FrameSystemAccountProvider, IdentityAddressMapping,
     OnChargeEVMTransaction as OnChargeEVMTransactionT,
 };
+use pallet_grandpa::AuthorityId as GrandpaId;
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_transaction_payment::{
     ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
 };
@@ -71,9 +69,8 @@ use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
-use sp_runtime::traits::IdentityLookup;
 use sp_runtime::{
-    traits::{ConvertInto, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
+    traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
@@ -110,6 +107,12 @@ parameter_types! {
     pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
     pub const NodesSize: u32 = 32;
     pub const RootHistorySize: u32 = 30;
+
+    pub const EquivocationReportPeriodInEpochs: u64 = 168;
+    pub const EquivocationReportPeriodInBlocks: u64 =
+        EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
+
+    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::max_value();
 }
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
@@ -146,6 +149,8 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
     pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
+    pub ReportLongevity: u64 =
+        BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * (EpochDurationInBlocks::get() as u64);
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -166,11 +171,11 @@ impl pallet_babe::Config for Runtime {
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
 
-    type KeyOwnerProof = sp_session::MembershipProof;
+    type KeyOwnerProof =
+        <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
 
-    // TODO! specify as pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
-    // when pallet_autorship and pallet_offences are added
-    type EquivocationReportSystem = ();
+    type EquivocationReportSystem =
+        pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 parameter_types! {
@@ -187,8 +192,36 @@ impl pallet_grandpa::Config for Runtime {
     type MaxNominators = ConstU32<0>;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
 
-    type KeyOwnerProof = sp_session::MembershipProof;
-    type EquivocationReportSystem = ();
+    type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
+    type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
+        Self,
+        Offences,
+        Historical,
+        EquivocationReportPeriodInBlocks,
+    >;
+}
+
+impl pallet_offences::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
+    type OnOffenceHandler = ValidatorSet;
+}
+
+impl pallet_authorship::Config for Runtime {
+    type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
+    type EventHandler = ImOnline;
+}
+
+impl pallet_im_online::Config for Runtime {
+    type AuthorityId = ImOnlineId;
+    type MaxKeys = MaxAuthorities;
+    type MaxPeerInHeartbeats = ConstU32<0>; // Not used any more
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorSet = Historical;
+    type NextSessionRotation = Babe;
+    type ReportUnresponsiveness = Offences;
+    type UnsignedPriority = ImOnlineUnsignedPriority;
+    type WeightInfo = ();
 }
 
 impl pallet_session::Config for Runtime {
@@ -204,8 +237,8 @@ impl pallet_session::Config for Runtime {
 }
 
 impl pallet_session::historical::Config for Runtime {
-    type FullIdentification = AccountId;
-    type FullIdentificationOf = ConvertInto;
+    type FullIdentification = Self::ValidatorId;
+    type FullIdentificationOf = Self::ValidatorIdOf;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -279,6 +312,24 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub MaximumSchedulerWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
+    pub const NoPreimagePostponement: Option<u32> = Some(10);
+}
+
+impl pallet_scheduler::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
+    type PalletsOrigin = OriginCaller;
+    type RuntimeCall = RuntimeCall;
+    type MaximumWeight = MaximumSchedulerWeight;
+    type ScheduleOrigin = EnsureRoot<AccountId>;
+    type MaxScheduledPerBlock = ConstU32<50>;
+    type OriginPrivilegeCmp = EqualPrivilegeOnly;
+    type Preimages = Preimage;
+    type WeightInfo = ();
+}
+
 impl pallet_validator_set::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type AddRemoveOrigin = EnsureRoot<AccountId>;
@@ -304,6 +355,49 @@ impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 20;
+    pub const PendingUsernameExpiration: u32 = 7 * DAYS;
+    pub const MaxSuffixLength: u32 = 7;
+    pub const MaxUsernameLength: u32 = 32;
+}
+
+type IdentityForceOrigin = EnsureRoot<AccountId>;
+type IdentityRegistrarOrigin = EnsureRoot<AccountId>;
+// TODO: Add governance origin when available
+// type IdentityForceOrigin =
+// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+// type IdentityRegistrarOrigin =
+// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+
+impl pallet_identity::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    // Add one item in storage and take 258 bytes
+    type BasicDeposit = ConstU128<{ deposit(1, 258) }>;
+    // Does not add any item to the storage but takes 1 bytes
+    type ByteDeposit = ConstU128<{ deposit(0, 1) }>;
+    // Add one item in storage and take 53 bytes
+    type SubAccountDeposit = ConstU128<{ deposit(1, 53) }>;
+    type MaxSubAccounts = MaxSubAccounts;
+    type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
+    type MaxRegistrars = MaxRegistrars;
+    type Slashed = ();
+    // TODO: Slashed funds should be sent to the treasury (when added to the runtime)
+    // type Slashed = Treasury;
+    type ForceOrigin = IdentityForceOrigin;
+    type RegistrarOrigin = IdentityRegistrarOrigin;
+    type OffchainSignature = Signature;
+    type SigningPublicKey = <Signature as sp_runtime::traits::Verify>::Signer;
+    type UsernameAuthorityOrigin = EnsureRoot<AccountId>;
+    type PendingUsernameExpiration = PendingUsernameExpiration;
+    type MaxSuffixLength = MaxSuffixLength;
+    type MaxUsernameLength = MaxUsernameLength;
+    type WeightInfo = ();
 }
 
 parameter_types! {

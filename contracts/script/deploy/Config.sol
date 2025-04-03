@@ -36,7 +36,6 @@ contract Config {
         address executorMultisig;
         address operationsMultisig;
         uint32 minWithdrawalDelayBlocks;
-        uint32 strategyManagerWithdrawalDelayBlocks;
         uint32 delegationWithdrawalDelayBlocks;
         uint256 strategyManagerInitPausedStatus;
         uint256 delegationInitPausedStatus;

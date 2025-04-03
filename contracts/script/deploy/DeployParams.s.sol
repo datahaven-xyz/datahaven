@@ -10,7 +10,7 @@ contract DeployParams is Script, Config {
         SnowbridgeConfig memory config;
 
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
         );
         string memory configJson = vm.readFile(configPath);
 
@@ -44,7 +44,7 @@ contract DeployParams is Script, Config {
         AVSConfig memory config;
 
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
         );
         string memory configJson = vm.readFile(configPath);
 
@@ -61,7 +61,7 @@ contract DeployParams is Script, Config {
         EigenLayerConfig memory config;
 
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
         );
         string memory configJson = vm.readFile(configPath);
 
@@ -94,13 +94,6 @@ contract DeployParams is Script, Config {
             config.minWithdrawalDelayBlocks = uint32(val);
         } catch {
             config.minWithdrawalDelayBlocks = 7 days / 12 seconds; // Default: 1 week in blocks at 12s per block
-        }
-
-        try vm.parseJsonUint(configJson, ".eigenLayer.strategyManagerWithdrawalDelayBlocks")
-        returns (uint256 val) {
-            config.strategyManagerWithdrawalDelayBlocks = uint32(val);
-        } catch {
-            config.strategyManagerWithdrawalDelayBlocks = 7 days / 12 seconds; // Default: 1 week
         }
 
         try vm.parseJsonUint(configJson, ".eigenLayer.delegationWithdrawalDelayBlocks") returns (
@@ -178,7 +171,7 @@ contract DeployParams is Script, Config {
 
     function getETHPOSDepositAddress() public returns (address) {
         string memory configPath = string.concat(
-            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".jsonc"
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
         );
         string memory configJson = vm.readFile(configPath);
 

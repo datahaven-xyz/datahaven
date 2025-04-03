@@ -1,0 +1,20 @@
+{
+	"name": "@datahaven/e2e-test",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"fmt": "biome check .",
+		"fmt:fix": "biome check --write .",
+		"demo": "bun run scripts/placeholder.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@biomejs/biome": "^1.9.4"
+	}
+}

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.27;
 
 import {IRewardsCoordinator} from
     "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
@@ -7,15 +7,15 @@ import {IPermissionController} from
     "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 import {IAllocationManager} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
-import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";
+import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
 
 /**
- * @title Minimal implementation of a ServiceManager-type contract.
- * Uses the ServiceManagerBase contract as is.
+ * @title DataHaven ServiceManager contract.
+ * TODO: For now, it uses the ServiceManagerBase contract as is.
+ * TODO: We should add the DataHaven specific logic here.
  */
-contract ServiceManagerMock is ServiceManagerBase {
+contract DataHavenServiceManager is ServiceManagerBase {
     uint256 public number;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
@@ -30,17 +30,6 @@ contract ServiceManagerMock is ServiceManagerBase {
         address rewardsInitiator
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
-    }
-
-    /**
-     * @notice Get the rewards registry for an operator set (exposing for testing)
-     * @param operatorSetId The ID of the operator set
-     * @return The rewards registry for the operator set
-     */
-    function getOperatorSetRewardsRegistry(
-        uint32 operatorSetId
-    ) external view returns (IRewardsRegistry) {
-        return operatorSetToRewardsRegistry[operatorSetId];
     }
 
     /**

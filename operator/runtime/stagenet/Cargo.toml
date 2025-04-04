@@ -1,6 +1,6 @@
 [package]
-name = "datahaven-runtime"
-description = "DataHaven runtime."
+name = "datahaven-stagenet-runtime"
+description = "DataHaven Stagenet runtime"
 version = "0.1.0"
 license = "Unlicense"
 authors.workspace = true

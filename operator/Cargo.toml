@@ -9,8 +9,10 @@ edition = "2021"
 members = [
     "node",
     "runtime",
-    "pallets/validator-set",
     "runtime/common",
+    "runtime/stagenet",
+    "runtime/testnet",
+    "pallets/validator-set",    
 ]
 resolver = "2"
 
@@ -19,6 +21,8 @@ resolver = "2"
 # Local
 datahaven-runtime = { path = "./runtime", default-features = false }
 datahaven-runtime-common = { path = "./runtime/common", default-features = false }
+datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = false }
+datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 
 # Crates.io (wasm)

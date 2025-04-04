@@ -1,40 +1,61 @@
-# End-to-End Test
+# End-to-End Test Environment
 
 > [WARNING‼️]  
 > 🏗️ Under construction!
-
-## Things to try
-
-1. Deploy an env: `bun start:e2e:minimal`
-2. Check it out in the block explorer: `http://localhost:3000`
-3. Check out kurtosis mgmt screen: `kurtosis web`
-   - Node RPC Port: `docker ps --format "{{.Names}} -> {{.Ports}}" | grep "el-.*reth" | sed -E 's/(.+) -> .*:([0-9]+)->8545\/tcp.*/\1 -> \2/'`
-   - Blockscout port (for contract verification): `docker ps --format "{{.Names}} -> {{.Ports}}" | grep "blockscout--" | sed -E 's/(.+) -> .*:([0-9]+)->4000\/tcp.*/\1 -> \2/'`
-4. Run some simple txn script: `bun script:send-txn`
-5. Deploy and verify the foundry contracts ([see below](#deployment))
 
 ## Contents
 
 ```sh
 .
 ├── README.md
-├── configs                 <--- Configs used for launching networks
-└── scripts                 <--- Misc stored procedures
+├── configs                 # Configurations for test networks
+└── scripts                 # Helper scripts for interacting with the network
 ```
 
 ## Pre-requisites
 
-- Kurtosis: [https://docs.kurtosis.com/install](https://docs.kurtosis.com/install)
+- [Kurtosis](https://docs.kurtosis.com/install): For launching test networks
+- [Bun](https://bun.sh/): TypeScript runtime and package manager
+- [Docker](https://www.docker.com/): For container management
 
-## Deployment
+## Getting Started
 
-> [ℹ️ TIP]  
-> You can check it's all working hunky dory by running `bun script:send-txn`
+Follow these steps to set up and interact with your test environment:
 
-```sh
-cd ~/<repo_root>/contracts
-forge script script/deploy/Deploy.s.sol --rpc-url http://localhost:<RETH_RPC_PORT> --verify --verifier blockscout --verifier-url http://localhost:<BLOCKSCOUT_PORT>/api/ --broadcast
-```
+1. **Deploy a minimal test environment**
+
+   ```bash
+   bun start:e2e:minimal
+   ```
+
+2. **Explore the network**
+
+   - Block Explorer: [http://localhost:3000](http://localhost:3000).
+   - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
+
+3. **Send test transactions**
+
+   ```bash
+   bun script:send-txs
+   ```
+
+4. **Deploy and verify contracts**
+   ```bash
+   bun script:deploy-contracts
+   ```
+
+## Network Management
+
+- **Stop the test environment**
+
+  ```bash
+  bun stop:e2e:minimal
+  ```
+
+- **Stop the Kurtosis engine completely**
+  ```bash
+  bun stop:kurtosis-engine
+  ```
 
 ## Troubleshooting
 
@@ -42,7 +63,7 @@ forge script script/deploy/Deploy.s.sol --rpc-url http://localhost:<RETH_RPC_POR
 
 #### Linux: See if disabling ipV6 helps
 
-I have found that ipV6 on Arch linux does not play very nicely with kurtosis networks. Disabling it completely fixed the issue for me.
+I have found that ipV6 on Arch Linux does not play very nicely with Kurtosis networks. Disabling it completely fixed the issue for me.
 
 #### macOS: Verify Docker networking settings
 
@@ -50,8 +71,8 @@ I have found that ipV6 on Arch linux does not play very nicely with kurtosis net
 
 If using Docker Desktop, make sure settings have permissive networking enabled.
 
-## Further Info
+## Further Information
 
-- [Kurtosis](https://docs.kurtosis.com/) - Used for launching a full ethereum network.
-- [Zombienet](https://paritytech.github.io/zombienet/) - Used for launching a polkadot-sdk based network.
-- [Bun](https://bun.sh/) - TypeScript runtime and ecosystem tooling.
+- [Kurtosis](https://docs.kurtosis.com/): Used for launching a full Ethereum network
+- [Zombienet](https://paritytech.github.io/zombienet/): Used for launching a Polkadot-SDK based network
+- [Bun](https://bun.sh/): TypeScript runtime and ecosystem tooling

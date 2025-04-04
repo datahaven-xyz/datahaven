@@ -143,7 +143,7 @@ fp-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stabl
 # Frontier (client)
 fc-cli = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
 fc-consensus = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
-fc-db = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
+fc-db = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409" }
 fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
 fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }
 fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2409", default-features = false }

@@ -1,6 +1,6 @@
 [package]
-name = "datahaven-runtime"
-description = "DataHaven runtime."
+name = "datahaven-mainnet-runtime"
+description = "DataHaven Mainnet runtime"
 version = "0.1.0"
 license = "Unlicense"
 authors.workspace = true

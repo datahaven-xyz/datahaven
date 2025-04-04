@@ -19,9 +19,9 @@ resolver = "2"
 [workspace.dependencies]
 
 # Local
-datahaven-runtime = { path = "./runtime", default-features = false }
 datahaven-runtime-common = { path = "./runtime/common", default-features = false }
 datahaven-devnet-runtime = { path = "./runtime/devnet", default-features = false }
+datahaven-mainnet-runtime = { path = "./runtime", default-features = false }
 datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 

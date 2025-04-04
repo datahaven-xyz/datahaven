@@ -6,7 +6,7 @@ use crate::{
     cli::{Cli, Subcommand},
     service,
 };
-use datahaven_runtime::{Block, EXISTENTIAL_DEPOSIT};
+use datahaven_mainnet_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
@@ -205,8 +205,8 @@ pub fn run() -> sc_cli::Result<()> {
                 match config.network.network_backend {
                     sc_network::config::NetworkBackendType::Libp2p => service::new_full::<
                         sc_network::NetworkWorker<
-                            datahaven_runtime::opaque::Block,
-                            <datahaven_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
+                            datahaven_mainnet_runtime::opaque::Block,
+                            <datahaven_mainnet_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
                         >,
                     >(config)
                     .map_err(sc_cli::Error::Service),

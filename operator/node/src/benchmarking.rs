@@ -4,7 +4,7 @@
 
 use crate::service::FullClient;
 
-use datahaven_runtime as runtime;
+use datahaven_mainnet_runtime as runtime;
 use fp_account::EthereumSignature;
 use runtime::{AccountId, Balance, BalancesCall, SystemCall};
 use sc_cli::Result;

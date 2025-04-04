@@ -1,16 +1,20 @@
 use std::{
-    collections::BTreeMap,
-    path::PathBuf,
+    collections::BTreeMap
+    ,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
+use fc_rpc::EthTask;
+pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
+pub use fc_storage::{StorageOverride, StorageOverrideHandler};
+use fp_rpc::EthereumRuntimeRPCApi;
 use futures::{future, prelude::*};
 // Substrate
 use sc_client_api::BlockchainEvents;
 use sc_executor::HostFunctions;
 use sc_network_sync::SyncingService;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_service::{error::Error as ServiceError, TaskManager};
 use sp_api::ConstructRuntimeApi;
 use sp_core::H256;
 use sp_runtime::traits::Block as BlockT;
@@ -101,9 +105,7 @@ pub fn new_frontier_partial(
 
 /// A set of APIs that ethereum-compatible runtimes must implement.
 pub trait EthCompatRuntimeApiCollection<Block: BlockT>:
-    sp_api::ApiExt<Block>
-    + fp_rpc::ConvertTransactionRuntimeApi<Block>
-    + fp_rpc::EthereumRuntimeRPCApi<Block>
+    sp_api::ApiExt<Block> + fp_rpc::ConvertTransactionRuntimeApi<Block> + EthereumRuntimeRPCApi<Block>
 {
 }
 
@@ -112,7 +114,7 @@ where
     Block: BlockT,
     Api: sp_api::ApiExt<Block>
         + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>,
+        + EthereumRuntimeRPCApi<Block>,
 {
 }
 

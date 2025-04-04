@@ -1,21 +1,28 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use crate::eth::BackendType;
+use crate::eth::{
+    new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierPartialComponents,
+};
 use crate::eth::{EthConfiguration, StorageOverrideHandler};
+use crate::rpc::BeefyDeps;
 use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block};
 use fc_consensus::FrontierBlockImport;
 use fc_db::DatabaseSource;
-use sc_client_api::{AuxStore, Backend, StateBackend, StorageProvider};
-use sc_consensus::BlockImport;
+use fc_storage::StorageOverride;
+use futures::FutureExt;
+use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvider};
 use sc_consensus_babe::ImportQueueParams;
+use sc_consensus_grandpa::SharedVoterState;
 use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
-use sc_service::{error::Error as ServiceError, Configuration, TFullClient};
+use sc_network_sync::WarpSyncConfig;
+use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use sp_api::{ConstructRuntimeApi, ProvideRuntimeApi};
+use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto;
 use sp_runtime::traits::BlakeTwo256;
+use std::time::Duration;
 use std::{path::Path, sync::Arc};
 
 pub type HostFunctions = sp_io::SubstrateHostFunctions;
@@ -132,6 +139,7 @@ pub type Service = sc_service::PartialComponents<
         sc_consensus_beefy::BeefyVoterLinks<Block, ecdsa_crypto::AuthorityId>,
         sc_consensus_beefy::BeefyRPCLinks<Block, ecdsa_crypto::AuthorityId>,
         Arc<fc_db::Backend<Block, FullClient>>,
+        Arc<dyn StorageOverride<Block>>,
         Option<Telemetry>,
     ),
 >;
@@ -158,7 +166,7 @@ pub fn new_partial(
             extra_pages: h as _,
         });
 
-    let mut wasm_builder = WasmExecutor::builder()
+    let wasm_builder = WasmExecutor::builder()
         .with_execution_method(config.executor.wasm_method)
         .with_onchain_heap_alloc_strategy(heap_pages)
         .with_offchain_heap_alloc_strategy(heap_pages)
@@ -221,6 +229,7 @@ pub fn new_partial(
 
     let slot_duration = babe_link.config().slot_duration();
 
+    let storage_override = Arc::new(StorageOverrideHandler::<Block, _, _>::new(client.clone()));
     let frontier_backend = Arc::new(open_frontier_backend(client.clone(), config, eth_config)?);
 
     let (import_queue, babe_worker_handle) = sc_consensus_babe::import_queue(ImportQueueParams {
@@ -264,16 +273,18 @@ pub fn new_partial(
             beefy_voter_links,
             beefy_rpc_links,
             frontier_backend,
+            storage_override,
             telemetry,
         ),
     })
 }
 
-/// Builds a new service for a full client.
-pub fn new_full<
+// Builds a new service for a full client.
+pub async fn new_full<
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
     config: Configuration,
+    mut eth_config: EthConfiguration,
 ) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
@@ -284,14 +295,30 @@ pub fn new_full<
         select_chain,
         transaction_pool,
         other:
-            (block_import, grandpa_link, babe_link, beefy_voter_links, beefy_rpc_links, mut telemetry),
-    } = new_partial(&config)?;
+            (
+                block_import,
+                grandpa_link,
+                babe_link,
+                beefy_voter_links,
+                beefy_rpc_links,
+                frontier_backend,
+                storage_override,
+                mut telemetry,
+            ),
+    } = new_partial(&config, &mut eth_config)?;
+
+    let FrontierPartialComponents {
+        filter_pool,
+        fee_history_cache,
+        fee_history_cache_limit,
+    } = new_frontier_partial(&eth_config)?;
 
     let mut net_config = sc_network::config::FullNetworkConfiguration::<
         Block,
         <Block as sp_runtime::traits::Block>::Hash,
         N,
     >::new(&config.network, config.prometheus_registry().cloned());
+
     let metrics = N::register_notification_metrics(config.prometheus_registry());
 
     let peer_store_handle = net_config.peer_store_handle();
@@ -419,6 +446,29 @@ pub fn new_full<
         config,
         telemetry: telemetry.as_mut(),
     })?;
+
+    // Sinks for pubsub notifications.
+    // Everytime a new subscription is created, a new mpsc channel is added to the sink pool.
+    // The MappingSyncWorker sends through the channel on block import and the subscription emits a notification to the subscriber on receiving a message through this channel.
+    // This way we avoid race conditions when using native substrate block import notification stream.
+    let pubsub_notification_sinks: fc_mapping_sync::EthereumBlockNotificationSinks<
+        fc_mapping_sync::EthereumBlockNotification<Block>,
+    > = Default::default();
+    let pubsub_notification_sinks = Arc::new(pubsub_notification_sinks);
+
+    spawn_frontier_tasks(
+        &task_manager,
+        client.clone(),
+        backend.clone(),
+        frontier_backend,
+        filter_pool,
+        storage_override,
+        fee_history_cache,
+        fee_history_cache_limit,
+        sync_service.clone(),
+        pubsub_notification_sinks,
+    )
+    .await;
 
     if role.is_authority() {
         let proposer_factory = sc_basic_authorship::ProposerFactory::new(

@@ -33,7 +33,7 @@ export const findBlockscoutBackendPort = () => {
 
   const lines = stdout.toString().split("\n");
   for (const line of lines) {
-    if (/blockscout-verif/.test(line)) {
+    if (/blockscout--/.test(line)) {
       return line.match(/.+ -> .*:(\d+)->4000\/tcp/)?.[1];
     }
   }

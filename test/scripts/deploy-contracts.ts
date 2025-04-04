@@ -8,7 +8,9 @@ const BLOCKSCOUT_BACKEND_URL =
 async function main() {
   process.chdir("../contracts");
 
-  console.log(`Deploying contracts to ${NETWORK_RPC_URL} and ${BLOCKSCOUT_BACKEND_URL}`);
+  console.log(
+    `Deploying contracts. EL RPC node: ${NETWORK_RPC_URL} and Blockscout backend: ${BLOCKSCOUT_BACKEND_URL}`
+  );
 
   const args = [
     "script/deploy/Deploy.s.sol",

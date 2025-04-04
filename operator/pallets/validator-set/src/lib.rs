@@ -226,10 +226,8 @@ pub mod pallet {
 
             // Remove validators that are not in the new list
             for who in current_validators.iter() {
-                if !validators.contains(who) {
-                    if Self::do_remove_validator(who) {
-                        Self::deposit_event(Event::ValidatorRemoved(who.clone()));
-                    }
+                if !validators.contains(who) && Self::do_remove_validator(who) {
+                    Self::deposit_event(Event::ValidatorRemoved(who.clone()));
                 }
             }
 

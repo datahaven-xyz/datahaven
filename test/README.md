@@ -3,6 +3,16 @@
 > [!WARNING]  
 > 🏗️ Under construction!
 
+## Things to try
+
+1. Deploy an env: `bun start:e2e:minimal`
+2. Check it out in the block explorer: `http://localhost:3000`
+3. Check out kurtosis mgmt screen: `kurtosis web`
+   - Node RPC Port: `docker ps --format "{{.Names}} -> {{.Ports}}" | grep "el-.*reth" | sed -E 's/(.+) -> .*:([0-9]+)->8545\/tcp.*/\1 -> \2/'`
+   - Blockscout port (for contract verification): `docker ps --format "{{.Names}} -> {{.Ports}}" | grep "blockscout--" | sed -E 's/(.+) -> .*:([0-9]+)->4000\/tcp.*/\1 -> \2/'`
+4. Run some simple txn script: `bun script:send-txn`
+5. Deploy and verify the foundry contracts ([see below](#deployment))
+
 ## Contents
 
 ```sh

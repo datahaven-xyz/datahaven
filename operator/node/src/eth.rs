@@ -1,6 +1,5 @@
 use std::{
-    collections::BTreeMap
-    ,
+    collections::BTreeMap,
     sync::{Arc, Mutex},
     time::Duration,
 };

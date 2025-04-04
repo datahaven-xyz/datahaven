@@ -1,20 +1,6 @@
 import { http, type Hex, createWalletClient, defineChain, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { execSync } from "node:child_process";
-
-const findLocalEthRpcPort = () => {
-  const stdout = execSync(`docker ps --format "{{.Names}} -> {{.Ports}}"`).toString();
-
-  const lines = stdout.toString().split("\n");
-  for (const line of lines) {
-    if (/el-.*reth/.test(line)) {
-      return line.match(/.+ -> .*:(\d+)->8545\/tcp/)?.[1];
-    }
-  }
-
-  console.log(stdout.toString());
-  throw new Error("No local Ethereum EL RPC port found");
-};
+import { findLocalEthRpcPort, findBlockscoutFrontendPort } from "./utils";
 
 const PRIVATE_KEY =
   process.env.PRIVATE_KEY || "bf3beef3bd999ba9f2451e06936f0423cd62b815c9233dd3bc90f7e02a1e8673";
@@ -35,7 +21,7 @@ export const datahaven = defineChain({
     }
   },
   blockExplorers: {
-    default: { name: "Explorer", url: "http://localhost:3000" }
+    default: { name: "Explorer", url: `http://localhost:${findBlockscoutFrontendPort()}` }
   }
 });
 

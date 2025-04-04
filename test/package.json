@@ -10,7 +10,8 @@
     "start:e2e:minimal": "kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum",
     "stop:e2e:minimal": "kurtosis enclave stop datahaven-ethereum && kurtosis clean",
     "stop:kurtosis-engine": "kurtosis engine stop",
-    "script:send-txn": "bun run scripts/send-txn.ts"
+    "script:send-txs": "bun run scripts/send-txs.ts",
+    "script:deploy-contracts": "bun run scripts/deploy-contracts.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

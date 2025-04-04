@@ -135,11 +135,11 @@ fn testnet_genesis(
             "key": Some(root_key),
         },
         "validatorSet": {
-            "initialValidators": initial_authorities.iter().map(|x| x.0.clone()).collect::<Vec<_>>(),
+            "initialValidators": initial_authorities.iter().map(|x| x.0).collect::<Vec<_>>(),
         },
         "session": {
             "keys": initial_authorities.iter().map(|x| {
-                (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone(), x.3.clone(), x.4.clone()))
+                (x.0, x.0, session_keys(x.1.clone(), x.2.clone(), x.3.clone(), x.4.clone()))
             }).collect::<Vec<_>>(),
         },
     })

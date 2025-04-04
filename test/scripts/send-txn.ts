@@ -1,66 +1,77 @@
-import { defineChain, createWalletClient, http, parseEther, type Hex } from "viem";
+import { http, type Hex, createWalletClient, defineChain, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { execSync } from "node:child_process";
+
+const findLocalEthRpcPort = () => {
+  const stdout = execSync(`docker ps --format "{{.Names}} -> {{.Ports}}"`).toString();
+
+  const lines = stdout.toString().split("\n");
+  for (const line of lines) {
+    if (/el-.*reth/.test(line)) {
+      return line.match(/.+ -> .*:(\d+)->8545\/tcp/)?.[1];
+    }
+  }
+
+  console.log(stdout.toString());
+  throw new Error("No local Ethereum EL RPC port found");
+};
 
 const PRIVATE_KEY =
-	process.env.PRIVATE_KEY ||
-	"bf3beef3bd999ba9f2451e06936f0423cd62b815c9233dd3bc90f7e02a1e8673";
-const privateKey: Hex = PRIVATE_KEY.startsWith("0x")
-	? (PRIVATE_KEY as Hex)
-	: `0x${PRIVATE_KEY}`;
-const NETWORK_RPC_URL =
-	process.env.NETWORK_RPC_URL || "http://localhost:8545";
+  process.env.PRIVATE_KEY || "bf3beef3bd999ba9f2451e06936f0423cd62b815c9233dd3bc90f7e02a1e8673";
+const privateKey: Hex = PRIVATE_KEY.startsWith("0x") ? (PRIVATE_KEY as Hex) : `0x${PRIVATE_KEY}`;
+const NETWORK_RPC_URL = process.env.NETWORK_RPC_URL || `http://localhost:${findLocalEthRpcPort()}`;
 
- 
 export const datahaven = defineChain({
   id: 3151908,
-  name: 'datahaven',
+  name: "datahaven",
   nativeCurrency: {
     decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
+    name: "Ether",
+    symbol: "ETH"
   },
   rpcUrls: {
     default: {
       http: [NETWORK_RPC_URL]
-    },
+    }
   },
   blockExplorers: {
-    default: { name: 'Explorer', url: 'http://localhost:3000' },
-  },
-  
-})
+    default: { name: "Explorer", url: "http://localhost:3000" }
+  }
+});
 
 async function main() {
-	try {
-		const signer = privateKeyToAccount(privateKey)
+  try {
+    const signer = privateKeyToAccount(privateKey);
 
-		console.log(`Using account: ${signer.address}`);
-		const client = createWalletClient({
-			account: signer,
-			chain: datahaven,
-			transport: http(NETWORK_RPC_URL),
-		});
+    console.log(`Using account: ${signer.address}`);
+    const client = createWalletClient({
+      account: signer,
+      chain: datahaven,
+      transport: http(NETWORK_RPC_URL)
+    });
 
-		const randAccount = privateKeyToAccount( generatePrivateKey()) 
-		const addresses = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc", "0x976ea74026e726554db657fa54763abd0c3a0aa9",randAccount.address]
+    const randAccount = privateKeyToAccount(generatePrivateKey());
+    const addresses = [
+      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+      "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      randAccount.address
+    ];
 
+    for (const address of addresses) {
+      console.log(`Sending 1 ETH to address: ${address}`);
 
-		for (const address of addresses) {
-			console.log(`Sending 1 ETH to address: ${address}`);
+      const hash = await client.sendTransaction({
+        to: address as `0x${string}`,
+        value: parseEther("1.0")
+      });
 
-			const hash = await client.sendTransaction({
-				to: address as `0x${string}`,
-				value: parseEther("1.0"),
-			});
-
-			console.log(`Transaction sent! Hash: http://localhost:3000/tx/${hash}`);
-		}
-
-
-	} catch (error) {
-		console.error("Error sending transaction:", error);
-		process.exit(1);
-	}
+      console.log(`Transaction sent! Hash: http://localhost:3000/tx/${hash}`);
+    }
+  } catch (error) {
+    console.error("Error sending transaction:", error);
+    process.exit(1);
+  }
 }
 
 main();

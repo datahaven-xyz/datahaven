@@ -1,25 +1,28 @@
 {
-	"name": "@datahaven/e2e-test",
-	"module": "index.ts",
-	"type": "module",
-	"private": true,
-	"scripts": {
-		"fmt": "biome check .",
-		"fmt:fix": "biome check --write .",
-		"demo": "bun run scripts/placeholder.ts",
-		"start:e2e:minimal": "kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml",
-		"script:send-txn": "bun run scripts/send-txn.ts",
-	},
-	"devDependencies": {
-		"@types/bun": "latest"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"dependencies": {
-		"@biomejs/biome": "^1.9.4",
-		"@dotenvx/dotenvx": "^1.39.0",
-		"dotenv": "^16.4.7",
-		"viem": "^2.25.0"
-	}
+  "name": "@datahaven/e2e-test",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "fmt": "biome check .",
+    "fmt:fix": "biome check --write .",
+    "demo": "bun run scripts/placeholder.ts",
+    "start:e2e:minimal": "kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum",
+    "stop:e2e:minimal": "kurtosis enclave stop datahaven-ethereum && kurtosis clean",
+    "stop:kurtosis-engine": "kurtosis engine stop",
+    "script:send-txn": "bun run scripts/send-txn.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@dotenvx/dotenvx": "^1.39.0",
+    "child_process": "^1.0.2",
+    "dotenv": "^16.4.7",
+    "viem": "^2.25.0"
+  }
 }

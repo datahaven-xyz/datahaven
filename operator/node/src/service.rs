@@ -2,6 +2,7 @@
 
 use crate::eth::{
     new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierPartialComponents,
+    FrontierTasksParams,
 };
 use crate::eth::{EthConfiguration, StorageOverrideHandler};
 use crate::rpc::BeefyDeps;
@@ -339,7 +340,7 @@ pub async fn new_full<
     net_config.add_notification_protocol(grandpa_protocol_config);
 
     let beefy_gossip_proto_name =
-        sc_consensus_beefy::gossip_protocol_name(&genesis_hash, config.chain_spec.fork_id());
+        sc_consensus_beefy::gossip_protocol_name(genesis_hash, config.chain_spec.fork_id());
     let (beefy_on_demand_justifications_handler, beefy_req_resp_cfg) =
         sc_consensus_beefy::communication::request_response::BeefyJustifsRequestHandler::new::<_, N>(
             &genesis_hash,
@@ -458,15 +459,19 @@ pub async fn new_full<
 
     spawn_frontier_tasks(
         &task_manager,
-        client.clone(),
-        backend.clone(),
-        frontier_backend,
-        filter_pool,
-        storage_override,
-        fee_history_cache,
-        fee_history_cache_limit,
-        sync_service.clone(),
-        pubsub_notification_sinks,
+        FrontierTasksParams {
+            client: client.clone(),
+            backend: backend.clone(),
+            frontier_backend,
+            frontier_partial_components: FrontierPartialComponents {
+                filter_pool,
+                fee_history_cache,
+                fee_history_cache_limit,
+            },
+            storage_override,
+            sync: sync_service.clone(),
+            pubsub_notification_sinks,
+        },
     )
     .await;
 

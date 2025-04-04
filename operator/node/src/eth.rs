@@ -117,21 +117,30 @@ where
 {
 }
 
-pub async fn spawn_frontier_tasks<B, RA, HF>(
-    task_manager: &TaskManager,
-    client: Arc<FullClient<B, RA, HF>>,
-    backend: Arc<FullBackend<B>>,
-    frontier_backend: Arc<FrontierBackend<B, FullClient<B, RA, HF>>>,
-    filter_pool: Option<FilterPool>,
-    storage_override: Arc<dyn StorageOverride<B>>,
-    fee_history_cache: FeeHistoryCache,
-    fee_history_cache_limit: FeeHistoryCacheLimit,
-    sync: Arc<SyncingService<B>>,
-    pubsub_notification_sinks: Arc<
+pub struct FrontierTasksParams<B, RA, HF>
+where
+    B: BlockT<Hash = H256>,
+    RA: ConstructRuntimeApi<B, FullClient<B, RA, HF>>,
+    RA: Send + Sync + 'static,
+    RA::RuntimeApi: EthCompatRuntimeApiCollection<B>,
+    HF: HostFunctions + 'static,
+{
+    pub client: Arc<FullClient<B, RA, HF>>,
+    pub backend: Arc<FullBackend<B>>,
+    pub frontier_backend: Arc<FrontierBackend<B, FullClient<B, RA, HF>>>,
+    pub frontier_partial_components: FrontierPartialComponents,
+    pub storage_override: Arc<dyn StorageOverride<B>>,
+    pub sync: Arc<SyncingService<B>>,
+    pub pubsub_notification_sinks: Arc<
         fc_mapping_sync::EthereumBlockNotificationSinks<
             fc_mapping_sync::EthereumBlockNotification<B>,
         >,
     >,
+}
+
+pub async fn spawn_frontier_tasks<B, RA, HF>(
+    task_manager: &TaskManager,
+    params: FrontierTasksParams<B, RA, HF>,
 ) where
     B: BlockT<Hash = H256>,
     RA: ConstructRuntimeApi<B, FullClient<B, RA, HF>>,
@@ -139,6 +148,22 @@ pub async fn spawn_frontier_tasks<B, RA, HF>(
     RA::RuntimeApi: EthCompatRuntimeApiCollection<B>,
     HF: HostFunctions + 'static,
 {
+    let FrontierTasksParams {
+        client,
+        backend,
+        frontier_backend,
+        frontier_partial_components,
+        storage_override,
+        sync,
+        pubsub_notification_sinks,
+    } = params;
+
+    let FrontierPartialComponents {
+        filter_pool,
+        fee_history_cache,
+        fee_history_cache_limit,
+    } = frontier_partial_components;
+
     // Spawn main mapping sync worker background task.
     match &*frontier_backend {
         fc_db::Backend::KeyValue(b) => {

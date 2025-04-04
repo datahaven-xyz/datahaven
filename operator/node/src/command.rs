@@ -120,7 +120,7 @@ pub fn run() -> sc_cli::Result<()> {
                         return Err(format!("Cannot purge `{:?}` database", config.database).into())
                     }
                 };
-                Ok(cmd.run(frontier_database_config)?)
+                cmd.run(frontier_database_config)
             })
         }
         Some(Subcommand::Revert(cmd)) => {

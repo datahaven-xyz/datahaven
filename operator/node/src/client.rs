@@ -11,7 +11,7 @@ pub type FullBackend<B> = sc_service::TFullBackend<B>;
 pub type FullClient<B, RA, HF> = sc_service::TFullClient<B, RA, WasmExecutor<HF>>;
 
 /// A set of APIs that every runtime must implement.
-pub trait BaseRuntimeApiCollection<Block: BlockT>:
+pub trait _BaseRuntimeApiCollection<Block: BlockT>:
     sp_api::ApiExt<Block>
     + sp_api::Metadata<Block>
     + sp_block_builder::BlockBuilder<Block>
@@ -21,7 +21,7 @@ pub trait BaseRuntimeApiCollection<Block: BlockT>:
 {
 }
 
-impl<Block, Api> BaseRuntimeApiCollection<Block> for Api
+impl<Block, Api> _BaseRuntimeApiCollection<Block> for Api
 where
     Block: BlockT,
     Api: sp_api::ApiExt<Block>
@@ -34,8 +34,8 @@ where
 }
 
 /// A set of APIs that template runtime must implement.
-pub trait RuntimeApiCollection<Block: BlockT, Balance: Codec + MaybeDisplay>:
-    BaseRuntimeApiCollection<Block>
+pub trait _RuntimeApiCollection<Block: BlockT, Balance: Codec + MaybeDisplay>:
+    _BaseRuntimeApiCollection<Block>
     + EthCompatRuntimeApiCollection<Block>
     + sp_consensus_babe::BabeApi<Block>
     + sp_consensus_grandpa::GrandpaApi<Block>
@@ -46,11 +46,11 @@ pub trait RuntimeApiCollection<Block: BlockT, Balance: Codec + MaybeDisplay>:
 {
 }
 
-impl<Block, Balance, Api> RuntimeApiCollection<Block, Balance> for Api
+impl<Block, Balance, Api> _RuntimeApiCollection<Block, Balance> for Api
 where
     Block: BlockT,
     Balance: Codec + MaybeDisplay,
-    Api: BaseRuntimeApiCollection<Block>
+    Api: _BaseRuntimeApiCollection<Block>
         + EthCompatRuntimeApiCollection<Block>
         + sp_consensus_babe::BabeApi<Block>
         + sp_consensus_grandpa::GrandpaApi<Block>

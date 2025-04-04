@@ -88,7 +88,7 @@ pub const WEIGHT_FEE: Balance = 50_000 / 4;
 
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND, u64::MAX)
     .saturating_mul(2)
-    .set_proof_size(MAX_POV_SIZE as u64);
+    .set_proof_size(MAX_POV_SIZE);
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
@@ -112,7 +112,7 @@ parameter_types! {
     pub const EquivocationReportPeriodInBlocks: u64 =
         EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
 
-    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::max_value();
+    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
 }
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from

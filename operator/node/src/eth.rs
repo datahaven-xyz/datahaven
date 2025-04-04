@@ -14,20 +14,11 @@ use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_api::ConstructRuntimeApi;
 use sp_core::H256;
 use sp_runtime::traits::Block as BlockT;
-// Frontier
-pub use fc_consensus::FrontierBlockImport;
-use fc_rpc::EthTask;
-pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
-pub use fc_storage::{StorageOverride, StorageOverrideHandler};
 
 use crate::client::{FullBackend, FullClient};
 
 /// Frontier DB backend type.
 pub type FrontierBackend<B, C> = fc_db::Backend<B, C>;
-
-pub fn db_config_dir(config: &Configuration) -> PathBuf {
-    config.base_path.config_dir(config.chain_spec.id())
-}
 
 /// Available frontier backend types.
 #[derive(Debug, Copy, Clone, Default, clap::ValueEnum)]
@@ -37,18 +28,6 @@ pub enum BackendType {
     KeyValue,
     /// Sql database with custom log indexing.
     Sql,
-}
-
-#[derive(Debug, Copy, Clone, Default)]
-pub enum FrontierBackendConfig {
-    #[default]
-    KeyValue,
-    Sql {
-        pool_size: u32,
-        num_ops_timeout: u32,
-        thread_count: u32,
-        cache_size: u64,
-    },
 }
 
 /// The ethereum-compatibility configuration used to run a node.

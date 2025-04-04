@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec::{self, alith},
@@ -9,7 +10,7 @@ use crate::{
 use datahaven_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
-use sc_service::PartialComponents;
+use sc_service::{DatabaseSource, PartialComponents};
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -105,7 +106,22 @@ pub fn run() -> sc_cli::Result<()> {
         }
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|config| cmd.run(config.database))
+            runner.sync_run(|config| {
+                // Remove Frontier offchain db
+                let frontier_database_config = match config.database {
+                    DatabaseSource::RocksDb { .. } => DatabaseSource::RocksDb {
+                        path: frontier_database_dir(&config, "db"),
+                        cache_size: 0,
+                    },
+                    DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
+                        path: frontier_database_dir(&config, "paritydb"),
+                    },
+                    _ => {
+                        return Err(format!("Cannot purge `{:?}` database", config.database).into())
+                    }
+                };
+                Ok(cmd.run(frontier_database_config)?)
+            })
         }
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;

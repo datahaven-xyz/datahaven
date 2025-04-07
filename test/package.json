@@ -7,7 +7,9 @@
 		"fmt": "biome check .",
 		"fmt:fix": "biome check --write .",
 		"demo": "bun run scripts/placeholder.ts",
-		"start:e2e:minimal": "bun run scripts/start-kurtosis.ts"
+		"start:e2e:minimal": "bun run scripts/start-kurtosis.ts",
+    "stop:e2e:minimal": "kurtosis enclave stop datahaven-ethereum && kurtosis clean",
+    "stop:kurtosis-engine": "kurtosis engine stop"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"

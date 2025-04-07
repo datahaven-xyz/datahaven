@@ -44,6 +44,7 @@ Follow these steps to set up and interact with your test environment:
    ```
 
 4. **Deploy and verify contracts**
+
    ```bash
    bun script:deploy-contracts
    ```
@@ -57,6 +58,7 @@ Follow these steps to set up and interact with your test environment:
   ```
 
 - **Stop the Kurtosis engine completely**
+
   ```bash
   bun stop:kurtosis-engine
   ```

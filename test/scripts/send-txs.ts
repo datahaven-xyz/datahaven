@@ -1,6 +1,6 @@
 import { http, type Hex, createWalletClient, defineChain, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { findLocalEthRpcPort, findBlockscoutFrontendPort } from "./utils";
+import { findBlockscoutFrontendPort, findLocalEthRpcPort } from "./utils";
 
 const PRIVATE_KEY =
   process.env.PRIVATE_KEY || "bf3beef3bd999ba9f2451e06936f0423cd62b815c9233dd3bc90f7e02a1e8673";

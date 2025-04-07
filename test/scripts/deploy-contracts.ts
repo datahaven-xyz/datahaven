@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { findLocalEthRpcPort, findBlockscoutBackendPort } from "./utils";
+import { findBlockscoutBackendPort, findLocalEthRpcPort } from "./utils";
 
 const NETWORK_RPC_URL = process.env.NETWORK_RPC_URL || `http://localhost:${findLocalEthRpcPort()}`;
 const BLOCKSCOUT_BACKEND_URL =

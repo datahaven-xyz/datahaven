@@ -10,6 +10,11 @@ use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{ecdsa, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
+const EVM_CHAIN_ID: u64 = 1289;
+const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
+const TOKEN_DECIMALS: u8 = 18;
+const TOKEN_SYMBOL: &str = "HAVE";
+
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec;
 
@@ -60,6 +65,12 @@ pub fn development_config() -> Result<ChainSpec, String> {
     default_funded_accounts.sort();
     default_funded_accounts.dedup();
 
+    // Give the token a unit name and decimal places
+    let mut properties = sc_service::Properties::new();
+    properties.insert("tokenSymbol".into(), TOKEN_SYMBOL.into());
+    properties.insert("tokenDecimals".into(), TOKEN_DECIMALS.into());
+    properties.insert("ss58Format".into(), SS58_FORMAT.into());
+
     Ok(ChainSpec::builder(
         WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         None,
@@ -76,10 +87,16 @@ pub fn development_config() -> Result<ChainSpec, String> {
         default_funded_accounts.clone(),
         true,
     ))
+    .with_properties(properties)
     .build())
 }
 
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
+    let mut properties = sc_service::Properties::new();
+    properties.insert("tokenSymbol".into(), TOKEN_SYMBOL.into());
+    properties.insert("tokenDecimals".into(), TOKEN_DECIMALS.into());
+    properties.insert("ss58Format".into(), SS58_FORMAT.into());
+
     Ok(ChainSpec::builder(
         WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         None,
@@ -110,6 +127,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
         ],
         true,
     ))
+    .with_properties(properties)
     .build())
 }
 
@@ -135,12 +153,16 @@ fn testnet_genesis(
             "key": Some(root_key),
         },
         "validatorSet": {
-            "initialValidators": initial_authorities.iter().map(|x| x.0.clone()).collect::<Vec<_>>(),
+            "initialValidators": initial_authorities.iter().map(|x| x.0).collect::<Vec<_>>(),
         },
         "session": {
             "keys": initial_authorities.iter().map(|x| {
-                (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone(), x.3.clone(), x.4.clone()))
+                (x.0, x.0, session_keys(x.1.clone(), x.2.clone(), x.3.clone(), x.4.clone()))
             }).collect::<Vec<_>>(),
+        },
+        "evmChainId": {
+            // EVM chain ID
+            "chainId": EVM_CHAIN_ID,
         },
     })
 }

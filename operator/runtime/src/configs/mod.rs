@@ -80,6 +80,9 @@ use sp_std::{
 };
 use sp_version::RuntimeVersion;
 
+const EVM_CHAIN_ID: u64 = 1289;
+const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
+
 // TODO: We need to define what do we want here as max PoV size
 pub const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
 
@@ -88,7 +91,7 @@ pub const WEIGHT_FEE: Balance = 50_000 / 4;
 
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND, u64::MAX)
     .saturating_mul(2)
-    .set_proof_size(MAX_POV_SIZE as u64);
+    .set_proof_size(MAX_POV_SIZE);
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
@@ -102,7 +105,7 @@ parameter_types! {
         NORMAL_DISPATCH_RATIO,
     );
     pub RuntimeBlockLength: BlockLength = BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-    pub const SS58Prefix: u8 = 42;
+    pub const SS58Prefix: u16 = SS58_FORMAT;
     pub const MaxAuthorities: u32 = 32;
     pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
     pub const NodesSize: u32 = 32;
@@ -112,7 +115,7 @@ parameter_types! {
     pub const EquivocationReportPeriodInBlocks: u64 =
         EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
 
-    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::max_value();
+    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
 }
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from

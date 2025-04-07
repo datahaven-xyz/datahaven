@@ -22,7 +22,7 @@ async function main() {
   await $`kurtosis clean`;
 
   const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml`.nothrow();
+    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum`.nothrow();
 
   if (exitCode !== 0) {
     console.error(stderr.toString());

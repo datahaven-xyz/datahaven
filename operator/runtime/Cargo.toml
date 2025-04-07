@@ -67,7 +67,7 @@ polkadot-primitives.workspace = true
 fp-account = { workspace = true, features = ["serde"] }
 fp-rpc = { workspace = true }
 fp-evm = { workspace = true, features = ["serde"] }
-fp-self-contained = { workspace = true, features = ["serde"] }
+fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
 
 pallet-evm.workspace = true
 pallet-evm-chain-id.workspace = true
@@ -94,7 +94,6 @@ std = [
     "frame-benchmarking?/std",
     "frame-try-runtime?/std",
     "datahaven-runtime-common/std",
-
     "pallet-authorship/std",
     "pallet-babe/std",
     "pallet-beefy/std",
@@ -196,6 +195,7 @@ try-runtime = [
     "sp-runtime/try-runtime",
     "pallet-evm/try-runtime",
     "pallet-ethereum/try-runtime",
+    "fp-self-contained/try-runtime"
 ]
 
 fast-runtime = [

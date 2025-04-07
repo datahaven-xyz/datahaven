@@ -1,5 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// `frame_support::runtime` does a lot of recursion and requires us to increase the limit to 256.
+#![recursion_limit = "256"]
+
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
@@ -10,11 +13,19 @@ pub mod configs;
 
 extern crate alloc;
 use alloc::vec::Vec;
+use smallvec::smallvec;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
     MultiAddress,
 };
+use sp_std::prelude::*;
+use frame_support::weights::{WeightToFeeCoefficient, WeightToFeeCoefficients,
+    WeightToFeePolynomial,
+};
+use frame_support::weights::constants::ExtrinsicBaseWeight;
+use sp_runtime::Perbill;
+
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -99,11 +110,14 @@ pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
 // Unit = the base number of indivisible units for balances
 pub const UNIT: Balance = 1_000_000_000_000;
-pub const MILLI_UNIT: Balance = 1_000_000_000;
-pub const MICRO_UNIT: Balance = 1_000_000;
+pub const CENTS: Balance = UNIT / 100;
+pub const MILLIUNIT: Balance = 1_000_000_000;
+pub const MICROUNIT: Balance = 1_000_000;
+pub const NANOUNIT: Balance = 1_000;
+pub const PICOUNIT: Balance = 1;
 
 /// Existential deposit.
-pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -129,6 +143,9 @@ pub type Nonce = u32;
 
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
+
+/// The hashing algorithm used.
+pub type Hashing = BlakeTwo256;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -183,6 +200,33 @@ pub type Executive = frame_executive::Executive<
     AllPalletsWithSystem,
     Migrations,
 >;
+
+/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+/// node's balance type.
+///
+/// This should typically create a mapping between the following ranges:
+///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
+///   - `[Balance::min, Balance::max]`
+///
+/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+///   - Setting it to `0` will essentially disable the weight fee.
+///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+    type Balance = Balance;
+    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
+        // in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
+        let p = MILLIUNIT / 10;
+        let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+        smallvec![WeightToFeeCoefficient {
+            degree: 1,
+            negative: false,
+            coeff_frac: Perbill::from_rational(p % q, q),
+            coeff_integer: p / q,
+        }]
+    }
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
@@ -255,4 +299,29 @@ mod runtime {
 
     #[runtime::pallet_index(33)]
     pub type EvmChainId = pallet_evm_chain_id;
+
+    // Storage Hub
+    #[runtime::pallet_index(40)]
+    pub type Providers = pallet_storage_providers;
+    #[runtime::pallet_index(41)]
+    pub type FileSystem = pallet_file_system;
+    #[runtime::pallet_index(42)]
+    pub type ProofsDealer = pallet_proofs_dealer;
+    #[runtime::pallet_index(43)]
+    pub type Randomness = pallet_randomness;
+    #[runtime::pallet_index(44)]
+    pub type PaymentStreams = pallet_payment_streams;
+    #[runtime::pallet_index(45)]
+    pub type BucketNfts = pallet_bucket_nfts;
+    #[runtime::pallet_index(50)]
+    pub type Nfts = pallet_nfts;
+    #[runtime::pallet_index(51)]
+    pub type Parameters = pallet_parameters;
+    #[runtime::pallet_index(52)]
+    pub type ParachainSystem = cumulus_pallet_parachain_system;
+}
+
+cumulus_pallet_parachain_system::register_validate_block! {
+    Runtime = Runtime,
+    BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }

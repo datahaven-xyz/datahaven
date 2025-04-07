@@ -7,8 +7,7 @@
 		"fmt": "biome check .",
 		"fmt:fix": "biome check --write .",
 		"demo": "bun run scripts/placeholder.ts",
-		"start:e2e:minimal": "kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml",
-		"script:send-txn": "bun run scripts/send-txn.ts",
+		"start:e2e:minimal": "bun run scripts/start-kurtosis.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"
@@ -19,7 +18,10 @@
 	"dependencies": {
 		"@biomejs/biome": "^1.9.4",
 		"@dotenvx/dotenvx": "^1.39.0",
+		"@types/dockerode": "^3.3.37",
+		"dockerode": "^4.0.5",
 		"dotenv": "^16.4.7",
+		"tiny-invariant": "^1.3.3",
 		"viem": "^2.25.0"
 	}
 }

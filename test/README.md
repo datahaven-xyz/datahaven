@@ -26,7 +26,11 @@
 
 - Kurtosis: [https://docs.kurtosis.com/install](https://docs.kurtosis.com/install)
 
-## Deployment
+## QuickStart
+
+Run: `bun start:e2e:minimal`
+
+## Manual Deployment
 
 >[!TIP]  
 > You can check it's all working hunky dory by running `bun script:send-txn`

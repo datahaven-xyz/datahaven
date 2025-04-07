@@ -1,0 +1,27 @@
+[package]
+name = "datahaven-bridge-primitives"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+snowbridge-core = { workspace = true }
+parity-scale-codec = { workspace = true }
+pallet-validator-set = { workspace = true }
+snowbridge-router-primitives = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "snowbridge-core/std",
+    "parity-scale-codec/std",
+    "pallet-validator-set/std",
+    "snowbridge-router-primitives/std",
+]

@@ -8,10 +8,11 @@ edition = "2021"
 [workspace]
 members = [
     "node",
-    "runtime",
     "pallets/validator-set",
     "pallets/inbound-queue",
+    "primitives/bridge",
     "primitives/snowbridge/router",
+    "runtime",
     "runtime/common",
 ]
 resolver = "2"

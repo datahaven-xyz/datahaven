@@ -1682,6 +1682,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "datahaven-bridge-primitives"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-validator-set",
+ "parity-scale-codec",
+ "snowbridge-core",
+ "snowbridge-router-primitives",
+]
+
+[[package]]
 name = "datahaven-node"
 version = "0.1.0"
 dependencies = [

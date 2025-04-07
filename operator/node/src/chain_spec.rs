@@ -65,7 +65,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
     default_funded_accounts.sort();
     default_funded_accounts.dedup();
 
-    // Give your stout currency a unit name and decimal places
+    // Give the token a unit name and decimal places
     let mut properties = sc_service::Properties::new();
     properties.insert("tokenSymbol".into(), TOKEN_SYMBOL.into());
     properties.insert("tokenDecimals".into(), TOKEN_DECIMALS.into());

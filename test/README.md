@@ -29,22 +29,20 @@ Follow these steps to set up and interact with your test environment:
    bun start:e2e:minimal
    ```
 
+   This script will:
+
+   1. Start a Kurtosis network with (among other things):
+      - 2 x Ethereum Execution Layer clients (reth)
+      - 2 x Ethereum Consensus Layer clients (lighthouse)
+      - 1 x Blockscout frontend
+      - 1 x Blockscout backend
+   2. Send a test transaction to the network using the [send-txn.ts](./scripts/send-txn.ts) script.
+   3. Deploy and verify all DataHaven smart contracts needed for a local deployment, using the [Deploy.s.sol](../contracts/script/deploy/Deploy.s.sol) script.
+
 2. **Explore the network**
 
    - Block Explorer: [http://127.0.0.1:3000](http://127.0.0.1:3000).
    - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
-
-3. **Send test transactions**
-
-   ```bash
-   bun script:send-txs
-   ```
-
-4. **Deploy and verify contracts**
-
-   ```bash
-   bun script:deploy-contracts
-   ```
 
 ## Network Management
 

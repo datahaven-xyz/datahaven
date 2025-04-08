@@ -651,6 +651,17 @@ contract Deploy is Script, DeployParams {
         Logging.logContractDeployed("RewardsCoordinator", address(rewardsCoordinator));
         Logging.logContractDeployed("AllocationManager", address(allocationManager));
         Logging.logContractDeployed("PermissionController", address(permissionController));
+        Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
+
+        Logging.logSection("Strategy Contracts");
+        Logging.logContractDeployed(
+            "BaseStrategyImplementation", address(baseStrategyImplementation)
+        );
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            Logging.logContractDeployed(
+                string.concat("DeployedStrategy", vm.toString(i)), address(deployedStrategies[i])
+            );
+        }
 
         Logging.logFooter();
 
@@ -694,8 +705,30 @@ contract Deploy is Script, DeployParams {
             json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
         );
         json = string.concat(
-            json, '"PermissionController": "', vm.toString(address(permissionController)), '"'
+            json, '"PermissionController": "', vm.toString(address(permissionController)), '",'
         );
+        json = string.concat(json, '"ETHPOSDeposit": "', vm.toString(address(ethPOSDeposit)), '",');
+        json = string.concat(
+            json,
+            '"BaseStrategyImplementation": "',
+            vm.toString(address(baseStrategyImplementation)),
+            '"'
+        );
+        if (deployedStrategies.length > 0) {
+            json = string.concat(json, ",");
+            json = string.concat(json, '"DeployedStrategies": [');
+
+            for (uint256 i = 0; i < deployedStrategies.length; i++) {
+                json = string.concat(json, '"', vm.toString(address(deployedStrategies[i])), '"');
+
+                // Add comma if not the last element
+                if (i < deployedStrategies.length - 1) {
+                    json = string.concat(json, ",");
+                }
+            }
+
+            json = string.concat(json, "]");
+        }
 
         json = string.concat(json, "}");
 

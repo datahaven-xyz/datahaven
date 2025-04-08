@@ -203,7 +203,7 @@ pub fn new_full<
     net_config.add_notification_protocol(grandpa_protocol_config);
 
     let beefy_gossip_proto_name =
-        sc_consensus_beefy::gossip_protocol_name(&genesis_hash, config.chain_spec.fork_id());
+        sc_consensus_beefy::gossip_protocol_name(genesis_hash, config.chain_spec.fork_id());
     let (beefy_on_demand_justifications_handler, beefy_req_resp_cfg) =
         sc_consensus_beefy::communication::request_response::BeefyJustifsRequestHandler::new::<_, N>(
             &genesis_hash,

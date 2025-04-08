@@ -133,6 +133,8 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
+     * @dev DEPRECATED ❗️ This function is not used. This contract distributes rewards directly to operators
+     * instead of using the RewardsCoordinator.
      * @notice Creates a new operator-directed rewards submission, to be split amongst the operators and
      * set of stakers delegated to operators who are registered to this AVS' OperatorSet.
      * @param operatorSet The OperatorSet to create the rewards submission for
@@ -173,6 +175,11 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
 
         _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
             operatorSet, operatorDirectedRewardsSubmissions
+        );
+
+        // REVERTING BECAUSE THIS FUNCTION IS DEPRECATED ❗️
+        revert(
+            "ServiceManagerBase: createOperatorDirectedOperatorSetRewardsSubmission is deprecated"
         );
     }
 
@@ -265,6 +272,8 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
+     * @dev DEPRECATED ❗️ This function is not used. This contract distributes rewards directly to operators
+     * instead of using the RewardsCoordinator.
      * @notice Sets the rewards initiator address
      * @param newRewardsInitiator The new rewards initiator address
      * @dev only callable by the owner
@@ -273,6 +282,9 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         address newRewardsInitiator
     ) external virtual onlyOwner {
         _setRewardsInitiator(newRewardsInitiator);
+
+        // REVERTING BECAUSE THIS FUNCTION IS DEPRECATED ❗️
+        revert("ServiceManagerBase: setRewardsInitiator is deprecated");
     }
 
     /**

@@ -1,0 +1,106 @@
+//! REMOVE ALL COMMENTS AND CHANGE EXTENSION TO `.json` BEFORE USING
+//! Parsing JSONC is not supported by the Solidity JSON parser, so we need to remove the comments before using the config
+{
+  "eigenLayer": {
+    "pausers": [
+      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+    ],
+    "unpauser": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    /// Account authorised to update pending rewards merkle root in the RewardsCoordinator contract.
+    /// In practice, this is the account used by the off-chain rewards updater service.
+    /// See https://github.com/Layr-Labs/eigenlayer-contracts/tree/dev/docs#rewardscoordinator
+    "rewardsUpdater": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    /// The interval at which the new rewards merkle root is calculated.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F1
+    "calculationIntervalSeconds": 86400,
+    /// The maximum duration of rewards that can be retroactively applied.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F5
+    "maxRewardsDuration": 6048000,
+    /// The maximum retroactive length of rewards that can be applied.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F4
+    "maxRetroactiveLength": 7776000,
+    /// The maximum duration of rewards that can be applied in the future.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F3
+    "maxFutureLength": 2592000,
+    /// The timestamp at which rewards are first calculated.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F2
+    "genesisRewardsTimestamp": 1710979200,
+    /// Delay in timestamp (seconds) before a posted root can be claimed against
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F6
+    "activationDelay": 7200,
+    /// Also called "defaultOperatorSplitBips"
+    /// Used off-chain by the rewards updater to calculate an Operator's split for a specific reward.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F7
+    "globalCommissionBips": 1000,
+    /// Multisig address for controlling operations (we don't care as much about this).
+    "executorMultisig": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+    /// Multisig address for executing operations (we don't care as much about this).
+    "operationsMultisig": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+    /// The delay in blocks before withdrawals can be completed.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0xA44151489861Fe9e3055d95adC98FbD462B948e7#readProxyContract#F24
+    "minWithdrawalDelayBlocks": 50,
+    /// The initial paused status of the DelegationManager
+    /// See here for more details: https://github.com/Layr-Labs/eigenlayer-contracts/blob/db0f582ba9b4df861b72269267d4980d7f3f7490/src/contracts/permissions/Pausable.sol#L12
+    "delegationInitPausedStatus": 0,
+    /// The initial paused status of the EigenPodManager
+    /// See here for more details: https://github.com/Layr-Labs/eigenlayer-contracts/blob/db0f582ba9b4df861b72269267d4980d7f3f7490/src/contracts/permissions/Pausable.sol#L12
+    "eigenPodManagerInitPausedStatus": 0,
+    /// The initial paused status of the RewardsCoordinator
+    /// See here for more details: https://github.com/Layr-Labs/eigenlayer-contracts/blob/db0f582ba9b4df861b72269267d4980d7f3f7490/src/contracts/permissions/Pausable.sol#L12
+    "rewardsCoordinatorInitPausedStatus": 0,
+    /// The initial paused status of the AllocationManager
+    /// See here for more details: https://github.com/Layr-Labs/eigenlayer-contracts/blob/db0f582ba9b4df861b72269267d4980d7f3f7490/src/contracts/permissions/Pausable.sol#L12
+    "allocationManagerInitPausedStatus": 0,
+    /// The delay in blocks before deallocations can be completed.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0x78469728304326CBc65f8f95FA756B0B73164462#readProxyContract#F2
+    "deallocationDelay": 50,
+    /// The delay in blocks before allocation configuration can be completed.
+    /// See testnet deployment: https://holesky.etherscan.io/address/0x78469728304326CBc65f8f95FA756B0B73164462#readProxyContract#F1
+    "allocationConfigurationDelay": 75,
+    /// The genesis time of the beacon state, to help EL calculate conversions between slot and timestamp
+    /// See testnet deployment: https://holesky.etherscan.io/address/0x68bd1e75E9863C9066B46B8a44E953F918466D37#readContract#F1
+    "beaconChainGenesisTimestamp": 1695902400
+  },
+
+  "avs": {
+    /// The owner of the DataHaven Service Manager contract.
+    "avsOwner": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+    /// The address of the account that initiates the rewards calculation.
+    /// This is for the EigenLayer rewards distribution way, using the RewardsCoordinator.
+    /// But for now, we're not using it, and instead sending the rewards directly.
+    "rewardsInitiator": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+    /// The address of the account that is a member of the Veto Committee for vetoing slashing.
+    "vetoCommitteeMember": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+    /// The number of blocks that the Veto Committee will have to submit a veto.
+    "vetoWindowBlocks": 100
+  },
+
+  "snowbridge": {
+    /// Minimum delay in number of blocks that a relayer must wait between calling
+    /// submitInitial and commitPrevRandao. In production this should be set to MAX_SEED_LOOKAHEAD:
+    /// https://eth2book.info/altair/part3/config/preset#max_seed_lookahead
+    "randaoCommitDelay": 4,
+    /// after randaoCommitDelay is reached, relayer must call commitPrevRandao within this number of blocks.
+    /// Without this expiration, relayers can roll the dice infinitely to get the subsampling
+    /// they desire.
+    "randaoCommitExpiration": 24,
+    /// The minimum number of required signatures for a Randao commit to be valid.
+    "minNumRequiredSignatures": 2,
+    /// Initial BEEFY block number.
+    "startBlock": 1,
+    /// The origin linked to the Rewards Agent, the Agent contract who's allowed to submit
+    /// new reward merkle roots to the RewardsRegistry contract.
+    "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    /// The initial validators for the BEEFY light client.
+    "initialValidators": [
+      "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199914b9e5506744e80bd0fd33d",
+      "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e"
+    ],
+    /// The next validators for the BEEFY light client.
+    "nextValidators": [
+      "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199914b9e5506744e80bd0fd33d",
+      "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e"
+    ]
+  }
+}

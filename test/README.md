@@ -1,8 +1,5 @@
 # End-to-End Test Environment
 
-> [WARNING‼️]  
-> 🏗️ Under construction!
-
 ## Contents
 
 ```sh
@@ -34,7 +31,7 @@ Follow these steps to set up and interact with your test environment:
 
 2. **Explore the network**
 
-   - Block Explorer: [http://localhost:3000](http://localhost:3000).
+   - Block Explorer: [http://127.0.0.1:3000](http://127.0.0.1:3000).
    - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
 
 3. **Send test transactions**
@@ -67,6 +64,29 @@ Follow these steps to set up and interact with your test environment:
 
 ### E2E Network Launch doesn't work
 
+#### Script halts unexpectedly
+
+When running `start:e2e:minimal` the script appears to halt after the following:
+
+```shell
+## Setting up 1 EVM.
+
+==========================
+
+Chain 3151908
+
+Estimated gas price: 2.75 gwei
+
+Estimated total gas used for script: 71556274
+
+Estimated amount required: 0.1967797535 ETH
+
+==========================
+```
+
+This is due to how forge streams output to stdout, but is infact still deploying contracts to the chain.
+You should be able to see in blockscout the deploy script is indeed still working.
+
 #### Errors with deploying forge scripts on kurtosis network
 
 Try running `forge clean` to clear any spurious build artefacts, and running forge build again. Also try deploying manually to the still running kurtosis network.
@@ -84,7 +104,6 @@ this is a result of CORS and CSP errors due to running this as a local docker ne
 Make sure you are connected directly to `http://127.0.0.1:3000` (not `localhost`).
 
 Alternatively, you can try installing a browser addon such as [anti-CORS / anti-CSP](https://chromewebstore.google.com/detail/anti-cors-anti-csp/fcbmpcbjjphnaohicmhefjihollidgkp) to circumvent this problem.
-
 
 #### Weird forge Errors
 

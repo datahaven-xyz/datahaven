@@ -27,7 +27,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1u128 << 60))
+                .map(|k| (k, 1u128 << 110))
                 .collect::<Vec<_>>(),
         },
         babe: pallet_babe::GenesisConfig {
@@ -62,7 +62,7 @@ fn testnet_genesis(
         validator_set: pallet_validator_set::GenesisConfig {
             initial_validators: initial_authorities
                 .iter()
-                .map(|x| x.0)
+                .map(|(account, ..)| *account)
                 .collect::<Vec<_>>()
                 .try_into()
                 .expect("Too many initial authorities"),

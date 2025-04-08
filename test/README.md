@@ -81,7 +81,14 @@ Content-Security-Policy: The page’s settings blocked the loading of a resource
 
 this is a result of CORS and CSP errors due to running this as a local docker network.
 
-Consider installing a browser addon such as [anti-CORS / anti-CSP](https://chromewebstore.google.com/detail/anti-cors-anti-csp/fcbmpcbjjphnaohicmhefjihollidgkp) to circumvent this problem.
+Make sure you are connected directly to `http://127.0.0.1:3000` (not `localhost`).
+
+Alternatively, you can try installing a browser addon such as [anti-CORS / anti-CSP](https://chromewebstore.google.com/detail/anti-cors-anti-csp/fcbmpcbjjphnaohicmhefjihollidgkp) to circumvent this problem.
+
+
+#### Weird forge Errors
+
+In the `/contracts` directory, you can try to run `forge clean` and `forge build` to see if it fixes the issue.
 
 #### Linux: See if disabling ipV6 helps
 

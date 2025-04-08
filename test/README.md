@@ -67,6 +67,22 @@ Follow these steps to set up and interact with your test environment:
 
 ### E2E Network Launch doesn't work
 
+#### Errors with deploying forge scripts on kurtosis network
+
+Try running `forge clean` to clear any spurious build artefacts, and running forge build again. Also try deploying manually to the still running kurtosis network.
+
+#### Blockscout is empty
+
+If you look at the browser console, if you see the following:
+
+```browser
+Content-Security-Policy: The page’s settings blocked the loading of a resource (connect-src) at http://127.0.0.1:3000/node-api/proxy/api/v2/stats because it violates the following directive: “connect-src ' ...
+```
+
+this is a result of CORS and CSP errors due to running this as a local docker network.
+
+Consider installing a browser addon such as [anti-CORS / anti-CSP](https://chromewebstore.google.com/detail/anti-cors-anti-csp/fcbmpcbjjphnaohicmhefjihollidgkp) to circumvent this problem.
+
 #### Linux: See if disabling ipV6 helps
 
 I have found that ipV6 on Arch Linux does not play very nicely with Kurtosis networks. Disabling it completely fixed the issue for me.

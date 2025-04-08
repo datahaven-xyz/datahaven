@@ -8,7 +8,11 @@ async function main() {
     console.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
     invariant(false, "❌ Kurtosis CLI application not found.");
   }
-  // TODO: Check that user has docker installed and running
+
+  if (!(await checkDockerRunning())) {
+    console.error("Is Docker Running? Unable to make connection to docker daemon");
+    invariant(false, "❌ Error connecting to Docker");
+  }
   // TODO: Check that forge is installed
   // TODO: if mac, manually pull the images for network = linux/amd64 since blockscout doesnt have arm ones
 
@@ -169,4 +173,8 @@ const checkKurtosisRunning = async (): Promise<boolean> => {
   return text.length > 0;
 };
 
+const checkDockerRunning = async (): Promise<boolean> => {
+  const { exitCode } = await $`docker system info`.nothrow();
+  return exitCode === 0;
+};
 main();

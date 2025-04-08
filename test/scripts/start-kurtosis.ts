@@ -3,11 +3,13 @@ import invariant from "tiny-invariant";
 import sendTxn from "./send-txn";
 
 async function main() {
+  const timeStart = performance.now();
   if (!(await checkKurtosisInstalled())) {
     console.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
     invariant(false, "❌ Kurtosis CLI application not found.");
   }
-
+  // TODO: Check that user has docker installed and running
+  // TODO: Check that forge is installed
   // TODO: if mac, manually pull the images for network = linux/amd64 since blockscout doesnt have arm ones
 
   console.log("🪔 Starting Kurtosis network...");
@@ -68,6 +70,41 @@ async function main() {
 
   console.log("================================================");
 
+  const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil test acc1
+  const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
+  invariant(networkRpcUrl, "❌ Network RPC URL not found");
+  await sendTxn(privateKey, networkRpcUrl);
+
+  // Deploy all the contracts
+
+  console.log("🛳️ Deploying contracts...");
+  const { exitCode: buildExitCode, stderr: buildStderr } = await $`forge build`
+    .cwd("../contracts")
+    .nothrow();
+
+  if (buildExitCode !== 0) {
+    console.error(buildStderr.toString());
+    invariant(false, "❌ Contracts have failed to build properly.");
+  }
+
+  const { stdout: forgePath } = await $`which forge`.quiet();
+  const forgeExecutable = forgePath.toString().trim();
+  console.log(`Using forge at: ${forgeExecutable}`);
+
+  const deployCommand = `${forgeExecutable} script script/deploy/Deploy.s.sol --rpc-url ${services.find((s) => s.service === "reth-1-rpc")?.url} --color never -vv --no-rpc-rate-limit --non-interactive --verify --verifier blockscout --verifier-url ${services.find((s) => s.service === "blockscout-backend")?.url}/api/ --broadcast`;
+  console.log(`Running command: ${deployCommand}`);
+
+  const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`
+    .cwd("../contracts")
+    .nothrow();
+
+  if (deployExitCode !== 0) {
+    console.error(deployStderr.toString());
+    invariant(false, "❌ Contracts have failed to deploy properly.");
+  }
+
+  console.log("================================================");
+
   console.table([
     ...services,
     { service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" },
@@ -80,32 +117,11 @@ async function main() {
 
   console.log("================================================");
 
-  const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil test acc1
-  const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
-  invariant(networkRpcUrl, "❌ Network RPC URL not found");
-  await sendTxn(privateKey, networkRpcUrl);
+  const timeEnd = performance.now();
 
-  // Deploy all the contracts
-  console.log("🛳️ Deploying contracts...");
-
-  const { stdout: forgePath } = await $`which forge`.quiet();
-  const forgeExecutable = forgePath.toString().trim();
-  console.log(`Using forge at: ${forgeExecutable}`);
-
-  const deployCommand = `${forgeExecutable} script script/deploy/Deploy.s.sol --rpc-url ${services.find((s) => s.service === "reth-1-rpc")?.url} --color never -vv --no-rpc-rate-limit --non-interactive --verify --verifier blockscout --verifier-url ${services.find((s) => s.service === "blockscout-backend")?.url}/api/ --broadcast`;
-  // console.log(`Running command: ${deployCommand}`);
-
-  const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`
-    .cwd("../contracts")
-    .nothrow();
-
-  if (deployExitCode !== 0) {
-    console.error(deployStderr.toString());
-    invariant(false, "❌ Contracts have failed to deploy properly.");
-  }
-
-  console.log("================================================");
-  console.log("💚 Kurtosis network has started successfully.");
+  console.log(
+    `💚 Kurtosis network has started successfully in ${((timeEnd - timeStart) / (1000 * 60)).toFixed(1)} minutes`
+  );
 }
 
 const extractServiceLine = (output: string, serviceName: string, portType: string): string => {

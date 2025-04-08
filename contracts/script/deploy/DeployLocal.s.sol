@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+// Testing imports
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {DeployParams} from "./DeployParams.s.sol";
 import {Logging} from "../utils/Logging.sol";
 
+// Snowbridge imports
 import {Gateway} from "snowbridge/src/Gateway.sol";
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
@@ -16,41 +18,43 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
+// OpenZeppelin imports
+import {ERC20PresetFixedSupply} from
+    "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {ITransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {TransparentUpgradeableProxy} from
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
-import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
-import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
-import {PermissionController} from
-    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+
+// EigenLayer imports
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
+import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
+import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
+import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
+import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
+import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {
     IRewardsCoordinator,
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-
-// Additional EigenLayer imports
-import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
-import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {EigenPod} from "eigenlayer-contracts/src/contracts/pods/EigenPod.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
-import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {StrategyBaseTVLLimits} from
     "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
-import {ERC20PresetFixedSupply} from
-    "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
-import {ITransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
+// DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
+import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 
 contract Deploy is Script, DeployParams {
     // Progress indicator

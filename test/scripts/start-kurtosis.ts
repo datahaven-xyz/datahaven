@@ -71,7 +71,7 @@ async function main() {
   const blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
   invariant(blockscoutBackendUrl, "❌ Blockscout backend URL not found");
 
-  const deployCommand = `${forgeExecutable} script script/deploy/Deploy.s.sol --rpc-url ${networkRpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --broadcast`;
+  const deployCommand = `${forgeExecutable} script script/deploy/DeployLocal.s.sol --rpc-url ${networkRpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --broadcast`;
   console.log(`Running command: ${deployCommand}`);
 
   const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`

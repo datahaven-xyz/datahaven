@@ -77,7 +77,7 @@ anvil
 2. Deploy to local Anvil:
 
 ```bash
-forge script script/deploy/Deploy.s.sol --rpc-url anvil --broadcast
+forge script script/deploy/DeployLocal.s.sol --rpc-url anvil --broadcast
 ```
 
 ### Network Deployment
@@ -85,7 +85,7 @@ forge script script/deploy/Deploy.s.sol --rpc-url anvil --broadcast
 To deploy to a network configured in `foundry.toml`:
 
 ```bash
-forge script script/deploy/Deploy.s.sol --rpc-url $NETWORK_RPC_URL --private-key $PRIVATE_KEY --broadcast
+forge script script/deploy/DeployLocal.s.sol --rpc-url $NETWORK_RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 Replace `$NETWORK_RPC_URL` with the RPC endpoint and `$PRIVATE_KEY` with your deployer's private key.
@@ -93,7 +93,7 @@ Replace `$NETWORK_RPC_URL` with the RPC endpoint and `$PRIVATE_KEY` with your de
 Or using a network from `foundry.toml`:
 
 ```bash
-forge script script/deploy/Deploy.s.sol --rpc-url mainnet --private-key $PRIVATE_KEY --broadcast
+forge script script/deploy/DeployLocal.s.sol --rpc-url mainnet --private-key $PRIVATE_KEY --broadcast
 ```
 
 ## Configuration

@@ -37,7 +37,7 @@ Follow these steps to set up and interact with your test environment:
       - 1 x Blockscout frontend
       - 1 x Blockscout backend
    2. Send a test transaction to the network using the [send-txn.ts](./scripts/send-txn.ts) script.
-   3. Deploy and verify all DataHaven smart contracts needed for a local deployment, using the [Deploy.s.sol](../contracts/script/deploy/Deploy.s.sol) script.
+   3. Deploy and verify all DataHaven smart contracts needed for a local deployment, using the [DeployLocal.s.sol](../contracts/script/deploy/DeployLocal.s.sol) script.
 
 2. **Explore the network**
 

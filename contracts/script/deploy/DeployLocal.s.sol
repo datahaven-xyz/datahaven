@@ -35,7 +35,8 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManagerTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {
     IRewardsCoordinator,
@@ -210,7 +211,6 @@ contract Deploy is Script, DeployParams, Accounts {
         );
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
-        // Set the slasher in the ServiceManager
         Logging.logSection("Configuring Service Manager");
 
         // Register the DataHaven service in the AllocationManager
@@ -218,7 +218,7 @@ contract Deploy is Script, DeployParams, Accounts {
         serviceManager.updateAVSMetadataURI("");
         Logging.logStep("DataHaven service registered in AllocationManager");
 
-        // This needs to be executed by the AVS owner
+        // Set the slasher in the ServiceManager
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.setSlasher(vetoableSlasher);
         Logging.logStep("Slasher set in ServiceManager");
@@ -229,18 +229,19 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logStep("RewardsRegistry set in ServiceManager");
 
         // Create an operator set in the DataHaven service
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams = new IAllocationManagerTypes.CreateSetParams[](1);
+        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams =
+            new IAllocationManagerTypes.CreateSetParams[](1);
         IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             strategies[i] = IStrategy(deployedStrategies[i]);
         }
-        operatorSetParams[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: 0,
-            strategies: strategies
-        });
+        operatorSetParams[0] =
+            IAllocationManagerTypes.CreateSetParams({operatorSetId: 0, strategies: strategies});
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.createOperatorSets(operatorSetParams);
-        Logging.logStep("Operator set created in DataHaven service with all the deployed strategies");
+        Logging.logStep(
+            "Operator set created in DataHaven service with all the deployed strategies"
+        );
 
         Logging.logFooter();
         _logProgress();
@@ -569,10 +570,7 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logStep("PermissionController upgraded");
     }
 
-    function _deployStrategies(
-        PauserRegistry pauserRegistry,
-        ProxyAdmin proxyAdmin
-    ) internal {
+    function _deployStrategies(PauserRegistry pauserRegistry, ProxyAdmin proxyAdmin) internal {
         // Deploy base strategy implementation
         vm.broadcast(_deployerPrivateKey);
         baseStrategyImplementation =
@@ -584,11 +582,8 @@ contract Deploy is Script, DeployParams, Accounts {
         if (block.chainid != 1) {
             // We mint tokens to the operator account so that it then has a balance to deposit as stake.
             vm.broadcast(_deployerPrivateKey);
-            address testToken = address(
-                new ERC20PresetFixedSupply(
-                    "TestToken", "TEST", 1000000 ether, _operator
-                )
-            );
+            address testToken =
+                address(new ERC20PresetFixedSupply("TestToken", "TEST", 1000000 ether, _operator));
             Logging.logContractDeployed("TestToken", testToken);
 
             // Create strategy for test token

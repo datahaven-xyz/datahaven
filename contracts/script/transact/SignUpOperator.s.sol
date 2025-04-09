@@ -10,7 +10,8 @@ import {DHScriptStorage} from "../utils/DHScriptStorage.s.sol";
 import {Accounts} from "../utils/Accounts.sol";
 
 // EigenLayer imports
-import {IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManagerTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
 
 // OpenZeppelin imports
@@ -36,7 +37,7 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
         // Read addresses of latest deployment of EigenLayer contracts, for the given network.
         _loadELContracts(network);
         Logging.logInfo(string.concat("Loaded EigenLayer contracts for network: ", network));
-        
+
         // Read addresses of latest deployment of DataHaven contracts, for the given network.
         _loadDHContracts(network);
         Logging.logInfo(string.concat("Loaded DataHaven contracts for network: ", network));
@@ -45,24 +46,24 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
 
         // STEP 1: Stake tokens into strategies
         Logging.logSection("Staking Tokens into Strategies");
-        
+
         // Get the deployed strategies and deposit some of the operator's balance into them.
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             IERC20 linkedToken = StrategyBase(deployedStrategies[i]).underlyingToken();
-            
+
             // Check that the operator has a balance of the linked token.
             uint256 balance = linkedToken.balanceOf(_operator);
             Logging.logInfo(
                 string.concat(
-                    "Strategy ", 
-                    vm.toString(i), 
-                    " underlying token: ", 
+                    "Strategy ",
+                    vm.toString(i),
+                    " underlying token: ",
                     vm.toString(address(linkedToken)),
                     " - Operator balance: ",
                     vm.toString(balance)
                 )
             );
-            
+
             require(balance > 0, "Operator does not have a balance of the linked token");
 
             // Stake some of the operator's balance as stake for the strategy.
@@ -71,13 +72,10 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
             IERC20(linkedToken).approve(address(strategyManager), balanceToStake);
             strategyManager.depositIntoStrategy(deployedStrategies[i], linkedToken, balanceToStake);
             vm.stopBroadcast();
-            
+
             Logging.logStep(
                 string.concat(
-                    "Staked ", 
-                    vm.toString(balanceToStake), 
-                    " tokens for strategy ", 
-                    vm.toString(i)
+                    "Staked ", vm.toString(balanceToStake), " tokens for strategy ", vm.toString(i)
                 )
             );
         }
@@ -85,7 +83,7 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
 
         // STEP 2: Register as an operator in EigenLayer
         Logging.logSection("Registering as EigenLayer Operator");
-        
+
         // Register the operator as an operator.
         // We don't set a delegation approver, so that there is no need to sign any messages.
         address initDelegationApprover = address(0);
@@ -93,7 +91,9 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
         string memory metadataURI = "";
         vm.broadcast(_operatorPrivateKey);
         delegation.registerAsOperator(initDelegationApprover, allocationDelay, metadataURI);
-        Logging.logStep(string.concat("Registered operator in EigenLayer: ", vm.toString(_operator)));
+        Logging.logStep(
+            string.concat("Registered operator in EigenLayer: ", vm.toString(_operator))
+        );
 
         // Check the staked balance of the operator.
         Logging.logSection("Operator Shares Information");
@@ -101,9 +101,9 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
             uint256 operatorShares = delegation.operatorShares(_operator, deployedStrategies[i]);
             Logging.logInfo(
                 string.concat(
-                    "Operator shares for strategy ", 
-                    vm.toString(i), 
-                    ": ", 
+                    "Operator shares for strategy ",
+                    vm.toString(i),
+                    ": ",
                     vm.toString(operatorShares)
                 )
             );
@@ -112,21 +112,18 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
 
         // STEP 3: Register as a DataHaven operator
         Logging.logSection("Registering as DataHaven Operator");
-        
+
         // Register the operator as operator for the DataHaven service.
-        IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes.RegisterParams({
-            avs: address(serviceManager),
-            operatorSetIds: new uint32[](1),
-            data: ""
-        });
-        
+        IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
+            .RegisterParams({avs: address(serviceManager), operatorSetIds: new uint32[](1), data: ""});
+
         vm.broadcast(_operatorPrivateKey);
         allocationManager.registerForOperatorSets(_operator, registerParams);
         Logging.logStep("Registered operator in DataHaven service");
 
         // // STEP 4: Demonstrate deregistration (for testing purposes)
         // Logging.logSection("Deregistering from DataHaven (Demo)");
-        
+
         // IAllocationManagerTypes.DeregisterParams memory deregisterParams = IAllocationManagerTypes.DeregisterParams({
         //     avs: address(serviceManager),
         //     operator: _operator,
@@ -135,7 +132,7 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
         // vm.broadcast(_operatorPrivateKey);
         // allocationManager.deregisterFromOperatorSets(deregisterParams);
         // Logging.logStep("Deregistered operator from DataHaven service (for demonstration)");
-        
+
         Logging.logHeader("OPERATOR SETUP COMPLETE");
         Logging.logInfo(string.concat("Operator: ", vm.toString(_operator)));
         Logging.logInfo("Successfully configured operator for DataHaven");

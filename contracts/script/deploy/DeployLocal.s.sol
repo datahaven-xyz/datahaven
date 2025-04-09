@@ -150,7 +150,7 @@ contract Deploy is Script, DeployParams, Accounts {
 
         // Deploy strategy implementation and create strategy proxies
         Logging.logSection("Deploying Strategy Contracts");
-        _deployStrategies(eigenLayerConfig, pauserRegistry, proxyAdmin);
+        _deployStrategies(pauserRegistry, proxyAdmin);
         Logging.logStep("Strategy contracts deployed successfully");
 
         // Transfer ownership of core contracts
@@ -525,7 +525,6 @@ contract Deploy is Script, DeployParams, Accounts {
     }
 
     function _deployStrategies(
-        EigenLayerConfig memory config,
         PauserRegistry pauserRegistry,
         ProxyAdmin proxyAdmin
     ) internal {
@@ -535,12 +534,12 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logContractDeployed("Strategy Implementation", address(baseStrategyImplementation));
 
         // Create default test token and strategy if needed
-        // In a production environment, this would be replaced with actual token addresses
+        // In a production environment, this would be replaced with actual token addresses.
         if (block.chainid != 1) {
-            // Only for non-mainnet
+            // We mint tokens to the operator account so that it then has a balance to deposit as stake.
             address testToken = address(
                 new ERC20PresetFixedSupply(
-                    "TestToken", "TEST", 1000000 ether, config.executorMultisig
+                    "TestToken", "TEST", 1000000 ether, _operator
                 )
             );
             Logging.logContractDeployed("TestToken", testToken);

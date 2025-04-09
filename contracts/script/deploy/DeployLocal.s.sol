@@ -35,6 +35,7 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
+import {IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {
     IRewardsCoordinator,
@@ -211,6 +212,12 @@ contract Deploy is Script, DeployParams, Accounts {
 
         // Set the slasher in the ServiceManager
         Logging.logSection("Configuring Service Manager");
+
+        // Register the DataHaven service in the AllocationManager
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.updateAVSMetadataURI("");
+        Logging.logStep("DataHaven service registered in AllocationManager");
+
         // This needs to be executed by the AVS owner
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.setSlasher(vetoableSlasher);
@@ -220,6 +227,20 @@ contract Deploy is Script, DeployParams, Accounts {
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.setRewardsRegistry(0, rewardsRegistry);
         Logging.logStep("RewardsRegistry set in ServiceManager");
+
+        // Create an operator set in the DataHaven service
+        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams = new IAllocationManagerTypes.CreateSetParams[](1);
+        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            strategies[i] = IStrategy(deployedStrategies[i]);
+        }
+        operatorSetParams[0] = IAllocationManagerTypes.CreateSetParams({
+            operatorSetId: 0,
+            strategies: strategies
+        });
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.createOperatorSets(operatorSetParams);
+        Logging.logStep("Operator set created in DataHaven service with all the deployed strategies");
 
         Logging.logFooter();
         _logProgress();

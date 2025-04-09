@@ -573,8 +573,10 @@ impl pallet_parameters::Config for Runtime {
 impl pallet_randomness::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type BabeDataGetter = BabeDataGetter;
-    type RelayBlockGetter = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+    type BabeBlockGetter = BlockNumberGetter;
     type WeightInfo = ();
+    type BabeDataGetterBlockNumber = BlockNumber;
+
 }
 
 /// Only callable after `set_validation_data` is called which forms this proof the same way
@@ -590,7 +592,6 @@ impl pallet_randomness::Config for Runtime {
 
 pub struct BabeDataGetter;
 impl pallet_randomness::GetBabeData<u64, Hash> for BabeDataGetter {
-    // Tolerate panic here because this is only ever called in an inherent (so can be omitted)
     fn get_epoch_index() -> u64 {
         todo!("implement `get_epoch_index`");
     }
@@ -601,6 +602,17 @@ impl pallet_randomness::GetBabeData<u64, Hash> for BabeDataGetter {
         todo!("implement `get_parent_randomness`");
     }
 }
+
+pub struct BlockNumberGetter {}
+impl sp_runtime::traits::BlockNumberProvider for BlockNumberGetter {
+    type BlockNumber = BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        frame_system::Pallet::<Runtime>::block_number()
+    }
+}
+
+
 /****** ****** ****** ******/
 
 /****** Storage Providers pallet ******/

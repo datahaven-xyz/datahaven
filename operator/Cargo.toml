@@ -150,8 +150,7 @@ pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch =
 parachains-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 parachain-info = { package = "staging-parachain-info", git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 # TODO: Change sp-trie to the next stable version when it's released with the applied fix of this [PR](https://github.com/paritytech/polkadot-sdk/pull/6486)
-sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "master", default-features = false }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
+sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 
 num-bigint = { version = "0.4.3", default-features = false }
 
@@ -161,4 +160,8 @@ shp-file-key-verifier = { path = "../../storage-hub/primitives/file-key-verifier
 shp-traits = { path = "../../storage-hub/primitives/traits" }
 shp-file-metadata = { path = "../../storage-hub/primitives/file-metadata" }
 pallet-storage-providers = { path = "../../storage-hub/pallets/providers" }
-
+pallet-file-system = { path = "../../storage-hub/pallets/file-system" }
+pallet-bucket-nfts = { path = "../../storage-hub/pallets/bucket-nfts" }
+pallet-payment-streams = { path = "../../storage-hub/pallets/payment-streams" }
+pallet-proofs-dealer = { path = "../../storage-hub/pallets/proofs-dealer" }
+pallet-randomness = { path = "../../storage-hub/pallets/randomness" }

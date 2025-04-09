@@ -317,11 +317,4 @@ mod runtime {
     pub type Nfts = pallet_nfts;
     #[runtime::pallet_index(51)]
     pub type Parameters = pallet_parameters;
-    #[runtime::pallet_index(52)]
-    pub type ParachainSystem = cumulus_pallet_parachain_system;
-}
-
-cumulus_pallet_parachain_system::register_validate_block! {
-    Runtime = Runtime,
-    BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 }

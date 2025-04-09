@@ -93,9 +93,9 @@ smallvec = { workspace = true }
 shp-treasury-funding = { workspace = true }
 shp-forest-verifier = { workspace = true }
 shp-file-key-verifier = { workspace = true }
-cumulus-pallet-parachain-system = { workspace = true }
 shp-data-price-updater = { workspace = true }
 num-bigint = { workspace = true }
+
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
@@ -164,7 +164,6 @@ std = [
 	"shp-traits/std",
 	"shp-treasury-funding/std",
     "shp-file-key-verifier/std",
-    "cumulus-pallet-parachain-system/std",
 
     "polkadot-primitives/std",
 	"polkadot-runtime-common/std",

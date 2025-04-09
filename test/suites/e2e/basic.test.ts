@@ -39,7 +39,7 @@ describe("E2E: Read-only", () => {
     expect(isAddress(contractAddress)).toBeTrue();
 
     const contractCode = await api.getCode({ address: contractAddress });
-    expect(contractCode).toBeTruthy;
+    expect(contractCode).toBeTruthy();
 
     describe("BeefyClient contract", async () => {
       it("latestBeefyBlock()) can be read", async () => {
@@ -71,6 +71,6 @@ describe("E2E: Read-only", () => {
     expect(isAddress(contractAddress)).toBeTrue();
 
     const contractCode = await api.getCode({ address: contractAddress });
-    expect(contractCode).toBeTruthy;
+    expect(contractCode).toBeTruthy();
   });
 });

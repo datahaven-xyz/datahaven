@@ -28,13 +28,13 @@ contract DeployParams is Script, Config {
         bool isDevMode = keccak256(abi.encodePacked(vm.envOr("DEV_MODE", string("false"))))
             == keccak256(abi.encodePacked("true"));
         if (isDevMode) {
-            config.initialValidators = generateMockValidators(10);
-            config.nextValidators = generateMockValidators(10);
+            config.initialValidators = _generateMockValidators(10);
+            config.nextValidators = _generateMockValidators(10);
         } else {
             config.initialValidators =
-                loadValidatorsFromConfig(configJson, ".snowbridge.initialValidators");
+                _loadValidatorsFromConfig(configJson, ".snowbridge.initialValidators");
             config.nextValidators =
-                loadValidatorsFromConfig(configJson, ".snowbridge.nextValidators");
+                _loadValidatorsFromConfig(configJson, ".snowbridge.nextValidators");
         }
 
         return config;
@@ -66,7 +66,7 @@ contract DeployParams is Script, Config {
         string memory configJson = vm.readFile(configPath);
 
         // Load from JSON config or use environment variables as fallback
-        config.pauserAddresses = loadAddressesFromConfig(configJson, ".eigenLayer.pausers");
+        config.pauserAddresses = _loadAddressesFromConfig(configJson, ".eigenLayer.pausers");
         config.unpauserAddress = vm.parseJsonAddress(configJson, ".eigenLayer.unpauser");
         config.rewardsUpdater = vm.parseJsonAddress(configJson, ".eigenLayer.rewardsUpdater");
         config.calculationIntervalSeconds =
@@ -193,7 +193,7 @@ contract DeployParams is Script, Config {
         }
     }
 
-    function generateMockValidators(
+    function _generateMockValidators(
         uint256 count
     ) internal pure returns (bytes32[] memory) {
         // Generate mock validators for testing
@@ -204,7 +204,7 @@ contract DeployParams is Script, Config {
         return validators;
     }
 
-    function loadValidatorsFromConfig(
+    function _loadValidatorsFromConfig(
         string memory configJson,
         string memory path
     ) internal pure returns (bytes32[] memory) {
@@ -219,7 +219,7 @@ contract DeployParams is Script, Config {
         return validators;
     }
 
-    function loadAddressesFromConfig(
+    function _loadAddressesFromConfig(
         string memory configJson,
         string memory path
     ) internal pure returns (address[] memory) {

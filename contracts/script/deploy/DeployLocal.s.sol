@@ -6,7 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {DeployParams} from "./DeployParams.s.sol";
 import {Logging} from "../utils/Logging.sol";
-
+import {Accounts} from "../utils/Accounts.sol";
 // Snowbridge imports
 import {Gateway} from "snowbridge/src/Gateway.sol";
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
@@ -56,47 +56,37 @@ import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
-contract Deploy is Script, DeployParams {
+contract Deploy is Script, DeployParams, Accounts {
     // Progress indicator
-    uint16 private deploymentStep = 0;
-    uint16 private totalSteps = 4; // Total major deployment steps
-
-    uint256 internal deployerPrivateKey = vm.envOr(
-        "DEPLOYER_PRIVATE_KEY",
-        uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80) // First pre-funded account from Anvil
-    );
-
-    uint256 internal avsOwnerPrivateKey = vm.envOr(
-        "AVS_OWNER_PRIVATE_KEY",
-        uint256(0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e) // Sixth pre-funded account from Anvil
-    );
+    uint16 public deploymentStep = 0;
+    uint16 public totalSteps = 4; // Total major deployment steps
 
     // EigenLayer Contract declarations
-    EmptyContract internal emptyContract;
-    RewardsCoordinator internal rewardsCoordinator;
-    RewardsCoordinator internal rewardsCoordinatorImplementation;
-    PermissionController internal permissionController;
-    PermissionController internal permissionControllerImplementation;
-    AllocationManager internal allocationManager;
-    AllocationManager internal allocationManagerImplementation;
-    DelegationManager internal delegation;
-    DelegationManager internal delegationImplementation;
-    StrategyManager internal strategyManager;
-    StrategyManager internal strategyManagerImplementation;
-    AVSDirectory internal avsDirectory;
-    AVSDirectory internal avsDirectoryImplementation;
-    EigenPodManager internal eigenPodManager;
-    EigenPodManager internal eigenPodManagerImplementation;
-    UpgradeableBeacon internal eigenPodBeacon;
-    EigenPod internal eigenPodImplementation;
-    StrategyBaseTVLLimits internal baseStrategyImplementation;
-    StrategyBaseTVLLimits[] internal deployedStrategies;
-    IETHPOSDeposit internal ethPOSDeposit;
+    EmptyContract public emptyContract;
+    RewardsCoordinator public rewardsCoordinator;
+    RewardsCoordinator public rewardsCoordinatorImplementation;
+    PermissionController public permissionController;
+    PermissionController public permissionControllerImplementation;
+    AllocationManager public allocationManager;
+    AllocationManager public allocationManagerImplementation;
+    DelegationManager public delegation;
+    DelegationManager public delegationImplementation;
+    StrategyManager public strategyManager;
+    StrategyManager public strategyManagerImplementation;
+    AVSDirectory public avsDirectory;
+    AVSDirectory public avsDirectoryImplementation;
+    EigenPodManager public eigenPodManager;
+    EigenPodManager public eigenPodManagerImplementation;
+    UpgradeableBeacon public eigenPodBeacon;
+    EigenPod public eigenPodImplementation;
+    StrategyBaseTVLLimits public baseStrategyImplementation;
+    StrategyBaseTVLLimits[] public deployedStrategies;
+    IETHPOSDeposit public ethPOSDeposit;
 
     // EigenLayer required semver
-    string internal constant SEMVER = "v1.0.0";
+    string public constant SEMVER = "v1.0.0";
 
-    function logProgress() internal {
+    function _logProgress() internal {
         deploymentStep++;
         Logging.logProgress(deploymentStep, totalSteps);
     }
@@ -113,7 +103,7 @@ contract Deploy is Script, DeployParams {
         EigenLayerConfig memory eigenLayerConfig = getEigenLayerConfig();
 
         // Start the broadcast for the deployment transactions
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast(_deployerPrivateKey);
 
         // Deploy EigenLayer core contracts
         Logging.logHeader("EIGENLAYER CORE CONTRACTS DEPLOYMENT");
@@ -124,7 +114,7 @@ contract Deploy is Script, DeployParams {
         Logging.logContractDeployed("ProxyAdmin", address(proxyAdmin));
 
         // Deploy pauser registry
-        PauserRegistry pauserRegistry = deployPauserRegistry(eigenLayerConfig);
+        PauserRegistry pauserRegistry = _deployPauserRegistry(eigenLayerConfig);
         Logging.logContractDeployed("PauserRegistry", address(pauserRegistry));
 
         // Deploy empty contract to use as initial implementation for proxies
@@ -133,7 +123,7 @@ contract Deploy is Script, DeployParams {
 
         // Deploy proxies that will point to implementations
         Logging.logSection("Deploying Proxy Contracts");
-        deployProxies(proxyAdmin);
+        _deployProxies(proxyAdmin);
         Logging.logStep("Initial proxies deployed successfully");
 
         // Setup ETH2 deposit contract for EigenPod functionality
@@ -150,17 +140,17 @@ contract Deploy is Script, DeployParams {
 
         // Deploy implementation contracts
         Logging.logSection("Deploying Implementation Contracts");
-        deployImplementations(eigenLayerConfig, pauserRegistry);
+        _deployImplementations(eigenLayerConfig, pauserRegistry);
         Logging.logStep("Implementation contracts deployed successfully");
 
         // Upgrade proxies to point to implementations and initialize
         Logging.logSection("Initializing Contracts");
-        upgradeAndInitializeProxies(eigenLayerConfig, proxyAdmin);
+        _upgradeAndInitializeProxies(eigenLayerConfig, proxyAdmin);
         Logging.logStep("Proxies upgraded and initialized successfully");
 
         // Deploy strategy implementation and create strategy proxies
         Logging.logSection("Deploying Strategy Contracts");
-        deployStrategies(eigenLayerConfig, pauserRegistry, proxyAdmin);
+        _deployStrategies(eigenLayerConfig, pauserRegistry, proxyAdmin);
         Logging.logStep("Strategy contracts deployed successfully");
 
         // Transfer ownership of core contracts
@@ -169,7 +159,7 @@ contract Deploy is Script, DeployParams {
         Logging.logStep("Ownership transferred to multisig");
 
         Logging.logFooter();
-        logProgress();
+        _logProgress();
 
         // Deploy DataHaven custom contracts
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
@@ -214,7 +204,7 @@ contract Deploy is Script, DeployParams {
 
         // This needs to be executed by the AVS owner
         vm.stopBroadcast();
-        vm.startBroadcast(avsOwnerPrivateKey);
+        vm.startBroadcast(_avsOwnerPrivateKey);
 
         // Set the slasher in the ServiceManager
         Logging.logSection("Configuring Service Manager");
@@ -226,11 +216,11 @@ contract Deploy is Script, DeployParams {
         Logging.logStep("RewardsRegistry set in ServiceManager");
 
         Logging.logFooter();
-        logProgress();
+        _logProgress();
 
         // Going back to the deployer to deploy Snowbridge
         vm.stopBroadcast();
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast(_deployerPrivateKey);
 
         // Deploy Snowbridge and configure Agent
         Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
@@ -240,14 +230,14 @@ contract Deploy is Script, DeployParams {
             AgentExecutor agentExecutor,
             IGatewayV2 gateway,
             address payable rewardsAgentAddress
-        ) = deploySnowbridge(snowbridgeConfig);
+        ) = _deploySnowbridge(snowbridgeConfig);
 
         Logging.logFooter();
-        logProgress();
+        _logProgress();
 
         // This needs to be executed by the AVS owner
         vm.stopBroadcast();
-        vm.startBroadcast(avsOwnerPrivateKey);
+        vm.startBroadcast(_avsOwnerPrivateKey);
 
         // Set the Agent in the RewardsRegistry
         Logging.logHeader("FINAL CONFIGURATION");
@@ -257,10 +247,10 @@ contract Deploy is Script, DeployParams {
 
         vm.stopBroadcast();
         Logging.logFooter();
-        logProgress();
+        _logProgress();
 
         // Output all deployed contract addresses
-        outputDeployedAddresses(
+        _outputDeployedAddresses(
             beefyClient,
             agentExecutor,
             gateway,
@@ -271,12 +261,12 @@ contract Deploy is Script, DeployParams {
         );
     }
 
-    function deploySnowbridge(
+    function _deploySnowbridge(
         SnowbridgeConfig memory config
     ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
         Logging.logSection("Deploying Snowbridge Core Components");
 
-        BeefyClient beefyClient = deployBeefyClient(config);
+        BeefyClient beefyClient = _deployBeefyClient(config);
         Logging.logContractDeployed("BeefyClient", address(beefyClient));
 
         AgentExecutor agentExecutor = new AgentExecutor();
@@ -313,7 +303,7 @@ contract Deploy is Script, DeployParams {
         return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
     }
 
-    function deployProxies(
+    function _deployProxies(
         ProxyAdmin proxyAdmin
     ) internal {
         // Deploy proxies with empty implementation initially
@@ -367,7 +357,7 @@ contract Deploy is Script, DeployParams {
         Logging.logContractDeployed("PermissionController Proxy", address(permissionController));
     }
 
-    function deployImplementations(
+    function _deployImplementations(
         EigenLayerConfig memory config,
         PauserRegistry pauserRegistry
     ) internal {
@@ -438,7 +428,7 @@ contract Deploy is Script, DeployParams {
         );
     }
 
-    function upgradeAndInitializeProxies(
+    function _upgradeAndInitializeProxies(
         EigenLayerConfig memory config,
         ProxyAdmin proxyAdmin
     ) internal {
@@ -534,7 +524,7 @@ contract Deploy is Script, DeployParams {
         Logging.logStep("PermissionController upgraded");
     }
 
-    function deployStrategies(
+    function _deployStrategies(
         EigenLayerConfig memory config,
         PauserRegistry pauserRegistry,
         ProxyAdmin proxyAdmin
@@ -576,19 +566,19 @@ contract Deploy is Script, DeployParams {
         }
     }
 
-    function deployProxyAdmin() internal returns (ProxyAdmin) {
+    function _deployProxyAdmin() internal returns (ProxyAdmin) {
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         return proxyAdmin;
     }
 
-    function deployPauserRegistry(
+    function _deployPauserRegistry(
         EigenLayerConfig memory config
     ) internal returns (PauserRegistry) {
         // Use the array of pauser addresses directly from the config
         return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
     }
 
-    function buildValidatorSet(
+    function _buildValidatorSet(
         uint128 id,
         bytes32[] memory validators
     ) internal pure returns (BeefyClient.ValidatorSet memory) {
@@ -600,14 +590,14 @@ contract Deploy is Script, DeployParams {
             BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
     }
 
-    function deployBeefyClient(
+    function _deployBeefyClient(
         SnowbridgeConfig memory config
     ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
         BeefyClient.ValidatorSet memory validatorSet =
-            buildValidatorSet(0, config.initialValidators);
+            _buildValidatorSet(0, config.initialValidators);
         BeefyClient.ValidatorSet memory nextValidatorSet =
-            buildValidatorSet(1, config.nextValidators);
+            _buildValidatorSet(1, config.nextValidators);
 
         // Deploy BeefyClient
         return new BeefyClient(
@@ -620,7 +610,7 @@ contract Deploy is Script, DeployParams {
         );
     }
 
-    function outputDeployedAddresses(
+    function _outputDeployedAddresses(
         BeefyClient beefyClient,
         AgentExecutor agentExecutor,
         IGatewayV2 gateway,

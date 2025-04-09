@@ -16,15 +16,15 @@ import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
  */
 contract SnowbridgeScriptStorage is Script {
     // Snowbridge Contract declarations
-    BeefyClient internal beefyClient;
-    AgentExecutor internal agentExecutor;
-    IGatewayV2 internal gateway;
-    Agent internal rewardsAgent;
+    BeefyClient public beefyClient;
+    AgentExecutor public agentExecutor;
+    IGatewayV2 public gateway;
+    Agent public rewardsAgent;
 
     /**
      * @notice Loads the Snowbridge contracts from the deployment file.
      */
-    function loadSnowbridgeContracts(
+    function _loadSnowbridgeContracts(
         string memory network
     ) internal {
         // Load the deployment file

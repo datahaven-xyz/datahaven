@@ -15,14 +15,14 @@ import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
  */
 contract DHScriptStorage is Script {
     // DataHaven Contract declarations
-    DataHavenServiceManager internal serviceManager;
-    VetoableSlasher internal vetoableSlasher;
-    RewardsRegistry internal rewardsRegistry;
+    DataHavenServiceManager public serviceManager;
+    VetoableSlasher public vetoableSlasher;
+    RewardsRegistry public rewardsRegistry;
 
     /**
      * @notice Loads the DataHaven contracts from the deployment file.
      */
-    function loadDHContracts(
+    function _loadDHContracts(
         string memory network
     ) internal {
         // Load the deployment file

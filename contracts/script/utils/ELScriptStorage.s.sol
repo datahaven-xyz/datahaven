@@ -25,24 +25,24 @@ import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETH
  */
 contract ELScriptStorage is Script {
     // EigenLayer Contract declarations
-    RewardsCoordinator internal rewardsCoordinator;
-    PermissionController internal permissionController;
-    AllocationManager internal allocationManager;
-    DelegationManager internal delegation;
-    StrategyManager internal strategyManager;
-    EigenPodManager internal eigenPodManager;
-    EigenPod internal eigenPodBeacon;
-    StrategyBaseTVLLimits internal baseStrategy;
-    StrategyBaseTVLLimits[] internal deployedStrategies;
-    IETHPOSDeposit internal ethPOSDeposit;
+    RewardsCoordinator public rewardsCoordinator;
+    PermissionController public permissionController;
+    AllocationManager public allocationManager;
+    DelegationManager public delegation;
+    StrategyManager public strategyManager;
+    EigenPodManager public eigenPodManager;
+    EigenPod public eigenPodBeacon;
+    StrategyBaseTVLLimits public baseStrategy;
+    StrategyBaseTVLLimits[] public deployedStrategies;
+    IETHPOSDeposit public ethPOSDeposit;
 
     // EigenLayer required semver
-    string internal constant SEMVER = "v1.0.0";
+    string public constant SEMVER = "v1.0.0";
 
     /**
      * @notice Loads the EigenLayer contracts from the deployment file.
      */
-    function loadELContracts(
+    function _loadELContracts(
         string memory network
     ) internal {
         // Load the deployment file

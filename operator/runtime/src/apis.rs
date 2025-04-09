@@ -692,45 +692,15 @@ impl_runtime_apis! {
             let is_transactional = false;
             let validate = true;
 
-            let mut estimated_transaction_len = data.len() +
-                // from: 20
-                // value: 32
-                // gas_limit: 32
-                // nonce: 32
-                // 1 byte transaction action variant
-                // chain id 8 bytes
-                // 65 bytes signature
-                190;
-
-            if max_fee_per_gas.is_some() {
-                estimated_transaction_len += 32;
-            }
-            if max_priority_fee_per_gas.is_some() {
-                estimated_transaction_len += 32;
-            }
-            if access_list.is_some() {
-                estimated_transaction_len += access_list.encoded_size();
-            }
-
             let gas_limit = if gas_limit > U256::from(u64::MAX) {
                 u64::MAX
             } else {
                 gas_limit.low_u64()
             };
-            let without_base_extrinsic_weight = true;
 
-            let (weight_limit, proof_size_base_cost) =
-                match <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
-                    gas_limit,
-                    without_base_extrinsic_weight
-                ) {
-                    weight_limit if weight_limit.proof_size() > 0 => {
-                        (Some(weight_limit), Some(estimated_transaction_len as u64))
-                    }
-                    _ => (None, None),
-                };
+            let (weight_limit, proof_size_base_cost) = (None, None);
 
-            #[allow(clippy::or_fun_call)] // suggestion not helpful here
+            #[allow(clippy::or_fun_call)]
             <Runtime as pallet_evm::Config>::Runner::create(
                 from,
                 data,

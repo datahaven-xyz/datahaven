@@ -16,90 +16,90 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 clap = { features = ["derive"], workspace = true }
-futures = { features = ["thread-pool"], workspace = true }
-serde_json = { workspace = true, default-features = true }
-jsonrpsee = { features = ["server"], workspace = true }
-hex-literal.workspace = true
-fp-account = { workspace = true }
-sc-cli.workspace = true
-sc-cli.default-features = true
-sp-core.workspace = true
-sp-core.default-features = true
-sc-executor.workspace = true
-sc-executor.default-features = true
-sc-network.workspace = true
-sc-network.default-features = true
-sc-service.workspace = true
-sc-service.default-features = true
-sc-telemetry.workspace = true
-sc-telemetry.default-features = true
-sc-transaction-pool.workspace = true
-sc-transaction-pool.default-features = true
-sc-transaction-pool-api.workspace = true
-sc-transaction-pool-api.default-features = true
-sc-offchain.workspace = true
-sc-offchain.default-features = true
-sc-consensus-babe.workspace = true
-sc-consensus-babe.default-features = true
-sp-consensus-babe.workspace = true
-sp-consensus-babe.default-features = true
-sp-consensus-beefy.workspace = true
-sp-consensus-beefy.default-features = true
-sc-consensus.workspace = true
-sc-consensus.default-features = true
-sc-consensus-grandpa.workspace = true
-sc-consensus-grandpa.default-features = true
-sp-consensus-grandpa.workspace = true
-sp-consensus-grandpa.default-features = true
-sc-client-api.workspace = true
-sc-client-api.default-features = true
-sc-basic-authorship.workspace = true
-sc-basic-authorship.default-features = true
-sp-runtime.workspace = true
-sp-runtime.default-features = true
-sp-io.workspace = true
-sp-io.default-features = true
-sp-timestamp.workspace = true
-sp-timestamp.default-features = true
-sp-inherents.workspace = true
-sp-inherents.default-features = true
-sp-keyring.workspace = true
-sp-keyring.default-features = true
-sp-api.workspace = true
-sp-api.default-features = true
-sp-blockchain.workspace = true
-sp-blockchain.default-features = true
-sp-block-builder.workspace = true
-sp-block-builder.default-features = true
-frame-system.workspace = true
-frame-system.default-features = true
-frame-metadata-hash-extension.workspace = true
-frame-metadata-hash-extension.default-features = true
-pallet-im-online.workspace = true
-pallet-transaction-payment.workspace = true
-pallet-transaction-payment.default-features = true
-pallet-transaction-payment-rpc.workspace = true
-pallet-transaction-payment-rpc.default-features = true
-substrate-frame-rpc-system.workspace = true
-substrate-frame-rpc-system.default-features = true
-frame-benchmarking-cli.workspace = true
-frame-benchmarking-cli.default-features = true
 datahaven-runtime.workspace = true
+fp-account = { workspace = true }
+frame-benchmarking-cli.default-features = true
+frame-benchmarking-cli.workspace = true
+frame-metadata-hash-extension.default-features = true
+frame-metadata-hash-extension.workspace = true
+frame-system.default-features = true
+frame-system.workspace = true
+futures = { features = ["thread-pool"], workspace = true }
+hex-literal.workspace = true
+jsonrpsee = { features = ["server"], workspace = true }
+pallet-im-online.workspace = true
+pallet-transaction-payment-rpc.default-features = true
+pallet-transaction-payment-rpc.workspace = true
+pallet-transaction-payment.default-features = true
+pallet-transaction-payment.workspace = true
+sc-basic-authorship.default-features = true
+sc-basic-authorship.workspace = true
+sc-cli.default-features = true
+sc-cli.workspace = true
+sc-client-api.default-features = true
+sc-client-api.workspace = true
+sc-consensus-babe.default-features = true
+sc-consensus-babe.workspace = true
+sc-consensus-grandpa.default-features = true
+sc-consensus-grandpa.workspace = true
+sc-consensus.default-features = true
+sc-consensus.workspace = true
+sc-executor.default-features = true
+sc-executor.workspace = true
+sc-network.default-features = true
+sc-network.workspace = true
+sc-offchain.default-features = true
+sc-offchain.workspace = true
+sc-service.default-features = true
+sc-service.workspace = true
+sc-telemetry.default-features = true
+sc-telemetry.workspace = true
+sc-transaction-pool-api.default-features = true
+sc-transaction-pool-api.workspace = true
+sc-transaction-pool.default-features = true
+sc-transaction-pool.workspace = true
+serde_json = { workspace = true, default-features = true }
+sp-api.default-features = true
+sp-api.workspace = true
+sp-block-builder.default-features = true
+sp-block-builder.workspace = true
+sp-blockchain.default-features = true
+sp-blockchain.workspace = true
+sp-consensus-babe.default-features = true
+sp-consensus-babe.workspace = true
+sp-consensus-beefy.default-features = true
+sp-consensus-beefy.workspace = true
+sp-consensus-grandpa.default-features = true
+sp-consensus-grandpa.workspace = true
+sp-core.default-features = true
+sp-core.workspace = true
+sp-inherents.default-features = true
+sp-inherents.workspace = true
+sp-io.default-features = true
+sp-io.workspace = true
+sp-keyring.default-features = true
+sp-keyring.workspace = true
+sp-runtime.default-features = true
+sp-runtime.workspace = true
+sp-timestamp.default-features = true
+sp-timestamp.workspace = true
+substrate-frame-rpc-system.default-features = true
+substrate-frame-rpc-system.workspace = true
 
 # RPC
 sc-rpc = { workspace = true, default-features = true }
 
 # Beefy
-sc-consensus-beefy.workspace = true
-sc-consensus-beefy.default-features = true
 sc-consensus-beefy-rpc = { workspace = true, default-features = true }
+sc-consensus-beefy.default-features = true
+sc-consensus-beefy.workspace = true
 
 # MMR
 mmr-rpc = { workspace = true, default-features = true }
 
 [build-dependencies]
-substrate-build-script-utils.workspace = true
 substrate-build-script-utils.default-features = true
+substrate-build-script-utils.workspace = true
 
 [features]
 default = ["std"]

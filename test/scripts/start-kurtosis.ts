@@ -5,6 +5,7 @@ import sendTxn from "./send-txn";
 
 async function main() {
   const timeStart = performance.now();
+  logger.debug(`Running on ${process.platform}`);
 
   if (!(await checkKurtosisInstalled())) {
     logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
@@ -31,11 +32,13 @@ async function main() {
   await $`docker system prune -f`.nothrow();
   await $`kurtosis clean`;
 
-  // TODO: if mac, manually pull the images for network = linux/amd64 since blockscout doesnt have arm ones
-  await $`docker pull ghcr.io/blockscout/smart-contract-verifier:latest --platform linux/amd64`;
+  if (process.platform === "darwin") {
+    logger.debug("Detected macOS, pulling container images with linux/amd64 platform...");
+    await $`docker pull ghcr.io/blockscout/smart-contract-verifier:latest --platform linux/amd64`;
+  }
 
   const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum`.nothrow();
+    await $`kurtosis run github.com/Moonsong-Labs/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum`.nothrow();
 
   if (exitCode !== 0) {
     logger.error(stderr.toString());

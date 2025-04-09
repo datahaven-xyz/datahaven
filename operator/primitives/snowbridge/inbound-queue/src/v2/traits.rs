@@ -8,16 +8,16 @@ use xcm::latest::Xcm;
 /// Converts an inbound message from Ethereum to an XCM message that can be
 /// executed on a parachain.
 pub trait ConvertMessage {
-	fn convert(message: Message) -> Result<Xcm<()>, ConvertMessageError>;
+    fn convert(message: Message) -> Result<Xcm<()>, ConvertMessageError>;
 }
 
 /// Reason why a message conversion failed.
 #[derive(Copy, Clone, RuntimeDebug, PartialEq)]
 pub enum ConvertMessageError {
-	/// Invalid foreign ERC-20 token ID
-	InvalidAsset,
-	/// Cannot reachor a foreign ERC-20 asset location.
-	CannotReanchor,
-	/// Invalid network specified (not from Ethereum)
-	InvalidNetwork,
+    /// Invalid foreign ERC-20 token ID
+    InvalidAsset,
+    /// Cannot reachor a foreign ERC-20 asset location.
+    CannotReanchor,
+    /// Invalid network specified (not from Ethereum)
+    InvalidNetwork,
 }

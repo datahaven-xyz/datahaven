@@ -5,14 +5,14 @@
 
 use hex_literal::hex;
 use snowbridge_beacon_primitives::{
-	types::deneb, AncestryProof, BeaconHeader, ExecutionProof, VersionedExecutionPayloadHeader,
+    types::deneb, AncestryProof, BeaconHeader, ExecutionProof, VersionedExecutionPayloadHeader,
 };
 use snowbridge_inbound_queue_primitives::{EventProof, InboundQueueFixture, Log, Proof};
 use sp_core::U256;
 use sp_std::vec;
 
 pub fn make_register_token_message() -> InboundQueueFixture {
-	InboundQueueFixture {
+    InboundQueueFixture {
         event: EventProof {
             event_log: 	Log {
                 address: hex!("b1185ede04202fe62d38f5db72f71e38ff3e8305").into(),

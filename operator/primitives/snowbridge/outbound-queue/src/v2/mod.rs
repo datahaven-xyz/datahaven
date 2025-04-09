@@ -19,14 +19,14 @@ use sp_std::prelude::*;
 /// for the XCM origin.
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum ContractCall {
-	V1 {
-		/// Target contract address
-		target: [u8; 20],
-		/// ABI-encoded calldata
-		calldata: Vec<u8>,
-		/// Include ether held by the agent contract
-		value: u128,
-		/// Maximum gas to forward to target contract
-		gas: u64,
-	},
+    V1 {
+        /// Target contract address
+        target: [u8; 20],
+        /// ABI-encoded calldata
+        calldata: Vec<u8>,
+        /// Include ether held by the agent contract
+        value: u128,
+        /// Maximum gas to forward to target contract
+        gas: u64,
+    },
 }

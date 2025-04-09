@@ -9,7 +9,7 @@ use alloy_primitives::B256;
 use alloy_sol_types::{sol, SolEvent};
 
 sol! {
-	event OutboundMessageAccepted(bytes32 indexed channel_id, uint64 nonce, bytes32 indexed message_id, bytes payload);
+    event OutboundMessageAccepted(bytes32 indexed channel_id, uint64 nonce, bytes32 indexed message_id, bytes payload);
 }
 
 /// An inbound message that has had its outer envelope decoded.
@@ -34,7 +34,11 @@ impl TryFrom<&Log> for Envelope {
     type Error = EnvelopeDecodeError;
 
     fn try_from(log: &Log) -> Result<Self, Self::Error> {
-        let topics: Vec<B256> = log.topics.iter().map(|x| B256::from_slice(x.as_ref())).collect();
+        let topics: Vec<B256> = log
+            .topics
+            .iter()
+            .map(|x| B256::from_slice(x.as_ref()))
+            .collect();
 
         let event = OutboundMessageAccepted::decode_log(topics, &log.data, true)
             .map_err(|_| EnvelopeDecodeError)?;

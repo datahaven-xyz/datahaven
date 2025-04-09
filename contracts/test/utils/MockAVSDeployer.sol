@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
+import {IAllocationManagerTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IStrategyManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
@@ -38,7 +40,7 @@ import {ServiceManagerMock} from "../mocks/ServiceManagerMock.sol";
 import "forge-std/Test.sol";
 
 contract MockAVSDeployer is Test {
-    Vm cheats = Vm(VM_ADDRESS);
+    Vm public cheats = Vm(VM_ADDRESS);
 
     ProxyAdmin public proxyAdmin;
     PauserRegistry public pauserRegistry;
@@ -81,25 +83,23 @@ contract MockAVSDeployer is Test {
     address public strategyOwner = address(uint160(uint256(keccak256("strategyOwner"))));
 
     // RewardsCoordinator constants
-    uint32 CALCULATION_INTERVAL_SECONDS = 7 days;
-    uint32 MAX_REWARDS_DURATION = 70 days;
-    uint32 MAX_RETROACTIVE_LENGTH = 84 days;
-    uint32 MAX_FUTURE_LENGTH = 28 days;
-    uint32 GENESIS_REWARDS_TIMESTAMP = 1712188800;
+    uint32 public constant CALCULATION_INTERVAL_SECONDS = 7 days;
+    uint32 public constant MAX_REWARDS_DURATION = 70 days;
+    uint32 public constant MAX_RETROACTIVE_LENGTH = 84 days;
+    uint32 public constant MAX_FUTURE_LENGTH = 28 days;
+    uint32 public constant GENESIS_REWARDS_TIMESTAMP = 1712188800;
 
     /// @notice Delay in timestamp before a posted root can be claimed against
-    uint32 activationDelay = 7 days;
+    uint32 public activationDelay = 7 days;
     /// @notice the commission for all operators across all AVSs
-    uint16 globalCommissionBips = 1000;
+    uint16 public globalCommissionBips = 1000;
 
     // Mock strategies
-    IERC20[] rewardTokens;
-    uint256 mockTokenInitialSupply = 10e50;
-    IStrategy strategyMock1;
-    IStrategy strategyMock2;
-    IStrategy strategyMock3;
-    StrategyBase strategyImplementation;
-    IRewardsCoordinator.StrategyAndMultiplier[] defaultStrategyAndMultipliers;
+    IERC20[] public rewardTokens;
+    uint256 public mockTokenInitialSupply = 10e50;
+    IStrategy[] public deployedStrategies;
+    StrategyBase public strategyImplementation;
+    IRewardsCoordinator.StrategyAndMultiplier[] public defaultStrategyAndMultipliers;
 
     function _deployMockEigenLayerAndAVS() internal {
         emptyContract = new EmptyContract();
@@ -215,11 +215,10 @@ contract MockAVSDeployer is Test {
         console.log("ServiceManager implementation deployed");
 
         // Deploy and configure the VetoableSlasher
-        cheats.startPrank(regularDeployer);
+        cheats.prank(regularDeployer);
         vetoableSlasher = new VetoableSlasher(
             allocationManager, serviceManager, vetoCommitteeMember, vetoWindowBlocks
         );
-        cheats.stopPrank();
 
         // Set the slasher in the ServiceManager
         cheats.prank(avsOwner);
@@ -252,55 +251,69 @@ contract MockAVSDeployer is Test {
         strategyImplementation = new StrategyBase(
             IStrategyManager(address(strategyManagerMock)), pauserRegistry, "v-mock"
         );
-        strategyMock1 = StrategyBase(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(strategyImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(StrategyBase.initialize.selector, token1, pauserRegistry)
+        deployedStrategies.push(
+            StrategyBase(
+                address(
+                    new TransparentUpgradeableProxy(
+                        address(strategyImplementation),
+                        address(proxyAdmin),
+                        abi.encodeWithSelector(
+                            StrategyBase.initialize.selector, token1, pauserRegistry
+                        )
+                    )
                 )
             )
         );
-        strategyMock2 = StrategyBase(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(strategyImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(StrategyBase.initialize.selector, token2, pauserRegistry)
+        deployedStrategies.push(
+            StrategyBase(
+                address(
+                    new TransparentUpgradeableProxy(
+                        address(strategyImplementation),
+                        address(proxyAdmin),
+                        abi.encodeWithSelector(
+                            StrategyBase.initialize.selector, token2, pauserRegistry
+                        )
+                    )
                 )
             )
         );
-        strategyMock3 = StrategyBase(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(strategyImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(StrategyBase.initialize.selector, token3, pauserRegistry)
+        deployedStrategies.push(
+            StrategyBase(
+                address(
+                    new TransparentUpgradeableProxy(
+                        address(strategyImplementation),
+                        address(proxyAdmin),
+                        abi.encodeWithSelector(
+                            StrategyBase.initialize.selector, token3, pauserRegistry
+                        )
+                    )
                 )
             )
         );
         vm.stopPrank();
 
-        IStrategy[] memory strategies = new IStrategy[](3);
-        strategies[0] = strategyMock1;
-        strategies[1] = strategyMock2;
-        strategies[2] = strategyMock3;
-        strategies = _sortArrayAsc(strategies);
+        deployedStrategies = _sortArrayAsc(deployedStrategies);
 
         vm.startPrank(strategyOwner);
-        strategyManagerMock.setStrategyWhitelist(strategies[0], true);
-        strategyManagerMock.setStrategyWhitelist(strategies[1], true);
-        strategyManagerMock.setStrategyWhitelist(strategies[2], true);
+        strategyManagerMock.setStrategyWhitelist(deployedStrategies[0], true);
+        strategyManagerMock.setStrategyWhitelist(deployedStrategies[1], true);
+        strategyManagerMock.setStrategyWhitelist(deployedStrategies[2], true);
         vm.stopPrank();
 
         defaultStrategyAndMultipliers.push(
-            IRewardsCoordinatorTypes.StrategyAndMultiplier(IStrategy(address(strategies[0])), 1e18)
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(
+                IStrategy(address(deployedStrategies[0])), 1e18
+            )
         );
         defaultStrategyAndMultipliers.push(
-            IRewardsCoordinatorTypes.StrategyAndMultiplier(IStrategy(address(strategies[1])), 2e18)
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(
+                IStrategy(address(deployedStrategies[1])), 2e18
+            )
         );
         defaultStrategyAndMultipliers.push(
-            IRewardsCoordinatorTypes.StrategyAndMultiplier(IStrategy(address(strategies[2])), 3e18)
+            IRewardsCoordinatorTypes.StrategyAndMultiplier(
+                IStrategy(address(deployedStrategies[2])), 3e18
+            )
         );
     }
 

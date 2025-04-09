@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  type ViemClient,
+  type ViemClientInterface,
   createDefaultClient,
   fetchContractAbiByAddress,
   fetchContractAddressByName,
@@ -10,7 +10,7 @@ import {
 import { isAddress, parseAbi, parseEther } from "viem";
 
 describe("E2E: Read-only", () => {
-  let api: ViemClient;
+  let api: ViemClientInterface;
 
   beforeAll(async () => {
     api = await createDefaultClient();

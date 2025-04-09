@@ -12,7 +12,7 @@ export const fetchContractAddressByName = async (name: string): Promise<Hash> =>
   logger.debug(`Fetching contract address for ${name}`);
   logger.debug(`Response status: ${response.status}`);
   logger.trace(response);
-  const data: BlockscoutResponse<BlockscoutSearchItem> = await response.json();
+  const data = (await response.json()) as BlockscoutResponse<BlockscoutSearchItem>;
 
   invariant(data.items.length > 0, `No contract found for ${name}`);
 
@@ -28,7 +28,8 @@ export const fetchContractAbiByAddress = async (address: Hash): Promise<Abi> => 
   logger.debug(`Response status: ${response.status}`);
   logger.trace(response);
   invariant(response.ok, `Failed to fetch contract ABI for ${address}`);
-  const data: BlockscoutDetailedContract = await response.json();
+  const data = (await response.json()) as BlockscoutDetailedContract;
+  invariant(data.abi, `Contract ${address} doesn't have an ABI`);
 
   return data.abi;
 };

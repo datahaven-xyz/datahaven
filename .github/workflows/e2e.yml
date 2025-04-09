@@ -20,6 +20,8 @@ env:
 jobs:
   kurtosis:
     runs-on: ubuntu-latest
+    env:
+      LOG_LEVEL: debug
     defaults:
       run:
         working-directory: test
@@ -36,7 +38,6 @@ jobs:
           sudo apt update
           sudo apt install kurtosis-cli
       - run: kurtosis version
-      
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache

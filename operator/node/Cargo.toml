@@ -86,7 +86,7 @@ substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-benchmarking-cli.default-features = true
-datahaven-devnet-runtime.workspace = true
+datahaven-stagenet-runtime.workspace = true
 datahaven-mainnet-runtime.workspace = true
 datahaven-testnet-runtime.workspace = true
 
@@ -109,7 +109,7 @@ substrate-build-script-utils.default-features = true
 [features]
 default = ["std"]
 std = [
-	"datahaven-devnet-runtime/std",
+	"datahaven-stagenet-runtime/std",
 	"datahaven-mainnet-runtime/std",
 	"datahaven-testnet-runtime/std",
 ]
@@ -118,7 +118,7 @@ runtime-benchmarks = [
 	"frame-benchmarking-cli/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"sc-service/runtime-benchmarks",
-	"datahaven-devnet-runtime/runtime-benchmarks",
+	"datahaven-stagenet-runtime/runtime-benchmarks",
 	"datahaven-mainnet-runtime/runtime-benchmarks",
 	"datahaven-testnet-runtime/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
@@ -128,7 +128,7 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-system/try-runtime",
 	"pallet-transaction-payment/try-runtime",
-	"datahaven-devnet-runtime/try-runtime",
+	"datahaven-stagenet-runtime/try-runtime",
 	"datahaven-mainnet-runtime/try-runtime",
 	"datahaven-testnet-runtime/try-runtime",
 	"sp-runtime/try-runtime",

@@ -16,6 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { features = ["derive"], workspace = true }
 hex = { workspace = true }
 scale-info = { features = ["derive", "serde"], workspace = true }
+serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 datahaven-runtime-common.workspace = true
 frame-support = { features = ["experimental"], workspace = true }
 frame-system.workspace = true
@@ -48,6 +49,7 @@ sp-consensus-babe = { features = ["serde"], workspace = true }
 sp-consensus-beefy = { features = ["serde"], workspace = true }
 sp-consensus-grandpa = { features = ["serde"], workspace = true }
 sp-core = { features = ["serde"], workspace = true }
+sp-keyring.workspace = true
 sp-inherents.workspace = true
 sp-offchain.workspace = true
 sp-runtime = { features = ["serde"], workspace = true }
@@ -137,6 +139,8 @@ std = [
     "sp-transaction-pool/std",
     "sp-version/std",
 
+    "serde_json/std",
+	"sp-keyring/std",
     "substrate-wasm-builder",
 
     "pallet-mmr/std",

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Types for representing inbound messages
 #![cfg_attr(not(feature = "std"), no_std)]
-use codec::{Decode, DecodeWithMemTracking, Encode};
+use codec::{Decode, Encode};
 use frame_support::PalletError;
 use scale_info::TypeInfo;
 use snowbridge_beacon_primitives::ExecutionProof;
@@ -14,7 +14,7 @@ pub trait Verifier {
     fn verify(event: &Log, proof: &Proof) -> Result<(), VerificationError>;
 }
 
-#[derive(Clone, Encode, Decode, DecodeWithMemTracking, RuntimeDebug, PalletError, TypeInfo)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, PalletError, TypeInfo)]
 #[cfg_attr(feature = "std", derive(PartialEq))]
 pub enum VerificationError {
     /// Execution header is missing
@@ -30,7 +30,7 @@ pub enum VerificationError {
 }
 
 /// A bridge message from the Gateway contract on Ethereum
-#[derive(Clone, Encode, Decode, DecodeWithMemTracking, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct EventProof {
     /// Event log emitted by Gateway contract
     pub event_log: Log,
@@ -46,7 +46,7 @@ pub enum LogValidationError {
 }
 
 /// Event log
-#[derive(Clone, Encode, Decode, DecodeWithMemTracking, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct Log {
     pub address: H160,
     pub topics: Vec<H256>,
@@ -63,7 +63,7 @@ impl Log {
 }
 
 /// Inclusion proof for a transaction receipt
-#[derive(Clone, Encode, Decode, DecodeWithMemTracking, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct Proof {
     // Proof keys and values (receipts tree)
     pub receipt_proof: (Vec<Vec<u8>>, Vec<Vec<u8>>),

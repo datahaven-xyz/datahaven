@@ -1,14 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-// Testing imports
-import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
-import {Logging} from "../utils/Logging.sol";
-import {ELScriptStorage} from "../utils/ELScriptStorage.s.sol";
-import {DHScriptStorage} from "../utils/DHScriptStorage.s.sol";
-import {Accounts} from "../utils/Accounts.sol";
-
 // EigenLayer imports
 import {IAllocationManagerTypes} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
@@ -17,7 +9,19 @@ import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/Strate
 // OpenZeppelin imports
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
+// Testing imports
+import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
+import {Logging} from "../utils/Logging.sol";
+import {ELScriptStorage} from "../utils/ELScriptStorage.s.sol";
+import {DHScriptStorage} from "../utils/DHScriptStorage.s.sol";
+import {Accounts} from "../utils/Accounts.sol";
+
+/**
+ * @title SignUpOperatorBase
+ * @notice Base contract for signing up different types of operators (Validators, BSPs, MSPs)
+ */
+abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage, Accounts {
     // Progress indicator
     uint16 public deploymentStep = 0;
     uint16 public totalSteps = 3; // Total major steps
@@ -27,9 +31,26 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
         Logging.logProgress(deploymentStep, totalSteps);
     }
 
+    /**
+     * @notice Abstract method to be implemented by derived contracts to get the operator set ID
+     * @return The operator set ID for the specific type (Validator, BSP, MSP)
+     */
+    function _getOperatorSetId() internal view virtual returns (uint32);
+
+    /**
+     * @notice Abstract method to be implemented by derived contracts to add operator to allowlist
+     */
+    function _addToAllowlist() internal virtual;
+
+    /**
+     * @notice Abstract method to get the operator type name (for logging)
+     * @return The name of the operator type
+     */
+    function _getOperatorTypeName() internal view virtual returns (string memory);
+
     function run() public {
         string memory network = vm.envOr("NETWORK", string("anvil"));
-        Logging.logHeader("SIGN UP DATAHAVEN OPERATOR");
+        Logging.logHeader(string.concat("SIGN UP DATAHAVEN ", _getOperatorTypeName()));
         console.log("|  Network: %s", network);
         console.log("|  Timestamp: %s", vm.toString(block.timestamp));
         Logging.logFooter();
@@ -110,32 +131,34 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
         }
         _logProgress();
 
-        // STEP 3: Register as a DataHaven operator
-        Logging.logSection("Registering as DataHaven Operator");
+        // STEP 3: Register as a DataHaven operator of specific type
+        Logging.logSection(string.concat("Registering as DataHaven ", _getOperatorTypeName()));
+
+        // Add the operator to the appropriate allowlist of the DataHaven service.
+        _addToAllowlist();
+        Logging.logStep(
+            string.concat(
+                "Added operator to ", _getOperatorTypeName(), " allowlist of DataHaven service"
+            )
+        );
 
         // Register the operator as operator for the DataHaven service.
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = _getOperatorSetId();
         IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-            .RegisterParams({avs: address(serviceManager), operatorSetIds: new uint32[](1), data: ""});
+            .RegisterParams({avs: address(serviceManager), operatorSetIds: operatorSetIds, data: ""});
 
         vm.broadcast(_operatorPrivateKey);
         allocationManager.registerForOperatorSets(_operator, registerParams);
-        Logging.logStep("Registered operator in DataHaven service");
-
-        // // STEP 4: Demonstrate deregistration (for testing purposes)
-        // Logging.logSection("Deregistering from DataHaven (Demo)");
-
-        // IAllocationManagerTypes.DeregisterParams memory deregisterParams = IAllocationManagerTypes.DeregisterParams({
-        //     avs: address(serviceManager),
-        //     operator: _operator,
-        //     operatorSetIds: new uint32[](1)
-        // });
-        // vm.broadcast(_operatorPrivateKey);
-        // allocationManager.deregisterFromOperatorSets(deregisterParams);
-        // Logging.logStep("Deregistered operator from DataHaven service (for demonstration)");
+        Logging.logStep(
+            string.concat("Registered ", _getOperatorTypeName(), " in DataHaven service")
+        );
 
         Logging.logHeader("OPERATOR SETUP COMPLETE");
-        Logging.logInfo(string.concat("Operator: ", vm.toString(_operator)));
-        Logging.logInfo("Successfully configured operator for DataHaven");
+        Logging.logInfo(string.concat(_getOperatorTypeName(), ": ", vm.toString(_operator)));
+        Logging.logInfo(
+            string.concat("Successfully configured ", _getOperatorTypeName(), " for DataHaven")
+        );
         Logging.logFooter();
     }
 }

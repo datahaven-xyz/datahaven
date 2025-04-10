@@ -35,7 +35,7 @@ import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
 import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
 import {EigenPodManagerMock} from "../mocks/EigenPodManagerMock.sol";
 import {AllocationManagerMock} from "../mocks/AllocationManagerMock.sol";
-import {DelegationMock} from "../mocks/DelegationMock.sol";
+import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 
 import "forge-std/Test.sol";
 
@@ -63,7 +63,8 @@ contract AVSDeployer is Test {
     // EigenLayer contracts
     StrategyManager public strategyManager;
     StrategyManager public strategyManagerImplementation;
-    DelegationMock public delegationMock;
+    DelegationManager public delegationManager;
+    DelegationManager public delegationManagerImplementation;
     EigenPodManagerMock public eigenPodManagerMock;
     AllocationManager public allocationManager;
     AllocationManager public allocationManagerImplementation;
@@ -115,15 +116,14 @@ contract AVSDeployer is Test {
         address[] memory pausers = new address[](1);
         pausers[0] = pauser;
         pauserRegistry = new PauserRegistry(pausers, unpauser);
-        delegationMock = new DelegationMock();
         eigenPodManagerMock = new EigenPodManagerMock(pauserRegistry);
         permissionControllerMock = new PermissionControllerMock();
         rewardsCoordinatorMock = new RewardsCoordinatorMock();
         cheats.stopPrank();
 
-        console.log("EigenLayer contracts deployed");
+        console.log("Mock EigenLayer contracts deployed");
 
-        // Deploying proxy contracts for AllocationManager.
+        // Deploying proxy contracts for AllocationManager and StrategyManager.
         // The `proxyAdmin` contract is set as the admin of the proxy contracts,
         // which will be later upgraded to the actual implementation.
         cheats.prank(regularDeployer);
@@ -132,13 +132,37 @@ contract AVSDeployer is Test {
                 new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
             )
         );
+        strategyManager = StrategyManager(
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
+        );
 
-        console.log("Proxy contracts deployed");
+        console.log("AllocationManager and StrategyManager proxy contracts deployed");
 
+        // Deploying DelegationManager implementation and its proxy.
+        cheats.prank(regularDeployer);
+        delegationManagerImplementation = new DelegationManager(
+            strategyManager,
+            eigenPodManagerMock,
+            allocationManager,
+            pauserRegistry,
+            permissionControllerMock,
+            uint32(10), // MIN_WITHDRAWAL_DELAY_BLOCKS
+            "v-mock"
+        );
+        cheats.prank(regularDeployer);
+        delegationManager = DelegationManager(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(delegationManagerImplementation), address(proxyAdmin), ""
+                )
+            )
+        );
         // Deploying AllocationManager implementation and upgrading the proxy.
         cheats.prank(regularDeployer);
         allocationManagerImplementation = new AllocationManager(
-            delegationMock,
+            delegationManager,
             pauserRegistry,
             permissionControllerMock,
             uint32(7 days), // DEALLOCATION_DELAY
@@ -153,23 +177,17 @@ contract AVSDeployer is Test {
 
         console.log("AllocationManager implementation deployed");
 
+        // Deploying StrategyManager implementation and its proxy.
         cheats.prank(regularDeployer);
         strategyManagerImplementation =
-            new StrategyManager(delegationMock, pauserRegistry, "v-mock");
-        cheats.prank(regularDeployer);
+            new StrategyManager(delegationManager, pauserRegistry, "v-mock");
+        cheats.prank(proxyAdminOwner);
         uint256 allUnpaused = 0;
-        strategyManager = StrategyManager(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(strategyManagerImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        StrategyManager.initialize.selector,
-                        strategyOwner,
-                        strategyOwner,
-                        allUnpaused
-                    )
-                )
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(address(strategyManager)),
+            address(strategyManagerImplementation),
+            abi.encodeWithSelector(
+                StrategyManager.initialize.selector, strategyOwner, strategyOwner, allUnpaused
             )
         );
 
@@ -180,7 +198,7 @@ contract AVSDeployer is Test {
         cheats.startPrank(regularDeployer);
         IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams memory params =
         IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams({
-            delegationManager: delegationMock,
+            delegationManager: delegationManager,
             strategyManager: IStrategyManager(address(strategyManager)),
             allocationManager: allocationManager,
             pauserRegistry: pauserRegistry,
@@ -354,23 +372,52 @@ contract AVSDeployer is Test {
         );
     }
 
-    function _setupValidatorsAsOperators(
+    function setupValidatorsAsOperators(
         address[] memory validators
-    ) internal {
+    ) public {
         for (uint256 i = 0; i < validators.length; i++) {
+            console.log("Setting up validator %s as operator", validators[i]);
+
+            // Whitelist the validator in the DataHaven service.
+            cheats.prank(avsOwner);
+            serviceManager.addValidatorToAllowlist(validators[i]);
+
             cheats.startPrank(validators[i]);
             for (uint256 j = 0; j < deployedStrategies.length; j++) {
+                console.log(
+                    "Depositing tokens from validator %s into strategy %s",
+                    validators[i],
+                    address(deployedStrategies[j])
+                );
+
                 // Give the validator some balance in the strategy's linked token.
                 IERC20 linkedToken = deployedStrategies[j].underlyingToken();
                 _setERC20Balance(address(linkedToken), validators[i], 1000 ether);
 
                 // Stake some of the validator's balance as stake for the strategy.
-                linkedToken.approve(address(deployedStrategies[j]), 1000 ether);
-                // strategyManagerMock.depositIntoStrategy(
-                //     deployedStrategies[j], linkedToken, 1000 ether
-                // );
+                linkedToken.approve(address(strategyManager), 1000 ether);
+                strategyManager.depositIntoStrategy(deployedStrategies[j], linkedToken, 1000 ether);
+
+                console.log(
+                    "Staked %s tokens from validator %s into strategy %s",
+                    1000 ether,
+                    validators[i],
+                    address(deployedStrategies[j])
+                );
             }
+
+            // Register the validator as an operator in EigenLayer.
+            delegationManager.registerAsOperator(address(0), 0, "");
+
+            // Register the validator as an operator for the DataHaven service.
+            uint32[] memory operatorSetIds = new uint32[](1);
+            operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+            IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
+                .RegisterParams({avs: address(serviceManager), operatorSetIds: operatorSetIds, data: ""});
+            allocationManager.registerForOperatorSets(validators[i], registerParams);
             cheats.stopPrank();
+
+            console.log("Validator %s setup as operator", validators[i]);
         }
     }
 
@@ -378,7 +425,7 @@ contract AVSDeployer is Test {
         cheats.label(address(emptyContract), "EmptyContract");
         cheats.label(address(proxyAdmin), "ProxyAdmin");
         cheats.label(address(pauserRegistry), "PauserRegistry");
-        cheats.label(address(delegationMock), "DelegationMock");
+        cheats.label(address(delegationManager), "DelegationManager");
         cheats.label(address(eigenPodManagerMock), "EigenPodManagerMock");
         cheats.label(address(strategyManager), "StrategyManager");
         cheats.label(address(rewardsCoordinatorMock), "RewardsCoordinatorMock");

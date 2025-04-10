@@ -16,7 +16,7 @@ import {
     IRewardsRegistryEvents, IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
-
+import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import "forge-std/Test.sol";
 
 contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
@@ -29,11 +29,18 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         _deployMockAllContracts();
     }
 
-    /**
-     *
-     *        Constructor Tests      *
-     *
-     */
+    function beforeTestSetup(
+        bytes4 testSelector
+    ) public pure returns (bytes[] memory beforeTestCalldata) {
+        if (testSelector == this.test_sendNewValidatorsSetMessage.selector) {
+            address[] memory validators = new address[](1);
+            validators[0] = address(0xFFFF1);
+            beforeTestCalldata = new bytes[](1);
+            beforeTestCalldata[0] =
+                abi.encodeWithSelector(this.setupValidatorsAsOperators.selector, validators);
+        }
+    }
+
     function test_constructor() public view {
         assertEq(
             rewardsRegistry.rewardsAgent(),
@@ -153,6 +160,10 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         bytes32 rewardAddress = keccak256(abi.encodePacked("rewardAddress"));
         emit IGatewayV2.InboundMessageDispatched(0, bytes32(0), false, rewardAddress);
         gateway.v2_submit(badUpdateRewardsMessage, messagesProof, beefyProof, rewardAddress);
+    }
+
+    function test_sendNewValidatorsSetMessage() public {
+        // TODO: Implement this
     }
 
     function _setupValidatorData() internal {

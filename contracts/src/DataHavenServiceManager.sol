@@ -22,6 +22,9 @@ import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
  * in the DataHaven network
  */
 contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
+    /// @notice The metadata for the DataHaven AVS.
+    string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
+
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
     /// @notice The EigenLayer operator set ID for the Backup Storage Providers participating in the DataHaven network.
@@ -52,6 +55,11 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         IStrategy[] memory mspsStrategies
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
+
+        // Register the DataHaven service in the AllocationManager
+        _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
+
+        // Create the operator sets for the DataHaven service
         _createDataHavenOperatorSets(validatorsStrategies, bspsStrategies, mspsStrategies);
     }
 

@@ -69,7 +69,7 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
             // Stake some of the operator's balance as stake for the strategy.
             vm.startBroadcast(_operatorPrivateKey);
             uint256 balanceToStake = balance / 10;
-            IERC20(linkedToken).approve(address(strategyManager), balanceToStake);
+            linkedToken.approve(address(strategyManager), balanceToStake);
             strategyManager.depositIntoStrategy(deployedStrategies[i], linkedToken, balanceToStake);
             vm.stopBroadcast();
 

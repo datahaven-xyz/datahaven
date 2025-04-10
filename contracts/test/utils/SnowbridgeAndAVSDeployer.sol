@@ -69,10 +69,6 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         _connectSnowbridgeToAVS();
     }
 
-    function _setupValidatorsAsOperators() internal {
-        // TODO: Implement the rest
-    }
-
     function _deployMockSnowbridge() internal {
         BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
         BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);

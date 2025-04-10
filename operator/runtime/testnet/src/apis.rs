@@ -25,7 +25,7 @@
 
 // External crates imports
 use crate::configs::BABE_GENESIS_EPOCH_CONFIG;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use codec::Encode;
 use datahaven_runtime_common::time::EpochDurationInBlocks;
 use frame_support::{
@@ -191,7 +191,7 @@ impl_runtime_apis! {
         }
     }
 
-        impl fg_primitives::GrandpaApi<Block> for Runtime {
+    impl sp_consensus_grandpa::GrandpaApi<Block> for Runtime {
         fn grandpa_authorities() -> Vec<(GrandpaId, u64)> {
             Grandpa::grandpa_authorities()
         }
@@ -219,7 +219,6 @@ impl_runtime_apis! {
             _set_id: fg_primitives::SetId,
             authority_id: fg_primitives::AuthorityId,
         ) -> Option<fg_primitives::OpaqueKeyOwnershipProof> {
-
 
             Historical::prove((fg_primitives::KEY_TYPE, authority_id))
                 .map(|p| p.encode())
@@ -477,11 +476,11 @@ impl_runtime_apis! {
         }
 
         fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-            get_preset::<RuntimeGenesisConfig>(id, |_| None)
+            get_preset::<RuntimeGenesisConfig>(id, crate::genesis_config_presets::get_preset)
         }
 
         fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-            vec![]
+            crate::genesis_config_presets::preset_names()
         }
     }
 }

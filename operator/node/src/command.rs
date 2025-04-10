@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec,
+    chain_spec::{self, NetworkType},
     cli::{Cli, Subcommand},
     service,
 };
@@ -38,8 +38,12 @@ impl SubstrateCli for Cli {
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "dev" => Box::new(chain_spec::development_chain_spec()?),
-            "" | "local" => Box::new(chain_spec::local_chain_spec()?),
+            "dev" | "stagenet-dev" => Box::new(chain_spec::stagenet::development_chain_spec()?),
+            "" | "local" | "stagenet-local" => Box::new(chain_spec::stagenet::local_chain_spec()?),
+            "testnet-dev" => Box::new(chain_spec::testnet::development_chain_spec()?),
+            "testnet-local" => Box::new(chain_spec::testnet::local_chain_spec()?),
+            "mainnet-dev" => Box::new(chain_spec::mainnet::development_chain_spec()?),
+            "mainnet-local" => Box::new(chain_spec::mainnet::local_chain_spec()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
@@ -203,13 +207,30 @@ pub fn run() -> sc_cli::Result<()> {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
                 match config.network.network_backend {
-                    sc_network::config::NetworkBackendType::Libp2p => service::new_full::<
-                        sc_network::NetworkWorker<
-                            datahaven_mainnet_runtime::opaque::Block,
-                            <datahaven_mainnet_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
-                        >,
-                    >(config)
-                    .map_err(sc_cli::Error::Service),
+                        sc_network::config::NetworkBackendType::Libp2p => {
+                            match config.chain_spec {
+                                ref spec if spec.is_mainnet() =>
+                                    service::new_full::<
+                                    sc_network::NetworkWorker<
+                                        datahaven_mainnet_runtime::opaque::Block,
+                                        <datahaven_mainnet_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
+                                    >>(config)
+                                    ,
+                                ref spec if spec.is_testnet() =>
+                                service::new_full::<
+                                sc_network::NetworkWorker<
+                                    datahaven_testnet_runtime::opaque::Block,
+                                    <datahaven_testnet_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
+                                >>(config)
+                                ,
+                                _ => service::new_full::<
+                                sc_network::NetworkWorker<
+                                    datahaven_stagenet_runtime::opaque::Block,
+                                    <datahaven_stagenet_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
+                                >,
+                            >(config)
+                            }.map_err(sc_cli::Error::Service)
+                    },
                     sc_network::config::NetworkBackendType::Litep2p => {
                         service::new_full::<sc_network::Litep2pNetworkBackend>(config)
                             .map_err(sc_cli::Error::Service)

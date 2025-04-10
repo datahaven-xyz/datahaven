@@ -13,7 +13,7 @@ use sp_core::{ecdsa, Pair, Public};
 use sp_genesis_builder::{self, PresetId};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
-const MAINNET_EVM_CHAIN_ID: u64 = 1289;
+const TESTNET_EVM_CHAIN_ID: u64 = 1288;
 
 // Returns the genesis config presets populated with given parameters.
 fn testnet_genesis(
@@ -82,7 +82,7 @@ pub fn development_config_genesis() -> Value {
         vec![authority_keys_from_seed("Alice")],
         alith(),
         endowed_accounts,
-        MAINNET_EVM_CHAIN_ID,
+        TESTNET_EVM_CHAIN_ID,
     )
 }
 
@@ -102,7 +102,7 @@ pub fn local_config_genesis() -> Value {
         ],
         alith(),
         endowed_accounts,
-        MAINNET_EVM_CHAIN_ID,
+        TESTNET_EVM_CHAIN_ID,
     )
 }
 

@@ -49,6 +49,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         _disableInitializers();
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __ServiceManagerBase_init(
         address initialOwner,
         address _rewardsInitiator
@@ -218,7 +219,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         uint32[] calldata // operatorSetIds
     ) external virtual {
         // Always rejects Operator deregistration.
-        revert("ServiceManagerBase: deregistration not supported");
+        revert("ServiceManagerBase: deregistration not supported, we are evil");
     }
 
     /// @inheritdoc IServiceManager

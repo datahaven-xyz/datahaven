@@ -178,6 +178,17 @@ contract Deploy is Script, DeployParams, Accounts {
         );
 
         vm.broadcast(_deployerPrivateKey);
+        // If no strategies are provided, we take the ones deployed in the EigenLayer deployment.
+        if (avsConfig.validatorsStrategies.length == 0) {
+            avsConfig.validatorsStrategies = new address[](deployedStrategies.length);
+            avsConfig.bspsStrategies = new address[](deployedStrategies.length);
+            avsConfig.mspsStrategies = new address[](deployedStrategies.length);
+            for (uint256 i = 0; i < deployedStrategies.length; i++) {
+                avsConfig.validatorsStrategies[i] = address(deployedStrategies[i]);
+                avsConfig.bspsStrategies[i] = address(deployedStrategies[i]);
+                avsConfig.mspsStrategies[i] = address(deployedStrategies[i]);
+            }
+        }
         DataHavenServiceManager serviceManager = DataHavenServiceManager(
             address(
                 new TransparentUpgradeableProxy(
@@ -186,7 +197,10 @@ contract Deploy is Script, DeployParams, Accounts {
                     abi.encodeWithSelector(
                         DataHavenServiceManager.initialize.selector,
                         avsConfig.avsOwner,
-                        avsConfig.rewardsInitiator
+                        avsConfig.rewardsInitiator,
+                        avsConfig.validatorsStrategies,
+                        avsConfig.bspsStrategies,
+                        avsConfig.mspsStrategies
                     )
                 )
             )
@@ -227,21 +241,6 @@ contract Deploy is Script, DeployParams, Accounts {
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.setRewardsRegistry(0, rewardsRegistry);
         Logging.logStep("RewardsRegistry set in ServiceManager");
-
-        // Create an operator set in the DataHaven service
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            strategies[i] = IStrategy(deployedStrategies[i]);
-        }
-        operatorSetParams[0] =
-            IAllocationManagerTypes.CreateSetParams({operatorSetId: 0, strategies: strategies});
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.createOperatorSets(operatorSetParams);
-        Logging.logStep(
-            "Operator set created in DataHaven service with all the deployed strategies"
-        );
 
         Logging.logFooter();
         _logProgress();

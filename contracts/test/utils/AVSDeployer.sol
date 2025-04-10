@@ -28,6 +28,7 @@ import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
+import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {StrategyManagerMock} from "eigenlayer-contracts/src/test/mocks/StrategyManagerMock.sol";
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
@@ -35,11 +36,10 @@ import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
 import {EigenPodManagerMock} from "../mocks/EigenPodManagerMock.sol";
 import {AllocationManagerMock} from "../mocks/AllocationManagerMock.sol";
 import {DelegationMock} from "../mocks/DelegationMock.sol";
-import {ServiceManagerMock} from "../mocks/ServiceManagerMock.sol";
 
 import "forge-std/Test.sol";
 
-contract MockAVSDeployer is Test {
+contract AVSDeployer is Test {
     Vm public cheats = Vm(VM_ADDRESS);
 
     ProxyAdmin public proxyAdmin;
@@ -48,8 +48,8 @@ contract MockAVSDeployer is Test {
     EmptyContract public emptyContract;
 
     // AVS contracts
-    ServiceManagerMock public serviceManager;
-    ServiceManagerMock public serviceManagerImplementation;
+    DataHavenServiceManager public serviceManager;
+    DataHavenServiceManager public serviceManagerImplementation;
     VetoableSlasher public vetoableSlasher;
     RewardsRegistry public rewardsRegistry;
 
@@ -195,18 +195,40 @@ contract MockAVSDeployer is Test {
 
         console.log("RewardsCoordinator implementation deployed");
 
+        // Set up strategies before deploying the ServiceManager
+        _setUpDefaultStrategiesAndMultipliers();
+
         // Deploying ServiceManager implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
-        serviceManagerImplementation =
-            new ServiceManagerMock(rewardsCoordinator, permissionControllerMock, allocationManager);
-        serviceManager = ServiceManagerMock(
+        serviceManagerImplementation = new DataHavenServiceManager(
+            rewardsCoordinator, permissionControllerMock, allocationManager
+        );
+
+        // Create arrays for the three sets of strategies required by DataHavenServiceManager
+        IStrategy[] memory validatorsStrategies = new IStrategy[](deployedStrategies.length);
+        IStrategy[] memory bspsStrategies = new IStrategy[](deployedStrategies.length);
+        IStrategy[] memory mspsStrategies = new IStrategy[](deployedStrategies.length);
+
+        // For testing purposes, we'll use the same strategies for all three sets
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            validatorsStrategies[i] = deployedStrategies[i];
+            bspsStrategies[i] = deployedStrategies[i];
+            mspsStrategies[i] = deployedStrategies[i];
+        }
+
+        serviceManager = DataHavenServiceManager(
             address(
                 new TransparentUpgradeableProxy(
                     address(serviceManagerImplementation),
                     address(proxyAdmin),
                     abi.encodeWithSelector(
-                        ServiceManagerMock.initialize.selector, avsOwner, rewardsInitiator
+                        DataHavenServiceManager.initialize.selector,
+                        avsOwner,
+                        rewardsInitiator,
+                        validatorsStrategies,
+                        bspsStrategies,
+                        mspsStrategies
                     )
                 )
             )

@@ -8,16 +8,18 @@ import {CommandV2, CommandKind, IGatewayV2} from "snowbridge/src/Types.sol";
 import {CallContractParams} from "snowbridge/src/v2/Types.sol";
 import {BeefyVerification} from "snowbridge/src/BeefyVerification.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {MerkleUtils} from "../src/libraries/MerkleUtils.sol";
 import {
     IRewardsRegistryEvents, IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
-import {MockSnowbridgeAndAVSDeployer} from "./utils/MockSnowbridgeAndAVSDeployer.sol";
+import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
 
 import "forge-std/Test.sol";
 
-contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
+contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
     // Storage variables to reduce stack depth
     uint128[] internal _validatorPoints;
     address[] internal _validatorAddresses;
@@ -81,6 +83,11 @@ contract SnowbridgeIntegrationTest is MockSnowbridgeAndAVSDeployer {
             _buildValidatorPointsProof(_validatorAddresses, _validatorPoints, 0);
 
         // Claim rewards for the first validator.
+        vm.mockCall(
+            address(allocationManager),
+            abi.encodeWithSelector(IAllocationManager.isMemberOfOperatorSet.selector),
+            abi.encode(true)
+        );
         vm.startPrank(_validatorAddresses[0]);
         vm.expectEmit(address(rewardsRegistry));
         emit IRewardsRegistryEvents.RewardsClaimed(

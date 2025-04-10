@@ -10,7 +10,7 @@ import {Initializer} from "snowbridge/src/Initializer.sol";
 import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
-import {MockAVSDeployer} from "./MockAVSDeployer.sol";
+import {AVSDeployer} from "./AVSDeployer.sol";
 import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {IAllocationManagerTypes} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
@@ -18,7 +18,7 @@ import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy
 
 import "forge-std/Test.sol";
 
-contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
+contract SnowbridgeAndAVSDeployer is AVSDeployer {
     // Snowbridge contracts
     BeefyClient public beefyClient;
     IGatewayV2 public gateway;
@@ -70,22 +70,6 @@ contract MockSnowbridgeAndAVSDeployer is MockAVSDeployer {
     }
 
     function _setupValidatorsAsOperators() internal {
-        // Register the DataHaven service in the AllocationManager
-        cheats.prank(avsOwner);
-        serviceManager.updateAVSMetadataURI("");
-
-        // Create an operator set in the DataHaven service
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            strategies[i] = IStrategy(deployedStrategies[i]);
-        }
-        operatorSetParams[0] =
-            IAllocationManagerTypes.CreateSetParams({operatorSetId: 0, strategies: strategies});
-        cheats.prank(avsOwner);
-        serviceManager.createOperatorSets(operatorSetParams);
-
         // TODO: Implement the rest
     }
 

@@ -264,7 +264,8 @@ contract AVSDeployer is Test {
                         rewardsInitiator,
                         validatorsStrategies,
                         bspsStrategies,
-                        mspsStrategies
+                        mspsStrategies,
+                        address(0) // This deployment does not use Snowbridge
                     )
                 )
             )
@@ -370,55 +371,6 @@ contract AVSDeployer is Test {
                 IStrategy(address(deployedStrategies[2])), 3e18
             )
         );
-    }
-
-    function setupValidatorsAsOperators(
-        address[] memory validators
-    ) public {
-        for (uint256 i = 0; i < validators.length; i++) {
-            console.log("Setting up validator %s as operator", validators[i]);
-
-            // Whitelist the validator in the DataHaven service.
-            cheats.prank(avsOwner);
-            serviceManager.addValidatorToAllowlist(validators[i]);
-
-            cheats.startPrank(validators[i]);
-            for (uint256 j = 0; j < deployedStrategies.length; j++) {
-                console.log(
-                    "Depositing tokens from validator %s into strategy %s",
-                    validators[i],
-                    address(deployedStrategies[j])
-                );
-
-                // Give the validator some balance in the strategy's linked token.
-                IERC20 linkedToken = deployedStrategies[j].underlyingToken();
-                _setERC20Balance(address(linkedToken), validators[i], 1000 ether);
-
-                // Stake some of the validator's balance as stake for the strategy.
-                linkedToken.approve(address(strategyManager), 1000 ether);
-                strategyManager.depositIntoStrategy(deployedStrategies[j], linkedToken, 1000 ether);
-
-                console.log(
-                    "Staked %s tokens from validator %s into strategy %s",
-                    1000 ether,
-                    validators[i],
-                    address(deployedStrategies[j])
-                );
-            }
-
-            // Register the validator as an operator in EigenLayer.
-            delegationManager.registerAsOperator(address(0), 0, "");
-
-            // Register the validator as an operator for the DataHaven service.
-            uint32[] memory operatorSetIds = new uint32[](1);
-            operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
-            IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-                .RegisterParams({avs: address(serviceManager), operatorSetIds: operatorSetIds, data: ""});
-            allocationManager.registerForOperatorSets(validators[i], registerParams);
-            cheats.stopPrank();
-
-            console.log("Validator %s setup as operator", validators[i]);
-        }
     }
 
     function _labelContracts() internal {

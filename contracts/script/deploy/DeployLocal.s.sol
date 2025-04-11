@@ -58,6 +58,15 @@ import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
+struct ServiceManagerInitParams {
+    address avsOwner;
+    address rewardsInitiator;
+    address[] validatorsStrategies;
+    address[] bspsStrategies;
+    address[] mspsStrategies;
+    address gateway;
+}
+
 contract Deploy is Script, DeployParams, Accounts {
     // Progress indicator
     uint16 public deploymentStep = 0;
@@ -166,85 +175,6 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logFooter();
         _logProgress();
 
-        // Deploy DataHaven custom contracts
-        Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
-
-        // Deploy the Service Manager
-        vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation =
-            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
-        Logging.logContractDeployed(
-            "ServiceManager Implementation", address(serviceManagerImplementation)
-        );
-
-        vm.broadcast(_deployerPrivateKey);
-        // If no strategies are provided, we take the ones deployed in the EigenLayer deployment.
-        if (avsConfig.validatorsStrategies.length == 0) {
-            avsConfig.validatorsStrategies = new address[](deployedStrategies.length);
-            avsConfig.bspsStrategies = new address[](deployedStrategies.length);
-            avsConfig.mspsStrategies = new address[](deployedStrategies.length);
-            for (uint256 i = 0; i < deployedStrategies.length; i++) {
-                avsConfig.validatorsStrategies[i] = address(deployedStrategies[i]);
-                avsConfig.bspsStrategies[i] = address(deployedStrategies[i]);
-                avsConfig.mspsStrategies[i] = address(deployedStrategies[i]);
-            }
-        }
-        DataHavenServiceManager serviceManager = DataHavenServiceManager(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(serviceManagerImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        DataHavenServiceManager.initialize.selector,
-                        avsConfig.avsOwner,
-                        avsConfig.rewardsInitiator,
-                        avsConfig.validatorsStrategies,
-                        avsConfig.bspsStrategies,
-                        avsConfig.mspsStrategies
-                    )
-                )
-            )
-        );
-        Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
-
-        // Deploy VetoableSlasher
-        vm.broadcast(_deployerPrivateKey);
-        VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager,
-            serviceManager,
-            avsConfig.vetoCommitteeMember,
-            avsConfig.vetoWindowBlocks
-        );
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
-
-        // Deploy RewardsRegistry
-        vm.broadcast(_deployerPrivateKey);
-        RewardsRegistry rewardsRegistry = new RewardsRegistry(
-            address(serviceManager),
-            address(0) // Will be set to the Agent address after creation
-        );
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
-
-        Logging.logSection("Configuring Service Manager");
-
-        // Register the DataHaven service in the AllocationManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.updateAVSMetadataURI("");
-        Logging.logStep("DataHaven service registered in AllocationManager");
-
-        // Set the slasher in the ServiceManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setSlasher(vetoableSlasher);
-        Logging.logStep("Slasher set in ServiceManager");
-
-        // Set the RewardsRegistry in the ServiceManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsRegistry(0, rewardsRegistry);
-        Logging.logStep("RewardsRegistry set in ServiceManager");
-
-        Logging.logFooter();
-        _logProgress();
-
         // Deploy Snowbridge and configure Agent
         Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
 
@@ -254,6 +184,16 @@ contract Deploy is Script, DeployParams, Accounts {
             IGatewayV2 gateway,
             address payable rewardsAgentAddress
         ) = _deploySnowbridge(snowbridgeConfig);
+
+        Logging.logFooter();
+        _logProgress();
+
+        // Deploy DataHaven custom contracts
+        (
+            DataHavenServiceManager serviceManager,
+            VetoableSlasher vetoableSlasher,
+            RewardsRegistry rewardsRegistry
+        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
 
         Logging.logFooter();
         _logProgress();
@@ -776,5 +716,114 @@ contract Deploy is Script, DeployParams, Accounts {
         // Write to file
         vm.writeFile(deploymentPath, json);
         Logging.logInfo(string.concat("Deployment info saved to: ", deploymentPath));
+    }
+
+    function _deployDataHavenContracts(
+        AVSConfig memory avsConfig,
+        ProxyAdmin proxyAdmin,
+        IGatewayV2 gateway
+    ) internal returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry) {
+        Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
+
+        // Deploy the Service Manager
+        vm.broadcast(_deployerPrivateKey);
+        DataHavenServiceManager serviceManagerImplementation =
+            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
+        Logging.logContractDeployed(
+            "ServiceManager Implementation", address(serviceManagerImplementation)
+        );
+
+        // Extract strategies logic to a helper function to reduce local variables
+        _prepareStrategiesForServiceManager(avsConfig, deployedStrategies);
+
+        // Create service manager initialisation parameters struct to reduce stack variables
+        ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
+            avsOwner: avsConfig.avsOwner,
+            rewardsInitiator: avsConfig.rewardsInitiator,
+            validatorsStrategies: avsConfig.validatorsStrategies,
+            bspsStrategies: avsConfig.bspsStrategies,
+            mspsStrategies: avsConfig.mspsStrategies,
+            gateway: address(gateway)
+        });
+
+        // Create the service manager proxy
+        DataHavenServiceManager serviceManager =
+            _createServiceManagerProxy(serviceManagerImplementation, proxyAdmin, initParams);
+        Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
+
+        // Deploy VetoableSlasher
+        vm.broadcast(_deployerPrivateKey);
+        VetoableSlasher vetoableSlasher = new VetoableSlasher(
+            allocationManager,
+            serviceManager,
+            avsConfig.vetoCommitteeMember,
+            avsConfig.vetoWindowBlocks
+        );
+        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
+
+        // Deploy RewardsRegistry
+        vm.broadcast(_deployerPrivateKey);
+        RewardsRegistry rewardsRegistry = new RewardsRegistry(
+            address(serviceManager),
+            address(0) // Will be set to the Agent address after creation
+        );
+        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
+
+        Logging.logSection("Configuring Service Manager");
+
+        // Register the DataHaven service in the AllocationManager
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.updateAVSMetadataURI("");
+        Logging.logStep("DataHaven service registered in AllocationManager");
+
+        // Set the slasher in the ServiceManager
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.setSlasher(vetoableSlasher);
+        Logging.logStep("Slasher set in ServiceManager");
+
+        // Set the RewardsRegistry in the ServiceManager
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.setRewardsRegistry(0, rewardsRegistry);
+        Logging.logStep("RewardsRegistry set in ServiceManager");
+
+        return (serviceManager, vetoableSlasher, rewardsRegistry);
+    }
+
+    function _createServiceManagerProxy(
+        DataHavenServiceManager implementation,
+        ProxyAdmin proxyAdmin,
+        ServiceManagerInitParams memory params
+    ) internal returns (DataHavenServiceManager) {
+        vm.broadcast(_deployerPrivateKey);
+        bytes memory initData = abi.encodeWithSelector(
+            DataHavenServiceManager.initialize.selector,
+            params.avsOwner,
+            params.rewardsInitiator,
+            params.validatorsStrategies,
+            params.bspsStrategies,
+            params.mspsStrategies,
+            params.gateway
+        );
+
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(address(implementation), address(proxyAdmin), initData);
+
+        return DataHavenServiceManager(address(proxy));
+    }
+
+    function _prepareStrategiesForServiceManager(
+        AVSConfig memory config,
+        StrategyBaseTVLLimits[] memory strategies
+    ) internal pure {
+        if (config.validatorsStrategies.length == 0) {
+            config.validatorsStrategies = new address[](strategies.length);
+            config.bspsStrategies = new address[](strategies.length);
+            config.mspsStrategies = new address[](strategies.length);
+            for (uint256 i = 0; i < strategies.length; i++) {
+                config.validatorsStrategies[i] = address(strategies[i]);
+                config.bspsStrategies[i] = address(strategies[i]);
+                config.mspsStrategies[i] = address(strategies[i]);
+            }
+        }
     }
 }

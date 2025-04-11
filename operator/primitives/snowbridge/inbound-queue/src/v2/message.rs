@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Converts messages from Ethereum to XCM messages
 
-use crate::{v2::IGatewayV2::Payload, Log};
+use crate::{v2::IGatewayV2::Payload as GatewayV2Payload, Log};
 use alloy_core::{
     primitives::B256,
     sol,
@@ -81,8 +81,8 @@ impl core::fmt::Debug for IGatewayV2::Xcm {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum XcmPayload {
-    /// Represents raw XCM bytes
+pub enum Payload {
+    /// Raw bytes payload. Commonly used to represent raw XCM bytes
     Raw(Vec<u8>),
     /// A token registration template
     CreateAsset { token: H160, network: Network },
@@ -108,7 +108,7 @@ pub struct Message {
     /// The assets sent from Ethereum (ERC-20s).
     pub assets: Vec<EthereumAsset>,
     /// The command originating from the Gateway contract.
-    pub xcm: XcmPayload,
+    pub xcm: Payload,
     /// The claimer in the case that funds get trapped. Expected to be an XCM::v5::Location.
     pub claimer: Option<Vec<u8>>,
     /// Native ether bridged over from Ethereum
@@ -160,7 +160,7 @@ impl TryFrom<&Log> for Message {
 
         let substrate_assets = Self::extract_assets(&payload)?;
 
-        let xcm = XcmPayload::try_from(&payload)?;
+        let xcm = Payload::try_from(&payload)?;
 
         let mut claimer = None;
         if payload.claimer.len() > 0 {
@@ -195,12 +195,12 @@ impl Message {
     }
 }
 
-impl TryFrom<&IGatewayV2::Payload> for XcmPayload {
+impl TryFrom<&IGatewayV2::Payload> for Payload {
     type Error = MessageDecodeError;
 
-    fn try_from(payload: &Payload) -> Result<Self, Self::Error> {
+    fn try_from(payload: &GatewayV2Payload) -> Result<Self, Self::Error> {
         let xcm = match payload.xcm.kind {
-            0 => XcmPayload::Raw(payload.xcm.data.to_vec()),
+            0 => Payload::Raw(payload.xcm.data.to_vec()),
             1 => {
                 let create_asset = IGatewayV2::XcmCreateAsset::abi_decode(&payload.xcm.data, true)
                     .map_err(|_| MessageDecodeError)?;
@@ -209,7 +209,7 @@ impl TryFrom<&IGatewayV2::Payload> for XcmPayload {
                     0 => Network::Polkadot,
                     _ => return Err(MessageDecodeError),
                 };
-                XcmPayload::CreateAsset {
+                Payload::CreateAsset {
                     token: H160::from(create_asset.token.as_ref()),
                     network,
                 }

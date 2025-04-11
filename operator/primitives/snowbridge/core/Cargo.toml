@@ -1,7 +1,7 @@
 [package]
-name = "snowbridge-inbound-queue-primitives"
-description = "Snowbridge Inbound Queue Primitives"
-version = "0.9.0"
+name = "snowbridge-core"
+description = "Snowbridge Core"
+version = "0.2.0"
 authors = ["Snowfork <contact@snowfork.com>"]
 edition.workspace = true
 repository.workspace = true
@@ -12,45 +12,44 @@ categories = ["cryptography::cryptocurrencies"]
 exclude-from-umbrella = true
 
 [dependencies]
-alloy-core = { workspace = true, features = ["sol-types"] }
 codec = { workspace = true }
-impl-trait-for-tuples = { workspace = true }
+hex-literal = { workspace = true, default-features = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
+serde = { optional = true, features = ["alloc", "derive"], workspace = true }
 
+polkadot-parachain-primitives = { workspace = true }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+
+ethabi = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+sp-arithmetic = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
-
-xcm = { workspace = true }
-xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
-snowbridge-beacon-primitives = { workspace = true }
-snowbridge-core = { workspace = true }
-snowbridge-verification-primitives = { workspace = true }
-
-hex = { workspace = true, default-features = false }
-hex-literal = { workspace = true, default-features = true }
+bp-relayers = { workspace = true }
 
 [dev-dependencies]
+hex = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
 std = [
-	"alloy-core/std",
+	"bp-relayers/std",
 	"codec/std",
+	"ethabi/std",
 	"frame-support/std",
 	"frame-system/std",
-	"hex/std",
 	"log/std",
+	"polkadot-parachain-primitives/std",
 	"scale-info/std",
-	"snowbridge-beacon-primitives/std",
-	"snowbridge-core/std",
-	"snowbridge-verification-primitives/std",
+	"serde/std",
+	"sp-arithmetic/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -59,10 +58,11 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 ]
+serde = ["dep:serde", "scale-info/serde"]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"snowbridge-core/runtime-benchmarks",
+	"polkadot-parachain-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",

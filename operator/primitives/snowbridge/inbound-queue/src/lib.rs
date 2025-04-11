@@ -20,6 +20,15 @@ pub struct InboundQueueFixture {
     pub block_roots_root: H256,
 }
 
+/// A trait defining a reward ledger, which tracks rewards that can be later claimed.
+///
+/// This ledger allows registering rewards for a relayer, categorized by a specific `Reward`.
+/// The registered rewards can be claimed later through an appropriate payment procedure.
+pub trait RewardLedger<Relayer, Reward, RewardBalance> {
+    /// Registers a reward for a given relayer.
+    fn register_reward(relayer: &Relayer, reward: Reward, reward_balance: RewardBalance);
+}
+
 /// DEPRECATED in favor of [xcm_builder::ExternalConsensusLocationsConverterFor]
 pub struct EthereumLocationsConverterFor<AccountId>(PhantomData<AccountId>);
 impl<AccountId> ConvertLocation<AccountId> for EthereumLocationsConverterFor<AccountId>

@@ -121,7 +121,7 @@ pub struct OutboundMessage {
 pub const MAX_COMMANDS: u32 = 8;
 
 /// A message which can be accepted by implementations of `/[`SendMessage`\]`
-#[derive(Encode, Decode, DecodeWithMemTracking, TypeInfo, PartialEq, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, TypeInfo, PartialEq, Clone, RuntimeDebug)]
 pub struct Message {
     /// Origin
     pub origin: H256,
@@ -134,7 +134,7 @@ pub struct Message {
 }
 
 /// A command which is executable by the Gateway contract on Ethereum
-#[derive(Clone, Encode, Decode, DecodeWithMemTracking, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Command {
     /// Upgrade the Gateway contract
     Upgrade {

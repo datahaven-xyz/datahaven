@@ -121,8 +121,8 @@ where
             });
 
         let mut remote_xcm: Xcm<()> = match &message.xcm {
-            XcmPayload::Raw(raw) => Self::decode_raw_xcm(raw),
-            XcmPayload::CreateAsset { token, network } => Self::make_create_asset_xcm(
+            Payload::Raw(raw) => Self::decode_raw_xcm(raw),
+            Payload::CreateAsset { token, network } => Self::make_create_asset_xcm(
                 token,
                 *network,
                 message.value,
@@ -271,7 +271,7 @@ where
             // Call to create the asset.
             Transact {
                 origin_kind: OriginKind::Xcm,
-                fallback_max_weight: None,
+                require_weight_at_most: Weight::MAX,
                 call: (
                     create_call_index,
                     asset_id.clone(),
@@ -352,17 +352,17 @@ where
 
         // Set claimer before PayFees, in case the fees are not enough. Then the claimer will be
         // able to claim the funds still.
-        instructions.push(SetHints {
-            hints: vec![AssetClaimer {
-                location: message.claimer,
-            }]
-            .try_into()
-            .expect("checked statically, qed"),
-        });
+        // instructions.push(SetHints {
+        //     hints: vec![AssetClaimer {
+        //         location: message.claimer,
+        //     }]
+        //     .try_into()
+        //     .expect("checked statically, qed"),
+        // });
 
-        instructions.push(PayFees {
-            asset: message.execution_fee.clone(),
-        });
+        // instructions.push(PayFees {
+        //     asset: message.execution_fee.clone(),
+        // });
 
         let mut reserve_deposit_assets = vec![];
         let mut reserve_withdraw_assets = vec![];
@@ -510,7 +510,7 @@ mod tests {
                 nonce: 0,
                 origin,
                 assets,
-                xcm: XcmPayload::Raw(versioned_xcm.encode()),
+                xcm: Payload::Raw(versioned_xcm.encode()),
                 claimer,
                 value,
                 execution_fee,
@@ -682,7 +682,7 @@ mod tests {
             nonce: 0,
             origin,
             assets,
-            xcm: XcmPayload::Raw(versioned_xcm.encode()),
+            xcm: Payload::Raw(versioned_xcm.encode()),
             claimer,
             value,
             execution_fee,
@@ -743,7 +743,7 @@ mod tests {
             nonce: 0,
             origin,
             assets,
-            xcm: XcmPayload::Raw(versioned_xcm.encode()),
+            xcm: Payload::Raw(versioned_xcm.encode()),
             claimer,
             value,
             execution_fee,
@@ -786,7 +786,7 @@ mod tests {
                 nonce: 0,
                 origin,
                 assets,
-                xcm: XcmPayload::Raw(versioned_xcm.encode()),
+                xcm: Payload::Raw(versioned_xcm.encode()),
                 claimer,
                 value,
                 execution_fee,
@@ -866,7 +866,7 @@ mod tests {
                 nonce: 0,
                 origin,
                 assets,
-                xcm: XcmPayload::Raw(versioned_xcm),
+                xcm: Payload::Raw(versioned_xcm),
                 claimer: Some(claimer.encode()),
                 value,
                 execution_fee,
@@ -902,7 +902,7 @@ mod tests {
                 nonce: 0,
                 origin,
                 assets: vec![],
-                xcm: XcmPayload::Raw(versioned_xcm.encode()),
+                xcm: Payload::Raw(versioned_xcm.encode()),
                 claimer: None,
                 value,
                 execution_fee,
@@ -940,7 +940,7 @@ mod tests {
                 nonce: 0,
                 origin,
                 assets: vec![],
-                xcm: XcmPayload::Raw(vec![]),
+                xcm: Payload::Raw(vec![]),
                 claimer: None,
                 value,
                 execution_fee,
@@ -982,7 +982,7 @@ mod tests {
                 nonce: 0,
                 origin,
                 assets: vec![],
-                xcm: XcmPayload::Raw(versioned_xcm.encode()),
+                xcm: Payload::Raw(versioned_xcm.encode()),
                 claimer: None,
                 value,
                 execution_fee,

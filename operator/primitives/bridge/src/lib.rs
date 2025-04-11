@@ -3,8 +3,7 @@
 use frame_support::pallet_prelude::*;
 use frame_system::RawOrigin;
 use parity_scale_codec::DecodeAll;
-use snowbridge_core::Channel;
-use snowbridge_router_primitives::inbound::{envelope::Envelope, MessageProcessor};
+use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
 
 pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56];
 
@@ -35,12 +34,19 @@ where
 
 pub struct ELMessageProcessor<T>(PhantomData<T>);
 
-impl<T> MessageProcessor for ELMessageProcessor<T>
+impl<T, AccountId> MessageProcessor<AccountId> for ELMessageProcessor<T>
 where
     T: pallet_validator_set::Config,
 {
-    fn can_process_message(_channel: &Channel, envelope: &Envelope) -> bool {
-        let decode_result = Payload::<T>::decode_all(&mut envelope.payload.as_slice());
+    fn can_process_message(_who: &AccountId, message: &SnowbridgeMessage) -> bool {
+        let payload = match &message.xcm {
+            snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,
+            snowbridge_inbound_queue_primitives::v2::Payload::CreateAsset {
+                token: _,
+                network: _,
+            } => return false,
+        };
+        let decode_result = Payload::<T>::decode_all(&mut payload.as_slice());
         if let Ok(payload) = decode_result {
             payload.message_id == EL_MESSAGE_ID
         } else {
@@ -48,12 +54,19 @@ where
         }
     }
 
-    fn process_message(_channel: Channel, envelope: Envelope) -> Result<(), DispatchError> {
-        let decode_result = Payload::<T>::decode_all(&mut envelope.payload.as_slice());
+    fn process_message(_who: AccountId, message: SnowbridgeMessage) -> Result<(), DispatchError> {
+        let payload = match &message.xcm {
+            snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,
+            snowbridge_inbound_queue_primitives::v2::Payload::CreateAsset {
+                token: _,
+                network: _,
+            } => return Err(DispatchError::Other("Invalid Message")),
+        };
+        let decode_result = Payload::<T>::decode_all(&mut payload.as_slice());
         let message = if let Ok(payload) = decode_result {
             payload.message
         } else {
-            return Err(DispatchError::Other("unable to parse the envelope payload"));
+            return Err(DispatchError::Other("unable to parse the message payload"));
         };
 
         match message {

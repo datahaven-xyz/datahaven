@@ -44,14 +44,14 @@ use snowbridge_core::{
 };
 use snowbridge_inbound_queue_primitives::{
     v2::{ConvertMessage, ConvertMessageError, Message, MessageProcessor},
-    EventProof, VerificationError, Verifier,
+    EventProof, RewardLedger, VerificationError, Verifier,
 };
 use sp_core::H160;
 use sp_runtime::traits::TryConvert;
+use sp_runtime::traits::Zero;
 use sp_std::prelude::*;
 use xcm::prelude::{ExecuteXcm, Junction::*, Location, SendXcm, *};
 
-use bp_relayers::RewardLedger;
 #[cfg(feature = "runtime-benchmarks")]
 use {snowbridge_beacon_primitives::BeaconHeader, sp_core::H256};
 

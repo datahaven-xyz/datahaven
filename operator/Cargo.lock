@@ -118,9 +118,9 @@ checksum = "9d8bcce99ad10fe02640cfaec1c6bc809b837c783c1d52906aa5af66e2a196f6"
 dependencies = [
  "alloy-dyn-abi",
  "alloy-json-abi",
- "alloy-primitives 0.8.25",
+ "alloy-primitives",
  "alloy-rlp",
- "alloy-sol-types 0.8.25",
+ "alloy-sol-types",
 ]
 
 [[package]]
@@ -130,9 +130,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb8e762aefd39a397ff485bc86df673465c4ad3ec8819cc60833a8a3ba5cdc87"
 dependencies = [
  "alloy-json-abi",
- "alloy-primitives 0.8.25",
+ "alloy-primitives",
  "alloy-sol-type-parser",
- "alloy-sol-types 0.8.25",
+ "alloy-sol-types",
  "const-hex",
  "itoa",
  "serde",
@@ -146,27 +146,10 @@ version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe6beff64ad0aa6ad1019a3db26fef565aefeb011736150ab73ed3366c3cfd1b"
 dependencies = [
- "alloy-primitives 0.8.25",
+ "alloy-primitives",
  "alloy-sol-type-parser",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "alloy-primitives"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0628ec0ba5b98b3370bb6be17b12f23bfce8ee4ad83823325a20546d9b03b78"
-dependencies = [
- "alloy-rlp",
- "bytes",
- "cfg-if",
- "const-hex",
- "derive_more 0.99.19",
- "hex-literal 0.4.1",
- "itoa",
- "ruint",
- "tiny-keccak",
 ]
 
 [[package]]
@@ -208,23 +191,6 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-macro"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a98ad1696a2e17f010ae8e43e9f2a1e930ed176a8e3ff77acfeff6dfb07b42c"
-dependencies = [
- "const-hex",
- "dunce",
- "heck 0.4.1",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 2.0.100",
- "syn-solidity 0.4.2",
- "tiny-keccak",
-]
-
-[[package]]
-name = "alloy-sol-macro"
 version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e10ae8e9a91d328ae954c22542415303919aabe976fe7a92eb06db1b68fd59f2"
@@ -251,7 +217,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.100",
- "syn-solidity 0.8.25",
+ "syn-solidity",
  "tiny-keccak",
 ]
 
@@ -268,7 +234,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.100",
- "syn-solidity 0.8.25",
+ "syn-solidity",
 ]
 
 [[package]]
@@ -283,24 +249,13 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-types"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98d7107bed88e8f09f0ddcc3335622d87bfb6821f3e0c7473329fb1cfad5e015"
-dependencies = [
- "alloy-primitives 0.4.2",
- "alloy-sol-macro 0.4.2",
- "const-hex",
-]
-
-[[package]]
-name = "alloy-sol-types"
 version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d43d5e60466a440230c07761aa67671d4719d46f43be8ea6e7ed334d8db4a9ab"
 dependencies = [
  "alloy-json-abi",
- "alloy-primitives 0.8.25",
- "alloy-sol-macro 0.8.25",
+ "alloy-primitives",
+ "alloy-sol-macro",
  "const-hex",
  "serde",
 ]
@@ -1948,8 +1903,8 @@ dependencies = [
  "frame-system",
  "pallet-validator-set",
  "parity-scale-codec",
- "snowbridge-core",
- "snowbridge-router-primitives",
+ "snowbridge-core 0.2.0",
+ "snowbridge-inbound-queue-primitives",
 ]
 
 [[package]]
@@ -10046,6 +10001,31 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
+version = "0.2.0"
+dependencies = [
+ "bp-relayers",
+ "ethabi-decode 2.0.0",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal 0.3.4",
+ "log",
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
+]
+
+[[package]]
+name = "snowbridge-core"
 version = "0.10.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
 dependencies = [
@@ -10096,11 +10076,12 @@ dependencies = [
  "frame-system",
  "hex",
  "hex-literal 0.3.4",
+ "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
  "scale-info",
  "snowbridge-beacon-primitives",
- "snowbridge-core",
+ "snowbridge-core 0.2.0",
  "snowbridge-verification-primitives",
  "sp-core",
  "sp-io",
@@ -10140,7 +10121,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
- "snowbridge-core",
+ "snowbridge-core 0.2.0",
  "snowbridge-verification-primitives",
  "sp-arithmetic",
  "sp-core",
@@ -10167,7 +10148,7 @@ dependencies = [
  "scale-info",
  "serde",
  "snowbridge-beacon-primitives",
- "snowbridge-core",
+ "snowbridge-core 0.10.0",
  "snowbridge-ethereum",
  "snowbridge-pallet-ethereum-client-fixtures",
  "sp-core",
@@ -10184,7 +10165,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b
 dependencies = [
  "hex-literal 0.4.1",
  "snowbridge-beacon-primitives",
- "snowbridge-core",
+ "snowbridge-core 0.10.0",
  "sp-core",
  "sp-std",
 ]
@@ -10206,7 +10187,7 @@ dependencies = [
  "scale-info",
  "serde",
  "snowbridge-beacon-primitives",
- "snowbridge-core",
+ "snowbridge-core 0.2.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2-fixtures",
@@ -10228,31 +10209,10 @@ version = "0.10.0"
 dependencies = [
  "hex-literal 0.3.4",
  "snowbridge-beacon-primitives",
- "snowbridge-core",
+ "snowbridge-core 0.2.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
-]
-
-[[package]]
-name = "snowbridge-router-primitives"
-version = "0.9.0"
-dependencies = [
- "alloy-primitives 0.4.2",
- "alloy-sol-types 0.4.2",
- "frame-support",
- "hex-literal 0.3.4",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "snowbridge-core",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "staging-xcm",
- "staging-xcm-executor",
 ]
 
 [[package]]
@@ -11380,18 +11340,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "syn-solidity"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86b837ef12ab88835251726eb12237655e61ec8dc8a280085d1961cdc3dfd047"
-dependencies = [
- "paste",
- "proc-macro2",
- "quote",
- "syn 2.0.100",
 ]
 
 [[package]]

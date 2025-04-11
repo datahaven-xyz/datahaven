@@ -4,7 +4,6 @@
 // A stripped-down version of pallet-xcm that only inserts an XCM origin into the runtime
 #[frame_support::pallet]
 pub mod pallet_xcm_origin {
-    use codec::DecodeWithMemTracking;
     use frame_support::{
         pallet_prelude::*,
         traits::{Contains, OriginTrait},
@@ -21,17 +20,7 @@ pub mod pallet_xcm_origin {
 
     // Insert this custom Origin into the aggregate RuntimeOrigin
     #[pallet::origin]
-    #[derive(
-        PartialEq,
-        Eq,
-        Clone,
-        Encode,
-        Decode,
-        DecodeWithMemTracking,
-        RuntimeDebug,
-        TypeInfo,
-        MaxEncodedLen,
-    )]
+    #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
     pub struct Origin(pub Location);
 
     impl From<Location> for Origin {

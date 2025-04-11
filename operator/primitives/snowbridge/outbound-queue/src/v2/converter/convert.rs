@@ -111,8 +111,15 @@ where
             } => Ok((asset_id, amount)),
             _ => Err(AssetResolutionFailed),
         }?;
-        let fee_asset =
-            match_expression!(self.next()?, PayFees { asset: fee }, fee).ok_or(InvalidFeeAsset)?;
+        let fee_asset = match_expression!(
+            self.next()?,
+            BuyExecution {
+                fees: fee,
+                weight_limit: WeightLimit::Unlimited
+            },
+            fee
+        )
+        .ok_or(InvalidFeeAsset)?;
         let (fee_asset_id, fee_amount) = match fee_asset {
             Asset {
                 id: asset_id,

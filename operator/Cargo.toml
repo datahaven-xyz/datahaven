@@ -11,7 +11,6 @@ members = [
     "pallets/validator-set",
     "pallets/inbound-queue-v2",
     "primitives/bridge",
-    "primitives/snowbridge/router",
     "runtime",
     "runtime/common",
 ]
@@ -66,9 +65,7 @@ sc-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sta
 sc-telemetry = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sc-transaction-pool-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
-snowbridge-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 snowbridge-pallet-inbound-queue-fixtures = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
-snowbridge-router-primitives = { path = "primitives/snowbridge/router", default-features = false }
 sp-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sp-application-crypto = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
 sp-arithmetic = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
@@ -130,6 +127,7 @@ pallet-mmr = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sta
 
 # Snowbridge
 snowbridge-beacon-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2409", default-features = false }
+snowbridge-core = { path = "primitives/snowbridge/core", default-features = false }
 snowbridge-inbound-queue-primitives = { path = "primitives/snowbridge/inbound-queue", default-features = false }
 snowbridge-outbound-queue-primitives = { path = "primitives/snowbridge/outbound-queue", default-features = false }
 snowbridge-pallet-inbound-queue-v2-fixtures = { path = "pallets/inbound-queue-v2/fixtures", default-features = false }

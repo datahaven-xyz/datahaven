@@ -19,9 +19,9 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 
 // DataHaven imports
+import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
 import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
-import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 
 /**
  * @title DataHaven ServiceManager contract
@@ -46,7 +46,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public mspsAllowlist;
 
-    /// @inheritdoc IDataHavenServiceManager
     IGatewayV2 private _snowbridgeGateway;
 
     /// @inheritdoc IDataHavenServiceManager
@@ -97,12 +96,13 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
             newValidatorSet[i] = validatorAddressToSolochainAddress[currentValidatorSet[i]];
         }
-        NewValidatorSetMessagePayload memory newValidatorSetMessagePayload =
-            NewValidatorSetMessagePayload({newValidatorSet: newValidatorSet});
-        NewValidatorSetMessage memory newValidatorSetMessage = NewValidatorSetMessage({
+        DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
+            DataHavenSnowbridgeMessages.NewValidatorSetPayload({newValidatorSet: newValidatorSet});
+        DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
+        DataHavenSnowbridgeMessages.NewValidatorSet({
             nonce: 0,
             topic: bytes32(0),
-            payload: newValidatorSetMessagePayload
+            payload: newValidatorSetPayload
         });
 
         // Send the new validator set message to the Snowbridge Gateway
@@ -127,10 +127,10 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
     /// @inheritdoc IDataHavenServiceManager
     function setSnowbridgeGateway(
-        address _snowbridgeGateway
+        address _newSnowbridgeGateway
     ) external onlyOwner {
-        _snowbridgeGateway = IGatewayV2(_snowbridgeGateway);
-        emit SnowbridgeGatewaySet(_snowbridgeGateway);
+        _snowbridgeGateway = IGatewayV2(_newSnowbridgeGateway);
+        emit SnowbridgeGatewaySet(_newSnowbridgeGateway);
     }
 
     /// @inheritdoc IAVSRegistrar

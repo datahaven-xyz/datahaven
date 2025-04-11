@@ -11,20 +11,20 @@ library DataHavenSnowbridgeMessages {
      *         This mimics the message format defined in the Snowbridge inbound pallet of the DataHaven
      *         solochain.
      */
-    struct NewValidatorSetMessage {
+    struct NewValidatorSet {
         /// @notice The nonce of the message
         uint64 nonce;
         /// @notice The topic of the message
         bytes32 topic;
         /// @notice The payload of the message
-        NewValidatorSetMessagePayload payload;
+        NewValidatorSetPayload payload;
     }
 
     /**
      * @title New Validator Set Snowbridge Message Payload
      * @notice A struct representing the payload of a new validator set message.
      */
-    struct NewValidatorSetMessagePayload {
+    struct NewValidatorSetPayload {
         /// @notice The new validator set. This should be interpreted as the list of
         ///         validator addresses in the DataHaven network.
         bytes32[] newValidatorSet;
@@ -36,7 +36,7 @@ library DataHavenSnowbridgeMessages {
      * @return The encoded message.
      */
     function scaleEncodeNewValidatorSetMessage(
-        NewValidatorSetMessage memory message
+        NewValidatorSet memory message
     ) public pure returns (bytes memory) {
         return bytes.concat(
             ScaleCodec.encodeU64(message.nonce),
@@ -51,7 +51,7 @@ library DataHavenSnowbridgeMessages {
      * @return The encoded payload.
      */
     function scaleEncodeNewValidatorSetMessagePayload(
-        NewValidatorSetMessagePayload memory payload
+        NewValidatorSetPayload memory payload
     ) public pure returns (bytes memory) {
         // Encode all fields into a buffer.
         bytes memory accum = hex"";
@@ -59,6 +59,7 @@ library DataHavenSnowbridgeMessages {
             accum = bytes.concat(accum, payload.newValidatorSet[i]);
         }
         // Encode number of validator addresses, followed by encoded validator addresses.
-        return bytes.concat(ScaleCodec.encodeU32(payload.newValidatorSet.length), accum);
+        return
+            bytes.concat(ScaleCodec.checkedEncodeCompactU32(payload.newValidatorSet.length), accum);
     }
 }

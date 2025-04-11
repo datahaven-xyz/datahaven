@@ -112,7 +112,7 @@ interface IDataHavenServiceManager is
      */
     function validatorAddressToSolochainAddress(
         address validatorAddress
-    ) external view returns (address);
+    ) external view returns (bytes32);
 
     /**
      * @notice Initializes the DataHaven Service Manager

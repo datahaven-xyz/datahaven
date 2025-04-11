@@ -14,22 +14,30 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { features = ["derive"], workspace = true }
-hex = { workspace = true }
-scale-info = { features = ["derive", "serde"], workspace = true }
-serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 datahaven-runtime-common.workspace = true
-frame-support = { features = ["experimental"], workspace = true }
-frame-system.workspace = true
-frame-try-runtime = { optional = true, workspace = true }
+fp-account = { workspace = true,  features = [ "serde" ]}
+frame-benchmarking = { optional = true, workspace = true }
 frame-executive.workspace = true
 frame-metadata-hash-extension.workspace = true
+frame-support = { features = ["experimental"], workspace = true }
+frame-system-benchmarking = { optional = true, workspace = true }
+frame-system-rpc-runtime-api.workspace = true
+frame-system.workspace = true
+frame-try-runtime = { optional = true, workspace = true }
+hex = { workspace = true }
 hex-literal.workspace = true
 pallet-authorship.workspace = true
 pallet-babe.workspace = true
 pallet-balances.workspace = true
+pallet-beefy-mmr.workspace = true
+pallet-beefy.workspace = true
+pallet-ethereum.workspace = true
+pallet-evm-chain-id.workspace = true
+pallet-evm.workspace = true
 pallet-grandpa.workspace = true
 pallet-identity.workspace = true
 pallet-im-online.workspace = true
+pallet-mmr.workspace = true
 pallet-multisig.workspace = true
 pallet-offences.workspace = true
 pallet-preimage.workspace = true
@@ -37,39 +45,31 @@ pallet-scheduler.workspace = true
 pallet-session.workspace = true
 pallet-sudo.workspace = true
 pallet-timestamp.workspace = true
+pallet-transaction-payment-rpc-runtime-api.workspace = true
 pallet-transaction-payment.workspace = true
 pallet-utility.workspace = true
 pallet-validator-set.workspace = true
-pallet-beefy.workspace = true
-pallet-beefy-mmr.workspace = true
-pallet-mmr.workspace = true
+polkadot-primitives.workspace = true
+polkadot-runtime-common.workspace = true
+scale-info = { features = ["derive", "serde"], workspace = true }
+serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 sp-api.workspace = true
 sp-block-builder.workspace = true
 sp-consensus-babe = { features = ["serde"], workspace = true }
 sp-consensus-beefy = { features = ["serde"], workspace = true }
 sp-consensus-grandpa = { features = ["serde"], workspace = true }
 sp-core = { features = ["serde"], workspace = true }
-sp-keyring.workspace = true
+sp-genesis-builder.workspace = true
 sp-inherents.workspace = true
+sp-keyring.workspace = true
 sp-offchain.workspace = true
 sp-runtime = { features = ["serde"], workspace = true }
 sp-session.workspace = true
-sp-std.workspace = true
 sp-staking.workspace = true
+sp-std.workspace = true
 sp-storage.workspace = true
 sp-transaction-pool.workspace = true
 sp-version = { features = ["serde"], workspace = true }
-sp-genesis-builder.workspace = true
-frame-system-rpc-runtime-api.workspace = true
-pallet-transaction-payment-rpc-runtime-api.workspace = true
-polkadot-runtime-common.workspace = true
-frame-benchmarking = { optional = true, workspace = true }
-frame-system-benchmarking = { optional = true, workspace = true }
-polkadot-primitives.workspace = true
-fp-account = { workspace = true,  features = [ "serde" ]}
-pallet-evm.workspace = true
-pallet-evm-chain-id.workspace = true
-pallet-ethereum.workspace = true
 
 # Snowbridge
 snowbridge-beacon-primitives.workspace = true

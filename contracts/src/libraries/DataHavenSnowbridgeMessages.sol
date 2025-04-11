@@ -10,6 +10,8 @@ library DataHavenSnowbridgeMessages {
      * @notice A struct representing a new validator set to be sent as a message through Snowbridge.
      *         This mimics the message format defined in the Snowbridge inbound pallet of the DataHaven
      *         solochain.
+     * !IMPORTANT: The fields in this struct are placeholder until we have the actual message format
+     * !           defined in the DataHaven solochain.
      */
     struct NewValidatorSet {
         /// @notice The nonce of the message
@@ -23,6 +25,8 @@ library DataHavenSnowbridgeMessages {
     /**
      * @title New Validator Set Snowbridge Message Payload
      * @notice A struct representing the payload of a new validator set message.
+     * !IMPORTANT: The fields in this struct are placeholder until we have the actual message format
+     * !           defined in the DataHaven solochain.
      */
     struct NewValidatorSetPayload {
         /// @notice The new validator set. This should be interpreted as the list of

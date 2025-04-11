@@ -114,9 +114,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         });
 
         // Send the new validator set message to the Snowbridge Gateway
-        // bytes memory message =
-        //     DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
-        bytes memory message = bytes("");
+        bytes memory message =
+            DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
         _snowbridgeGateway.v2_sendMessage{value: msg.value}(
             message,
             new bytes[](0), // No assets to send
@@ -169,7 +168,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
                 revert OperatorNotInAllowlist();
             }
 
-            // In the case of the Validators operator set, expect the data to have the Solochain address of the operator
+            // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
+            // TODO: We should have some sort of validation of this address that validators are setting for themselves.
             validatorAddressToSolochainAddress[operator] = bytes32(data);
         }
 

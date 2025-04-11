@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+// EigenLayer imports
 import {
     IAllocationManager,
     IAllocationManagerTypes
@@ -13,8 +14,14 @@ import {IRewardsCoordinator} from
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
+// Snowbridge imports
+import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
+import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
+
+// DataHaven imports
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
 import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
+import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 
 /**
  * @title DataHaven ServiceManager contract
@@ -39,12 +46,28 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public mspsAllowlist;
 
+    /// @inheritdoc IDataHavenServiceManager
+    IGatewayV2 private _snowbridgeGateway;
+
+    /// @inheritdoc IDataHavenServiceManager
+    mapping(address => bytes32) public validatorAddressToSolochainAddress;
+
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
         IPermissionController __permissionController,
         IAllocationManager __allocationManager
     ) ServiceManagerBase(__rewardsCoordinator, __permissionController, __allocationManager) {}
+
+    /// @notice Modifier to ensure the caller is a registered Validator
+    modifier onlyValidator() {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        require(
+            _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
+            CallerIsNotValidator()
+        );
+        _;
+    }
 
     /// @inheritdoc IDataHavenServiceManager
     function initialize(
@@ -63,12 +86,59 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _createDataHavenOperatorSets(validatorsStrategies, bspsStrategies, mspsStrategies);
     }
 
+    /// @inheritdoc IDataHavenServiceManager
+    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external onlyOwner {
+        // Get the current validator set
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
+
+        // Build the new validator set message
+        bytes32[] memory newValidatorSet = new bytes32[](currentValidatorSet.length);
+        for (uint256 i = 0; i < currentValidatorSet.length; i++) {
+            newValidatorSet[i] = validatorAddressToSolochainAddress[currentValidatorSet[i]];
+        }
+        NewValidatorSetMessagePayload memory newValidatorSetMessagePayload =
+            NewValidatorSetMessagePayload({newValidatorSet: newValidatorSet});
+        NewValidatorSetMessage memory newValidatorSetMessage = NewValidatorSetMessage({
+            nonce: 0,
+            topic: bytes32(0),
+            payload: newValidatorSetMessagePayload
+        });
+
+        // Send the new validator set message to the Snowbridge Gateway
+        bytes memory message =
+            DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
+        _snowbridgeGateway.v2_sendMessage(
+            message,
+            new bytes[](0), // No assets to send
+            bytes(""), // No claimer
+            executionFee,
+            relayerFee
+        );
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function updateSolochainAddressForValidator(
+        bytes32 solochainAddress
+    ) external onlyValidator {
+        // Update the Solochain address for the Validator
+        validatorAddressToSolochainAddress[msg.sender] = solochainAddress;
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function setSnowbridgeGateway(
+        address _snowbridgeGateway
+    ) external onlyOwner {
+        _snowbridgeGateway = IGatewayV2(_snowbridgeGateway);
+        emit SnowbridgeGatewaySet(_snowbridgeGateway);
+    }
+
     /// @inheritdoc IAVSRegistrar
     function registerOperator(
         address operator,
         address avs,
         uint32[] calldata operatorSetIds,
-        bytes calldata // data
+        bytes calldata data
     ) external override {
         if (avs != address(this)) {
             revert IncorrectAVSAddress();
@@ -89,6 +159,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             if (!validatorsAllowlist[operator]) {
                 revert OperatorNotInAllowlist();
             }
+
+            // In the case of the Validators operator set, expect the data to have the Solochain address of the operator
+            validatorAddressToSolochainAddress[operator] = bytes32(data);
         }
 
         if (operatorSetIds[0] == BSPS_SET_ID) {
@@ -125,6 +198,11 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
                 && operatorSetIds[0] != MSPS_SET_ID
         ) {
             revert InvalidOperatorSetId();
+        }
+
+        if (operatorSetIds[0] == VALIDATORS_SET_ID) {
+            // Remove validator from the addresses mapping
+            delete validatorAddressToSolochainAddress[operator];
         }
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
@@ -238,6 +316,11 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         IStrategy[] calldata _strategies
     ) external onlyOwner {
         _allocationManager.addStrategiesToOperatorSet(address(this), MSPS_SET_ID, _strategies);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function snowbridgeGateway() external view returns (address) {
+        return address(_snowbridgeGateway);
     }
 
     /**

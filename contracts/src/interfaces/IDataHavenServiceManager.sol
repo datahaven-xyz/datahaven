@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+// EigenLayer imports
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+
+// Snowbridge imports
+import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 
 /**
  * @title DataHaven Service Manager Errors Interface
@@ -19,6 +23,8 @@ interface IDataHavenServiceManagerErrors {
     error InvalidOperatorSetId();
     /// @notice Thrown when an operator not in the appropriate allowlist attempts to register
     error OperatorNotInAllowlist();
+    /// @notice Thrown when the caller is not a Validator in the Validators operator set
+    error CallerIsNotValidator();
 }
 
 /**
@@ -59,6 +65,10 @@ interface IDataHavenServiceManagerEvents {
     /// @notice Emitted when a Main Storage Provider is removed from the allowlist
     /// @param msp Address of the MSP removed from the allowlist
     event MspRemovedFromAllowlist(address indexed msp);
+
+    /// @notice Emitted when the Snowbridge Gateway address is set
+    /// @param snowbridgeGateway Address of the Snowbridge Gateway
+    event SnowbridgeGatewaySet(address indexed snowbridgeGateway);
 }
 
 /**
@@ -91,6 +101,19 @@ interface IDataHavenServiceManager is
         address msp
     ) external view returns (bool);
 
+    /// @notice Returns the Snowbridge Gateway address
+    /// @return The Snowbridge gateway address
+    function snowbridgeGateway() external view returns (address);
+
+    /**
+     * @notice Converts a validator address to the corresponding Solochain address
+     * @param validatorAddress The address of the validator to convert
+     * @return The corresponding Solochain address
+     */
+    function validatorAddressToSolochainAddress(
+        address validatorAddress
+    ) external view returns (address);
+
     /**
      * @notice Initializes the DataHaven Service Manager
      * @param initialOwner Address of the initial owner
@@ -105,6 +128,35 @@ interface IDataHavenServiceManager is
         IStrategy[] memory validatorsStrategies,
         IStrategy[] memory bspsStrategies,
         IStrategy[] memory mspsStrategies
+    ) external;
+
+    /**
+     * @notice Sends a new validator set to the Snowbridge Gateway
+     * @dev The new validator set is made up of the Validators currently
+     *      registered in the DataHaven Service Manager as operators of
+     *      the Validators operator set (operatorSetId = VALIDATORS_SET_ID)
+     * @dev Only callable by the owner
+     * @param executionFee The execution fee for the Snowbridge message
+     * @param relayerFee The relayer fee for the Snowbridge message
+     */
+    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external;
+
+    /**
+     * @notice Updates the Solochain address for a Validator
+     * @param solochainAddress The new Solochain address for the Validator
+     * @dev The caller must be the registered operator address for the Validator, in EigenLayer,
+     *      in the Validators operator set (operatorSetId = VALIDATORS_SET_ID)
+     */
+    function updateSolochainAddressForValidator(
+        bytes32 solochainAddress
+    ) external;
+
+    /**
+     * @notice Sets the Snowbridge Gateway address
+     * @param _snowbridgeGateway The address of the Snowbridge Gateway
+     */
+    function setSnowbridgeGateway(
+        address _snowbridgeGateway
     ) external;
 
     /**

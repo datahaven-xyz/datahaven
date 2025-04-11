@@ -1,7 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use crate::rpc::BeefyDeps;
-use datahaven_mainnet_runtime::{self, apis::RuntimeApi, opaque::Block};
+use datahaven_runtime_common::{AccountId, Balance, Block, BlockNumber, Hash, Nonce};
 use futures::FutureExt;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_babe::ImportQueueParams;
@@ -10,22 +10,27 @@ use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpS
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_beefy::ecdsa_crypto;
+use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
 use std::{sync::Arc, time::Duration};
 
-pub(crate) type FullClient = sc_service::TFullClient<
+pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
     Block,
     RuntimeApi,
     sc_executor::WasmExecutor<sp_io::SubstrateHostFunctions>,
 >;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
-type FullGrandpaBlockImport =
-    sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
-type FullBeefyBlockImport<InnerBlockImport, AuthorityId> =
+type FullGrandpaBlockImport<RuntimeApi> = sc_consensus_grandpa::GrandpaBlockImport<
+    FullBackend,
+    Block,
+    FullClient<RuntimeApi>,
+    FullSelectChain,
+>;
+type FullBeefyBlockImport<InnerBlockImport, AuthorityId, RuntimeApi> =
     sc_consensus_beefy::import::BeefyBlockImport<
         Block,
         FullBackend,
-        FullClient,
+        FullClient<RuntimeApi>,
         InnerBlockImport,
         AuthorityId,
     >;
@@ -34,19 +39,57 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId> =
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
-pub type Service = sc_service::PartialComponents<
-    FullClient,
+pub(crate) trait FullRuntimeApi:
+    sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
+    + sp_api::Metadata<Block>
+    + frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce>
+    + sp_session::SessionKeys<Block>
+    + sp_api::ApiExt<Block>
+    + pallet_mmr::primitives::MmrApi<Block, Hash, BlockNumber>
+    + pallet_beefy_mmr::BeefyMmrApi<Block, Hash>
+    + sp_consensus_beefy::BeefyApi<Block, BeefyId>
+    + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance>
+    + sp_offchain::OffchainWorkerApi<Block>
+    + sp_block_builder::BlockBuilder<Block>
+    + sp_consensus_babe::BabeApi<Block>
+    + sp_consensus_grandpa::GrandpaApi<Block>
+{
+}
+
+impl<T> FullRuntimeApi for T where
+    T: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
+        + sp_api::Metadata<Block>
+        + frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce>
+        + sp_session::SessionKeys<Block>
+        + sp_api::ApiExt<Block>
+        + pallet_mmr::primitives::MmrApi<Block, Hash, BlockNumber>
+        + pallet_beefy_mmr::BeefyMmrApi<Block, Hash>
+        + sp_consensus_beefy::BeefyApi<Block, BeefyId>
+        + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance>
+        + sp_offchain::OffchainWorkerApi<Block>
+        + sp_block_builder::BlockBuilder<Block>
+        + sp_consensus_babe::BabeApi<Block>
+        + sp_consensus_grandpa::GrandpaApi<Block>
+{
+}
+
+pub type Service<RuntimeApi> = sc_service::PartialComponents<
+    FullClient<RuntimeApi>,
     FullBackend,
     FullSelectChain,
     sc_consensus::DefaultImportQueue<Block>,
-    sc_transaction_pool::FullPool<Block, FullClient>,
+    sc_transaction_pool::FullPool<Block, FullClient<RuntimeApi>>,
     (
         sc_consensus_babe::BabeBlockImport<
             Block,
-            FullClient,
-            FullBeefyBlockImport<FullGrandpaBlockImport, ecdsa_crypto::AuthorityId>,
+            FullClient<RuntimeApi>,
+            FullBeefyBlockImport<
+                FullGrandpaBlockImport<RuntimeApi>,
+                ecdsa_crypto::AuthorityId,
+                RuntimeApi,
+            >,
         >,
-        sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+        sc_consensus_grandpa::LinkHalf<Block, FullClient<RuntimeApi>, FullSelectChain>,
         sc_consensus_babe::BabeLink<Block>,
         sc_consensus_beefy::BeefyVoterLinks<Block, ecdsa_crypto::AuthorityId>,
         sc_consensus_beefy::BeefyRPCLinks<Block, ecdsa_crypto::AuthorityId>,
@@ -54,7 +97,11 @@ pub type Service = sc_service::PartialComponents<
     ),
 >;
 
-pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
+pub fn new_partial<RuntimeApi>(config: &Configuration) -> Result<Service<RuntimeApi>, ServiceError>
+where
+    RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: FullRuntimeApi,
+{
     let telemetry = config
         .telemetry_endpoints
         .clone()
@@ -162,10 +209,15 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
 
 /// Builds a new service for a full client.
 pub fn new_full<
+    RuntimeApi,
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
     config: Configuration,
-) -> Result<TaskManager, ServiceError> {
+) -> Result<TaskManager, ServiceError>
+where
+    RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: FullRuntimeApi,
+{
     let sc_service::PartialComponents {
         client,
         backend,
@@ -176,7 +228,7 @@ pub fn new_full<
         transaction_pool,
         other:
             (block_import, grandpa_link, babe_link, beefy_voter_links, beefy_rpc_links, mut telemetry),
-    } = new_partial(&config)?;
+    } = new_partial::<RuntimeApi>(&config)?;
 
     let mut net_config = sc_network::config::FullNetworkConfiguration::<
         Block,

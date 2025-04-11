@@ -73,19 +73,34 @@ sp-blockchain.workspace = true
 sp-blockchain.default-features = true
 sp-block-builder.workspace = true
 sp-block-builder.default-features = true
+sp-offchain.workspace = true
+sp-offchain.default-features = true
+sp-session.workspace = true
+sp-session.default-features = true
+sp-transaction-pool.workspace = true
+sp-transaction-pool.default-features = true
 frame-system.workspace = true
 frame-system.default-features = true
+frame-system-rpc-runtime-api.workspace = true
+frame-system-rpc-runtime-api.default-features = true
 frame-metadata-hash-extension.workspace = true
 frame-metadata-hash-extension.default-features = true
 pallet-im-online.workspace = true
+pallet-beefy-mmr.workspace = true
+pallet-beefy-mmr.default-features = true
+pallet-mmr.workspace = true
+pallet-mmr.default-features = true
 pallet-transaction-payment.workspace = true
 pallet-transaction-payment.default-features = true
 pallet-transaction-payment-rpc.workspace = true
 pallet-transaction-payment-rpc.default-features = true
+pallet-transaction-payment-rpc-runtime-api.workspace = true
+pallet-transaction-payment-rpc-runtime-api.default-features = true
 substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-benchmarking-cli.default-features = true
+datahaven-runtime-common.workspace = true
 datahaven-stagenet-runtime.workspace = true
 datahaven-mainnet-runtime.workspace = true
 datahaven-testnet-runtime.workspace = true
@@ -109,6 +124,7 @@ substrate-build-script-utils.default-features = true
 [features]
 default = ["std"]
 std = [
+	"datahaven-runtime-common/std",
 	"datahaven-stagenet-runtime/std",
 	"datahaven-mainnet-runtime/std",
 	"datahaven-testnet-runtime/std",
@@ -118,6 +134,7 @@ runtime-benchmarks = [
 	"frame-benchmarking-cli/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"sc-service/runtime-benchmarks",
+	"datahaven-runtime-common/runtime-benchmarks",
 	"datahaven-stagenet-runtime/runtime-benchmarks",
 	"datahaven-mainnet-runtime/runtime-benchmarks",
 	"datahaven-testnet-runtime/runtime-benchmarks",

@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use datahaven_mainnet_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Nonce};
+use datahaven_runtime_common::{AccountId, Balance, Block, BlockNumber, Nonce};
 use jsonrpsee::RpcModule;
 use sc_consensus_beefy::communication::notification::{
     BeefyBestBlockStream, BeefyVersionedFinalityProofStream,

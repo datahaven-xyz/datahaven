@@ -27,14 +27,14 @@ impl NetworkType for Box<dyn sc_service::ChainSpec> {
     }
 
     fn is_stagenet(&self) -> bool {
-        self.id().starts_with("datahaven-stagenet")
+        self.id().starts_with("datahaven_stagenet")
     }
 
     fn is_testnet(&self) -> bool {
-        self.id().starts_with("datahaven-testnet")
+        self.id().starts_with("datahaven_testnet")
     }
 
     fn is_mainnet(&self) -> bool {
-        self.id().starts_with("datahaven-mainnet")
+        self.id().starts_with("datahaven_mainnet")
     }
 }

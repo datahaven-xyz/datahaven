@@ -1,4 +1,4 @@
-use datahaven_mainnet_runtime::WASM_BINARY;
+use datahaven_testnet_runtime::WASM_BINARY;
 use sc_service::ChainType;
 
 use super::ChainSpec;

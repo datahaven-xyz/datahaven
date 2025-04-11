@@ -1606,19 +1606,24 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "datahaven-mainnet-runtime",
+ "datahaven-runtime-common",
  "datahaven-stagenet-runtime",
  "datahaven-testnet-runtime",
  "fp-account",
  "frame-benchmarking-cli",
  "frame-metadata-hash-extension",
  "frame-system",
+ "frame-system-rpc-runtime-api",
  "futures",
  "hex-literal 0.3.4",
  "jsonrpsee",
  "mmr-rpc",
+ "pallet-beefy-mmr",
  "pallet-im-online",
+ "pallet-mmr",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
+ "pallet-transaction-payment-rpc-runtime-api",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -1647,8 +1652,11 @@ dependencies = [
  "sp-inherents",
  "sp-io",
  "sp-keyring",
+ "sp-offchain",
  "sp-runtime",
+ "sp-session",
  "sp-timestamp",
+ "sp-transaction-pool",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
 ]
@@ -1657,9 +1665,12 @@ dependencies = [
 name = "datahaven-runtime-common"
 version = "0.1.0"
 dependencies = [
+ "fp-account",
  "frame-support",
  "polkadot-primitives",
  "polkadot-runtime-common",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]

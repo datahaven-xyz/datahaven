@@ -90,6 +90,26 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         _connectSnowbridgeToAVS();
     }
 
+    function _setupValidatorsAsOperators() internal {
+        // Register the DataHaven service in the AllocationManager
+        cheats.prank(avsOwner);
+        serviceManager.updateAVSMetadataURI("");
+
+        // Create an operator set in the DataHaven service
+        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams =
+            new IAllocationManagerTypes.CreateSetParams[](1);
+        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            strategies[i] = IStrategy(deployedStrategies[i]);
+        }
+        operatorSetParams[0] =
+            IAllocationManagerTypes.CreateSetParams({operatorSetId: 0, strategies: strategies});
+        cheats.prank(avsOwner);
+        serviceManager.createOperatorSets(operatorSetParams);
+
+        // TODO: Implement the rest
+    }
+
     function _deployMockSnowbridge() internal {
         BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
         BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);

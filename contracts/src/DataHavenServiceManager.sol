@@ -74,19 +74,27 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
         IStrategy[] memory bspsStrategies,
-        IStrategy[] memory mspsStrategies
+        IStrategy[] memory mspsStrategies,
+        address _snowbridgeGatewayAddress
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
 
-        // Register the DataHaven service in the AllocationManager
+        // Register the DataHaven service in the AllocationManager.
         _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
-        // Create the operator sets for the DataHaven service
+        // Create the operator sets for the DataHaven service.
         _createDataHavenOperatorSets(validatorsStrategies, bspsStrategies, mspsStrategies);
+
+        // Set the Snowbridge Gateway address.
+        // This is the contract to which messages are sent, to be relayed to the Solochain network.
+        _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external onlyOwner {
+    function sendNewValidatorSet(
+        uint128 executionFee,
+        uint128 relayerFee
+    ) external payable onlyOwner {
         // Get the current validator set
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
@@ -106,9 +114,10 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         });
 
         // Send the new validator set message to the Snowbridge Gateway
-        bytes memory message =
-            DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
-        _snowbridgeGateway.v2_sendMessage(
+        // bytes memory message =
+        //     DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
+        bytes memory message = bytes("");
+        _snowbridgeGateway.v2_sendMessage{value: msg.value}(
             message,
             new bytes[](0), // No assets to send
             bytes(""), // No claimer

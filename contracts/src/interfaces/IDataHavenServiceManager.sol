@@ -127,7 +127,8 @@ interface IDataHavenServiceManager is
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
         IStrategy[] memory bspsStrategies,
-        IStrategy[] memory mspsStrategies
+        IStrategy[] memory mspsStrategies,
+        address _snowbridgeGatewayAddress
     ) external;
 
     /**
@@ -139,7 +140,7 @@ interface IDataHavenServiceManager is
      * @param executionFee The execution fee for the Snowbridge message
      * @param relayerFee The relayer fee for the Snowbridge message
      */
-    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external;
+    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external payable;
 
     /**
      * @notice Updates the Solochain address for a Validator

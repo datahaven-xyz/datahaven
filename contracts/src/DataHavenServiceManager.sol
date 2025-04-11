@@ -95,6 +95,19 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         uint128 executionFee,
         uint128 relayerFee
     ) external payable onlyOwner {
+        // Send the new validator set message to the Snowbridge Gateway
+        bytes memory message = buildNewValidatorSetMessage();
+        _snowbridgeGateway.v2_sendMessage{value: msg.value}(
+            message,
+            new bytes[](0), // No assets to send
+            bytes(""), // No claimer
+            executionFee,
+            relayerFee
+        );
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function buildNewValidatorSetMessage() public view returns (bytes memory) {
         // Get the current validator set
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
@@ -113,16 +126,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             payload: newValidatorSetPayload
         });
 
-        // Send the new validator set message to the Snowbridge Gateway
-        bytes memory message =
-            DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
-        _snowbridgeGateway.v2_sendMessage{value: msg.value}(
-            message,
-            new bytes[](0), // No assets to send
-            bytes(""), // No claimer
-            executionFee,
-            relayerFee
-        );
+        // Return the encoded message
+        return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
     }
 
     /// @inheritdoc IDataHavenServiceManager

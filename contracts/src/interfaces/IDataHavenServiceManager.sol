@@ -143,6 +143,12 @@ interface IDataHavenServiceManager is
     function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external payable;
 
     /**
+     * @notice Builds a new validator set message to be sent to the Snowbridge Gateway
+     * @return The encoded message bytes to be sent to the Snowbridge Gateway
+     */
+    function buildNewValidatorSetMessage() external view returns (bytes memory);
+
+    /**
      * @notice Updates the Solochain address for a Validator
      * @param solochainAddress The new Solochain address for the Validator
      * @dev The caller must be the registered operator address for the Validator, in EigenLayer,

@@ -129,28 +129,28 @@ pallet-evm = { git = "https://github.com/polkadot-evm/frontier/", branch = "stab
 pallet-evm-chain-id = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2409", default-features = false }
 
 # StorageHub
-storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
+storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
 pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-message-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-collator-selection = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
-pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
-shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
+pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
 
 pallet-parameters = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
@@ -161,14 +161,3 @@ sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "st
 
 num-bigint = { version = "0.4.3", default-features = false }
 
-[patch."https://github.com/Moonsong-Labs/storage-hub.git"]
-shp-forest-verifier = { path = "../../storage-hub/primitives/forest-verifier" }
-shp-file-key-verifier = { path = "../../storage-hub/primitives/file-key-verifier" }
-shp-traits = { path = "../../storage-hub/primitives/traits" }
-shp-file-metadata = { path = "../../storage-hub/primitives/file-metadata" }
-pallet-storage-providers = { path = "../../storage-hub/pallets/providers" }
-pallet-file-system = { path = "../../storage-hub/pallets/file-system" }
-pallet-bucket-nfts = { path = "../../storage-hub/pallets/bucket-nfts" }
-pallet-payment-streams = { path = "../../storage-hub/pallets/payment-streams" }
-pallet-proofs-dealer = { path = "../../storage-hub/pallets/proofs-dealer" }
-pallet-randomness = { path = "../../storage-hub/pallets/randomness" }

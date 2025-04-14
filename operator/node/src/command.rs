@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec::{self, NetworkType},
@@ -9,6 +10,7 @@ use crate::{
 use datahaven_runtime_common::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
+use sc_service::DatabaseSource;
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -57,7 +59,8 @@ macro_rules! construct_async_run {
 			ref spec if spec.is_mainnet() => {
 				runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_mainnet_runtime::apis::RuntimeApi>(
-						&$config
+						&$config,
+                        &mut $cli.eth.clone()
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -66,7 +69,8 @@ macro_rules! construct_async_run {
             ref spec if spec.is_testnet() => {
                 runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_testnet_runtime::apis::RuntimeApi>(
-						&$config
+						&$config,
+                        &mut $cli.eth.clone()
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -75,7 +79,8 @@ macro_rules! construct_async_run {
 			_ => {
 				runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_stagenet_runtime::apis::RuntimeApi>(
-						&$config
+						&$config,
+                        &mut $cli.eth.clone()
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -86,21 +91,21 @@ macro_rules! construct_async_run {
 }
 
 macro_rules! construct_benchmark_partials {
-    ($config:expr, |$partials:ident| $code:expr) => {
+    ($cli:expr, $config:expr, |$partials:ident| $code:expr) => {
         match $config.chain_spec {
             ref spec if spec.is_mainnet() => {
                 let $partials =
-                    service::new_partial::<datahaven_mainnet_runtime::apis::RuntimeApi>(&$config)?;
+                    service::new_partial::<datahaven_mainnet_runtime::apis::RuntimeApi>(&$config, &mut $cli.eth.clone())?;
                 $code
             }
             ref spec if spec.is_testnet() => {
                 let $partials =
-                    service::new_partial::<datahaven_testnet_runtime::apis::RuntimeApi>(&$config)?;
+                    service::new_partial::<datahaven_testnet_runtime::apis::RuntimeApi>(&$config, &mut $cli.eth.clone())?;
                 $code
             }
             _ => {
                 let $partials =
-                    service::new_partial::<datahaven_stagenet_runtime::apis::RuntimeApi>(&$config)?;
+                    service::new_partial::<datahaven_stagenet_runtime::apis::RuntimeApi>(&$config, &mut $cli.eth.clone())?;
                 $code
             }
         }
@@ -139,7 +144,22 @@ pub fn run() -> sc_cli::Result<()> {
         }
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|config| cmd.run(config.database))
+            runner.sync_run(|config| {
+                // Remove Frontier offchain db
+                let frontier_database_config = match config.database {
+                    DatabaseSource::RocksDb { .. } => DatabaseSource::RocksDb {
+                        path: frontier_database_dir(&config, "db"),
+                        cache_size: 0,
+                    },
+                    DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
+                        path: frontier_database_dir(&config, "paritydb"),
+                    },
+                    _ => {
+                        return Err(format!("Cannot purge `{:?}` database", config.database).into())
+                    }
+                };
+                cmd.run(frontier_database_config)
+            })
         }
         Some(Subcommand::Revert(cmd)) => {
             construct_async_run!(|components, cli, cmd, config| {
@@ -173,7 +193,7 @@ pub fn run() -> sc_cli::Result<()> {
                         ))
                     }
                     BenchmarkCmd::Block(cmd) => {
-                        construct_benchmark_partials!(config, |partials| cmd.run(partials.client))
+                        construct_benchmark_partials!(cli, config, |partials| cmd.run(partials.client))
                     }
                     #[cfg(not(feature = "runtime-benchmarks"))]
                     BenchmarkCmd::Storage(_) => Err(
@@ -182,7 +202,7 @@ pub fn run() -> sc_cli::Result<()> {
                     ),
                     #[cfg(feature = "runtime-benchmarks")]
                     BenchmarkCmd::Storage(cmd) => {
-                        construct_benchmark_partials!(config, |partials| {
+                        construct_benchmark_partials!(cli, config, |partials| {
                             let db = partials.backend.expose_db();
                             let storage = partials.backend.expose_storage();
 
@@ -190,7 +210,7 @@ pub fn run() -> sc_cli::Result<()> {
                         })
                     }
                     BenchmarkCmd::Overhead(cmd) => {
-                        construct_benchmark_partials!(config, |partials| {
+                        construct_benchmark_partials!(cli, config, |partials| {
                             let ext_builder = RemarkBuilder::new(partials.client.clone());
                             cmd.run(
                                 config,
@@ -202,7 +222,7 @@ pub fn run() -> sc_cli::Result<()> {
                         })
                     }
                     BenchmarkCmd::Extrinsic(cmd) => {
-                        construct_benchmark_partials!(config, |partials| {
+                        construct_benchmark_partials!(cli, config, |partials| {
                             // Register the *Remark* and *TKA* builders.
                             let ext_factory = ExtrinsicFactory(vec![
                                 Box::new(RemarkBuilder::new(partials.client.clone())),
@@ -240,30 +260,30 @@ pub fn run() -> sc_cli::Result<()> {
                         ref spec if spec.is_mainnet() => service::new_full::<
                             datahaven_mainnet_runtime::apis::RuntimeApi,
                             sc_network::NetworkWorker<_, _>,
-                        >(config),
+                        >(config, cli.eth).await,
                         ref spec if spec.is_testnet() => service::new_full::<
                             datahaven_testnet_runtime::apis::RuntimeApi,
                             sc_network::NetworkWorker<_, _>,
-                        >(config),
+                        >(config, cli.eth).await,
                         _ => service::new_full::<
                             datahaven_stagenet_runtime::apis::RuntimeApi,
                             sc_network::NetworkWorker<_, _>,
-                        >(config),
+                        >(config, cli.eth).await,
                     }
                     .map_err(sc_cli::Error::Service),
                     sc_network::config::NetworkBackendType::Litep2p => match config.chain_spec {
                         ref spec if spec.is_mainnet() => service::new_full::<
                             datahaven_mainnet_runtime::apis::RuntimeApi,
                             sc_network::Litep2pNetworkBackend,
-                        >(config),
+                        >(config, cli.eth).await,
                         ref spec if spec.is_testnet() => service::new_full::<
                             datahaven_testnet_runtime::apis::RuntimeApi,
                             sc_network::Litep2pNetworkBackend,
-                        >(config),
+                        >(config, cli.eth).await,
                         _ => service::new_full::<
                             datahaven_stagenet_runtime::apis::RuntimeApi,
                             sc_network::Litep2pNetworkBackend,
-                        >(config),
+                        >(config, cli.eth).await,
                     }
                     .map_err(sc_cli::Error::Service),
                 }

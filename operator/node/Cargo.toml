@@ -16,6 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 clap = { features = ["derive"], workspace = true }
+codec = { workspace = true }
 datahaven-mainnet-runtime.workspace = true
 datahaven-runtime-common.workspace = true
 datahaven-stagenet-runtime.workspace = true
@@ -29,8 +30,9 @@ frame-system-rpc-runtime-api.default-features = true
 frame-system-rpc-runtime-api.workspace = true
 frame-system.default-features = true
 frame-system.workspace = true
+flume = { workspace = true }
 futures = { features = ["thread-pool"], workspace = true }
-hex-literal.workspace = true
+hex-literal = { workspace = true }
 jsonrpsee = { features = ["server"], workspace = true }
 pallet-beefy-mmr.default-features = true
 pallet-beefy-mmr.workspace = true
@@ -59,6 +61,8 @@ sc-executor.default-features = true
 sc-executor.workspace = true
 sc-network.default-features = true
 sc-network.workspace = true
+sc-network-sync.default-features = true
+sc-network-sync.workspace = true
 sc-offchain.default-features = true
 sc-offchain.workspace = true
 sc-service.default-features = true
@@ -104,21 +108,32 @@ sp-transaction-pool.default-features = true
 sp-transaction-pool.workspace = true
 substrate-frame-rpc-system.default-features = true
 substrate-frame-rpc-system.workspace = true
+url = { workspace = true }
 
 # RPC
 sc-rpc = { workspace = true, default-features = true }
 
 # Beefy
+sc-consensus-beefy = { workspace = true, default-features = true }
 sc-consensus-beefy-rpc = { workspace = true, default-features = true }
-sc-consensus-beefy.default-features = true
-sc-consensus-beefy.workspace = true
 
 # MMR
 mmr-rpc = { workspace = true, default-features = true }
 
+# Frontier
+fc-cli = { workspace = true }
+fc-consensus = { workspace = true }
+fc-db = { workspace = true }
+fc-mapping-sync = { workspace = true, features = ["sql"] }
+fc-rpc = { workspace = true }
+fc-rpc-core = { workspace = true }
+fc-storage = { workspace = true }
+fp-evm = { workspace = true }
+fp-rpc = { workspace = true }
+pallet-ethereum = { workspace = true }
+
 [build-dependencies]
-substrate-build-script-utils.default-features = true
-substrate-build-script-utils.workspace = true
+substrate-build-script-utils = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
@@ -128,6 +143,7 @@ std = [
 	"datahaven-mainnet-runtime/std",
 	"datahaven-testnet-runtime/std",
 ]
+
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
 	"frame-benchmarking-cli/runtime-benchmarks",

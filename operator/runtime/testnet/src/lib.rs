@@ -12,6 +12,7 @@ pub mod configs;
 
 extern crate alloc;
 use alloc::vec::Vec;
+use sp_core::H160;
 use sp_runtime::{create_runtime_str, generic, impl_opaque_keys};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -146,7 +147,10 @@ pub type SignedExtra = (
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+    fp_self_contained::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+
+pub type CheckedExtrinsic =
+    fp_self_contained::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra, H160>;
 
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;

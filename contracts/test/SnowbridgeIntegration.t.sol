@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+/* solhint-disable func-name-mixedcase */
+
 import {InboundMessageV2} from "snowbridge/src/Types.sol";
 import {CommandV2, CommandKind, IGatewayV2} from "snowbridge/src/Types.sol";
 import {CallContractParams} from "snowbridge/src/v2/Types.sol";

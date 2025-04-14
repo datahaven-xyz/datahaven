@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+/* solhint-disable func-name-mixedcase */
+
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -90,7 +92,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
         address operator = address(0x1111);
         uint32 operatorSetId = 1;
         IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = strategyMock1;
+        strategies[0] = deployedStrategies[0];
         uint256[] memory wadsToSlash = new uint256[](1);
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Test slashing";
@@ -299,7 +301,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
         address operator2 = address(0x2222);
         uint32 operatorSetId2 = 2;
         IStrategy[] memory strategies2 = new IStrategy[](1);
-        strategies2[0] = strategyMock2;
+        strategies2[0] = deployedStrategies[1];
         uint256[] memory wadsToSlash2 = new uint256[](1);
         wadsToSlash2[0] = 2e16; // 2% of the operator's stake
         string memory description2 = "Second slashing";
@@ -358,7 +360,7 @@ contract VetoableSlasherTest is MockAVSDeployer {
         address operator = address(0x1111);
         uint32 operatorSetId = 1;
         IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = strategyMock1;
+        strategies[0] = deployedStrategies[0];
         uint256[] memory wadsToSlash = new uint256[](1);
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Test slashing";

@@ -24,7 +24,7 @@ env:
 
 jobs:
   kurtosis:
-    runs-on: ubuntu-8-cores
+    runs-on: ubuntu-latest
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:

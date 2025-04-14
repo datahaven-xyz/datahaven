@@ -15,7 +15,10 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { features = ["derive"], workspace = true }
 datahaven-runtime-common.workspace = true
-fp-account = { workspace = true,  features = [ "serde" ]}
+fp-account = { workspace = true, features = ["serde"] }
+fp-evm = { workspace = true, features = ["serde"] }
+fp-rpc = { workspace = true }
+fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive.workspace = true
 frame-metadata-hash-extension.workspace = true
@@ -31,9 +34,6 @@ pallet-babe.workspace = true
 pallet-balances.workspace = true
 pallet-beefy-mmr.workspace = true
 pallet-beefy.workspace = true
-pallet-ethereum.workspace = true
-pallet-evm-chain-id.workspace = true
-pallet-evm.workspace = true
 pallet-grandpa.workspace = true
 pallet-identity.workspace = true
 pallet-im-online.workspace = true
@@ -69,6 +69,10 @@ sp-storage.workspace = true
 sp-transaction-pool.workspace = true
 sp-version = { features = ["serde"], workspace = true }
 
+pallet-ethereum.workspace = true
+pallet-evm-chain-id.workspace = true
+pallet-evm.workspace = true
+
 # Snowbridge
 snowbridge-beacon-primitives.workspace = true
 snowbridge-pallet-ethereum-client.workspace = true
@@ -81,32 +85,28 @@ default = ["std"]
 std = [
     "codec/std",
     "scale-info/std",
-
     "frame-executive/std",
     "frame-metadata-hash-extension/std",
     "frame-support/std",
     "frame-system-benchmarking?/std",
     "frame-system-rpc-runtime-api/std",
     "frame-system/std",
-
     "frame-benchmarking?/std",
     "frame-try-runtime?/std",
-
     "datahaven-runtime-common/std",
-
     "pallet-authorship/std",
-	"pallet-babe/std",
-	"pallet-beefy/std",
-	"pallet-beefy-mmr/std",
-	"pallet-balances/std",
+    "pallet-babe/std",
+    "pallet-beefy/std",
+    "pallet-beefy-mmr/std",
+    "pallet-balances/std",
     "pallet-im-online/std",
-	"pallet-grandpa/std",
+    "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-multisig/std",
-	"pallet-mmr/std",
-	"pallet-offences/std",
-	"pallet-preimage/std",
-	"pallet-scheduler/std",
+    "pallet-mmr/std",
+    "pallet-offences/std",
+    "pallet-preimage/std",
+    "pallet-scheduler/std",
     "pallet-session/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
@@ -114,13 +114,10 @@ std = [
     "pallet-transaction-payment/std",
     "pallet-utility/std",
     "pallet-validator-set/std",
-
     "polkadot-primitives/std",
-	"polkadot-runtime-common/std",
-
+    "polkadot-runtime-common/std",
     "snowbridge-beacon-primitives/std",
     "snowbridge-pallet-ethereum-client/std",
-
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-babe/std",
@@ -136,10 +133,7 @@ std = [
     "sp-std/std",
     "sp-transaction-pool/std",
     "sp-version/std",
-
     "substrate-wasm-builder",
-
-    "pallet-mmr/std",
     "fp-account/std",
     "pallet-evm/std",
     "pallet-evm-chain-id/std",
@@ -166,7 +160,7 @@ runtime-benchmarks = [
     "pallet-beefy-mmr/runtime-benchmarks",
     "pallet-mmr/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks",
+    "polkadot-primitives/runtime-benchmarks",
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
@@ -201,6 +195,7 @@ try-runtime = [
     "sp-runtime/try-runtime",
     "pallet-evm/try-runtime",
     "pallet-ethereum/try-runtime",
+    "fp-self-contained/try-runtime"
 ]
 
 fast-runtime = [

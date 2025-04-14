@@ -57,6 +57,7 @@ Follow these steps to set up and interact with your test environment:
   ```bash
   bun stop:kurtosis-engine
   ```
+
 ## Blockscout
 
 Can be accessed at: [http://127.0.0.1:3000](http://127.0.0.1:3000).
@@ -68,6 +69,7 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 ## Testing
 
 ### E2E Tests
+
 > [!TIP]  
 > Remember to run the network with `bun start:e2e:minimal` before running the tests.
 
@@ -77,7 +79,6 @@ bun test:e2e
 
 > [!NOTE]
 > You can increase the logging level by setting `LOG_LEVEL=debug` before running the tests.
-
 
 ## Troubleshooting
 

@@ -16,18 +16,22 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 clap = { features = ["derive"], workspace = true }
+codec = { workspace = true }
 datahaven-runtime.workspace = true
+flume = { workspace = true }
 fp-account = { workspace = true }
 frame-benchmarking-cli.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-metadata-hash-extension.default-features = true
 frame-metadata-hash-extension.workspace = true
+frame-system-rpc-runtime-api = { workspace = true }
 frame-system.default-features = true
 frame-system.workspace = true
 futures = { features = ["thread-pool"], workspace = true }
 hex-literal.workspace = true
 jsonrpsee = { features = ["server"], workspace = true }
 pallet-im-online.workspace = true
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = ["std"] }
 pallet-transaction-payment-rpc.default-features = true
 pallet-transaction-payment-rpc.workspace = true
 pallet-transaction-payment.default-features = true
@@ -46,6 +50,7 @@ sc-consensus.default-features = true
 sc-consensus.workspace = true
 sc-executor.default-features = true
 sc-executor.workspace = true
+sc-network-sync.workspace = true
 sc-network.default-features = true
 sc-network.workspace = true
 sc-offchain.default-features = true
@@ -79,12 +84,16 @@ sp-io.default-features = true
 sp-io.workspace = true
 sp-keyring.default-features = true
 sp-keyring.workspace = true
+sp-offchain = { workspace = true, features = ["default"] }
 sp-runtime.default-features = true
 sp-runtime.workspace = true
+sp-session = { workspace = true, features = ["default"] }
 sp-timestamp.default-features = true
 sp-timestamp.workspace = true
+sp-transaction-pool = { workspace = true, features = ["default"] }
 substrate-frame-rpc-system.default-features = true
 substrate-frame-rpc-system.workspace = true
+url = { workspace = true }
 
 # RPC
 sc-rpc = { workspace = true, default-features = true }
@@ -97,6 +106,18 @@ sc-consensus-beefy.workspace = true
 # MMR
 mmr-rpc = { workspace = true, default-features = true }
 
+# Frontier
+fc-cli = { workspace = true }
+fc-consensus = { workspace = true }
+fc-db = { workspace = true }
+fc-mapping-sync = { workspace = true, features = ["sql"] }
+fc-rpc = { workspace = true }
+fc-rpc-core = { workspace = true }
+fc-storage = { workspace = true }
+fp-evm = { workspace = true }
+fp-rpc = { workspace = true }
+pallet-ethereum = { workspace = true }
+
 [build-dependencies]
 substrate-build-script-utils.default-features = true
 substrate-build-script-utils.workspace = true
@@ -104,21 +125,22 @@ substrate-build-script-utils.workspace = true
 [features]
 default = ["std"]
 std = [
-	"datahaven-runtime/std",
+    "datahaven-runtime/std",
 ]
+
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
-	"frame-benchmarking-cli/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"sc-service/runtime-benchmarks",
-	"datahaven-runtime/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "sc-service/runtime-benchmarks",
+    "datahaven-runtime/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = [
-	"frame-system/try-runtime",
-	"pallet-transaction-payment/try-runtime",
-	"datahaven-runtime/try-runtime",
-	"sp-runtime/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-transaction-payment/try-runtime",
+    "datahaven-runtime/try-runtime",
+    "sp-runtime/try-runtime",
 ]

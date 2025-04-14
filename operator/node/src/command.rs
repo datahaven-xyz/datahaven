@@ -3,11 +3,11 @@ use std::sync::Arc;
 use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec::{self, alith},
+    chain_spec,
     cli::{Cli, Subcommand},
     service,
 };
-use datahaven_runtime::{Block, EXISTENTIAL_DEPOSIT};
+use datahaven_runtime::{genesis_config_presets::alith, Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::{DatabaseSource, PartialComponents};
@@ -39,8 +39,8 @@ impl SubstrateCli for Cli {
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "dev" => Box::new(chain_spec::development_config()?),
-            "" | "datahaven-local" => Box::new(chain_spec::local_testnet_config()?),
+            "dev" => Box::new(chain_spec::development_chain_spec()?),
+            "" | "local" => Box::new(chain_spec::local_chain_spec()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),

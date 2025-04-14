@@ -20,8 +20,8 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-use sp_runtime::traits::BlakeTwo256;
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
+use sp_runtime::traits::BlakeTwo256;
 use std::{path::Path, sync::Arc, time::Duration};
 
 pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
@@ -102,7 +102,11 @@ pub type Service<RuntimeApi> = sc_service::PartialComponents<
             Block,
             FullClient<RuntimeApi>,
             FullBeefyBlockImport<
-                FrontierBlockImport<Block, FullGrandpaBlockImport<RuntimeApi>, FullClient<RuntimeApi>>,
+                FrontierBlockImport<
+                    Block,
+                    FullGrandpaBlockImport<RuntimeApi>,
+                    FullClient<RuntimeApi>,
+                >,
                 BeefyId,
                 RuntimeApi,
             >,
@@ -192,7 +196,10 @@ where
     Ok(frontier_backend)
 }
 
-pub fn new_partial<RuntimeApi>(config: &Configuration, eth_config: &mut EthConfiguration,) -> Result<Service<RuntimeApi>, ServiceError>
+pub fn new_partial<RuntimeApi>(
+    config: &Configuration,
+    eth_config: &mut EthConfiguration,
+) -> Result<Service<RuntimeApi>, ServiceError>
 where
     RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
     RuntimeApi::RuntimeApi: FullRuntimeApi,
@@ -653,16 +660,8 @@ where
             is_authority: role.is_authority(),
         };
 
-        let gadget = sc_consensus_beefy::start_beefy_gadget::<
-            _,
-            _,
-            _,
-            _,
-            _,
-            _,
-            _,
-            BeefyId,
-        >(beefy_params);
+        let gadget =
+            sc_consensus_beefy::start_beefy_gadget::<_, _, _, _, _, _, _, BeefyId>(beefy_params);
 
         // BEEFY is part of consensus, if it fails we'll bring the node down with it to make sure it
         // is noticed.

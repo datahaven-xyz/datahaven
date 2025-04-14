@@ -25,8 +25,8 @@
 
 // Local module imports
 use super::{
-    AccountId, Babe, Balance, Beefy, BeefyMmrLeaf, Block, BlockNumber, Ethereum, Executive, Grandpa,
-    Historical, InherentDataExt, Mmr, Nonce, Runtime, RuntimeCall, RuntimeGenesisConfig,
+    AccountId, Babe, Balance, Beefy, BeefyMmrLeaf, Block, BlockNumber, Ethereum, Executive,
+    Grandpa, Historical, InherentDataExt, Mmr, Nonce, Runtime, RuntimeCall, RuntimeGenesisConfig,
     SessionKeys, System, TransactionPayment, VERSION,
 };
 // External crates imports

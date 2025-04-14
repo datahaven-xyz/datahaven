@@ -37,7 +37,6 @@ scale-info = { version = "2.11.6", default-features = false}
 serde = { version = "1.0.197", default-features = false, features = [ "derive" ]}
 serde_json = { version = "1.0.127", default-features = false }
 sha3 = { version = "0.10", default-features = false }
-hex = { version = "0.4.3", default-features = false }
 smallvec = "1.11.0"
 
 
@@ -132,7 +131,6 @@ pallet-evm-chain-id = { git = "https://github.com/polkadot-evm/frontier/", branc
 # StorageHub
 storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }
 pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
-pallet-authorship = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-message-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-collator-selection = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", default-features = false }

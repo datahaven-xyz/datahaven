@@ -75,7 +75,6 @@ snowbridge-pallet-ethereum-client.workspace = true
 
 # StorageHub
 pallet-aura = { workspace = true }
-pallet-authorship = { workspace = true }
 pallet-collator-selection = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-bucket-nfts = { workspace = true }

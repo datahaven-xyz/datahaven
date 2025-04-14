@@ -122,7 +122,7 @@ const checkKurtosisInstalled = async (): Promise<boolean> => {
 };
 
 const checkKurtosisRunning = async (): Promise<boolean> => {
-  const text = await $`kurtosis enclave ls | grep RUNNING`.text();
+  const text = await $`kurtosis enclave ls | grep "datahaven-ethereum" | grep RUNNING`.text();
   return text.length > 0;
 };
 

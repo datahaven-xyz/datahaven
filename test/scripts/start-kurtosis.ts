@@ -1,52 +1,59 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { getServicesFromDocker } from "../util/docker-service-mapper";
+import { getServicesFromDocker, logger } from "utils";
 import sendTxn from "./send-txn";
 
 async function main() {
+  const args = process.argv.slice(2);
+  const isVerified = args.includes("--verified");
+  logger.info(`Running with --verified: ${isVerified}`);
+
   const timeStart = performance.now();
+  logger.debug(`Running on ${process.platform}`);
 
   if (!(await checkKurtosisInstalled())) {
-    console.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
+    logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
     throw Error("❌ Kurtosis CLI application not found.");
   }
 
   if (!(await checkDockerRunning())) {
-    console.error("Is Docker Running? Unable to make connection to docker daemon");
+    logger.error("Is Docker Running? Unable to make connection to docker daemon");
     throw Error("❌ Error connecting to Docker");
   }
 
   if (!(await checkForgeInstalled())) {
-    console.error("Is foundry installed? https://book.getfoundry.sh/getting-started/installation");
+    logger.error("Is foundry installed? https://book.getfoundry.sh/getting-started/installation");
     throw Error("❌ forge binary not found in PATH");
   }
 
-  console.log("🪔 Starting Kurtosis network...");
+  logger.info("🪔 Starting Kurtosis network...");
 
   if (await checkKurtosisRunning()) {
-    console.log("ℹ️  Kurtosis network is already running. Quitting...");
+    logger.info("ℹ️  Kurtosis network is already running. Quitting...");
     return;
   }
 
   await $`docker system prune -f`.nothrow();
   await $`kurtosis clean`;
 
-  // TODO: if mac, manually pull the images for network = linux/amd64 since blockscout doesnt have arm ones
-  await $`docker pull ghcr.io/blockscout/smart-contract-verifier:latest --platform linux/amd64`;
+  if (process.platform === "darwin") {
+    logger.debug("Detected macOS, pulling container images with linux/amd64 platform...");
+    await $`docker pull ghcr.io/blockscout/smart-contract-verifier:latest --platform linux/amd64`;
+  }
 
   const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum`.nothrow();
+    await $`kurtosis run github.com/Moonsong-Labs/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum`.nothrow();
 
   if (exitCode !== 0) {
-    console.error(stderr.toString());
+    logger.error(stderr.toString());
     throw Error("❌ Kurtosis network has failed to start properly.");
   }
 
   // Get service information from Docker instead of parsing stdout
-  console.log("🔍 Detecting Docker container ports...");
+  logger.info("🔍 Detecting Docker container ports...");
   const services = await getServicesFromDocker();
 
-  console.log("================================================");
+  logger.info("================================================");
 
   const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil test acc1
   const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
@@ -54,24 +61,29 @@ async function main() {
   await sendTxn(privateKey, networkRpcUrl);
 
   // Deploy all the contracts
-  console.log("🛳️ Deploying contracts...");
+  logger.info("🛳️ Deploying contracts...");
   const { exitCode: buildExitCode, stderr: buildStderr } = await $`forge build`
     .cwd("../contracts")
     .nothrow();
 
   if (buildExitCode !== 0) {
-    console.error(buildStderr.toString());
+    logger.error(buildStderr.toString());
     throw Error("❌ Contracts have failed to build properly.");
   }
 
   const { stdout: forgePath } = await $`which forge`.quiet();
   const forgeExecutable = forgePath.toString().trim();
-  console.log(`Using forge at: ${forgeExecutable}`);
+  logger.info(`Using forge at: ${forgeExecutable}`);
 
   const blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
   invariant(blockscoutBackendUrl, "❌ Blockscout backend URL not found");
 
-  const deployCommand = `${forgeExecutable} script script/deploy/DeployLocal.s.sol --rpc-url ${networkRpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --broadcast`;
+  let deployCommand = `${forgeExecutable} script script/deploy/DeployLocal.s.sol --rpc-url ${networkRpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+
+  if (isVerified) {
+    deployCommand += ` --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --delay 0`;
+  }
+
   console.log(`Running command: ${deployCommand}`);
 
   const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`
@@ -79,11 +91,11 @@ async function main() {
     .nothrow();
 
   if (deployExitCode !== 0) {
-    console.error(deployStderr.toString());
+    logger.error(deployStderr.toString());
     throw Error("❌ Contracts have failed to deploy properly.");
   }
 
-  console.log("================================================");
+  logger.info("================================================");
 
   console.table([
     ...services,
@@ -95,11 +107,11 @@ async function main() {
     }
   ]);
 
-  console.log("================================================");
+  logger.info("================================================");
 
   const timeEnd = performance.now();
 
-  console.log(
+  logger.info(
     `💚 Kurtosis network has started successfully in ${((timeEnd - timeStart) / (1000 * 60)).toFixed(1)} minutes`
   );
 }

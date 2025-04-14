@@ -1,5 +1,4 @@
 export * from "./blockscout";
-export * from "./commands";
 export * from "./constants";
 export * from "./docker";
 export * from "./logger";

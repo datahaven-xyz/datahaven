@@ -8,15 +8,22 @@ const stream = pinoPretty({
   colorize: true
 });
 
-// Create the base logger
-const baseLogger = pino({ level: logLevel }, stream);
+// Custom logger type with success method
+interface CustomLogger extends pino.Logger {
+  success(msg: string, ...args: any[]): void;
+}
 
-// Extend the logger with a success method
-export const logger = {
-  ...baseLogger,
-  success: (message: string) => {
-    baseLogger.info(`✅ ${message}`);
-  }
+// Create the base logger with proper configuration
+export const logger: CustomLogger = pino(
+  {
+    level: logLevel
+  },
+  stream
+) as CustomLogger;
+
+// Add custom success method to the logger
+logger.success = function (message: string) {
+  this.info(`✅ ${message}`);
 };
 
 // Simple progress bar function

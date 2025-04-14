@@ -37,7 +37,11 @@ Follow these steps to set up and interact with your test environment:
       - 1 x Blockscout frontend
       - 1 x Blockscout backend
    2. Send a test transaction to the network using the [send-txn.ts](./scripts/send-txn.ts) script.
-   3. Deploy and verify all DataHaven smart contracts needed for a local deployment, using the [DeployLocal.s.sol](../contracts/script/deploy/DeployLocal.s.sol) script.
+   3. Deploy all DataHaven smart contracts needed for a local deployment, using the [DeployLocal.s.sol](../contracts/script/deploy/DeployLocal.s.sol) script.
+
+   > ℹ️ NOTE
+   >
+   > If you want to also have the contracts verified on blockscout, you can run `bun start:e2e:verified` instead. This will do all the previous steps, but also verify the contracts on blockscout. However, note that this takes some time to complete.
 
 2. **Explore the network**
 
@@ -49,7 +53,7 @@ Follow these steps to set up and interact with your test environment:
 - **Stop the test environment**
 
   ```bash
-  bun stop:e2e:minimal
+  bun stop:e2e
   ```
 
 - **Stop the Kurtosis engine completely**

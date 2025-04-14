@@ -2,6 +2,8 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { getServicesFromDocker, logger, printDivider, printHeader, printProgress } from "utils";
 import sendTxn from "./send-txn";
+import readline from "node:readline";
+import chalk from "chalk";
 
 interface ScriptOptions {
   verified: boolean;
@@ -28,12 +30,25 @@ async function main() {
   printHeader("Starting Kurtosis Network");
 
   if (await checkKurtosisRunning()) {
-    logger.info("ℹ️  Kurtosis network is already running. Quitting...");
-    return;
+    logger.info("ℹ️  Kurtosis network is already running.");
+
+    // Ask if the user wants to clean and redeploy
+    const shouldRedeploy = await promptWithTimeout(
+      "Do you want to clean and redeploy the Kurtosis enclave?",
+      true,
+      5
+    );
+
+    if (!shouldRedeploy) {
+      logger.info("Keeping existing Kurtosis enclave. Exiting...");
+      return;
+    }
+
+    logger.info("Proceeding to clean and redeploy the Kurtosis enclave...");
   }
 
   // Clean up Docker and Kurtosis
-  logger.info("Cleaning up Docker and Kurtosis environments...");
+  logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
   logger.debug(await $`kurtosis clean`.text());
   logger.debug(await $`docker system prune -f`.nothrow().text());
 
@@ -100,10 +115,20 @@ async function main() {
   printProgress(100);
 
   logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
-  logger.info("📊 Dashboard: http://127.0.0.1:3000");
-  logger.info("🔍 Explorer: http://127.0.0.1:9711");
 
   printDivider();
+
+  // Ask if the user wants to deploy smart contracts
+  const shouldDeployContracts = await promptWithTimeout(
+    "Do you want to deploy the smart contracts?",
+    true,
+    20
+  );
+
+  if (!shouldDeployContracts) {
+    logger.info("Skipping contract deployment. Done!");
+    return;
+  }
 
   // Deploy contracts
   printHeader("Deploying Smart Contracts");
@@ -135,23 +160,20 @@ async function main() {
 
   logger.info("⏳ Deploying contracts (this might take a few minutes)...");
 
-  const {
-    exitCode: deployExitCode,
-    stderr: deployStderr,
-    stdout: deployStdout
-  } = await $`sh -c ${deployCommand}`.cwd("../contracts").nothrow().quiet();
+  const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`
+    .cwd("../contracts")
+    .nothrow();
 
   if (deployExitCode !== 0) {
     logger.error(deployStderr.toString());
     throw Error("❌ Contracts have failed to deploy properly.");
   }
-  logger.debug(deployStdout.toString());
 
   logger.success("Contracts deployed successfully");
 }
 
 // Helper function to check all dependencies at once
-async function checkDependencies(): Promise<void> {
+const checkDependencies = async (): Promise<void> => {
   if (!(await checkKurtosisInstalled())) {
     logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
     throw Error("❌ Kurtosis CLI application not found.");
@@ -172,7 +194,7 @@ async function checkDependencies(): Promise<void> {
   }
 
   logger.success("Forge is installed");
-}
+};
 
 const checkKurtosisInstalled = async (): Promise<boolean> => {
   const { exitCode, stderr, stdout } = await $`kurtosis version`.nothrow().quiet();
@@ -207,6 +229,56 @@ const checkForgeInstalled = async (): Promise<boolean> => {
   }
   logger.debug(stdout.toString());
   return true;
+};
+
+// Helper function to create an interactive prompt with timeout
+const promptWithTimeout = async (
+  question: string,
+  defaultValue: boolean,
+  timeoutSeconds: number
+): Promise<boolean> => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise<boolean>((resolve) => {
+    const defaultText = defaultValue ? "Y/n" : "y/N";
+
+    // Create a visually striking prompt
+    const border = chalk.yellow("=".repeat(question.length + 40));
+    console.log("\n");
+    console.log(border);
+    console.log(chalk.yellow("▶ ") + chalk.bold.cyan(question));
+    console.log(
+      chalk.magenta(
+        `⏱  Will default to ${chalk.bold(defaultValue ? "YES" : "NO")} in ${chalk.bold(timeoutSeconds)} seconds`
+      )
+    );
+    console.log(border);
+    const fullQuestion = chalk.green(`\n➤ Please enter your choice [${chalk.bold(defaultText)}]: `);
+
+    const timer = setTimeout(() => {
+      console.log(
+        `\n${chalk.yellow("⏱")} ${chalk.bold("Timeout reached, using default:")} ${chalk.green(defaultValue ? "YES" : "NO")}\n`
+      );
+      rl.close();
+      resolve(defaultValue);
+    }, timeoutSeconds * 1000);
+
+    rl.question(fullQuestion, (answer) => {
+      clearTimeout(timer);
+      rl.close();
+
+      if (answer.trim() === "") {
+        resolve(defaultValue);
+      } else {
+        const normalizedAnswer = answer.trim().toLowerCase();
+        console.log("");
+        resolve(normalizedAnswer === "y" || normalizedAnswer === "yes");
+      }
+    });
+  });
 };
 
 main();

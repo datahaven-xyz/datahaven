@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+/* solhint-disable func-name-mixedcase */
+
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -60,5 +62,9 @@ contract ServiceManagerBaseTest is MockAVSDeployer {
         IAllocationManager.CreateSetParams[] memory emptyParams =
             new IAllocationManager.CreateSetParams[](0);
         ServiceManagerBase(address(serviceManager)).createOperatorSets(emptyParams);
+    }
+
+    function test_returnsAVSAddress() public view {
+        assertEq(serviceManager.avs(), address(serviceManager));
     }
 }

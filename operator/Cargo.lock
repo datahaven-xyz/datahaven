@@ -1576,6 +1576,7 @@ dependencies = [
  "hex-literal 0.3.4",
  "jsonrpsee",
  "mmr-rpc",
+ "pallet-im-online",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
@@ -1652,6 +1653,13 @@ dependencies = [
  "pallet-proofs-dealer",
  "pallet-proofs-dealer-runtime-api 0.1.0 (git+https://github.com/Moonsong-Labs/storage-hub.git)",
  "pallet-randomness",
+ "pallet-identity",
+ "pallet-im-online",
+ "pallet-mmr",
+ "pallet-multisig",
+ "pallet-offences",
+ "pallet-preimage",
+ "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
  "pallet-storage-providers-runtime-api 0.1.0 (git+https://github.com/Moonsong-Labs/storage-hub.git)",
@@ -1659,6 +1667,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
  "pallet-validator-set",
  "parachains-common",
  "parity-scale-codec",
@@ -6124,6 +6133,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-im-online"
+version = "37.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-authorship",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-message-queue"
 version = "41.0.2"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
@@ -6160,11 +6188,43 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-nfts"
-version = "32.0.0"
+name = "pallet-multisig"
+version = "38.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
 dependencies = [
- "enumflags2",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+
+=======
+name = "pallet-offences"
+version = "37.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
+name = "pallet-preimage"
+version = "38.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -6177,124 +6237,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-parameters"
-version = "0.9.0"
+name = "pallet-scheduler"
+version = "39.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
 dependencies = [
  "docify",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "parity-scale-codec",
- "paste",
- "scale-info",
- "serde",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
-name = "pallet-payment-streams"
-version = "0.1.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-payment-streams-runtime-api 0.1.0",
- "pallet-proofs-dealer",
- "pallet-storage-providers",
- "parity-scale-codec",
- "scale-info",
- "shp-constants 0.1.0",
- "shp-traits",
- "shp-treasury-funding 0.1.0",
- "sp-runtime",
- "sp-weights",
-]
-
-[[package]]
-name = "pallet-payment-streams-runtime-api"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-payment-streams-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git#252d224fb5be1344cb71b05d566e9a55f37a2110"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-proofs-dealer"
-version = "0.1.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-balances",
- "pallet-proofs-dealer-runtime-api 0.1.0",
- "pallet-storage-providers",
- "parity-scale-codec",
- "scale-info",
- "shp-traits",
- "sp-core",
- "sp-keyring",
- "sp-runtime",
- "sp-std",
- "sp-trie",
- "sp-weights",
-]
-
-[[package]]
-name = "pallet-proofs-dealer-runtime-api"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-proofs-dealer-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git#252d224fb5be1344cb71b05d566e9a55f37a2110"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-randomness"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
  "log",
  "parity-scale-codec",
- "polkadot-parachain-primitives",
  "scale-info",
- "serde",
- "shp-session-keys 0.1.0",
- "sp-core",
  "sp-io",
  "sp-runtime",
- "sp-std",
+ "sp-weights",
 ]
 
 [[package]]
@@ -6487,6 +6443,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-utility"
+version = "38.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-validator-set"
 version = "1.0.0"
 dependencies = [
@@ -6542,8 +6513,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "parachains-common"
-version = "18.0.0"
+name = "pallet-vesting"
+version = "38.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
 dependencies = [
  "cumulus-primitives-core",

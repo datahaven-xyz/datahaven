@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
+#![recursion_limit = "256"]
 
 // `frame_support::runtime` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
@@ -17,7 +19,6 @@ use smallvec::smallvec;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiAddress,
 };
 use sp_std::prelude::*;
 use frame_support::weights::{WeightToFeeCoefficient, WeightToFeeCoefficients,
@@ -63,6 +64,7 @@ impl_opaque_keys! {
     pub struct SessionKeys {
         pub babe: Babe,
         pub grandpa: Grandpa,
+        pub im_online: ImOnline,
         pub beefy: Beefy,
     }
 }
@@ -108,6 +110,9 @@ pub const DAYS: BlockNumber = HOURS * 24;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
+// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
+pub const SUPPLY_FACTOR: Balance = 1;
+
 // Unit = the base number of indivisible units for balances
 pub const UNIT: Balance = 1_000_000_000_000;
 pub const CENTS: Balance = UNIT / 100;
@@ -116,8 +121,14 @@ pub const MICROUNIT: Balance = 1_000_000;
 pub const NANOUNIT: Balance = 1_000;
 pub const PICOUNIT: Balance = 1;
 
+pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+
 /// Existential deposit.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+    items as Balance * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -151,7 +162,7 @@ pub type Hashing = BlakeTwo256;
 pub type BlockNumber = u32;
 
 /// The address format for describing accounts.
-pub type Address = MultiAddress<AccountId, ()>;
+pub type Address = AccountId;
 
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -228,6 +239,14 @@ impl WeightToFeePolynomial for WeightToFee {
     }
 }
 
+impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+where
+    RuntimeCall: From<C>,
+{
+    type Extrinsic = UncheckedExtrinsic;
+    type OverarchingCall = RuntimeCall;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
 #[cfg(not(feature = "storage-hub"))]
@@ -249,57 +268,83 @@ mod runtime {
     #[runtime::pallet_index(0)]
     pub type System = frame_system;
 
+    // Babe must be before session.
     #[runtime::pallet_index(1)]
-    pub type Timestamp = pallet_timestamp;
-
-    #[runtime::pallet_index(2)]
-    pub type Balances = pallet_balances;
-
-    #[runtime::pallet_index(3)]
     pub type Babe = pallet_babe;
 
-    // TODO! Add the following palllets to the runtime:
+    #[runtime::pallet_index(2)]
+    pub type Timestamp = pallet_timestamp;
+
+    #[runtime::pallet_index(3)]
+    pub type Balances = pallet_balances;
+
+    // Consensus support.
     // Authorship must be before session in order to note author in the correct session and era.
-    // pub type Authorship = pallet_authorship;
-    // pub type Offences = pallet_offences;
     #[runtime::pallet_index(4)]
-    pub type Historical = pallet_session::historical;
+    pub type Authorship = pallet_authorship;
 
     #[runtime::pallet_index(5)]
-    pub type ValidatorSet = pallet_validator_set;
+    pub type Offences = pallet_offences;
 
     #[runtime::pallet_index(6)]
-    pub type Session = pallet_session;
+    pub type Historical = pallet_session::historical;
 
     #[runtime::pallet_index(7)]
-    pub type Grandpa = pallet_grandpa;
+    pub type ValidatorSet = pallet_validator_set;
 
     #[runtime::pallet_index(8)]
-    pub type TransactionPayment = pallet_transaction_payment;
+    pub type Session = pallet_session;
 
     #[runtime::pallet_index(9)]
-    pub type Sudo = pallet_sudo;
+    pub type ImOnline = pallet_im_online;
 
     #[runtime::pallet_index(10)]
-    pub type Beefy = pallet_beefy;
+    pub type Grandpa = pallet_grandpa;
 
     #[runtime::pallet_index(11)]
-    pub type BeefyMmrLeaf = pallet_beefy_mmr;
+    pub type TransactionPayment = pallet_transaction_payment;
 
-    #[runtime::pallet_index(12)]
-    pub type Mmr = pallet_mmr;
+    #[runtime::pallet_index(20)]
+    pub type Utility = pallet_utility;
 
-    #[runtime::pallet_index(13)]
-    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+    #[runtime::pallet_index(21)]
+    pub type Scheduler = pallet_scheduler;
 
-    #[runtime::pallet_index(31)]
+    #[runtime::pallet_index(22)]
+    pub type Preimage = pallet_preimage;
+
+    #[runtime::pallet_index(23)]
+    pub type Identity = pallet_identity;
+
+    #[runtime::pallet_index(24)]
+    pub type Multisig = pallet_multisig;
+
+    // Frontier
+    #[runtime::pallet_index(30)]
     pub type Ethereum = pallet_ethereum;
 
-    #[runtime::pallet_index(32)]
+    #[runtime::pallet_index(31)]
     pub type Evm = pallet_evm;
 
-    #[runtime::pallet_index(33)]
+    #[runtime::pallet_index(32)]
     pub type EvmChainId = pallet_evm_chain_id;
+
+    // ETH Bridge
+    #[runtime::pallet_index(200)]
+    pub type Beefy = pallet_beefy;
+
+    #[runtime::pallet_index(201)]
+    pub type Mmr = pallet_mmr;
+
+    #[runtime::pallet_index(202)]
+    pub type BeefyMmrLeaf = pallet_beefy_mmr;
+
+    #[runtime::pallet_index(203)]
+    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+
+    // Sudo
+    #[runtime::pallet_index(255)]
+    pub type Sudo = pallet_sudo;
 }
 
 

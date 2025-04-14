@@ -22,7 +22,7 @@ async function main() {
 
   await checkDependencies();
 
-  printProgress(20);
+  printProgress(30);
 
   // Start Kurtosis network
   printHeader("Starting Kurtosis Network");
@@ -35,7 +35,7 @@ async function main() {
   // Clean up Docker and Kurtosis
   logger.info("Cleaning up Docker and Kurtosis environments...");
   logger.debug(await $`kurtosis clean`.text());
-  logger.debug(await $`docker system prune -f`.nothrow());
+  logger.debug(await $`docker system prune -f`.nothrow().text());
 
   // Pull necessary Docker images
   if (process.platform === "darwin") {
@@ -58,7 +58,7 @@ async function main() {
   }
   logger.debug(stdout.toString());
 
-  printProgress(40);
+  printProgress(70);
 
   // Get service information from Docker
   logger.info("🔍 Detecting Docker container ports...");
@@ -75,7 +75,35 @@ async function main() {
   logger.info("💸 Sending test transaction...");
   await sendTxn(privateKey, networkRpcUrl);
 
-  printProgress(60);
+  printProgress(90);
+
+  printDivider();
+
+  // Display service information in a clean table
+  printHeader("Service Endpoints");
+
+  console.table(
+    services
+      .filter((s) => ["reth-1-rpc", "reth-2-rpc", "blockscout-backend", "dora"].includes(s.service))
+      .concat([
+        { service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" },
+        { service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }
+      ])
+  );
+
+  printDivider();
+
+  // Show completion information
+  const timeEnd = performance.now();
+  const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
+
+  printProgress(100);
+
+  logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
+  logger.info("📊 Dashboard: http://127.0.0.1:3000");
+  logger.info("🔍 Explorer: http://127.0.0.1:9711");
+
+  printDivider();
 
   // Deploy contracts
   printHeader("Deploying Smart Contracts");
@@ -120,34 +148,6 @@ async function main() {
   logger.debug(deployStdout.toString());
 
   logger.success("Contracts deployed successfully");
-
-  printProgress(90);
-
-  printDivider();
-
-  // Display service information in a clean table
-  printHeader("Service Endpoints");
-
-  console.table(
-    services
-      .filter((s) => ["reth-1-rpc", "reth-2-rpc", "blockscout-backend", "dora"].includes(s.service))
-      .concat([
-        { service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" },
-        { service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }
-      ])
-  );
-
-  printDivider();
-
-  // Show completion information
-  const timeEnd = performance.now();
-  const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
-
-  printProgress(100);
-
-  logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
-  logger.info("📊 Dashboard: http://127.0.0.1:3000");
-  logger.info("🔍 Explorer: http://127.0.0.1:9711");
 }
 
 // Helper function to check all dependencies at once

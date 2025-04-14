@@ -23,6 +23,7 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+#[cfg(feature = "storage-hub")]
 mod runtime_params;
 
 use crate::EvmChainId;
@@ -31,12 +32,11 @@ use crate::{Historical, ValidatorSet};
 
 // Local module imports
 use crate::{
-    AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, BucketNfts, Hash, Hashing,
-    Nfts, Nonce, PalletInfo, PaymentStreams,
-    ProofsDealer, Providers, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System, WeightToFee,
-    DAYS,
-    EXISTENTIAL_DEPOSIT, HOURS, MINUTES, SLOT_DURATION, UNIT, VERSION,
+    AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Hash,
+    Nonce, PalletInfo,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, System,
+    EXISTENTIAL_DEPOSIT,  MINUTES, SLOT_DURATION, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
@@ -66,7 +66,6 @@ use pallet_transaction_payment::{
     ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
 };
 use polkadot_primitives::Moment;
-use polkadot_runtime_common::prod_or_fast;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
@@ -76,7 +75,6 @@ use sp_runtime::{
     FixedPointNumber, Perbill,
 };
 use sp_runtime::traits::Convert;
-use num_bigint::BigUint;
 use sp_runtime::traits::ConvertBack;
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -85,25 +83,32 @@ use sp_std::{
 };
 use sp_version::RuntimeVersion;
 use frame_system::pallet_prelude::BlockNumberFor;
-use pallet_nfts::PalletFeatures;
-use frame_support::traits::AsEnsureOriginWithArg;
-use frame_system::EnsureSigned;
-use sp_runtime::traits::Verify;
-use runtime_params::RuntimeParameters;
 use sp_core::Get;
-use sp_runtime::traits::Zero;
-use frame_support::pallet_prelude::DispatchClass;
 use core::marker::PhantomData;
 use sp_core::Hasher;
 use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
-use shp_file_metadata::{ChunkId, FileMetadata};
-use shp_treasury_funding::{
-    LinearThenPowerOfTwoTreasuryCutCalculator, LinearThenPowerOfTwoTreasuryCutCalculatorConfig,
-};
-use shp_forest_verifier::ForestVerifier;
-use shp_file_key_verifier::FileKeyVerifier;
-use shp_data_price_updater::{MostlyStablePriceIndexUpdater, MostlyStablePriceIndexUpdaterConfig};
 use sp_runtime::SaturatedConversion;
+
+#[cfg(feature = "storage-hub")]
+use {
+    runtime_params::RuntimeParameters,
+    crate::{BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Hashing, Signature, WeightToFee, DAYS, HOURS, UNIT},
+    shp_forest_verifier::ForestVerifier,
+    shp_file_key_verifier::FileKeyVerifier,
+    shp_treasury_funding::{
+        LinearThenPowerOfTwoTreasuryCutCalculator, LinearThenPowerOfTwoTreasuryCutCalculatorConfig,
+    },
+    shp_file_metadata::{ChunkId, FileMetadata},
+    shp_data_price_updater::{MostlyStablePriceIndexUpdater, MostlyStablePriceIndexUpdaterConfig},
+    polkadot_runtime_common::prod_or_fast,
+    num_bigint::BigUint,
+    pallet_nfts::PalletFeatures,
+    frame_support::traits::AsEnsureOriginWithArg,
+    frame_system::EnsureSigned,
+    sp_runtime::traits::Verify,
+    sp_runtime::traits::Zero,
+    frame_support::pallet_prelude::DispatchClass,
+};
 
 pub type StorageProofsMerkleTrieLayout = LayoutV1<BlakeTwo256>;
 
@@ -517,6 +522,7 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
 // Storage Hub
 
 /****** NFTs pallet ******/
+#[cfg(feature = "storage-hub")]
 parameter_types! {
     pub const CollectionDeposit: Balance = 100 * UNIT;
     pub const ItemDeposit: Balance = 1 * UNIT;
@@ -530,6 +536,7 @@ parameter_types! {
     pub Features: PalletFeatures = PalletFeatures::all_enabled();
 }
 
+#[cfg(feature = "storage-hub")]
 impl pallet_nfts::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type CollectionId = u32;
@@ -561,6 +568,7 @@ impl pallet_nfts::Config for Runtime {
 /****** ****** ****** ******/
 
 /****** Parameters pallet ******/
+#[cfg(feature = "storage-hub")]
 impl pallet_parameters::Config for Runtime {
     type AdminOrigin = EnsureRoot<AccountId>;
     type RuntimeEvent = RuntimeEvent;
@@ -570,6 +578,7 @@ impl pallet_parameters::Config for Runtime {
 /****** ****** ****** ******/
 
 /****** Relay Randomness pallet ******/
+#[cfg(feature = "storage-hub")]
 impl pallet_randomness::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type BabeDataGetter = BabeDataGetter;
@@ -579,18 +588,9 @@ impl pallet_randomness::Config for Runtime {
 
 }
 
-/// Only callable after `set_validation_data` is called which forms this proof the same way
-// fn relay_chain_state_proof() -> RelayChainStateProof {
-//     let relay_storage_root = cumulus_pallet_parachain_system::ValidationData::<Runtime>::get()
-//         .expect("set in `set_validation_data`")
-//         .relay_parent_storage_root;
-//     let relay_chain_state = cumulus_pallet_parachain_system::RelayStateProof::<Runtime>::get()
-//         .expect("set in `set_validation_data`");
-//     RelayChainStateProof::new(ParachainInfo::get(), relay_storage_root, relay_chain_state)
-//         .expect("Invalid relay chain state proof, already constructed in `set_validation_data`")
-// }
-
+#[cfg(feature = "storage-hub")]
 pub struct BabeDataGetter;
+#[cfg(feature = "storage-hub")]
 impl pallet_randomness::GetBabeData<u64, Hash> for BabeDataGetter {
     fn get_epoch_index() -> u64 {
         todo!("implement `get_epoch_index`");
@@ -603,7 +603,9 @@ impl pallet_randomness::GetBabeData<u64, Hash> for BabeDataGetter {
     }
 }
 
+#[cfg(feature = "storage-hub")]
 pub struct BlockNumberGetter {}
+#[cfg(feature = "storage-hub")]
 impl sp_runtime::traits::BlockNumberProvider for BlockNumberGetter {
     type BlockNumber = BlockNumber;
 
@@ -616,6 +618,7 @@ impl sp_runtime::traits::BlockNumberProvider for BlockNumberGetter {
 /****** ****** ****** ******/
 
 /****** Storage Providers pallet ******/
+#[cfg(feature = "storage-hub")]
 parameter_types! {
     pub const SpMinDeposit: Balance = 100 * UNIT;
     pub const BucketDeposit: Balance = 100 * UNIT;
@@ -625,6 +628,7 @@ parameter_types! {
     // pub const MaxBlocksForRandomness: BlockNumber = prod_or_fast!(2 * runtime_constants::time::EPOCH_DURATION_IN_SLOTS, 2 * MINUTES);
 }
 
+#[cfg(feature = "storage-hub")]
 impl pallet_storage_providers::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_storage_providers::weights::SubstrateWeight<Runtime>;
@@ -718,11 +722,13 @@ impl pallet_storage_providers::benchmarking::BenchmarkHelpers<Runtime>
 /****** ****** ****** ******/
 
 /****** Payment Streams pallet ******/
+#[cfg(feature = "storage-hub")]
 parameter_types! {
     pub const PaymentStreamHoldReason: RuntimeHoldReason = RuntimeHoldReason::PaymentStreams(pallet_payment_streams::HoldReason::PaymentStreamDeposit);
     pub const UserWithoutFundsCooldown: BlockNumber = 100;
 }
 
+#[cfg(feature = "storage-hub")]
 impl pallet_payment_streams::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_payment_streams::weights::SubstrateWeight<Runtime>;
@@ -742,13 +748,13 @@ impl pallet_payment_streams::Config for Runtime {
 
 // Converter from the BlockNumber type to the Balance type for math
 pub struct BlockNumberToBalance;
-
 impl Convert<BlockNumber, Balance> for BlockNumberToBalance {
     fn convert(block_number: BlockNumber) -> Balance {
         block_number.into() // In this converter we assume that the block number type is smaller in size than the balance type
     }
 }
 
+#[cfg(feature = "storage-hub")]
 impl LinearThenPowerOfTwoTreasuryCutCalculatorConfig<Perbill> for Runtime {
     type Balance = Balance;
     type ProvidedUnit = StorageDataUnit;
@@ -761,11 +767,15 @@ impl LinearThenPowerOfTwoTreasuryCutCalculatorConfig<Perbill> for Runtime {
 /****** ****** ****** ******/
 
 /****** Proofs Dealer pallet ******/
+#[cfg(feature = "storage-hub")]
 const RANDOM_CHALLENGES_PER_BLOCK: u32 = 10;
+#[cfg(feature = "storage-hub")]
 const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 10;
+#[cfg(feature = "storage-hub")]
 const TOTAL_MAX_CHALLENGES_PER_BLOCK: u32 =
     RANDOM_CHALLENGES_PER_BLOCK + MAX_CUSTOM_CHALLENGES_PER_BLOCK;
 
+#[cfg(feature = "storage-hub")]
 parameter_types! {
     pub const RandomChallengesPerBlock: u32 = RANDOM_CHALLENGES_PER_BLOCK;
     pub const MaxCustomChallengesPerBlock: u32 = MAX_CUSTOM_CHALLENGES_PER_BLOCK;
@@ -777,6 +787,7 @@ parameter_types! {
     pub const ChallengeTicksTolerance: u32 = 50;
 }
 
+#[cfg(feature = "storage-hub")]
 impl pallet_proofs_dealer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_proofs_dealer::weights::SubstrateWeight<Runtime>;
@@ -831,7 +842,9 @@ impl Convert<Balance, BlockNumberFor<Runtime>> for SaturatingBalanceToBlockNumbe
     }
 }
 
+#[cfg(feature = "storage-hub")]
 pub struct MaxSubmittersPerTick;
+#[cfg(feature = "storage-hub")]
 impl Get<u32> for MaxSubmittersPerTick {
     fn get() -> u32 {
         let block_weights = <Runtime as frame_system::Config>::BlockWeights::get();
@@ -876,7 +889,9 @@ impl Get<u32> for MaxSubmittersPerTick {
     }
 }
 
+#[cfg(feature = "storage-hub")]
 pub struct BlockFullnessHeadroom;
+#[cfg(feature = "storage-hub")]
 impl Get<Weight> for BlockFullnessHeadroom {
     fn get() -> Weight {
         // The block headroom is set to be the maximum benchmarked weight that a `submit_proof` extrinsic can have.
@@ -894,7 +909,9 @@ impl Get<Perbill> for MinNotFullBlocksRatio {
     }
 }
 
+#[cfg(feature = "storage-hub")]
 pub struct MaxSlashableProvidersPerTick;
+#[cfg(feature = "storage-hub")]
 impl Get<u32> for MaxSlashableProvidersPerTick {
     fn get() -> u32 {
         // With the maximum number of slashable providers per tick being `N`, the absolute maximum
@@ -940,9 +957,12 @@ impl Get<u32> for MaxSlashableProvidersPerTick {
 /****** ****** ****** ******/
 
 /****** File System pallet ******/
+#[cfg(feature = "storage-hub")]
 type ThresholdType = u32;
+#[cfg(feature = "storage-hub")]
 pub type ReplicationTargetType = u32;
 
+#[cfg(feature = "storage-hub")]
 parameter_types! {
     pub const BaseStorageRequestCreationDeposit: Balance = 1 * UNIT;
     pub const FileDeletionRequestCreationDeposit: Balance = 1 * UNIT;
@@ -950,6 +970,7 @@ parameter_types! {
     pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
 }
 
+#[cfg(feature = "storage-hub")]
 impl pallet_file_system::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_file_system::weights::SubstrateWeight<Runtime>;
@@ -1010,6 +1031,7 @@ impl pallet_file_system::Config for Runtime {
         runtime_params::dynamic_params::runtime_config::TickRangeToMaximumThreshold;
 }
 
+#[cfg(feature = "storage-hub")]
 impl MostlyStablePriceIndexUpdaterConfig for Runtime {
     type Price = Balance;
     type StorageDataUnit = StorageDataUnit;
@@ -1026,14 +1048,16 @@ impl MostlyStablePriceIndexUpdaterConfig for Runtime {
 
 // Converter from the ThresholdType to the BlockNumber type and vice versa.
 // It performs a saturated conversion, so that the result is always a valid BlockNumber.
+#[cfg(feature = "storage-hub")]
 pub struct ThresholdTypeToBlockNumberConverter;
-
+#[cfg(feature = "storage-hub")]
 impl Convert<ThresholdType, BlockNumberFor<Runtime>> for ThresholdTypeToBlockNumberConverter {
     fn convert(threshold: ThresholdType) -> BlockNumberFor<Runtime> {
         threshold.saturated_into()
     }
 }
 
+#[cfg(feature = "storage-hub")]
 impl ConvertBack<ThresholdType, BlockNumberFor<Runtime>> for ThresholdTypeToBlockNumberConverter {
     fn convert_back(block_number: BlockNumberFor<Runtime>) -> ThresholdType {
         block_number.into()
@@ -1041,7 +1065,9 @@ impl ConvertBack<ThresholdType, BlockNumberFor<Runtime>> for ThresholdTypeToBloc
 }
 
 /// Converter from the [`Hash`] type to the [`ThresholdType`].
+#[cfg(feature = "storage-hub")]
 pub struct HashToThresholdTypeConverter;
+#[cfg(feature = "storage-hub")]
 impl Convert<<Runtime as frame_system::Config>::Hash, ThresholdType>
     for HashToThresholdTypeConverter
 {
@@ -1058,8 +1084,9 @@ impl Convert<<Runtime as frame_system::Config>::Hash, ThresholdType>
 }
 
 // Converter from the MerkleHash (H256) type to the RandomnessOutput (H256) type.
+#[cfg(feature = "storage-hub")]
 pub struct MerkleHashToRandomnessOutputConverter;
-
+#[cfg(feature = "storage-hub")]
 impl Convert<H256, H256> for MerkleHashToRandomnessOutputConverter {
     fn convert(hash: H256) -> H256 {
         hash
@@ -1067,8 +1094,10 @@ impl Convert<H256, H256> for MerkleHashToRandomnessOutputConverter {
 }
 
 // Converter from the ChunkId type to the MerkleHash (H256) type.
+#[cfg(feature = "storage-hub")]
 pub struct ChunkIdToMerkleHashConverter;
 
+#[cfg(feature = "storage-hub")]
 impl Convert<ChunkId, H256> for ChunkIdToMerkleHashConverter {
     fn convert(chunk_id: ChunkId) -> H256 {
         let chunk_id_biguint = BigUint::from(chunk_id.as_u64());
@@ -1086,7 +1115,9 @@ impl Convert<ChunkId, H256> for ChunkIdToMerkleHashConverter {
 }
 
 // Converter from the ReplicationTargetType type to the Balance type.
+#[cfg(feature = "storage-hub")]
 pub struct ReplicationTargetToBalance;
+#[cfg(feature = "storage-hub")]
 impl Convert<ReplicationTargetType, Balance> for ReplicationTargetToBalance {
     fn convert(replication_target: ReplicationTargetType) -> Balance {
         replication_target.into()
@@ -1112,6 +1143,7 @@ impl Convert<StorageDataUnit, Balance> for StorageDataUnitToBalance {
 /****** ****** ****** ******/
 
 /****** Bucket NFTs pallet ******/
+#[cfg(feature = "storage-hub")]
 impl pallet_bucket_nfts::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_bucket_nfts::weights::SubstrateWeight<Runtime>;

@@ -230,6 +230,81 @@ impl WeightToFeePolynomial for WeightToFee {
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
+#[cfg(not(feature = "storage-hub"))]
+mod runtime {
+    #[runtime::runtime]
+    #[runtime::derive(
+        RuntimeCall,
+        RuntimeEvent,
+        RuntimeError,
+        RuntimeOrigin,
+        RuntimeFreezeReason,
+        RuntimeHoldReason,
+        RuntimeSlashReason,
+        RuntimeLockId,
+        RuntimeTask
+    )]
+    pub struct Runtime;
+
+    #[runtime::pallet_index(0)]
+    pub type System = frame_system;
+
+    #[runtime::pallet_index(1)]
+    pub type Timestamp = pallet_timestamp;
+
+    #[runtime::pallet_index(2)]
+    pub type Balances = pallet_balances;
+
+    #[runtime::pallet_index(3)]
+    pub type Babe = pallet_babe;
+
+    // TODO! Add the following palllets to the runtime:
+    // Authorship must be before session in order to note author in the correct session and era.
+    // pub type Authorship = pallet_authorship;
+    // pub type Offences = pallet_offences;
+    #[runtime::pallet_index(4)]
+    pub type Historical = pallet_session::historical;
+
+    #[runtime::pallet_index(5)]
+    pub type ValidatorSet = pallet_validator_set;
+
+    #[runtime::pallet_index(6)]
+    pub type Session = pallet_session;
+
+    #[runtime::pallet_index(7)]
+    pub type Grandpa = pallet_grandpa;
+
+    #[runtime::pallet_index(8)]
+    pub type TransactionPayment = pallet_transaction_payment;
+
+    #[runtime::pallet_index(9)]
+    pub type Sudo = pallet_sudo;
+
+    #[runtime::pallet_index(10)]
+    pub type Beefy = pallet_beefy;
+
+    #[runtime::pallet_index(11)]
+    pub type BeefyMmrLeaf = pallet_beefy_mmr;
+
+    #[runtime::pallet_index(12)]
+    pub type Mmr = pallet_mmr;
+
+    #[runtime::pallet_index(13)]
+    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+
+    #[runtime::pallet_index(31)]
+    pub type Ethereum = pallet_ethereum;
+
+    #[runtime::pallet_index(32)]
+    pub type Evm = pallet_evm;
+
+    #[runtime::pallet_index(33)]
+    pub type EvmChainId = pallet_evm_chain_id;
+}
+
+
+#[frame_support::runtime]
+#[cfg(feature = "storage-hub")]
 mod runtime {
     #[runtime::runtime]
     #[runtime::derive(

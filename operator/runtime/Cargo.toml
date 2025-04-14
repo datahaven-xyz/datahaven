@@ -101,6 +101,7 @@ num-bigint = { workspace = true }
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
 
 [features]
+storage-hub = []
 default = ["std"]
 std = [
     "codec/std",

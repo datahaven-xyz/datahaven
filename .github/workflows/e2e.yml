@@ -21,11 +21,10 @@ concurrency:
 env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
-  
 
 jobs:
   kurtosis:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-8-cores
     defaults:
       run:
         working-directory: test
@@ -49,14 +48,14 @@ jobs:
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-            
+
       - uses: actions/cache@v4
         with:
           path: ~/.foundry/cache
           key: ${{ runner.os }}-foundry-${{ hashFiles('**/foundry.toml') }}
           restore-keys: |
             ${{ runner.os }}-foundry-
-              
+
       - run: bun install
       - run: bun start:e2e:verified
       - run: bun test:e2e

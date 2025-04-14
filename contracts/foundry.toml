@@ -20,6 +20,8 @@
         "ds-test/=lib/ds-test/src/",
         "eigenlayer-contracts/=lib/eigenlayer-contracts/",
         "snowbridge/=lib/snowbridge/contracts/",
+        "@openzeppelin/=lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
+        "@openzeppelin-upgrades/=lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
         "lib/eigenlayer-contracts/:@openzeppelin/=lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
         "lib/eigenlayer-contracts/:@openzeppelin-upgrades/=lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
         "lib/snowbridge/contracts/:openzeppelin/=lib/snowbridge/contracts/lib/openzeppelin-contracts/contracts/",

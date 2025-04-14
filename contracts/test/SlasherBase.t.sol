@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+/* solhint-disable func-name-mixedcase */
+
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -68,7 +70,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
         IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = strategyMock1;
+        strategies[0] = deployedStrategies[0];
         uint256[] memory wadsToSlash = new uint256[](1);
         wadsToSlash[0] = 1e16;
         string memory description = "Test slashing by non-ServiceManager";
@@ -119,8 +121,8 @@ contract SlasherBaseTest is MockAVSDeployer {
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
         IStrategy[] memory strategies = new IStrategy[](2);
-        strategies[0] = strategyMock1;
-        strategies[1] = strategyMock2;
+        strategies[0] = deployedStrategies[0];
+        strategies[1] = deployedStrategies[1];
         uint256[] memory wadsToSlash = new uint256[](2);
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         wadsToSlash[1] = 2e16; // 2% of the operator's stake
@@ -161,7 +163,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
         IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = strategyMock1;
+        strategies[0] = deployedStrategies[0];
         uint256[] memory wadsToSlash = new uint256[](1);
         wadsToSlash[0] = 0; // Zero tokens
         string memory description = "Zero wad slashing";
@@ -201,7 +203,7 @@ contract SlasherBaseTest is MockAVSDeployer {
         address operator = address(0xabcd);
         uint32 operatorSetId = 1;
         IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = strategyMock1;
+        strategies[0] = deployedStrategies[0];
         uint256[] memory wadsToSlash = new uint256[](1);
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Revert test";

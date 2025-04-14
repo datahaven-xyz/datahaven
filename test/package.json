@@ -7,8 +7,11 @@
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
     "demo": "bun run scripts/placeholder.ts",
+    "start:e2e:verified": "bun run scripts/start-kurtosis.ts --verified",
     "start:e2e:minimal": "bun run scripts/start-kurtosis.ts",
-    "stop:e2e:minimal": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
+    "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
+    "stop:e2e:verified": "bun stop:e2e",
+    "stop:e2e:minimal": "bun stop:e2e", 
     "stop:kurtosis-engine": "kurtosis engine stop && docker container prune -f",
     "test:e2e": "bun test suites/e2e"
   },

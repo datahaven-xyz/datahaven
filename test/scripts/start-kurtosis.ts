@@ -4,6 +4,10 @@ import { getServicesFromDocker, logger } from "utils";
 import sendTxn from "./send-txn";
 
 async function main() {
+  const args = process.argv.slice(2);
+  const isVerified = args.includes("--verified");
+  logger.info(`Running with --verified: ${isVerified}`);
+
   const timeStart = performance.now();
   logger.debug(`Running on ${process.platform}`);
 
@@ -74,7 +78,12 @@ async function main() {
   const blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
   invariant(blockscoutBackendUrl, "❌ Blockscout backend URL not found");
 
-  const deployCommand = `${forgeExecutable} script script/deploy/DeployLocal.s.sol --rpc-url ${networkRpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --broadcast`;
+  let deployCommand = `${forgeExecutable} script script/deploy/DeployLocal.s.sol --rpc-url ${networkRpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+
+  if (isVerified) {
+    deployCommand += ` --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --delay 0`;
+  }
+
   console.log(`Running command: ${deployCommand}`);
 
   const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`

@@ -7,15 +7,29 @@ import chalk from "chalk";
 
 interface ScriptOptions {
   verified: boolean;
+  launchKurtosis?: boolean;
+  deployContracts?: boolean;
+  help?: boolean;
 }
 
 async function main() {
   const args = process.argv.slice(2);
+
+  // Parse command-line arguments
   const options: ScriptOptions = {
-    verified: args.includes("--verified")
+    verified: args.includes("--verified"),
+    launchKurtosis: parseFlag(args, "launchKurtosis"),
+    deployContracts: parseFlag(args, "deploy-contracts"),
+    help: args.includes("--help") || args.includes("-h")
   };
 
-  logger.info(`Running with options: ${options.verified ? "verified" : "unverified"}`);
+  // Show help menu if requested
+  if (options.help) {
+    printHelp();
+    return;
+  }
+
+  logger.info(`Running with options: ${getOptionsString(options)}`);
 
   const timeStart = performance.now();
 
@@ -32,19 +46,26 @@ async function main() {
   if (await checkKurtosisRunning()) {
     logger.info("ℹ️  Kurtosis network is already running.");
 
-    // Ask if the user wants to clean and redeploy
-    const shouldRedeploy = await promptWithTimeout(
-      "Do you want to clean and redeploy the Kurtosis enclave?",
-      true,
-      5
-    );
+    // Check if launchKurtosis option was set via flags, or prompt if not
+    let shouldRelaunch = options.launchKurtosis;
+    if (shouldRelaunch === undefined) {
+      shouldRelaunch = await promptWithTimeout(
+        "Do you want to clean and launch the Kurtosis enclave?",
+        true,
+        5
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldRelaunch ? "will relaunch" : "will not relaunch"} the Kurtosis enclave`
+      );
+    }
 
-    if (!shouldRedeploy) {
+    if (!shouldRelaunch) {
       logger.info("Keeping existing Kurtosis enclave. Exiting...");
       return;
     }
 
-    logger.info("Proceeding to clean and redeploy the Kurtosis enclave...");
+    logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
   }
 
   // Clean up Docker and Kurtosis
@@ -118,12 +139,19 @@ async function main() {
 
   printDivider();
 
-  // Ask if the user wants to deploy smart contracts
-  const shouldDeployContracts = await promptWithTimeout(
-    "Do you want to deploy the smart contracts?",
-    true,
-    20
-  );
+  // Check if deployContracts option was set via flags, or prompt if not
+  let shouldDeployContracts = options.deployContracts;
+  if (shouldDeployContracts === undefined) {
+    shouldDeployContracts = await promptWithTimeout(
+      "Do you want to deploy the smart contracts?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
+    );
+  }
 
   if (!shouldDeployContracts) {
     logger.info("Skipping contract deployment. Done!");
@@ -280,5 +308,52 @@ const promptWithTimeout = async (
     });
   });
 };
+
+// Helper function to format options as a string
+function getOptionsString(options: ScriptOptions): string {
+  const optionStrings: string[] = [];
+  if (options.verified) optionStrings.push("verified");
+  if (options.launchKurtosis !== undefined)
+    optionStrings.push(`launchKurtosis=${options.launchKurtosis}`);
+  if (options.deployContracts !== undefined)
+    optionStrings.push(`deployContracts=${options.deployContracts}`);
+  return optionStrings.length ? optionStrings.join(", ") : "no options";
+}
+
+// Print help menu
+function printHelp(): void {
+  console.log(chalk.bold.cyan("\nDatahaven Kurtosis Startup Script"));
+  console.log(chalk.gray("=".repeat(40)));
+  console.log(`
+${chalk.yellow("Available Options:")}
+
+${chalk.green("--verified")}                Use contract verification via Blockscout
+${chalk.green("--launchKurtosis")}          Clean and launch Kurtosis enclave if already running
+${chalk.green("--no-launchKurtosis")}       Keep existing Kurtosis enclave if already running
+${chalk.green("--deploy-contracts")}        Deploy smart contracts after Kurtosis starts
+${chalk.green("--no-deploy-contracts")}     Skip smart contract deployment
+${chalk.green("--help, -h")}                Show this help menu
+
+${chalk.yellow("Examples:")}
+  ${chalk.gray("# Start with interactive prompts")}
+  bun run start-kurtosis
+
+  ${chalk.gray("# Start with verification and automatic redeploy")}
+  bun run start-kurtosis --verified --redeploy
+
+  ${chalk.gray("# Start without deploying contracts")}
+  bun run start-kurtosis --no-deploy-contracts
+`);
+}
+
+// Parse and handle boolean flags with negations
+function parseFlag(args: string[], flagName: string): boolean | undefined {
+  const positiveFlag = `--${flagName}`;
+  const negativeFlag = `--no-${flagName}`;
+
+  if (args.includes(positiveFlag)) return true;
+  if (args.includes(negativeFlag)) return false;
+  return undefined;
+}
 
 main();

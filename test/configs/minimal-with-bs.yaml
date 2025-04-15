@@ -12,6 +12,7 @@ participants:
 
 additional_services:
   - dora
+  - blockscout
 
 network_params:
   preset: minimal

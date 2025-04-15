@@ -9,6 +9,7 @@ import {
 } from "utils";
 import { isAddress, parseAbi, parseEther } from "viem";
 
+// Tests are disabled because we lack ability to run blockscout reliably
 describe("E2E: Read-only", () => {
   let api: ViemClientInterface;
 
@@ -33,7 +34,7 @@ describe("E2E: Read-only", () => {
     expect(balance).toBeGreaterThan(parseEther("1"));
   });
 
-  it("Snowbridge contract is deployed and verified", async () => {
+  it.skip("Snowbridge contract is deployed and verified", async () => {
     const contractAddress = await fetchContractAddressByName("BeefyClient");
     logger.info(`Contract BeefyClient deployed to ${contractAddress}`);
     expect(isAddress(contractAddress)).toBeTrue();
@@ -65,7 +66,7 @@ describe("E2E: Read-only", () => {
     });
   });
 
-  it("AVS contract is deployed and verified", async () => {
+  it.skip("AVS contract is deployed and verified", async () => {
     const contractAddress = await fetchContractAddressByName("DataHavenServiceManager");
     logger.info(`Contract DataHavenServiceManager deployed to ${contractAddress}`);
     expect(isAddress(contractAddress)).toBeTrue();

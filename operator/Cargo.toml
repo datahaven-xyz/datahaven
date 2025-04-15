@@ -151,9 +151,6 @@ fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stabl
 
 # StorageHub
 storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
-pallet-message-queue = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
-pallet-collator-selection = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
 pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
 pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
@@ -176,7 +173,6 @@ shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.g
 pallet-parameters = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 parachains-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
-parachain-info = { package = "staging-parachain-info", git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 # TODO: Change sp-trie to the next stable version when it's released with the applied fix of this [PR](https://github.com/paritytech/polkadot-sdk/pull/6486)
 sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 

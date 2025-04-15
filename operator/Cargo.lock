@@ -1670,14 +1670,12 @@ dependencies = [
  "hex",
  "hex-literal 0.3.4",
  "num-bigint",
- "pallet-aura",
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
  "pallet-beefy",
  "pallet-beefy-mmr",
  "pallet-bucket-nfts",
- "pallet-collator-selection",
  "pallet-cr-randomness",
  "pallet-ethereum",
  "pallet-evm",
@@ -1687,7 +1685,6 @@ dependencies = [
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
- "pallet-message-queue",
  "pallet-mmr",
  "pallet-multisig",
  "pallet-nfts",
@@ -1743,7 +1740,6 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie",
  "sp-version",
- "staging-parachain-info",
  "substrate-wasm-builder",
 ]
 
@@ -6045,22 +6041,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-core",
- "sp-runtime",
-]
-
-[[package]]
-name = "pallet-aura"
-version = "37.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "frame-support",
- "frame-system",
- "log",
- "pallet-timestamp",
- "parity-scale-codec",
- "scale-info",
- "sp-application-crypto",
- "sp-consensus-aura",
  "sp-runtime",
 ]
 

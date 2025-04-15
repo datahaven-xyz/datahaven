@@ -77,9 +77,6 @@ sp-transaction-pool = { workspace = true }
 sp-version = { features = ["serde"], workspace = true }
 
 # StorageHub
-pallet-aura = { workspace = true }
-pallet-collator-selection = { workspace = true }
-pallet-message-queue = { workspace = true }
 pallet-bucket-nfts = { workspace = true }
 pallet-nfts = { workspace = true }
 pallet-cr-randomness = { workspace = true }
@@ -95,7 +92,6 @@ pallet-storage-providers = { workspace = true }
 pallet-storage-providers-runtime-api = { workspace = true }
 shp-constants = { workspace = true }
 parachains-common = { workspace = true }
-parachain-info = { workspace = true }
 sp-trie = { workspace = true }
 shp-file-metadata = { workspace = true }
 shp-traits = { workspace = true }
@@ -149,16 +145,13 @@ std = [
     "pallet-validator-set/std",
 
     # StorageHub
-    "pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
 	"pallet-bucket-nfts/std",
     "pallet-nfts/std",
-	"pallet-collator-selection/std",
 	"pallet-cr-randomness/std",
 	"pallet-file-system/std",
 	"pallet-file-system-runtime-api/std",
-	"pallet-message-queue/std",
 	"pallet-parameters/std",
 	"pallet-payment-streams/std",
 	"pallet-payment-streams-runtime-api/std",
@@ -173,7 +166,6 @@ std = [
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
     "shp-constants/std",
-    "parachain-info/std",
 	"parachains-common/std",
 	"shp-file-metadata/std",
 	"shp-forest-verifier/std",

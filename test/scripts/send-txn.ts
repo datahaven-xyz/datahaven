@@ -45,8 +45,6 @@ export default async function main(privateKey: string, networkRpcUrl: string) {
       value: parseEther("1.0")
     });
 
-    console.log(`Transaction sent! Hash: http://localhost:3000/tx/${hash}`);
-
     console.log(`Waiting for transaction ${hash} to be confirmed...`);
     const receipt = await client.waitForTransactionReceipt({ hash });
     console.log(`Transaction confirmed in block ${receipt.blockNumber}`);

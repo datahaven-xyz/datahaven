@@ -60,14 +60,22 @@ async function main() {
   // Display service information in a clean table
   printHeader("Service Endpoints");
 
-  console.table(
-    services
-      .filter((s) => ["reth-1-rpc", "reth-2-rpc", "blockscout-backend", "dora"].includes(s.service))
-      .concat([
-        { service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" },
-        { service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }
-      ])
-  );
+  // Filter services to display based on blockscout option
+  const servicesToDisplay = services
+    .filter((s) => ["reth-1-rpc", "reth-2-rpc", "dora"].includes(s.service))
+    .concat([{ service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }]);
+
+  // Conditionally add blockscout services
+  if (options.blockscout !== false) {
+    const blockscoutBackend = services.find((s) => s.service === "blockscout-backend");
+    if (blockscoutBackend) {
+      servicesToDisplay.push(blockscoutBackend);
+      // Only add frontend if backend exists
+      servicesToDisplay.push({ service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" });
+    }
+  }
+
+  console.table(servicesToDisplay);
 
   printDivider();
 
@@ -80,7 +88,16 @@ async function main() {
   printDivider();
 
   // Deploy contracts using the extracted function
-  const blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
+  let blockscoutBackendUrl: string | undefined = undefined;
+
+  if (options.blockscout !== false) {
+    blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
+  } else if (options.verified) {
+    logger.warn(
+      "⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped."
+    );
+  }
+
   await deployContracts({
     rpcUrl: networkRpcUrl,
     verified: options.verified,

@@ -6,7 +6,7 @@
   "scripts": {
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
-    "start:e2e:verified": "bun run scripts/e2e-cli.ts --verified",
+    "start:e2e:verified": "bun run scripts/e2e-cli.ts --verified --blockscout",
     "start:e2e:minimal": "bun run scripts/e2e-cli.ts",
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
     "stop:e2e:verified": "bun stop:e2e",

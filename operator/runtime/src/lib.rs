@@ -210,6 +210,14 @@ where
     type RuntimeCall = RuntimeCall;
 }
 
+impl<C> frame_system::offchain::CreateInherent<C> for Runtime
+where
+    RuntimeCall: From<C>,
+{
+    fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
+        UncheckedExtrinsic::new_bare(call)
+    }
+}
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
 mod runtime {

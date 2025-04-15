@@ -51,6 +51,7 @@ export const launchKurtosis = async (options: { launchKurtosis?: boolean } = {})
   logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
   logger.debug(await $`kurtosis enclave stop datahaven-ethereum`.nothrow().text());
   logger.debug(await $`kurtosis clean`.text());
+  logger.debug(await $`kurtosis engine stop`.text());
   logger.debug(await $`docker system prune -f`.nothrow().text());
 
   // Pull necessary Docker images

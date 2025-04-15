@@ -24,7 +24,6 @@ import {
     IRewardsRegistryEvents, IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
-import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import "forge-std/Test.sol";
 
 contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
@@ -39,7 +38,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
     function beforeTestSetup(
         bytes4 testSelector
-    ) public view returns (bytes[] memory beforeTestCalldata) {
+    ) public pure returns (bytes[] memory beforeTestCalldata) {
         if (testSelector == this.test_sendNewValidatorsSetMessage.selector) {
             beforeTestCalldata = new bytes[](1);
             beforeTestCalldata[0] = abi.encodeWithSelector(this.setupValidatorsAsOperators.selector);

@@ -76,10 +76,6 @@ sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { features = ["serde"], workspace = true }
 
-# Snowbridge
-snowbridge-beacon-primitives.workspace = true
-snowbridge-pallet-ethereum-client.workspace = true
-
 # StorageHub
 pallet-aura = { workspace = true }
 pallet-collator-selection = { workspace = true }

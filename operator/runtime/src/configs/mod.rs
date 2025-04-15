@@ -403,6 +403,8 @@ impl pallet_identity::Config for Runtime {
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
     type WeightInfo = ();
+    type UsernameDeposit = ();
+    type UsernameGracePeriod = ();
 }
 
 parameter_types! {

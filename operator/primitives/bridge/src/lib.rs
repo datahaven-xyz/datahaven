@@ -34,9 +34,9 @@ where
 }
 
 /// EigenLayer Message Processor
-pub struct ELMessageProcessor<T>(PhantomData<T>);
+pub struct EigenLayerMessageProcessor<T>(PhantomData<T>);
 
-impl<T, AccountId> MessageProcessor<AccountId> for ELMessageProcessor<T>
+impl<T, AccountId> MessageProcessor<AccountId> for EigenLayerMessageProcessor<T>
 where
     T: pallet_validator_set::Config,
 {

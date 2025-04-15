@@ -108,9 +108,9 @@ pub fn local_config_genesis() -> Value {
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
 pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
-    let patch = match id.try_into() {
-        Ok(sp_genesis_builder::DEV_RUNTIME_PRESET) => development_config_genesis(),
-        Ok(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET) => local_config_genesis(),
+    let patch = match id.as_str() {
+        "development" => development_config_genesis(),
+        "local" => local_config_genesis(),
         _ => return None,
     };
     Some(

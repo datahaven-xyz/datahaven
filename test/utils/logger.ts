@@ -1,6 +1,6 @@
+import chalk from "chalk";
 import pino from "pino";
 import pinoPretty from "pino-pretty";
-import chalk from "chalk";
 
 const logLevel = process.env.LOG_LEVEL || "info";
 

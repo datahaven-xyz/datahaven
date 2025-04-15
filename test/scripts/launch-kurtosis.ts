@@ -13,9 +13,12 @@ import { getServicesFromDocker, logger, printDivider, printHeader, promptWithTim
  *
  * @param options - Configuration options
  * @param options.launchKurtosis - Whether to forcibly launch Kurtosis (true), keep existing (false), or prompt user (undefined)
+ * @param options.blockscout - Whether to add Blockscout service (true/undefined) or not (false)
  * @returns Object containing success status and Docker services information
  */
-export const launchKurtosis = async (options: { launchKurtosis?: boolean } = {}) => {
+export const launchKurtosis = async (
+  options: { launchKurtosis?: boolean; blockscout?: boolean } = {}
+) => {
   if (await checkKurtosisRunning()) {
     logger.info("ℹ️  Kurtosis network is already running.");
 
@@ -64,8 +67,13 @@ export const launchKurtosis = async (options: { launchKurtosis?: boolean } = {})
 
   // Run Kurtosis
   logger.info("🚀 Starting Kurtosis enclave...");
+  // Determine which config file to use based on the blockscout option
+  const configFile =
+    options.blockscout === false ? "configs/minimal.yaml" : "configs/minimal-with-bs.yaml";
+  logger.info(`Using Kurtosis config file: ${configFile}`);
+
   const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml --enclave datahaven-ethereum`
+    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave datahaven-ethereum`
       .nothrow()
       .quiet();
 

@@ -1,5 +1,5 @@
-import chalk from "chalk";
 import readline from "node:readline";
+import chalk from "chalk";
 // Helper function to create an interactive prompt with timeout
 export const promptWithTimeout = async (
   question: string,

@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
 // `frame_support::runtime` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
@@ -13,17 +12,17 @@ mod benchmarks;
 pub mod configs;
 
 use alloc::vec::Vec;
+use frame_support::weights::constants::ExtrinsicBaseWeight;
+use frame_support::weights::{
+    WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+};
 use smallvec::smallvec;
+use sp_runtime::Perbill;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
 };
 use sp_std::prelude::*;
-use frame_support::weights::{WeightToFeeCoefficient, WeightToFeeCoefficients,
-    WeightToFeePolynomial,
-};
-use frame_support::weights::constants::ExtrinsicBaseWeight;
-use sp_runtime::Perbill;
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -351,7 +350,6 @@ mod runtime {
     #[runtime::pallet_index(255)]
     pub type Sudo = pallet_sudo;
 }
-
 
 #[frame_support::runtime]
 #[cfg(feature = "storage-hub")]

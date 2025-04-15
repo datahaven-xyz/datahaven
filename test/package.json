@@ -6,12 +6,11 @@
   "scripts": {
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
-    "demo": "bun run scripts/placeholder.ts",
-    "start:e2e:verified": "bun run scripts/start-kurtosis.ts --verified",
-    "start:e2e:minimal": "bun run scripts/start-kurtosis.ts",
+    "start:e2e:verified": "bun run scripts/e2e-cli.ts --verified --blockscout",
+    "start:e2e:minimal": "bun run scripts/e2e-cli.ts",
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
     "stop:e2e:verified": "bun stop:e2e",
-    "stop:e2e:minimal": "bun stop:e2e", 
+    "stop:e2e:minimal": "bun stop:e2e",
     "stop:kurtosis-engine": "kurtosis engine stop && docker container prune -f",
     "test:e2e": "bun test suites/e2e"
   },
@@ -25,6 +24,7 @@
     "@biomejs/biome": "^1.9.4",
     "@dotenvx/dotenvx": "^1.39.0",
     "@types/dockerode": "^3.3.37",
+    "chalk": "^5.4.1",
     "dockerode": "^4.0.5",
     "dotenv": "^16.4.7",
     "pino": "^9.6.0",

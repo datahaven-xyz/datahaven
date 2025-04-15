@@ -42,7 +42,7 @@ const serviceMappings: ServiceMapping[] = [
   }
 ];
 
-export async function getServicesFromDocker(): Promise<ServiceInfo[]> {
+export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   const docker = new Docker();
 
   const containers = await docker.listContainers();
@@ -103,7 +103,7 @@ export async function getServicesFromDocker(): Promise<ServiceInfo[]> {
   }
 
   return services;
-}
+};
 
 export const getPublicPort = async (
   containerName: string,

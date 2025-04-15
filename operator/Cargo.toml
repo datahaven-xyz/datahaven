@@ -172,7 +172,6 @@ shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.g
 
 pallet-parameters = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
-parachains-common = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 # TODO: Change sp-trie to the next stable version when it's released with the applied fix of this [PR](https://github.com/paritytech/polkadot-sdk/pull/6486)
 sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2409", default-features = false }
 

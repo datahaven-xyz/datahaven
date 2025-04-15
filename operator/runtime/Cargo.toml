@@ -91,7 +91,6 @@ pallet-randomness = { workspace = true }
 pallet-storage-providers = { workspace = true }
 pallet-storage-providers-runtime-api = { workspace = true }
 shp-constants = { workspace = true }
-parachains-common = { workspace = true }
 sp-trie = { workspace = true }
 shp-file-metadata = { workspace = true }
 shp-traits = { workspace = true }
@@ -166,7 +165,6 @@ std = [
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
     "shp-constants/std",
-	"parachains-common/std",
 	"shp-file-metadata/std",
 	"shp-forest-verifier/std",
 	"shp-traits/std",

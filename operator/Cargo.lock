@@ -1423,39 +1423,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cumulus-primitives-core"
-version = "0.16.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "parity-scale-codec",
- "polkadot-core-primitives",
- "polkadot-parachain-primitives",
- "polkadot-primitives",
- "scale-info",
- "sp-api",
- "sp-runtime",
- "sp-trie",
- "staging-xcm",
-]
-
-[[package]]
-name = "cumulus-primitives-utility"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "log",
- "pallet-asset-conversion",
- "parity-scale-codec",
- "polkadot-runtime-common",
- "sp-runtime",
- "staging-xcm",
- "staging-xcm-builder",
- "staging-xcm-executor",
-]
-
-[[package]]
 name = "curve25519-dalek"
 version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1706,7 +1673,6 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "pallet-validator-set",
- "parachains-common",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -6012,39 +5978,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-asset-tx-payment"
-version = "38.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
-]
-
-[[package]]
-name = "pallet-assets"
-version = "40.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "pallet-authority-discovery"
 version = "38.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
@@ -6194,25 +6127,6 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-collator-selection"
-version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-authorship",
- "pallet-balances",
- "pallet-session",
- "parity-scale-codec",
- "rand",
- "scale-info",
- "sp-runtime",
- "sp-staking",
 ]
 
 [[package]]
@@ -6885,60 +6799,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-xcm"
-version = "17.0.2"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "bounded-collections",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "staging-xcm",
- "staging-xcm-builder",
- "staging-xcm-executor",
- "tracing",
- "xcm-runtime-apis",
-]
-
-[[package]]
-name = "parachains-common"
-version = "18.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "cumulus-primitives-core",
- "cumulus-primitives-utility",
- "frame-support",
- "frame-system",
- "log",
- "pallet-asset-tx-payment",
- "pallet-assets",
- "pallet-authorship",
- "pallet-balances",
- "pallet-collator-selection",
- "pallet-message-queue",
- "pallet-xcm",
- "parity-scale-codec",
- "polkadot-primitives",
- "scale-info",
- "sp-consensus-aura",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "staging-parachain-info",
- "staging-xcm",
- "staging-xcm-executor",
- "substrate-wasm-builder",
 ]
 
 [[package]]
@@ -10444,22 +10304,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp-consensus-aura"
-version = "0.40.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "async-trait",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-application-crypto",
- "sp-consensus-slots",
- "sp-inherents",
- "sp-runtime",
- "sp-timestamp",
-]
-
-[[package]]
 name = "sp-consensus-babe"
 version = "0.40.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
@@ -11252,19 +11096,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "staging-parachain-info"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime",
-]
 
 [[package]]
 name = "staging-xcm"
@@ -13233,20 +13064,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.100",
-]
-
-[[package]]
-name = "xcm-runtime-apis"
-version = "0.4.3"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#fa8573a3e4efa08c2deca5372da5427e4da61690"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-weights",
- "staging-xcm",
- "staging-xcm-executor",
 ]
 
 [[package]]

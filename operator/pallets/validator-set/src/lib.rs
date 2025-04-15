@@ -35,6 +35,8 @@
 //! and [`pallet_session::Config::ValidatorIdOf`] must be [`ConvertInto`].
 
 #![cfg_attr(not(feature = "std"), no_std)]
+// We need this because it clashes with Polkadot macro pallet::pallet
+#![allow(clippy::manual_inspect)]
 
 mod benchmarking;
 mod mock;

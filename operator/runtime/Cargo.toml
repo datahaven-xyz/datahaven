@@ -14,59 +14,66 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { features = ["derive"], workspace = true }
-datahaven-runtime-common.workspace = true
-fp-account = { workspace = true,  features = [ "serde" ]}
+datahaven-runtime-common = { workspace = true }
+fp-account = { workspace = true, features = ["serde"] }
+fp-evm = { workspace = true, features = ["serde"] }
+fp-rpc = { workspace = true }
+fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
 frame-benchmarking = { optional = true, workspace = true }
-frame-executive.workspace = true
-frame-metadata-hash-extension.workspace = true
+frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
 frame-support = { features = ["experimental"], workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
-frame-system-rpc-runtime-api.workspace = true
-frame-system.workspace = true
+frame-system-rpc-runtime-api = { workspace = true }
+frame-system = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 hex = { workspace = true }
-hex-literal.workspace = true
-pallet-authorship.workspace = true
-pallet-babe.workspace = true
-pallet-balances.workspace = true
-pallet-beefy-mmr.workspace = true
-pallet-beefy.workspace = true
-pallet-ethereum.workspace = true
-pallet-evm-chain-id.workspace = true
-pallet-evm.workspace = true
-pallet-grandpa.workspace = true
-pallet-identity.workspace = true
-pallet-im-online.workspace = true
-pallet-mmr.workspace = true
-pallet-multisig.workspace = true
-pallet-offences.workspace = true
-pallet-preimage.workspace = true
-pallet-scheduler.workspace = true
-pallet-session.workspace = true
-pallet-sudo.workspace = true
-pallet-timestamp.workspace = true
-pallet-transaction-payment-rpc-runtime-api.workspace = true
-pallet-transaction-payment.workspace = true
-pallet-utility.workspace = true
-pallet-validator-set.workspace = true
-polkadot-primitives.workspace = true
-polkadot-runtime-common.workspace = true
+hex-literal = { workspace = true }
+pallet-authorship = { workspace = true }
+pallet-babe = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-beefy = { workspace = true }
+pallet-beefy-mmr = { workspace = true }
+pallet-ethereum = { workspace = true }
+pallet-evm = { workspace = true }
+pallet-evm-chain-id = { workspace = true }
+pallet-grandpa = { workspace = true }
+pallet-identity = { workspace = true }
+pallet-im-online = { workspace = true }
+pallet-mmr = { workspace = true }
+pallet-multisig = { workspace = true }
+pallet-offences = { workspace = true }
+pallet-preimage = { workspace = true }
+pallet-scheduler = { workspace = true }
+pallet-session = { workspace = true }
+pallet-sudo = { workspace = true }
+pallet-timestamp = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-utility = { workspace = true }
+pallet-validator-set = { workspace = true }
+polkadot-primitives = { workspace = true }
+polkadot-runtime-common = { workspace = true }
 scale-info = { features = ["derive", "serde"], workspace = true }
-sp-api.workspace = true
-sp-block-builder.workspace = true
+serde_json = { workspace = true, default-features = false, features = ["alloc"] }
+snowbridge-beacon-primitives = { workspace = true }
+snowbridge-pallet-ethereum-client = { workspace = true }
+sp-api = { workspace = true }
+sp-block-builder = { workspace = true }
 sp-consensus-babe = { features = ["serde"], workspace = true }
 sp-consensus-beefy = { features = ["serde"], workspace = true }
 sp-consensus-grandpa = { features = ["serde"], workspace = true }
 sp-core = { features = ["serde"], workspace = true }
-sp-genesis-builder.workspace = true
-sp-inherents.workspace = true
-sp-offchain.workspace = true
+sp-genesis-builder = { workspace = true }
+sp-inherents = { workspace = true }
+sp-keyring = { workspace = true }
+sp-offchain = { workspace = true }
 sp-runtime = { features = ["serde"], workspace = true }
-sp-session.workspace = true
-sp-staking.workspace = true
-sp-std.workspace = true
-sp-storage.workspace = true
-sp-transaction-pool.workspace = true
+sp-session = { workspace = true }
+sp-staking = { workspace = true }
+sp-std = { workspace = true }
+sp-storage = { workspace = true }
+sp-transaction-pool = { workspace = true }
 sp-version = { features = ["serde"], workspace = true }
 
 # Snowbridge
@@ -103,7 +110,6 @@ shp-file-key-verifier = { workspace = true }
 shp-data-price-updater = { workspace = true }
 num-bigint = { workspace = true }
 
-
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
 
@@ -112,33 +118,32 @@ storage-hub = []
 default = ["std"]
 std = [
     "codec/std",
-    "scale-info/std",
-
+    "datahaven-runtime-common/std",
+    "fp-account/std",
+    "frame-benchmarking?/std",
     "frame-executive/std",
     "frame-metadata-hash-extension/std",
     "frame-support/std",
     "frame-system-benchmarking?/std",
     "frame-system-rpc-runtime-api/std",
     "frame-system/std",
-
-    "frame-benchmarking?/std",
     "frame-try-runtime?/std",
-
-    "datahaven-runtime-common/std",
-
     "pallet-authorship/std",
-	"pallet-babe/std",
-	"pallet-beefy/std",
-	"pallet-beefy-mmr/std",
-	"pallet-balances/std",
-    "pallet-im-online/std",
-	"pallet-grandpa/std",
+    "pallet-babe/std",
+    "pallet-balances/std",
+    "pallet-beefy-mmr/std",
+    "pallet-beefy/std",
+    "pallet-ethereum/std",
+    "pallet-evm-chain-id/std",
+    "pallet-evm/std",
+    "pallet-grandpa/std",
     "pallet-identity/std",
+    "pallet-im-online/std",
+    "pallet-mmr/std",
     "pallet-multisig/std",
-	"pallet-mmr/std",
-	"pallet-offences/std",
-	"pallet-preimage/std",
-	"pallet-scheduler/std",
+    "pallet-offences/std",
+    "pallet-preimage/std",
+    "pallet-scheduler/std",
     "pallet-session/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
@@ -181,11 +186,11 @@ std = [
     "shp-file-key-verifier/std",
 
     "polkadot-primitives/std",
-	"polkadot-runtime-common/std",
-
+    "polkadot-runtime-common/std",
+    "scale-info/std",
+    "serde_json/std",
     "snowbridge-beacon-primitives/std",
     "snowbridge-pallet-ethereum-client/std",
-
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-babe/std",
@@ -193,34 +198,32 @@ std = [
     "sp-core/std",
     "sp-genesis-builder/std",
     "sp-inherents/std",
+    "sp-keyring/std",
     "sp-offchain/std",
     "sp-runtime/std",
     "sp-session/std",
     "sp-staking/std",
-    "sp-storage/std",
     "sp-std/std",
+    "sp-storage/std",
     "sp-transaction-pool/std",
     "sp-version/std",
-
     "substrate-wasm-builder",
-
-    "pallet-mmr/std",
-    "fp-account/std",
-    "pallet-evm/std",
-    "pallet-evm-chain-id/std",
-    "pallet-ethereum/std",
 ]
 
 runtime-benchmarks = [
+    "datahaven-runtime-common/runtime-benchmarks",
     "frame-benchmarking/runtime-benchmarks",
     "frame-support/runtime-benchmarks",
     "frame-system-benchmarking/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
-    "datahaven-runtime-common/runtime-benchmarks",
     "pallet-balances/runtime-benchmarks",
-    "pallet-im-online/runtime-benchmarks",
+    "pallet-beefy-mmr/runtime-benchmarks",
+    "pallet-ethereum/runtime-benchmarks",
+    "pallet-evm/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
+    "pallet-im-online/runtime-benchmarks",
+    "pallet-mmr/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
@@ -228,17 +231,14 @@ runtime-benchmarks = [
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
-    "pallet-beefy-mmr/runtime-benchmarks",
-    "pallet-mmr/runtime-benchmarks",
+    "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks",
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
-    "pallet-evm/runtime-benchmarks",
-    "pallet-ethereum/runtime-benchmarks",
 ]
 
 try-runtime = [
+    "fp-self-contained/try-runtime",
     "frame-executive/try-runtime",
     "frame-support/try-runtime",
     "frame-system/try-runtime",
@@ -246,9 +246,14 @@ try-runtime = [
     "pallet-authorship/try-runtime",
     "pallet-babe/try-runtime",
     "pallet-balances/try-runtime",
+    "pallet-beefy-mmr/try-runtime",
+    "pallet-beefy/try-runtime",
+    "pallet-ethereum/try-runtime",
+    "pallet-evm/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",
+    "pallet-mmr/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-offences/try-runtime",
     "pallet-preimage/try-runtime",
@@ -256,16 +261,11 @@ try-runtime = [
     "pallet-session/try-runtime",
     "pallet-sudo/try-runtime",
     "pallet-timestamp/try-runtime",
-    "pallet-utility/try-runtime",
     "pallet-transaction-payment/try-runtime",
-    "pallet-beefy/try-runtime",
-    "pallet-beefy-mmr/try-runtime",
-    "pallet-mmr/try-runtime",
+    "pallet-utility/try-runtime",
     "polkadot-runtime-common/try-runtime",
     "snowbridge-pallet-ethereum-client/try-runtime",
     "sp-runtime/try-runtime",
-    "pallet-evm/try-runtime",
-    "pallet-ethereum/try-runtime",
 ]
 
 fast-runtime = [

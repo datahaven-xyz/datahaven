@@ -221,7 +221,7 @@ pub fn run() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                match config.network.network_backend {
+                match config.network.network_backend.unwrap_or_default() {
                     sc_network::config::NetworkBackendType::Libp2p => service::new_full::<
                         sc_network::NetworkWorker<
                             datahaven_runtime::opaque::Block,

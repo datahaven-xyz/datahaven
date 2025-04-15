@@ -1903,8 +1903,9 @@ dependencies = [
  "frame-system",
  "pallet-validator-set",
  "parity-scale-codec",
- "snowbridge-core 0.2.0",
+ "snowbridge-core",
  "snowbridge-inbound-queue-primitives",
+ "sp-std",
 ]
 
 [[package]]
@@ -1960,6 +1961,7 @@ dependencies = [
 name = "datahaven-runtime"
 version = "0.1.0"
 dependencies = [
+ "datahaven-bridge-primitives",
  "datahaven-runtime-common",
  "fp-account",
  "frame-benchmarking",
@@ -1992,7 +1994,10 @@ dependencies = [
  "polkadot-runtime-common",
  "scale-info",
  "snowbridge-beacon-primitives",
+ "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
+ "snowbridge-pallet-inbound-queue-v2",
+ "snowbridge-verification-primitives",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-babe",
@@ -2009,6 +2014,9 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool",
  "sp-version",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
  "substrate-wasm-builder",
 ]
 
@@ -2484,16 +2492,6 @@ dependencies = [
 
 [[package]]
 name = "ethabi-decode"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09d398648d65820a727d6a81e58b962f874473396a047e4c30bafe3240953417"
-dependencies = [
- "ethereum-types 0.14.1",
- "tiny-keccak",
-]
-
-[[package]]
-name = "ethabi-decode"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52029c4087f9f01108f851d0d02df9c21feb5660a19713466724b7f95bd2d773"
@@ -2511,8 +2509,8 @@ dependencies = [
  "crunchy",
  "fixed-hash",
  "impl-codec 0.6.0",
- "impl-rlp",
- "impl-serde",
+ "impl-rlp 0.3.0",
+ "impl-serde 0.4.0",
  "scale-info",
  "tiny-keccak",
 ]
@@ -2525,6 +2523,10 @@ checksum = "8c321610643004cf908ec0f5f2aa0d8f1f8e14b540562a2887a1111ff1ecbf7b"
 dependencies = [
  "crunchy",
  "fixed-hash",
+ "impl-codec 0.7.1",
+ "impl-rlp 0.4.0",
+ "impl-serde 0.5.0",
+ "scale-info",
  "tiny-keccak",
 ]
 
@@ -2539,7 +2541,7 @@ dependencies = [
  "hash-db",
  "hash256-std-hasher",
  "parity-scale-codec",
- "rlp",
+ "rlp 0.5.2",
  "scale-info",
  "serde",
  "sha3",
@@ -2555,8 +2557,8 @@ dependencies = [
  "ethbloom 0.13.0",
  "fixed-hash",
  "impl-codec 0.6.0",
- "impl-rlp",
- "impl-serde",
+ "impl-rlp 0.3.0",
+ "impl-serde 0.4.0",
  "primitive-types 0.12.2",
  "scale-info",
  "uint 0.9.5",
@@ -2570,7 +2572,11 @@ checksum = "1ab15ed80916029f878e0267c3a9f92b67df55e79af370bf66199059ae2b4ee3"
 dependencies = [
  "ethbloom 0.14.1",
  "fixed-hash",
+ "impl-codec 0.7.1",
+ "impl-rlp 0.4.0",
+ "impl-serde 0.5.0",
  "primitive-types 0.13.1",
+ "scale-info",
  "uint 0.10.0",
 ]
 
@@ -2616,7 +2622,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "primitive-types 0.12.2",
- "rlp",
+ "rlp 0.5.2",
  "scale-info",
  "serde",
  "sha3",
@@ -2884,7 +2890,7 @@ version = "1.0.0-dev"
 source = "git+https://github.com/polkadot-evm/frontier?branch=stable2409#a012990acd6f9ecd90c15e63abbb3f12704c4bd8"
 dependencies = [
  "hex",
- "impl-serde",
+ "impl-serde 0.4.0",
  "libsecp256k1",
  "log",
  "parity-scale-codec",
@@ -4189,7 +4195,16 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f28220f89297a075ddc7245cd538076ee98b01f2a9c23a53a4f1105d5a322808"
 dependencies = [
- "rlp",
+ "rlp 0.5.2",
+]
+
+[[package]]
+name = "impl-rlp"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54ed8ad1f3877f7e775b8cbf30ed1bd3209a95401817f19a0eb4402d13f8cf90"
+dependencies = [
+ "rlp 0.6.1",
 ]
 
 [[package]]
@@ -4197,6 +4212,15 @@ name = "impl-serde"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc88fc67028ae3db0c853baa36269d398d5f45b6982f95549ff5def78c935cd"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "impl-serde"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a143eada6a1ec4aefa5049037a26a6d597bfd64f8c026d07b77133e02b7dd0b"
 dependencies = [
  "serde",
 ]
@@ -7356,8 +7380,8 @@ checksum = "0b34d9fd68ae0b74a41b21c03c2f62847aa0ffea044eee893b4c140b37e244e2"
 dependencies = [
  "fixed-hash",
  "impl-codec 0.6.0",
- "impl-rlp",
- "impl-serde",
+ "impl-rlp 0.3.0",
+ "impl-serde 0.4.0",
  "scale-info",
  "uint 0.9.5",
 ]
@@ -7370,6 +7394,9 @@ checksum = "d15600a7d856470b7d278b3fe0e311fe28c2526348549f8ef2ff7db3299c87f5"
 dependencies = [
  "fixed-hash",
  "impl-codec 0.7.1",
+ "impl-rlp 0.4.0",
+ "impl-serde 0.5.0",
+ "scale-info",
  "uint 0.10.0",
 ]
 
@@ -8111,6 +8138,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rlp"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa24e92bb2a83198bb76d661a71df9f7076b8c420b8696e4d3d97d50d94479e3"
+dependencies = [
+ "bytes",
+ "rustc-hex",
+]
+
+[[package]]
 name = "rlp-derive"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8196,7 +8233,7 @@ dependencies = [
  "proptest",
  "rand 0.8.5",
  "rand 0.9.0",
- "rlp",
+ "rlp 0.5.2",
  "ruint-macro",
  "serde",
  "valuable",
@@ -9979,14 +10016,14 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-beacon-primitives"
-version = "0.10.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+version = "0.2.0"
 dependencies = [
  "byte-slice-cast",
  "frame-support",
  "hex",
+ "hex-literal 0.3.4",
  "parity-scale-codec",
- "rlp",
+ "rlp 0.6.1",
  "scale-info",
  "serde",
  "snowbridge-ethereum",
@@ -10004,7 +10041,7 @@ name = "snowbridge-core"
 version = "0.2.0"
 dependencies = [
  "bp-relayers",
- "ethabi-decode 2.0.0",
+ "ethabi-decode",
  "frame-support",
  "frame-system",
  "hex",
@@ -10025,43 +10062,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "snowbridge-core"
-version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
-dependencies = [
- "ethabi-decode 1.0.0",
- "frame-support",
- "frame-system",
- "hex-literal 0.4.1",
- "parity-scale-codec",
- "polkadot-parachain-primitives",
- "scale-info",
- "serde",
- "snowbridge-beacon-primitives",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "staging-xcm",
- "staging-xcm-builder",
-]
-
-[[package]]
 name = "snowbridge-ethereum"
-version = "0.9.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+version = "0.3.0"
 dependencies = [
- "ethabi-decode 1.0.0",
- "ethbloom 0.13.0",
- "ethereum-types 0.14.1",
- "hex-literal 0.4.1",
+ "ethabi-decode",
+ "ethbloom 0.14.1",
+ "ethereum-types 0.15.1",
+ "hex-literal 0.3.4",
  "parity-bytes",
  "parity-scale-codec",
- "rlp",
+ "rand 0.8.5",
+ "rlp 0.6.1",
  "scale-info",
  "serde",
  "serde-big-array",
+ "serde_json",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -10081,7 +10096,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snowbridge-beacon-primitives",
- "snowbridge-core 0.2.0",
+ "snowbridge-core",
  "snowbridge-verification-primitives",
  "sp-core",
  "sp-io",
@@ -10112,7 +10127,7 @@ name = "snowbridge-outbound-queue-primitives"
 version = "0.2.0"
 dependencies = [
  "alloy-core",
- "ethabi-decode 2.0.0",
+ "ethabi-decode",
  "frame-support",
  "frame-system",
  "hex",
@@ -10121,7 +10136,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
- "snowbridge-core 0.2.0",
+ "snowbridge-core",
  "snowbridge-verification-primitives",
  "sp-arithmetic",
  "sp-core",
@@ -10135,21 +10150,23 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client"
-version = "0.10.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.4.1",
+ "hex-literal 0.3.4",
  "log",
  "pallet-timestamp",
  "parity-scale-codec",
+ "rand 0.8.5",
  "scale-info",
  "serde",
+ "serde_json",
  "snowbridge-beacon-primitives",
- "snowbridge-core 0.10.0",
+ "snowbridge-core",
  "snowbridge-ethereum",
+ "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client-fixtures",
  "sp-core",
  "sp-io",
@@ -10160,12 +10177,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client-fixtures"
-version = "0.18.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
+version = "0.9.0"
 dependencies = [
- "hex-literal 0.4.1",
+ "hex-literal 0.3.4",
  "snowbridge-beacon-primitives",
- "snowbridge-core 0.10.0",
+ "snowbridge-core",
+ "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
 ]
@@ -10187,7 +10204,7 @@ dependencies = [
  "scale-info",
  "serde",
  "snowbridge-beacon-primitives",
- "snowbridge-core 0.2.0",
+ "snowbridge-core",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2-fixtures",
@@ -10209,7 +10226,7 @@ version = "0.10.0"
 dependencies = [
  "hex-literal 0.3.4",
  "snowbridge-beacon-primitives",
- "snowbridge-core 0.2.0",
+ "snowbridge-core",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -10483,7 +10500,7 @@ dependencies = [
  "futures",
  "hash-db",
  "hash256-std-hasher",
- "impl-serde",
+ "impl-serde 0.4.0",
  "itertools 0.11.0",
  "k256",
  "libsecp256k1",
@@ -10867,7 +10884,7 @@ name = "sp-storage"
 version = "21.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
 dependencies = [
- "impl-serde",
+ "impl-serde 0.4.0",
  "parity-scale-codec",
  "ref-cast",
  "serde",
@@ -10948,7 +10965,7 @@ name = "sp-version"
 version = "37.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2409#43d7b1e329f50a37cbd67e15aae70c60556cbb59"
 dependencies = [
- "impl-serde",
+ "impl-serde 0.4.0",
  "parity-scale-codec",
  "parity-wasm",
  "scale-info",

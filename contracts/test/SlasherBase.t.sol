@@ -14,19 +14,18 @@ import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
-import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
+import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {IServiceManager} from "../src/interfaces/IServiceManager.sol";
 import {ISlasher, ISlasherErrors, ISlasherEvents} from "../src/interfaces/ISlasher.sol";
 import {SlasherBase} from "../src/middleware/SlasherBase.sol";
 import {SlasherMock} from "./mocks/SlasherBaseMock.sol";
 
-contract SlasherBaseTest is MockAVSDeployer {
+contract SlasherBaseTest is AVSDeployer {
     SlasherMock public slasherContract;
     address public nonServiceManagerRole;
 
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
-        _setUpDefaultStrategiesAndMultipliers();
 
         // Set up roles for testing
         nonServiceManagerRole = address(0x5678);

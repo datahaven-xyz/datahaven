@@ -5,14 +5,16 @@ pragma solidity ^0.8.13;
 
 import {Test, console, stdError} from "forge-std/Test.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import {IAllocationManager} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
-import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
+import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {RewardsRegistry} from "../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry, IRewardsRegistryErrors} from "../src/interfaces/IRewardsRegistry.sol";
 import {ServiceManagerMock} from "./mocks/ServiceManagerMock.sol";
 import {IServiceManager, IServiceManagerErrors} from "../src/interfaces/IServiceManager.sol";
 
-contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
+contract ServiceManagerRewardsRegistryTest is AVSDeployer {
     // Test addresses
     address public operatorAddress;
     address public nonOperatorAddress;
@@ -73,7 +75,7 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
         );
 
         assertEq(
-            address(serviceManager.getOperatorSetRewardsRegistry(newOperatorSetId)),
+            address(serviceManager.operatorSetToRewardsRegistry(newOperatorSetId)),
             address(newRewardsRegistry),
             "Rewards registry should be set correctly"
         );
@@ -94,6 +96,12 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
 
     function test_claimOperatorRewards() public {
         uint256 initialBalance = operatorAddress.balance;
+
+        vm.mockCall(
+            address(allocationManager),
+            abi.encodeWithSelector(IAllocationManager.isMemberOfOperatorSet.selector),
+            abi.encode(true)
+        );
 
         vm.prank(operatorAddress);
         vm.expectEmit(true, true, true, true);
@@ -120,6 +128,12 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
     }
 
     function test_claimOperatorRewards_AlreadyClaimed() public {
+        vm.mockCall(
+            address(allocationManager),
+            abi.encodeWithSelector(IAllocationManager.isMemberOfOperatorSet.selector),
+            abi.encode(true)
+        );
+
         // First claim
         vm.prank(operatorAddress);
         serviceManager.claimOperatorRewards(operatorSetId, operatorPoints, validProof);
@@ -166,6 +180,11 @@ contract ServiceManagerRewardsRegistryTest is MockAVSDeployer {
 
         // Claim from first registry
         uint256 initialBalance = operatorAddress.balance;
+        vm.mockCall(
+            address(allocationManager),
+            abi.encodeWithSelector(IAllocationManager.isMemberOfOperatorSet.selector),
+            abi.encode(true)
+        );
         vm.prank(operatorAddress);
         serviceManager.claimOperatorRewards(operatorSetId, operatorPoints, validProof);
 

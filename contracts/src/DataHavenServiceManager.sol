@@ -69,7 +69,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function initialize(
+    function initialise(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,

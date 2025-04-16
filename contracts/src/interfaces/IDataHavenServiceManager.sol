@@ -122,7 +122,7 @@ interface IDataHavenServiceManager is
      * @param bspsStrategies Array of strategies supported by BSPs
      * @param mspsStrategies Array of strategies supported by MSPs
      */
-    function initialize(
+    function initialise(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,

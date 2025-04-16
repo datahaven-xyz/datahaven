@@ -155,7 +155,7 @@ contract Deploy is Script, DeployParams, Accounts {
         _deployImplementations(eigenLayerConfig, pauserRegistry);
         Logging.logStep("Implementation contracts deployed successfully");
 
-        // Upgrade proxies to point to implementations and initialize
+        // Upgrade proxies to point to implementations and initialise
         Logging.logSection("Initializing Contracts");
         _upgradeAndInitializeProxies(eigenLayerConfig, proxyAdmin);
         Logging.logStep("Proxies upgraded and initialized successfully");
@@ -797,7 +797,7 @@ contract Deploy is Script, DeployParams, Accounts {
     ) internal returns (DataHavenServiceManager) {
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialize.selector,
+            DataHavenServiceManager.initialise.selector,
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,

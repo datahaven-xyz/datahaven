@@ -6,11 +6,11 @@ pragma solidity ^0.8.13;
 import {Test, console, stdError} from "forge-std/Test.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
+import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {RewardsRegistry} from "../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry, IRewardsRegistryErrors} from "../src/interfaces/IRewardsRegistry.sol";
 
-contract RewardsRegistryTest is MockAVSDeployer {
+contract RewardsRegistryTest is AVSDeployer {
     address public nonRewardsAgent;
     address public operatorAddress;
 

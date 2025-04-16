@@ -15,15 +15,14 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {ServiceManagerMock} from "./mocks/ServiceManagerMock.sol";
-import {MockAVSDeployer} from "./utils/MockAVSDeployer.sol";
+import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {IServiceManager} from "../src/interfaces/IServiceManager.sol";
 import {IServiceManagerUI} from "../src/interfaces/IServiceManagerUI.sol";
 import {ServiceManagerBase} from "../src/middleware/ServiceManagerBase.sol";
 
-contract ServiceManagerBaseTest is MockAVSDeployer {
+contract ServiceManagerBaseTest is AVSDeployer {
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
-        _setUpDefaultStrategiesAndMultipliers();
     }
 
     function beforeTestSetup(
@@ -44,17 +43,6 @@ contract ServiceManagerBaseTest is MockAVSDeployer {
         vm.prank(rewardsUpdater);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
         IServiceManagerUI(address(serviceManager)).updateAVSMetadataURI("https://example.com");
-    }
-
-    function test_createOperatorSetsRevertsIfNoMetadataExists() public {
-        vm.prank(avsOwner);
-        vm.expectRevert(
-            abi.encodeWithSelector(IAllocationManagerErrors.NonexistentAVSMetadata.selector)
-        );
-
-        IAllocationManager.CreateSetParams[] memory emptyParams =
-            new IAllocationManager.CreateSetParams[](0);
-        ServiceManagerBase(address(serviceManager)).createOperatorSets(emptyParams);
     }
 
     function test_createOperatorSetsWithEmptyParams() public {

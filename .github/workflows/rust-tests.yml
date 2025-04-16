@@ -46,8 +46,6 @@ jobs:
     name: Prepare artifacts for Rust tests
     runs-on: ubuntu-latest
     env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
     defaults:
@@ -76,6 +74,7 @@ jobs:
         with:
           name: nextest-archive
           path: ./operator/nextest-archive.tar.zst
+        uses: mozilla-actions/sccache-action@v0.0.9
 
   all-rust-tests:
     needs: [setup, prepare]

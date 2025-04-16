@@ -60,7 +60,7 @@ jobs:
           # https://github.com/actions/checkout#checkout-pull-request-head-commit-instead-of-merge-commit
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.4
+        uses: mozilla-actions/sccache-action@v0.0.9
       - uses: rui314/setup-mold@v1
       - name: Install nextest
         uses: taiki-e/install-action@nextest

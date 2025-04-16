@@ -173,7 +173,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         );
         for (uint256 i = 0; i < currentValidators.length; i++) {
             assertEq(
-                serviceManager.validatorAddressToSolochainAddress(currentValidators[i]),
+                serviceManager.validatorEthAddressToSolochainAddress(currentValidators[i]),
                 initialValidators[i],
                 "Validator should have a registered address for the DataHaven solochain"
             );

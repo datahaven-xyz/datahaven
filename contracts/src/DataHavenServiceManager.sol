@@ -49,7 +49,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     IGatewayV2 private _snowbridgeGateway;
 
     /// @inheritdoc IDataHavenServiceManager
-    mapping(address => bytes32) public validatorAddressToSolochainAddress;
+    mapping(address => bytes32) public validatorEthAddressToSolochainAddress;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -115,7 +115,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         // Build the new validator set message
         bytes32[] memory newValidatorSet = new bytes32[](currentValidatorSet.length);
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
-            newValidatorSet[i] = validatorAddressToSolochainAddress[currentValidatorSet[i]];
+            newValidatorSet[i] = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
         }
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({newValidatorSet: newValidatorSet});
@@ -135,7 +135,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         bytes32 solochainAddress
     ) external onlyValidator {
         // Update the Solochain address for the Validator
-        validatorAddressToSolochainAddress[msg.sender] = solochainAddress;
+        validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -175,7 +175,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
             // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
             // TODO: We should have some sort of validation of this address that validators are setting for themselves.
-            validatorAddressToSolochainAddress[operator] = bytes32(data);
+            validatorEthAddressToSolochainAddress[operator] = bytes32(data);
         }
 
         if (operatorSetIds[0] == BSPS_SET_ID) {
@@ -216,7 +216,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
         if (operatorSetIds[0] == VALIDATORS_SET_ID) {
             // Remove validator from the addresses mapping
-            delete validatorAddressToSolochainAddress[operator];
+            delete validatorEthAddressToSolochainAddress[operator];
         }
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);

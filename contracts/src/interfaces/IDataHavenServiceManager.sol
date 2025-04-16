@@ -110,7 +110,7 @@ interface IDataHavenServiceManager is
      * @param validatorAddress The address of the validator to convert
      * @return The corresponding Solochain address
      */
-    function validatorAddressToSolochainAddress(
+    function validatorEthAddressToSolochainAddress(
         address validatorAddress
     ) external view returns (bytes32);
 

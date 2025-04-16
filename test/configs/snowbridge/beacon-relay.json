@@ -1,0 +1,29 @@
+{
+  "source": {
+    "beacon": {
+      "endpoint": "http://127.0.0.1:9596",
+      "stateEndpoint": "http://127.0.0.1:9596",
+      "spec": {
+        "syncCommitteeSize": 512,
+        "slotsInEpoch": 32,
+        "epochsPerSyncCommitteePeriod": 256,
+        "forkVersions": {
+          "deneb": 0,
+          "electra": 2000000
+        }
+      },
+      "datastore": {
+        "location": "/tmp/snowbridge-v2/beaconstore",
+        "maxEntries": 100
+      }
+    }
+  },
+  "sink": {
+    "parachain": {
+      "endpoint": "ws://127.0.0.1:11144",
+      "maxWatchedExtrinsics": 8,
+      "headerRedundancy": 20
+    },
+    "updateSlotInterval": 30
+  }
+}

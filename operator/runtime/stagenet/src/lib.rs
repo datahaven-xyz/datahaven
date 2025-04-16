@@ -11,9 +11,9 @@ mod benchmarks;
 pub mod configs;
 
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, vec::Vec};
 use sp_core::H160;
-use sp_runtime::{create_runtime_str, generic, impl_opaque_keys};
+use sp_runtime::{generic, impl_opaque_keys};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -66,8 +66,8 @@ impl_opaque_keys! {
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("datahaven-stagenet-runtime"),
-    impl_name: create_runtime_str!("datahaven-stagenet-runtime"),
+    spec_name: Cow::Borrowed("datahaven-stagenet-runtime"),
+    impl_name: Cow::Borrowed("datahaven-stagenet-runtime"),
     authoring_version: 1,
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -78,7 +78,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     impl_version: 1,
     apis: apis::RUNTIME_API_VERSIONS,
     transaction_version: 1,
-    state_version: 1,
+    system_version: 1,
 };
 
 mod block_times {
@@ -171,12 +171,21 @@ pub type Executive = frame_executive::Executive<
     Migrations,
 >;
 
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
 where
     RuntimeCall: From<C>,
 {
     type Extrinsic = UncheckedExtrinsic;
-    type OverarchingCall = RuntimeCall;
+    type RuntimeCall = RuntimeCall;
+}
+
+impl<C> frame_system::offchain::CreateInherent<C> for Runtime
+where
+    RuntimeCall: From<C>,
+{
+    fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
+        UncheckedExtrinsic::new_bare(call)
+    }
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

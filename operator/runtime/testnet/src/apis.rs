@@ -32,7 +32,7 @@ use super::{
 // External crates imports
 use crate::configs::BABE_GENESIS_EPOCH_CONFIG;
 use crate::{RuntimeOrigin, UncheckedExtrinsic};
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use codec::Encode;
 use datahaven_runtime_common::time::EpochDurationInBlocks;
 use fp_rpc::TransactionStatus;
@@ -142,7 +142,7 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
 
 impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
     fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) -> UncheckedExtrinsic {
-        UncheckedExtrinsic::new_unsigned(
+        UncheckedExtrinsic::new_bare(
             pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
         )
     }
@@ -512,7 +512,7 @@ impl_runtime_apis! {
         #[expect(non_local_definitions)]
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, String> {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
@@ -593,8 +593,7 @@ impl_runtime_apis! {
         }
 
         fn storage_at(address: H160, index: U256) -> H256 {
-            let mut tmp = [0u8; 32];
-            index.to_big_endian(&mut tmp);
+            let tmp = index.to_big_endian();
             pallet_evm::AccountStorages::<Runtime>::get(address, H256::from_slice(&tmp[..]))
         }
 
@@ -781,7 +780,7 @@ impl_runtime_apis! {
 
     impl fp_rpc::ConvertTransactionRuntimeApi<Block> for Runtime {
         fn convert_transaction(transaction: EthereumTransaction) -> <Block as BlockT>::Extrinsic {
-            UncheckedExtrinsic::new_unsigned(
+            UncheckedExtrinsic::new_bare(
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
         }

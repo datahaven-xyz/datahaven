@@ -214,11 +214,12 @@ pub fn run() -> sc_cli::Result<()> {
                         construct_benchmark_partials!(cli, config, |partials| {
                             let ext_builder = RemarkBuilder::new(partials.client.clone());
                             cmd.run(
-                                config,
+                                config.chain_spec.name().to_string(),
                                 partials.client,
                                 inherent_benchmark_data()?,
                                 Vec::new(),
                                 &ext_builder,
+                                false
                             )
                         })
                     }
@@ -256,7 +257,7 @@ pub fn run() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                match config.network.network_backend {
+                match config.network.network_backend.unwrap_or_default() {
                     sc_network::config::NetworkBackendType::Libp2p => match config.chain_spec {
                         ref spec if spec.is_mainnet() => {
                             service::new_full::<

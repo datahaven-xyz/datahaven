@@ -782,8 +782,9 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logStep("Slasher set in ServiceManager");
 
         // Set the RewardsRegistry in the ServiceManager
+        uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();
         vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsRegistry(0, rewardsRegistry);
+        serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
         Logging.logStep("RewardsRegistry set in ServiceManager");
 
         return (serviceManager, vetoableSlasher, rewardsRegistry);

@@ -161,13 +161,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert CantRegisterToMultipleOperatorSets();
         }
 
-        if (
-            operatorSetIds[0] != VALIDATORS_SET_ID && operatorSetIds[0] != BSPS_SET_ID
-                && operatorSetIds[0] != MSPS_SET_ID
-        ) {
-            revert InvalidOperatorSetId();
-        }
-
+        // Case: Validator
         if (operatorSetIds[0] == VALIDATORS_SET_ID) {
             if (!validatorsAllowlist[operator]) {
                 revert OperatorNotInAllowlist();
@@ -177,17 +171,21 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             // TODO: We should have some sort of validation of this address that validators are setting for themselves.
             validatorEthAddressToSolochainAddress[operator] = bytes32(data);
         }
-
-        if (operatorSetIds[0] == BSPS_SET_ID) {
+        // Case: BSP
+        else if (operatorSetIds[0] == BSPS_SET_ID) {
             if (!bspsAllowlist[operator]) {
                 revert OperatorNotInAllowlist();
             }
         }
-
-        if (operatorSetIds[0] == MSPS_SET_ID) {
+        // Case: MSP
+        else if (operatorSetIds[0] == MSPS_SET_ID) {
             if (!mspsAllowlist[operator]) {
                 revert OperatorNotInAllowlist();
             }
+        }
+        // Case: Invalid operator set ID
+        else {
+            revert InvalidOperatorSetId();
         }
 
         emit OperatorRegistered(operator, operatorSetIds[0]);

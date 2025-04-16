@@ -1,7 +1,5 @@
-use crate::{
-    configs::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit},
-    Balance, BlockNumber, Runtime, NANOUNIT, UNIT,
-};
+use super::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};
+use crate::{Balance, BlockNumber, Runtime, NANOUNIT, UNIT};
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use sp_runtime::Perbill;
 

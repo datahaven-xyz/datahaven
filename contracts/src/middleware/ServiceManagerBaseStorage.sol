@@ -58,5 +58,6 @@ abstract contract ServiceManagerBaseStorage is IServiceManager, OwnableUpgradeab
     }
 
     // storage gap for upgradeability
+    // solhint-disable-next-line var-name-mixedcase
     uint256[49] private __GAP;
 }

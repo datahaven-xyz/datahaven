@@ -271,7 +271,7 @@ where
             // Call to create the asset.
             Transact {
                 origin_kind: OriginKind::Xcm,
-                require_weight_at_most: Weight::MAX,
+                fallback_max_weight: None,
                 call: (
                     create_call_index,
                     asset_id.clone(),

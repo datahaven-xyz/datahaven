@@ -139,7 +139,8 @@ async function main() {
     await generateSnowbridgeConfigs();
     logger.success("Snowbridge configs generated");
 
-    const relayers = [""];
+    // TODO - Start Relayers here
+    // For each relayer in array spawn in background relayer with appropriate private key, command and config param
   }
 }
 

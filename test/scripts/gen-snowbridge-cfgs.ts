@@ -5,205 +5,257 @@ import { spawn } from "bun";
 import { logger } from "utils";
 import { z } from "zod";
 
-logger.trace("Parsing command line arguments");
-const {
-  values: {
-    outputDir = "tmp/output",
-    assetsDir = "configs/snowbridge",
-    logsDir = "tmp/logs",
-    relayBin = "relay",
-    ethEndpointWs = "ws://localhost:8545",
-    ethGasLimit = "8000000",
-    relaychainEndpoint = "ws://localhost:9944",
-    beaconEndpointHttp = "http://localhost:5052",
-    ethWriterEndpoint, // default to ethEndpointWs below
-    primaryGovernanceChannelId = "0",
-    secondaryGovernanceChannelId = "1"
-  }
-} = parseArgs({
-  options: {
-    outputDir: { type: "string" },
-    assetsDir: { type: "string" },
-    logsDir: { type: "string" },
-    relayBin: { type: "string" },
-    ethEndpointWs: { type: "string" },
-    ethGasLimit: { type: "string" },
-    relaychainEndpoint: { type: "string" },
-    beaconEndpointHttp: { type: "string" },
-    ethWriterEndpoint: { type: "string" },
-    primaryGovernanceChannelId: { type: "string" },
-    secondaryGovernanceChannelId: { type: "string" }
-  },
-  args: process.argv.slice(2)
-});
+// ---- Zod Schemas for Validation ----
+const beefyRelaySchema = z
+  .object({
+    sink: z.object({
+      contracts: z.object({
+        BeefyClient: z.string().optional(),
+        Gateway: z.string().optional()
+      }),
+      ethereum: z.object({
+        endpoint: z.string(),
+        "gas-limit": z.string()
+      })
+    }),
+    source: z.object({
+      polkadot: z.object({
+        endpoint: z.string()
+      })
+    })
+  })
+  .describe("Beefy Relay Configuration");
 
-const resolvedEthWriterEndpoint = ethWriterEndpoint || ethEndpointWs;
+const beaconRelaySchema = z
+  .object({
+    source: z.object({
+      beacon: z.object({
+        endpoint: z.string(),
+        spec: z.object({
+          forkVersions: z.object({
+            electra: z.number()
+          })
+        }),
+        datastore: z.object({
+          location: z.string()
+        })
+      })
+    }),
+    sink: z.object({
+      parachain: z.object({
+        endpoint: z.string()
+      })
+    })
+  })
+  .describe("Beacon Relay Configuration");
 
-const dataStoreDir = join(outputDir, "relayer_data");
+const executionRelaySchema = z
+  .object({
+    source: z.object({
+      ethereum: z.object({
+        endpoint: z.string()
+      }),
+      contracts: z.object({
+        Gateway: z.string()
+      }),
+      "channel-id": z.string(),
+      beacon: z.object({
+        datastore: z.object({
+          location: z.string()
+        })
+      })
+    }),
+    sink: z.object({
+      parachain: z.object({
+        endpoint: z.string()
+      })
+    }),
+    schedule: z.object({
+      id: z.number()
+    })
+  })
+  .describe("Execution Layer Relay Configuration");
 
-logger.debug(
-  {
-    outputDir,
-    assetsDir,
-    logsDir,
-    relayBin,
-    ethEndpointWs,
-    ethGasLimit,
-    relaychainEndpoint,
-    beaconEndpointHttp,
-    ethWriterEndpoint,
-    resolvedEthWriterEndpoint,
-    primaryGovernanceChannelId,
-    secondaryGovernanceChannelId,
-    dataStoreDir
-  },
-  "Resolved configuration values"
-);
+const substrateRelaySchema = z
+  .object({
+    source: z.object({
+      ethereum: z.object({
+        endpoint: z.string()
+      }),
+      polkadot: z.object({
+        endpoint: z.string()
+      }),
+      contracts: z.object({
+        BeefyClient: z.string(),
+        Gateway: z.string()
+      }),
+      "channel-id": z.string()
+    }),
+    sink: z.object({
+      contracts: z.object({
+        Gateway: z.string()
+      }),
+      ethereum: z.object({
+        endpoint: z.string()
+      })
+    })
+  })
+  .describe("Substrate Relay Configuration");
 
-// Helper: Get contract address (stub, replace with actual lookup)
-async function getSnowbridgeAddressFor(name: string): Promise<string> {
-  // TODO: Implement actual lookup logic or add as CLI arg if required
-  return process.env[`SNOWBRIDGE_${name.toUpperCase()}_ADDRESS`] || "";
+const beaconFinalitySchema = z
+  .object({
+    execution_optimistic: z.boolean(),
+    finalized: z.boolean(),
+    data: z.object({
+      previous_justified: z.object({
+        epoch: z.string(),
+        root: z.string()
+      }),
+      current_justified: z.object({
+        epoch: z.string(),
+        root: z.string()
+      }),
+      finalized: z.object({
+        epoch: z.string(),
+        root: z.string()
+      })
+    })
+  })
+  .describe("Beacon Finality Configuration");
+
+// ---- Configuration Options ----
+interface SnowbridgeConfigOptions {
+  outputDir: string;
+  assetsDir: string;
+  logsDir: string;
+  relayBin: string;
+  ethEndpointWs: string;
+  ethGasLimit: string;
+  relaychainEndpoint: string;
+  beaconEndpointHttp: string;
+  ethWriterEndpoint: string;
+  primaryGovernanceChannelId: string;
+  secondaryGovernanceChannelId: string;
+  dataStoreDir: string;
+  beaconWaitTimeoutSeconds: number;
+  beaconElectraForkVersion: number;
+  executionScheduleId: number;
 }
 
-// ---- Zod Schemas for Validation ----
-const beefyRelaySchema = z.object({
-  sink: z.object({
-    contracts: z.object({
-      BeefyClient: z.string().optional(),
-      Gateway: z.string().optional()
-    }),
-    ethereum: z.object({
-      endpoint: z.string(),
-      "gas-limit": z.string()
-    })
-  }),
-  source: z.object({
-    polkadot: z.object({
-      endpoint: z.string()
-    })
-  })
-});
+const DEFAULT_OPTIONS = {
+  outputDir: "tmp/output",
+  assetsDir: "configs/snowbridge",
+  logsDir: "tmp/logs",
+  relayBin: "relay",
+  ethEndpointWs: "ws://localhost:8545",
+  ethGasLimit: "8000000",
+  relaychainEndpoint: "ws://localhost:9944",
+  beaconEndpointHttp: "http://localhost:5052",
+  ethWriterEndpoint: "",
+  primaryGovernanceChannelId: "0",
+  secondaryGovernanceChannelId: "1",
+  beaconWaitTimeoutSeconds: 300,
+  beaconElectraForkVersion: 0,
+  executionScheduleId: 0
+};
 
-const beaconRelaySchema = z.object({
-  source: z.object({
-    beacon: z.object({
-      endpoint: z.string(),
-      spec: z.object({
-        forkVersions: z.object({
-          electra: z.number()
-        })
-      }),
-      datastore: z.object({
-        location: z.string()
-      })
-    })
-  }),
-  sink: z.object({
-    parachain: z.object({
-      endpoint: z.string()
-    })
-  })
-});
+/**
+ * Retrieves a Snowbridge contract address from environment variables.
+ */
+async function getSnowbridgeAddressFromEnv(name: string): Promise<string> {
+  const envVarName = `SNOWBRIDGE_${name.toUpperCase()}_ADDRESS`;
+  const address = process.env[envVarName];
+  if (!address) {
+    logger.warn(`Environment variable ${envVarName} not set. Using empty string.`);
+  }
+  return address || "";
+}
 
-const executionRelaySchema = z.object({
-  source: z.object({
-    ethereum: z.object({
-      endpoint: z.string()
-    }),
-    contracts: z.object({
-      Gateway: z.string()
-    }),
-    "channel-id": z.string(),
-    beacon: z.object({
-      datastore: z.object({
-        location: z.string()
-      })
-    })
-  }),
-  sink: z.object({
-    parachain: z.object({
-      endpoint: z.string()
-    })
-  }),
-  schedule: z.object({
-    id: z.number()
-  })
-});
-
-const substrateRelaySchema = z.object({
-  source: z.object({
-    ethereum: z.object({
-      endpoint: z.string()
-    }),
-    polkadot: z.object({
-      endpoint: z.string()
-    }),
-    contracts: z.object({
-      BeefyClient: z.string(),
-      Gateway: z.string()
-    }),
-    "channel-id": z.string()
-  }),
-  sink: z.object({
-    contracts: z.object({
-      Gateway: z.string()
-    }),
-    ethereum: z.object({
-      endpoint: z.string()
-    })
-  })
-});
-
-// ---- Config Generation ----
+/**
+ * Reads, validates, updates, and writes a JSON configuration file.
+ */
 async function updateJsonConfig<T>(
   templateName: string,
   outputName: string,
   schema: z.ZodType<T>,
-  updateFn: (obj: T) => void | Promise<void>
-) {
-  const templatePath = join(assetsDir, templateName);
-  const outputPath = join(outputDir, outputName);
-  const obj = await import(templatePath, { with: { type: "json" } });
-  logger.trace({ templatePath, outputPath }, "Read config template");
-  logger.trace({ rawConfig: obj.default }, "Attempting to parse config with Zod schema");
-  const config = schema.parse(obj.default); // Validate
-  logger.debug("Successfully parsed config with Zod schema");
-  logger.trace({ config }, "Parsed config template");
-  await updateFn(config);
-  logger.trace({ config }, "Updated config object");
-  await writeFile(outputPath, JSON.stringify(config, null, 2));
-  logger.debug(`Wrote configuration to ${outputPath}`);
+  updateFn: (obj: T) => void | Promise<void>,
+  options: { assetsDir: string; outputDir: string }
+): Promise<void> {
+  const templatePath = join(options.assetsDir, templateName);
+  const outputPath = join(options.outputDir, outputName);
+
+  try {
+    logger.trace({ templatePath, outputPath }, "Read config template");
+    const obj = await import(templatePath, { with: { type: "json" } });
+    logger.trace(
+      { rawConfig: obj.default },
+      `Attempting to parse ${templateName} config with Zod schema`
+    );
+    const config = schema.parse(obj.default);
+    logger.debug(`Successfully parsed ${schema.description} `);
+
+    await updateFn(config);
+    logger.trace({ config }, "Updated config object");
+
+    await writeFile(outputPath, JSON.stringify(config, null, 2));
+    logger.debug(`Wrote configuration to ${outputPath}`);
+  } catch (error) {
+    logger.error(
+      { err: error, templatePath, outputPath },
+      `Failed to update/write config ${outputName}`
+    );
+    throw error;
+  }
 }
 
-async function configRelayer() {
+/**
+ * Configures all relayer components
+ */
+async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
   logger.info("Starting configuration generation...");
 
   // Ensure all required directories exist
   logger.debug("Ensuring all required directories exist");
-  for (const dir of [outputDir, assetsDir, logsDir, dataStoreDir]) {
+  for (const dir of [options.outputDir, options.assetsDir, options.logsDir, options.dataStoreDir]) {
     await mkdir(dir, { recursive: true });
     logger.debug(`Ensured directory exists: ${dir}`);
   }
 
+  const commonOptions = {
+    assetsDir: options.assetsDir,
+    outputDir: options.outputDir
+  };
+
   // Beefy relay
   logger.debug("Configuring Beefy relay...");
-  await updateJsonConfig("beefy-relay.json", "beefy-relay.json", beefyRelaySchema, async (obj) => {
-    obj.sink.contracts.BeefyClient = await getSnowbridgeAddressFor("BeefyClient");
-    obj.sink.contracts.Gateway = await getSnowbridgeAddressFor("GatewayProxy");
-    obj.sink.ethereum.endpoint = ethEndpointWs;
-    obj.sink.ethereum["gas-limit"] = ethGasLimit;
-    obj.source.polkadot.endpoint = relaychainEndpoint;
-  });
+  await updateJsonConfig(
+    "beefy-relay.json",
+    "beefy-relay.json",
+    beefyRelaySchema,
+    async (obj) => {
+      obj.sink.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
+      obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
+      obj.sink.ethereum.endpoint = options.ethEndpointWs;
+      obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
+      obj.source.polkadot.endpoint = options.relaychainEndpoint;
+    },
+    commonOptions
+  );
 
   // Beacon relay
   logger.debug("Configuring Beacon relay...");
-  await updateJsonConfig("beacon-relay.json", "beacon-relay.json", beaconRelaySchema, (obj) => {
-    obj.source.beacon.endpoint = beaconEndpointHttp;
-    obj.source.beacon.spec.forkVersions.electra = 0;
-    obj.sink.parachain.endpoint = relaychainEndpoint;
-    obj.source.beacon.datastore.location = dataStoreDir;
-  });
+  await updateJsonConfig(
+    "beacon-relay.json",
+    "beacon-relay.json",
+    beaconRelaySchema,
+    (obj) => {
+      obj.source.beacon.endpoint = options.beaconEndpointHttp;
+      obj.source.beacon.spec.forkVersions.electra = options.beaconElectraForkVersion;
+      obj.source.beacon.datastore.location = options.dataStoreDir;
+      obj.sink.parachain.endpoint = options.relaychainEndpoint;
+    },
+    commonOptions
+  );
 
   // Execution relay
   logger.debug("Configuring Execution relay...");
@@ -212,13 +264,14 @@ async function configRelayer() {
     "execution-relay.json",
     executionRelaySchema,
     async (obj) => {
-      obj.source.ethereum.endpoint = ethEndpointWs;
-      obj.source.contracts.Gateway = await getSnowbridgeAddressFor("GatewayProxy");
-      obj.source["channel-id"] = primaryGovernanceChannelId;
-      obj.source.beacon.datastore.location = dataStoreDir;
-      obj.sink.parachain.endpoint = relaychainEndpoint;
-      obj.schedule.id = 0;
-    }
+      obj.source.ethereum.endpoint = options.ethEndpointWs;
+      obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
+      obj.source["channel-id"] = options.primaryGovernanceChannelId;
+      obj.source.beacon.datastore.location = options.dataStoreDir;
+      obj.sink.parachain.endpoint = options.relaychainEndpoint;
+      obj.schedule.id = options.executionScheduleId;
+    },
+    commonOptions
   );
 
   // Substrate relay - primary
@@ -228,14 +281,15 @@ async function configRelayer() {
     "substrate-relay-primary.json",
     substrateRelaySchema,
     async (obj) => {
-      obj.source.ethereum.endpoint = ethEndpointWs;
-      obj.source.polkadot.endpoint = relaychainEndpoint;
-      obj.source.contracts.BeefyClient = await getSnowbridgeAddressFor("BeefyClient");
-      obj.source.contracts.Gateway = await getSnowbridgeAddressFor("GatewayProxy");
-      obj.source["channel-id"] = primaryGovernanceChannelId;
-      obj.sink.contracts.Gateway = await getSnowbridgeAddressFor("GatewayProxy");
-      obj.sink.ethereum.endpoint = resolvedEthWriterEndpoint;
-    }
+      obj.source.ethereum.endpoint = options.ethEndpointWs;
+      obj.source.polkadot.endpoint = options.relaychainEndpoint;
+      obj.source.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
+      obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
+      obj.source["channel-id"] = options.primaryGovernanceChannelId;
+      obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
+      obj.sink.ethereum.endpoint = options.ethWriterEndpoint;
+    },
+    commonOptions
   );
 
   // Substrate relay - secondary
@@ -245,56 +299,32 @@ async function configRelayer() {
     "substrate-relay-secondary.json",
     substrateRelaySchema,
     async (obj) => {
-      obj.source.ethereum.endpoint = ethEndpointWs;
-      obj.source.polkadot.endpoint = relaychainEndpoint;
-      obj.source.contracts.BeefyClient = await getSnowbridgeAddressFor("BeefyClient");
-      obj.source.contracts.Gateway = await getSnowbridgeAddressFor("GatewayProxy");
-      obj.source["channel-id"] = secondaryGovernanceChannelId;
-      obj.sink.contracts.Gateway = await getSnowbridgeAddressFor("GatewayProxy");
-      obj.sink.ethereum.endpoint = resolvedEthWriterEndpoint;
-    }
+      obj.source.ethereum.endpoint = options.ethEndpointWs;
+      obj.source.polkadot.endpoint = options.relaychainEndpoint;
+      obj.source.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
+      obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
+      obj.source["channel-id"] = options.secondaryGovernanceChannelId;
+      obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
+      obj.sink.ethereum.endpoint = options.ethWriterEndpoint;
+    },
+    commonOptions
   );
+
   logger.info("Finished configuration generation.");
 }
 
-const beaconFinalitySchema = z
-  .object({
-    execution_optimistic: z.boolean().describe("Whether the response is from an optimistic node"),
-    finalized: z.boolean().describe("Whether the chain has been finalized"),
-    data: z
-      .object({
-        previous_justified: z
-          .object({
-            epoch: z.string().describe("The epoch number of the previous justified checkpoint"),
-            root: z.string().describe("The block root hash of the previous justified checkpoint")
-          })
-          .describe("Previous justified checkpoint information"),
-        current_justified: z
-          .object({
-            epoch: z.string().describe("The epoch number of the current justified checkpoint"),
-            root: z.string().describe("The block root hash of the current justified checkpoint")
-          })
-          .describe("Current justified checkpoint information"),
-        finalized: z
-          .object({
-            epoch: z.string().describe("The epoch number of the latest finalized checkpoint"),
-            root: z.string().describe("The block root hash of the latest finalized checkpoint")
-          })
-          .describe("Latest finalized checkpoint information")
-      })
-      .describe("Checkpoint data containing justified and finalized states")
-  })
-  .describe("Beacon chain finality checkpoints response schema");
-
-async function waitBeaconChainReady() {
+/**
+ * Waits for the Beacon chain to reach finality before proceeding
+ */
+async function waitBeaconChainReady(options: SnowbridgeConfigOptions): Promise<void> {
   logger.info("Waiting for Beacon chain finality...");
   let initialBeaconBlock = "";
-  const maxAttempts = 300; // 5 minutes = 300 seconds
+  const maxAttempts = options.beaconWaitTimeoutSeconds;
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const res = await fetch(
-        `${beaconEndpointHttp}/eth/v1/beacon/states/head/finality_checkpoints`
+        `${options.beaconEndpointHttp}/eth/v1/beacon/states/head/finality_checkpoints`
       );
       const json = await res.json();
       const parsed = beaconFinalitySchema.parse(json);
@@ -309,39 +339,115 @@ async function waitBeaconChainReady() {
         logger.info(`Beacon chain finalized. Finalized root: ${initialBeaconBlock}`);
         return;
       }
-    } catch {
+    } catch (error) {
       logger.trace({ attempt: i + 1 }, "Beacon finality check failed or not ready, retrying...");
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  throw new Error("❌ Beacon chain not ready after 5 minutes timeout");
+  throw new Error(
+    `❌ Beacon chain not ready after ${options.beaconWaitTimeoutSeconds} seconds timeout`
+  );
 }
 
-async function writeBeaconCheckpoint() {
+/**
+ * Generates a beacon checkpoint using the relay binary
+ */
+async function writeBeaconCheckpoint(options: SnowbridgeConfigOptions): Promise<void> {
   logger.info("Generating beacon checkpoint...");
   const cmdArgs = [
-    relayBin,
+    options.relayBin,
     "generate-beacon-checkpoint",
     "--config",
-    join(outputDir, "beacon-relay.json"),
+    join(options.outputDir, "beacon-relay.json"),
     "--export-json"
   ];
+
   logger.debug({ command: cmdArgs.join(" ") }, "Spawning process to generate beacon checkpoint");
+
   const proc = spawn({
     cmd: cmdArgs,
-    cwd: outputDir,
+    cwd: options.outputDir,
     stdout: "pipe",
     stderr: "pipe"
   });
+
   await proc.exited;
   logger.info("Beacon checkpoint generated.");
 }
 
-export const generateSnowbridgeConfigs = async () => {
+/**
+ * Main function to generate Snowbridge configurations
+ */
+export async function generateSnowbridgeConfigs(
+  customOptions: Partial<Omit<SnowbridgeConfigOptions, "dataStoreDir">> = {}
+): Promise<void> {
+  // Merge default options with custom options
+  const mergedOptions = { ...DEFAULT_OPTIONS, ...customOptions };
+
+  // Add derived options
+  const options: SnowbridgeConfigOptions = {
+    ...mergedOptions,
+    ethWriterEndpoint: mergedOptions.ethWriterEndpoint || mergedOptions.ethEndpointWs,
+    dataStoreDir: join(mergedOptions.outputDir, "relayer_data")
+  };
+
+  logger.debug({ options }, "Resolved configuration values");
+
   logger.info("Starting Snowbridge config generation script...");
-  await configRelayer();
-  await waitBeaconChainReady();
-  await writeBeaconCheckpoint();
-  logger.info("Snowbridge config generation script finished successfully.");
-};
+
+  try {
+    await configRelayer(options);
+    await waitBeaconChainReady(options);
+    await writeBeaconCheckpoint(options);
+    logger.info("Snowbridge config generation script finished successfully.");
+  } catch (error) {
+    logger.error({ err: error }, "Snowbridge config generation script failed");
+    throw error;
+  }
+}
+
+// Check if we're running this file directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  logger.trace("Parsing command line arguments");
+
+  const { values } = parseArgs({
+    options: {
+      outputDir: { type: "string" },
+      assetsDir: { type: "string" },
+      logsDir: { type: "string" },
+      relayBin: { type: "string" },
+      ethEndpointWs: { type: "string" },
+      ethGasLimit: { type: "string" },
+      relaychainEndpoint: { type: "string" },
+      beaconEndpointHttp: { type: "string" },
+      ethWriterEndpoint: { type: "string" },
+      primaryGovernanceChannelId: { type: "string" },
+      secondaryGovernanceChannelId: { type: "string" }
+    },
+    args: process.argv.slice(2)
+  });
+
+  // Convert string arguments to appropriate types
+  const options: Partial<Omit<SnowbridgeConfigOptions, "dataStoreDir">> = {};
+
+  // Only add properties that were actually provided
+  if (values.outputDir) options.outputDir = values.outputDir;
+  if (values.assetsDir) options.assetsDir = values.assetsDir;
+  if (values.logsDir) options.logsDir = values.logsDir;
+  if (values.relayBin) options.relayBin = values.relayBin;
+  if (values.ethEndpointWs) options.ethEndpointWs = values.ethEndpointWs;
+  if (values.ethGasLimit) options.ethGasLimit = values.ethGasLimit;
+  if (values.relaychainEndpoint) options.relaychainEndpoint = values.relaychainEndpoint;
+  if (values.beaconEndpointHttp) options.beaconEndpointHttp = values.beaconEndpointHttp;
+  if (values.ethWriterEndpoint) options.ethWriterEndpoint = values.ethWriterEndpoint;
+  if (values.primaryGovernanceChannelId)
+    options.primaryGovernanceChannelId = values.primaryGovernanceChannelId;
+  if (values.secondaryGovernanceChannelId)
+    options.secondaryGovernanceChannelId = values.secondaryGovernanceChannelId;
+
+  generateSnowbridgeConfigs(options).catch((error) => {
+    console.error("Failed to generate Snowbridge configs:", error);
+    process.exit(1);
+  });
+}

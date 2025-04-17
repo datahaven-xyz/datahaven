@@ -2367,6 +2367,7 @@ dependencies = [
 name = "datahaven-runtime"
 version = "0.1.0"
 dependencies = [
+ "datahaven-bridge-primitives",
  "datahaven-runtime-common",
  "fp-account",
  "fp-evm",
@@ -2411,7 +2412,10 @@ dependencies = [
  "scale-info",
  "serde_json",
  "snowbridge-beacon-primitives",
+ "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
+ "snowbridge-pallet-inbound-queue-v2",
+ "snowbridge-verification-primitives",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-babe",
@@ -2429,6 +2433,9 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool",
  "sp-version",
+ "staging-xcm",
+ "staging-xcm-builder",
+ "staging-xcm-executor",
  "substrate-wasm-builder",
 ]
 

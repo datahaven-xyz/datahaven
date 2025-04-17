@@ -312,6 +312,9 @@ mod runtime {
     #[runtime::pallet_index(203)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
+    #[runtime::pallet_index(204)]
+    pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+
     // Sudo
     #[runtime::pallet_index(255)]
     pub type Sudo = pallet_sudo;

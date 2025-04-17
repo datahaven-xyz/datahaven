@@ -31,7 +31,7 @@ use super::{
 };
 // External crates imports
 use crate::configs::BABE_GENESIS_EPOCH_CONFIG;
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use codec::Encode;
 use datahaven_runtime_common::time::EpochDurationInBlocks;
 use fp_rpc::TransactionStatus;

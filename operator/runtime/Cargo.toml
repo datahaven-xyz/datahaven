@@ -75,6 +75,13 @@ sp-std = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { features = ["serde"], workspace = true }
+snowbridge-inbound-queue-primitives.workspace = true
+snowbridge-pallet-inbound-queue-v2.workspace = true
+datahaven-bridge-primitives.workspace = true
+snowbridge-verification-primitives.workspace = true
+xcm.workspace = true
+xcm-builder.workspace = true
+xcm-executor.workspace = true
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
@@ -121,7 +128,12 @@ std = [
     "scale-info/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",
+    "snowbridge-inbound-queue-primitives/std",
     "snowbridge-pallet-ethereum-client/std",
+    "snowbridge-pallet-inbound-queue-v2/std",
+    "datahaven-bridge-primitives/std",
+    "snowbridge-verification-primitives/std",
+
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-babe/std",
@@ -164,7 +176,10 @@ runtime-benchmarks = [
     "pallet-utility/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+    "snowbridge-inbound-queue-primitives/runtime-benchmarks",
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
+    "snowbridge-pallet-inbound-queue-v2/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
 ]
 
@@ -196,6 +211,7 @@ try-runtime = [
     "pallet-utility/try-runtime",
     "polkadot-runtime-common/try-runtime",
     "snowbridge-pallet-ethereum-client/try-runtime",
+    "snowbridge-pallet-inbound-queue-v2/try-runtime",
     "sp-runtime/try-runtime",
 ]
 

@@ -25,14 +25,16 @@
 
 // Local module imports
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EvmChainId,
-    Hash, Historical, ImOnline, Nonce, Offences, OriginCaller, PalletInfo, Preimage, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
-    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
+    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
+    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
+    UNIT, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
+use datahaven_bridge_primitives::EigenLayerMessageProcessor;
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
@@ -624,5 +626,107 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ForkVersions = ChainForkVersions;
     type FreeHeadersInterval = ();
+    type WeightInfo = ();
+}
+
+use snowbridge_inbound_queue_primitives::v2::{ConvertMessage, ConvertMessageError, Message};
+use snowbridge_inbound_queue_primitives::RewardLedger;
+use xcm::v5::{
+    Assets, Error as XcmError, ExecuteXcm, Location as XcmV5Location, Outcome, SendError, SendXcm,
+    Xcm, XcmHash,
+};
+
+// Define the gateway address parameter
+parameter_types! {
+    pub EthereumGatewayAddress: H160 = H160::repeat_byte(0x42);
+}
+
+// Dummy implementations for XCM-related traits
+pub struct DummyXcmSender;
+impl SendXcm for DummyXcmSender {
+    type Ticket = ();
+    fn validate(
+        _destination: &mut Option<XcmV5Location>,
+        _message: &mut Option<Xcm<()>>,
+    ) -> Result<(Self::Ticket, Assets), SendError> {
+        Ok(((), Assets::new()))
+    }
+    fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+        Ok([0; 32])
+    }
+}
+
+// Since () doesn't work, let's use an empty tuple struct for compatibility
+#[derive(Debug)]
+pub struct EmptyPrepared;
+
+// Implement the required trait for our empty struct
+impl xcm::opaque::latest::PreparedMessage for EmptyPrepared {
+    fn weight_of(&self) -> Weight {
+        Weight::zero()
+    }
+}
+
+pub struct DummyXcmExecutor;
+impl ExecuteXcm<RuntimeCall> for DummyXcmExecutor {
+    type Prepared = EmptyPrepared;
+
+    fn prepare(_message: Xcm<RuntimeCall>) -> Result<Self::Prepared, Xcm<RuntimeCall>> {
+        Ok(EmptyPrepared)
+    }
+
+    fn execute(
+        _origin: impl Into<XcmV5Location>,
+        _pre: Self::Prepared,
+        _id: &mut XcmHash,
+        _weight_credit: Weight,
+    ) -> Outcome {
+        // Just use a default empty implementation that works
+        let weight = Weight::zero();
+        Outcome::Incomplete {
+            used: weight,
+            error: XcmError::NotWithdrawable,
+        }
+    }
+
+    fn charge_fees(_location: impl Into<XcmV5Location>, _fees: Assets) -> Result<(), XcmError> {
+        Ok(())
+    }
+}
+
+// Dummy implementation for MessageConverter
+pub struct DummyMessageConverter;
+impl ConvertMessage for DummyMessageConverter {
+    fn convert(_message: Message) -> Result<Xcm<()>, ConvertMessageError> {
+        Ok(Xcm(vec![]))
+    }
+}
+
+// Dummy implementation for AccountToLocation - use the unit type to satisfy the trait bounds
+parameter_types! {
+    pub DefaultRewardKind: () = ();
+}
+
+// Dummy RewardPayment implementation
+pub struct DummyRewardPayment;
+impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
+    fn register_reward(_who: &AccountId, _reward: (), _amount: u128) {
+        // Empty implementation for dummy struct
+    }
+}
+
+impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Verifier = EthereumBeaconClient;
+    type XcmSender = DummyXcmSender;
+    type XcmExecutor = DummyXcmExecutor;
+    type GatewayAddress = EthereumGatewayAddress;
+    type AssetHubParaId = ConstU32<1000>;
+    type MessageConverter = DummyMessageConverter;
+    type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
+    type RewardKind = ();
+    type DefaultRewardKind = DefaultRewardKind;
+    type RewardPayment = DummyRewardPayment;
+    type AccountToLocation = (); // Use the unit type which implements all the required traits
     type WeightInfo = ();
 }

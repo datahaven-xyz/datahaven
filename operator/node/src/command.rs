@@ -219,7 +219,7 @@ pub fn run() -> sc_cli::Result<()> {
                                 inherent_benchmark_data()?,
                                 Vec::new(),
                                 &ext_builder,
-                                false
+                                false,
                             )
                         })
                     }

@@ -3,14 +3,16 @@ import chalk from "chalk";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import { deployContracts } from "./deploy-contracts";
+import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
 import { launchKurtosis } from "./launch-kurtosis";
 import sendTxn from "./send-txn";
 
 interface ScriptOptions {
-  verified: boolean;
+  verified?: boolean;
   launchKurtosis?: boolean;
   deployContracts?: boolean;
   blockscout?: boolean;
+  relayer?: boolean;
   help?: boolean;
 }
 
@@ -19,12 +21,13 @@ async function main() {
 
   // Parse command-line arguments
   const options: ScriptOptions = {
-    verified: args.includes("--verified"),
+    verified: parseFlag(args, "verified"),
     launchKurtosis: parseFlag(args, "launchKurtosis"),
     deployContracts: parseFlag(args, "deploy-contracts"),
     blockscout: parseFlag(args, "blockscout"),
+    relayer: parseFlag(args, "relayer"),
     help: args.includes("--help") || args.includes("-h")
-  };
+  } satisfies ScriptOptions;
 
   // Show help menu if requested
   if (options.help) {
@@ -104,6 +107,40 @@ async function main() {
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
+
+  if (options.relayer) {
+    printHeader("Starting Snowbridge Relayers");
+
+    const dockerImage = "ronyang/snowbridge-relay";
+    logger.info(`Pulling docker image ${dockerImage}`);
+
+    const { stdout, stderr, exitCode } =
+      await $`sh -c docker pull --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+
+    if (exitCode !== 0) {
+      logger.error(`Failed to pull docker image ${dockerImage}: ${stderr.toString()}`);
+      throw Error("❌ Failed to pull docker image");
+    }
+    logger.debug(stdout.toString());
+
+    const {
+      stdout: stdout2,
+      stderr: stderr2,
+      exitCode: exitCode2
+    } = await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+
+    if (exitCode2 !== 0) {
+      logger.error(`Failed to run docker image ${dockerImage}: ${stderr2.toString()}`);
+      throw Error("❌ Failed to run docker image");
+    }
+    logger.debug(stdout2.toString());
+
+    logger.info("Preparing to generate configs");
+    await generateSnowbridgeConfigs();
+    logger.success("Snowbridge configs generated");
+
+    const relayers = [""];
+  }
 }
 
 // Helper function to check all dependencies at once

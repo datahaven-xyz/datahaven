@@ -7,17 +7,17 @@
             "endpoint": ""
         },
         "contracts": {
-            "BeefyClient": null,
-            "Gateway": null
+            "BeefyClient": "",
+            "Gateway": ""
         },
-        "channel-id": null
+        "channel-id": ""
     },
     "sink": {
         "ethereum": {
             "endpoint": ""
         },
         "contracts": {
-            "Gateway": null
+            "Gateway": ""
         }
     },
     "schedule": {

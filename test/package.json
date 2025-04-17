@@ -6,7 +6,8 @@
   "scripts": {
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
-    "build:docker:relayer": "bun -e \"import build  from './scripts/build-docker-relayer.ts'; build()\"",
+    "build:docker:relayer": "bun -e \"import build  from './scripts/snowbridge-relayer.ts'; build()\"",
+    "generate:snowbridge-cfgs": "bun -e \"import {generateSnowbridgeConfigs} from './scripts/gen-snowbridge-cfgs.ts'; await generateSnowbridgeConfigs()\"",
     "start:e2e:verified": "bun run scripts/e2e-cli.ts --verified --blockscout",
     "start:e2e:minimal": "bun run scripts/e2e-cli.ts",
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",

@@ -11,9 +11,7 @@ const CONTEXT = "../..";
 const TMP_DIR = path.resolve(__dirname, "../tmp");
 const RELAY_BINARY_PATH = path.resolve(TMP_DIR, "snowbridge-relay");
 
-/**
- * Downloads the latest snowbridge-relay binary from GitHub releases
- */
+//Downloads the latest snowbridge-relay binary from SnowFork's GitHub releases
 async function downloadRelayBinary() {
   printHeader("Downloading latest snowbridge-relay binary");
   if (!fs.existsSync(TMP_DIR)) {

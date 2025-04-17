@@ -8,9 +8,9 @@ import { z } from "zod";
 logger.trace("Parsing command line arguments");
 const {
   values: {
-    outputDir = "./output",
-    assetsDir = "./assets",
-    logsDir = "./logs",
+    outputDir = "tmp/output",
+    assetsDir = "configs/snowbridge",
+    logsDir = "tmp/logs",
     relayBin = "relay",
     ethEndpointWs = "ws://localhost:8545",
     ethGasLimit = "8000000",
@@ -70,8 +70,8 @@ async function getSnowbridgeAddressFor(name: string): Promise<string> {
 const beefyRelaySchema = z.object({
   sink: z.object({
     contracts: z.object({
-      BeefyClient: z.string(),
-      Gateway: z.string()
+      BeefyClient: z.string().optional(),
+      Gateway: z.string().optional()
     }),
     ethereum: z.object({
       endpoint: z.string(),
@@ -178,8 +178,13 @@ async function updateJsonConfig<T>(
 
 async function configRelayer() {
   logger.info("Starting configuration generation...");
-  await mkdir(dataStoreDir, { recursive: true });
-  logger.debug(`Ensured data store directory exists: ${dataStoreDir}`);
+
+  // Ensure all required directories exist
+  logger.debug("Ensuring all required directories exist");
+  for (const dir of [outputDir, assetsDir, logsDir, dataStoreDir]) {
+    await mkdir(dir, { recursive: true });
+    logger.debug(`Ensured directory exists: ${dir}`);
+  }
 
   // Beefy relay
   logger.debug("Configuring Beefy relay...");
@@ -333,16 +338,10 @@ async function writeBeaconCheckpoint() {
   logger.info("Beacon checkpoint generated.");
 }
 
-// ---- Main Entrypoint ----
-async function main() {
+export const generateSnowbridgeConfigs = async () => {
   logger.info("Starting Snowbridge config generation script...");
   await configRelayer();
   await waitBeaconChainReady();
   await writeBeaconCheckpoint();
   logger.info("Snowbridge config generation script finished successfully.");
-}
-
-main().catch((err) => {
-  logger.error(err);
-  process.exit(1);
-});
+};

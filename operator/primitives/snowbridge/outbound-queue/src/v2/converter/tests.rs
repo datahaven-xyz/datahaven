@@ -1099,7 +1099,7 @@ fn xcm_converter_convert_without_withdraw_asset_yields_deposit_expected() {
 }
 
 #[test]
-fn xcm_converter_convert_without_assets_yields_no_reserve_assets() {
+fn xcm_converter_convert_without_assets_yields_no_commands() {
     let network = BridgedNetwork::get();
 
     let beneficiary_address: [u8; 20] = hex!("2000000000000000000000000000000000000000");
@@ -1134,7 +1134,7 @@ fn xcm_converter_convert_without_assets_yields_no_reserve_assets() {
     let mut converter = XcmConverter::<MockTokenIdConvert, ()>::new(&message, network);
 
     let result = converter.convert();
-    assert_eq!(result.err(), Some(XcmConverterError::NoReserveAssets));
+    assert_eq!(result.err(), Some(XcmConverterError::NoCommands));
 }
 
 #[test]

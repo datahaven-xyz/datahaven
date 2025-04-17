@@ -352,17 +352,17 @@ where
 
         // Set claimer before PayFees, in case the fees are not enough. Then the claimer will be
         // able to claim the funds still.
-        // instructions.push(SetHints {
-        //     hints: vec![AssetClaimer {
-        //         location: message.claimer,
-        //     }]
-        //     .try_into()
-        //     .expect("checked statically, qed"),
-        // });
+        instructions.push(SetHints {
+            hints: vec![AssetClaimer {
+                location: message.claimer,
+            }]
+            .try_into()
+            .expect("checked statically, qed"),
+        });
 
-        // instructions.push(PayFees {
-        //     asset: message.execution_fee.clone(),
-        // });
+        instructions.push(PayFees {
+            asset: message.execution_fee.clone(),
+        });
 
         let mut reserve_deposit_assets = vec![];
         let mut reserve_withdraw_assets = vec![];

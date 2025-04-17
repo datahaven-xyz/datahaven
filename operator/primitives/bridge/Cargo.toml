@@ -1,11 +1,11 @@
 [package]
 name = "datahaven-bridge-primitives"
 version = "0.1.0"
-license.workspace = true
-authors.workspace = true
-homepage.workspace = true
-repository.workspace = true
-edition.workspace = true
+license = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+edition = { workspace = true }
 
 [dependencies]
 frame-support = { workspace = true }

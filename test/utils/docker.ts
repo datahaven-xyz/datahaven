@@ -123,3 +123,5 @@ export const getPublicPort = async (
   invariant(portMappings, `❌ port mapping not found for ${containerName}:${internalPort}`);
   return portMappings.PublicPort;
 };
+
+export const startRelayer = async () => {};

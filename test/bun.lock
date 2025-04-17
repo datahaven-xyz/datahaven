@@ -6,7 +6,7 @@
       "dependencies": {
         "@biomejs/biome": "^1.9.4",
         "@dotenvx/dotenvx": "^1.39.0",
-        "@types/dockerode": "^3.3.37",
+        "@types/dockerode": "^3.3.38",
         "chalk": "^5.4.1",
         "dockerode": "^4.0.5",
         "dotenv": "^16.4.7",
@@ -93,7 +93,7 @@
 
     "@types/docker-modem": ["@types/docker-modem@3.0.6", "", { "dependencies": { "@types/node": "*", "@types/ssh2": "*" } }, "sha512-yKpAGEuKRSS8wwx0joknWxsmLha78wNMe9R2S3UNsVOkZded8UqOrV8KoeDXoXsjndxwyF3eIhyClGbO1SEhEg=="],
 
-    "@types/dockerode": ["@types/dockerode@3.3.37", "", { "dependencies": { "@types/docker-modem": "*", "@types/node": "*", "@types/ssh2": "*" } }, "sha512-r+IoKpE5MLKaeD8CvoEh39ckWMLHR/+WBMoRQxrkL+apJqEWLMhBHh+93KIfyPWGd6gK7Q21jpoULKgNoRI0YA=="],
+    "@types/dockerode": ["@types/dockerode@3.3.38", "", { "dependencies": { "@types/docker-modem": "*", "@types/node": "*", "@types/ssh2": "*" } }, "sha512-nnrcfUe2iR+RyOuz0B4bZgQwD9djQa9ADEjp7OAgBs10pYT0KSCtplJjcmBDJz0qaReX5T7GbE5i4VplvzUHvA=="],
 
     "@types/node": ["@types/node@22.14.0", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-Kmpl+z84ILoG+3T/zQFyAJsU6EPTmOCj8/2+83fSN6djd6I4o7uOuGIH6vq3PrjY5BGitSbFuMN18j3iknubbA=="],
 

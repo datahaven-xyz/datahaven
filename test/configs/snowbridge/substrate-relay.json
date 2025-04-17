@@ -1,0 +1,28 @@
+{
+    "source": {
+        "ethereum": {
+            "endpoint": ""
+        },
+        "polkadot": {
+            "endpoint": ""
+        },
+        "contracts": {
+            "BeefyClient": null,
+            "Gateway": null
+        },
+        "channel-id": null
+    },
+    "sink": {
+        "ethereum": {
+            "endpoint": ""
+        },
+        "contracts": {
+            "Gateway": null
+        }
+    },
+    "schedule": {
+        "id": 0,
+        "totalRelayerCount": 1,
+        "sleepInterval": 10
+    }
+}

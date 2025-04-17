@@ -16,3 +16,5 @@ target/
 
 # cspell
 cspell.json
+
+tmp/*

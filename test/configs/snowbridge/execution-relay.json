@@ -1,45 +1,41 @@
 {
-  "source": {
-    "ethereum": {
-      "endpoint": "ws://127.0.0.1:8546"
-    },
-    "contracts": {
-      "Gateway": null
-    },
-    "beacon": {
-      "endpoint": "http://127.0.0.1:9596",
-      "stateEndpoint": "http://127.0.0.1:9596",
-      "spec": {
-        "syncCommitteeSize": 512,
-        "slotsInEpoch": 32,
-        "epochsPerSyncCommitteePeriod": 256,
-        "forkVersions": {
-          "deneb": 0,
-          "electra": 2000000
+    "source": {
+        "ethereum": {
+            "endpoint": "ws://127.0.0.1:8546"
+        },
+        "contracts": {
+            "Gateway": null
+        },
+        "channel-id": null,
+        "beacon": {
+            "endpoint": "http://127.0.0.1:9596",
+            "stateEndpoint": "http://127.0.0.1:9596",
+            "spec": {
+                "syncCommitteeSize": 512,
+                "slotsInEpoch": 32,
+                "epochsPerSyncCommitteePeriod": 256,
+                "forkVersions": {
+                    "deneb": 0,
+                    "electra": 0
+                }
+            },
+            "datastore": {
+                "location": "",
+                "maxEntries": 100
+            }
         }
-      },
-      "datastore": {
-        "location": "/tmp/snowbridge-v2/beaconstore",
-        "maxEntries": 100
-      }
-    }
-  },
-  "sink": {
-    "parachain": {
-      "endpoint": "ws://127.0.0.1:11144",
-      "maxWatchedExtrinsics": 8,
-      "headerRedundancy": 20
     },
-    "ss58Prefix": 1
-  },
-  "instantVerification": false,
-  "schedule": {
-    "id": null,
-    "totalRelayerCount": 1,
-    "sleepInterval": 20
-  },
-  "ofac": {
-    "enabled": false,
-    "apiKey": ""
-  }
+    "sink": {
+        "parachain": {
+            "endpoint": "",
+            "maxWatchedExtrinsics": 8,
+            "headerRedundancy": 20
+        }
+    },
+    "instantVerification": false,
+    "schedule": {
+        "id": 1,
+        "totalRelayerCount": 1,
+        "sleepInterval": 1
+    }
 }

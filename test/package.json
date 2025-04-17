@@ -6,6 +6,7 @@
   "scripts": {
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
+    "build:docker:relayer": "bun -e \"import build  from './scripts/build-docker-relayer.ts'; build()\"",
     "start:e2e:verified": "bun run scripts/e2e-cli.ts --verified --blockscout",
     "start:e2e:minimal": "bun run scripts/e2e-cli.ts",
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
@@ -23,7 +24,7 @@
   "dependencies": {
     "@biomejs/biome": "^1.9.4",
     "@dotenvx/dotenvx": "^1.39.0",
-    "@types/dockerode": "^3.3.37",
+    "@types/dockerode": "^3.3.38",
     "chalk": "^5.4.1",
     "dockerode": "^4.0.5",
     "dotenv": "^16.4.7",

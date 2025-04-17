@@ -85,7 +85,7 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
             self.client.as_ref(),
             ecdsa::Pair::from_string("//Bob", None).expect("static values are valid; qed"),
             BalancesCall::transfer_keep_alive {
-                dest: self.dest.clone().into(),
+                dest: self.dest,
                 value: self.value,
             }
             .into(),
@@ -154,7 +154,7 @@ pub fn create_benchmark_extrinsic(
 
     runtime::UncheckedExtrinsic::new_signed(
         call,
-        runtime::AccountId::from(sender.public()).into(),
+        runtime::AccountId::from(sender.public()),
         runtime::Signature::from(signature),
         extra,
     )

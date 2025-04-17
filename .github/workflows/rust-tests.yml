@@ -59,11 +59,8 @@ jobs:
           # By default actions/checkout checks out a merge commit. Check out the PR head instead.
           # https://github.com/actions/checkout#checkout-pull-request-head-commit-instead-of-merge-commit
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.8
-        with:
-          cache: false
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.4
+        uses: mozilla-actions/sccache-action@v0.0.9
       - uses: rui314/setup-mold@v1
       - name: Install nextest
         uses: taiki-e/install-action@nextest
@@ -107,3 +104,25 @@ jobs:
           ~/.cargo/bin/cargo-nextest nextest run \
             --archive-file ../nextest-archive.tar.zst \
             --partition count:${{ matrix.partition }}/2
+
+  tests-result-checker:
+    name: Check tests were successful
+    needs: [setup, all-rust-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate test results
+        run: |
+          echo "node_changed: ${{ needs.setup.outputs.node_changed }}"
+          echo "matrix result: ${{ needs.all-rust-tests.result }}"
+
+          if [ "${{ needs.setup.outputs.node_changed }}" == "true" ]; then
+            if [ "${{ needs.all-rust-tests.result }}" != "success" ]; then
+              echo "Rust tests failed or were cancelled"
+              exit 1
+            else
+              echo "Rust tests passed"
+            fi
+          else
+            echo "No relevant changes — skipping rust tests"
+          fi

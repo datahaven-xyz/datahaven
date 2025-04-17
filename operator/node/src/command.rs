@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
+use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec::{self, alith},
+    chain_spec,
     cli::{Cli, Subcommand},
     service,
 };
-use datahaven_runtime::{Block, EXISTENTIAL_DEPOSIT};
+use datahaven_runtime::{genesis_config_presets::alith, Block, EXISTENTIAL_DEPOSIT};
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
-use sc_service::PartialComponents;
+use sc_service::{DatabaseSource, PartialComponents};
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -33,13 +34,13 @@ impl SubstrateCli for Cli {
     }
 
     fn copyright_start_year() -> i32 {
-        2017
+        2025
     }
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "dev" => Box::new(chain_spec::development_config()?),
-            "" | "datahaven-local" => Box::new(chain_spec::local_testnet_config()?),
+            "dev" => Box::new(chain_spec::development_chain_spec()?),
+            "" | "local" => Box::new(chain_spec::local_chain_spec()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
@@ -65,7 +66,7 @@ pub fn run() -> sc_cli::Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = service::new_partial(&config)?;
+                } = service::new_partial(&config, &mut cli.eth.clone())?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -76,7 +77,7 @@ pub fn run() -> sc_cli::Result<()> {
                     client,
                     task_manager,
                     ..
-                } = service::new_partial(&config)?;
+                } = service::new_partial(&config, &mut cli.eth.clone())?;
                 Ok((cmd.run(client, config.database), task_manager))
             })
         }
@@ -87,7 +88,7 @@ pub fn run() -> sc_cli::Result<()> {
                     client,
                     task_manager,
                     ..
-                } = service::new_partial(&config)?;
+                } = service::new_partial(&config, &mut cli.eth.clone())?;
                 Ok((cmd.run(client, config.chain_spec), task_manager))
             })
         }
@@ -99,13 +100,28 @@ pub fn run() -> sc_cli::Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = service::new_partial(&config)?;
+                } = service::new_partial(&config, &mut cli.eth.clone())?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|config| cmd.run(config.database))
+            runner.sync_run(|config| {
+                // Remove Frontier offchain db
+                let frontier_database_config = match config.database {
+                    DatabaseSource::RocksDb { .. } => DatabaseSource::RocksDb {
+                        path: frontier_database_dir(&config, "db"),
+                        cache_size: 0,
+                    },
+                    DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
+                        path: frontier_database_dir(&config, "paritydb"),
+                    },
+                    _ => {
+                        return Err(format!("Cannot purge `{:?}` database", config.database).into())
+                    }
+                };
+                cmd.run(frontier_database_config)
+            })
         }
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -115,7 +131,7 @@ pub fn run() -> sc_cli::Result<()> {
                     task_manager,
                     backend,
                     ..
-                } = service::new_partial(&config)?;
+                } = service::new_partial(&config, &mut cli.eth.clone())?;
                 let aux_revert = Box::new(|client: Arc<service::FullClient>, backend, blocks| {
                     sc_consensus_babe::revert(client.clone(), backend, blocks)?;
                     sc_consensus_grandpa::revert(client, blocks)?;
@@ -145,7 +161,8 @@ pub fn run() -> sc_cli::Result<()> {
                         ))
                     }
                     BenchmarkCmd::Block(cmd) => {
-                        let PartialComponents { client, .. } = service::new_partial(&config)?;
+                        let PartialComponents { client, .. } =
+                            service::new_partial(&config, &mut cli.eth.clone())?;
                         cmd.run(client)
                     }
                     #[cfg(not(feature = "runtime-benchmarks"))]
@@ -157,26 +174,29 @@ pub fn run() -> sc_cli::Result<()> {
                     BenchmarkCmd::Storage(cmd) => {
                         let PartialComponents {
                             client, backend, ..
-                        } = service::new_partial(&config)?;
+                        } = service::new_partial(&config, &mut cli.eth.clone())?;
                         let db = backend.expose_db();
                         let storage = backend.expose_storage();
 
                         cmd.run(config, client, db, storage)
                     }
                     BenchmarkCmd::Overhead(cmd) => {
-                        let PartialComponents { client, .. } = service::new_partial(&config)?;
+                        let PartialComponents { client, .. } =
+                            service::new_partial(&config, &mut cli.eth.clone())?;
                         let ext_builder = RemarkBuilder::new(client.clone());
 
                         cmd.run(
-                            config,
+                            config.chain_spec.name().to_string(),
                             client,
                             inherent_benchmark_data()?,
                             Vec::new(),
                             &ext_builder,
+                            false,
                         )
                     }
                     BenchmarkCmd::Extrinsic(cmd) => {
-                        let PartialComponents { client, .. } = service::new_partial(&config)?;
+                        let PartialComponents { client, .. } =
+                            service::new_partial(&config, &mut cli.eth.clone())?;
                         // Register the *Remark* and *TKA* builders.
                         let ext_factory = ExtrinsicFactory(vec![
                             Box::new(RemarkBuilder::new(client.clone())),
@@ -202,16 +222,21 @@ pub fn run() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                match config.network.network_backend {
+                match config.network.network_backend.unwrap_or_default() {
                     sc_network::config::NetworkBackendType::Libp2p => service::new_full::<
                         sc_network::NetworkWorker<
                             datahaven_runtime::opaque::Block,
                             <datahaven_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
                         >,
-                    >(config)
+                    >(
+                        config, cli.eth
+                    )
+                    .await
                     .map_err(sc_cli::Error::Service),
+
                     sc_network::config::NetworkBackendType::Litep2p => {
-                        service::new_full::<sc_network::Litep2pNetworkBackend>(config)
+                        service::new_full::<sc_network::Litep2pNetworkBackend>(config, cli.eth)
+                            .await
                             .map_err(sc_cli::Error::Service)
                     }
                 }

@@ -35,6 +35,8 @@
 //! and [`pallet_session::Config::ValidatorIdOf`] must be [`ConvertInto`].
 
 #![cfg_attr(not(feature = "std"), no_std)]
+// We need this because it clashes with Polkadot macro pallet::pallet
+#![allow(clippy::manual_inspect)]
 
 mod benchmarking;
 mod mock;
@@ -226,10 +228,8 @@ pub mod pallet {
 
             // Remove validators that are not in the new list
             for who in current_validators.iter() {
-                if !validators.contains(who) {
-                    if Self::do_remove_validator(who) {
-                        Self::deposit_event(Event::ValidatorRemoved(who.clone()));
-                    }
+                if !validators.contains(who) && Self::do_remove_validator(who) {
+                    Self::deposit_event(Event::ValidatorRemoved(who.clone()));
                 }
             }
 

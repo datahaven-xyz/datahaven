@@ -34,11 +34,11 @@ use super::{
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
-use datahaven_bridge_primitives::EigenLayerMessageProcessor;
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
 };
+use dhp_bridge::EigenLayerMessageProcessor;
 use frame_support::{
     derive_impl,
     pallet_prelude::TransactionPriority,
@@ -637,6 +637,7 @@ use xcm::v5::{
 };
 
 // Define the gateway address parameter
+// TODO: Turn this into a runtime parameter
 parameter_types! {
     pub EthereumGatewayAddress: H160 = H160::repeat_byte(0x42);
 }

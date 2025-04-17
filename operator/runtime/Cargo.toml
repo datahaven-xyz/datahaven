@@ -14,7 +14,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { features = ["derive"], workspace = true }
-datahaven-bridge-primitives = { workspace = true }
+dhp-bridge = { workspace = true }
 datahaven-runtime-common = { workspace = true }
 fp-account = { workspace = true, features = ["serde"] }
 fp-evm = { workspace = true, features = ["serde"] }
@@ -131,7 +131,7 @@ std = [
     "snowbridge-inbound-queue-primitives/std",
     "snowbridge-pallet-ethereum-client/std",
     "snowbridge-pallet-inbound-queue-v2/std",
-    "datahaven-bridge-primitives/std",
+    "dhp-bridge/std",
     "snowbridge-verification-primitives/std",
 
     "sp-api/std",

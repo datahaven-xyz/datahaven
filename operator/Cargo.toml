@@ -22,7 +22,7 @@ resolver = "2"
 datahaven-runtime = { path = "./runtime", default-features = false }
 datahaven-runtime-common = { path = "./runtime/common", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
-datahaven-bridge-primitives = { path = "./primitives/bridge", default-features = false }
+dhp-bridge = { path = "./primitives/bridge", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }

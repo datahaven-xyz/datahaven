@@ -2276,19 +2276,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "datahaven-bridge-primitives"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "pallet-validator-set",
- "parity-scale-codec",
- "snowbridge-core",
- "snowbridge-inbound-queue-primitives",
- "sp-std",
-]
-
-[[package]]
 name = "datahaven-node"
 version = "0.1.0"
 dependencies = [
@@ -2362,8 +2349,8 @@ dependencies = [
 name = "datahaven-runtime"
 version = "0.1.0"
 dependencies = [
- "datahaven-bridge-primitives",
  "datahaven-runtime-common",
+ "dhp-bridge",
  "fp-account",
  "fp-evm",
  "fp-rpc",
@@ -2575,6 +2562,19 @@ dependencies = [
  "quote",
  "syn 2.0.100",
  "unicode-xid",
+]
+
+[[package]]
+name = "dhp-bridge"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-validator-set",
+ "parity-scale-codec",
+ "snowbridge-core",
+ "snowbridge-inbound-queue-primitives",
+ "sp-std",
 ]
 
 [[package]]

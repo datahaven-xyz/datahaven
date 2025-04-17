@@ -7,77 +7,90 @@ use sp_std::prelude::*;
 
 #[derive(Clone, Default, Encode, Decode, PartialEq, RuntimeDebug)]
 pub struct Receipt {
-	pub post_state_or_status: Vec<u8>,
-	pub cumulative_gas_used: u64,
-	pub bloom: Bloom,
-	pub logs: Vec<Log>,
+    pub post_state_or_status: Vec<u8>,
+    pub cumulative_gas_used: u64,
+    pub bloom: Bloom,
+    pub logs: Vec<Log>,
 }
 
 impl Receipt {
-	pub fn contains_log(&self, log: &Log) -> bool {
-		self.logs.iter().any(|l| l == log)
-	}
+    pub fn contains_log(&self, log: &Log) -> bool {
+        self.logs.iter().any(|l| l == log)
+    }
 
-	fn decode_list(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-		let mut iter = rlp.iter();
+    fn decode_list(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
+        let mut iter = rlp.iter();
 
-		let post_state_or_status: Vec<u8> = match iter.next() {
-			Some(data) => data.as_val()?,
-			None => return Err(rlp::DecoderError::Custom("Expected receipt post state or status")),
-		};
+        let post_state_or_status: Vec<u8> = match iter.next() {
+            Some(data) => data.as_val()?,
+            None => {
+                return Err(rlp::DecoderError::Custom(
+                    "Expected receipt post state or status",
+                ))
+            }
+        };
 
-		let cumulative_gas_used: u64 = match iter.next() {
-			Some(data) => data.as_val()?,
-			None => return Err(rlp::DecoderError::Custom("Expected receipt cumulative gas used")),
-		};
+        let cumulative_gas_used: u64 = match iter.next() {
+            Some(data) => data.as_val()?,
+            None => {
+                return Err(rlp::DecoderError::Custom(
+                    "Expected receipt cumulative gas used",
+                ))
+            }
+        };
 
-		let bloom: Bloom = match iter.next() {
-			Some(data) => data.as_val()?,
-			None => return Err(rlp::DecoderError::Custom("Expected receipt bloom")),
-		};
+        let bloom: Bloom = match iter.next() {
+            Some(data) => data.as_val()?,
+            None => return Err(rlp::DecoderError::Custom("Expected receipt bloom")),
+        };
 
-		let logs: Vec<Log> = match iter.next() {
-			Some(data) => data.as_list()?,
-			None => return Err(rlp::DecoderError::Custom("Expected receipt logs")),
-		};
+        let logs: Vec<Log> = match iter.next() {
+            Some(data) => data.as_list()?,
+            None => return Err(rlp::DecoderError::Custom("Expected receipt logs")),
+        };
 
-		Ok(Self { post_state_or_status, cumulative_gas_used, bloom, logs })
-	}
+        Ok(Self {
+            post_state_or_status,
+            cumulative_gas_used,
+            bloom,
+            logs,
+        })
+    }
 }
 
 impl rlp::Decodable for Receipt {
-	fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-		if rlp.is_data() {
-			// Typed receipt
-			let data = rlp.as_raw();
-			match data[0] {
-				// 1 = EIP-2930, 2 = EIP-1559
-				1 | 2 => {
-					let receipt_rlp = &rlp::Rlp::new(&data[1..]);
-					if !receipt_rlp.is_list() {
-						return Err(rlp::DecoderError::RlpExpectedToBeList)
-					}
-					Self::decode_list(&rlp::Rlp::new(&data[1..]))
-				},
-				_ => Err(rlp::DecoderError::Custom("Unsupported receipt type")),
-			}
-		} else if rlp.is_list() {
-			// Legacy receipt
-			Self::decode_list(rlp)
-		} else {
-			Err(rlp::DecoderError::RlpExpectedToBeList)
-		}
-	}
+    fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
+        if rlp.is_data() {
+            // Typed receipt
+            let data = rlp.as_raw();
+            match data[0] {
+                // 1 = EIP-2930, 2 = EIP-1559
+                1 | 2 => {
+                    let receipt_rlp = &rlp::Rlp::new(&data[1..]);
+                    if !receipt_rlp.is_list() {
+                        return Err(rlp::DecoderError::RlpExpectedToBeList);
+                    }
+                    Self::decode_list(&rlp::Rlp::new(&data[1..]))
+                }
+                _ => Err(rlp::DecoderError::Custom("Unsupported receipt type")),
+            }
+        } else if rlp.is_list() {
+            // Legacy receipt
+            Self::decode_list(rlp)
+        } else {
+            Err(rlp::DecoderError::RlpExpectedToBeList)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
 
-	use super::Receipt;
-	use hex_literal::hex;
+    use super::Receipt;
+    use hex_literal::hex;
 
-	const RAW_RECEIPT: [u8; 1242] = hex!(
-		"
+    const RAW_RECEIPT: [u8; 1242] = hex!(
+        "
 		f904d701830652f0b901000420000000000000000000008002000000000001000000000001000000
 		00000000000000000000000000000000000000020000000800000000000000002000000000000000
 		00000000000008000000220000000000400010000000000000000000000000000000000000000000
@@ -111,17 +124,17 @@ mod tests {
 		2c5dacb4c659f2488da000000000000000000000000000000000000000000000000003e973b5a5d1
 		078e
 	"
-	);
+    );
 
-	#[test]
-	fn decode_legacy_receipt() {
-		let receipt: Receipt = rlp::decode(&RAW_RECEIPT).unwrap();
-		assert_eq!(receipt.post_state_or_status, vec!(1));
-		assert_eq!(receipt.cumulative_gas_used, 414448);
-		assert_eq!(
-			receipt.bloom,
-			(&hex!(
-				"
+    #[test]
+    fn decode_legacy_receipt() {
+        let receipt: Receipt = rlp::decode(&RAW_RECEIPT).unwrap();
+        assert_eq!(receipt.post_state_or_status, vec!(1));
+        assert_eq!(receipt.cumulative_gas_used, 414448);
+        assert_eq!(
+            receipt.bloom,
+            (&hex!(
+                "
 				042000000000000000000000800200000000000100000000000100000000000000000000
 				000000000000000000000000020000000800000000000000002000000000000000000000
 				000000080000002200000000004000100000000000000000000000000000000000000000
@@ -131,9 +144,9 @@ mod tests {
 				000000020000200000102000000000000100000000000000000000000000000000000000
 				10000000
 			"
-			))
-				.into(),
-		);
-		assert_eq!(receipt.logs.len(), 6);
-	}
+            ))
+                .into(),
+        );
+        assert_eq!(receipt.logs.len(), 6);
+    }
 }

@@ -6,8 +6,8 @@
 
 use hex_literal::hex;
 use snowbridge_beacon_primitives::{
-	types::deneb, AncestryProof, BeaconHeader, ExecutionProof, NextSyncCommitteeUpdate,
-	SyncAggregate, SyncCommittee, VersionedExecutionPayloadHeader,
+    types::deneb, AncestryProof, BeaconHeader, ExecutionProof, NextSyncCommitteeUpdate,
+    SyncAggregate, SyncCommittee, VersionedExecutionPayloadHeader,
 };
 use snowbridge_inbound_queue_primitives::{EventProof, InboundQueueFixture, Log, Proof};
 use sp_core::U256;
@@ -19,7 +19,7 @@ type CheckpointUpdate = snowbridge_beacon_primitives::CheckpointUpdate<SC_SIZE>;
 type Update = snowbridge_beacon_primitives::Update<SC_SIZE, SC_BITS_SIZE>;
 
 pub fn make_checkpoint() -> Box<CheckpointUpdate> {
-	Box::new(CheckpointUpdate {
+    Box::new(CheckpointUpdate {
         header: BeaconHeader {
             slot: 864,
             proposer_index: 4,
@@ -564,7 +564,7 @@ pub fn make_checkpoint() -> Box<CheckpointUpdate> {
 }
 
 pub fn make_sync_committee_update() -> Box<Update> {
-	Box::new(Update {
+    Box::new(Update {
         attested_header: BeaconHeader {
             slot: 129,
             proposer_index: 5,
@@ -1130,7 +1130,7 @@ pub fn make_sync_committee_update() -> Box<Update> {
 }
 
 pub fn make_finalized_header_update() -> Box<Update> {
-	Box::new(Update {
+    Box::new(Update {
         attested_header: BeaconHeader {
             slot: 933,
             proposer_index: 1,
@@ -1171,7 +1171,7 @@ pub fn make_finalized_header_update() -> Box<Update> {
 }
 
 pub fn make_execution_proof() -> Box<ExecutionProof> {
-	Box::new(ExecutionProof {
+    Box::new(ExecutionProof {
         header: BeaconHeader {
             slot: 393,
             proposer_index: 4,
@@ -1226,7 +1226,7 @@ pub fn make_execution_proof() -> Box<ExecutionProof> {
 }
 
 pub fn make_inbound_fixture() -> InboundQueueFixture {
-	InboundQueueFixture {
+    InboundQueueFixture {
         event: EventProof {
             event_log: 	Log {
                 address: hex!("eda338e4dc46038493b885327842fd3e301cab39").into(),

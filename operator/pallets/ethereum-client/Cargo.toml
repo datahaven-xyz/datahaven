@@ -86,3 +86,8 @@ try-runtime = [
 	"pallet-timestamp?/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+
+# THIS IS JUST TO AVOID TESTS RUNNING IN THE CI.
+# THIS IS A TEMPORARY PALLET HERE, AND THEN WE'LL IMPORT IT FROM REMOTE.
+[lib]
+test = false

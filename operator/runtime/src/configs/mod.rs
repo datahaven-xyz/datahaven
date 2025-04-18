@@ -68,6 +68,7 @@ use pallet_transaction_payment::{
 };
 use polkadot_primitives::Moment;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
+use snowbridge_inbound_queue_primitives::RewardLedger;
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
@@ -629,81 +630,12 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type WeightInfo = ();
 }
 
-use snowbridge_inbound_queue_primitives::v2::{ConvertMessage, ConvertMessageError, Message};
-use snowbridge_inbound_queue_primitives::RewardLedger;
-use xcm::v5::{
-    Assets, Error as XcmError, ExecuteXcm, Location as XcmV5Location, Outcome, SendError, SendXcm,
-    Xcm, XcmHash,
-};
-
 // Define the gateway address parameter
 // TODO: Turn this into a runtime parameter
 parameter_types! {
     pub EthereumGatewayAddress: H160 = H160::repeat_byte(0x42);
 }
 
-// Dummy implementations for XCM-related traits
-pub struct DummyXcmSender;
-impl SendXcm for DummyXcmSender {
-    type Ticket = ();
-    fn validate(
-        _destination: &mut Option<XcmV5Location>,
-        _message: &mut Option<Xcm<()>>,
-    ) -> Result<(Self::Ticket, Assets), SendError> {
-        Ok(((), Assets::new()))
-    }
-    fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
-        Ok([0; 32])
-    }
-}
-
-// Since () doesn't work, let's use an empty tuple struct for compatibility
-#[derive(Debug)]
-pub struct EmptyPrepared;
-
-// Implement the required trait for our empty struct
-impl xcm::opaque::latest::PreparedMessage for EmptyPrepared {
-    fn weight_of(&self) -> Weight {
-        Weight::zero()
-    }
-}
-
-pub struct DummyXcmExecutor;
-impl ExecuteXcm<RuntimeCall> for DummyXcmExecutor {
-    type Prepared = EmptyPrepared;
-
-    fn prepare(_message: Xcm<RuntimeCall>) -> Result<Self::Prepared, Xcm<RuntimeCall>> {
-        Ok(EmptyPrepared)
-    }
-
-    fn execute(
-        _origin: impl Into<XcmV5Location>,
-        _pre: Self::Prepared,
-        _id: &mut XcmHash,
-        _weight_credit: Weight,
-    ) -> Outcome {
-        // Just use a default empty implementation that works
-        let weight = Weight::zero();
-        Outcome::Incomplete {
-            used: weight,
-            error: XcmError::NotWithdrawable,
-        }
-    }
-
-    fn charge_fees(_location: impl Into<XcmV5Location>, _fees: Assets) -> Result<(), XcmError> {
-        Ok(())
-    }
-}
-
-// Dummy implementation for MessageConverter
-pub struct DummyMessageConverter;
-impl ConvertMessage for DummyMessageConverter {
-    fn convert(_message: Message) -> Result<Xcm<()>, ConvertMessageError> {
-        Ok(Xcm(vec![]))
-    }
-}
-
-// Dummy implementation for AccountToLocation - use the unit type to satisfy the trait bounds
 parameter_types! {
     pub DefaultRewardKind: () = ();
 }

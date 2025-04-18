@@ -676,32 +676,4 @@ pub mod benchmark_helpers {
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }
-
-    // impl<T: snowbridge_pallet_outbound_queue_v2::Config> OutboundQueueBenchmarkHelperV2<T> for Runtime {
-    //     fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
-    //         EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
-    //     }
-    // }
-
-    pub struct DoNothingRouter;
-    impl SendXcm for DoNothingRouter {
-        type Ticket = Xcm<()>;
-
-        fn validate(
-            _dest: &mut Option<Location>,
-            xcm: &mut Option<Xcm<()>>,
-        ) -> SendResult<Self::Ticket> {
-            Ok((xcm.clone().unwrap(), Assets::new()))
-        }
-        fn deliver(xcm: Xcm<()>) -> Result<XcmHash, SendError> {
-            let hash = xcm.using_encoded(sp_core::hashing::blake2_256);
-            Ok(hash)
-        }
-    }
-
-    // impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
-    //     fn make_xcm_origin(location: Location) -> RuntimeOrigin {
-    //         RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location))
-    //     }
-    // }
 }

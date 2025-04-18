@@ -47,10 +47,9 @@ use snowbridge_inbound_queue_primitives::{
     EventProof, RewardLedger, VerificationError, Verifier,
 };
 use sp_core::H160;
-use sp_runtime::traits::TryConvert;
 use sp_runtime::traits::Zero;
 use sp_std::prelude::*;
-use xcm::prelude::{ExecuteXcm, Location, SendXcm, *};
+use xcm::prelude::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 use {snowbridge_beacon_primitives::BeaconHeader, sp_core::H256};
@@ -83,17 +82,9 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The verifier for inbound messages from Ethereum.
         type Verifier: Verifier;
-        /// XCM message sender.
-        type XcmSender: SendXcm;
-        /// Handler for XCM fees.
-        type XcmExecutor: ExecuteXcm<Self::RuntimeCall>;
         /// Address of the Gateway contract.
         #[pallet::constant]
         type GatewayAddress: Get<H160>;
-        /// AssetHub parachain ID.
-        type AssetHubParaId: Get<u32>;
-        /// Convert a command from Ethereum to an XCM message.
-        type MessageConverter: ConvertMessage;
         /// Process the message that was submitted
         type MessageProcessor: MessageProcessor<Self::AccountId>;
         #[cfg(feature = "runtime-benchmarks")]
@@ -105,8 +96,6 @@ pub mod pallet {
         type DefaultRewardKind: Get<Self::RewardKind>;
         /// Relayer reward payment.
         type RewardPayment: RewardLedger<Self::AccountId, Self::RewardKind, u128>;
-        /// AccountId to Location converter
-        type AccountToLocation: for<'a> TryConvert<&'a Self::AccountId, Location>;
         type WeightInfo: WeightInfo;
     }
 

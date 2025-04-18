@@ -719,16 +719,11 @@ impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
-    type XcmSender = DummyXcmSender;
-    type XcmExecutor = DummyXcmExecutor;
     type GatewayAddress = EthereumGatewayAddress;
-    type AssetHubParaId = ConstU32<1000>;
-    type MessageConverter = DummyMessageConverter;
     type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
     type RewardPayment = DummyRewardPayment;
-    type AccountToLocation = (); // Use the unit type which implements all the required traits
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;

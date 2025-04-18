@@ -14,7 +14,10 @@ where
         T::MessageConverter::convert(message.clone()).is_ok()
     }
 
-    fn process_message(who: AccountId, message: Message) -> DispatchResult {
-        crate::Pallet::<T>::process_message(who, message)
+    fn process_message(_who: AccountId, message: Message) -> DispatchResult {
+        // Simply convert the message and return success
+        T::MessageConverter::convert(message.clone())
+            .map(|_| ())
+            .map_err(|_| sp_runtime::DispatchError::Other("Failed to convert message"))
     }
 }

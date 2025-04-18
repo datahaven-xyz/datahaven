@@ -239,9 +239,16 @@ pub mod pallet {
 
             // Verify the message has not been processed
             ensure!(!Nonce::<T>::get(nonce.into()), Error::<T>::InvalidNonce);
-
+            
+            // Clone the message before processing it since processing will consume it
+            let message_clone = message.clone();
+            
+            // Process the message using the MessageProcessor trait
+            T::MessageProcessor::process_message(relayer.clone(), message)?;
+            
+            // Convert the cloned message to XCM
             let xcm =
-                T::MessageConverter::convert(message).map_err(|error| Error::<T>::from(error))?;
+                T::MessageConverter::convert(message_clone).map_err(|error| Error::<T>::from(error))?;
 
             // Forward XCM to AH
             let dest = Location::new(1, [Parachain(T::AssetHubParaId::get())]);

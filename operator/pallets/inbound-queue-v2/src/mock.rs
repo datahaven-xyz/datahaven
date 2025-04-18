@@ -2,9 +2,12 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 use super::*;
 
-use crate::{self as inbound_queue_v2, message_processors::DefaultMessageProcessor};
+use crate::{
+    self as inbound_queue_v2,
+    message_processors::{DefaultMessageProcessor, XcmMessageProcessor},
+};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
-use frame_support::{derive_impl, dispatch::DispatchResult, parameter_types, traits::ConstU32};
+use frame_support::{derive_impl, parameter_types, traits::ConstU32};
 use hex_literal::hex;
 use scale_info::TypeInfo;
 use snowbridge_beacon_primitives::{
@@ -15,7 +18,7 @@ use snowbridge_inbound_queue_primitives::{v2::MessageToXcm, Log, Proof, Verifica
 use sp_core::H160;
 use sp_runtime::{
     traits::{IdentityLookup, MaybeEquivalence},
-    BuildStorage,
+    BuildStorage, DispatchError,
 };
 use sp_std::{convert::From, default::Default, marker::PhantomData};
 use xcm::{opaque::latest::WESTEND_GENESIS_HASH, prelude::*};
@@ -145,7 +148,7 @@ impl MessageProcessor<AccountId> for DummyPrefix {
         false
     }
 
-    fn process_message(_who: AccountId, _message: Message) -> DispatchResult {
+    fn process_message(_who: AccountId, _message: Message) -> Result<[u8; 32], DispatchError> {
         panic!("DummyPrefix::process_message shouldn't be called");
     }
 }
@@ -157,7 +160,7 @@ impl MessageProcessor<AccountId> for DummySuffix {
         true
     }
 
-    fn process_message(_who: AccountId, _message: Message) -> DispatchResult {
+    fn process_message(_who: AccountId, _message: Message) -> Result<[u8; 32], DispatchError> {
         panic!("DummySuffix::process_message shouldn't be called");
     }
 }
@@ -181,7 +184,7 @@ impl inbound_queue_v2::Config for Test {
         AssetHubFromEthereum,
     >;
     // Passively test that the implementation of MessageProcessor trait works correctly for tuple
-    type MessageProcessor = (DummyPrefix, DefaultMessageProcessor<Test>, DummySuffix);
+    type MessageProcessor = (DummyPrefix, XcmMessageProcessor<Test>, DummySuffix);
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Test;
     type WeightInfo = ();

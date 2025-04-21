@@ -4,12 +4,14 @@ import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import { deployContracts } from "./deploy-contracts";
 import { launchKurtosis } from "./launch-kurtosis";
+import { setupValidators } from "./setup-validators";
 import sendTxn from "./send-txn";
 
 interface ScriptOptions {
   verified: boolean;
   launchKurtosis?: boolean;
   deployContracts?: boolean;
+  setupValidators?: boolean;
   blockscout?: boolean;
   help?: boolean;
 }
@@ -22,6 +24,7 @@ async function main() {
     verified: args.includes("--verified"),
     launchKurtosis: parseFlag(args, "launchKurtosis"),
     deployContracts: parseFlag(args, "deploy-contracts"),
+    setupValidators: parseFlag(args, "setup-validators"),
     blockscout: parseFlag(args, "blockscout"),
     help: args.includes("--help") || args.includes("-h")
   };
@@ -98,12 +101,34 @@ async function main() {
     );
   }
 
-  await deployContracts({
+  const contractsDeployed = await deployContracts({
     rpcUrl: networkRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
+
+  // Set up validators using the extracted function
+  if (contractsDeployed) {
+    let shouldSetupValidators = options.setupValidators;
+    if (shouldSetupValidators === undefined) {
+      // If not specified, default to true
+      shouldSetupValidators = true;
+    }
+
+    if (shouldSetupValidators) {
+      await setupValidators({
+        rpcUrl: networkRpcUrl,
+        // Default values for other options
+      });
+    } else {
+      logger.info("Skipping validator setup");
+    }
+  } else if (options.setupValidators) {
+    logger.warn(
+      "⚠️ Validator setup requested but contracts were not deployed. Skipping validator setup."
+    );
+  }
 }
 
 // Helper function to check all dependencies at once
@@ -168,6 +193,8 @@ function getOptionsString(options: ScriptOptions): string {
     optionStrings.push(`launchKurtosis=${options.launchKurtosis}`);
   if (options.deployContracts !== undefined)
     optionStrings.push(`deployContracts=${options.deployContracts}`);
+  if (options.setupValidators !== undefined)
+    optionStrings.push(`setupValidators=${options.setupValidators}`);
   if (options.blockscout !== undefined) optionStrings.push(`blockscout=${options.blockscout}`);
   return optionStrings.length ? optionStrings.join(", ") : "no options";
 }
@@ -184,6 +211,8 @@ ${chalk.green("--launchKurtosis")}          Clean and launch Kurtosis enclave if
 ${chalk.green("--no-launchKurtosis")}       Keep existing Kurtosis enclave if already running
 ${chalk.green("--deploy-contracts")}        Deploy smart contracts after Kurtosis starts
 ${chalk.green("--no-deploy-contracts")}     Skip smart contract deployment
+${chalk.green("--setup-validators")}        Set up validators after contracts are deployed
+${chalk.green("--no-setup-validators")}     Skip validator setup
 ${chalk.green("--blockscout")}              Launch Kurtosis with Blockscout services (uses minimal-with-bs.yaml)
 ${chalk.green("--no-blockscout")}           Launch Kurtosis without Blockscout services (uses minimal.yaml)
 ${chalk.green("--help, -h")}                Show this help menu

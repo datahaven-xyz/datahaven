@@ -5,9 +5,6 @@ pragma solidity ^0.8.27;
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 
-// Snowbridge imports
-import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
-
 /**
  * @title DataHaven Service Manager Errors Interface
  * @notice Contains all error definitions used by the DataHaven Service Manager

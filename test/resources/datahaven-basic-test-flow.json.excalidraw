@@ -1,0 +1,799 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor",
+  "elements": [
+    {
+      "type": "rectangle",
+      "version": 404,
+      "id": "infra-bootstrap",
+      "x": 81,
+      "y": 40,
+      "width": 586,
+      "height": 130,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "infra-bootstrap-text"
+        },
+        {
+          "id": "arrow-1",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1744896056416,
+      "link": null,
+      "locked": false,
+      "versionNonce": 1477275089,
+      "index": "a0",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 35,
+      "id": "infra-bootstrap-text",
+      "x": 86,
+      "y": 45,
+      "width": 372.44781494140625,
+      "height": 120,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896056416,
+      "link": null,
+      "locked": false,
+      "fontSize": 16,
+      "fontFamily": 1,
+      "text": "1. Infrastructure Bootstrap (Kurtosis)\n- Launch Ethereum nodes (EL & CL clients)\n- Launch DataHaven Solochain Validator Nodes\n- Set up Snowbridge relayer\nScript: launch-kurtosis.ts",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "infra-bootstrap",
+      "originalText": "1. Infrastructure Bootstrap (Kurtosis)\n- Launch Ethereum nodes (EL & CL clients)\n- Launch DataHaven Solochain Validator Nodes\n- Set up Snowbridge relayer\nScript: launch-kurtosis.ts",
+      "lineHeight": 1.5,
+      "baseline": 86,
+      "versionNonce": 203805631,
+      "index": "a1",
+      "isDeleted": false,
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "version": 210,
+      "id": "ethereum-deploy",
+      "x": 79,
+      "y": 200,
+      "width": 585,
+      "height": 135,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "ethereum-deploy-text"
+        },
+        {
+          "id": "arrow-1",
+          "type": "arrow"
+        },
+        {
+          "id": "arrow-2",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1744896055006,
+      "link": null,
+      "locked": false,
+      "versionNonce": 500891153,
+      "index": "a2",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 175,
+      "id": "ethereum-deploy-text",
+      "x": 84,
+      "y": 217.5,
+      "width": 463.58380126953125,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896055006,
+      "link": null,
+      "locked": false,
+      "fontSize": 16,
+      "fontFamily": 1,
+      "text": "2. Ethereum-side Contract Deployment\n- Deploy EigenLayer contracts\n- Deploy Snowbridge contracts (BeefyClient, Gateway)\n- Deploy DataHaven Service Manager & related contracts\nScript: deploy-contracts.ts",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "ethereum-deploy",
+      "originalText": "2. Ethereum-side Contract Deployment\n- Deploy EigenLayer contracts\n- Deploy Snowbridge contracts (BeefyClient, Gateway)\n- Deploy DataHaven Service Manager & related contracts\nScript: deploy-contracts.ts",
+      "lineHeight": 1.25,
+      "baseline": 106,
+      "versionNonce": 2145937279,
+      "index": "a3",
+      "isDeleted": false,
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "version": 46,
+      "id": "validator-registration",
+      "x": 81,
+      "y": 362,
+      "width": 580,
+      "height": 110,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "validator-registration-text"
+        },
+        {
+          "id": "arrow-2",
+          "type": "arrow"
+        },
+        {
+          "id": "arrow-3",
+          "type": "arrow"
+        },
+        {
+          "id": "arrow-5",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1744896052013,
+      "link": null,
+      "locked": false,
+      "versionNonce": 698588753,
+      "index": "a4",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 183,
+      "id": "validator-registration-text",
+      "x": 86,
+      "y": 367,
+      "width": 455.519775390625,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896052013,
+      "link": null,
+      "locked": false,
+      "fontSize": 16,
+      "fontFamily": 1,
+      "text": "3. Validator Registration & Sync\n- Register operators in EigenLayer\n- Register them as validators in the DataHaven service\n- Relay validator set via Snowbridge to DataHaven chain\nScript: setup-validators.ts",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "validator-registration",
+      "originalText": "3. Validator Registration & Sync\n- Register operators in EigenLayer\n- Register them as validators in the DataHaven service\n- Relay validator set via Snowbridge to DataHaven chain\nScript: setup-validators.ts",
+      "lineHeight": 1.25,
+      "baseline": 106,
+      "versionNonce": 1789455167,
+      "index": "a5",
+      "isDeleted": false,
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "version": 191,
+      "id": "rewards-epoch",
+      "x": -132,
+      "y": 543,
+      "width": 558,
+      "height": 98,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#ffec99",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "rewards-epoch-text"
+        },
+        {
+          "id": "arrow-3",
+          "type": "arrow"
+        },
+        {
+          "id": "arrow-4",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1744896063405,
+      "link": null,
+      "locked": false,
+      "versionNonce": 2091200511,
+      "index": "a6",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 199,
+      "id": "rewards-epoch-text",
+      "x": -127,
+      "y": 552,
+      "width": 469.77569580078125,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896063405,
+      "link": null,
+      "locked": false,
+      "fontSize": 16,
+      "fontFamily": 1,
+      "text": "Rewards Epoch Processing\n- Run DataHaven validators for a test epoch\n- Generate rewards merkle tree with validator performance\n- Relay rewards data via Snowbridge's BEEFY field",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "rewards-epoch",
+      "originalText": "Rewards Epoch Processing\n- Run DataHaven validators for a test epoch\n- Generate rewards merkle tree with validator performance\n- Relay rewards data via Snowbridge's BEEFY field",
+      "lineHeight": 1.25,
+      "baseline": 66,
+      "versionNonce": 1870992241,
+      "index": "a7",
+      "isDeleted": false,
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "version": 139,
+      "id": "claim-rewards",
+      "x": -141,
+      "y": 685,
+      "width": 568,
+      "height": 94,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#ffec99",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "claim-rewards-text"
+        },
+        {
+          "id": "arrow-4",
+          "type": "arrow"
+        },
+        {
+          "id": "arrow-5",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1744896074769,
+      "link": null,
+      "locked": false,
+      "versionNonce": 1614939825,
+      "index": "a8",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 141,
+      "id": "claim-rewards-text",
+      "x": -136,
+      "y": 692,
+      "width": 445.24774169921875,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896074769,
+      "link": null,
+      "locked": false,
+      "fontSize": 16,
+      "fontFamily": 1,
+      "text": "Claim Rewards\n- Update RewardsRegistry merkle root on Ethereum side\n- Validators claim rewards via ServiceManager\n- Verify rewards distribution",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "claim-rewards",
+      "originalText": "Claim Rewards\n- Update RewardsRegistry merkle root on Ethereum side\n- Validators claim rewards via ServiceManager\n- Verify rewards distribution",
+      "lineHeight": 1.25,
+      "baseline": 66,
+      "versionNonce": 1552943249,
+      "index": "a9",
+      "isDeleted": false,
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "version": 203,
+      "id": "validation-operations",
+      "x": 452,
+      "y": 542,
+      "width": 580,
+      "height": 100,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#d8f3dc",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1,
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "validation-operations-text"
+        },
+        {
+          "id": "arrow-5",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1744896069083,
+      "link": null,
+      "locked": false,
+      "versionNonce": 626379985,
+      "index": "aA",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 233,
+      "id": "validation-operations-text",
+      "x": 457,
+      "y": 552,
+      "width": 430.41571044921875,
+      "height": 80,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896069083,
+      "link": null,
+      "locked": false,
+      "fontSize": 16,
+      "fontFamily": 1,
+      "text": "Validator Operations Testing\n- Add new validators, test update timing\n- Remove validators and test slashing mechanisms\n- Test operator set modifications from Ethereum side",
+      "textAlign": "left",
+      "verticalAlign": "middle",
+      "containerId": "validation-operations",
+      "originalText": "Validator Operations Testing\n- Add new validators, test update timing\n- Remove validators and test slashing mechanisms\n- Test operator set modifications from Ethereum side",
+      "lineHeight": 1.25,
+      "baseline": 66,
+      "versionNonce": 1565975743,
+      "index": "aB",
+      "isDeleted": false,
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "version": 404,
+      "id": "arrow-1",
+      "x": 372.96482204567087,
+      "y": 170.21903834230673,
+      "width": 0.4568579366768404,
+      "height": 29.553679597954698,
+      "angle": 0,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896012694,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "infra-bootstrap",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "ethereum-deploy",
+        "focus": 0,
+        "gap": 1
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -0.4568579366768404,
+          29.553679597954698
+        ]
+      ],
+      "versionNonce": 1624811327,
+      "index": "aC",
+      "isDeleted": false
+    },
+    {
+      "type": "arrow",
+      "version": 241,
+      "id": "arrow-2",
+      "x": 370.81032880424044,
+      "y": 335.22728205973857,
+      "width": 0.058758843485804846,
+      "height": 26.583745388007685,
+      "angle": 0,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896047027,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "ethereum-deploy",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "validator-registration",
+        "focus": 0,
+        "gap": 1
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0.058758843485804846,
+          26.583745388007685
+        ]
+      ],
+      "versionNonce": 453500689,
+      "index": "aD",
+      "isDeleted": false
+    },
+    {
+      "type": "arrow",
+      "version": 226,
+      "id": "arrow-3",
+      "x": 300.0575260853437,
+      "y": 472.18897255225374,
+      "width": 90.51686856545348,
+      "height": 70.63523680926255,
+      "angle": 0,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896047027,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "validator-registration",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "rewards-epoch",
+        "focus": 0,
+        "gap": 1
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -90.51686856545348,
+          70.63523680926255
+        ]
+      ],
+      "versionNonce": 96195825,
+      "index": "aE",
+      "isDeleted": false
+    },
+    {
+      "type": "arrow",
+      "version": 321,
+      "id": "arrow-4",
+      "x": 145.33163548691462,
+      "y": 641.1757906384838,
+      "width": 1.029020468948147,
+      "height": 43.65812734995188,
+      "angle": 0,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896074769,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "rewards-epoch",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "claim-rewards",
+        "focus": 0,
+        "gap": 1
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -1.029020468948147,
+          43.65812734995188
+        ]
+      ],
+      "versionNonce": 126013041,
+      "index": "aF",
+      "isDeleted": false
+    },
+    {
+      "type": "arrow",
+      "version": 468,
+      "id": "arrow-5",
+      "x": 465.19289448644946,
+      "y": 472.4657386720776,
+      "width": 114.47362738403712,
+      "height": 69.36163468237089,
+      "angle": 0,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744896047027,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "validator-registration",
+        "focus": -0.006479196370567679,
+        "gap": 2.4172286928294398
+      },
+      "endBinding": {
+        "elementId": "validation-operations",
+        "focus": -0.21148071976667393,
+        "gap": 1
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          114.47362738403712,
+          69.36163468237089
+        ]
+      ],
+      "versionNonce": 1177947857,
+      "index": "aG",
+      "isDeleted": false
+    },
+    {
+      "type": "text",
+      "version": 2,
+      "id": "title-text",
+      "x": 150,
+      "y": 0,
+      "width": 440,
+      "height": 28,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1,
+      "boundElements": [],
+      "updated": 1744894525040,
+      "link": null,
+      "locked": false,
+      "fontSize": 22,
+      "fontFamily": 1,
+      "text": "DataHaven Integration Test Flow",
+      "textAlign": "center",
+      "verticalAlign": "top",
+      "containerId": null,
+      "originalText": "DataHaven Integration Test Flow",
+      "lineHeight": 1.25,
+      "baseline": 20,
+      "versionNonce": 1648821439,
+      "index": "aO",
+      "isDeleted": false,
+      "autoResize": true
+    }
+  ],
+  "appState": {
+    "gridSize": 20,
+    "gridStep": 5,
+    "gridModeEnabled": false,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

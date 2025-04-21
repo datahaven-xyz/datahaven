@@ -1,7 +1,7 @@
 // Setup of validators for DataHaven
 import { $ } from "bun";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import invariant from "tiny-invariant";
 import { logger, printHeader, promptWithTimeout } from "../utils/index";
 

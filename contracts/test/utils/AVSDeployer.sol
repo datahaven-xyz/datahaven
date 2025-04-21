@@ -22,7 +22,9 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
-
+import {EigenPodManagerMock} from "eigenlayer-contracts/src/test/mocks/EigenPodManagerMock.sol";
+import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
+import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
 import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
@@ -30,10 +32,8 @@ import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
-import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
 import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
-import {EigenPodManagerMock} from "../mocks/EigenPodManagerMock.sol";
 import {AllocationManagerMock} from "../mocks/AllocationManagerMock.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 
@@ -144,7 +144,7 @@ contract AVSDeployer is Test {
         cheats.prank(regularDeployer);
         delegationManagerImplementation = new DelegationManager(
             strategyManager,
-            eigenPodManagerMock,
+            IEigenPodManager(address(eigenPodManagerMock)),
             allocationManager,
             pauserRegistry,
             permissionControllerMock,

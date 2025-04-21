@@ -49,7 +49,7 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
 
         // Get the deployed strategies and deposit some of the operator's balance into them.
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            IERC20 linkedToken = StrategyBase(deployedStrategies[i]).underlyingToken();
+            IERC20 linkedToken = StrategyBase(deployedStrategies[i].strategy).underlyingToken();
 
             // Check that the operator has a balance of the linked token.
             uint256 balance = linkedToken.balanceOf(_operator);
@@ -70,7 +70,9 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
             vm.startBroadcast(_operatorPrivateKey);
             uint256 balanceToStake = balance / 10;
             IERC20(linkedToken).approve(address(strategyManager), balanceToStake);
-            strategyManager.depositIntoStrategy(deployedStrategies[i], linkedToken, balanceToStake);
+            strategyManager.depositIntoStrategy(
+                deployedStrategies[i].strategy, linkedToken, balanceToStake
+            );
             vm.stopBroadcast();
 
             Logging.logStep(
@@ -98,7 +100,8 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
         // Check the staked balance of the operator.
         Logging.logSection("Operator Shares Information");
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            uint256 operatorShares = delegation.operatorShares(_operator, deployedStrategies[i]);
+            uint256 operatorShares =
+                delegation.operatorShares(_operator, deployedStrategies[i].strategy);
             Logging.logInfo(
                 string.concat(
                     "Operator shares for strategy ",
@@ -115,7 +118,11 @@ contract SignUpOperator is Script, ELScriptStorage, DHScriptStorage, Accounts {
 
         // Register the operator as operator for the DataHaven service.
         IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-            .RegisterParams({avs: address(serviceManager), operatorSetIds: new uint32[](1), data: ""});
+            .RegisterParams({
+            avs: address(serviceManager),
+            operatorSetIds: new uint32[](1),
+            data: abi.encodePacked(_operatorSolochainAddress)
+        });
 
         vm.broadcast(_operatorPrivateKey);
         allocationManager.registerForOperatorSets(_operator, registerParams);

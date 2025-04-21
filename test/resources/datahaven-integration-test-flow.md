@@ -1,6 +1,6 @@
 # DataHaven Integration Test Flow
 
-This document provides a detailed explanation of the DataHaven integration test flow, complementing the visual diagram in `datahaven-basic-test-flow.json.excalidraw`.
+This document provides a detailed explanation of the DataHaven integration test flow, complementing the visual diagram in [datahavenBasicTestFlow.png](./datahavenBasicTestFlow.png).
 
 ## 1. Infrastructure Bootstrap (Kurtosis)
 
@@ -76,6 +76,7 @@ In this phase, we register validators as operators in EigenLayer and sync the va
 ### Steps
 
 1. **Register Operators in EigenLayer and as Validators in the DataHaven service**
+
    - Use SignUpValidator.s.sol script to register validators
      - Deposit stake and register for operator sets
    - Set up the validator set in the Ethereum side
@@ -104,11 +105,13 @@ After validators are registered and synced, we run them for a test epoch to gene
 #### Process
 
 1. **Run DataHaven Validators**
+
    - Validators produce blocks for a configurable epoch
    - Block production metrics are recorded
    - System measures performance (blocks produced, attestations, etc.)
 
 2. **Generate Rewards Merkle Tree**
+
    - Calculate rewards based on validator performance
    - Create a merkle tree with validator addresses and their earned points
    - Root of the tree is used for efficient verification
@@ -131,11 +134,13 @@ After rewards data is relayed to Ethereum, validators can claim their rewards.
 #### Claiming Process
 
 1. **Update RewardsRegistry**
+
    - RewardsRegistry contract receives the merkle root from Snowbridge
    - Only the authorized agent can update the root
    - Event `RewardsMerkleRootUpdated` is emitted
 
 2. **Validators Claim Rewards**
+
    - Each validator calls `claimOperatorRewards` on ServiceManager
    - Provides merkle proof of their reward amount
    - ServiceManager verifies proof against the stored root
@@ -159,16 +164,19 @@ Another testing scenario is testing the operational aspects of the validator set
 #### Key Operations Tested
 
 1. **Adding Validators**
+
    - Add new validators
    - Verify they appear in the next session
    - Ensure they can produce blocks after activation
 
 2. **Removing Validators**
+
    - Remove validators and verify they stop producing blocks
    - Test session transitions after removal
    - Verify proper cleanup of validator resources
 
 3. **Slashing Mechanisms**
+
    - Test slashing for various offenses
    - Verify VetoableSlasher functions correctly
    - Test veto committee mechanisms
@@ -183,11 +191,13 @@ Another testing scenario is testing the operational aspects of the validator set
 The integration tests rely on several communication patterns:
 
 1. **Ethereum to DataHaven**
+
    - Validator set updates
    - Configuration changes
    - Administrative commands
 
 2. **DataHaven to Ethereum**
+
    - Rewards information
    - Validator performance metrics
    - Block finality information

@@ -59,7 +59,7 @@ interface DeploymentInfo {
 }
 
 /**
- * Registers validators in EigenLayer and synchronizes them with the DataHaven chain
+ * Registers validators in EigenLayer and synchronises them with the DataHaven chain
  *
  * @param options - Configuration options for setup
  * @param options.rpcUrl - The RPC URL to connect to

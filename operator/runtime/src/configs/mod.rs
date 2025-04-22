@@ -36,6 +36,7 @@ use super::{
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
+    snowbridge::EthereumNetwork,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
 };
 use dhp_bridge::EigenLayerMessageProcessor;
@@ -69,6 +70,7 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_inbound_queue_primitives::RewardLedger;
+use snowbridge_outbound_queue_primitives::v2::ConstantGasMeter;
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
@@ -659,6 +661,26 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;
+}
+
+impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Hashing = Keccak256;
+    type MessageQueue = ();
+    type GasMeter = ConstantGasMeter;
+    type Balance = Balance;
+    type MaxMessagePayloadSize = ConstU32<2048>;
+    type MaxMessagesPerBlock = ConstU32<32>;
+    type OnNewCommitment = ();
+    type WeightToFee = IdentityFee<Balance>;
+    type Verifier = EthereumBeaconClient;
+    type GatewayAddress = EthereumGatewayAddress;
+    type RewardKind = ();
+    type DefaultRewardKind = DefaultRewardKind;
+    type RewardPayment = DummyRewardPayment;
+    type EthereumNetwork = EthereumNetwork;
+    type ConvertAssetId = ();
+    type WeightInfo = ();
 }
 
 #[cfg(feature = "runtime-benchmarks")]

@@ -91,7 +91,7 @@ use sp_runtime::{
     DigestItem,
 };
 use sp_std::prelude::*;
-pub use types::{PendingOrder, ProcessMessageOriginOf};
+pub use types::{OnNewCommitment, PendingOrder, ProcessMessageOriginOf};
 pub use weights::WeightInfo;
 use xcm::latest::{Location, NetworkId};
 type DeliveryReceiptOf<T> = DeliveryReceipt<<T as frame_system::Config>::AccountId>;
@@ -127,6 +127,9 @@ pub mod pallet {
         /// Max number of messages processed per block
         #[pallet::constant]
         type MaxMessagesPerBlock: Get<u32>;
+
+        /// Hook that is called whenever there is a new commitment.
+        type OnNewCommitment: OnNewCommitment;
 
         /// Convert a weight value into a deductible fee based.
         type WeightToFee: WeightToFee<Balance = Self::Balance>;
@@ -283,6 +286,8 @@ pub mod pallet {
 
             // Insert merkle root into the header digest
             <frame_system::Pallet<T>>::deposit_log(digest_item);
+
+            T::OnNewCommitment::on_new_commitment(root);
 
             Self::deposit_event(Event::MessagesCommitted { root, count });
         }

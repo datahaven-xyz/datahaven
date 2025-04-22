@@ -315,6 +315,10 @@ mod runtime {
     #[runtime::pallet_index(204)]
     pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
 
+    // ETH Bridge Outbound
+    #[runtime::pallet_index(205)]
+    pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+
     // Sudo
     #[runtime::pallet_index(255)]
     pub type Sudo = pallet_sudo;

@@ -2413,8 +2413,10 @@ dependencies = [
  "serde_json",
  "snowbridge-beacon-primitives",
  "snowbridge-inbound-queue-primitives",
+ "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2",
+ "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-verification-primitives",
  "sp-api",
  "sp-block-builder",
@@ -2446,6 +2448,7 @@ dependencies = [
  "frame-support",
  "polkadot-primitives",
  "polkadot-runtime-common",
+ "staging-xcm",
 ]
 
 [[package]]

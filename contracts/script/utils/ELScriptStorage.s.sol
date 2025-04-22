@@ -19,6 +19,19 @@ import {StrategyBaseTVLLimits} from
     "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 
+// Struct used in the deployment JSON file to store detailed strategy information
+struct DeployedStrategyJson {
+    address strategyAddress;
+    address strategyUnderlyingToken;
+    address strategyTokenCreator;
+}
+
+// Struct used here to store strategy information
+struct DeployedStrategyInfo {
+    StrategyBaseTVLLimits strategy;
+    address strategyTokenCreator;
+}
+
 /**
  * @title ELScriptStorage
  * @notice This contract is a utility for scripts that need to interact with EigenLayer contracts.
@@ -33,7 +46,7 @@ contract ELScriptStorage is Script {
     EigenPodManager public eigenPodManager;
     EigenPod public eigenPodBeacon;
     StrategyBaseTVLLimits public baseStrategy;
-    StrategyBaseTVLLimits[] public deployedStrategies;
+    DeployedStrategyInfo[] public deployedStrategies;
     IETHPOSDeposit public ethPOSDeposit;
 
     // EigenLayer required semver
@@ -64,10 +77,17 @@ contract ELScriptStorage is Script {
             vm.parseJsonAddress(deploymentFile, ".BaseStrategyImplementation")
         );
         ethPOSDeposit = IETHPOSDeposit(vm.parseJsonAddress(deploymentFile, ".ETHPOSDeposit"));
-        address[] memory deployedStrategiesAddresses =
-            vm.parseJsonAddressArray(deploymentFile, ".DeployedStrategies");
-        for (uint256 i = 0; i < deployedStrategiesAddresses.length; i++) {
-            deployedStrategies.push(StrategyBaseTVLLimits(deployedStrategiesAddresses[i]));
+        bytes memory deployedStrategiesArrayData =
+            vm.parseJson(deploymentFile, ".DeployedStrategies");
+        DeployedStrategyJson[] memory strategies =
+            abi.decode(deployedStrategiesArrayData, (DeployedStrategyJson[]));
+        for (uint256 i = 0; i < strategies.length; i++) {
+            address strategyAddress = strategies[i].strategyAddress;
+            address strategyTokenCreator = strategies[i].strategyTokenCreator;
+            DeployedStrategyInfo memory strategyInfo;
+            strategyInfo.strategy = StrategyBaseTVLLimits(strategyAddress);
+            strategyInfo.strategyTokenCreator = strategyTokenCreator;
+            deployedStrategies.push(strategyInfo);
         }
     }
 }

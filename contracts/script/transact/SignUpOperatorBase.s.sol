@@ -70,7 +70,7 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
 
         // Get the deployed strategies and deposit some of the operator's balance into them.
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            IERC20 linkedToken = StrategyBase(deployedStrategies[i]).underlyingToken();
+            IERC20 linkedToken = StrategyBase(deployedStrategies[i].strategy).underlyingToken();
 
             // Check that the operator has a balance of the linked token.
             uint256 balance = linkedToken.balanceOf(_operator);
@@ -91,7 +91,9 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
             vm.startBroadcast(_operatorPrivateKey);
             uint256 balanceToStake = balance / 10;
             linkedToken.approve(address(strategyManager), balanceToStake);
-            strategyManager.depositIntoStrategy(deployedStrategies[i], linkedToken, balanceToStake);
+            strategyManager.depositIntoStrategy(
+                deployedStrategies[i].strategy, linkedToken, balanceToStake
+            );
             vm.stopBroadcast();
 
             Logging.logStep(
@@ -119,7 +121,8 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
         // Check the staked balance of the operator.
         Logging.logSection("Operator Shares Information");
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            uint256 operatorShares = delegation.operatorShares(_operator, deployedStrategies[i]);
+            uint256 operatorShares =
+                delegation.operatorShares(_operator, deployedStrategies[i].strategy);
             Logging.logInfo(
                 string.concat(
                     "Operator shares for strategy ",
@@ -146,7 +149,11 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
         uint32[] memory operatorSetIds = new uint32[](1);
         operatorSetIds[0] = _getOperatorSetId();
         IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-            .RegisterParams({avs: address(serviceManager), operatorSetIds: operatorSetIds, data: ""});
+            .RegisterParams({
+            avs: address(serviceManager),
+            operatorSetIds: operatorSetIds,
+            data: abi.encodePacked(_operatorSolochainAddress)
+        });
 
         vm.broadcast(_operatorPrivateKey);
         allocationManager.registerForOperatorSets(_operator, registerParams);

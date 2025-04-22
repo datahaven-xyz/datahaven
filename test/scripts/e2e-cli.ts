@@ -1,15 +1,21 @@
 import { $ } from "bun";
 import chalk from "chalk";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "utils";
+import { logger, printDivider, printHeader, promptWithTimeout } from "utils";
 import { deployContracts } from "./deploy-contracts";
+import { fundValidators } from "./fund-validators";
 import { launchKurtosis } from "./launch-kurtosis";
 import sendTxn from "./send-txn";
+import { setupValidators } from "./setup-validators";
+import { updateValidatorSet } from "./update-validator-set";
 
 interface ScriptOptions {
   verified: boolean;
   launchKurtosis?: boolean;
   deployContracts?: boolean;
+  fundValidators?: boolean;
+  setupValidators?: boolean;
+  updateValidatorSet?: boolean;
   blockscout?: boolean;
   help?: boolean;
 }
@@ -22,6 +28,9 @@ async function main() {
     verified: args.includes("--verified"),
     launchKurtosis: parseFlag(args, "launchKurtosis"),
     deployContracts: parseFlag(args, "deploy-contracts"),
+    fundValidators: parseFlag(args, "fund-validators"),
+    setupValidators: parseFlag(args, "setup-validators"),
+    updateValidatorSet: parseFlag(args, "update-validator-set"),
     blockscout: parseFlag(args, "blockscout"),
     help: args.includes("--help") || args.includes("-h")
   };
@@ -98,12 +107,89 @@ async function main() {
     );
   }
 
-  await deployContracts({
+  const contractsDeployed = await deployContracts({
     rpcUrl: networkRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
+
+  // Set up validators using the extracted function
+  if (contractsDeployed) {
+    let shouldFundValidators = options.fundValidators;
+    let shouldSetupValidators = options.setupValidators;
+    let shouldUpdateValidatorSet = options.updateValidatorSet;
+
+    // If not specified, prompt for funding
+    if (shouldFundValidators === undefined) {
+      shouldFundValidators = await promptWithTimeout(
+        "Do you want to fund validators with tokens and ETH?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
+      );
+    }
+
+    // If not specified, prompt for setup
+    if (shouldSetupValidators === undefined) {
+      shouldSetupValidators = await promptWithTimeout(
+        "Do you want to register validators in EigenLayer?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
+      );
+    }
+
+    // If not specified, prompt for update
+    if (shouldUpdateValidatorSet === undefined) {
+      shouldUpdateValidatorSet = await promptWithTimeout(
+        "Do you want to update the validator set on the substrate chain?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+      );
+    }
+
+    if (shouldFundValidators) {
+      await fundValidators({
+        rpcUrl: networkRpcUrl
+        // Default values for other options
+      });
+    } else {
+      logger.info("Skipping validator funding");
+    }
+
+    if (shouldSetupValidators) {
+      await setupValidators({
+        rpcUrl: networkRpcUrl
+        // Default values for other options
+      });
+
+      if (shouldUpdateValidatorSet) {
+        await updateValidatorSet({
+          rpcUrl: networkRpcUrl
+          // Default values for other options
+        });
+      } else {
+        logger.info("Skipping validator set update");
+      }
+    } else {
+      logger.info("Skipping validator setup");
+    }
+  } else if (options.setupValidators || options.fundValidators) {
+    logger.warn(
+      "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
+    );
+  }
 }
 
 // Helper function to check all dependencies at once
@@ -168,6 +254,12 @@ function getOptionsString(options: ScriptOptions): string {
     optionStrings.push(`launchKurtosis=${options.launchKurtosis}`);
   if (options.deployContracts !== undefined)
     optionStrings.push(`deployContracts=${options.deployContracts}`);
+  if (options.fundValidators !== undefined)
+    optionStrings.push(`fundValidators=${options.fundValidators}`);
+  if (options.setupValidators !== undefined)
+    optionStrings.push(`setupValidators=${options.setupValidators}`);
+  if (options.updateValidatorSet !== undefined)
+    optionStrings.push(`updateValidatorSet=${options.updateValidatorSet}`);
   if (options.blockscout !== undefined) optionStrings.push(`blockscout=${options.blockscout}`);
   return optionStrings.length ? optionStrings.join(", ") : "no options";
 }
@@ -184,6 +276,12 @@ ${chalk.green("--launchKurtosis")}          Clean and launch Kurtosis enclave if
 ${chalk.green("--no-launchKurtosis")}       Keep existing Kurtosis enclave if already running
 ${chalk.green("--deploy-contracts")}        Deploy smart contracts after Kurtosis starts
 ${chalk.green("--no-deploy-contracts")}     Skip smart contract deployment
+${chalk.green("--fund-validators")}         Fund validators with tokens and ETH for local testing
+${chalk.green("--no-fund-validators")}      Skip funding validators
+${chalk.green("--setup-validators")}        Set up validators after contracts are deployed
+${chalk.green("--no-setup-validators")}     Skip validator setup
+${chalk.green("--update-validator-set")}    Update validator set on substrate chain after setup
+${chalk.green("--no-update-validator-set")} Skip validator set update
 ${chalk.green("--blockscout")}              Launch Kurtosis with Blockscout services (uses minimal-with-bs.yaml)
 ${chalk.green("--no-blockscout")}           Launch Kurtosis without Blockscout services (uses minimal.yaml)
 ${chalk.green("--help, -h")}                Show this help menu
@@ -197,6 +295,12 @@ ${chalk.yellow("Examples:")}
 
   ${chalk.gray("# Start without deploying contracts")}
   bun run start-kurtosis --no-deploy-contracts
+
+  ${chalk.gray("# Start without funding validators")}
+  bun run start-kurtosis --no-fund-validators
+
+  ${chalk.gray("# Start without updating validator set")}
+  bun run start-kurtosis --no-update-validator-set
 `);
 }
 

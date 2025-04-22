@@ -2,6 +2,15 @@
 
 This document provides a detailed explanation of the DataHaven integration test flow, complementing the visual diagram in [datahavenBasicTestFlow.png](./datahavenBasicTestFlow.png).
 
+## Overview
+
+The integration test flow is designed to be modular, with each step being independently executable. This allows for:
+
+- Running specific steps without redoing the entire setup
+- Retrying failed steps without starting from scratch
+- Testing individual components in isolation
+- Debugging specific parts of the system
+
 ## 1. Infrastructure Bootstrap (Kurtosis)
 
 The first step involves setting up the testing infrastructure using Kurtosis, a container orchestration platform for test environments.
@@ -71,30 +80,54 @@ forge script script/deploy/DeployLocal.s.sol --rpc-url <RPC_URL> --broadcast --v
 
 ## 3. Validator Registration & Sync
 
-In this phase, we register validators as operators in EigenLayer and sync the validator set to the DataHaven chain.
+In this phase, we register validators as operators in EigenLayer and sync the validator set to the DataHaven chain. This process is split into three distinct steps, each of which can be run independently:
 
 ### Steps
 
-1. **Register Operators in EigenLayer and as Validators in the DataHaven service**
+1. **Fund Validators with Tokens**
+   - Use `fund-validators.ts` script to fund validators with necessary tokens
+   - Transfers 5% of creator's tokens to each validator
+   - Transfers 1% of creator's ETH to validators with zero balance
+   - Ensures validators have sufficient funds for operations
 
-   - Use SignUpValidator.s.sol script to register validators
-     - Deposit stake and register for operator sets
-   - Set up the validator set in the Ethereum side
+2. **Register Operators in EigenLayer**
+   - Use `setup-validators.ts` script to register validators
+   - Deposits stake and registers for operator sets
+   - Sets up the validator set in the Ethereum side
+   - Configures validator addresses and permissions
 
-2. **Sync Validator Set to DataHaven**
-   - Use the `sendNewValidatorSet` function in the DataHavenServiceManager contract
-   - This function fetches the operator set from EigenLayer and sends it through the Snowbridge Gateway to update it in the DataHaven solochain
+3. **Sync Validator Set to DataHaven**
+   - Use `update-validator-set.ts` script to sync validators
+   - Calls `sendNewValidatorSet` function in the DataHavenServiceManager contract
+   - Sends validator set through Snowbridge Gateway to DataHaven solochain
+   - Updates validator set on the substrate chain
 
 ### Key Commands
 
+Each script can be run independently and has its own configuration options. The scripts are designed to be idempotent, meaning they can be run multiple times safely.
+
 ```bash
-# Register validators
-cd contracts
-forge script script/transact/SignUpValidator.s.sol --rpc-url <RPC_URL> --broadcast
+# Fund validators with tokens
+bun run test/scripts/fund-validators.ts --rpc-url <RPC_URL> [--config <CONFIG_PATH>] [--network <NETWORK_NAME>] [--deployment-path <DEPLOYMENT_PATH>]
+
+# Register validators in EigenLayer
+bun run test/scripts/setup-validators.ts --rpc-url <RPC_URL> [--config <CONFIG_PATH>] [--network <NETWORK_NAME>] [--deployment-path <DEPLOYMENT_PATH>] [--signup] [--no-signup]
 
 # Sync validator set to DataHaven
-cast send --private-key <ownerPrivateKey> --value <executionFee + relayerFee> <DataHavenServiceManagerAddress> "sendNewValidatorSet(uint128,uint128)" <executionFee> <relayerFee> --rpc-url <RPC_URL>;
+bun run test/scripts/update-validator-set.ts --rpc-url <RPC_URL>
 ```
+
+### CLI Options
+
+Each script supports various command-line options:
+
+- `--rpc-url`: (Required) The RPC URL to connect to
+- `--config`: (Optional) Path to JSON config file with validator addresses
+- `--network`: (Optional) Network name for default deployment path (defaults to "anvil")
+- `--deployment-path`: (Optional) Custom deployment path
+- `--signup`/`--no-signup`: (Optional) For setup-validators.ts, explicitly enable/disable validator registration
+
+If a step fails, you can simply rerun that specific script without needing to restart the entire process. The scripts are designed to handle partial completion and can be safely rerun.
 
 ## Specific integration tests (TODO)
 

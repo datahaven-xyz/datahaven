@@ -77,7 +77,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
   }
 
   // Load and validate the validator configuration
-  logger.info(`Loading validator configuration from ${configPath}`);
+  logger.debug(`Loading validator configuration from ${configPath}`);
   let config: ValidatorConfig;
 
   try {
@@ -135,7 +135,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     // Prepare command to register validator
     const signupCommand = `${forgeExecutable} script script/transact/SignUpValidator.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
 
-    logger.info(`Running command: ${signupCommand}`);
+    logger.debug(`Running command: ${signupCommand}`);
 
     // Run with environment variables directly passed to the environment
     const { exitCode, stderr } = await $`sh -c ${signupCommand}`

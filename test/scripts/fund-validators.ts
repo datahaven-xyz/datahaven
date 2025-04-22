@@ -67,7 +67,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   }
 
   // Load and validate the validator configuration
-  logger.info(`Loading validator configuration from ${configPath}`);
+  logger.debug(`Loading validator configuration from ${configPath}`);
   let config: ValidatorConfig;
 
   try {
@@ -124,7 +124,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     return false;
   }
 
-  logger.info(`Found ${deployments.DeployedStrategies.length} strategies with token information`);
+  logger.debug(`Found ${deployments.DeployedStrategies.length} strategies with token information`);
 
   // We need to ensure all operators to be registered have the necessary tokens
   logger.info("Funding validators with tokens...");
@@ -135,7 +135,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     const underlyingTokenAddress = strategy.underlyingToken;
     const tokenCreator = strategy.tokenCreator;
 
-    logger.info(
+    logger.debug(
       `Processing strategy ${strategyAddress} with token ${underlyingTokenAddress} created by ${tokenCreator}`
     );
 
@@ -148,7 +148,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     }
 
     const creatorPrivateKey = creatorValidator.privateKey;
-    logger.info(`Found token creator's private key for address ${tokenCreator}`);
+    logger.debug(`Found token creator's private key for address ${tokenCreator}`);
 
     // Get the ERC20 balance of the token creator and its ETH balance as well
     const getErc20BalanceCmd = `${castExecutable} balance --erc20 ${underlyingTokenAddress} ${tokenCreator} --rpc-url ${rpcUrl}`;
@@ -157,12 +157,12 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     const { stdout: ethBalanceOutput } = await $`sh -c ${getEthBalanceCmd}`.quiet();
     const creatorErc20Balance = erc20BalanceOutput.toString().trim().split(" ")[0];
     const creatorEthBalance = ethBalanceOutput.toString().trim();
-    logger.info(`Token creator has ${creatorErc20Balance} tokens and ${creatorEthBalance} ETH`);
+    logger.debug(`Token creator has ${creatorErc20Balance} tokens and ${creatorEthBalance} ETH`);
 
     // Transfer 5% of the creator's tokens to each validator + 1% of the creator's ETH. ETH is transferred only if the receiving validator does not have any
     const erc20TransferAmount = BigInt(creatorErc20Balance) / BigInt(20); // 5% of the balance
     const ethTransferAmount = BigInt(creatorEthBalance) / BigInt(100); // 1% of the balance
-    logger.info(`Transferring ${erc20TransferAmount} tokens to each validator`);
+    logger.debug(`Transferring ${erc20TransferAmount} tokens to each validator`);
 
     for (const validator of validators) {
       if (validator.publicKey !== tokenCreator) {
@@ -195,7 +195,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
         const { stdout: validatorEthBalanceOutput } =
           await $`sh -c ${validatorEthBalanceCmd}`.quiet();
         const validatorEthBalance = validatorEthBalanceOutput.toString().trim();
-        logger.info(`Validator ${validator.publicKey} has ${validatorEthBalance} ETH`);
+        logger.debug(`Validator ${validator.publicKey} has ${validatorEthBalance} ETH`);
 
         // Transfer ETH only if the validator has no ETH
         if (BigInt(validatorEthBalance) === BigInt(0)) {

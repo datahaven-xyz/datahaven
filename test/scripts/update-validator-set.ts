@@ -54,7 +54,7 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
 
   const sendCommand = `${castExecutable} send --private-key ${ownerPrivateKey} --value ${value} ${serviceManagerAddress} "sendNewValidatorSet(uint128,uint128)" ${executionFee} ${relayerFee} --rpc-url ${rpcUrl}`;
 
-  logger.info(`Running command: ${sendCommand}`);
+  logger.debug(`Running command: ${sendCommand}`);
 
   const { exitCode, stderr } = await $`sh -c ${sendCommand}`.nothrow();
 
@@ -66,7 +66,7 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   logger.success("Validator set sent to Snowbridge Gateway");
 
   // Check if the validator set has been queued on the substrate side (placeholder)
-  logger.info("Checking validator set on substrate chain (not implemented)");
+  logger.debug("Checking validator set on substrate chain (not implemented)");
   /*
   // PLACEHOLDER: Code to check if validator set has been queued on substrate
   // This requires a connection to the DataHaven substrate node which is not available yet

@@ -23,16 +23,8 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-// Local module imports
-use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
-    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
-    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
-    UNIT, VERSION,
-};
-// Substrate and Polkadot dependencies
+mod runtime_params;
+
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
@@ -53,8 +45,10 @@ use frame_support::{
         IdentityFee, Weight,
     },
 };
-use frame_system::limits::{BlockLength, BlockWeights};
-use frame_system::EnsureRoot;
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureRoot,
+};
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -69,8 +63,10 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_inbound_queue_primitives::RewardLedger;
-use sp_consensus_beefy::mmr::BeefyDataProvider;
-use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
+use sp_consensus_beefy::{
+    ecdsa_crypto::AuthorityId as BeefyId,
+    mmr::{BeefyDataProvider, MmrLeafVersion},
+};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
 use sp_runtime::{
     traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
@@ -82,6 +78,16 @@ use sp_std::{
     prelude::*,
 };
 use sp_version::RuntimeVersion;
+
+use super::{
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
+    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
+    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
+    UNIT, VERSION,
+};
+use runtime_params::RuntimeParameters;
 
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
@@ -316,6 +322,13 @@ impl pallet_multisig::Config for Runtime {
     type DepositBase = DepositBase;
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
+    type WeightInfo = ();
+}
+
+impl pallet_parameters::Config for Runtime {
+    type AdminOrigin = EnsureRoot<AccountId>;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeParameters = RuntimeParameters;
     type WeightInfo = ();
 }
 
@@ -630,12 +643,6 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type WeightInfo = ();
 }
 
-// Define the gateway address parameter
-// TODO: Turn this into a runtime parameter
-parameter_types! {
-    pub EthereumGatewayAddress: H160 = H160::repeat_byte(0x42);
-}
-
 parameter_types! {
     pub DefaultRewardKind: () = ();
 }
@@ -651,7 +658,7 @@ impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
-    type GatewayAddress = EthereumGatewayAddress;
+    type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;

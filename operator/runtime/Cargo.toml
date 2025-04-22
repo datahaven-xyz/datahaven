@@ -44,6 +44,7 @@ pallet-im-online = { workspace = true }
 pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
+pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
@@ -114,6 +115,7 @@ std = [
     "pallet-mmr/std",
     "pallet-multisig/std",
     "pallet-offences/std",
+    "pallet-parameters/std",
     "pallet-preimage/std",
     "pallet-scheduler/std",
     "pallet-session/std",
@@ -169,6 +171,7 @@ runtime-benchmarks = [
     "pallet-mmr/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
+    "pallet-parameters/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
@@ -202,6 +205,7 @@ try-runtime = [
     "pallet-mmr/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-offences/try-runtime",
+    "pallet-parameters/try-runtime",
     "pallet-preimage/try-runtime",
     "pallet-scheduler/try-runtime",
     "pallet-session/try-runtime",

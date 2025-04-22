@@ -47,10 +47,9 @@ use snowbridge_inbound_queue_primitives::{
     EventProof, RewardLedger, VerificationError, Verifier,
 };
 use sp_core::H160;
-use sp_runtime::traits::TryConvert;
 use sp_runtime::traits::Zero;
 use sp_std::prelude::*;
-use xcm::prelude::{ExecuteXcm, Junction::*, Location, SendXcm, *};
+use xcm::prelude::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 use {snowbridge_beacon_primitives::BeaconHeader, sp_core::H256};
@@ -83,17 +82,9 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The verifier for inbound messages from Ethereum.
         type Verifier: Verifier;
-        /// XCM message sender.
-        type XcmSender: SendXcm;
-        /// Handler for XCM fees.
-        type XcmExecutor: ExecuteXcm<Self::RuntimeCall>;
         /// Address of the Gateway contract.
         #[pallet::constant]
         type GatewayAddress: Get<H160>;
-        /// AssetHub parachain ID.
-        type AssetHubParaId: Get<u32>;
-        /// Convert a command from Ethereum to an XCM message.
-        type MessageConverter: ConvertMessage;
         /// Process the message that was submitted
         type MessageProcessor: MessageProcessor<Self::AccountId>;
         #[cfg(feature = "runtime-benchmarks")]
@@ -105,8 +96,6 @@ pub mod pallet {
         type DefaultRewardKind: Get<Self::RewardKind>;
         /// Relayer reward payment.
         type RewardPayment: RewardLedger<Self::AccountId, Self::RewardKind, u128>;
-        /// AccountId to Location converter
-        type AccountToLocation: for<'a> TryConvert<&'a Self::AccountId, Location>;
         type WeightInfo: WeightInfo;
     }
 
@@ -210,7 +199,7 @@ pub mod pallet {
             let message =
                 Message::try_from(&event.event_log).map_err(|_| Error::<T>::InvalidMessage)?;
 
-            T::MessageProcessor::process_message(who, message)
+            Self::process_message(who, message)
         }
 
         /// Halt or resume all pallet operations. May only be called by root.
@@ -240,18 +229,10 @@ pub mod pallet {
             // Verify the message has not been processed
             ensure!(!Nonce::<T>::get(nonce.into()), Error::<T>::InvalidNonce);
 
-            let xcm =
-                T::MessageConverter::convert(message).map_err(|error| Error::<T>::from(error))?;
+            // Process message
+            let message_id = T::MessageProcessor::process_message(relayer.clone(), message)?;
 
-            // Forward XCM to AH
-            let dest = Location::new(1, [Parachain(T::AssetHubParaId::get())]);
-            let message_id =
-				Self::send_xcm(dest.clone(), &relayer, xcm.clone()).map_err(|error| {
-					tracing::error!(target: LOG_TARGET, ?error, ?dest, ?xcm, "XCM send failed with error");
-					Error::<T>::from(error)
-				})?;
-
-            // Pay relayer reward
+            // Pay relayer reward if needed
             if !relayer_fee.is_zero() {
                 T::RewardPayment::register_reward(
                     &relayer,
@@ -263,34 +244,10 @@ pub mod pallet {
             // Mark message as received
             Nonce::<T>::set(nonce.into());
 
+            // Emit event with the message_id
             Self::deposit_event(Event::MessageReceived { nonce, message_id });
 
             Ok(())
-        }
-
-        fn send_xcm(
-            dest: Location,
-            fee_payer: &T::AccountId,
-            xcm: Xcm<()>,
-        ) -> Result<XcmHash, SendError> {
-            let (ticket, fee) = validate_send::<T::XcmSender>(dest, xcm)?;
-            let fee_payer = T::AccountToLocation::try_convert(fee_payer).map_err(|err| {
-                tracing::error!(
-                    target: LOG_TARGET,
-                    ?err,
-                    "Failed to convert account to XCM location",
-                );
-                SendError::NotApplicable
-            })?;
-            T::XcmExecutor::charge_fees(fee_payer.clone(), fee.clone()).map_err(|error| {
-                tracing::error!(
-                    target: LOG_TARGET,
-                    ?error,
-                    "Charging fees failed with error",
-                );
-                SendError::Fees
-            })?;
-            T::XcmSender::deliver(ticket)
         }
     }
 }

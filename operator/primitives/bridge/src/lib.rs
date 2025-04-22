@@ -56,7 +56,10 @@ where
         }
     }
 
-    fn process_message(_who: AccountId, message: SnowbridgeMessage) -> Result<(), DispatchError> {
+    fn process_message(
+        _who: AccountId,
+        message: SnowbridgeMessage,
+    ) -> Result<[u8; 32], DispatchError> {
         let payload = match &message.xcm {
             snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,
             snowbridge_inbound_queue_primitives::v2::Payload::CreateAsset {
@@ -77,7 +80,9 @@ where
                     RawOrigin::Root.into(),
                     validators,
                 )?;
-                Ok(())
+                let mut id = [0u8; 32];
+                id[..EL_MESSAGE_ID.len()].copy_from_slice(&EL_MESSAGE_ID);
+                Ok(id)
             }
         }
     }

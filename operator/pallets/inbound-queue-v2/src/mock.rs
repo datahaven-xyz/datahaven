@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 use super::*;
 
-use crate::{self as inbound_queue_v2, message_processors::DefaultMessageProcessor};
+use crate::{self as inbound_queue_v2, message_processors::XcmMessageProcessor};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
-use frame_support::{derive_impl, dispatch::DispatchResult, parameter_types, traits::ConstU32};
+use frame_support::{derive_impl, parameter_types, traits::ConstU32};
 use hex_literal::hex;
 use scale_info::TypeInfo;
 use snowbridge_beacon_primitives::{
@@ -14,8 +14,8 @@ use snowbridge_core::TokenId;
 use snowbridge_inbound_queue_primitives::{v2::MessageToXcm, Log, Proof, VerificationError};
 use sp_core::H160;
 use sp_runtime::{
-    traits::{IdentityLookup, MaybeEquivalence},
-    BuildStorage,
+    traits::{IdentityLookup, MaybeEquivalence, TryConvert},
+    BuildStorage, DispatchError,
 };
 use sp_std::{convert::From, default::Default, marker::PhantomData};
 use xcm::{opaque::latest::WESTEND_GENESIS_HASH, prelude::*};
@@ -145,7 +145,7 @@ impl MessageProcessor<AccountId> for DummyPrefix {
         false
     }
 
-    fn process_message(_who: AccountId, _message: Message) -> DispatchResult {
+    fn process_message(_who: AccountId, _message: Message) -> Result<[u8; 32], DispatchError> {
         panic!("DummyPrefix::process_message shouldn't be called");
     }
 }
@@ -157,7 +157,7 @@ impl MessageProcessor<AccountId> for DummySuffix {
         true
     }
 
-    fn process_message(_who: AccountId, _message: Message) -> DispatchResult {
+    fn process_message(_who: AccountId, _message: Message) -> Result<[u8; 32], DispatchError> {
         panic!("DummySuffix::process_message shouldn't be called");
     }
 }
@@ -165,27 +165,32 @@ impl MessageProcessor<AccountId> for DummySuffix {
 impl inbound_queue_v2::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = MockVerifier;
-    type XcmSender = MockXcmSender;
-    type XcmExecutor = MockXcmExecutor;
     type RewardPayment = ();
     type GatewayAddress = GatewayAddress;
-    type AssetHubParaId = ConstU32<1000>;
-    type MessageConverter = MessageToXcm<
-        CreateAssetCall,
-        CreateAssetDeposit,
-        EthereumNetwork,
-        InboundQueueLocation,
-        MockTokenIdConvert,
-        GatewayAddress,
-        UniversalLocation,
-        AssetHubFromEthereum,
-    >;
-    // Passively test that the implementation of MessageProcessor trait works correctly for tuple
-    type MessageProcessor = (DummyPrefix, DefaultMessageProcessor<Test>, DummySuffix);
+    type MessageProcessor = (
+        DummyPrefix,
+        XcmMessageProcessor<
+            Test,
+            MockXcmSender,
+            MockXcmExecutor,
+            MessageToXcm<
+                CreateAssetCall,
+                CreateAssetDeposit,
+                EthereumNetwork,
+                InboundQueueLocation,
+                MockTokenIdConvert,
+                GatewayAddress,
+                UniversalLocation,
+                AssetHubFromEthereum,
+            >,
+            MockAccountLocationConverter<AccountId>,
+            ConstU32<1000>,
+        >,
+        DummySuffix,
+    );
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Test;
     type WeightInfo = ();
-    type AccountToLocation = MockAccountLocationConverter<AccountId>;
     type RewardKind = BridgeReward;
     type DefaultRewardKind = SnowbridgeReward;
 }

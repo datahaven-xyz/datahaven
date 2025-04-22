@@ -67,6 +67,13 @@ struct ServiceManagerInitParams {
     address gateway;
 }
 
+// Struct to store more detailed strategy information
+struct StrategyInfo {
+    address address_;
+    address underlyingToken;
+    address tokenCreator;
+}
+
 contract Deploy is Script, DeployParams, Accounts {
     // Progress indicator
     uint16 public deploymentStep = 0;
@@ -91,7 +98,7 @@ contract Deploy is Script, DeployParams, Accounts {
     UpgradeableBeacon public eigenPodBeacon;
     EigenPod public eigenPodImplementation;
     StrategyBaseTVLLimits public baseStrategyImplementation;
-    StrategyBaseTVLLimits[] public deployedStrategies;
+    StrategyInfo[] public deployedStrategies;
     IETHPOSDeposit public ethPOSDeposit;
 
     // EigenLayer required semver
@@ -542,14 +549,21 @@ contract Deploy is Script, DeployParams, Accounts {
                 )
             );
 
-            deployedStrategies.push(strategy);
+            // Store the strategy with its token information
+            deployedStrategies.push(
+                StrategyInfo({
+                    address_: address(strategy),
+                    underlyingToken: testToken,
+                    tokenCreator: _operator
+                })
+            );
             Logging.logContractDeployed("Test Strategy", address(strategy));
         }
 
         // Whitelist strategies in the strategy manager
         IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            strategies[i] = IStrategy(deployedStrategies[i]);
+            strategies[i] = IStrategy(deployedStrategies[i].address_);
         }
         vm.broadcast(_operationsMultisigPrivateKey);
         strategyManager.addStrategiesToDepositWhitelist(strategies);
@@ -640,7 +654,7 @@ contract Deploy is Script, DeployParams, Accounts {
         );
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             Logging.logContractDeployed(
-                string.concat("DeployedStrategy", vm.toString(i)), address(deployedStrategies[i])
+                string.concat("DeployedStrategy", vm.toString(i)), deployedStrategies[i].address_
             );
         }
 
@@ -695,12 +709,27 @@ contract Deploy is Script, DeployParams, Accounts {
             vm.toString(address(baseStrategyImplementation)),
             '"'
         );
+
+        // Add strategies with token information
         if (deployedStrategies.length > 0) {
             json = string.concat(json, ",");
             json = string.concat(json, '"DeployedStrategies": [');
 
             for (uint256 i = 0; i < deployedStrategies.length; i++) {
-                json = string.concat(json, '"', vm.toString(address(deployedStrategies[i])), '"');
+                json = string.concat(json, "{");
+                json = string.concat(
+                    json, '"address": "', vm.toString(deployedStrategies[i].address_), '",'
+                );
+                json = string.concat(
+                    json,
+                    '"underlyingToken": "',
+                    vm.toString(deployedStrategies[i].underlyingToken),
+                    '",'
+                );
+                json = string.concat(
+                    json, '"tokenCreator": "', vm.toString(deployedStrategies[i].tokenCreator), '"'
+                );
+                json = string.concat(json, "}");
 
                 // Add comma if not the last element
                 if (i < deployedStrategies.length - 1) {
@@ -814,16 +843,16 @@ contract Deploy is Script, DeployParams, Accounts {
 
     function _prepareStrategiesForServiceManager(
         AVSConfig memory config,
-        StrategyBaseTVLLimits[] memory strategies
+        StrategyInfo[] memory strategies
     ) internal pure {
         if (config.validatorsStrategies.length == 0) {
             config.validatorsStrategies = new address[](strategies.length);
             config.bspsStrategies = new address[](strategies.length);
             config.mspsStrategies = new address[](strategies.length);
             for (uint256 i = 0; i < strategies.length; i++) {
-                config.validatorsStrategies[i] = address(strategies[i]);
-                config.bspsStrategies[i] = address(strategies[i]);
-                config.mspsStrategies[i] = address(strategies[i]);
+                config.validatorsStrategies[i] = strategies[i].address_;
+                config.bspsStrategies[i] = strategies[i].address_;
+                config.mspsStrategies[i] = strategies[i].address_;
             }
         }
     }

@@ -31,7 +31,7 @@ use super::{
 };
 // External crates imports
 use crate::configs::BABE_GENESIS_EPOCH_CONFIG;
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use codec::Encode;
 use datahaven_runtime_common::time::EpochDurationInBlocks;
 use fp_rpc::TransactionStatus;
@@ -510,7 +510,7 @@ impl_runtime_apis! {
         #[expect(non_local_definitions)]
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, String> {
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;

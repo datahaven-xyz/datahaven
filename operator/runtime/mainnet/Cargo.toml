@@ -3,10 +3,10 @@ name = "datahaven-mainnet-runtime"
 description = "DataHaven Mainnet runtime"
 version = "0.1.0"
 license = "Unlicense"
-authors.workspace = true
-homepage.workspace = true
-repository.workspace = true
-edition.workspace = true
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+edition = { workspace = true }
 publish = false
 
 [package.metadata.docs.rs]
@@ -14,6 +14,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { features = ["derive"], workspace = true }
+dhp-bridge = { workspace = true }
 datahaven-runtime-common = { workspace = true }
 fp-account = { workspace = true, features = ["serde"] }
 fp-evm = { workspace = true, features = ["serde"] }
@@ -23,9 +24,9 @@ frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
 frame-support = { features = ["experimental"], workspace = true }
+frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
-frame-system = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
@@ -57,7 +58,10 @@ polkadot-runtime-common = { workspace = true }
 scale-info = { features = ["derive", "serde"], workspace = true }
 serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 snowbridge-beacon-primitives = { workspace = true }
+snowbridge-inbound-queue-primitives = { workspace = true }
 snowbridge-pallet-ethereum-client = { workspace = true }
+snowbridge-pallet-inbound-queue-v2 = { workspace = true }
+snowbridge-verification-primitives = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
 sp-consensus-babe = { features = ["serde"], workspace = true }
@@ -75,6 +79,9 @@ sp-std = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { features = ["serde"], workspace = true }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
@@ -121,7 +128,12 @@ std = [
     "scale-info/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",
+    "snowbridge-inbound-queue-primitives/std",
     "snowbridge-pallet-ethereum-client/std",
+    "snowbridge-pallet-inbound-queue-v2/std",
+    "dhp-bridge/std",
+    "snowbridge-verification-primitives/std",
+
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-babe/std",
@@ -167,7 +179,10 @@ runtime-benchmarks = [
     "pallet-utility/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+    "snowbridge-inbound-queue-primitives/runtime-benchmarks",
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
+    "snowbridge-pallet-inbound-queue-v2/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
 ]
 
@@ -199,6 +214,7 @@ try-runtime = [
     "pallet-utility/try-runtime",
     "polkadot-runtime-common/try-runtime",
     "snowbridge-pallet-ethereum-client/try-runtime",
+    "snowbridge-pallet-inbound-queue-v2/try-runtime",
     "sp-runtime/try-runtime",
 ]
 

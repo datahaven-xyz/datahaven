@@ -16,3 +16,7 @@ target/
 
 # cspell
 cspell.json
+
+# macOS system files
+.DS_Store
+**/.DS_Store

@@ -25,11 +25,12 @@
 
 // Local module imports
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EvmChainId,
-    Hash, Historical, ImOnline, Nonce, Offences, OriginCaller, PalletInfo, Preimage, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
-    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
+    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
+    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
+    UNIT, VERSION,
 };
 // Substrate and Polkadot dependencies
 use codec::{Decode, Encode};
@@ -37,6 +38,7 @@ use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
 };
+use dhp_bridge::EigenLayerMessageProcessor;
 use frame_support::{
     derive_impl,
     pallet_prelude::TransactionPriority,
@@ -66,6 +68,7 @@ use pallet_transaction_payment::{
 };
 use polkadot_primitives::Moment;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
+use snowbridge_inbound_queue_primitives::RewardLedger;
 use sp_consensus_beefy::mmr::BeefyDataProvider;
 use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
@@ -625,4 +628,50 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type ForkVersions = ChainForkVersions;
     type FreeHeadersInterval = ();
     type WeightInfo = ();
+}
+
+// Define the gateway address parameter
+// TODO: Turn this into a runtime parameter
+parameter_types! {
+    pub EthereumGatewayAddress: H160 = H160::repeat_byte(0x42);
+}
+
+parameter_types! {
+    pub DefaultRewardKind: () = ();
+}
+
+// Dummy RewardPayment implementation
+pub struct DummyRewardPayment;
+impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
+    fn register_reward(_who: &AccountId, _reward: (), _amount: u128) {
+        // Empty implementation for dummy struct
+    }
+}
+
+impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Verifier = EthereumBeaconClient;
+    type GatewayAddress = EthereumGatewayAddress;
+    type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
+    type RewardKind = ();
+    type DefaultRewardKind = DefaultRewardKind;
+    type RewardPayment = DummyRewardPayment;
+    type WeightInfo = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = Runtime;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmark_helpers {
+    use crate::{EthereumBeaconClient, Runtime};
+    use snowbridge_beacon_primitives::BeaconHeader;
+    use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
+    // use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
+    use sp_core::H256;
+
+    impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
+        fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
+            EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+        }
+    }
 }

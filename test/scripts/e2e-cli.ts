@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import chalk from "chalk";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "utils";
+import { logger, printDivider, printHeader, startRelayer } from "utils";
 import { deployContracts } from "./deploy-contracts";
 import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
 import { launchKurtosis } from "./launch-kurtosis";
@@ -111,6 +111,7 @@ async function main() {
   if (options.relayer) {
     printHeader("Starting Snowbridge Relayers");
 
+    // TODO - Replace this with our forked iamge when ready
     const dockerImage = "ronyang/snowbridge-relay";
     logger.info(`Pulling docker image ${dockerImage}`);
 
@@ -141,6 +142,18 @@ async function main() {
 
     // TODO - Start Relayers here
     // For each relayer in array spawn in background relayer with appropriate private key, command and config param
+    const relayersToStart = [
+      {
+        name: "relayer-1",
+        type: "beefy",
+        config: "beefy-relay.json"
+      }
+    ];
+
+    for (const relayer of relayersToStart) {
+      // await startRelayer(relayer.name, relayer.type, relayer.config)
+      await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+    }
   }
 }
 

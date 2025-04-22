@@ -1,22 +1,21 @@
 {
     "source": {
         "polkadot": {
-            "endpoint": ""
+            "endpoint": "ws://127.0.0.1:9944"
         }
     },
     "sink": {
         "ethereum": {
-            "endpoint": "ws://127.0.0.1:8546",
+            "endpoint": "ws://127.0.0.1:32782",
             "gas-limit": ""
         },
         "descendants-until-final": 3,
         "contracts": {
-            "BeefyClient": "",
-            "Gateway": ""
+            "BeefyClient": "0x9d4454B023096f34B160D6B654540c56A1F81688",
+            "Gateway": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570"
         }
     },
     "on-demand-sync": {
-        "asset-hub-channel-id": "0x0000000000000000000000000000000000000000000000000000000000000001",
         "max-tokens": 5,
         "refill-amount": 1,
         "refill-period": 3600

@@ -1,8 +1,8 @@
 {
     "source": {
         "beacon": {
-            "endpoint": "http://127.0.0.1:9596",
-            "stateEndpoint": "http://127.0.0.1:9596",
+            "endpoint": "http://127.0.0.1:32791",
+            "stateEndpoint": "http://127.0.0.1:32791",
             "spec": {
                 "syncCommitteeSize": 512,
                 "slotsInEpoch": 32,
@@ -13,14 +13,14 @@
                 }
             },
             "datastore": {
-                "location": "",
+                "location": "/home/timbo/workspace/moonsong/datahaven/test/tmp/facu-test",
                 "maxEntries": 100
             }
         }
     },
     "sink": {
         "parachain": {
-            "endpoint": "",
+            "endpoint": "ws://127.0.0.1:9944",
             "maxWatchedExtrinsics": 8,
             "headerRedundancy": 20
         },

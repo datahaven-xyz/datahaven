@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import chalk from "chalk";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader, promptWithTimeout, startRelayer } from "utils";
+import { logger, printDivider, printHeader, promptWithTimeout } from "utils";
 import { deployContracts } from "./deploy-contracts";
 import { fundValidators } from "./fund-validators";
 import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
@@ -237,7 +237,6 @@ async function main() {
     ];
 
     for (const relayer of relayersToStart) {
-      // await startRelayer(relayer.name, relayer.type, relayer.config)
       await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
     }
   }

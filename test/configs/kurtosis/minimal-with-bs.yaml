@@ -3,7 +3,7 @@
 # (https://github.com/ethpandaops/ethereum-package)
 #
 # Purpose: Sets up a minimal Ethereum testnet with multiple execution and consensus clients
-# Usage: kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/minimal.yaml
+# Usage: kurtosis run github.com/ethpandaops/ethereum-package --args-file configs/kurtosis/minimal-with-bs.yaml
 
 participants:
   - el_type: reth

@@ -4,19 +4,21 @@ import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader, promptWithTimeout } from "utils";
 import { deployContracts } from "./deploy-contracts";
 import { fundValidators } from "./fund-validators";
+import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
 import { launchKurtosis } from "./launch-kurtosis";
 import sendTxn from "./send-txn";
 import { setupValidators } from "./setup-validators";
 import { updateValidatorSet } from "./update-validator-set";
 
 interface ScriptOptions {
-  verified: boolean;
+  verified?: boolean;
   launchKurtosis?: boolean;
   deployContracts?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
   updateValidatorSet?: boolean;
   blockscout?: boolean;
+  relayer?: boolean;
   help?: boolean;
 }
 
@@ -25,15 +27,16 @@ async function main() {
 
   // Parse command-line arguments
   const options: ScriptOptions = {
-    verified: args.includes("--verified"),
+    verified: parseFlag(args, "verified"),
     launchKurtosis: parseFlag(args, "launchKurtosis"),
     deployContracts: parseFlag(args, "deploy-contracts"),
     fundValidators: parseFlag(args, "fund-validators"),
     setupValidators: parseFlag(args, "setup-validators"),
     updateValidatorSet: parseFlag(args, "update-validator-set"),
     blockscout: parseFlag(args, "blockscout"),
+    relayer: parseFlag(args, "relayer"),
     help: args.includes("--help") || args.includes("-h")
-  };
+  } satisfies ScriptOptions;
 
   // Show help menu if requested
   if (options.help) {
@@ -189,6 +192,53 @@ async function main() {
     logger.warn(
       "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
     );
+  }
+
+  if (options.relayer) {
+    printHeader("Starting Snowbridge Relayers");
+
+    // TODO - Replace this with our forked iamge when ready
+    const dockerImage = "ronyang/snowbridge-relay";
+    logger.info(`Pulling docker image ${dockerImage}`);
+
+    const { stdout, stderr, exitCode } =
+      await $`sh -c docker pull --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+
+    if (exitCode !== 0) {
+      logger.error(`Failed to pull docker image ${dockerImage}: ${stderr.toString()}`);
+      throw Error("❌ Failed to pull docker image");
+    }
+    logger.debug(stdout.toString());
+
+    const {
+      stdout: stdout2,
+      stderr: stderr2,
+      exitCode: exitCode2
+    } = await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+
+    if (exitCode2 !== 0) {
+      logger.error(`Failed to run docker image ${dockerImage}: ${stderr2.toString()}`);
+      throw Error("❌ Failed to run docker image");
+    }
+    logger.debug(stdout2.toString());
+
+    logger.info("Preparing to generate configs");
+    await generateSnowbridgeConfigs();
+    logger.success("Snowbridge configs generated");
+
+    // TODO - Start Relayers here
+    // For each relayer in array spawn in background relayer with appropriate private key, command and config param
+    const relayersToStart = [
+      {
+        name: "relayer-1",
+        type: "beefy",
+        config: "beefy-relay.json"
+      }
+    ];
+
+    for (const relayer of relayersToStart) {
+      await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+    }
   }
 }
 

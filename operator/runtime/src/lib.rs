@@ -260,6 +260,10 @@ mod runtime {
     #[runtime::pallet_index(6)]
     pub type Historical = pallet_session::historical;
 
+    // Validator set must be before Session.
+    #[runtime::pallet_index(7)]
+    pub type ValidatorSet = pallet_validator_set;
+
     #[runtime::pallet_index(8)]
     pub type Session = pallet_session;
 
@@ -324,8 +328,11 @@ mod runtime {
     pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
     // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
 
+    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
+    // Start with index 60
+    // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
+
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
-    #[runtime::pallet_index(100)]
-    pub type ValidatorSet = pallet_validator_set;
+    // Start with index 100
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }

@@ -250,6 +250,18 @@ impl pallet_session::Config for Runtime {
 }
 
 parameter_types! {
+    pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
+}
+
+impl pallet_validator_set::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type AddRemoveOrigin = EnsureRoot<AccountId>;
+    type MaxAuthorities = MaxAuthorities;
+    type SetKeysCooldownBlocks = SetKeysCooldownBlocks;
+    type WeightInfo = pallet_validator_set::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
     pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
 }
 
@@ -682,18 +694,6 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 //║                                    DATAHAVEN-SPECIFIC PALLETS                                                 ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-
-parameter_types! {
-    pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
-}
-
-impl pallet_validator_set::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type AddRemoveOrigin = EnsureRoot<AccountId>;
-    type MaxAuthorities = MaxAuthorities;
-    type SetKeysCooldownBlocks = SetKeysCooldownBlocks;
-    type WeightInfo = pallet_validator_set::weights::SubstrateWeight<Runtime>;
-}
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {

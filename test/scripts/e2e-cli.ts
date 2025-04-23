@@ -1,16 +1,10 @@
 import { $ } from "bun";
 import chalk from "chalk";
 import invariant from "tiny-invariant";
-import {
-  logger,
-  printDivider,
-  printHeader,
-  startRelayer,
-  promptWithTimeout
-} from "utils";
+import { logger, printDivider, printHeader, promptWithTimeout, startRelayer } from "utils";
 import { deployContracts } from "./deploy-contracts";
-import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
 import { fundValidators } from "./fund-validators";
+import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
 import { launchKurtosis } from "./launch-kurtosis";
 import sendTxn from "./send-txn";
 import { setupValidators } from "./setup-validators";

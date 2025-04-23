@@ -2414,7 +2414,9 @@ dependencies = [
  "serde_json",
  "snowbridge-beacon-primitives",
  "snowbridge-inbound-queue-primitives",
+ "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
+ "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2",
  "snowbridge-pallet-outbound-queue-v2",
@@ -11813,6 +11815,21 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+]
+
+[[package]]
+name = "snowbridge-outbound-queue-v2-runtime-api"
+version = "0.2.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "snowbridge-core",
+ "snowbridge-merkle-tree",
+ "snowbridge-outbound-queue-primitives",
+ "sp-api",
+ "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]

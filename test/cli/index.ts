@@ -2,6 +2,8 @@ import { Command } from "@commander-js/extra-typings";
 import { logger } from "utils";
 
 const program = new Command()
+  .name("🫎  Datahaven")
+  .description("Network Launcher CLI")
   .option("-v, --verified", "Verify smart contracts with Blockscout", false)
   .option("-l, --launch-kurtosis", "Launch Kurtosis", true)
   .option("-d, --deploy-contracts", "Deploy smart contracts", false)
@@ -10,7 +12,8 @@ const program = new Command()
   .option("-s, --setup-validators", "Setup validators", true)
   .option("-u, --update-validator-set", "Update validator set", true)
   .option("-b, --blockscout", "Enable Blockscout", false)
-  .option("-r, --relayer", "Enable Relayer", true);
+  .option("-r, --relayer", "Enable Relayer", true)
+  .version("0.1.0");
 
 async function main() {
   const options = program.parse(Bun.argv);

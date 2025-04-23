@@ -1,0 +1,37 @@
+[package]
+name = "snowbridge-pallet-inbound-queue-v2-fixtures"
+description = "Snowbridge Inbound Queue Test Fixtures V2"
+version = "0.10.0"
+authors = ["Snowfork <contact@snowfork.com>"]
+edition.workspace = true
+repository.workspace = true
+license = "Apache-2.0"
+categories = ["cryptography::cryptocurrencies"]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[package.metadata.polkadot-sdk]
+exclude-from-umbrella = true
+
+[dependencies]
+hex-literal = { workspace = true, default-features = true }
+snowbridge-beacon-primitives = { workspace = true }
+snowbridge-core = { workspace = true }
+snowbridge-inbound-queue-primitives = { workspace = true }
+sp-core = { workspace = true }
+sp-std = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"snowbridge-beacon-primitives/std",
+	"snowbridge-core/std",
+	"snowbridge-inbound-queue-primitives/std",
+	"sp-core/std",
+	"sp-std/std",
+]
+runtime-benchmarks = [
+	"snowbridge-core/runtime-benchmarks",
+	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
+]

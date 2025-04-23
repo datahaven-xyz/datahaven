@@ -15,6 +15,10 @@ contract Accounts is Script {
         uint256(0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d) // Second pre-funded account from Anvil
     );
     address internal _operator = vm.addr(_operatorPrivateKey);
+    bytes32 internal _operatorSolochainAddress = vm.envOr(
+        "OPERATOR_SOLOCHAIN_ADDRESS",
+        bytes32(0x000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb92266) // Placeholder
+    );
 
     uint256 internal _executorMultisigPrivateKey = vm.envOr(
         "EXECUTOR_MULTISIG_PRIVATE_KEY",

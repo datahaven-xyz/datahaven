@@ -2394,6 +2394,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
+ "pallet-message-queue",
  "pallet-mmr",
  "pallet-multisig",
  "pallet-offences",

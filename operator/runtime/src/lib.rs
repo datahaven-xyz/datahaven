@@ -289,6 +289,9 @@ mod runtime {
     #[runtime::pallet_index(24)]
     pub type Multisig = pallet_multisig;
 
+    #[runtime::pallet_index(25)]
+    pub type MessageQueue = pallet_message_queue;
+
     // Frontier
     #[runtime::pallet_index(30)]
     pub type Ethereum = pallet_ethereum;

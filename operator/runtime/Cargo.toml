@@ -41,6 +41,7 @@ pallet-evm-chain-id = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
+pallet-message-queue = { workspace = true }
 pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
@@ -113,6 +114,7 @@ std = [
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
+    "pallet-message-queue/std",
     "pallet-mmr/std",
     "pallet-multisig/std",
     "pallet-offences/std",
@@ -170,6 +172,7 @@ runtime-benchmarks = [
     "pallet-grandpa/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
+    "pallet-message-queue/runtime-benchmarks",
     "pallet-mmr/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
@@ -204,6 +207,7 @@ try-runtime = [
     "pallet-grandpa/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",
+    "pallet-message-queue/try-runtime",
     "pallet-mmr/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-offences/try-runtime",

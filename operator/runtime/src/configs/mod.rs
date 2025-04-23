@@ -23,11 +23,13 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+use crate::OutboundQueueV2;
+
 // Local module imports
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
-    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
     RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
     Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
     UNIT, VERSION,
@@ -666,7 +668,7 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Hashing = Keccak256;
-    type MessageQueue = ();
+    type MessageQueue = MessageQueue;
     type GasMeter = ConstantGasMeter;
     type Balance = Balance;
     type MaxMessagePayloadSize = ConstU32<2048>;
@@ -680,6 +682,34 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RewardPayment = DummyRewardPayment;
     type EthereumNetwork = EthereumNetwork;
     type ConvertAssetId = ();
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    /// Amount of weight that can be spent per block to service messages.
+    ///
+    /// # WARNING
+    ///
+    /// This is not a good value for para-chains since the `Scheduler` already uses up to 80% block weight.
+    pub MessageQueueServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
+    pub const MessageQueueHeapSize: u32 = 32 * 1024;
+    pub const MessageQueueMaxStale: u32 = 96;
+}
+
+impl pallet_message_queue::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type MessageProcessor = OutboundQueueV2;
+    #[cfg(feature = "runtime-benchmarks")]
+    type MessageProcessor =
+        pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
+    type Size = u32;
+    type QueueChangeHandler = ();
+    type QueuePausedQuery = ();
+    type HeapSize = MessageQueueHeapSize;
+    type MaxStale = MessageQueueMaxStale;
+    type ServiceWeight = MessageQueueServiceWeight;
+    type IdleMaxServiceWeight = MessageQueueServiceWeight;
     type WeightInfo = ();
 }
 

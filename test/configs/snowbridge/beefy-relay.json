@@ -6,7 +6,7 @@
     },
     "sink": {
         "ethereum": {
-            "endpoint": "ws://127.0.0.1:32782",
+            "endpoint": "ws://127.0.0.1:32806",
             "gas-limit": ""
         },
         "descendants-until-final": 3,

@@ -91,6 +91,9 @@ use super::{
 };
 use runtime_params::RuntimeParameters;
 
+#[cfg(feature = "runtime-benchmarks")]
+use bridge_hub_common::AggregateMessageOrigin;
+
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 

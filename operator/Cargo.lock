@@ -2367,6 +2367,7 @@ dependencies = [
 name = "datahaven-runtime"
 version = "0.1.0"
 dependencies = [
+ "bridge-hub-common",
  "datahaven-runtime-common",
  "dhp-bridge",
  "fp-account",

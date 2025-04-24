@@ -3,14 +3,16 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "bin": {
+    "cli": "./cli/index.ts"
+  },
   "scripts": {
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
     "build:docker:relayer": "bun -e \"import build  from './scripts/snowbridge-relayer.ts'; build()\"",
     "generate:snowbridge-cfgs": "bun -e \"import {generateSnowbridgeConfigs} from './scripts/gen-snowbridge-cfgs.ts'; await generateSnowbridgeConfigs()\"",
-    "cli": "bun run cli/index.ts",
-    "start:e2e:verified": "bun run scripts/e2e-cli.ts --verified --blockscout",
-    "start:e2e:minimal": "bun run scripts/e2e-cli.ts",
+    "start:e2e:verified": "cli --verified --blockscout",
+    "start:e2e:minimal": "cli",
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
     "stop:e2e:verified": "bun stop:e2e",
     "stop:e2e:minimal": "bun stop:e2e",

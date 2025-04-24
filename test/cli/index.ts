@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { Command } from "@commander-js/extra-typings";
 import { launch, launchPreActionHook } from "./handlers";
 
@@ -11,7 +12,7 @@ const program = new Command()
   .option("-u, --update-validator-set", "Update validator set", true)
   .option("-b, --blockscout", "Enable Blockscout", false)
   .option("-v, --verified", "Verify smart contracts with Blockscout", false)
-  .option("-r, --relayer", "Enable Relayer", true)
+  .option("-r, --relayer", "Enable Relayer", false)
   .hook("preAction", launchPreActionHook)
   .action(launch);
 

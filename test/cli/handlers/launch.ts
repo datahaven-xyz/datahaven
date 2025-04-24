@@ -1,6 +1,14 @@
 import type { Command } from "@commander-js/extra-typings";
 import { $ } from "bun";
-import { logger, printHeader } from "utils";
+import { deployContracts } from "scripts/deploy-contracts";
+import { fundValidators } from "scripts/fund-validators";
+import { generateSnowbridgeConfigs } from "scripts/gen-snowbridge-cfgs";
+import { launchKurtosis } from "scripts/launch-kurtosis";
+import sendTxn from "scripts/send-txn";
+import { setupValidators } from "scripts/setup-validators";
+import { updateValidatorSet } from "scripts/update-validator-set";
+import invariant from "tiny-invariant";
+import { logger, printDivider, printHeader, promptWithTimeout } from "utils";
 
 interface LaunchOptions {
   verified?: boolean;
@@ -24,6 +32,197 @@ export const launch = async (options: LaunchOptions) => {
   printHeader("Environment Checks");
 
   await checkDependencies();
+
+  logger.trace("Launching Kurtosis enclave");
+  const { services } = await launchKurtosis({
+    launchKurtosis: options.launchKurtosis,
+    blockscout: options.blockscout
+  });
+  logger.trace("Kurtosis enclave launched");
+
+  logger.trace("Send test transaction");
+  printHeader("Setting Up Blockchain");
+  const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil test acc1
+  const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
+  invariant(networkRpcUrl, "❌ Network RPC URL not found");
+
+  logger.info("💸 Sending test transaction...");
+  await sendTxn(privateKey, networkRpcUrl);
+
+  printDivider();
+
+  logger.trace("Display service information in a clean table");
+  printHeader("Service Endpoints");
+
+  logger.trace("Filter services to display based on blockscout option");
+  const servicesToDisplay = services
+    .filter((s) => ["reth-1-rpc", "reth-2-rpc", "dora"].includes(s.service))
+    .concat([{ service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }]);
+
+  logger.trace("Conditionally add blockscout services");
+  if (options.blockscout !== false) {
+    const blockscoutBackend = services.find((s) => s.service === "blockscout-backend");
+    if (blockscoutBackend) {
+      servicesToDisplay.push(blockscoutBackend);
+      logger.trace("Adding blockscout frontend");
+      servicesToDisplay.push({ service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" });
+    }
+  }
+
+  console.table(servicesToDisplay);
+
+  printDivider();
+
+  logger.trace("Show completion information");
+  const timeEnd = performance.now();
+  const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
+
+  logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
+
+  printDivider();
+
+  logger.trace("Deploy contracts using the extracted function");
+  let blockscoutBackendUrl: string | undefined = undefined;
+
+  if (options.blockscout !== false) {
+    blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
+  } else if (options.verified) {
+    logger.warn(
+      "⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped."
+    );
+  }
+
+  const contractsDeployed = await deployContracts({
+    rpcUrl: networkRpcUrl,
+    verified: options.verified,
+    blockscoutBackendUrl,
+    deployContracts: options.deployContracts
+  });
+
+  logger.trace("Set up validators using the extracted function");
+  if (contractsDeployed) {
+    let shouldFundValidators = options.fundValidators;
+    let shouldSetupValidators = options.setupValidators;
+    let shouldUpdateValidatorSet = options.updateValidatorSet;
+
+    logger.trace("If not specified, prompt for funding");
+    if (shouldFundValidators === undefined) {
+      shouldFundValidators = await promptWithTimeout(
+        "Do you want to fund validators with tokens and ETH?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
+      );
+    }
+
+    logger.trace("If not specified, prompt for setup");
+    if (shouldSetupValidators === undefined) {
+      shouldSetupValidators = await promptWithTimeout(
+        "Do you want to register validators in EigenLayer?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
+      );
+    }
+
+    logger.trace("If not specified, prompt for update");
+    if (shouldUpdateValidatorSet === undefined) {
+      shouldUpdateValidatorSet = await promptWithTimeout(
+        "Do you want to update the validator set on the substrate chain?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+      );
+    }
+
+    if (shouldFundValidators) {
+      await fundValidators({
+        rpcUrl: networkRpcUrl
+      });
+    } else {
+      logger.info("Skipping validator funding");
+    }
+
+    if (shouldSetupValidators) {
+      await setupValidators({
+        rpcUrl: networkRpcUrl
+      });
+
+      if (shouldUpdateValidatorSet) {
+        await updateValidatorSet({
+          rpcUrl: networkRpcUrl
+        });
+      } else {
+        logger.info("Skipping validator set update");
+      }
+    } else {
+      logger.info("Skipping validator setup");
+    }
+  } else if (options.setupValidators || options.fundValidators) {
+    logger.warn(
+      "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
+    );
+  }
+
+  if (options.relayer) {
+    printHeader("Starting Snowbridge Relayers");
+
+    // TODO - Replace this with our forked iamge when ready
+    const dockerImage = "ronyang/snowbridge-relay";
+    logger.info(`Pulling docker image ${dockerImage}`);
+
+    const { stdout, stderr, exitCode } =
+      await $`sh -c docker pull --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+
+    if (exitCode !== 0) {
+      logger.error(`Failed to pull docker image ${dockerImage}: ${stderr.toString()}`);
+      throw Error("❌ Failed to pull docker image");
+    }
+    logger.debug(stdout.toString());
+
+    const {
+      stdout: stdout2,
+      stderr: stderr2,
+      exitCode: exitCode2
+    } = await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+
+    if (exitCode2 !== 0) {
+      logger.error(`Failed to run docker image ${dockerImage}: ${stderr2.toString()}`);
+      throw Error("❌ Failed to run docker image");
+    }
+    logger.debug(stdout2.toString());
+
+    logger.info("Preparing to generate configs");
+    await generateSnowbridgeConfigs();
+    logger.success("Snowbridge configs generated");
+
+    // TODO - Start Relayers here
+    // For each relayer in array spawn in background relayer with appropriate private key, command and config param
+    const relayersToStart = [
+      {
+        name: "relayer-1",
+        type: "beefy",
+        config: "beefy-relay.json"
+      }
+    ];
+
+    logger.trace("Starting Snowbridge relayers");
+    for (const relayer of relayersToStart) {
+      await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+    }
+    logger.success("Snowbridge relayers started");
+  }
+
+  logger.success("Launch script completed successfully");
 };
 
 export const launchPreActionHook = (

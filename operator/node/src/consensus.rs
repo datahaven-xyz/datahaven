@@ -5,6 +5,13 @@ use sp_runtime::{generic::Digest, traits::Block as BlockT, DigestItem};
 /// Implement pending consensus data provider for BABE.
 pub struct BabeConsensusDataProvider {}
 
+impl BabeConsensusDataProvider {
+    /// Creates a new instance of the [`BabeConsensusDataProvider`]
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl<B> fc_rpc::pending::ConsensusDataProvider<B> for BabeConsensusDataProvider
 where
     B: BlockT,

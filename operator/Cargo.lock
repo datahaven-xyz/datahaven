@@ -2398,6 +2398,7 @@ dependencies = [
  "pallet-mmr",
  "pallet-multisig",
  "pallet-offences",
+ "pallet-parameters",
  "pallet-preimage",
  "pallet-scheduler",
  "pallet-session",
@@ -7596,6 +7597,23 @@ dependencies = [
  "serde",
  "sp-runtime",
  "sp-staking",
+]
+
+[[package]]
+name = "pallet-parameters"
+version = "0.10.1"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#b938705625f93b2e7a5fb9163fb8d45a27e64c43"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "paste",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]

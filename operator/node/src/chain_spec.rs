@@ -41,7 +41,7 @@ pub fn local_chain_spec() -> Result<ChainSpec, String> {
         None,
     )
     .with_name("Local Testnet")
-    .with_id("local_testnet")
+    .with_id("local")
     .with_chain_type(ChainType::Local)
     .with_genesis_config_preset_name(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET)
     .with_properties(properties)

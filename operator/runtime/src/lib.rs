@@ -66,8 +66,8 @@ impl_opaque_keys! {
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: Cow::Borrowed("datahaven-runtime"),
-    impl_name: Cow::Borrowed("datahaven-runtime"),
+    spec_name: Cow::Borrowed("datahaven-stagenet"),
+    impl_name: Cow::Borrowed("datahaven-stagenet"),
     authoring_version: 1,
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -235,6 +235,7 @@ mod runtime {
     )]
     pub struct Runtime;
 
+    // ╔══════════════════ System and Consensus Pallets ═════════════════╗
     #[runtime::pallet_index(0)]
     pub type System = frame_system;
 
@@ -259,6 +260,7 @@ mod runtime {
     #[runtime::pallet_index(6)]
     pub type Historical = pallet_session::historical;
 
+    // Validator set must be before Session.
     #[runtime::pallet_index(7)]
     pub type ValidatorSet = pallet_validator_set;
 
@@ -274,55 +276,70 @@ mod runtime {
     #[runtime::pallet_index(11)]
     pub type TransactionPayment = pallet_transaction_payment;
 
-    #[runtime::pallet_index(20)]
-    pub type Utility = pallet_utility;
-
-    #[runtime::pallet_index(21)]
-    pub type Scheduler = pallet_scheduler;
-
-    #[runtime::pallet_index(22)]
-    pub type Preimage = pallet_preimage;
-
-    #[runtime::pallet_index(23)]
-    pub type Identity = pallet_identity;
-
-    #[runtime::pallet_index(24)]
-    pub type Multisig = pallet_multisig;
-
-    #[runtime::pallet_index(25)]
-    pub type MessageQueue = pallet_message_queue;
-
-    // Frontier
-    #[runtime::pallet_index(30)]
-    pub type Ethereum = pallet_ethereum;
-
-    #[runtime::pallet_index(31)]
-    pub type Evm = pallet_evm;
-
-    #[runtime::pallet_index(32)]
-    pub type EvmChainId = pallet_evm_chain_id;
-
-    // ETH Bridge
-    #[runtime::pallet_index(200)]
+    #[runtime::pallet_index(12)]
     pub type Beefy = pallet_beefy;
 
-    #[runtime::pallet_index(201)]
+    #[runtime::pallet_index(13)]
     pub type Mmr = pallet_mmr;
 
-    #[runtime::pallet_index(202)]
+    #[runtime::pallet_index(14)]
     pub type BeefyMmrLeaf = pallet_beefy_mmr;
+    // ╚═════════════════ System and Consensus Pallets ══════════════════╝
 
-    #[runtime::pallet_index(203)]
+    // ╔═════════════════ Polkadot SDK Utility Pallets ══════════════════╗
+    #[runtime::pallet_index(30)]
+    pub type Utility = pallet_utility;
+
+    #[runtime::pallet_index(31)]
+    pub type Scheduler = pallet_scheduler;
+
+    #[runtime::pallet_index(32)]
+    pub type Preimage = pallet_preimage;
+
+    #[runtime::pallet_index(33)]
+    pub type Identity = pallet_identity;
+
+    #[runtime::pallet_index(34)]
+    pub type Multisig = pallet_multisig;
+
+    #[runtime::pallet_index(35)]
+    pub type Parameters = pallet_parameters;
+
+    #[runtime::pallet_index(36)]
+    pub type Sudo = pallet_sudo;
+
+    #[runtime::pallet_index(37)]
+    pub type MessageQueue = pallet_message_queue;
+    // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+
+    // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
+    // Frontier
+    #[runtime::pallet_index(40)]
+    pub type Ethereum = pallet_ethereum;
+
+    #[runtime::pallet_index(41)]
+    pub type Evm = pallet_evm;
+
+    #[runtime::pallet_index(42)]
+    pub type EvmChainId = pallet_evm_chain_id;
+    // ╚════════════════════ Frontier (EVM) Pallets ═════════════════════╝
+
+    // ╔══════════════════════ Snowbridge Pallets ═══════════════════════╗
+    #[runtime::pallet_index(50)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
-    #[runtime::pallet_index(204)]
+    #[runtime::pallet_index(51)]
     pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
 
-    // ETH Bridge Outbound
-    #[runtime::pallet_index(205)]
+    #[runtime::pallet_index(52)]
     pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+    // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
 
-    // Sudo
-    #[runtime::pallet_index(255)]
-    pub type Sudo = pallet_sudo;
+    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
+    // Start with index 60
+    // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
+
+    // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
+    // Start with index 100
+    // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }

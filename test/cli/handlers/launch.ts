@@ -42,6 +42,7 @@ export const launch = async (options: LaunchOptions) => {
 
   logger.trace("Send test transaction");
   printHeader("Setting Up Blockchain");
+  logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
   const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
   invariant(networkRpcUrl, "❌ Network RPC URL not found");

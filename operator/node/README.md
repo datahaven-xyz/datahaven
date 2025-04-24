@@ -1,5 +1,3 @@
-
-
 ## Release
 
-Polkadot SDK stable2409
+Polkadot SDK stable2412

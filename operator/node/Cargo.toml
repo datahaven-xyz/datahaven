@@ -64,6 +64,7 @@ sc-network-sync = { workspace = true }
 sc-offchain = { workspace = true, default-features = true }
 
 # RPC
+sc-consensus-manual-seal = { workspace = true, default-features = true }
 sc-rpc = { workspace = true, default-features = true }
 sc-service = { workspace = true, default-features = true }
 sc-telemetry = { workspace = true, default-features = true }

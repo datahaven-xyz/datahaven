@@ -20,10 +20,11 @@ contract SnowbridgeScriptStorage is Script {
     AgentExecutor public agentExecutor;
     IGatewayV2 public gateway;
     Agent public rewardsAgent;
-
+    bytes32 public rewardsAgentId;
     /**
      * @notice Loads the Snowbridge contracts from the deployment file.
      */
+
     function _loadSnowbridgeContracts(
         string memory network
     ) internal {
@@ -35,6 +36,7 @@ contract SnowbridgeScriptStorage is Script {
         beefyClient = BeefyClient(vm.parseJsonAddress(deploymentFile, ".BeefyClient"));
         agentExecutor = AgentExecutor(vm.parseJsonAddress(deploymentFile, ".AgentExecutor"));
         gateway = IGatewayV2(vm.parseJsonAddress(deploymentFile, ".Gateway"));
-        rewardsAgent = Agent(payable(vm.parseJsonAddress(deploymentFile, ".Agent")));
+        rewardsAgent = Agent(payable(vm.parseJsonAddress(deploymentFile, ".RewardsAgent")));
+        rewardsAgentId = vm.parseJsonBytes32(deploymentFile, ".RewardsAgentId");
     }
 }

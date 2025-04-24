@@ -23,9 +23,7 @@ contract UpdateRewardsRoot is Script, DHScriptStorage {
         // Get the rewards agent private key from env
         agentPrivateKey = vm.envOr(
             "REWARDS_AGENT_PRIVATE_KEY",
-            uint256(
-                0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
-            ) // Third pre-funded account from Anvil
+            uint256(0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6) // Third pre-funded account from Anvil
         );
         agent = vm.addr(agentPrivateKey);
 
@@ -36,9 +34,7 @@ contract UpdateRewardsRoot is Script, DHScriptStorage {
         newMerkleRoot = bytes32(
             vm.envOr(
                 "NEW_MERKLE_ROOT",
-                uint256(
-                    0x0000000000000000000000000000000000000000000000000000000000000001
-                )
+                uint256(0x0000000000000000000000000000000000000000000000000000000000000001)
             )
         );
     }
@@ -56,26 +52,18 @@ contract UpdateRewardsRoot is Script, DHScriptStorage {
 
         // Load DataHaven contracts
         _loadDHContracts(network);
-        Logging.logInfo(
-            string.concat("Loaded DataHaven contracts for network: ", network)
-        );
+        Logging.logInfo(string.concat("Loaded DataHaven contracts for network: ", network));
 
         // Get the rewards registry for the specified operator set
-        address rewardsRegistry = address(
-            serviceManager.operatorSetToRewardsRegistry(operatorSetId)
-        );
-        require(
-            rewardsRegistry != address(0),
-            "Rewards registry not set for operator set"
-        );
+        address rewardsRegistry =
+            address(serviceManager.operatorSetToRewardsRegistry(operatorSetId));
+        require(rewardsRegistry != address(0), "Rewards registry not set for operator set");
         console.log("Rewards Registry address: %s", rewardsRegistry);
 
         // Update the rewards merkle root
         vm.broadcast(agentPrivateKey);
-        IRewardsRegistry(rewardsRegistry).updateRewardsMerkleRoot(
-            newMerkleRoot
-        );
+        IRewardsRegistry(rewardsRegistry).updateRewardsMerkleRoot(newMerkleRoot);
 
-        Logging.logSuccess("Successfully updated rewards merkle root");
+        Logging.logInfo("Successfully updated rewards merkle root");
     }
 }

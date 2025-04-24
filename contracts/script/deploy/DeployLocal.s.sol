@@ -189,7 +189,8 @@ contract Deploy is Script, DeployParams, Accounts {
             BeefyClient beefyClient,
             AgentExecutor agentExecutor,
             IGatewayV2 gateway,
-            address payable rewardsAgentAddress
+            address payable rewardsAgentAddress,
+            bytes32 rewardsAgentId
         ) = _deploySnowbridge(snowbridgeConfig);
 
         Logging.logFooter();
@@ -224,13 +225,14 @@ contract Deploy is Script, DeployParams, Accounts {
             serviceManager,
             vetoableSlasher,
             rewardsRegistry,
-            rewardsAgentAddress
+            rewardsAgentAddress,
+            rewardsAgentId
         );
     }
 
     function _deploySnowbridge(
         SnowbridgeConfig memory config
-    ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
+    ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable, bytes32) {
         Logging.logSection("Deploying Snowbridge Core Components");
 
         BeefyClient beefyClient = _deployBeefyClient(config);
@@ -267,11 +269,12 @@ contract Deploy is Script, DeployParams, Accounts {
         // Create Agent
         Logging.logSection("Creating Snowbridge Agent");
         vm.broadcast(_deployerPrivateKey);
-        gateway.v2_createAgent(config.rewardsMessageOrigin);
-        address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
+        bytes32 rewardsAgentId = config.rewardsMessageOrigin;
+        gateway.v2_createAgent(rewardsAgentId);
+        address payable rewardsAgentAddress = payable(gateway.agentOf(rewardsAgentId));
         Logging.logContractDeployed("Rewards Agent", rewardsAgentAddress);
 
-        return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
+        return (beefyClient, agentExecutor, gateway, rewardsAgentAddress, rewardsAgentId);
     }
 
     function _deployProxies(
@@ -622,7 +625,8 @@ contract Deploy is Script, DeployParams, Accounts {
         DataHavenServiceManager serviceManager,
         VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
-        address agent
+        address rewardsAgent,
+        bytes32 rewardsAgentId
     ) internal {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
@@ -630,7 +634,8 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logContractDeployed("BeefyClient", address(beefyClient));
         Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
         Logging.logContractDeployed("Gateway", address(gateway));
-        Logging.logContractDeployed("Agent", agent);
+        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
+        Logging.logInfo(string.concat("RewardsAgentId: ", vm.toString(rewardsAgentId)));
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
@@ -682,7 +687,8 @@ contract Deploy is Script, DeployParams, Accounts {
             string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
         json =
             string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
-        json = string.concat(json, '"Agent": "', vm.toString(agent), '",');
+        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
+        json = string.concat(json, '"RewardsAgentId": "', vm.toString(rewardsAgentId), '",');
 
         // EigenLayer contracts
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');

@@ -22,9 +22,7 @@ contract ClaimValidatorRewards is Script, DHScriptStorage {
         // Get the validator private key from env
         validatorPrivateKey = vm.envOr(
             "VALIDATOR_PRIVATE_KEY",
-            uint256(
-                0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-            ) // First Anvil account
+            uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80) // First Anvil account
         );
         validator = vm.addr(validatorPrivateKey);
 
@@ -32,14 +30,11 @@ contract ClaimValidatorRewards is Script, DHScriptStorage {
         operatorSetId = uint32(vm.envOr("OPERATOR_SET_ID", uint256(0)));
 
         // Get validator points
-        validatorPoints = vm.envOr(
-            "VALIDATOR_POINTS",
-            uint256(100000000000000000000)
-        ); // Default 100 ETH worth of points
+        validatorPoints = vm.envOr("VALIDATOR_POINTS", uint256(100000000000000000000)); // Default 100 ETH worth of points
 
         // Get merkle proof from env
         string memory proofStr = vm.envOr("PROOF", string("[]"));
-        proof = vm.parseJsonBytes32Array(proofStr);
+        proof = vm.parseJsonBytes32Array(proofStr, ".proof");
     }
 
     function run() public {
@@ -56,36 +51,21 @@ contract ClaimValidatorRewards is Script, DHScriptStorage {
 
         // Load DataHaven contracts
         _loadDHContracts(network);
-        Logging.logInfo(
-            string.concat("Loaded DataHaven contracts for network: ", network)
-        );
+        Logging.logInfo(string.concat("Loaded DataHaven contracts for network: ", network));
 
         // Get the validator's ETH balance before claiming
         uint256 balanceBefore = validator.balance;
-        console.log(
-            "Validator balance before: %s ETH",
-            vm.toString(balanceBefore / 1e18)
-        );
+        console.log("Validator balance before: %s ETH", vm.toString(balanceBefore / 1e18));
 
         // Call claimOperatorRewards on the DataHaven Service Manager
         vm.broadcast(validatorPrivateKey);
-        serviceManager.claimOperatorRewards(
-            operatorSetId,
-            validatorPoints,
-            proof
-        );
+        serviceManager.claimOperatorRewards(operatorSetId, validatorPoints, proof);
 
         // Get the validator's ETH balance after claiming
         uint256 balanceAfter = validator.balance;
-        console.log(
-            "Validator balance after: %s ETH",
-            vm.toString(balanceAfter / 1e18)
-        );
-        console.log(
-            "Reward received: %s ETH",
-            vm.toString((balanceAfter - balanceBefore) / 1e18)
-        );
+        console.log("Validator balance after: %s ETH", vm.toString(balanceAfter / 1e18));
+        console.log("Reward received: %s ETH", vm.toString((balanceAfter - balanceBefore) / 1e18));
 
-        Logging.logSuccess("Successfully claimed validator rewards");
+        Logging.logInfo("Successfully claimed validator rewards");
     }
 }

@@ -28,7 +28,7 @@ export function createRewardsTree(validators: ValidatorReward[]): RewardsTreeOut
   // Create hashes for each validator (address, points) pair
   const leaves = validators.map((validator) => {
     // Create the leaf value by encoding and hashing the validator address and points
-    return keccak256(encodePacked(["address", "uint256"], [validator.address, validator.points]));
+    return keccak256(encodePacked(["address", "uint256"], [validator.address as `0x${string}`, validator.points]));
   });
 
   // Create the merkle tree
@@ -72,22 +72,20 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const outputPath = args[0] || path.resolve(__dirname, "../configs/rewards-tree.json");
 
-  // Example validators for testing
-  // In a real scenario, these would be loaded from a data source
-  const validators: ValidatorReward[] = [
-    {
-      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      points: 100000000000000000000n // 100 Ether worth of points
-    },
-    {
-      address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-      points: 200000000000000000000n // 200 Ether worth of points
-    },
-    {
-      address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      points: 150000000000000000000n // 150 Ether worth of points
-    }
-  ];
+  // Load validators from validator-set.json
+  const validatorSetPath = path.resolve(__dirname, "../configs/validator-set.json");
+  logger.info(`Loading validators from ${validatorSetPath}`);
+
+  if (!fs.existsSync(validatorSetPath)) {
+    logger.error(`Validator set file not found: ${validatorSetPath}`);
+    process.exit(1);
+  }
+
+  const validatorSetData = JSON.parse(fs.readFileSync(validatorSetPath, 'utf8'));
+  const validators: ValidatorReward[] = validatorSetData.validators.map((validator: any) => ({
+    address: validator.address,
+    points: BigInt(validator.points || "100000000000000000n") // Default to 0.1 ETH worth of points if not specified
+  }));
 
   logger.info(`Creating merkle tree for ${validators.length} validators`);
 

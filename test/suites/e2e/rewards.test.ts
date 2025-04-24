@@ -25,9 +25,9 @@ const validatorAddresses = [
 
 // Test points for each validator (in wei)
 const validatorPoints = [
-  parseEther("100"), // 100 ETH worth of points
-  parseEther("200"), // 200 ETH worth of points
-  parseEther("150") // 150 ETH worth of points
+  parseEther("0.1"), // 0.1 ETH worth of points
+  parseEther("0.2"), // 0.2 ETH worth of points
+  parseEther("0.15") // 0.15 ETH worth of points
 ];
 
 // Create validator rewards objects for merkle tree generation
@@ -42,9 +42,13 @@ describe("E2E: Rewards", () => {
   let rewardsRegistryAddress: string;
   let rewardsAgentAddress: string;
   let rewardsAgentId: string;
+  let serviceManagerAddress: string;
+  let gatewayAddress: string;
 
   // Set RPC URL for testing
-  const rpcUrl = "http://localhost:8545";
+  const rpcUrl = "http://localhost:53167";
+  // Default network for deployment files
+  const networkName = "anvil";
 
   beforeAll(async () => {
     printHeader("Setting up Rewards Integration Test");
@@ -58,68 +62,77 @@ describe("E2E: Rewards", () => {
     const rewardsTreeFile = path.resolve(configsDir, "rewards-tree.json");
     saveRewardsTree(rewardsTreeFile, rewardsTreeData);
 
+    // Get the deployment information to find contract addresses
+    const defaultDeploymentPath = path.resolve(`${contractsDir}/deployments/${networkName}.json`);
+
+    if (!fs.existsSync(defaultDeploymentPath)) {
+      throw new Error(`Deployment file not found: ${defaultDeploymentPath}`);
+    }
+
+    // Read deployment file
+    logger.info(`Reading contract addresses from deployment file: ${defaultDeploymentPath}`);
+    const deployments = JSON.parse(fs.readFileSync(defaultDeploymentPath, "utf8"));
+
+    // Get ServiceManager address from deployment file
+    serviceManagerAddress = deployments.ServiceManager;
+    if (!serviceManagerAddress) {
+      throw new Error("ServiceManager address not found in deployment file");
+    }
+    logger.info(`ServiceManager address: ${serviceManagerAddress}`);
+
+    // Read RewardsRegistry address using ServiceManager contract
+    const { stdout: registryOutput } =
+      await $`cd ${contractsDir} && cast call ${serviceManagerAddress} "operatorSetToRewardsRegistry(uint32)(address)" ${VALIDATORS_SET_ID} --rpc-url ${rpcUrl}`.quiet();
+
+    rewardsRegistryAddress = registryOutput.toString().trim();
+    logger.info(`RewardsRegistry address: ${rewardsRegistryAddress}`);
+
+    // Get Gateway address from deployment file
+    gatewayAddress = deployments.Gateway;
+    if (!gatewayAddress) {
+      throw new Error("Gateway address not found in deployment file");
+    }
+    logger.info(`Gateway address: ${gatewayAddress}`);
+
+    // Get the rewards agent from the rewards registry
+    const { stdout: agentOutput } =
+      await $`cd ${contractsDir} && cast call ${rewardsRegistryAddress} "rewardsAgent()(address)" --rpc-url ${rpcUrl}`.quiet();
+
+    rewardsAgentAddress = agentOutput.toString().trim();
+    logger.info(`RewardsAgent address: ${rewardsAgentAddress}`);
+
     // Fund rewards registry for validators
     logger.info("Funding rewards registry");
     await fundRewardsRegistry({
       rpcUrl,
       operatorSetId: VALIDATORS_SET_ID,
-      amount: "500ether" // Fund with 500 ETH for testing
+      amount: "1" // Fund with 1 ETH for testing
     });
-
-    // Run the script to get contract addresses
-    // This is needed to get the RewardsRegistry and RewardsAgent addresses
-    const { stdout } =
-      await $`cd ${contractsDir} && forge script script/utils/GetContractAddresses.s.sol --rpc-url ${rpcUrl}`.quiet();
-
-    // Parse contract addresses from output
-    const output = stdout.toString();
-    const registryMatch = output.match(/RewardsRegistry\s+(\w+)\s+0x[a-fA-F0-9]{40}/);
-    const agentMatch = output.match(/RewardsAgent\s+(\w+)\s+0x[a-fA-F0-9]{40}/);
-
-    if (registryMatch && registryMatch[0]) {
-      rewardsRegistryAddress = registryMatch[0].match(/0x[a-fA-F0-9]{40}/)![0];
-      logger.info(`RewardsRegistry address: ${rewardsRegistryAddress}`);
-    } else {
-      throw new Error("Could not find RewardsRegistry address in forge output");
-    }
-
-    if (agentMatch && agentMatch[0]) {
-      rewardsAgentAddress = agentMatch[0].match(/0x[a-fA-F0-9]{40}/)![0];
-      logger.info(`RewardsAgent address: ${rewardsAgentAddress}`);
-
-      // Create agent ID for the rewards agent (we need to use this as the origin in the mock Gateway message)
-      // This is normally set in the Gateway when creating the agent
-      rewardsAgentId = "0x0000000000000000000000000000000000000000000000000000000000000002";
-      logger.info(`Using mocked RewardsAgent ID: ${rewardsAgentId}`);
-    } else {
-      throw new Error("Could not find RewardsAgent address in forge output");
-    }
   });
 
   it("should have funded the RewardsRegistry with ETH", async () => {
     const balance = await api.getBalance({ address: rewardsRegistryAddress as `0x${string}` });
-    expect(balance).toBeGreaterThan(parseEther("400"));
+    expect(balance).toBeGreaterThan(parseEther("0.9"));
     logger.info(`RewardsRegistry balance: ${formatEther(balance)} ETH`);
   });
 
   it("should update the rewards merkle root via mocked Gateway message", async () => {
     // Set up environment variables for the mock script
     const env = {
-      REWARDS_AGENT_ID: rewardsAgentId,
       OPERATOR_SET_ID: VALIDATORS_SET_ID.toString(),
       NEW_MERKLE_ROOT: rewardsTreeData.merkleRoot,
-      NETWORK: "anvil"
+      NETWORK: networkName
     };
 
     // Run the script to mock a Gateway message to update the rewards root
     const { exitCode, stderr } =
-      await $`cd ${contractsDir} && forge script script/transact/MockGatewayMessage.s.sol --rpc-url ${rpcUrl} --broadcast`
+      await $`cd ${contractsDir} && forge script script/transact/MockRewardsUpdateMessage.s.sol --rpc-url ${rpcUrl} --broadcast`
         .env(env)
         .nothrow();
 
     if (exitCode !== 0) {
-      logger.error(`Failed to mock Gateway message: ${stderr.toString()}`);
-      throw new Error("Failed to mock Gateway message");
+      logger.error(`Failed to mock rewards update message: ${stderr.toString()}`);
+      throw new Error("Failed to mock rewards update message");
     }
 
     logger.success("Successfully mocked Gateway message to update rewards root");
@@ -154,7 +167,7 @@ describe("E2E: Rewards", () => {
       VALIDATOR_POINTS: validatorPoint.toString(),
       OPERATOR_SET_ID: VALIDATORS_SET_ID.toString(),
       PROOF: JSON.stringify(proof),
-      NETWORK: "anvil"
+      NETWORK: networkName
     };
 
     // Run script to claim rewards
@@ -197,7 +210,7 @@ describe("E2E: Rewards", () => {
       VALIDATOR_POINTS: validatorPoint.toString(),
       OPERATOR_SET_ID: VALIDATORS_SET_ID.toString(),
       PROOF: JSON.stringify(proof),
-      NETWORK: "anvil"
+      NETWORK: networkName
     };
 
     // Run script to claim rewards again (should fail)

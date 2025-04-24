@@ -20,12 +20,13 @@ codec = { workspace = true }
 datahaven-runtime = { workspace = true }
 
 # Frontier
+fc-api = { workspace = true }
 fc-cli = { workspace = true }
 fc-consensus = { workspace = true }
 fc-db = { workspace = true }
 fc-mapping-sync = { workspace = true, features = ["sql"] }
-fc-rpc = { workspace = true }
-fc-rpc-core = { workspace = true }
+fc-rpc = { workspace = true, features = ["txpool"] }
+fc-rpc-core = { workspace = true, features = ["txpool"] }
 fc-storage = { workspace = true }
 flume = { workspace = true }
 fp-account = { workspace = true }
@@ -41,6 +42,7 @@ jsonrpsee = { features = ["server"], workspace = true }
 
 # MMR
 mmr-rpc = { workspace = true, default-features = true }
+log = "0.4.26"
 pallet-ethereum = { workspace = true }
 pallet-im-online = { workspace = true }
 pallet-transaction-payment = { workspace = true, default-features = true }

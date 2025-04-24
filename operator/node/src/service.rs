@@ -1,8 +1,8 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use crate::eth::{
-    new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierPartialComponents,
-    FrontierTasksParams,
+    new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierBackend,
+    FrontierPartialComponents, FrontierTasksParams,
 };
 use crate::eth::{EthConfiguration, StorageOverrideHandler};
 use crate::rpc::BeefyDeps;
@@ -58,7 +58,7 @@ pub fn open_frontier_backend<C, BE>(
     client: Arc<C>,
     config: &Configuration,
     eth_config: &mut EthConfiguration,
-) -> Result<fc_db::Backend<Block, C>, String>
+) -> Result<FrontierBackend<Block, C>, String>
 where
     C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
@@ -415,22 +415,82 @@ pub async fn new_full<
     let name = config.network.node_name.clone();
     let enable_grandpa = !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
+    let overrides = Arc::new(StorageOverrideHandler::new(client.clone()));
+
+    let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
+        task_manager.spawn_handle(),
+        overrides.clone(),
+        eth_config.eth_log_block_cache,
+        eth_config.eth_statuses_cache,
+        prometheus_registry.clone(),
+    ));
+
+    // Sinks for pubsub notifications.
+    // Everytime a new subscription is created, a new mpsc channel is added to the sink pool.
+    // The MappingSyncWorker sends through the channel on block import and the subscription emits a notification to the subscriber on receiving a message through this channel.
+    // This way we avoid race conditions when using native substrate block import notification stream.
+    let pubsub_notification_sinks: fc_mapping_sync::EthereumBlockNotificationSinks<
+        fc_mapping_sync::EthereumBlockNotification<Block>,
+    > = Default::default();
+    let pubsub_notification_sinks = Arc::new(pubsub_notification_sinks);
+
+    spawn_frontier_tasks(
+        &task_manager,
+        FrontierTasksParams {
+            client: client.clone(),
+            backend: backend.clone(),
+            frontier_backend: frontier_backend.clone(),
+            frontier_partial_components: FrontierPartialComponents {
+                filter_pool: filter_pool.clone(),
+                fee_history_cache: fee_history_cache.clone(),
+                fee_history_cache_limit: fee_history_cache_limit.clone(),
+            },
+            storage_override,
+            sync: sync_service.clone(),
+            pubsub_notification_sinks,
+        },
+    )
+    .await;
 
     let rpc_extensions_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
         let backend = backend.clone();
+        let frontier_backend = frontier_backend.clone();
+        let network = network.clone();
+        let max_past_logs = eth_config.max_past_logs;
+        let overrides = overrides.clone();
+        let fee_history_cache = fee_history_cache.clone();
+        let block_data_cache = block_data_cache.clone();
+        let fee_history_limit = eth_config.fee_history_limit;
+        let sync = sync_service.clone();
 
         Box::new(move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
+                graph: pool.pool().clone(),
                 beefy: BeefyDeps::<ecdsa_crypto::AuthorityId> {
                     beefy_finality_proof_stream: beefy_rpc_links.from_voter_justif_stream.clone(),
                     beefy_best_block_stream: beefy_rpc_links.from_voter_best_beefy_stream.clone(),
                     subscription_executor,
                 },
+                max_past_logs,
+                fee_history_limit,
+                fee_history_cache: fee_history_cache.clone(),
+                network: Arc::new(network.clone()),
+                sync: sync.clone(),
+                filter_pool: filter_pool.clone(),
+                block_data_cache: block_data_cache.clone(),
+                overrides: overrides.clone(),
+                is_authority: false,
+                command_sink: None,
                 backend: backend.clone(),
+                frontier_backend: match &*frontier_backend {
+                    fc_db::Backend::KeyValue(b) => b.clone(),
+                    fc_db::Backend::Sql(b) => b.clone(),
+                },
+                forced_parent_hashes: None,
             };
             crate::rpc::create_full(deps).map_err(Into::into)
         })
@@ -451,33 +511,6 @@ pub async fn new_full<
         telemetry: telemetry.as_mut(),
     })?;
 
-    // Sinks for pubsub notifications.
-    // Everytime a new subscription is created, a new mpsc channel is added to the sink pool.
-    // The MappingSyncWorker sends through the channel on block import and the subscription emits a notification to the subscriber on receiving a message through this channel.
-    // This way we avoid race conditions when using native substrate block import notification stream.
-    let pubsub_notification_sinks: fc_mapping_sync::EthereumBlockNotificationSinks<
-        fc_mapping_sync::EthereumBlockNotification<Block>,
-    > = Default::default();
-    let pubsub_notification_sinks = Arc::new(pubsub_notification_sinks);
-
-    spawn_frontier_tasks(
-        &task_manager,
-        FrontierTasksParams {
-            client: client.clone(),
-            backend: backend.clone(),
-            frontier_backend,
-            frontier_partial_components: FrontierPartialComponents {
-                filter_pool,
-                fee_history_cache,
-                fee_history_cache_limit,
-            },
-            storage_override,
-            sync: sync_service.clone(),
-            pubsub_notification_sinks,
-        },
-    )
-    .await;
-
     if role.is_authority() {
         let proposer_factory = sc_basic_authorship::ProposerFactory::new(
             task_manager.spawn_handle(),
@@ -487,7 +520,7 @@ pub async fn new_full<
             telemetry.as_ref().map(|x| x.handle()),
         );
 
-        let slot_duration = babe_link.config().slot_duration();
+        let slot_duration = babe_link.clone().config().slot_duration();
         let babe_config = sc_consensus_babe::BabeParams {
             keystore: keystore_container.keystore(),
             client: client.clone(),

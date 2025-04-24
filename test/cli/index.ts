@@ -13,6 +13,11 @@ const program = new Command()
   .option("-b, --blockscout", "Enable Blockscout", false)
   .option("-v, --verified", "Verify smart contracts with Blockscout", false)
   .option("-r, --relayer", "Enable Relayer", false)
+  .option(
+    "-p, --relayer-bin-path <value>",
+    "Path to the relayer binary",
+    "tmp/bin/snowbridge-relayer"
+  )
   .hook("preAction", launchPreActionHook)
   .action(launch);
 

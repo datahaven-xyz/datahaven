@@ -9,7 +9,7 @@
     "fmt:fix": "biome check --write .",
     "build:docker:relayer": "bun -e \"import build  from './scripts/snowbridge-relayer.ts'; build()\"",
     "generate:snowbridge-cfgs": "bun -e \"import {generateSnowbridgeConfigs} from './scripts/gen-snowbridge-cfgs.ts'; await generateSnowbridgeConfigs()\"",
-    "start:e2e:verified": "bun cli --verified --blockscout",
+    "start:e2e:verified": "bun cli --verified --blockscout --deploy-contracts",
     "start:e2e:minimal": "bun cli",
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
     "stop:e2e:verified": "bun stop:e2e",

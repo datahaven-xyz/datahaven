@@ -19,6 +19,7 @@ interface LaunchOptions {
   updateValidatorSet?: boolean;
   blockscout?: boolean;
   relayer?: boolean;
+  relayerBinPath?: string;
 }
 
 // =====  Launch Handler Functions  =====
@@ -177,30 +178,17 @@ export const launch = async (options: LaunchOptions) => {
   if (options.relayer) {
     printHeader("Starting Snowbridge Relayers");
 
-    // TODO - Replace this with our forked iamge when ready
-    const dockerImage = "ronyang/snowbridge-relay";
-    logger.info(`Pulling docker image ${dockerImage}`);
+    logger.info(`Running snowbridge relayer from: ${options.relayerBinPath}`);
 
-    const { stdout, stderr, exitCode } =
-      await $`sh -c docker pull --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+    const { stdout, stderr, exitCode } = await $`sh -c ${options.relayerBinPath} --help`
+      .quiet()
+      .nothrow();
 
     if (exitCode !== 0) {
-      logger.error(`Failed to pull docker image ${dockerImage}: ${stderr.toString()}`);
-      throw Error("❌ Failed to pull docker image");
+      logger.error(`Failed to run relayer binary ${options.relayerBinPath}: ${stderr.toString()}`);
+      throw Error("❌ Relayer binary failed basic help check");
     }
     logger.debug(stdout.toString());
-
-    const {
-      stdout: stdout2,
-      stderr: stderr2,
-      exitCode: exitCode2
-    } = await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
-
-    if (exitCode2 !== 0) {
-      logger.error(`Failed to run docker image ${dockerImage}: ${stderr2.toString()}`);
-      throw Error("❌ Failed to run docker image");
-    }
-    logger.debug(stdout2.toString());
 
     logger.info("Preparing to generate configs");
     await generateSnowbridgeConfigs();
@@ -210,17 +198,22 @@ export const launch = async (options: LaunchOptions) => {
     // For each relayer in array spawn in background relayer with appropriate private key, command and config param
     const relayersToStart = [
       {
-        name: "relayer-1",
+        name: "relayer-🥩",
         type: "beefy",
-        config: "beefy-relay.json"
+        config: "modified-beefy-relay.json"
+      },
+      {
+        name: "relayer-🥓",
+        type: "beacon",
+        config: "modified-beacon-relay.json"
       }
     ];
 
-    logger.trace("Starting Snowbridge relayers");
-    for (const relayer of relayersToStart) {
-      await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
-    }
-    logger.success("Snowbridge relayers started");
+    // logger.trace("Starting Snowbridge relayers");
+    // for (const relayer of relayersToStart) {
+    //   await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
+    // }
+    // logger.success("Snowbridge relayers started");
   }
 
   logger.success("Launch script completed successfully");

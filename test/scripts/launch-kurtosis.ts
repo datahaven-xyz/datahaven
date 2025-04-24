@@ -69,7 +69,9 @@ export const launchKurtosis = async (
   logger.info("🚀 Starting Kurtosis enclave...");
   // Determine which config file to use based on the blockscout option
   const configFile =
-    options.blockscout === true ? "configs/minimal-with-bs.yaml" : "configs/minimal.yaml";
+    options.blockscout === true
+      ? "configs/kurtosis/minimal-with-bs.yaml"
+      : "configs/kurtosis/minimal.yaml";
   logger.info(`Using Kurtosis config file: ${configFile}`);
 
   const { stderr, stdout, exitCode } =

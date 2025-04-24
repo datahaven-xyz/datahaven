@@ -23,16 +23,8 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-// Local module imports
-use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
-    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
-    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
-    UNIT, VERSION,
-};
-// Substrate and Polkadot dependencies
+mod runtime_params;
+
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
@@ -53,8 +45,10 @@ use frame_support::{
         IdentityFee, Weight,
     },
 };
-use frame_system::limits::{BlockLength, BlockWeights};
-use frame_system::EnsureRoot;
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureRoot,
+};
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -69,8 +63,10 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_inbound_queue_primitives::RewardLedger;
-use sp_consensus_beefy::mmr::BeefyDataProvider;
-use sp_consensus_beefy::{ecdsa_crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion};
+use sp_consensus_beefy::{
+    ecdsa_crypto::AuthorityId as BeefyId,
+    mmr::{BeefyDataProvider, MmrLeafVersion},
+};
 use sp_core::{crypto::KeyTypeId, H160, H256, U256};
 use sp_runtime::{
     traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
@@ -82,6 +78,16 @@ use sp_std::{
     prelude::*,
 };
 use sp_version::RuntimeVersion;
+
+use super::{
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
+    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
+    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
+    UNIT, VERSION,
+};
+use runtime_params::RuntimeParameters;
 
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
@@ -98,6 +104,20 @@ pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                             COMMON PARAMETERS                                                 ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+parameter_types! {
+    pub const MaxAuthorities: u32 = 32;
+    pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
+    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
+}
+
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                      SYSTEM AND CONSENSUS PALLETS                                             ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 2400;
     pub const Version: RuntimeVersion = VERSION;
@@ -109,16 +129,6 @@ parameter_types! {
     );
     pub RuntimeBlockLength: BlockLength = BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u16 = SS58_FORMAT;
-    pub const MaxAuthorities: u32 = 32;
-    pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
-    pub const NodesSize: u32 = 32;
-    pub const RootHistorySize: u32 = 30;
-
-    pub const EquivocationReportPeriodInEpochs: u64 = 168;
-    pub const EquivocationReportPeriodInBlocks: u64 =
-        EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
-
-    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
 }
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
@@ -153,12 +163,6 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-parameter_types! {
-    pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
-    pub ReportLongevity: u64 =
-        BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * (EpochDurationInBlocks::get() as u64);
-}
-
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 /// The BABE epoch configuration at genesis.
@@ -167,6 +171,12 @@ pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
         c: PRIMARY_PROBABILITY,
         allowed_slots: sp_consensus_babe::AllowedSlots::PrimaryAndSecondaryVRFSlots,
     };
+
+parameter_types! {
+    pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
+    pub ReportLongevity: u64 =
+        BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * (EpochDurationInBlocks::get() as u64);
+}
 
 impl pallet_babe::Config for Runtime {
     type EpochDuration = EpochDurationInBlocks;
@@ -182,76 +192,6 @@ impl pallet_babe::Config for Runtime {
 
     type EquivocationReportSystem =
         pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
-}
-
-parameter_types! {
-    pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
-    pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
-}
-
-impl pallet_grandpa::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-
-    type WeightInfo = ();
-    type MaxAuthorities = MaxAuthorities;
-    type MaxNominators = ConstU32<0>;
-    type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
-
-    type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
-    type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
-        Self,
-        Offences,
-        Historical,
-        EquivocationReportPeriodInBlocks,
-    >;
-}
-
-impl pallet_offences::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
-    type OnOffenceHandler = ValidatorSet;
-}
-
-impl pallet_authorship::Config for Runtime {
-    type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-    type EventHandler = ImOnline;
-}
-
-impl pallet_im_online::Config for Runtime {
-    type AuthorityId = ImOnlineId;
-    type MaxKeys = MaxAuthorities;
-    type MaxPeerInHeartbeats = ConstU32<0>; // Not used any more
-    type RuntimeEvent = RuntimeEvent;
-    type ValidatorSet = Historical;
-    type NextSessionRotation = Babe;
-    type ReportUnresponsiveness = Offences;
-    type UnsignedPriority = ImOnlineUnsignedPriority;
-    type WeightInfo = ();
-}
-
-impl pallet_session::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type ValidatorId = AccountId;
-    type ValidatorIdOf = ConvertInto;
-    type ShouldEndSession = Babe;
-    type NextSessionRotation = Babe;
-    type SessionManager = ValidatorSet;
-    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-    type Keys = SessionKeys;
-    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
-}
-
-impl pallet_session::historical::Config for Runtime {
-    type FullIdentification = Self::ValidatorId;
-    type FullIdentificationOf = Self::ValidatorIdOf;
-}
-
-impl pallet_utility::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeCall = RuntimeCall;
-    type PalletsOrigin = OriginCaller;
-    type WeightInfo = ();
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -281,41 +221,161 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
-parameter_types! {
-    pub const PreimageBaseDeposit: Balance = 5 * UNIT * SUPPLY_FACTOR ;
-    pub const PreimageByteDeposit: Balance = STORAGE_BYTE_FEE;
-    pub const PreimageHoldReason: RuntimeHoldReason =
-        RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
+impl pallet_authorship::Config for Runtime {
+    type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
+    type EventHandler = ImOnline;
 }
 
-impl pallet_preimage::Config for Runtime {
+impl pallet_offences::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type Currency = Balances;
-    type ManagerOrigin = EnsureRoot<AccountId>;
-    type Consideration = HoldConsideration<
-        AccountId,
-        Balances,
-        PreimageHoldReason,
-        LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
-    >;
+    type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
+    type OnOffenceHandler = ValidatorSet;
+}
+
+impl pallet_session::historical::Config for Runtime {
+    type FullIdentification = Self::ValidatorId;
+    type FullIdentificationOf = Self::ValidatorIdOf;
+}
+
+impl pallet_session::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type ShouldEndSession = Babe;
+    type NextSessionRotation = Babe;
+    type SessionManager = ValidatorSet;
+    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+    type Keys = SessionKeys;
+    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
+}
+
+impl pallet_validator_set::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type AddRemoveOrigin = EnsureRoot<AccountId>;
+    type MaxAuthorities = MaxAuthorities;
+    type SetKeysCooldownBlocks = SetKeysCooldownBlocks;
+    type WeightInfo = pallet_validator_set::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
+}
+
+impl pallet_im_online::Config for Runtime {
+    type AuthorityId = ImOnlineId;
+    type MaxKeys = MaxAuthorities;
+    type MaxPeerInHeartbeats = ConstU32<0>; // Not used any more
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorSet = Historical;
+    type NextSessionRotation = Babe;
+    type ReportUnresponsiveness = Offences;
+    type UnsignedPriority = ImOnlineUnsignedPriority;
     type WeightInfo = ();
 }
 
 parameter_types! {
-    // One storage item; key size is 32 + 20; value is size 4+4+16+20 bytes = 44 bytes.
-    pub const DepositBase: Balance = deposit(1, 96);
-    // Additional storage item size of 20 bytes.
-    pub const DepositFactor: Balance = deposit(0, 20);
-    pub const MaxSignatories: u32 = 100;
+    pub const EquivocationReportPeriodInEpochs: u64 = 168;
+    pub const EquivocationReportPeriodInBlocks: u64 =
+        EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
+        pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
 }
 
-impl pallet_multisig::Config for Runtime {
+impl pallet_grandpa::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+
+    type WeightInfo = ();
+    type MaxAuthorities = MaxAuthorities;
+    type MaxNominators = ConstU32<0>;
+    type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
+
+    type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
+    type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
+        Self,
+        Offences,
+        Historical,
+        EquivocationReportPeriodInBlocks,
+    >;
+}
+
+parameter_types! {
+    pub FeeMultiplier: Multiplier = Multiplier::one();
+}
+
+impl pallet_transaction_payment::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OnChargeTransaction = FungibleAdapter<Balances, ()>;
+    type OperationalFeeMultiplier = ConstU8<5>;
+    type WeightToFee = IdentityFee<Balance>;
+    type LengthToFee = IdentityFee<Balance>;
+    type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const BeefySetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
+}
+
+impl pallet_beefy::Config for Runtime {
+    type BeefyId = BeefyId;
+    type MaxAuthorities = ConstU32<32>;
+    type MaxNominators = ConstU32<0>;
+    type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
+    type OnNewValidatorSet = BeefyMmrLeaf;
+    type AncestryHelper = BeefyMmrLeaf;
+    type WeightInfo = ();
+    type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
+    type EquivocationReportSystem = ();
+}
+
+parameter_types! {
+    pub LeafVersion: MmrLeafVersion = MmrLeafVersion::new(0, 0);
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+pub struct LeafExtraData {
+    extra: H256,
+}
+
+pub struct LeafExtraDataProvider;
+impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
+    fn extra_data() -> LeafExtraData {
+        LeafExtraData {
+            extra: H256::zero(),
+        }
+    }
+}
+
+impl pallet_mmr::Config for Runtime {
+    const INDEXING_PREFIX: &'static [u8] = pallet_mmr::primitives::INDEXING_PREFIX;
+    type Hashing = Keccak256;
+    type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
+    type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
+    type WeightInfo = ();
+    type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
+}
+
+impl pallet_beefy_mmr::Config for Runtime {
+    type LeafVersion = LeafVersion;
+    type BeefyAuthorityToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
+    type LeafExtra = LeafExtraData;
+    type BeefyDataProvider = LeafExtraDataProvider;
+    type WeightInfo = ();
+}
+
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                    POLKADOT SDK UTILITY PALLETS                                               ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+impl pallet_utility::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
-    type Currency = Balances;
-    type DepositBase = DepositBase;
-    type DepositFactor = DepositFactor;
-    type MaxSignatories = MaxSignatories;
+    type PalletsOrigin = OriginCaller;
     type WeightInfo = ();
 }
 
@@ -337,32 +397,24 @@ impl pallet_scheduler::Config for Runtime {
     type WeightInfo = ();
 }
 
-impl pallet_validator_set::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type AddRemoveOrigin = EnsureRoot<AccountId>;
-    type MaxAuthorities = MaxAuthorities;
-    type SetKeysCooldownBlocks = SetKeysCooldownBlocks;
-    type WeightInfo = pallet_validator_set::weights::SubstrateWeight<Runtime>;
-}
-
 parameter_types! {
-    pub FeeMultiplier: Multiplier = Multiplier::one();
+    pub const PreimageBaseDeposit: Balance = 5 * UNIT * SUPPLY_FACTOR ;
+    pub const PreimageByteDeposit: Balance = STORAGE_BYTE_FEE;
+    pub const PreimageHoldReason: RuntimeHoldReason =
+        RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
 }
 
-impl pallet_transaction_payment::Config for Runtime {
+impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = FungibleAdapter<Balances, ()>;
-    type OperationalFeeMultiplier = ConstU8<5>;
-    type WeightToFee = IdentityFee<Balance>;
-    type LengthToFee = IdentityFee<Balance>;
-    type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
+    type Currency = Balances;
+    type ManagerOrigin = EnsureRoot<AccountId>;
+    type Consideration = HoldConsideration<
+        AccountId,
+        Balances,
+        PreimageHoldReason,
+        LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
+    >;
     type WeightInfo = ();
-}
-
-impl pallet_sudo::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeCall = RuntimeCall;
-    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -411,59 +463,39 @@ impl pallet_identity::Config for Runtime {
 }
 
 parameter_types! {
-    pub const BeefySetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
+    // One storage item; key size is 32 + 20; value is size 4+4+16+20 bytes = 44 bytes.
+    pub const DepositBase: Balance = deposit(1, 96);
+    // Additional storage item size of 20 bytes.
+    pub const DepositFactor: Balance = deposit(0, 20);
+    pub const MaxSignatories: u32 = 100;
 }
 
-impl pallet_beefy::Config for Runtime {
-    type BeefyId = BeefyId;
-    type MaxAuthorities = ConstU32<32>;
-    type MaxNominators = ConstU32<0>;
-    type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
-    type OnNewValidatorSet = BeefyMmrLeaf;
-    type AncestryHelper = BeefyMmrLeaf;
-    type WeightInfo = ();
-    type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem = ();
-}
-
-parameter_types! {
-    pub LeafVersion: MmrLeafVersion = MmrLeafVersion::new(0, 0);
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-pub struct LeafExtraData {
-    extra: H256,
-}
-
-pub struct LeafExtraDataProvider;
-impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
-    fn extra_data() -> LeafExtraData {
-        LeafExtraData {
-            extra: H256::zero(),
-        }
-    }
-}
-
-impl pallet_beefy_mmr::Config for Runtime {
-    type LeafVersion = LeafVersion;
-    type BeefyAuthorityToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
-    type LeafExtra = LeafExtraData;
-    type BeefyDataProvider = LeafExtraDataProvider;
+impl pallet_multisig::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type Currency = Balances;
+    type DepositBase = DepositBase;
+    type DepositFactor = DepositFactor;
+    type MaxSignatories = MaxSignatories;
     type WeightInfo = ();
 }
 
-impl pallet_mmr::Config for Runtime {
-    const INDEXING_PREFIX: &'static [u8] = pallet_mmr::primitives::INDEXING_PREFIX;
-    type Hashing = Keccak256;
-    type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
-    type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
+impl pallet_parameters::Config for Runtime {
+    type AdminOrigin = EnsureRoot<AccountId>;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeParameters = RuntimeParameters;
     type WeightInfo = ();
-    type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
-    #[cfg(feature = "runtime-benchmarks")]
-    type BenchmarkHelper = ();
 }
 
-// Frontier
+impl pallet_sudo::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
+}
+
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                        FRONTIER (EVM) PALLETS                                                 ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 parameter_types! {
     pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
@@ -550,6 +582,10 @@ impl pallet_evm::Config for Runtime {
 
 impl pallet_evm_chain_id::Config for Runtime {}
 
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                          SNOWBRIDGE PALLETS                                                   ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
 // For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
 #[cfg(any(
     feature = "std",
@@ -630,12 +666,6 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type WeightInfo = ();
 }
 
-// Define the gateway address parameter
-// TODO: Turn this into a runtime parameter
-parameter_types! {
-    pub EthereumGatewayAddress: H160 = H160::repeat_byte(0x42);
-}
-
 parameter_types! {
     pub DefaultRewardKind: () = ();
 }
@@ -651,7 +681,7 @@ impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
-    type GatewayAddress = EthereumGatewayAddress;
+    type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
@@ -660,6 +690,14 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;
 }
+
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                        STORAGEHUB PALLETS                                                     ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                    DATAHAVEN-SPECIFIC PALLETS                                                 ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {

@@ -21,17 +21,17 @@ use sp_runtime::generic::DigestItem;
 /// Custom header digest items, inserted as DigestItem::Other
 #[derive(Encode, Decode, Copy, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum CustomDigestItem {
-	#[codec(index = 0)]
-	/// Merkle root of outbound Snowbridge messages.
-	Snowbridge(H256),
-	#[codec(index = 1)]
-	/// Merkle root of outbound Snowbridge V2 messages.
-	SnowbridgeV2(H256),
+    #[codec(index = 0)]
+    /// Merkle root of outbound Snowbridge messages.
+    Snowbridge(H256),
+    #[codec(index = 1)]
+    /// Merkle root of outbound Snowbridge V2 messages.
+    SnowbridgeV2(H256),
 }
 
 /// Convert custom application digest item into a concrete digest item
 impl From<CustomDigestItem> for DigestItem {
-	fn from(val: CustomDigestItem) -> Self {
-		DigestItem::Other(val.encode())
-	}
+    fn from(val: CustomDigestItem) -> Self {
+        DigestItem::Other(val.encode())
+    }
 }

@@ -17,28 +17,28 @@
 
 use frame_support::traits::Get;
 use xcm::{
-	latest::prelude::*,
-	prelude::{GetVersion, XcmVersion},
+    latest::prelude::*,
+    prelude::{GetVersion, XcmVersion},
 };
 
 /// Adapter for the implementation of `GetVersion`, which attempts to find the minimal
 /// configured XCM version between the destination `dest` and the bridge hub location provided as
 /// `Get<Location>`.
 pub struct XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>(
-	sp_std::marker::PhantomData<(Version, RemoteBridge)>,
+    sp_std::marker::PhantomData<(Version, RemoteBridge)>,
 );
 impl<Version: GetVersion, RemoteBridge: Get<Location>> GetVersion
-	for XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>
+    for XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>
 {
-	fn get_version_for(dest: &Location) -> Option<XcmVersion> {
-		let dest_version = Version::get_version_for(dest);
-		let bridge_hub_version = Version::get_version_for(&RemoteBridge::get());
+    fn get_version_for(dest: &Location) -> Option<XcmVersion> {
+        let dest_version = Version::get_version_for(dest);
+        let bridge_hub_version = Version::get_version_for(&RemoteBridge::get());
 
-		match (dest_version, bridge_hub_version) {
-			(Some(dv), Some(bhv)) => Some(sp_std::cmp::min(dv, bhv)),
-			(Some(dv), None) => Some(dv),
-			(None, Some(bhv)) => Some(bhv),
-			(None, None) => None,
-		}
-	}
+        match (dest_version, bridge_hub_version) {
+            (Some(dv), Some(bhv)) => Some(sp_std::cmp::min(dv, bhv)),
+            (Some(dv), None) => Some(dv),
+            (None, Some(bhv)) => Some(bhv),
+            (None, None) => None,
+        }
+    }
 }

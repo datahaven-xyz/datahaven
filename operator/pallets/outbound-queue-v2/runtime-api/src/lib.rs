@@ -10,9 +10,9 @@ use frame_support::traits::tokens::Balance as BalanceT;
 use snowbridge_merkle_tree::MerkleProof;
 
 sp_api::decl_runtime_apis! {
-	pub trait OutboundQueueV2Api<Balance> where Balance: BalanceT
-	{
-		/// Generate a merkle proof for a committed message identified by `leaf_index`.
-		fn prove_message(leaf_index: u64) -> Option<MerkleProof>;
-	}
+    pub trait OutboundQueueV2Api<Balance> where Balance: BalanceT
+    {
+        /// Generate a merkle proof for a committed message identified by `leaf_index`.
+        fn prove_message(leaf_index: u64) -> Option<MerkleProof>;
+    }
 }

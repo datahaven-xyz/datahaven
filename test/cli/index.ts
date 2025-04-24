@@ -1,37 +1,31 @@
 import { Command } from "@commander-js/extra-typings";
-import { logger } from "utils";
+import { launch, launchPreActionHook } from "./handlers";
 
+// So far we only have the launch command
+// we can expand this to more commands in the future
 const program = new Command()
-  .name("🫎  Datahaven")
-  .description("Network Launcher CLI")
-  .option("-v, --verified", "Verify smart contracts with Blockscout", false)
   .option("-l, --launch-kurtosis", "Launch Kurtosis", true)
-  .option("-d, --deploy-contracts", "Deploy smart contracts", false)
-  // TODO: Make some of these options depedent on others e.g. blockscout and validators
+  .option("-d, --deploy-contracts", "Deploy smart contracts")
   .option("-f, --fund-validators", "Fund validators", true)
   .option("-s, --setup-validators", "Setup validators", true)
   .option("-u, --update-validator-set", "Update validator set", true)
   .option("-b, --blockscout", "Enable Blockscout", false)
+  .option("-v, --verified", "Verify smart contracts with Blockscout", false)
   .option("-r, --relayer", "Enable Relayer", true)
-  .version("0.1.0");
+  .hook("preAction", launchPreActionHook)
+  .action(launch);
 
-async function main() {
-  const options = program.parse(Bun.argv);
+// =====  Program  =====
+program
+  .version("0.1.0")
+  .name("bun cli")
+  .summary("🫎  Datahaven: Network Launcher CLI")
+  .usage("[options]")
+  .description(`🫎  Datahaven: Network Launcher CLI for launching a full Datahaven network.
+    Complete with:
+    - Solo-chain validators,
+    - Storage providers,
+    - Snowbridge Relayers
+    - Ethereum Private network`);
 
-  logger.debug("Running with options:");
-  logger.debug(options);
-}
-
-interface ScriptOptions {
-  verified?: boolean;
-  launchKurtosis?: boolean;
-  deployContracts?: boolean;
-  fundValidators?: boolean;
-  setupValidators?: boolean;
-  updateValidatorSet?: boolean;
-  blockscout?: boolean;
-  relayer?: boolean;
-  help?: boolean;
-}
-
-main();
+program.parseAsync(Bun.argv);

@@ -14,6 +14,7 @@
     "stop:e2e": "kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
     "stop:e2e:verified": "bun stop:e2e",
     "stop:e2e:minimal": "bun stop:e2e",
+    "stop:e2e:quick": "kurtosis enclave stop datahaven-ethereum",
     "stop:kurtosis-engine": "kurtosis engine stop && docker container prune -f",
     "test:e2e": "bun test suites/e2e"
   },

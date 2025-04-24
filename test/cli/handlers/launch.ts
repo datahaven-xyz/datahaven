@@ -8,7 +8,15 @@ import sendTxn from "scripts/send-txn";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
 import invariant from "tiny-invariant";
-import { ANVIL_FUNDED_ACCOUNTS, logger, printDivider, printHeader, promptWithTimeout } from "utils";
+import {
+  ANVIL_FUNDED_ACCOUNTS,
+  getPortFromKurtosis,
+  getServiceFromKurtosis,
+  logger,
+  printDivider,
+  printHeader,
+  promptWithTimeout
+} from "utils";
 
 interface LaunchOptions {
   verified?: boolean;
@@ -20,7 +28,16 @@ interface LaunchOptions {
   blockscout?: boolean;
   relayer?: boolean;
   relayerBinPath?: string;
+  skipCleaning?: boolean;
 }
+
+const BASE_SERVICES = [
+  "cl-1-lighthouse-reth",
+  "cl-1-lighthouse-reth",
+  "el-1-reth-lighthouse",
+  "el-2-reth-lighthouse",
+  "dora"
+];
 
 // =====  Launch Handler Functions  =====
 
@@ -35,9 +52,10 @@ export const launch = async (options: LaunchOptions) => {
   await checkDependencies();
 
   logger.trace("Launching Kurtosis enclave");
-  const { services } = await launchKurtosis({
+  await launchKurtosis({
     launchKurtosis: options.launchKurtosis,
-    blockscout: options.blockscout
+    blockscout: options.blockscout,
+    skipCleaning: options.skipCleaning
   });
   logger.trace("Kurtosis enclave launched");
 
@@ -45,33 +63,12 @@ export const launch = async (options: LaunchOptions) => {
   printHeader("Setting Up Blockchain");
   logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
   const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
-  const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
+  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
+  const networkRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
   invariant(networkRpcUrl, "❌ Network RPC URL not found");
 
   logger.info("💸 Sending test transaction...");
   await sendTxn(privateKey, networkRpcUrl);
-
-  printDivider();
-
-  logger.trace("Display service information in a clean table");
-  printHeader("Service Endpoints");
-
-  logger.trace("Filter services to display based on blockscout option");
-  const servicesToDisplay = services
-    .filter((s) => ["reth-1-rpc", "reth-2-rpc", "dora"].includes(s.service))
-    .concat([{ service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }]);
-
-  logger.trace("Conditionally add blockscout services");
-  if (options.blockscout !== false) {
-    const blockscoutBackend = services.find((s) => s.service === "blockscout-backend");
-    if (blockscoutBackend) {
-      servicesToDisplay.push(blockscoutBackend);
-      logger.trace("Adding blockscout frontend");
-      servicesToDisplay.push({ service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" });
-    }
-  }
-
-  console.table(servicesToDisplay);
 
   printDivider();
 
@@ -87,7 +84,8 @@ export const launch = async (options: LaunchOptions) => {
   let blockscoutBackendUrl: string | undefined = undefined;
 
   if (options.blockscout !== false) {
-    blockscoutBackendUrl = services.find((s) => s.service === "blockscout-backend")?.url;
+    const blockscoutPublicPort = await getPortFromKurtosis("blockscout", "http");
+    blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
   } else if (options.verified) {
     logger.warn(
       "⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped."
@@ -216,6 +214,84 @@ export const launch = async (options: LaunchOptions) => {
     // logger.success("Snowbridge relayers started");
   }
 
+  printDivider();
+
+  logger.trace("Display service information in a clean table");
+  printHeader("Service Endpoints");
+
+  logger.trace("Filter services to display based on blockscout option");
+  const servicesToDisplay = BASE_SERVICES;
+
+  if (options.blockscout === true) {
+    servicesToDisplay.push(...["blockscout", "blockscout-frontend"]);
+  }
+
+  const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
+  for (const service of servicesToDisplay) {
+    logger.debug(`Checking service: ${service}`);
+
+    const serviceInfo = await getServiceFromKurtosis(service);
+    logger.debug("Service info", serviceInfo);
+    switch (true) {
+      case service.startsWith("cl-"): {
+        const httpPort = serviceInfo.public_ports.http.number;
+        displayData.push({
+          service,
+          ports: { http: httpPort },
+          url: `http://127.0.0.1:${httpPort}`
+        });
+        break;
+      }
+
+      case service.startsWith("el-"): {
+        const rpcPort = serviceInfo.public_ports.rpc.number;
+        const wsPort = serviceInfo.public_ports.ws.number;
+        displayData.push({
+          service,
+          ports: { rpc: rpcPort, ws: wsPort },
+          url: `http://127.0.0.1:${rpcPort}`
+        });
+        break;
+      }
+
+      case service.startsWith("dora"): {
+        const httpPort = serviceInfo.public_ports.http.number;
+        displayData.push({
+          service,
+          ports: { http: httpPort },
+          url: `http://127.0.0.1:${httpPort}`
+        });
+        break;
+      }
+
+      case service === "blockscout": {
+        const httpPort = serviceInfo.public_ports.http.number;
+        displayData.push({
+          service,
+          ports: { http: httpPort },
+          url: `http://127.0.0.1:${httpPort}`
+        });
+        break;
+      }
+
+      case service === "blockscout-frontend": {
+        const httpPort = serviceInfo.public_ports.http.number;
+        displayData.push({
+          service,
+          ports: { http: httpPort },
+          url: `http://127.0.0.1:${httpPort}`
+        });
+        break;
+      }
+
+      default: {
+        logger.error(`Unknown service: ${service}`);
+      }
+    }
+  }
+
+  console.table(displayData);
+  printDivider();
   logger.success("Launch script completed successfully");
 };
 

@@ -26,7 +26,7 @@ export const standardKurtosisServices = [
   "el-2-reth-lighthouse",
   "vc-1-reth-lighthouse",
   "vc-2-reth-lighthouse",
-  "blockscout"
+  "dora"
 ];
 
 export const StandardServiceMappings: ServiceMapping[] = [
@@ -77,7 +77,7 @@ const serviceSchema = z.object({
   tini_enabled: z.boolean()
 });
 
-type KurtosisService = z.infer<typeof serviceSchema>;
+export type KurtosisService = z.infer<typeof serviceSchema>;
 
 export const getServiceFromKurtosis = async (service: string): Promise<KurtosisService> => {
   logger.debug("Getting service from kurtosis", service);
@@ -115,9 +115,6 @@ export const getPortFromKurtosis = async (service: string, portName: string): Pr
   return parsed.public_ports[portName].number;
 };
 
-// You can use this for debugging
-// getPortFromKurtosis("el-1-reth-lighthouse", "rpc").then(console.log);
-
 export const getServicesFromKurtosis = async (): Promise<Record<string, KurtosisService>> => {
   const promises = standardKurtosisServices.map(async (serviceName) => {
     const serviceData = await getServiceFromKurtosis(serviceName);
@@ -127,5 +124,3 @@ export const getServicesFromKurtosis = async (): Promise<Record<string, Kurtosis
   const results = await Promise.all(promises);
   return results.reduce((acc, current) => ({ ...acc, ...current }), {});
 };
-
-getServicesFromKurtosis().then(console.dir);

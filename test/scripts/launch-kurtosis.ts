@@ -1,5 +1,12 @@
 import { $ } from "bun";
-import { getServicesFromDocker, logger, printDivider, printHeader, promptWithTimeout } from "utils";
+import {
+  type KurtosisService,
+  getServicesFromKurtosis,
+  logger,
+  printDivider,
+  printHeader,
+  promptWithTimeout
+} from "utils";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
@@ -14,18 +21,19 @@ import { getServicesFromDocker, logger, printDivider, printHeader, promptWithTim
  * @param options - Configuration options
  * @param options.launchKurtosis - Whether to forcibly launch Kurtosis (true), keep existing (false), or prompt user (undefined)
  * @param options.blockscout - Whether to add Blockscout service (true/undefined) or not (false)
+ * @param options.skipCleaning - Whether to skip cleaning Kurtosis (true) or not (false)
  * @returns Object containing success status and Docker services information
  */
 export const launchKurtosis = async (
-  options: { launchKurtosis?: boolean; blockscout?: boolean } = {}
-) => {
+  options: { launchKurtosis?: boolean; blockscout?: boolean; skipCleaning?: boolean } = {}
+): Promise<Record<string, KurtosisService>> => {
   if (await checkKurtosisRunning()) {
     logger.info("ℹ️  Kurtosis network is already running.");
 
-    // Check if launchKurtosis option was set via flags
+    logger.trace("Checking if launchKurtosis option was set via flags");
     if (options.launchKurtosis === false) {
       logger.info("Keeping existing Kurtosis enclave. Exiting...");
-      return { success: true, services: await getServicesFromDocker() };
+      return getServicesFromKurtosis();
     }
 
     if (options.launchKurtosis === true) {
@@ -40,24 +48,23 @@ export const launchKurtosis = async (
 
       if (!shouldRelaunch) {
         logger.info("Keeping existing Kurtosis enclave. Exiting...");
-        return { success: true, services: await getServicesFromDocker() };
+        return getServicesFromKurtosis();
       }
 
       logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
     }
   }
 
-  // Start Kurtosis network
   printHeader("Starting Kurtosis Network");
 
-  // Clean up Docker and Kurtosis
-  logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
-  logger.debug(await $`kurtosis enclave stop datahaven-ethereum`.nothrow().text());
-  logger.debug(await $`kurtosis clean`.text());
-  logger.debug(await $`kurtosis engine stop`.text());
-  logger.debug(await $`docker system prune -f`.nothrow().text());
+  if (!options.skipCleaning) {
+    logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
+    logger.debug(await $`kurtosis enclave stop datahaven-ethereum`.nothrow().text());
+    logger.debug(await $`kurtosis clean`.text());
+    logger.debug(await $`kurtosis engine stop`.text());
+    logger.debug(await $`docker system prune -f`.nothrow().text());
+  }
 
-  // Pull necessary Docker images
   if (process.platform === "darwin") {
     logger.debug("Detected macOS, pulling container images with linux/amd64 platform...");
     logger.debug(
@@ -65,9 +72,7 @@ export const launchKurtosis = async (
     );
   }
 
-  // Run Kurtosis
   logger.info("🚀 Starting Kurtosis enclave...");
-  // Determine which config file to use based on the blockscout option
   const configFile =
     options.blockscout === true
       ? "configs/kurtosis/minimal-with-bs.yaml"
@@ -85,13 +90,12 @@ export const launchKurtosis = async (
   }
   logger.debug(stdout.toString());
 
-  // Get service information from Docker
-  logger.info("🔍 Detecting Docker container ports...");
-  const services = await getServicesFromDocker();
+  logger.info("🔍 Gathering Kurtosis public ports...");
+  const services = await getServicesFromKurtosis();
 
   printDivider();
 
-  return { success: true, services };
+  return services;
 };
 
 /**

@@ -6,12 +6,13 @@ import { launch, launchPreActionHook } from "./handlers";
 // we can expand this to more commands in the future
 const program = new Command()
   .option("-l, --launch-kurtosis", "Launch Kurtosis", true)
-  .option("-d, --deploy-contracts", "Deploy smart contracts", false)
+  .option("-d, --deploy-contracts", "Deploy smart contracts")
   .option("-f, --fund-validators", "Fund validators", true)
   .option("-s, --setup-validators", "Setup validators", true)
   .option("-u, --update-validator-set", "Update validator set", true)
   .option("-b, --blockscout", "Enable Blockscout", false)
   .option("-v, --verified", "Verify smart contracts with Blockscout", false)
+  .option("-q, --skip-cleaning", "Skip cleaning Kurtosis", false)
   .option("-r, --relayer", "Enable Relayer", false)
   .option(
     "-p, --relayer-bin-path <value>",

@@ -8,7 +8,7 @@ import sendTxn from "scripts/send-txn";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader, promptWithTimeout } from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, logger, printDivider, printHeader, promptWithTimeout } from "utils";
 
 interface LaunchOptions {
   verified?: boolean;
@@ -42,7 +42,7 @@ export const launch = async (options: LaunchOptions) => {
 
   logger.trace("Send test transaction");
   printHeader("Setting Up Blockchain");
-  const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil test acc1
+  const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
   invariant(networkRpcUrl, "❌ Network RPC URL not found");
 

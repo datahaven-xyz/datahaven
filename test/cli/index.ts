@@ -6,7 +6,7 @@ import { launch, launchPreActionHook } from "./handlers";
 // we can expand this to more commands in the future
 const program = new Command()
   .option("-l, --launch-kurtosis", "Launch Kurtosis", true)
-  .option("-d, --deploy-contracts", "Deploy smart contracts")
+  .option("-d, --deploy-contracts", "Deploy smart contracts", false)
   .option("-f, --fund-validators", "Fund validators", true)
   .option("-s, --setup-validators", "Setup validators", true)
   .option("-u, --update-validator-set", "Update validator set", true)

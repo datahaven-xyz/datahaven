@@ -86,21 +86,29 @@ pub struct FullDeps<C, P, B, AuthorityId: AuthorityIdBound, A: ChainApi> {
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P, B, AuthorityId>(
-    deps: FullDeps<C, P, B, AuthorityId>,
+pub fn create_full<C, P, BE, AuthorityId, A>(
+    deps: FullDeps<C, P, BE, AuthorityId, A>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-    C: ProvideRuntimeApi<Block>,
+    C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
     C: Send + Sync + 'static,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
     C::Api: mmr_rpc::MmrRuntimeApi<Block, <Block as sp_runtime::traits::Block>::Hash, BlockNumber>,
-    P: TransactionPool + 'static,
-    B: sc_client_api::Backend<Block> + Send + Sync + 'static,
-    B::State: sc_client_api::StateBackend<sp_runtime::traits::HashingFor<Block>>,
+    C::Api: EthereumRuntimeRPCApi<Block>,
+    C::Api: BabeApi<Block>,
+    C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
+    C: sc_client_api::UsageProvider<Block>,
+    C: CallApiAt<
+        sp_runtime::generic::Block<sp_runtime::generic::Header<u32, BlakeTwo256>, OpaqueExtrinsic>,
+    >,
+    P: TransactionPool<Block = Block> + 'static,
+    BE: Backend<Block> + Send + Sync + 'static,
+    BE::State: StateBackend<BlakeTwo256>,
     AuthorityId: AuthorityIdBound,
+    A: ChainApi<Block = Block> + 'static,
 {
     use mmr_rpc::{Mmr, MmrApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
@@ -112,10 +120,23 @@ where
         client,
         pool,
         beefy,
+        graph,
+        network,
+        sync,
+        filter_pool,
+        frontier_backend,
         backend,
+        max_past_logs,
+        fee_history_limit,
+        fee_history_cache,
+        overrides,
+        block_data_cache,
+        is_authority,
+        command_sink,
+        forced_parent_hashes,
     } = deps;
 
-    module.merge(System::new(client.clone(), pool).into_rpc())?;
+    module.merge(System::new(Arc::clone(&client), Arc::clone(&pool)).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     module.merge(
         Beefy::<Block, AuthorityId>::new(
@@ -127,13 +148,101 @@ where
     )?;
     module.merge(
         Mmr::new(
-            client,
+            client.clone(),
             backend
                 .offchain_storage()
                 .ok_or("Backend doesn't provide the required offchain storage")?,
         )
         .into_rpc(),
     )?;
+
+    enum Never {}
+    impl<T> fp_rpc::ConvertTransaction<T> for Never {
+        fn convert_transaction(&self, _transaction: pallet_ethereum::Transaction) -> T {
+            // The Never type is not instantiable, but this method requires the type to be
+            // instantiated to be called (`&self` parameter), so if the code compiles we have the
+            // guarantee that this function will never be called.
+            unreachable!()
+        }
+    }
+    let convert_transaction: Option<Never> = None;
+
+    let signers = Vec::new();
+    let pending_consensus_data_provider: Option<
+        Box<(dyn fc_rpc::pending::ConsensusDataProvider<_>)>,
+    > = Some(BabeConsensusDataProvider::new().into());
+
+    let pending_create_inherent_data_providers = move |_, _| async move {
+        let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+        let slot =
+            sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                *timestamp,
+                SlotDuration::from_millis(SLOT_DURATION),
+            );
+        Ok((slot, timestamp))
+    };
+
+    module.merge(
+        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<C, BE>>::new(
+            Arc::clone(&client),
+            Arc::clone(&pool),
+            graph.clone(),
+            convert_transaction,
+            Arc::clone(&sync),
+            signers,
+            Arc::clone(&overrides),
+            Arc::clone(&frontier_backend),
+            is_authority,
+            Arc::clone(&block_data_cache),
+            fee_history_cache,
+            fee_history_limit,
+            10,
+            forced_parent_hashes,
+            pending_create_inherent_data_providers,
+            pending_consensus_data_provider,
+        )
+        .into_rpc(),
+    )?;
+
+    if let Some(filter_pool) = filter_pool {
+        module.merge(
+            EthFilter::new(
+                client.clone(),
+                frontier_backend.clone(),
+                graph.clone(),
+                filter_pool,
+                500_usize, // max stored filters
+                max_past_logs,
+                block_data_cache,
+            )
+            .into_rpc(),
+        )?;
+    }
+
+    module.merge(
+        Net::new(
+            Arc::clone(&client),
+            network.clone(),
+            // Whether to format the `peer_count` response as Hex (default) or not.
+            true,
+        )
+        .into_rpc(),
+    )?;
+
+    module.merge(Web3::new(Arc::clone(&client)).into_rpc())?;
+
+    if let Some(command_sink) = command_sink {
+        module.merge(
+            // We provide the rpc handler with the sending end of the channel to allow the rpc
+            // send EngineCommands to the background block authorship task.
+            ManualSeal::new(command_sink).into_rpc(),
+        )?;
+    };
+
+    let tx_pool = TxPool::new(client.clone(), graph.clone());
+    module.merge(tx_pool.into_rpc())?;
+
+    // module.merge(FrontierFinality::new(client.clone(), frontier_backend.clone()).into_rpc())?;
 
     // Extend this RPC with a custom API by using the following syntax.
     // `YourRpcStruct` should have a reference to a client, which is needed

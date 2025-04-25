@@ -8,7 +8,9 @@ import {DHScriptStorage} from "../utils/DHScriptStorage.s.sol";
 import {SnowbridgeScriptStorage} from "../utils/SnowbridgeScriptStorage.s.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 import {IDataHavenServiceManager} from "../../src/interfaces/IDataHavenServiceManager.sol";
+import {RewardsRegistryStorage} from "../../src/middleware/RewardsRegistryStorage.sol";
 import {Gateway} from "../../lib/snowbridge/contracts/src/Gateway.sol";
+import {CallContractParams} from "../../lib/snowbridge/contracts/src/v2/Types.sol";
 
 /**
  * @title MockRewardsUpdateMessage
@@ -59,6 +61,10 @@ contract MockRewardsUpdateMessage is Script, DHScriptStorage, SnowbridgeScriptSt
         require(rewardsRegistry != address(0), "Rewards registry not set for operator set");
         console.log("Rewards Registry address: %s", rewardsRegistry);
 
+        // Get the initial merkle root from the rewards registry
+        bytes32 initialMerkleRoot = RewardsRegistryStorage(rewardsRegistry).lastRewardsMerkleRoot();
+        console.log("Initial Merkle Root: %s", vm.toString(initialMerkleRoot));
+
         // Build calldata for updateRewardsMerkleRoot
         bytes memory callData =
             abi.encodeWithSelector(IRewardsRegistry.updateRewardsMerkleRoot.selector, newMerkleRoot);
@@ -66,9 +72,11 @@ contract MockRewardsUpdateMessage is Script, DHScriptStorage, SnowbridgeScriptSt
 
         // Create payload for v2_handleCallContract
         bytes memory payload = abi.encode(
-            rewardsRegistry, // target contract
-            callData, // call data
-            uint128(0) // value (no ETH sent)
+            CallContractParams({
+                target: rewardsRegistry, // target contract
+                data: callData, // call data
+                value: 0 // value (no ETH sent)
+            })
         );
         console.log("Payload: %s", vm.toString(payload));
 
@@ -78,6 +86,11 @@ contract MockRewardsUpdateMessage is Script, DHScriptStorage, SnowbridgeScriptSt
 
         // Mock a direct call to v2_handleCallContract to simulate message from substrate
         Gateway(gateway).v2_handleCallContract(rewardsAgentId, payload);
+
+        // Check that the rewards registry has been updated
+        bytes32 currentMerkleRoot = RewardsRegistryStorage(rewardsRegistry).lastRewardsMerkleRoot();
+        console.log("Current Merkle Root: %s", vm.toString(currentMerkleRoot));
+        require(currentMerkleRoot == newMerkleRoot, "Rewards registry not updated");
 
         Logging.logInfo("Successfully mocked Gateway message to update rewards root");
     }

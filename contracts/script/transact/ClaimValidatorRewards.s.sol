@@ -33,8 +33,9 @@ contract ClaimValidatorRewards is Script, DHScriptStorage {
         validatorPoints = vm.envOr("VALIDATOR_POINTS", uint256(100000000000000000000)); // Default 100 ETH worth of points
 
         // Get merkle proof from env
-        string memory proofStr = vm.envOr("PROOF", string("[]"));
-        proof = vm.parseJsonBytes32Array(proofStr, ".proof");
+        string memory validatorInfoStr = vm.envOr("VALIDATOR_INFO", string("[]"));
+        console.log("Validator Info: %s", validatorInfoStr);
+        proof = vm.parseJsonBytes32Array(validatorInfoStr, ".proof");
     }
 
     function run() public {

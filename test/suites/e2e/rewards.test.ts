@@ -45,8 +45,8 @@ describe("E2E: Rewards", () => {
   let serviceManagerAddress: string;
   let gatewayAddress: string;
 
-  // Set RPC URL for testing
-  const rpcUrl = "http://localhost:53167";
+  // Set RPC URL for testing (this should be loaded from the docker container)
+  const rpcUrl = "http://localhost:52336";
   // Default network for deployment files
   const networkName = "anvil";
 
@@ -136,6 +136,12 @@ describe("E2E: Rewards", () => {
     }
 
     logger.success("Successfully mocked Gateway message to update rewards root");
+    // Get the current merkle root from the chain
+    const { stdout: merkleRootOutput } =
+      await $`cd ${contractsDir} && cast call ${rewardsRegistryAddress} "lastRewardsMerkleRoot()(bytes32)" --rpc-url ${rpcUrl}`.quiet();
+    const currentMerkleRoot = merkleRootOutput.toString().trim();
+    logger.info(`Rewards merkle root from chain: ${currentMerkleRoot}`);
+    logger.info(`Expected merkle root from tree data: ${rewardsTreeData.merkleRoot}`);
 
     /* 
     // COMMENTED OUT: Real implementation using substrate outbound queue
@@ -150,12 +156,56 @@ describe("E2E: Rewards", () => {
     */
   });
 
+  it("should update the rewards merkle root using the AVS owner", async () => {
+    // Set up environment variables for the update rewards root script
+    const env = {
+      OPERATOR_SET_ID: VALIDATORS_SET_ID.toString(),
+      NEW_MERKLE_ROOT: rewardsTreeData.merkleRoot,
+      NETWORK: networkName,
+      // Using sixth pre-funded Anvil account as the AVS owner (we should get this from the config)
+      AVS_OWNER_PRIVATE_KEY: "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e",
+      // Using different account as temporary agent
+      TEMP_REWARDS_AGENT_PRIVATE_KEY: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" // Second Anvil account
+    };
+
+    // Run the script to update the rewards root using the AVS owner
+    const { exitCode, stderr } =
+      await $`cd ${contractsDir} && forge script script/transact/UpdateRewardsRoot.s.sol --rpc-url ${rpcUrl} --broadcast`
+        .env(env)
+        .nothrow();
+
+    if (exitCode !== 0) {
+      logger.error(`Failed to update rewards root: ${stderr.toString()}`);
+      throw new Error("Failed to update rewards root");
+    }
+
+    logger.success("Successfully updated rewards root using AVS owner");
+
+    // Get the current merkle root from the chain
+    const { stdout: merkleRootOutput } =
+      await $`cd ${contractsDir} && cast call ${rewardsRegistryAddress} "lastRewardsMerkleRoot()(bytes32)" --rpc-url ${rpcUrl}`.quiet();
+    const currentMerkleRoot = merkleRootOutput.toString().trim();
+    logger.info(`Rewards merkle root from chain: ${currentMerkleRoot}`);
+    logger.info(`Expected merkle root from tree data: ${rewardsTreeData.merkleRoot}`);
+
+    expect(currentMerkleRoot.toLowerCase()).toBe(rewardsTreeData.merkleRoot.toLowerCase());
+
+    // Verify that the original rewards agent has been restored
+    const { stdout: currentAgentOutput } =
+      await $`cd ${contractsDir} && cast call ${rewardsRegistryAddress} "rewardsAgent()(address)" --rpc-url ${rpcUrl}`.quiet();
+    const currentAgent = currentAgentOutput.toString().trim();
+    logger.info(`Current rewards agent: ${currentAgent}`);
+    logger.info(`Original rewards agent: ${rewardsAgentAddress}`);
+
+    expect(currentAgent.toLowerCase()).toBe(rewardsAgentAddress.toLowerCase());
+  });
+
   it("should allow a validator to claim rewards", async () => {
     // Get validator data to claim rewards with
     const validatorIndex = 0; // Using the first validator for this test
     const validatorAddress = validatorRewards[validatorIndex].address;
     const validatorPoint = validatorRewards[validatorIndex].points;
-    const proof = rewardsTreeData.validators[validatorIndex].proof;
+    const validatorInfo = rewardsTreeData.validators[validatorIndex];
 
     // Check validator's balance before claiming
     const balanceBefore = await api.getBalance({ address: validatorAddress as `0x${string}` });
@@ -166,7 +216,7 @@ describe("E2E: Rewards", () => {
       VALIDATOR_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // First Anvil account
       VALIDATOR_POINTS: validatorPoint.toString(),
       OPERATOR_SET_ID: VALIDATORS_SET_ID.toString(),
-      PROOF: JSON.stringify(proof),
+      VALIDATOR_INFO: JSON.stringify(validatorInfo),
       NETWORK: networkName
     };
 
@@ -202,14 +252,14 @@ describe("E2E: Rewards", () => {
     const validatorIndex = 0;
     const validatorAddress = validatorRewards[validatorIndex].address;
     const validatorPoint = validatorRewards[validatorIndex].points;
-    const proof = rewardsTreeData.validators[validatorIndex].proof;
+    const validatorInfo = rewardsTreeData.validators[validatorIndex];
 
     // Set up environment variables for calling claimOperatorRewards
     const env = {
       VALIDATOR_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // First Anvil account
       VALIDATOR_POINTS: validatorPoint.toString(),
       OPERATOR_SET_ID: VALIDATORS_SET_ID.toString(),
-      PROOF: JSON.stringify(proof),
+      VALIDATOR_INFO: JSON.stringify(validatorInfo),
       NETWORK: networkName
     };
 

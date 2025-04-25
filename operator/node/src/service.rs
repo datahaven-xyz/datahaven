@@ -7,6 +7,7 @@ use crate::eth::{
 use crate::eth::{EthConfiguration, StorageOverrideHandler};
 use crate::rpc::BeefyDeps;
 use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block};
+use downcast::Any;
 use fc_consensus::FrontierBlockImport;
 use fc_db::DatabaseSource;
 use fc_storage::StorageOverride;
@@ -269,7 +270,7 @@ pub fn new_partial(
         import_queue,
         keystore_container,
         select_chain,
-        transaction_pool,
+        transaction_pool: transaction_pool.into(),
         other: (
             block_import,
             grandpa_link,
@@ -464,12 +465,19 @@ pub async fn new_full<
         let block_data_cache = block_data_cache.clone();
         let fee_history_limit = eth_config.fee_history_limit;
         let sync = sync_service.clone();
+        
+        // Extract the pool reference outside and get the graph pool
+        let pool_api = pool.0.as_any()
+            .downcast_ref::<sc_transaction_pool::BasicPool<
+                sc_transaction_pool::FullChainApi<FullClient, Block>, Block
+            >>().expect("Frontier container chain template supports only single state transaction pool! Use --pool-type=single-state");
+        let graph = pool_api.pool().clone();
 
         Box::new(move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
-                graph: pool.pool().clone(),
+                graph: graph.clone(),
                 beefy: BeefyDeps::<ecdsa_crypto::AuthorityId> {
                     beefy_finality_proof_stream: beefy_rpc_links.from_voter_justif_stream.clone(),
                     beefy_best_block_stream: beefy_rpc_links.from_voter_best_beefy_stream.clone(),

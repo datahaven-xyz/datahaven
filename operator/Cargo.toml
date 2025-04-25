@@ -39,6 +39,7 @@ milagro-bls = { version = "1.5.4", default-features = false, package = "snowbrid
 parity-bytes = { version = "0.1.2", default-features = false }
 clap = { version = "4.5.10" }
 codec = { version = "3.6.12", default-features = false, package = "parity-scale-codec" }
+downcast = "0.11.0"
 flume = "0.10.9"
 futures = { version = "0.3.30" }
 hex = { version = "0.4.3", default-features = false }

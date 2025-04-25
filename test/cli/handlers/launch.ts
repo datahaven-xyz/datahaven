@@ -1,16 +1,16 @@
+import type { Command } from "@commander-js/extra-typings";
 import { $ } from "bun";
-import chalk from "chalk";
+import { deployContracts } from "scripts/deploy-contracts";
+import { fundValidators } from "scripts/fund-validators";
+import { generateSnowbridgeConfigs } from "scripts/gen-snowbridge-cfgs";
+import { launchKurtosis } from "scripts/launch-kurtosis";
+import sendTxn from "scripts/send-txn";
+import { setupValidators } from "scripts/setup-validators";
+import { updateValidatorSet } from "scripts/update-validator-set";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader, promptWithTimeout } from "utils";
-import { deployContracts } from "./deploy-contracts";
-import { fundValidators } from "./fund-validators";
-import { generateSnowbridgeConfigs } from "./gen-snowbridge-cfgs";
-import { launchKurtosis } from "./launch-kurtosis";
-import sendTxn from "./send-txn";
-import { setupValidators } from "./setup-validators";
-import { updateValidatorSet } from "./update-validator-set";
+import { ANVIL_FUNDED_ACCOUNTS, logger, printDivider, printHeader, promptWithTimeout } from "utils";
 
-interface ScriptOptions {
+interface LaunchOptions {
   verified?: boolean;
   launchKurtosis?: boolean;
   deployContracts?: boolean;
@@ -19,32 +19,13 @@ interface ScriptOptions {
   updateValidatorSet?: boolean;
   blockscout?: boolean;
   relayer?: boolean;
-  help?: boolean;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
+// =====  Launch Handler Functions  =====
 
-  // Parse command-line arguments
-  const options: ScriptOptions = {
-    verified: parseFlag(args, "verified"),
-    launchKurtosis: parseFlag(args, "launchKurtosis"),
-    deployContracts: parseFlag(args, "deploy-contracts"),
-    fundValidators: parseFlag(args, "fund-validators"),
-    setupValidators: parseFlag(args, "setup-validators"),
-    updateValidatorSet: parseFlag(args, "update-validator-set"),
-    blockscout: parseFlag(args, "blockscout"),
-    relayer: parseFlag(args, "relayer"),
-    help: args.includes("--help") || args.includes("-h")
-  } satisfies ScriptOptions;
-
-  // Show help menu if requested
-  if (options.help) {
-    printHelp();
-    return;
-  }
-
-  logger.info(`Running with options: ${getOptionsString(options)}`);
+export const launch = async (options: LaunchOptions) => {
+  logger.debug("Running with options:");
+  logger.debug(options);
 
   const timeStart = performance.now();
 
@@ -52,15 +33,17 @@ async function main() {
 
   await checkDependencies();
 
-  // Clean up and launch Kurtosis enclave
+  logger.trace("Launching Kurtosis enclave");
   const { services } = await launchKurtosis({
     launchKurtosis: options.launchKurtosis,
     blockscout: options.blockscout
   });
+  logger.trace("Kurtosis enclave launched");
 
-  // Send test transaction
+  logger.trace("Send test transaction");
   printHeader("Setting Up Blockchain");
-  const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil test acc1
+  logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
+  const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const networkRpcUrl = services.find((s) => s.service === "reth-1-rpc")?.url;
   invariant(networkRpcUrl, "❌ Network RPC URL not found");
 
@@ -69,20 +52,20 @@ async function main() {
 
   printDivider();
 
-  // Display service information in a clean table
+  logger.trace("Display service information in a clean table");
   printHeader("Service Endpoints");
 
-  // Filter services to display based on blockscout option
+  logger.trace("Filter services to display based on blockscout option");
   const servicesToDisplay = services
     .filter((s) => ["reth-1-rpc", "reth-2-rpc", "dora"].includes(s.service))
     .concat([{ service: "kurtosis-web", port: "9711", url: "http://127.0.0.1:9711" }]);
 
-  // Conditionally add blockscout services
+  logger.trace("Conditionally add blockscout services");
   if (options.blockscout !== false) {
     const blockscoutBackend = services.find((s) => s.service === "blockscout-backend");
     if (blockscoutBackend) {
       servicesToDisplay.push(blockscoutBackend);
-      // Only add frontend if backend exists
+      logger.trace("Adding blockscout frontend");
       servicesToDisplay.push({ service: "blockscout", port: "3000", url: "http://127.0.0.1:3000" });
     }
   }
@@ -91,7 +74,7 @@ async function main() {
 
   printDivider();
 
-  // Show completion information
+  logger.trace("Show completion information");
   const timeEnd = performance.now();
   const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
 
@@ -99,7 +82,7 @@ async function main() {
 
   printDivider();
 
-  // Deploy contracts using the extracted function
+  logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined = undefined;
 
   if (options.blockscout !== false) {
@@ -117,13 +100,13 @@ async function main() {
     deployContracts: options.deployContracts
   });
 
-  // Set up validators using the extracted function
+  logger.trace("Set up validators using the extracted function");
   if (contractsDeployed) {
     let shouldFundValidators = options.fundValidators;
     let shouldSetupValidators = options.setupValidators;
     let shouldUpdateValidatorSet = options.updateValidatorSet;
 
-    // If not specified, prompt for funding
+    logger.trace("If not specified, prompt for funding");
     if (shouldFundValidators === undefined) {
       shouldFundValidators = await promptWithTimeout(
         "Do you want to fund validators with tokens and ETH?",
@@ -136,7 +119,7 @@ async function main() {
       );
     }
 
-    // If not specified, prompt for setup
+    logger.trace("If not specified, prompt for setup");
     if (shouldSetupValidators === undefined) {
       shouldSetupValidators = await promptWithTimeout(
         "Do you want to register validators in EigenLayer?",
@@ -149,7 +132,7 @@ async function main() {
       );
     }
 
-    // If not specified, prompt for update
+    logger.trace("If not specified, prompt for update");
     if (shouldUpdateValidatorSet === undefined) {
       shouldUpdateValidatorSet = await promptWithTimeout(
         "Do you want to update the validator set on the substrate chain?",
@@ -165,7 +148,6 @@ async function main() {
     if (shouldFundValidators) {
       await fundValidators({
         rpcUrl: networkRpcUrl
-        // Default values for other options
       });
     } else {
       logger.info("Skipping validator funding");
@@ -174,13 +156,11 @@ async function main() {
     if (shouldSetupValidators) {
       await setupValidators({
         rpcUrl: networkRpcUrl
-        // Default values for other options
       });
 
       if (shouldUpdateValidatorSet) {
         await updateValidatorSet({
           rpcUrl: networkRpcUrl
-          // Default values for other options
         });
       } else {
         logger.info("Skipping validator set update");
@@ -236,13 +216,26 @@ async function main() {
       }
     ];
 
+    logger.trace("Starting Snowbridge relayers");
     for (const relayer of relayersToStart) {
       await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();
     }
+    logger.success("Snowbridge relayers started");
   }
-}
 
-// Helper function to check all dependencies at once
+  logger.success("Launch script completed successfully");
+};
+
+export const launchPreActionHook = (
+  thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
+) => {
+  const { blockscout, verified } = thisCmd.opts();
+  if (verified && !blockscout) {
+    thisCmd.error("--verified requires --blockscout to be set");
+  }
+};
+
+//  =====  Checks  =====
 const checkDependencies = async (): Promise<void> => {
   if (!(await checkKurtosisInstalled())) {
     logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
@@ -295,73 +288,3 @@ const checkForgeInstalled = async (): Promise<boolean> => {
   logger.debug(stdout.toString());
   return true;
 };
-
-// Helper function to format options as a string
-function getOptionsString(options: ScriptOptions): string {
-  const optionStrings: string[] = [];
-  if (options.verified) optionStrings.push("verified");
-  if (options.launchKurtosis !== undefined)
-    optionStrings.push(`launchKurtosis=${options.launchKurtosis}`);
-  if (options.deployContracts !== undefined)
-    optionStrings.push(`deployContracts=${options.deployContracts}`);
-  if (options.fundValidators !== undefined)
-    optionStrings.push(`fundValidators=${options.fundValidators}`);
-  if (options.setupValidators !== undefined)
-    optionStrings.push(`setupValidators=${options.setupValidators}`);
-  if (options.updateValidatorSet !== undefined)
-    optionStrings.push(`updateValidatorSet=${options.updateValidatorSet}`);
-  if (options.blockscout !== undefined) optionStrings.push(`blockscout=${options.blockscout}`);
-  return optionStrings.length ? optionStrings.join(", ") : "no options";
-}
-
-// Print help menu
-function printHelp(): void {
-  console.log(chalk.bold.cyan("\nDatahaven Kurtosis Startup Script"));
-  console.log(chalk.gray("=".repeat(40)));
-  console.log(`
-${chalk.yellow("Available Options:")}
-
-${chalk.green("--verified")}                Use contract verification via Blockscout
-${chalk.green("--launchKurtosis")}          Clean and launch Kurtosis enclave if already running
-${chalk.green("--no-launchKurtosis")}       Keep existing Kurtosis enclave if already running
-${chalk.green("--deploy-contracts")}        Deploy smart contracts after Kurtosis starts
-${chalk.green("--no-deploy-contracts")}     Skip smart contract deployment
-${chalk.green("--fund-validators")}         Fund validators with tokens and ETH for local testing
-${chalk.green("--no-fund-validators")}      Skip funding validators
-${chalk.green("--setup-validators")}        Set up validators after contracts are deployed
-${chalk.green("--no-setup-validators")}     Skip validator setup
-${chalk.green("--update-validator-set")}    Update validator set on substrate chain after setup
-${chalk.green("--no-update-validator-set")} Skip validator set update
-${chalk.green("--blockscout")}              Launch Kurtosis with Blockscout services (uses minimal-with-bs.yaml)
-${chalk.green("--no-blockscout")}           Launch Kurtosis without Blockscout services (uses minimal.yaml)
-${chalk.green("--help, -h")}                Show this help menu
-
-${chalk.yellow("Examples:")}
-  ${chalk.gray("# Start with interactive prompts")}
-  bun run start-kurtosis
-
-  ${chalk.gray("# Start with verification and automatic redeploy")}
-  bun run start-kurtosis --verified --redeploy
-
-  ${chalk.gray("# Start without deploying contracts")}
-  bun run start-kurtosis --no-deploy-contracts
-
-  ${chalk.gray("# Start without funding validators")}
-  bun run start-kurtosis --no-fund-validators
-
-  ${chalk.gray("# Start without updating validator set")}
-  bun run start-kurtosis --no-update-validator-set
-`);
-}
-
-// Parse and handle boolean flags with negations
-function parseFlag(args: string[], flagName: string): boolean | undefined {
-  const positiveFlag = `--${flagName}`;
-  const negativeFlag = `--no-${flagName}`;
-
-  if (args.includes(positiveFlag)) return true;
-  if (args.includes(negativeFlag)) return false;
-  return undefined;
-}
-
-main();

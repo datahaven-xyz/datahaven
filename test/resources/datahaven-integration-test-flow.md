@@ -33,7 +33,7 @@ The first step involves setting up the testing infrastructure using Kurtosis, a 
 
 ```bash
 # Start the E2E CLI environment with the minimal configuration
-bun run scripts/e2e-cli.ts
+bun cli
 # Alternative
 bun start:e2e:minimal
 
@@ -72,7 +72,7 @@ After the infrastructure is set up, we deploy all the necessary smart contracts 
 ### Key Commands
 
 ```bash
-# Build and deploy contracts (this is done automatically by the ``e2e-cli`` script if the `--deploy-contracts` flag is set)
+# Build and deploy contracts (this is done automatically by the ``cli`` tool if the `--deploy-contracts` flag is set)
 cd contracts
 forge build
 forge script script/deploy/DeployLocal.s.sol --rpc-url <RPC_URL> --broadcast --verify

@@ -28,7 +28,6 @@ mod runtime_params;
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
-    snowbridge::EthereumNetwork,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
 };
 use dhp_bridge::EigenLayerMessageProcessor;
@@ -43,7 +42,7 @@ use frame_support::{
     },
     weights::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, Weight,
+        IdentityFee, RuntimeDbWeight, Weight,
     },
 };
 use frame_system::{
@@ -69,7 +68,7 @@ use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
     mmr::{BeefyDataProvider, MmrLeafVersion},
 };
-use sp_core::{crypto::KeyTypeId, H160, H256, U256};
+use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::{
     traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
@@ -80,6 +79,7 @@ use sp_std::{
     prelude::*,
 };
 use sp_version::RuntimeVersion;
+use xcm::latest::NetworkId;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
@@ -556,7 +556,7 @@ impl FeeCalculator for TransactionPaymentAsGasPrice {
             .saturating_mul_int((WEIGHT_FEE).saturating_mul(WEIGHT_PER_GAS as u128));
         (
             min_gas_price.into(),
-            <Runtime as frame_system::Config>::DbWeight::get().reads(1),
+            <<Runtime as frame_system::Config>::DbWeight as Get<RuntimeDbWeight>>::get().reads(1),
         )
     }
 }
@@ -722,6 +722,14 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;
+}
+
+parameter_types! {
+    /// Network and location for the Ethereum chain.
+    /// Using the Sepolia Ethereum testnet, with chain ID 11155111.
+    /// <https://chainlist.org/chain/11155111>
+    /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
+    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
 }
 
 impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {

@@ -313,30 +313,29 @@ mod runtime {
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
-    // Frontier
-    #[runtime::pallet_index(40)]
+    #[runtime::pallet_index(50)]
     pub type Ethereum = pallet_ethereum;
 
-    #[runtime::pallet_index(41)]
+    #[runtime::pallet_index(51)]
     pub type Evm = pallet_evm;
 
-    #[runtime::pallet_index(42)]
+    #[runtime::pallet_index(52)]
     pub type EvmChainId = pallet_evm_chain_id;
     // ╚════════════════════ Frontier (EVM) Pallets ═════════════════════╝
 
     // ╔══════════════════════ Snowbridge Pallets ═══════════════════════╗
-    #[runtime::pallet_index(50)]
+    #[runtime::pallet_index(60)]
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
-    #[runtime::pallet_index(51)]
+    #[runtime::pallet_index(61)]
     pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
 
-    #[runtime::pallet_index(52)]
+    #[runtime::pallet_index(62)]
     pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
     // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
 
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
-    // Start with index 60
+    // Start with index 70
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗

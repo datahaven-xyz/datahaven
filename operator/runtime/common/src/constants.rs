@@ -36,16 +36,3 @@ pub mod gas {
     /// The highest amount of new storage that can be created in a block (160KB).
     pub const BLOCK_STORAGE_LIMIT: u64 = 160 * 1024;
 }
-
-pub mod snowbridge {
-    use frame_support::parameter_types;
-    use xcm::latest::NetworkId;
-
-    parameter_types! {
-        /// Network and location for the Ethereum chain.
-        /// Using the Sepolia Ethereum testnet, with chain ID 11155111.
-        /// <https://chainlist.org/chain/11155111>
-        /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
-        pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
-    }
-}

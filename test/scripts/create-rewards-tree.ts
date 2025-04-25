@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { keccak256, encodePacked } from "viem";
+import { keccak256, encodeAbiParameters } from "viem";
 import { MerkleTree } from "merkletreejs";
 import { logger, printHeader } from "../utils/index";
 
@@ -28,7 +28,13 @@ export function createRewardsTree(validators: ValidatorReward[]): RewardsTreeOut
   // Create hashes for each validator (address, points) pair
   const leaves = validators.map((validator) => {
     // Create the leaf value by encoding and hashing the validator address and points
-    return keccak256(encodePacked(["address", "uint256"], [validator.address as `0x${string}`, validator.points]));
+    // IMPORTANT: Use encodeAbiParameters to match Solidity's abi.encode
+    return keccak256(
+      encodeAbiParameters(
+        [{ type: 'address' }, { type: 'uint256' }],
+        [validator.address as `0x${string}`, validator.points]
+      )
+    );
   });
 
   // Create the merkle tree
@@ -84,7 +90,7 @@ if (import.meta.main) {
   const validatorSetData = JSON.parse(fs.readFileSync(validatorSetPath, 'utf8'));
   const validators: ValidatorReward[] = validatorSetData.validators.map((validator: any) => ({
     address: validator.address,
-    points: BigInt(validator.points || "100000000000000000n") // Default to 0.1 ETH worth of points if not specified
+    points: BigInt(validator.points || "100000000000000000") // Default to 0.1 ETH worth of points if not specified
   }));
 
   logger.info(`Creating merkle tree for ${validators.length} validators`);

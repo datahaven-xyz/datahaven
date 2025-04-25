@@ -1,27 +1,27 @@
 {
-  "merkleRoot": "0xfc00bc9b7f0bf64e24ff4ce97b598680889f931c9fca5025c43ed6ee50edf7c3",
+  "merkleRoot": "0x514248c1c9805547b726bd4c3206c5d3589d5274b35cb8f1e82e70d44ab77499",
   "validators": [
     {
       "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
       "points": "100000000000000000",
       "proof": [
-        "0x5256ed4a8644dee9a59dead84523a1a83b1f4cd2633132b9f9e1f5b2e7b95a24",
-        "0x87e20fef2fa8be89940ec41491eca6628cf6111dd136022f8fcbe68da0d92670"
+        "0x8652c9ea735ab39221944292cae48282cc6d90924b8fa871156cbc50c1b7ef03",
+        "0x6f14126abc85818751241ece017b46e968de6d46e06690a8a1cd80641a784510"
       ]
     },
     {
       "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       "points": "200000000000000000",
       "proof": [
-        "0x5383e2d1e147d7478d8b9f40eab8d873dfc44bfe153ece07da24c4fd41cd8e59",
-        "0x87e20fef2fa8be89940ec41491eca6628cf6111dd136022f8fcbe68da0d92670"
+        "0x1e3358fb357ea5817a1e8668358565546a72ce7d1bfdb299f034a90400b77f72",
+        "0x6f14126abc85818751241ece017b46e968de6d46e06690a8a1cd80641a784510"
       ]
     },
     {
       "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
       "points": "150000000000000000",
       "proof": [
-        "0x5cc0f8200eeb57b52944bb9e8a6ba218a1ea8ff23b84fe9c199996686ac09dd1"
+        "0x47a18de3d1473d7acbfbcb747ce54333c66e5b8be66248f58cc5158e59febf05"
       ]
     }
   ]

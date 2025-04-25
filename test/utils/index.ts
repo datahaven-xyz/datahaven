@@ -6,3 +6,4 @@ export * from "./logger";
 export * from "./rpc";
 export * from "./viem";
 export * from "./kurtosis";
+export * from "./parser";

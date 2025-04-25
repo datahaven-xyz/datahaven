@@ -17,6 +17,8 @@ import {
   printHeader,
   promptWithTimeout
 } from "utils";
+import { isBeaconConfig, parseRelayConfig } from "utils";
+import type { BeaconRelayConfig, BeefyRelayConfig, RelayerType } from "utils";
 
 interface LaunchOptions {
   verified?: boolean;
@@ -176,44 +178,96 @@ export const launch = async (options: LaunchOptions) => {
   if (options.relayer) {
     printHeader("Starting Snowbridge Relayers");
 
-    logger.info(`Running snowbridge relayer from: ${options.relayerBinPath}`);
-
-    const { stdout, stderr, exitCode } = await $`sh -c ${options.relayerBinPath} --help`
-      .quiet()
-      .nothrow();
-
-    if (exitCode !== 0) {
-      logger.error(`Failed to run relayer binary ${options.relayerBinPath}: ${stderr.toString()}`);
-      throw Error("❌ Relayer binary failed basic help check");
-    }
-    logger.debug(stdout.toString());
-
     logger.info("Preparing to generate configs");
-    await generateSnowbridgeConfigs();
-    logger.success("Snowbridge configs generated");
+    const anvilDeploymentsPath = "../contracts/deployments/anvil.json";
+    const anvilDeploymentsFile = Bun.file(anvilDeploymentsPath);
+    if (!(await anvilDeploymentsFile.exists())) {
+      logger.error(`File ${anvilDeploymentsPath} does not exist`);
+      throw new Error("Error reading anvil deployments file");
+    }
+    const anvilDeployments = await anvilDeploymentsFile.json();
+    const beefyClientAddress = anvilDeployments.BeefyClient;
+    const gatewayAddress = anvilDeployments.Gateway;
+    invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
+    invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
 
-    // TODO - Start Relayers here
-    // For each relayer in array spawn in background relayer with appropriate private key, command and config param
-    const relayersToStart = [
+    const outputDir = "tmp/configs";
+    logger.debug(`Ensuring output directory exists: ${outputDir}`);
+    await $`mkdir -p ${outputDir}`.quiet();
+
+    const relayersToStart: { name: string; type: RelayerType; config: string }[] = [
       {
         name: "relayer-🥩",
         type: "beefy",
-        config: "modified-beefy-relay.json"
+        config: "beefy-relay.json"
       },
       {
         name: "relayer-🥓",
         type: "beacon",
-        config: "modified-beacon-relay.json"
+        config: "beacon-relay.json"
       }
     ];
 
-    for (const {config, name,type} of relayersToStart){
-// read in base file
-// assert schema in zod
-// change values with scraped ports
-// read anvil.json for contract addresses
-// change value to that
-// write json to file 
+    for (const { config: configFileName, type, name } of relayersToStart) {
+      logger.debug(`Creating config for ${name}`);
+      const templateFilePath = `configs/snowbridge/${configFileName}`;
+      const outputFilePath = `tmp/configs/${configFileName}`;
+      logger.debug(`Reading config file ${templateFilePath}`);
+      const file = Bun.file(templateFilePath);
+
+      if (!(await file.exists())) {
+        logger.error(`File ${templateFilePath} does not exist`);
+        throw new Error("Error reading snowbridge config file");
+      }
+      const json = await file.json();
+
+      const ethWsPort = await getPortFromKurtosis("el-1-reth-lighthouse", "ws");
+      const ethHttpPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+      const substrateWsPort = 9944;
+      logger.debug(
+        `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (hardcoded)`
+      );
+
+      if (type === "beacon") {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.beacon.endpoint = `http://127.0.0.1:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://127.0.0.1:${ethHttpPort}`;
+
+        // TODO: add datastore temp location
+        cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated beacon config written to ${outputFilePath}`);
+      } else {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.polkadot.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
+        cfg.sink.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
+        cfg.sink.contracts.BeefyClient = beefyClientAddress;
+        cfg.sink.contracts.Gateway = gatewayAddress;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated beefy config written to ${outputFilePath}`);
+      }
+
+      // TODO: Start the relayer process here using the outputFilePath
+      // Example (needs refinement for background execution, logging, etc.):
+      // const relayerCmd = `${options.relayerBinPath} --config ${outputFilePath}`;
+      // logger.info(`Starting relayer ${name} with command: ${relayerCmd}`);
+      // Bun.spawn([options.relayerBinPath, "--config", outputFilePath], {
+      //   stdout: "inherit",
+      //   stderr: "inherit",
+      //   // Consider running detached or managing the process lifecycle
+      // });
+
+      // logger.info(`Running snowbridge relayer from: ${options.relayerBinPath}`);
+
+      // const { stdout, stderr, exitCode } = await $`sh -c ${options.relayerBinPath} --help`
+      //   .quiet()
+      //   .nothrow();
+
+      // if (exitCode !== 0) {
+      //   logger.error(`Failed to run relayer binary ${options.relayerBinPath}: ${stderr.toString()}`);
+      //   throw Error("❌ Relayer binary failed basic help check");
+      // }
+      // logger.debug(stdout.toString());
     }
 
     // logger.trace("Starting Snowbridge relayers");

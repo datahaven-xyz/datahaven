@@ -5,14 +5,14 @@ import { launch, launchPreActionHook } from "./handlers";
 // So far we only have the launch command
 // we can expand this to more commands in the future
 const program = new Command()
-  .option("-l, --launch-kurtosis", "Launch Kurtosis", true)
+  .option("-l, --launch-kurtosis", "Launch Kurtosis")
   .option("-d, --deploy-contracts", "Deploy smart contracts")
-  .option("-f, --fund-validators", "Fund validators", true)
-  .option("-s, --setup-validators", "Setup validators", true)
-  .option("-u, --update-validator-set", "Update validator set", true)
-  .option("-b, --blockscout", "Enable Blockscout", false)
-  .option("-v, --verified", "Verify smart contracts with Blockscout", false)
-  .option("-r, --relayer", "Enable Relayer", false)
+  .option("-f, --fund-validators", "Fund validators")
+  .option("-s, --setup-validators", "Setup validators")
+  .option("-u, --update-validator-set", "Update validator set")
+  .option("-b, --blockscout", "Enable Blockscout")
+  .option("-v, --verified", "Verify smart contracts with Blockscout")
+  .option("-r, --relayer", "Enable Relayer")
   .hook("preAction", launchPreActionHook)
   .action(launch);
 

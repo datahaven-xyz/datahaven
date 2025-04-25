@@ -207,6 +207,15 @@ export const launch = async (options: LaunchOptions) => {
       }
     ];
 
+    for (const {config, name,type} of relayersToStart){
+// read in base file
+// assert schema in zod
+// change values with scraped ports
+// read anvil.json for contract addresses
+// change value to that
+// write json to file 
+    }
+
     // logger.trace("Starting Snowbridge relayers");
     // for (const relayer of relayersToStart) {
     //   await $`sh -c docker run --platform=linux/amd64 ${dockerImage}`.quiet().nothrow();

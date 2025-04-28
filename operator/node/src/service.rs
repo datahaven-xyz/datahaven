@@ -7,7 +7,6 @@ use crate::eth::{
 use crate::eth::{EthConfiguration, StorageOverrideHandler};
 use crate::rpc::BeefyDeps;
 use datahaven_runtime::{self, apis::RuntimeApi, opaque::Block};
-use downcast::Any;
 use fc_consensus::FrontierBlockImport;
 use fc_db::DatabaseSource;
 use fc_storage::StorageOverride;
@@ -19,11 +18,13 @@ use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
 use sc_network_sync::WarpSyncConfig;
 use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sc_transaction_pool_api::OffchainTransactionPoolFactory;
+use sc_transaction_pool::{BasicPool, FullChainApi};
+use sc_transaction_pool_api::{OffchainTransactionPoolFactory, TransactionPool};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto;
 use sp_runtime::traits::BlakeTwo256;
+use std::default::Default;
 use std::time::Duration;
 use std::{path::Path, sync::Arc};
 
@@ -43,6 +44,8 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId> =
         InnerBlockImport,
         AuthorityId,
     >;
+
+type SingleStatePool = BasicPool<FullChainApi<FullClient, Block>, Block>;
 
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
@@ -126,7 +129,7 @@ pub type Service = sc_service::PartialComponents<
     FullBackend,
     FullSelectChain,
     sc_consensus::DefaultImportQueue<Block>,
-    sc_transaction_pool::TransactionPoolHandle<Block, FullClient>,
+    SingleStatePool,
     (
         sc_consensus_babe::BabeBlockImport<
             Block,
@@ -196,16 +199,13 @@ pub fn new_partial(
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
-    let transaction_pool = Arc::from(
-        sc_transaction_pool::Builder::new(
-            task_manager.spawn_essential_handle(),
-            client.clone(),
-            config.role.is_authority().into(),
-        )
-        .with_options(config.transaction_pool.clone())
-        .with_prometheus(config.prometheus_registry())
-        .build(),
-    );
+    let transaction_pool = Arc::from(BasicPool::new_full(
+        Default::default(),
+        config.role.is_authority().into(),
+        config.prometheus_registry(),
+        task_manager.spawn_essential_handle(),
+        client.clone(),
+    ));
 
     let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
         client.clone(),
@@ -465,19 +465,12 @@ pub async fn new_full<
         let block_data_cache = block_data_cache.clone();
         let fee_history_limit = eth_config.fee_history_limit;
         let sync = sync_service.clone();
-        
-        // Extract the pool reference outside and get the graph pool
-        let pool_api = pool.0.as_any()
-            .downcast_ref::<sc_transaction_pool::BasicPool<
-                sc_transaction_pool::FullChainApi<FullClient, Block>, Block
-            >>().expect("Frontier container chain template supports only single state transaction pool! Use --pool-type=single-state");
-        let graph = pool_api.pool().clone();
 
         Box::new(move |subscription_executor| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
-                graph: graph.clone(),
+                graph: pool.pool().clone(),
                 beefy: BeefyDeps::<ecdsa_crypto::AuthorityId> {
                     beefy_finality_proof_stream: beefy_rpc_links.from_voter_justif_stream.clone(),
                     beefy_best_block_stream: beefy_rpc_links.from_voter_best_beefy_stream.clone(),

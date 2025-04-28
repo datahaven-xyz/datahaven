@@ -2,16 +2,21 @@ import type { Command } from "@commander-js/extra-typings";
 import { $ } from "bun";
 import { deployContracts } from "scripts/deploy-contracts";
 import { fundValidators } from "scripts/fund-validators";
-import { generateSnowbridgeConfigs } from "scripts/gen-snowbridge-cfgs";
 import { launchKurtosis } from "scripts/launch-kurtosis";
 import sendTxn from "scripts/send-txn";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
 import invariant from "tiny-invariant";
-import {ANVIL_FUNDED_ACCOUNTS, type BeaconRelayConfig,type BeefyRelayConfig,type  RelayerType , 
+import {
+  ANVIL_FUNDED_ACCOUNTS,
+  type RelayerType,
   getPortFromKurtosis,
   getServiceFromKurtosis,
-  isBeaconConfig, logger, parseRelayConfig, printDivider, printHeader, promptWithTimeout
+  logger,
+  parseRelayConfig,
+  printDivider,
+  printHeader,
+  promptWithTimeout
 } from "utils";
 
 interface LaunchOptions {

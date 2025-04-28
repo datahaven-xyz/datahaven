@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
 import { launchKurtosis } from "scripts/launch-kurtosis";
@@ -13,6 +12,7 @@ import {
 } from "utils";
 import { checkDependencies } from "./checks";
 import { performDatahavenOperations } from "./datahaven";
+import { LaunchedNetwork } from "./launchedNetwork";
 import { performRelayerOperations } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
@@ -120,62 +120,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   performSummaryOperations(options, launchedNetwork);
   logger.debug("Launch function completed successfully");
 };
-
-export class LaunchedNetwork {
-  protected runId: string;
-  protected processes: Bun.Subprocess[];
-  protected fileDescriptors: number[];
-  protected DHNodes: { id: string; port: number }[];
-
-  constructor() {
-    this.runId = crypto.randomUUID();
-    this.processes = [];
-    this.fileDescriptors = [];
-    this.DHNodes = [];
-  }
-
-  getRunId(): string {
-    return this.runId;
-  }
-
-  getDHNodes(): { id: string; port: number }[] {
-    return [...this.DHNodes];
-  }
-
-  getDHPort(id: string): number {
-    const node = this.DHNodes.find((x) => x.id === id);
-    invariant(node, `❌ Datahaven node ${id} not found`);
-    return node.port;
-  }
-
-  addFileDescriptor(fd: number) {
-    this.fileDescriptors.push(fd);
-  }
-
-  addProcess(process: Bun.Subprocess) {
-    this.processes.push(process);
-  }
-
-  addDHNode(id: string, port: number) {
-    this.DHNodes.push({ id, port });
-  }
-
-  async cleanup() {
-    for (const process of this.processes) {
-      logger.info(`Process is still running: ${process.pid}`);
-    }
-
-    for (const fd of this.fileDescriptors) {
-      try {
-        fs.closeSync(fd);
-        this.fileDescriptors = this.fileDescriptors.filter((x) => x !== fd);
-        logger.debug(`Closed file descriptor ${fd}`);
-      } catch (error) {
-        logger.error(`Error closing file descriptor ${fd}: ${error}`);
-      }
-    }
-  }
-}
 
 export const launch = async (options: LaunchOptions) => {
   const run = new LaunchedNetwork();

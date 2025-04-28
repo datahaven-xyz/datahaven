@@ -11,7 +11,8 @@ import {
   parseRelayConfig,
   printHeader
 } from "utils";
-import type { LaunchOptions, LaunchedNetwork } from "..";
+import type { LaunchOptions } from ".";
+import type { LaunchedNetwork } from "./launchedNetwork";
 
 type RelayerSpec = {
   name: string;

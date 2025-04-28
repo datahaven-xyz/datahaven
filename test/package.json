@@ -17,7 +17,8 @@
     "stop:e2e:minimal": "bun stop:e2e",
     "stop:e2e:quick": "kurtosis enclave stop datahaven-ethereum",
     "stop:kurtosis-engine": "kurtosis engine stop && docker container prune -f",
-    "test:e2e": "bun test suites/e2e"
+    "test:e2e": "bun test suites/e2e",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"

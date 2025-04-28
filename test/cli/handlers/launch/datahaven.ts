@@ -3,7 +3,8 @@ import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printHeader } from "utils";
-import type { LaunchOptions, LaunchedNetwork } from "..";
+import type { LaunchOptions } from ".";
+import type { LaunchedNetwork } from "./launchedNetwork";
 
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
@@ -15,11 +16,11 @@ const COMMON_LAUNCH_ARGS = [
   "--no-telemetry"
 ];
 
-// We need 5 since the 2/3 + of 6 authority set is 5
+// We need 5 since the (2/3 + 1) of 6 authority set is 5
+// <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
 const AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
 
 // TODO: This is very rough and will need something more substantial when we know what we want!
-//
 export const performDatahavenOperations = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork

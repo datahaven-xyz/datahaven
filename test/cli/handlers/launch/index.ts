@@ -1,5 +1,5 @@
+import fs from "node:fs";
 import type { Command } from "@commander-js/extra-typings";
-import { $ } from "bun";
 import { deployContracts } from "scripts/deploy-contracts";
 import { launchKurtosis } from "scripts/launch-kurtosis";
 import sendTxn from "scripts/send-txn";
@@ -12,6 +12,7 @@ import {
   printHeader
 } from "utils";
 import { checkDependencies } from "./checks";
+import { performDatahavenOperations } from "./datahaven";
 import { performRelayerOperations } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
@@ -27,6 +28,8 @@ export interface LaunchOptions {
   relayer?: boolean;
   relayerBinPath?: string;
   skipCleaning?: boolean;
+  datahavenBinPath?: string;
+  datahaven?: boolean;
 }
 
 export const BASE_SERVICES = [
@@ -39,7 +42,7 @@ export const BASE_SERVICES = [
 
 // =====  Launch Handler Functions  =====
 
-const launchFunction = async (options: LaunchOptions, spawnedProcesses: Bun.Subprocess[]) => {
+const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedNetwork) => {
   logger.debug("Running with options:");
   logger.debug(options);
 
@@ -104,28 +107,67 @@ const launchFunction = async (options: LaunchOptions, spawnedProcesses: Bun.Subp
       "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
     );
   }
-  // TODO: Add datahaven network launch logic here
+  if (options.datahaven) {
+    await performDatahavenOperations(options, launchedNetwork);
+  }
 
   if (options.relayer) {
-    await performRelayerOperations(options, spawnedProcesses);
+    await performRelayerOperations(options, launchedNetwork);
   }
 
   printDivider();
 
   performSummaryOperations(options);
-
-  printDivider();
-  logger.success("Launch script completed successfully");
+  logger.debug("Launch function completed successfully");
 };
 
-export const launch = async (options: LaunchOptions) => {
-  const relayerProcesses: Bun.Subprocess[] = [];
-  try {
-    await launchFunction(options, relayerProcesses);
-  } finally {
-    for (const process of relayerProcesses) {
-      logger.info(`Relayer process ${process.pid} might still be running`);
+export class LaunchedNetwork {
+  protected runId: string;
+  protected processes: Bun.Subprocess[];
+  protected fileDescriptors: number[];
+
+  constructor() {
+    this.runId = crypto.randomUUID();
+    this.processes = [];
+    this.fileDescriptors = [];
+  }
+
+  getRunId(): string {
+    return this.runId;
+  }
+
+  addFileDescriptor(fd: number) {
+    this.fileDescriptors.push(fd);
+  }
+
+  addProcess(process: Bun.Subprocess) {
+    this.processes.push(process);
+  }
+
+  async cleanup() {
+    for (const process of this.processes) {
+      logger.info(`Process is still running: ${process.pid}`);
     }
+
+    for (const fd of this.fileDescriptors) {
+      try {
+        fs.closeSync(fd);
+        this.fileDescriptors = this.fileDescriptors.filter((x) => x !== fd);
+        logger.debug(`Closed file descriptor ${fd}`);
+      } catch (error) {
+        logger.error(`Error closing file descriptor ${fd}: ${error}`);
+      }
+    }
+  }
+}
+
+export const launch = async (options: LaunchOptions) => {
+  const run = new LaunchedNetwork();
+  try {
+    await launchFunction(options, run);
+    logger.success("Launch script completed successfully");
+  } finally {
+    await run.cleanup();
   }
 };
 

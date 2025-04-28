@@ -14,7 +14,12 @@ const program = new Command()
   .option("-u, --update-validator-set", "Update validator set")
   .option("--no-update-validator-set", "Skip update validator set")
   .option("-b, --blockscout", "Enable Blockscout")
-  // TODO: Add datahaven network launch options
+  .option("--datahaven", "Enable Datahaven network to be launched")
+  .option(
+    "--datahaven-bin-path <value>",
+    "Path to the datahaven binary",
+    "../operator/target/release/datahaven-node"
+  )
   .option("-v, --verified", "Verify smart contracts with Blockscout")
   .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
   .option("-r, --relayer", "Enable Relayer")

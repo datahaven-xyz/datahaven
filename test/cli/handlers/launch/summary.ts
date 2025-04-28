@@ -17,7 +17,7 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
     logger.debug(`Checking service: ${service}`);
 
     const serviceInfo = await getServiceFromKurtosis(service);
-    logger.debug("Service info", serviceInfo);
+    logger.trace("Service info", serviceInfo);
     switch (true) {
       case service.startsWith("cl-"): {
         const httpPort = serviceInfo.public_ports.http.number;
@@ -77,4 +77,5 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
   }
 
   console.table(displayData);
+  logger.debug("Summary completed successfully");
 };

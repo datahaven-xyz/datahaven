@@ -11,7 +11,7 @@ import {
   parseRelayConfig,
   printHeader
 } from "utils";
-import type { LaunchOptions } from "..";
+import type { LaunchOptions, LaunchedNetwork } from "..";
 
 type RelayerSpec = {
   name: string;
@@ -22,7 +22,7 @@ type RelayerSpec = {
 
 export const performRelayerOperations = async (
   options: LaunchOptions,
-  spawnedProcesses: Bun.Subprocess[]
+  launchedNetwork: LaunchedNetwork
 ) => {
   printHeader("Starting Snowbridge Relayers");
   logger.info("Preparing to generate configs");
@@ -46,7 +46,7 @@ export const performRelayerOperations = async (
   logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
   await $`mkdir -p ${datastorePath}`.quiet();
 
-  const logsPath = "tmp/logs";
+  const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
   logger.debug(`Ensuring logs directory exists: ${logsPath}`);
   await $`mkdir -p ${logsPath}`.quiet();
 
@@ -123,7 +123,7 @@ export const performRelayerOperations = async (
   for (const { config, name, type, pk } of relayersToStart) {
     try {
       logger.info(`Starting relayer ${name} ...`);
-      const logFileName = `${type}-${name.replace(/[^a-zA-Z0-9-]/g, "")}${Date.now()}.log`;
+      const logFileName = `${type}-${name.replace(/[^a-zA-Z0-9-]/g, "")}.log`;
       const logFilePath = path.join(logsPath, logFileName);
       logger.debug(`Writing logs to ${logFilePath}`);
 
@@ -146,17 +146,11 @@ export const performRelayerOperations = async (
         stderr: fd
       });
 
-      process.exited.then(() => {
-        try {
-          fs.closeSync(fd);
-          logger.debug(`Closed log file descriptor for ${name}`);
-        } catch (closeError) {
-          logger.error(`Error closing log file descriptor for ${name}: ${closeError}`);
-        }
-      });
+      process.unref();
 
+      launchedNetwork.addFileDescriptor(fd);
+      launchedNetwork.addProcess(process);
       logger.debug(`Started relayer ${name} with process ${process.pid}`);
-      spawnedProcesses.push(process);
     } catch (e) {
       logger.error(`Error starting relayer ${name}`);
       logger.error(e);

@@ -91,7 +91,7 @@ export const getServiceFromKurtosis = async (service: string): Promise<KurtosisS
   }
 
   const output = stdout.toString();
-  logger.debug(output);
+  logger.trace(output);
 
   return serviceSchema.parse(JSON.parse(output));
 };

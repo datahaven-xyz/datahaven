@@ -199,6 +199,7 @@ pub fn new_partial(
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
+    // FIXME: The `config.transaction_pool.options` field is private, so for now use its default value
     let transaction_pool = Arc::from(BasicPool::new_full(
         Default::default(),
         config.role.is_authority().into(),

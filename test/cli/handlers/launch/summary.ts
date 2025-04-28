@@ -1,7 +1,11 @@
+import invariant from "tiny-invariant";
 import { getServiceFromKurtosis, logger, printHeader } from "utils";
-import { BASE_SERVICES, type LaunchOptions } from "..";
+import { BASE_SERVICES, type LaunchOptions, type LaunchedNetwork } from "..";
 
-export const performSummaryOperations = async (options: LaunchOptions) => {
+export const performSummaryOperations = async (
+  options: LaunchOptions,
+  launchedNetwork: LaunchedNetwork
+) => {
   logger.trace("Display service information in a clean table");
   printHeader("Service Endpoints");
 
@@ -12,14 +16,24 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
     servicesToDisplay.push(...["blockscout", "blockscout-frontend"]);
   }
 
+  if (options.datahaven === true) {
+    const dhNodes = launchedNetwork.getDHNodes();
+    for (const { id } of dhNodes) {
+      servicesToDisplay.push(`datahaven-${id}`);
+    }
+  }
+
   const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
   for (const service of servicesToDisplay) {
     logger.debug(`Checking service: ${service}`);
 
-    const serviceInfo = await getServiceFromKurtosis(service);
+    const serviceInfo = service.startsWith("datahaven-")
+      ? undefined
+      : await getServiceFromKurtosis(service);
     logger.trace("Service info", serviceInfo);
     switch (true) {
       case service.startsWith("cl-"): {
+        invariant(serviceInfo, `❌ Service info for ${service} is not available`);
         const httpPort = serviceInfo.public_ports.http.number;
         displayData.push({
           service,
@@ -30,6 +44,7 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
       }
 
       case service.startsWith("el-"): {
+        invariant(serviceInfo, `❌ Service info for ${service} is not available`);
         const rpcPort = serviceInfo.public_ports.rpc.number;
         const wsPort = serviceInfo.public_ports.ws.number;
         displayData.push({
@@ -41,6 +56,7 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
       }
 
       case service.startsWith("dora"): {
+        invariant(serviceInfo, `❌ Service info for ${service} is not available`);
         const httpPort = serviceInfo.public_ports.http.number;
         displayData.push({
           service,
@@ -51,6 +67,7 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
       }
 
       case service === "blockscout": {
+        invariant(serviceInfo, `❌ Service info for ${service} is not available`);
         const httpPort = serviceInfo.public_ports.http.number;
         displayData.push({
           service,
@@ -61,11 +78,22 @@ export const performSummaryOperations = async (options: LaunchOptions) => {
       }
 
       case service === "blockscout-frontend": {
+        invariant(serviceInfo, `❌ Service info for ${service} is not available`);
         const httpPort = serviceInfo.public_ports.http.number;
         displayData.push({
           service,
           ports: { http: httpPort },
           url: `http://127.0.0.1:${httpPort}`
+        });
+        break;
+      }
+
+      case service.startsWith("datahaven-"): {
+        const port = launchedNetwork.getDHPort(service.split("datahaven-")[1]);
+        displayData.push({
+          service,
+          ports: { http: port },
+          url: `http://127.0.0.1:${port}`
         });
         break;
       }

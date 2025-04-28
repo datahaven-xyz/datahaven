@@ -56,6 +56,23 @@ export const performDatahavenOperations = async (
 
     process.unref();
 
+    let completed = false;
+    const file = Bun.file(logFilePath);
+    for (let i = 0; i < 10; i++) {
+      const pattern = "Running JSON-RPC server: addr=127.0.0.1:";
+      const blob = await file.text();
+      logger.debug(`Blob: ${blob}`);
+      if (blob.includes(pattern)) {
+        const port = blob.split(pattern)[1].split("\n")[0].replaceAll(",", "");
+        launchedNetwork.addDHNode(id, Number.parseInt(port));
+        logger.debug(`${id} started at port ${port}`);
+        completed = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    invariant(completed, "❌ Could not find 'Running JSON-RPC server:' in logs");
+
     launchedNetwork.addProcess(process);
     logger.debug(`Started ${id} at ${process.pid}`);
   }
@@ -63,7 +80,7 @@ export const performDatahavenOperations = async (
   for (let i = 0; i < 10; i++) {
     logger.info("Waiting for datahaven to start...");
 
-    if (await isNodeReady(9944)) {
+    if (await isNetworkReady(9944)) {
       logger.success("Datahaven network started");
       return;
     }
@@ -74,7 +91,7 @@ export const performDatahavenOperations = async (
   throw new Error("Datahaven network failed to start after 10 seconds");
 };
 
-export const isNodeReady = async (port: number): Promise<boolean> => {
+export const isNetworkReady = async (port: number): Promise<boolean> => {
   try {
     const response = await fetch(`http://localhost:${port}`, {
       method: "POST",

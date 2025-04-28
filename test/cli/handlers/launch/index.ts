@@ -117,7 +117,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   printDivider();
 
-  performSummaryOperations(options);
+  performSummaryOperations(options, launchedNetwork);
   logger.debug("Launch function completed successfully");
 };
 
@@ -125,15 +125,27 @@ export class LaunchedNetwork {
   protected runId: string;
   protected processes: Bun.Subprocess[];
   protected fileDescriptors: number[];
+  protected DHNodes: { id: string; port: number }[];
 
   constructor() {
     this.runId = crypto.randomUUID();
     this.processes = [];
     this.fileDescriptors = [];
+    this.DHNodes = [];
   }
 
   getRunId(): string {
     return this.runId;
+  }
+
+  getDHNodes(): { id: string; port: number }[] {
+    return [...this.DHNodes];
+  }
+
+  getDHPort(id: string): number {
+    const node = this.DHNodes.find((x) => x.id === id);
+    invariant(node, `❌ Datahaven node ${id} not found`);
+    return node.port;
   }
 
   addFileDescriptor(fd: number) {
@@ -142,6 +154,10 @@ export class LaunchedNetwork {
 
   addProcess(process: Bun.Subprocess) {
     this.processes.push(process);
+  }
+
+  addDHNode(id: string, port: number) {
+    this.DHNodes.push({ id, port });
   }
 
   async cleanup() {

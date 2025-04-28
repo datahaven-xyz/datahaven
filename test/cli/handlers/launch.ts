@@ -2,6 +2,7 @@ import type { Command } from "@commander-js/extra-typings";
 import { $ } from "bun";
 import { deployContracts } from "scripts/deploy-contracts";
 import { fundValidators } from "scripts/fund-validators";
+import { generateSnowbridgeConfigs } from "scripts/gen-snowbridge-cfgs";
 import { launchKurtosis } from "scripts/launch-kurtosis";
 import sendTxn from "scripts/send-txn";
 import { setupValidators } from "scripts/setup-validators";
@@ -9,9 +10,12 @@ import { updateValidatorSet } from "scripts/update-validator-set";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  type BeaconRelayConfig,
+  type BeefyRelayConfig,
   type RelayerType,
   getPortFromKurtosis,
   getServiceFromKurtosis,
+  isBeaconConfig,
   logger,
   parseRelayConfig,
   printDivider,
@@ -84,7 +88,7 @@ export const launch = async (options: LaunchOptions) => {
   logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined = undefined;
 
-  if (options.blockscout !== false) {
+  if (options.blockscout === true) {
     const blockscoutPublicPort = await getPortFromKurtosis("blockscout", "http");
     blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
   } else if (options.verified) {

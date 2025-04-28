@@ -1,0 +1,75 @@
+import { fundValidators } from "scripts/fund-validators";
+import { setupValidators } from "scripts/setup-validators";
+import { updateValidatorSet } from "scripts/update-validator-set";
+import { logger, promptWithTimeout } from "utils";
+import type { LaunchOptions } from "..";
+
+export const performValidatorOperations = async (options: LaunchOptions, networkRpcUrl: string) => {
+  logger.trace("Set up validators using the extracted function");
+  let shouldFundValidators = options.fundValidators;
+  let shouldSetupValidators = options.setupValidators;
+  let shouldUpdateValidatorSet = options.updateValidatorSet;
+
+  logger.trace("If not specified, prompt for funding");
+  if (shouldFundValidators === undefined) {
+    shouldFundValidators = await promptWithTimeout(
+      "Do you want to fund validators with tokens and ETH?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
+    );
+  }
+
+  logger.trace("If not specified, prompt for setup");
+  if (shouldSetupValidators === undefined) {
+    shouldSetupValidators = await promptWithTimeout(
+      "Do you want to register validators in EigenLayer?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
+    );
+  }
+
+  logger.trace("If not specified, prompt for update");
+  if (shouldUpdateValidatorSet === undefined) {
+    shouldUpdateValidatorSet = await promptWithTimeout(
+      "Do you want to update the validator set on the substrate chain?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+    );
+  }
+
+  if (shouldFundValidators) {
+    await fundValidators({
+      rpcUrl: networkRpcUrl
+    });
+  } else {
+    logger.info("Skipping validator funding");
+  }
+
+  if (shouldSetupValidators) {
+    await setupValidators({
+      rpcUrl: networkRpcUrl
+    });
+
+    if (shouldUpdateValidatorSet) {
+      await updateValidatorSet({
+        rpcUrl: networkRpcUrl
+      });
+    } else {
+      logger.info("Skipping validator set update");
+    }
+  } else {
+    logger.info("Skipping validator setup");
+  }
+};

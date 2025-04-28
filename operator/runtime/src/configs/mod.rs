@@ -42,7 +42,7 @@ use frame_support::{
     },
     weights::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, Weight,
+        IdentityFee, RuntimeDbWeight, Weight,
     },
 };
 use frame_system::{
@@ -63,11 +63,12 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
 use snowbridge_inbound_queue_primitives::RewardLedger;
+use snowbridge_outbound_queue_primitives::v2::ConstantGasMeter;
 use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
     mmr::{BeefyDataProvider, MmrLeafVersion},
 };
-use sp_core::{crypto::KeyTypeId, H160, H256, U256};
+use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::{
     traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
@@ -78,16 +79,20 @@ use sp_std::{
     prelude::*,
 };
 use sp_version::RuntimeVersion;
+use xcm::latest::NetworkId;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, Nonce, Offences, OriginCaller,
-    PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
-    Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR,
-    UNIT, VERSION,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent,
+    RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
+    Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use runtime_params::RuntimeParameters;
+
+#[cfg(feature = "runtime-benchmarks")]
+use bridge_hub_common::AggregateMessageOrigin;
 
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
@@ -493,6 +498,34 @@ impl pallet_sudo::Config for Runtime {
     type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
 }
 
+parameter_types! {
+    /// Amount of weight that can be spent per block to service messages.
+    ///
+    /// # WARNING
+    ///
+    /// This is not a good value for para-chains since the `Scheduler` already uses up to 80% block weight.
+    pub MessageQueueServiceWeight: Weight = Perbill::from_percent(20) * RuntimeBlockWeights::get().max_block;
+    pub const MessageQueueHeapSize: u32 = 32 * 1024;
+    pub const MessageQueueMaxStale: u32 = 96;
+}
+
+impl pallet_message_queue::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type MessageProcessor = OutboundQueueV2;
+    #[cfg(feature = "runtime-benchmarks")]
+    type MessageProcessor =
+        pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
+    type Size = u32;
+    type QueueChangeHandler = ();
+    type QueuePausedQuery = ();
+    type HeapSize = MessageQueueHeapSize;
+    type MaxStale = MessageQueueMaxStale;
+    type ServiceWeight = MessageQueueServiceWeight;
+    type IdleMaxServiceWeight = MessageQueueServiceWeight;
+    type WeightInfo = ();
+}
+
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 //║                                        FRONTIER (EVM) PALLETS                                                 ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
@@ -523,7 +556,7 @@ impl FeeCalculator for TransactionPaymentAsGasPrice {
             .saturating_mul_int((WEIGHT_FEE).saturating_mul(WEIGHT_PER_GAS as u128));
         (
             min_gas_price.into(),
-            <Runtime as frame_system::Config>::DbWeight::get().reads(1),
+            <<Runtime as frame_system::Config>::DbWeight as Get<RuntimeDbWeight>>::get().reads(1),
         )
     }
 }
@@ -689,6 +722,34 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;
+}
+
+parameter_types! {
+    /// Network and location for the Ethereum chain.
+    /// Using the Sepolia Ethereum testnet, with chain ID 11155111.
+    /// <https://chainlist.org/chain/11155111>
+    /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
+    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
+}
+
+impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Hashing = Keccak256;
+    type MessageQueue = MessageQueue;
+    type GasMeter = ConstantGasMeter;
+    type Balance = Balance;
+    type MaxMessagePayloadSize = ConstU32<2048>;
+    type MaxMessagesPerBlock = ConstU32<32>;
+    type OnNewCommitment = ();
+    type WeightToFee = IdentityFee<Balance>;
+    type Verifier = EthereumBeaconClient;
+    type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
+    type RewardKind = ();
+    type DefaultRewardKind = DefaultRewardKind;
+    type RewardPayment = DummyRewardPayment;
+    type EthereumNetwork = EthereumNetwork;
+    type ConvertAssetId = ();
+    type WeightInfo = ();
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

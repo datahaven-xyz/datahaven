@@ -8,17 +8,11 @@ import sendTxn from "scripts/send-txn";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
 import invariant from "tiny-invariant";
-import {
-  ANVIL_FUNDED_ACCOUNTS,
+import {ANVIL_FUNDED_ACCOUNTS, type BeaconRelayConfig,type BeefyRelayConfig,type  RelayerType , 
   getPortFromKurtosis,
   getServiceFromKurtosis,
-  logger,
-  printDivider,
-  printHeader,
-  promptWithTimeout
+  isBeaconConfig, logger, parseRelayConfig, printDivider, printHeader, promptWithTimeout
 } from "utils";
-import { isBeaconConfig, parseRelayConfig } from "utils";
-import type { BeaconRelayConfig, BeefyRelayConfig, RelayerType } from "utils";
 
 interface LaunchOptions {
   verified?: boolean;

@@ -487,6 +487,12 @@ impl_runtime_apis! {
         }
     }
 
+    impl snowbridge_outbound_queue_v2_runtime_api::OutboundQueueV2Api<Block, Balance> for Runtime {
+        fn prove_message(leaf_index: u64) -> Option<snowbridge_merkle_tree::MerkleProof> {
+            snowbridge_pallet_outbound_queue_v2::api::prove_message::<Runtime>(leaf_index)
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (

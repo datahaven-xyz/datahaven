@@ -1,4 +1,5 @@
-import { http, type Hex, createWalletClient, defineChain, parseEther, publicActions } from "viem";
+import { logger } from "utils";
+import { http, createWalletClient, defineChain, parseEther, publicActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 export default async function main(privateKey: string, networkRpcUrl: string) {
@@ -22,7 +23,7 @@ export default async function main(privateKey: string, networkRpcUrl: string) {
 
   const signer = privateKeyToAccount(privateKey as `0x${string}`);
 
-  console.log(`Using account: ${signer.address}`);
+  logger.debug(`Using account: ${signer.address}`);
   const client = createWalletClient({
     account: signer,
     chain: datahaven,
@@ -38,15 +39,15 @@ export default async function main(privateKey: string, networkRpcUrl: string) {
   ];
 
   for (const address of addresses) {
-    console.log(`Sending 1 ETH to address: ${address}`);
+    logger.debug(`Sending 1 ETH to address: ${address}`);
 
     const hash = await client.sendTransaction({
       to: address as `0x${string}`,
       value: parseEther("1.0")
     });
 
-    console.log(`Waiting for transaction ${hash} to be confirmed...`);
+    logger.info(`Waiting for transaction ${hash} to be confirmed...`);
     const receipt = await client.waitForTransactionReceipt({ hash });
-    console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
+    logger.info(`Transaction confirmed in block ${receipt.blockNumber}`);
   }
 }

@@ -11,6 +11,7 @@ members = [
     "pallets/ethereum-client",
     "pallets/inbound-queue-v2",
     "pallets/outbound-queue-v2",
+    "pallets/system",
     "pallets/system-v2",
     "pallets/validator-set",
     "primitives/bridge",
@@ -158,13 +159,14 @@ sp-consensus-beefy = { git = "https://github.com/paritytech/polkadot-sdk", branc
 # Snowbridge
 bridge-hub-common = { path = "primitives/snowbridge/bridge-hub-common", default-features = false }
 snowbridge-merkle-tree = { path = "primitives/snowbridge/merkle-tree", default-features = false }
-snowbridge-pallet-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
+snowbridge-pallet-system = { path = "pallets/system", default-features = false }
 snowbridge-beacon-primitives = { path = "primitives/snowbridge/beacon", default-features = false }
 snowbridge-core = { path = "primitives/snowbridge/core", default-features = false }
 snowbridge-ethereum = { path = "primitives/snowbridge/ethereum", default-features = false }
 snowbridge-pallet-ethereum-client = { path = "pallets/ethereum-client", default-features = false }
 snowbridge-pallet-ethereum-client-fixtures = { path = "pallets/ethereum-client/fixtures", default-features = false }
 snowbridge-inbound-queue-primitives = { path = "primitives/snowbridge/inbound-queue", default-features = false }
+snowbridge-pallet-outbound-queue = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 snowbridge-outbound-queue-primitives = { path = "primitives/snowbridge/outbound-queue", default-features = false }
 snowbridge-pallet-inbound-queue-v2 = { path = "pallets/inbound-queue-v2", default-features = false }
 snowbridge-pallet-inbound-queue-v2-fixtures = { path = "pallets/inbound-queue-v2/fixtures", default-features = false }

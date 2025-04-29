@@ -9,6 +9,7 @@ fp-account.workspace = true
 frame-support.workspace = true
 polkadot-primitives.workspace = true
 polkadot-runtime-common.workspace = true
+xcm = { workspace = true }
 sp-core = { features = ["serde"], workspace = true }
 sp-runtime = { features = ["serde"], workspace = true }
 
@@ -18,6 +19,7 @@ std = [
     "frame-support/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
+    "xcm/std",
     "sp-core/std",
 	"sp-runtime/std",
 ]

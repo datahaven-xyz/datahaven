@@ -1,0 +1,41 @@
+{
+  "source": {
+    "ethereum": {
+      "endpoint": "ws://127.0.0.1:8546/"
+    },
+    "contracts": {
+      "Gateway": "0x362de7253afdbd5b7a14d319516cc75880380865"
+    },
+    "channel-id": "0xcdd46650b730ab688f476efce47941584cfb1d9abcef4b8bbb51734b4467a918",
+    "beacon": {
+      "endpoint": "http://127.0.0.1:9596",
+      "stateEndpoint": "http://127.0.0.1:9596",
+      "spec": {
+        "syncCommitteeSize": 512,
+        "slotsInEpoch": 32,
+        "epochsPerSyncCommitteePeriod": 256,
+        "forkVersions": {
+          "deneb": 0,
+          "electra": 0
+        }
+      },
+      "datastore": {
+        "location": "/home/timbo/workspace/moonsong/tanssi/test/tmp/bridge/output/relayer_data",
+        "maxEntries": 100
+      }
+    }
+  },
+  "sink": {
+    "parachain": {
+      "endpoint": "ws://127.0.0.1:9947",
+      "maxWatchedExtrinsics": 8,
+      "headerRedundancy": 20
+    }
+  },
+  "instantVerification": false,
+  "schedule": {
+    "id": 0,
+    "totalRelayerCount": 1,
+    "sleepInterval": 1
+  }
+}

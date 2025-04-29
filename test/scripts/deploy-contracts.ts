@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printHeader, promptWithTimeout } from "utils";
+import { confirmWithTimeout, logger, printHeader } from "utils";
 
 interface DeployContractsOptions {
   rpcUrl: string;
@@ -25,7 +25,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   // Check if deployContracts option was set via flags, or prompt if not
   let shouldDeployContracts = deployContracts;
   if (shouldDeployContracts === undefined) {
-    shouldDeployContracts = await promptWithTimeout(
+    shouldDeployContracts = await confirmWithTimeout(
       "Do you want to deploy the smart contracts?",
       true,
       10

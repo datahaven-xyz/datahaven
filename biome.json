@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.8.2/schema.json",
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
     "include": ["*.js", "*.ts", "*.json", "*.yml", "*.md"],
     "ignore": ["./node_modules/*", "./target/*", "**/tmp/*", "*.spec.json"]

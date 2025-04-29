@@ -690,10 +690,10 @@ impl snowbridge_pallet_system::Config for Runtime {
 // Implement the Snowbridge System v2 config trait
 impl snowbridge_pallet_system_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
     type OutboundQueue = OutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
+    type WeightInfo = ();
 
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = (); // Placeholder
@@ -822,6 +822,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type MaxMessagesPerBlock = ConstU32<32>;
     type OnNewCommitment = ();
     type WeightToFee = IdentityFee<Balance>;
+    type WeightInfo = ();
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type RewardKind = ();
@@ -829,7 +830,6 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RewardPayment = DummyRewardPayment;
     type EthereumNetwork = EthereumNetwork;
     type ConvertAssetId = ();
-    type WeightInfo = ();
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

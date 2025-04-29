@@ -75,3 +75,6 @@ try-runtime = [
 	"snowbridge-pallet-outbound-queue/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+
+[lib]
+test = false

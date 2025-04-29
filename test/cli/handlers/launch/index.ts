@@ -79,8 +79,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
 
-  printDivider();
-
   logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined = undefined;
 
@@ -134,8 +132,21 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const { blockscout, verified } = thisCmd.opts();
+  const {
+    blockscout,
+    verified,
+    fundValidators,
+    setupValidators,
+    updateValidatorSet,
+    deployContracts
+  } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
+  }
+  if (deployContracts === false && setupValidators) {
+    thisCmd.error("--setupValidators requires --deployContracts to be set");
+  }
+  if (deployContracts === false && fundValidators) {
+    thisCmd.error("--fundValidators requires --deployContracts to be set");
   }
 };

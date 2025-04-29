@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { beefyClientAbi } from "contract-bindings";
 import {
   type AnvilDeployments,
+  type ContractInstance,
   type ViemClientInterface,
   createDefaultClient,
   getContractInstance,
@@ -13,7 +14,7 @@ import { isAddress } from "viem";
 describe("BeefyClient contract", async () => {
   let api: ViemClientInterface;
   let deployments: AnvilDeployments;
-  let instance: Awaited<ReturnType<typeof getContractInstance<"BeefyClient">>>;
+  let instance: ContractInstance<"BeefyClient">;
 
   beforeAll(async () => {
     api = await createDefaultClient();
@@ -26,7 +27,7 @@ describe("BeefyClient contract", async () => {
     expect(isAddress(contractAddress)).toBeTrue();
   });
 
-  it("latestBeefyBlock()) can be read", async () => {
+  it("latestBeefyBlock() can be read", async () => {
     const value = await api.readContract({
       abi: beefyClientAbi,
       functionName: "latestBeefyBlock",
@@ -37,8 +38,7 @@ describe("BeefyClient contract", async () => {
   });
 
   it("latestBeefyBlock() can be read from contract instance", async () => {
-    const contract = await getContractInstance<"BeefyClient">("BeefyClient");
-    const value = await contract.read.latestMMRRoot();
+    const value = await instance.read.latestBeefyBlock();
     logger.debug(`latestBeefyBlock() value: ${value}`);
     expect(value, "Expected contract read to give positive blocknum").toBeGreaterThan(0n);
   });

@@ -98,8 +98,37 @@ export const parseDeploymentsFile = async (): Promise<AnvilDeployments> => {
   }
 };
 
-export const getContractInstance = async <TContract extends keyof AnvilDeployments>(
-  contract: TContract,
+// Add to this if we add any new contracts
+const abiMap = {
+  BeefyClient: generated.beefyClientAbi,
+  AgentExecutor: generated.agentExecutorAbi,
+  Gateway: generated.gatewayAbi,
+  ServiceManager: generated.transparentUpgradeableProxyAbi,
+  VetoableSlasher: generated.vetoableSlasherAbi,
+  RewardsRegistry: generated.rewardsRegistryAbi,
+  Agent: generated.agentAbi,
+  DelegationManager: generated.delegationManagerAbi,
+  StrategyManager: generated.strategyManagerAbi,
+  AVSDirectory: generated.avsDirectoryAbi,
+  EigenPodManager: generated.eigenPodManagerAbi,
+  EigenPodBeacon: generated.upgradeableBeaconAbi,
+  RewardsCoordinator: generated.rewardsCoordinatorAbi,
+  AllocationManager: generated.allocationManagerAbi,
+  PermissionController: generated.permissionControllerAbi,
+  ETHPOSDeposit: generated.iethposDepositAbi,
+  BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
+  network: generated.beefyClientAbi, // placeholder
+  DeployedStrategies: generated.beefyClientAbi // placeholder
+} as const satisfies Record<keyof AnvilDeployments, Abi>;
+
+type ContractName = keyof typeof abiMap;
+type AbiFor<C extends ContractName> = (typeof abiMap)[C];
+export type ContractInstance<C extends ContractName> = Awaited<
+  ReturnType<typeof getContractInstance<C>>
+>;
+
+export const getContractInstance = async <C extends ContractName>(
+  contract: C,
   viemClient?: ViemClientInterface
 ) => {
   const deployments = await parseDeploymentsFile();
@@ -111,29 +140,7 @@ export const getContractInstance = async <TContract extends keyof AnvilDeploymen
     `Contract address for ${contract} is not a valid address`
   );
 
-  const abiMap: Record<keyof AnvilDeployments, Abi> = {
-    BeefyClient: generated.beefyClientAbi,
-    AgentExecutor: generated.agentExecutorAbi,
-    Gateway: generated.gatewayAbi,
-    ServiceManager: generated.transparentUpgradeableProxyAbi,
-    VetoableSlasher: generated.vetoableSlasherAbi,
-    RewardsRegistry: generated.rewardsRegistryAbi,
-    Agent: generated.agentAbi,
-    DelegationManager: generated.delegationManagerAbi,
-    StrategyManager: generated.strategyManagerAbi,
-    AVSDirectory: generated.avsDirectoryAbi,
-    EigenPodManager: generated.eigenPodManagerAbi,
-    EigenPodBeacon: generated.upgradeableBeaconAbi,
-    RewardsCoordinator: generated.rewardsCoordinatorAbi,
-    AllocationManager: generated.allocationManagerAbi,
-    PermissionController: generated.permissionControllerAbi,
-    ETHPOSDeposit: generated.iethposDepositAbi,
-    BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
-    network: generated.beefyClientAbi, // Default or placeholder, adjust if needed
-    DeployedStrategies: generated.beefyClientAbi // Default or placeholder, adjust if needed
-  };
-
-  const abi = abiMap[contract];
+  const abi: AbiFor<C> = abiMap[contract];
   invariant(abi, `ABI for contract ${contract} not found`);
 
   return getContract({

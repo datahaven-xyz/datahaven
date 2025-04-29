@@ -40,7 +40,7 @@ export const timeoutConfirm = createPrompt<boolean, TimeoutConfirmConfig>((cfg, 
         clearInterval(id);
         done(cfg.default ?? true);
       }
-    }, 10);
+    }, 200);
 
     return () => clearInterval(id);
   }, []);
@@ -71,7 +71,10 @@ ${defaultBadge} ${input}`;
     )
   );
 
-  return `${border}\n${hint}\n${main}\n${border}`;
+  return `${border}
+${hint}
+${main}
+${border}`;
 });
 
 export const confirmWithTimeout = (

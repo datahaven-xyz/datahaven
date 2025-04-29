@@ -3,7 +3,7 @@ import path from "node:path";
 // Setup of validators for DataHaven
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printHeader, promptWithTimeout } from "../utils/index";
+import { confirmWithTimeout, logger, printHeader } from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -46,7 +46,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
   // Check if executeSignup option was set via flags, or prompt if not
   let shouldExecuteSignup = executeSignup;
   if (shouldExecuteSignup === undefined) {
-    shouldExecuteSignup = await promptWithTimeout(
+    shouldExecuteSignup = await confirmWithTimeout(
       "Do you want to register validators in EigenLayer?",
       true,
       10

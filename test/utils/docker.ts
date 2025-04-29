@@ -1,46 +1,6 @@
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { logger } from "utils";
-
-interface ServiceMapping {
-  service: string;
-  containerPattern: string;
-  internalPort: number;
-  protocol: string;
-}
-
-interface ServiceInfo {
-  service: string;
-  port: string;
-  url: string;
-}
-
-const serviceMappings: ServiceMapping[] = [
-  {
-    service: "reth-1-rpc",
-    containerPattern: "el-1-reth-lighthouse",
-    internalPort: 8545,
-    protocol: "tcp"
-  },
-  {
-    service: "reth-2-rpc",
-    containerPattern: "el-2-reth-lighthouse",
-    internalPort: 8545,
-    protocol: "tcp"
-  },
-  {
-    service: "blockscout-backend",
-    containerPattern: "blockscout--",
-    internalPort: 4000,
-    protocol: "tcp"
-  },
-  {
-    service: "dora",
-    containerPattern: "dora--",
-    internalPort: 8080,
-    protocol: "tcp"
-  }
-];
+import { type ServiceInfo, type ServiceMapping, StandardServiceMappings, logger } from "utils";
 
 export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   const docker = new Docker();
@@ -49,7 +9,7 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
 
   const services: ServiceInfo[] = [];
 
-  for (const mapping of serviceMappings) {
+  for (const mapping of StandardServiceMappings) {
     try {
       const container = containers.find((container) =>
         container.Names.some((name) => name.includes(mapping.containerPattern))

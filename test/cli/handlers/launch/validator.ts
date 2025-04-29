@@ -1,7 +1,7 @@
 import { fundValidators } from "scripts/fund-validators";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
-import { logger, promptWithTimeout } from "utils";
+import { confirmWithTimeout, logger } from "utils";
 import type { LaunchOptions } from "..";
 
 export const performValidatorOperations = async (options: LaunchOptions, networkRpcUrl: string) => {
@@ -12,7 +12,7 @@ export const performValidatorOperations = async (options: LaunchOptions, network
 
   logger.trace("If not specified, prompt for funding");
   if (shouldFundValidators === undefined) {
-    shouldFundValidators = await promptWithTimeout(
+    shouldFundValidators = await confirmWithTimeout(
       "Do you want to fund validators with tokens and ETH?",
       true,
       10
@@ -25,7 +25,7 @@ export const performValidatorOperations = async (options: LaunchOptions, network
 
   logger.trace("If not specified, prompt for setup");
   if (shouldSetupValidators === undefined) {
-    shouldSetupValidators = await promptWithTimeout(
+    shouldSetupValidators = await confirmWithTimeout(
       "Do you want to register validators in EigenLayer?",
       true,
       10
@@ -38,7 +38,7 @@ export const performValidatorOperations = async (options: LaunchOptions, network
 
   logger.trace("If not specified, prompt for update");
   if (shouldUpdateValidatorSet === undefined) {
-    shouldUpdateValidatorSet = await promptWithTimeout(
+    shouldUpdateValidatorSet = await confirmWithTimeout(
       "Do you want to update the validator set on the substrate chain?",
       true,
       10

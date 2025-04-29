@@ -1,11 +1,11 @@
 import { $ } from "bun";
 import {
   type KurtosisService,
+  confirmWithTimeout,
   getServicesFromKurtosis,
   logger,
   printDivider,
-  printHeader,
-  promptWithTimeout
+  printHeader
 } from "utils";
 
 /**
@@ -39,8 +39,8 @@ export const launchKurtosis = async (
     if (options.launchKurtosis === true) {
       logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
     } else {
-      // Use promptWithTimeout if launchKurtosis is undefined
-      const shouldRelaunch = await promptWithTimeout(
+      // Use confirmWithTimeout if launchKurtosis is undefined
+      const shouldRelaunch = await confirmWithTimeout(
         "Do you want to clean and relaunch the Kurtosis enclave?",
         true,
         10

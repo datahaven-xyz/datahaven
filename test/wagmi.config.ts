@@ -4,7 +4,7 @@ import { actions, foundry } from "@wagmi/cli/plugins";
 export default defineConfig({
   out: "contract-bindings/generated.ts",
   plugins: [
-    actions(), //<--- can't seem to get this to work
+    actions(), // TODO: Investigate why the actions() plugin is not functioning as expected. Refer to the @wagmi/cli documentation for potential solutions.
     foundry({
       project: "../contracts",
       include: [

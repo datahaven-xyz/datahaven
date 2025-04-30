@@ -58,5 +58,5 @@ jobs:
             ${{ runner.os }}-foundry-
 
       - run: bun install
-      - run: bun start:e2e:minimal
+      - run: bun start:e2e:ci
       - run: bun test:e2e

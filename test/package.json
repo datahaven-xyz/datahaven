@@ -12,7 +12,7 @@
     "generate:snowbridge-cfgs": "bun -e \"import {generateSnowbridgeConfigs} from './scripts/gen-snowbridge-cfgs.ts'; await generateSnowbridgeConfigs()\"",
     "start:e2e:verified": "bun cli --verified --blockscout --deploy-contracts",
     "start:e2e:minimal": "bun cli",
-    "start:e2e:": "",
+    "start:e2e:ci": "bun cli -d --setup-validators --update-validator-set --fund-validators",
     "start:e2e:minrelayer": "bun cli --relayer -d --no-setup-validators --no-update-validator-set --no-fund-validators --datahaven",
     "stop:e2e": "pkill datahaven ; kurtosis enclave stop datahaven-ethereum && kurtosis clean && kurtosis engine stop && docker container prune -f",
     "stop:e2e:verified": "bun stop:e2e",

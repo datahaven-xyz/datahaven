@@ -8,7 +8,7 @@ import {
   defineChain,
   publicActions
 } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 export const createChainConfig = async () =>
   defineChain({
@@ -45,4 +45,8 @@ export const createDefaultClient = async () =>
     transport: http()
   }).extend(publicActions);
 
-export interface ViemClientInterface extends WalletClient, PublicActions {}
+// export interface ViemClientInterface extends WalletClient, PublicActions {}
+
+export type ViemClientInterface = Awaited<ReturnType<typeof createDefaultClient>>;
+
+export const generateRandomAccount = () => privateKeyToAccount(generatePrivateKey());

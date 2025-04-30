@@ -1,25 +1,18 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { beefyClientAbi } from "contract-bindings";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  type AnvilDeployments,
   type ViemClientInterface,
   createDefaultClient,
-  fetchContractAbiByAddress,
-  fetchContractAddressByName,
-  getContractInstance,
-  logger,
-  parseDeploymentsFile
+  generateRandomAccount,
+  logger
 } from "utils";
-import { type Hash, isAddress, parseAbi, parseEther } from "viem";
+import { parseEther } from "viem";
 
 describe("E2E: Read-only", () => {
   let api: ViemClientInterface;
-  let deployments: AnvilDeployments;
 
   beforeAll(async () => {
     api = await createDefaultClient();
-    deployments = await parseDeploymentsFile();
   });
 
   it("should be able to query block number", async () => {
@@ -37,5 +30,29 @@ describe("E2E: Read-only", () => {
       address: ANVIL_FUNDED_ACCOUNTS[0].publicKey
     });
     expect(balance).toBeGreaterThan(parseEther("1"));
+  });
+
+  it("can send ETH txs", async () => {
+    const amount = parseEther("1");
+    const randomAddress = generateRandomAccount();
+    const balanceBefore = await api.getBalance({
+      address: randomAddress.address
+    });
+    logger.debug(`Balance of ${randomAddress.address} before: ${balanceBefore}`);
+
+    const hash = await api.sendTransaction({
+      to: randomAddress.address,
+      value: amount
+    });
+
+    const receipt = await api.waitForTransactionReceipt({ hash });
+    logger.debug(`Transaction receipt: ${receipt}`);
+
+    const balanceAfter = await api.getBalance({
+      address: randomAddress.address
+    });
+
+    logger.debug(`Balance of ${randomAddress.address} after: ${balanceAfter}`);
+    expect(balanceAfter - balanceBefore).toBe(amount);
   });
 });

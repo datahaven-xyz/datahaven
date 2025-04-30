@@ -2442,6 +2442,7 @@ dependencies = [
  "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-pallet-system",
  "snowbridge-pallet-system-v2",
+ "snowbridge-system-v2-runtime-api",
  "snowbridge-verification-primitives",
  "sp-api",
  "sp-block-builder",
@@ -12136,6 +12137,17 @@ dependencies = [
  "sp-std",
  "staging-xcm",
  "staging-xcm-executor",
+]
+
+[[package]]
+name = "snowbridge-system-v2-runtime-api"
+version = "0.2.0"
+dependencies = [
+ "parity-scale-codec",
+ "snowbridge-core 0.2.0",
+ "sp-api",
+ "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]

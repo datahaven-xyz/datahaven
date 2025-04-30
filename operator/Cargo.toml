@@ -20,6 +20,8 @@ members = [
 ]
 resolver = "2"
 
+[workspace.lints]
+
 [workspace.dependencies]
 # Local
 datahaven-runtime = { path = "./runtime", default-features = false }
@@ -173,6 +175,7 @@ snowbridge-pallet-inbound-queue-v2-fixtures = { path = "pallets/inbound-queue-v2
 snowbridge-pallet-outbound-queue-v2 = { path = "pallets/outbound-queue-v2", default-features = false }
 snowbridge-outbound-queue-v2-runtime-api = { path = "pallets/outbound-queue-v2/runtime-api", default-features = false }
 snowbridge-pallet-system-v2 = { path = "pallets/system-v2", default-features = false }
+snowbridge-system-v2-runtime-api = { path = "pallets/system-v2/runtime-api", default-features = false }
 snowbridge-test-utils = { path = "primitives/snowbridge/test-utils", default-features = false }
 snowbridge-verification-primitives = { path = "primitives/snowbridge/verification", default-features = false }
 

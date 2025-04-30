@@ -71,6 +71,7 @@ snowbridge-merkle-tree = { workspace = true }
 snowbridge-outbound-queue-v2-runtime-api = { workspace = true }
 snowbridge-pallet-system = { workspace = true }
 snowbridge-pallet-system-v2 = { workspace = true }
+snowbridge-system-v2-runtime-api = { workspace = true }
 snowbridge-verification-primitives = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
@@ -149,6 +150,7 @@ std = [
     "snowbridge-outbound-queue-v2-runtime-api/std",
     "snowbridge-pallet-system/std",
     "snowbridge-pallet-system-v2/std",
+    "snowbridge-system-v2-runtime-api/std",
     "dhp-bridge/std",
     "snowbridge-verification-primitives/std",
     "sp-api/std",

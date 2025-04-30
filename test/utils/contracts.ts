@@ -1,19 +1,9 @@
 import * as generated from "contract-bindings";
-import {
-  type Abi,
-  type ChainConfig,
-  type Client,
-  createClient,
-  getContract,
-  isAddress
-} from "viem";
-import { http, createConfig } from "wagmi";
-import { mainnet, sepolia } from "wagmi/chains";
+import { type Abi, getContract, isAddress } from "viem";
 import { z } from "zod";
 import { logger } from "./logger";
-import { type ViemClientInterface, createChainConfig, createDefaultClient } from "./viem";
+import { type ViemClientInterface, createDefaultClient } from "./viem";
 
-import type { Config } from "@wagmi/core";
 import invariant from "tiny-invariant";
 
 const DeployedStrategySchema = z.object({

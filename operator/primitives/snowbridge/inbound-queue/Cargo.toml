@@ -37,7 +37,6 @@ hex = { workspace = true, default-features = false }
 hex-literal = { workspace = true, default-features = true }
 
 [dev-dependencies]
-
 [features]
 default = ["std"]
 std = [

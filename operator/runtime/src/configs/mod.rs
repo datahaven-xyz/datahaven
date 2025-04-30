@@ -649,10 +649,7 @@ impl SendMessage for MockOkOutboundQueue {
 
     fn validate(
         _: &Message,
-    ) -> Result<
-        (Self::Ticket, Fee<<Self as SendMessageFeeProvider>::Balance>),
-        SendError,
-    > {
+    ) -> Result<(Self::Ticket, Fee<<Self as SendMessageFeeProvider>::Balance>), SendError> {
         Ok(((), Fee::from((0, 0))))
     }
 
@@ -679,12 +676,12 @@ impl snowbridge_pallet_system::Config for Runtime {
     type TreasuryAccount = TreasuryAccountId;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
-    type WeightInfo = (); // Placeholder
+    type WeightInfo = ();
     type UniversalLocation = UniversalLocation;
     type EthereumLocation = EthereumLocation;
 
     #[cfg(feature = "runtime-benchmarks")]
-    type Helper = (); // Placeholder
+    type Helper = ();
 }
 
 // Implement the Snowbridge System v2 config trait
@@ -696,7 +693,7 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type WeightInfo = ();
 
     #[cfg(feature = "runtime-benchmarks")]
-    type Helper = (); // Placeholder
+    type Helper = ();
 }
 
 // For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
@@ -842,15 +839,28 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
+    use crate::RuntimeOrigin;
     use crate::{EthereumBeaconClient, Runtime};
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
-    // use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
     use sp_core::H256;
+    use xcm::opaque::latest::Location;
 
     impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
         fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+        }
+    }
+
+    impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
+        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
+            RuntimeOrigin::root()
+        }
+    }
+
+    impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
+        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
+            RuntimeOrigin::root()
         }
     }
 }

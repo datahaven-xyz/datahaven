@@ -18,7 +18,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 clap = { features = ["derive"], workspace = true }
 codec = { workspace = true }
 datahaven-runtime = { workspace = true }
-downcast.workspace = true
+
 # Frontier
 fc-api = { workspace = true }
 fc-cli = { workspace = true }

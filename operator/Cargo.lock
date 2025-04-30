@@ -2305,7 +2305,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "datahaven-runtime",
- "downcast",
  "fc-api",
  "fc-cli",
  "fc-consensus",

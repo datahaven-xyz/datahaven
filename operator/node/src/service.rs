@@ -19,7 +19,7 @@ use sc_network_sync::WarpSyncConfig;
 use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool::{BasicPool, FullChainApi};
-use sc_transaction_pool_api::{OffchainTransactionPoolFactory, TransactionPool};
+use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto;

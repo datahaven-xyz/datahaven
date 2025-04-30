@@ -630,8 +630,7 @@ impl pallet_evm_chain_id::Config for Runtime {}
 parameter_types! {
     pub UniversalLocation: InteriorLocation = Here.into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
-    pub RootLocation: Location = Location::parent();
-    pub const AssetHubParaId: u32 = 1000;
+    pub RootLocation: Location = Location::here();
     pub Parameters: PricingParameters<u128> = PricingParameters {
         exchange_rate: FixedU128::from_rational(1, 400),
         fee_per_gas: gwei(20),
@@ -640,11 +639,10 @@ parameter_types! {
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
     pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
-
 }
 
-pub struct MockOkOutboundQueue;
-impl SendMessage for MockOkOutboundQueue {
+pub struct DoNothingOutboundQueue;
+impl SendMessage for DoNothingOutboundQueue {
     type Ticket = ();
 
     fn validate(
@@ -658,7 +656,7 @@ impl SendMessage for MockOkOutboundQueue {
     }
 }
 
-impl SendMessageFeeProvider for MockOkOutboundQueue {
+impl SendMessageFeeProvider for DoNothingOutboundQueue {
     type Balance = u128;
 
     fn local_fee() -> Self::Balance {
@@ -669,7 +667,7 @@ impl SendMessageFeeProvider for MockOkOutboundQueue {
 // Implement the Snowbridge System V1 config trait
 impl snowbridge_pallet_system::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OutboundQueue = MockOkOutboundQueue;
+    type OutboundQueue = DoNothingOutboundQueue;
     type SiblingOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type AgentIdOf = AgentIdOf;
     type Token = Balances;
@@ -679,7 +677,6 @@ impl snowbridge_pallet_system::Config for Runtime {
     type WeightInfo = ();
     type UniversalLocation = UniversalLocation;
     type EthereumLocation = EthereumLocation;
-
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
 }
@@ -691,7 +688,6 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type WeightInfo = ();
-
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
 }

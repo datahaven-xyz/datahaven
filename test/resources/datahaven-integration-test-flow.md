@@ -40,11 +40,6 @@ bun start:e2e:minimal
 # Start the E2E CLI environment with Blockscout and verified contracts
 bun start:e2e:verified
 
-# Behind the scenes both commands run:
-bun run scripts/launch-kurtosis.ts
-# And then continue setting up the environment with the next steps.
-```
-
 ## 2. Ethereum-side Contract Deployment
 
 After the infrastructure is set up, we deploy all the necessary smart contracts to the Ethereum network.

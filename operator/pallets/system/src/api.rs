@@ -9,8 +9,8 @@ use crate::{agent_id_of, Config};
 
 pub fn agent_id<Runtime>(location: VersionedLocation) -> Option<AgentId>
 where
-	Runtime: Config,
+    Runtime: Config,
 {
-	let location: Location = location.try_into().ok()?;
-	agent_id_of::<Runtime>(&location).ok()
+    let location: Location = location.try_into().ok()?;
+    agent_id_of::<Runtime>(&location).ok()
 }

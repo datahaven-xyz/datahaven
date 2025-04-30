@@ -14,79 +14,83 @@ use xcm::prelude::*;
 
 #[benchmarks]
 mod benchmarks {
-	use super::*;
+    use super::*;
 
-	#[benchmark]
-	fn upgrade() -> Result<(), BenchmarkError> {
-		let impl_address = H160::repeat_byte(1);
-		let impl_code_hash = H256::repeat_byte(1);
+    #[benchmark]
+    fn upgrade() -> Result<(), BenchmarkError> {
+        let impl_address = H160::repeat_byte(1);
+        let impl_code_hash = H256::repeat_byte(1);
 
-		// Assume 256 bytes passed to initializer
-		let params: Vec<u8> = (0..256).map(|_| 1u8).collect();
+        // Assume 256 bytes passed to initializer
+        let params: Vec<u8> = (0..256).map(|_| 1u8).collect();
 
-		#[extrinsic_call]
-		_(
-			RawOrigin::Root,
-			impl_address,
-			impl_code_hash,
-			Some(Initializer { params, maximum_required_gas: 100000 }),
-		);
+        #[extrinsic_call]
+        _(
+            RawOrigin::Root,
+            impl_address,
+            impl_code_hash,
+            Some(Initializer {
+                params,
+                maximum_required_gas: 100000,
+            }),
+        );
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	#[benchmark]
-	fn set_operating_mode() -> Result<(), BenchmarkError> {
-		#[extrinsic_call]
-		_(RawOrigin::Root, OperatingMode::RejectingOutboundMessages);
+    #[benchmark]
+    fn set_operating_mode() -> Result<(), BenchmarkError> {
+        #[extrinsic_call]
+        _(RawOrigin::Root, OperatingMode::RejectingOutboundMessages);
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	#[benchmark]
-	fn set_pricing_parameters() -> Result<(), BenchmarkError> {
-		let params = T::DefaultPricingParameters::get();
+    #[benchmark]
+    fn set_pricing_parameters() -> Result<(), BenchmarkError> {
+        let params = T::DefaultPricingParameters::get();
 
-		#[extrinsic_call]
-		_(RawOrigin::Root, params);
+        #[extrinsic_call]
+        _(RawOrigin::Root, params);
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	#[benchmark]
-	fn set_token_transfer_fees() -> Result<(), BenchmarkError> {
-		#[extrinsic_call]
-		_(RawOrigin::Root, 1, 1, eth(1));
+    #[benchmark]
+    fn set_token_transfer_fees() -> Result<(), BenchmarkError> {
+        #[extrinsic_call]
+        _(RawOrigin::Root, 1, 1, eth(1));
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	#[benchmark]
-	fn register_token() -> Result<(), BenchmarkError> {
-		let caller: T::AccountId = whitelisted_caller();
+    #[benchmark]
+    fn register_token() -> Result<(), BenchmarkError> {
+        let caller: T::AccountId = whitelisted_caller();
 
-		let amount: BalanceOf<T> =
-			(10_000_000_000_000_u128).saturated_into::<u128>().saturated_into();
+        let amount: BalanceOf<T> = (10_000_000_000_000_u128)
+            .saturated_into::<u128>()
+            .saturated_into();
 
-		T::Token::mint_into(&caller, amount)?;
+        T::Token::mint_into(&caller, amount)?;
 
-		let relay_token_asset_id: Location = Location::parent();
-		let asset = Box::new(VersionedLocation::from(relay_token_asset_id));
-		let asset_metadata = AssetMetadata {
-			name: "wnd".as_bytes().to_vec().try_into().unwrap(),
-			symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),
-			decimals: 12,
-		};
+        let relay_token_asset_id: Location = Location::parent();
+        let asset = Box::new(VersionedLocation::from(relay_token_asset_id));
+        let asset_metadata = AssetMetadata {
+            name: "wnd".as_bytes().to_vec().try_into().unwrap(),
+            symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),
+            decimals: 12,
+        };
 
-		#[extrinsic_call]
-		_(RawOrigin::Root, asset, asset_metadata);
+        #[extrinsic_call]
+        _(RawOrigin::Root, asset, asset_metadata);
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	impl_benchmark_test_suite!(
-		SnowbridgeControl,
-		crate::mock::new_test_ext(true),
-		crate::mock::Test
-	);
+    impl_benchmark_test_suite!(
+        SnowbridgeControl,
+        crate::mock::new_test_ext(true),
+        crate::mock::Test
+    );
 }

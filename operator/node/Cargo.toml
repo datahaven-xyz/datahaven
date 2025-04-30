@@ -15,35 +15,26 @@ build = "build.rs"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-clap = { features = ["derive"], workspace = true }
-codec = { workspace = true }
+# Local
 datahaven-runtime = { workspace = true }
 
-# Frontier
-fc-api = { workspace = true }
-fc-cli = { workspace = true }
-fc-consensus = { workspace = true }
-fc-db = { workspace = true }
-fc-mapping-sync = { workspace = true, features = ["sql"] }
-fc-rpc = { workspace = true, features = ["txpool"] }
-fc-rpc-core = { workspace = true, features = ["txpool"] }
-fc-storage = { workspace = true }
+# Crates.io
+clap = { features = ["derive"], workspace = true }
+codec = { workspace = true }
 flume = { workspace = true }
-fp-account = { workspace = true }
-fp-evm = { workspace = true }
-fp-rpc = { workspace = true }
+futures = { features = ["thread-pool"], workspace = true }
+hex-literal = { workspace = true }
+jsonrpsee = { features = ["server"], workspace = true }
+log = { workspace = true }
+serde_json = { workspace = true, default-features = true }
+url = { workspace = true }
+
+# Polkadot SDK
 frame-benchmarking-cli = { workspace = true, default-features = true }
 frame-metadata-hash-extension = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 frame-system-rpc-runtime-api = { workspace = true }
-futures = { features = ["thread-pool"], workspace = true }
-hex-literal = { workspace = true }
-jsonrpsee = { features = ["server"], workspace = true }
-
-# MMR
-log = { workspace = true }
 mmr-rpc = { workspace = true, default-features = true }
-pallet-ethereum = { workspace = true }
 pallet-im-online = { workspace = true }
 pallet-transaction-payment = { workspace = true, default-features = true }
 pallet-transaction-payment-rpc = { workspace = true, default-features = true }
@@ -53,24 +44,19 @@ sc-cli = { workspace = true, default-features = true }
 sc-client-api = { workspace = true, default-features = true }
 sc-consensus = { workspace = true, default-features = true }
 sc-consensus-babe = { workspace = true, default-features = true }
-
-# Beefy
 sc-consensus-beefy = { workspace = true, default-features = true }
 sc-consensus-beefy-rpc = { workspace = true, default-features = true }
 sc-consensus-grandpa = { workspace = true, default-features = true }
+sc-consensus-manual-seal = { workspace = true, default-features = true }
 sc-executor = { workspace = true, default-features = true }
 sc-network = { workspace = true, default-features = true }
 sc-network-sync = { workspace = true }
 sc-offchain = { workspace = true, default-features = true }
-
-# RPC
-sc-consensus-manual-seal = { workspace = true, default-features = true }
 sc-rpc = { workspace = true, default-features = true }
 sc-service = { workspace = true, default-features = true }
 sc-telemetry = { workspace = true, default-features = true }
 sc-transaction-pool = { workspace = true, default-features = true }
 sc-transaction-pool-api = { workspace = true, default-features = true }
-serde_json = { workspace = true, default-features = true }
 sp-api = { workspace = true, default-features = true }
 sp-block-builder = { workspace = true, default-features = true }
 sp-blockchain = { workspace = true, default-features = true }
@@ -88,7 +74,20 @@ sp-session = { workspace = true, features = ["default"] }
 sp-timestamp = { workspace = true, default-features = true }
 sp-transaction-pool = { workspace = true, features = ["default"] }
 substrate-frame-rpc-system = { workspace = true, default-features = true }
-url = { workspace = true }
+
+# Frontier
+fc-api = { workspace = true }
+fc-cli = { workspace = true }
+fc-consensus = { workspace = true }
+fc-db = { workspace = true }
+fc-mapping-sync = { workspace = true, features = ["sql"] }
+fc-rpc = { workspace = true, features = ["txpool"] }
+fc-rpc-core = { workspace = true, features = ["txpool"] }
+fc-storage = { workspace = true }
+fp-account = { workspace = true }
+fp-evm = { workspace = true }
+fp-rpc = { workspace = true }
+pallet-ethereum = { workspace = true }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }

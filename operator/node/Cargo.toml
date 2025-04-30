@@ -17,18 +17,19 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 clap = { features = ["derive"], workspace = true }
 codec = { workspace = true }
-datahaven-mainnet-runtime = { workspace = true } 
-datahaven-runtime-common = { workspace = true } 
-datahaven-stagenet-runtime = { workspace = true } 
-datahaven-testnet-runtime = { workspace = true } 
+datahaven-mainnet-runtime = { workspace = true }
+datahaven-runtime-common = { workspace = true }
+datahaven-stagenet-runtime = { workspace = true }
+datahaven-testnet-runtime = { workspace = true }
 
 # Frontier
+fc-api = { workspace = true }
 fc-cli = { workspace = true }
 fc-consensus = { workspace = true }
 fc-db = { workspace = true }
 fc-mapping-sync = { workspace = true, features = ["sql"] }
-fc-rpc = { workspace = true }
-fc-rpc-core = { workspace = true }
+fc-rpc = { workspace = true, features = ["txpool"] }
+fc-rpc-core = { workspace = true, features = ["txpool"] }
 fc-storage = { workspace = true }
 flume = { workspace = true }
 fp-account = { workspace = true }
@@ -45,6 +46,7 @@ jsonrpsee = { features = ["server"], workspace = true }
 # MMR
 mmr-rpc = { workspace = true, default-features = true }
 pallet-beefy-mmr = { workspace = true, default-features = true }
+log = "0.4.26"
 pallet-ethereum = { workspace = true }
 pallet-im-online = { workspace = true }
 pallet-mmr = { workspace = true, default-features = true }
@@ -67,6 +69,7 @@ sc-network-sync = { workspace = true }
 sc-offchain = { workspace = true, default-features = true }
 
 # RPC
+sc-consensus-manual-seal = { workspace = true, default-features = true }
 sc-rpc = { workspace = true, default-features = true }
 sc-service = { workspace = true, default-features = true }
 sc-telemetry = { workspace = true, default-features = true }

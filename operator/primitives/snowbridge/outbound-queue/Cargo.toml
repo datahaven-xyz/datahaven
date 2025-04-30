@@ -36,7 +36,6 @@ ethabi = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-verification-primitives = { workspace = true }
 
-
 [dev-dependencies]
 hex = { workspace = true, default-features = true }
 

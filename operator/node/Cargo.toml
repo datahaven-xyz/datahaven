@@ -44,9 +44,9 @@ hex-literal = { workspace = true }
 jsonrpsee = { features = ["server"], workspace = true }
 
 # MMR
+log = "0.4.26"
 mmr-rpc = { workspace = true, default-features = true }
 pallet-beefy-mmr = { workspace = true, default-features = true }
-log = "0.4.26"
 pallet-ethereum = { workspace = true }
 pallet-im-online = { workspace = true }
 pallet-mmr = { workspace = true, default-features = true }

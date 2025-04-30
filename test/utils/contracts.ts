@@ -103,7 +103,7 @@ const abiMap = {
   BeefyClient: generated.beefyClientAbi,
   AgentExecutor: generated.agentExecutorAbi,
   Gateway: generated.gatewayAbi,
-  ServiceManager: generated.transparentUpgradeableProxyAbi,
+  ServiceManager: generated.dataHavenServiceManagerAbi,
   VetoableSlasher: generated.vetoableSlasherAbi,
   RewardsRegistry: generated.rewardsRegistryAbi,
   Agent: generated.agentAbi,
@@ -111,7 +111,7 @@ const abiMap = {
   StrategyManager: generated.strategyManagerAbi,
   AVSDirectory: generated.avsDirectoryAbi,
   EigenPodManager: generated.eigenPodManagerAbi,
-  EigenPodBeacon: generated.upgradeableBeaconAbi,
+  EigenPodBeacon: generated.eigenPodAbi,
   RewardsCoordinator: generated.rewardsCoordinatorAbi,
   AllocationManager: generated.allocationManagerAbi,
   PermissionController: generated.permissionControllerAbi,
@@ -133,6 +133,7 @@ export const getContractInstance = async <C extends ContractName>(
 ) => {
   const deployments = await parseDeploymentsFile();
   const contractAddress = deployments[contract];
+  logger.debug(`Contract ${contract} deployed to ${contractAddress}`);
 
   const client = viemClient ?? (await createDefaultClient());
   invariant(

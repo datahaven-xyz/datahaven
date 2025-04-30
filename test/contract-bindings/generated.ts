@@ -1913,6 +1913,877 @@ export const beefyClientAbi = [
 ] as const;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// DataHavenServiceManager
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const dataHavenServiceManagerAbi = [
+  {
+    type: "constructor",
+    inputs: [
+      {
+        name: "__rewardsCoordinator",
+        internalType: "contract IRewardsCoordinator",
+        type: "address"
+      },
+      {
+        name: "__permissionController",
+        internalType: "contract IPermissionController",
+        type: "address"
+      },
+      {
+        name: "__allocationManager",
+        internalType: "contract IAllocationManager",
+        type: "address"
+      }
+    ],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "BSPS_SET_ID",
+    outputs: [{ name: "", internalType: "uint32", type: "uint32" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "DATAHAVEN_AVS_METADATA",
+    outputs: [{ name: "", internalType: "string", type: "string" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "MSPS_SET_ID",
+    outputs: [{ name: "", internalType: "uint32", type: "uint32" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "VALIDATORS_SET_ID",
+    outputs: [{ name: "", internalType: "uint32", type: "uint32" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "bsp", internalType: "address", type: "address" }],
+    name: "addBspToAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "msp", internalType: "address", type: "address" }],
+    name: "addMspToAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "admin", internalType: "address", type: "address" }],
+    name: "addPendingAdmin",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "addStrategiesToBspsSupportedStrategies",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "addStrategiesToMspsSupportedStrategies",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+      {
+        name: "strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "addStrategiesToOperatorSet",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "addStrategiesToValidatorsSupportedStrategies",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "validator", internalType: "address", type: "address" }],
+    name: "addValidatorToAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "avs",
+    outputs: [{ name: "", internalType: "address", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "address", type: "address" }],
+    name: "bspsAllowlist",
+    outputs: [{ name: "", internalType: "bool", type: "bool" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "bspsSupportedStrategies",
+    outputs: [{ name: "", internalType: "contract IStrategy[]", type: "address[]" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "buildNewValidatorSetMessage",
+    outputs: [{ name: "", internalType: "bytes", type: "bytes" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+      { name: "operatorPoints", internalType: "uint256", type: "uint256" },
+      { name: "proof", internalType: "bytes32[]", type: "bytes32[]" }
+    ],
+    name: "claimOperatorRewards",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "rewardsSubmissions",
+        internalType: "struct IRewardsCoordinatorTypes.RewardsSubmission[]",
+        type: "tuple[]",
+        components: [
+          {
+            name: "strategiesAndMultipliers",
+            internalType: "struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]",
+            type: "tuple[]",
+            components: [
+              {
+                name: "strategy",
+                internalType: "contract IStrategy",
+                type: "address"
+              },
+              { name: "multiplier", internalType: "uint96", type: "uint96" }
+            ]
+          },
+          { name: "token", internalType: "contract IERC20", type: "address" },
+          { name: "amount", internalType: "uint256", type: "uint256" },
+          { name: "startTimestamp", internalType: "uint32", type: "uint32" },
+          { name: "duration", internalType: "uint32", type: "uint32" }
+        ]
+      }
+    ],
+    name: "createAVSRewardsSubmission",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "operatorSet",
+        internalType: "struct OperatorSet",
+        type: "tuple",
+        components: [
+          { name: "avs", internalType: "address", type: "address" },
+          { name: "id", internalType: "uint32", type: "uint32" }
+        ]
+      },
+      {
+        name: "operatorDirectedRewardsSubmissions",
+        internalType: "struct IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[]",
+        type: "tuple[]",
+        components: [
+          {
+            name: "strategiesAndMultipliers",
+            internalType: "struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]",
+            type: "tuple[]",
+            components: [
+              {
+                name: "strategy",
+                internalType: "contract IStrategy",
+                type: "address"
+              },
+              { name: "multiplier", internalType: "uint96", type: "uint96" }
+            ]
+          },
+          { name: "token", internalType: "contract IERC20", type: "address" },
+          {
+            name: "operatorRewards",
+            internalType: "struct IRewardsCoordinatorTypes.OperatorReward[]",
+            type: "tuple[]",
+            components: [
+              { name: "operator", internalType: "address", type: "address" },
+              { name: "amount", internalType: "uint256", type: "uint256" }
+            ]
+          },
+          { name: "startTimestamp", internalType: "uint32", type: "uint32" },
+          { name: "duration", internalType: "uint32", type: "uint32" },
+          { name: "description", internalType: "string", type: "string" }
+        ]
+      }
+    ],
+    name: "createOperatorDirectedOperatorSetRewardsSubmission",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "params",
+        internalType: "struct IAllocationManagerTypes.CreateSetParams[]",
+        type: "tuple[]",
+        components: [
+          { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+          {
+            name: "strategies",
+            internalType: "contract IStrategy[]",
+            type: "address[]"
+          }
+        ]
+      }
+    ],
+    name: "createOperatorSets",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operator", internalType: "address", type: "address" },
+      { name: "avs", internalType: "address", type: "address" },
+      { name: "operatorSetIds", internalType: "uint32[]", type: "uint32[]" }
+    ],
+    name: "deregisterOperator",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "address", type: "address" }],
+    name: "deregisterOperatorFromAVS",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operator", internalType: "address", type: "address" },
+      { name: "operatorSetIds", internalType: "uint32[]", type: "uint32[]" }
+    ],
+    name: "deregisterOperatorFromOperatorSets",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "requestId", internalType: "uint256", type: "uint256" }],
+    name: "fulfilSlashingRequest",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "operator", internalType: "address", type: "address" }],
+    name: "getOperatorRestakedStrategies",
+    outputs: [{ name: "", internalType: "address[]", type: "address[]" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "getRestakeableStrategies",
+    outputs: [{ name: "", internalType: "address[]", type: "address[]" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "initialOwner", internalType: "address", type: "address" },
+      { name: "rewardsInitiator", internalType: "address", type: "address" },
+      {
+        name: "validatorsStrategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      },
+      {
+        name: "bspsStrategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      },
+      {
+        name: "mspsStrategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      },
+      {
+        name: "_snowbridgeGatewayAddress",
+        internalType: "address",
+        type: "address"
+      }
+    ],
+    name: "initialise",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "address", type: "address" }],
+    name: "mspsAllowlist",
+    outputs: [{ name: "", internalType: "bool", type: "bool" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "mspsSupportedStrategies",
+    outputs: [{ name: "", internalType: "contract IStrategy[]", type: "address[]" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "uint32", type: "uint32" }],
+    name: "operatorSetToRewardsRegistry",
+    outputs: [{ name: "", internalType: "contract IRewardsRegistry", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "owner",
+    outputs: [{ name: "", internalType: "address", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "params",
+        internalType: "struct IAllocationManagerTypes.SlashingParams",
+        type: "tuple",
+        components: [
+          { name: "operator", internalType: "address", type: "address" },
+          { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+          {
+            name: "strategies",
+            internalType: "contract IStrategy[]",
+            type: "address[]"
+          },
+          { name: "wadsToSlash", internalType: "uint256[]", type: "uint256[]" },
+          { name: "description", internalType: "string", type: "string" }
+        ]
+      }
+    ],
+    name: "queueSlashingRequest",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operator", internalType: "address", type: "address" },
+      { name: "avs", internalType: "address", type: "address" },
+      { name: "operatorSetIds", internalType: "uint32[]", type: "uint32[]" },
+      { name: "data", internalType: "bytes", type: "bytes" }
+    ],
+    name: "registerOperator",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "", internalType: "address", type: "address" },
+      {
+        name: "",
+        internalType: "struct ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry",
+        type: "tuple",
+        components: [
+          { name: "signature", internalType: "bytes", type: "bytes" },
+          { name: "salt", internalType: "bytes32", type: "bytes32" },
+          { name: "expiry", internalType: "uint256", type: "uint256" }
+        ]
+      }
+    ],
+    name: "registerOperatorToAVS",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "admin", internalType: "address", type: "address" }],
+    name: "removeAdmin",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "appointee", internalType: "address", type: "address" },
+      { name: "target", internalType: "address", type: "address" },
+      { name: "selector", internalType: "bytes4", type: "bytes4" }
+    ],
+    name: "removeAppointee",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "bsp", internalType: "address", type: "address" }],
+    name: "removeBspFromAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "msp", internalType: "address", type: "address" }],
+    name: "removeMspFromAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "pendingAdmin", internalType: "address", type: "address" }],
+    name: "removePendingAdmin",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "removeStrategiesFromBspsSupportedStrategies",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "removeStrategiesFromMspsSupportedStrategies",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+      {
+        name: "strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "removeStrategiesFromOperatorSet",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_strategies",
+        internalType: "contract IStrategy[]",
+        type: "address[]"
+      }
+    ],
+    name: "removeStrategiesFromValidatorsSupportedStrategies",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "validator", internalType: "address", type: "address" }],
+    name: "removeValidatorFromAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "renounceOwnership",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "rewardsInitiator",
+    outputs: [{ name: "", internalType: "address", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "executionFee", internalType: "uint128", type: "uint128" },
+      { name: "relayerFee", internalType: "uint128", type: "uint128" }
+    ],
+    name: "sendNewValidatorSet",
+    outputs: [],
+    stateMutability: "payable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "appointee", internalType: "address", type: "address" },
+      { name: "target", internalType: "address", type: "address" },
+      { name: "selector", internalType: "bytes4", type: "bytes4" }
+    ],
+    name: "setAppointee",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "claimer", internalType: "address", type: "address" }],
+    name: "setClaimerFor",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+      { name: "rewardsAgent", internalType: "address", type: "address" }
+    ],
+    name: "setRewardsAgent",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "newRewardsInitiator", internalType: "address", type: "address" }],
+    name: "setRewardsInitiator",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "operatorSetId", internalType: "uint32", type: "uint32" },
+      {
+        name: "rewardsRegistry",
+        internalType: "contract IRewardsRegistry",
+        type: "address"
+      }
+    ],
+    name: "setRewardsRegistry",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "slasher",
+        internalType: "contract IVetoableSlasher",
+        type: "address"
+      }
+    ],
+    name: "setSlasher",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "_newSnowbridgeGateway",
+        internalType: "address",
+        type: "address"
+      }
+    ],
+    name: "setSnowbridgeGateway",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "snowbridgeGateway",
+    outputs: [{ name: "", internalType: "address", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "avsAddress", internalType: "address", type: "address" }],
+    name: "supportsAVS",
+    outputs: [{ name: "", internalType: "bool", type: "bool" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "newOwner", internalType: "address", type: "address" }],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "_metadataURI", internalType: "string", type: "string" }],
+    name: "updateAVSMetadataURI",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "solochainAddress", internalType: "bytes32", type: "bytes32" }],
+    name: "updateSolochainAddressForValidator",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "address", type: "address" }],
+    name: "validatorEthAddressToSolochainAddress",
+    outputs: [{ name: "", internalType: "bytes32", type: "bytes32" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "address", type: "address" }],
+    name: "validatorsAllowlist",
+    outputs: [{ name: "", internalType: "bool", type: "bool" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "validatorsSupportedStrategies",
+    outputs: [{ name: "", internalType: "contract IStrategy[]", type: "address[]" }],
+    stateMutability: "view"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "bsp", internalType: "address", type: "address", indexed: true }],
+    name: "BspAddedToAllowlist"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "bsp", internalType: "address", type: "address", indexed: true }],
+    name: "BspRemovedFromAllowlist"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "version", internalType: "uint8", type: "uint8", indexed: false }],
+    name: "Initialized"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "msp", internalType: "address", type: "address", indexed: true }],
+    name: "MspAddedToAllowlist"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "msp", internalType: "address", type: "address", indexed: true }],
+    name: "MspRemovedFromAllowlist"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "operator",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      },
+      {
+        name: "operatorSetId",
+        internalType: "uint32",
+        type: "uint32",
+        indexed: true
+      }
+    ],
+    name: "OperatorDeregistered"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "operator",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      },
+      {
+        name: "operatorSetId",
+        internalType: "uint32",
+        type: "uint32",
+        indexed: true
+      }
+    ],
+    name: "OperatorRegistered"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "previousOwner",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      },
+      {
+        name: "newOwner",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      }
+    ],
+    name: "OwnershipTransferred"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "prevRewardsInitiator",
+        internalType: "address",
+        type: "address",
+        indexed: false
+      },
+      {
+        name: "newRewardsInitiator",
+        internalType: "address",
+        type: "address",
+        indexed: false
+      }
+    ],
+    name: "RewardsInitiatorUpdated"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "operatorSetId",
+        internalType: "uint32",
+        type: "uint32",
+        indexed: true
+      },
+      {
+        name: "rewardsRegistry",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      }
+    ],
+    name: "RewardsRegistrySet"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "snowbridgeGateway",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      }
+    ],
+    name: "SnowbridgeGatewaySet"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "validator",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      }
+    ],
+    name: "ValidatorAddedToAllowlist"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "validator",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      }
+    ],
+    name: "ValidatorRemovedFromAllowlist"
+  },
+  { type: "error", inputs: [], name: "CallerIsNotValidator" },
+  { type: "error", inputs: [], name: "CantDeregisterFromMultipleOperatorSets" },
+  { type: "error", inputs: [], name: "CantRegisterToMultipleOperatorSets" },
+  { type: "error", inputs: [], name: "DelayPeriodNotPassed" },
+  { type: "error", inputs: [], name: "IncorrectAVSAddress" },
+  { type: "error", inputs: [], name: "InvalidOperatorSetId" },
+  { type: "error", inputs: [], name: "NoRewardsRegistryForOperatorSet" },
+  { type: "error", inputs: [], name: "OnlyRegistryCoordinator" },
+  { type: "error", inputs: [], name: "OnlyRewardsInitiator" },
+  { type: "error", inputs: [], name: "OnlyStakeRegistry" },
+  { type: "error", inputs: [], name: "OperatorNotInAllowlist" },
+  { type: "error", inputs: [], name: "OperatorNotInOperatorSet" }
+] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DelegationManager
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2995,6 +3866,596 @@ export const delegationManagerAbi = [
   { type: "error", inputs: [], name: "WithdrawalDelayNotElapsed" },
   { type: "error", inputs: [], name: "WithdrawalNotQueued" },
   { type: "error", inputs: [], name: "WithdrawerNotCaller" }
+] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// EigenPod
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const eigenPodAbi = [
+  {
+    type: "constructor",
+    inputs: [
+      {
+        name: "_ethPOS",
+        internalType: "contract IETHPOSDeposit",
+        type: "address"
+      },
+      {
+        name: "_eigenPodManager",
+        internalType: "contract IEigenPodManager",
+        type: "address"
+      },
+      { name: "_GENESIS_TIME", internalType: "uint64", type: "uint64" },
+      { name: "_version", internalType: "string", type: "string" }
+    ],
+    stateMutability: "nonpayable"
+  },
+  { type: "receive", stateMutability: "payable" },
+  {
+    type: "function",
+    inputs: [],
+    name: "GENESIS_TIME",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "activeValidatorCount",
+    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    name: "checkpointBalanceExitedGwei",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "currentCheckpoint",
+    outputs: [
+      {
+        name: "",
+        internalType: "struct IEigenPodTypes.Checkpoint",
+        type: "tuple",
+        components: [
+          { name: "beaconBlockRoot", internalType: "bytes32", type: "bytes32" },
+          { name: "proofsRemaining", internalType: "uint24", type: "uint24" },
+          { name: "podBalanceGwei", internalType: "uint64", type: "uint64" },
+          { name: "balanceDeltasGwei", internalType: "int64", type: "int64" },
+          {
+            name: "prevBeaconBalanceGwei",
+            internalType: "uint64",
+            type: "uint64"
+          }
+        ]
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "currentCheckpointTimestamp",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "eigenPodManager",
+    outputs: [{ name: "", internalType: "contract IEigenPodManager", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "ethPOS",
+    outputs: [{ name: "", internalType: "contract IETHPOSDeposit", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "timestamp", internalType: "uint64", type: "uint64" }],
+    name: "getParentBlockRoot",
+    outputs: [{ name: "", internalType: "bytes32", type: "bytes32" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "_podOwner", internalType: "address", type: "address" }],
+    name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "lastCheckpointTimestamp",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "podOwner",
+    outputs: [{ name: "", internalType: "address", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "proofSubmitter",
+    outputs: [{ name: "", internalType: "address", type: "address" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "tokenList",
+        internalType: "contract IERC20[]",
+        type: "address[]"
+      },
+      {
+        name: "amountsToWithdraw",
+        internalType: "uint256[]",
+        type: "uint256[]"
+      },
+      { name: "recipient", internalType: "address", type: "address" }
+    ],
+    name: "recoverTokens",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "newProofSubmitter", internalType: "address", type: "address" }],
+    name: "setProofSubmitter",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "pubkey", internalType: "bytes", type: "bytes" },
+      { name: "signature", internalType: "bytes", type: "bytes" },
+      { name: "depositDataRoot", internalType: "bytes32", type: "bytes32" }
+    ],
+    name: "stake",
+    outputs: [],
+    stateMutability: "payable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "revertIfNoBalance", internalType: "bool", type: "bool" }],
+    name: "startCheckpoint",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "validatorPubkeyHash", internalType: "bytes32", type: "bytes32" }],
+    name: "validatorPubkeyHashToInfo",
+    outputs: [
+      {
+        name: "",
+        internalType: "struct IEigenPodTypes.ValidatorInfo",
+        type: "tuple",
+        components: [
+          { name: "validatorIndex", internalType: "uint64", type: "uint64" },
+          {
+            name: "restakedBalanceGwei",
+            internalType: "uint64",
+            type: "uint64"
+          },
+          {
+            name: "lastCheckpointedAt",
+            internalType: "uint64",
+            type: "uint64"
+          },
+          {
+            name: "status",
+            internalType: "enum IEigenPodTypes.VALIDATOR_STATUS",
+            type: "uint8"
+          }
+        ]
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "validatorPubkey", internalType: "bytes", type: "bytes" }],
+    name: "validatorPubkeyToInfo",
+    outputs: [
+      {
+        name: "",
+        internalType: "struct IEigenPodTypes.ValidatorInfo",
+        type: "tuple",
+        components: [
+          { name: "validatorIndex", internalType: "uint64", type: "uint64" },
+          {
+            name: "restakedBalanceGwei",
+            internalType: "uint64",
+            type: "uint64"
+          },
+          {
+            name: "lastCheckpointedAt",
+            internalType: "uint64",
+            type: "uint64"
+          },
+          {
+            name: "status",
+            internalType: "enum IEigenPodTypes.VALIDATOR_STATUS",
+            type: "uint8"
+          }
+        ]
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "validatorPubkey", internalType: "bytes", type: "bytes" }],
+    name: "validatorStatus",
+    outputs: [
+      {
+        name: "",
+        internalType: "enum IEigenPodTypes.VALIDATOR_STATUS",
+        type: "uint8"
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [{ name: "pubkeyHash", internalType: "bytes32", type: "bytes32" }],
+    name: "validatorStatus",
+    outputs: [
+      {
+        name: "",
+        internalType: "enum IEigenPodTypes.VALIDATOR_STATUS",
+        type: "uint8"
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      {
+        name: "balanceContainerProof",
+        internalType: "struct BeaconChainProofs.BalanceContainerProof",
+        type: "tuple",
+        components: [
+          {
+            name: "balanceContainerRoot",
+            internalType: "bytes32",
+            type: "bytes32"
+          },
+          { name: "proof", internalType: "bytes", type: "bytes" }
+        ]
+      },
+      {
+        name: "proofs",
+        internalType: "struct BeaconChainProofs.BalanceProof[]",
+        type: "tuple[]",
+        components: [
+          { name: "pubkeyHash", internalType: "bytes32", type: "bytes32" },
+          { name: "balanceRoot", internalType: "bytes32", type: "bytes32" },
+          { name: "proof", internalType: "bytes", type: "bytes" }
+        ]
+      }
+    ],
+    name: "verifyCheckpointProofs",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "beaconTimestamp", internalType: "uint64", type: "uint64" },
+      {
+        name: "stateRootProof",
+        internalType: "struct BeaconChainProofs.StateRootProof",
+        type: "tuple",
+        components: [
+          { name: "beaconStateRoot", internalType: "bytes32", type: "bytes32" },
+          { name: "proof", internalType: "bytes", type: "bytes" }
+        ]
+      },
+      {
+        name: "proof",
+        internalType: "struct BeaconChainProofs.ValidatorProof",
+        type: "tuple",
+        components: [
+          {
+            name: "validatorFields",
+            internalType: "bytes32[]",
+            type: "bytes32[]"
+          },
+          { name: "proof", internalType: "bytes", type: "bytes" }
+        ]
+      }
+    ],
+    name: "verifyStaleBalance",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "beaconTimestamp", internalType: "uint64", type: "uint64" },
+      {
+        name: "stateRootProof",
+        internalType: "struct BeaconChainProofs.StateRootProof",
+        type: "tuple",
+        components: [
+          { name: "beaconStateRoot", internalType: "bytes32", type: "bytes32" },
+          { name: "proof", internalType: "bytes", type: "bytes" }
+        ]
+      },
+      { name: "validatorIndices", internalType: "uint40[]", type: "uint40[]" },
+      {
+        name: "validatorFieldsProofs",
+        internalType: "bytes[]",
+        type: "bytes[]"
+      },
+      {
+        name: "validatorFields",
+        internalType: "bytes32[][]",
+        type: "bytes32[][]"
+      }
+    ],
+    name: "verifyWithdrawalCredentials",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "version",
+    outputs: [{ name: "", internalType: "string", type: "string" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "recipient", internalType: "address", type: "address" },
+      { name: "amountWei", internalType: "uint256", type: "uint256" }
+    ],
+    name: "withdrawRestakedBeaconChainETH",
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "withdrawableRestakedExecutionLayerGwei",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "checkpointTimestamp",
+        internalType: "uint64",
+        type: "uint64",
+        indexed: true
+      },
+      {
+        name: "beaconBlockRoot",
+        internalType: "bytes32",
+        type: "bytes32",
+        indexed: true
+      },
+      {
+        name: "validatorCount",
+        internalType: "uint256",
+        type: "uint256",
+        indexed: false
+      }
+    ],
+    name: "CheckpointCreated"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "checkpointTimestamp",
+        internalType: "uint64",
+        type: "uint64",
+        indexed: true
+      },
+      {
+        name: "totalShareDeltaWei",
+        internalType: "int256",
+        type: "int256",
+        indexed: false
+      }
+    ],
+    name: "CheckpointFinalized"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "pubkey", internalType: "bytes", type: "bytes", indexed: false }],
+    name: "EigenPodStaked"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "version", internalType: "uint8", type: "uint8", indexed: false }],
+    name: "Initialized"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "amountReceived",
+        internalType: "uint256",
+        type: "uint256",
+        indexed: false
+      }
+    ],
+    name: "NonBeaconChainETHReceived"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "prevProofSubmitter",
+        internalType: "address",
+        type: "address",
+        indexed: false
+      },
+      {
+        name: "newProofSubmitter",
+        internalType: "address",
+        type: "address",
+        indexed: false
+      }
+    ],
+    name: "ProofSubmitterUpdated"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "recipient",
+        internalType: "address",
+        type: "address",
+        indexed: true
+      },
+      {
+        name: "amount",
+        internalType: "uint256",
+        type: "uint256",
+        indexed: false
+      }
+    ],
+    name: "RestakedBeaconChainETHWithdrawn"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "validatorIndex",
+        internalType: "uint40",
+        type: "uint40",
+        indexed: false
+      },
+      {
+        name: "balanceTimestamp",
+        internalType: "uint64",
+        type: "uint64",
+        indexed: false
+      },
+      {
+        name: "newValidatorBalanceGwei",
+        internalType: "uint64",
+        type: "uint64",
+        indexed: false
+      }
+    ],
+    name: "ValidatorBalanceUpdated"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "checkpointTimestamp",
+        internalType: "uint64",
+        type: "uint64",
+        indexed: true
+      },
+      {
+        name: "validatorIndex",
+        internalType: "uint40",
+        type: "uint40",
+        indexed: true
+      }
+    ],
+    name: "ValidatorCheckpointed"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "validatorIndex",
+        internalType: "uint40",
+        type: "uint40",
+        indexed: false
+      }
+    ],
+    name: "ValidatorRestaked"
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      {
+        name: "checkpointTimestamp",
+        internalType: "uint64",
+        type: "uint64",
+        indexed: true
+      },
+      {
+        name: "validatorIndex",
+        internalType: "uint40",
+        type: "uint40",
+        indexed: true
+      }
+    ],
+    name: "ValidatorWithdrawn"
+  },
+  { type: "error", inputs: [], name: "BeaconTimestampTooFarInPast" },
+  { type: "error", inputs: [], name: "CannotCheckpointTwiceInSingleBlock" },
+  { type: "error", inputs: [], name: "CheckpointAlreadyActive" },
+  { type: "error", inputs: [], name: "CredentialsAlreadyVerified" },
+  { type: "error", inputs: [], name: "CurrentlyPaused" },
+  { type: "error", inputs: [], name: "ForkTimestampZero" },
+  { type: "error", inputs: [], name: "InputAddressZero" },
+  { type: "error", inputs: [], name: "InputArrayLengthMismatch" },
+  { type: "error", inputs: [], name: "InsufficientWithdrawableBalance" },
+  { type: "error", inputs: [], name: "InvalidEIP4788Response" },
+  { type: "error", inputs: [], name: "InvalidProof" },
+  { type: "error", inputs: [], name: "InvalidProofLength" },
+  { type: "error", inputs: [], name: "InvalidProofLength" },
+  { type: "error", inputs: [], name: "InvalidPubKeyLength" },
+  { type: "error", inputs: [], name: "InvalidShortString" },
+  { type: "error", inputs: [], name: "InvalidValidatorFieldsLength" },
+  { type: "error", inputs: [], name: "MsgValueNot32ETH" },
+  { type: "error", inputs: [], name: "NoActiveCheckpoint" },
+  { type: "error", inputs: [], name: "NoBalanceToCheckpoint" },
+  { type: "error", inputs: [], name: "OnlyEigenPodManager" },
+  { type: "error", inputs: [], name: "OnlyEigenPodOwner" },
+  { type: "error", inputs: [], name: "OnlyEigenPodOwnerOrProofSubmitter" },
+  {
+    type: "error",
+    inputs: [{ name: "str", internalType: "string", type: "string" }],
+    name: "StringTooLong"
+  },
+  { type: "error", inputs: [], name: "TimestampOutOfRange" },
+  { type: "error", inputs: [], name: "ValidatorInactiveOnBeaconChain" },
+  { type: "error", inputs: [], name: "ValidatorIsExitingBeaconChain" },
+  { type: "error", inputs: [], name: "ValidatorNotActiveInPod" },
+  { type: "error", inputs: [], name: "ValidatorNotSlashedOnBeaconChain" },
+  { type: "error", inputs: [], name: "WithdrawalCredentialsNotForEigenPod" }
 ] as const;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -9270,6 +10731,1043 @@ export const watchBeefyClientNewTicketEvent = /*#__PURE__*/ createWatchContractE
 });
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
+ */
+export const readDataHavenServiceManager = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"BSPS_SET_ID"`
+ */
+export const readDataHavenServiceManagerBspsSetId = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "BSPS_SET_ID"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_AVS_METADATA"`
+ */
+export const readDataHavenServiceManagerDatahavenAvsMetadata = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "DATAHAVEN_AVS_METADATA"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MSPS_SET_ID"`
+ */
+export const readDataHavenServiceManagerMspsSetId = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "MSPS_SET_ID"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"VALIDATORS_SET_ID"`
+ */
+export const readDataHavenServiceManagerValidatorsSetId = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "VALIDATORS_SET_ID"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"avs"`
+ */
+export const readDataHavenServiceManagerAvs = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "avs"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"bspsAllowlist"`
+ */
+export const readDataHavenServiceManagerBspsAllowlist = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "bspsAllowlist"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"bspsSupportedStrategies"`
+ */
+export const readDataHavenServiceManagerBspsSupportedStrategies = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "bspsSupportedStrategies"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessage"`
+ */
+export const readDataHavenServiceManagerBuildNewValidatorSetMessage =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "buildNewValidatorSetMessage"
+  });
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getOperatorRestakedStrategies"`
+ */
+export const readDataHavenServiceManagerGetOperatorRestakedStrategies =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "getOperatorRestakedStrategies"
+  });
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getRestakeableStrategies"`
+ */
+export const readDataHavenServiceManagerGetRestakeableStrategies = /*#__PURE__*/ createReadContract(
+  {
+    abi: dataHavenServiceManagerAbi,
+    functionName: "getRestakeableStrategies"
+  }
+);
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"mspsAllowlist"`
+ */
+export const readDataHavenServiceManagerMspsAllowlist = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "mspsAllowlist"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"mspsSupportedStrategies"`
+ */
+export const readDataHavenServiceManagerMspsSupportedStrategies = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "mspsSupportedStrategies"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"operatorSetToRewardsRegistry"`
+ */
+export const readDataHavenServiceManagerOperatorSetToRewardsRegistry =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "operatorSetToRewardsRegistry"
+  });
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"owner"`
+ */
+export const readDataHavenServiceManagerOwner = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "owner"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"rewardsInitiator"`
+ */
+export const readDataHavenServiceManagerRewardsInitiator = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "rewardsInitiator"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"snowbridgeGateway"`
+ */
+export const readDataHavenServiceManagerSnowbridgeGateway = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "snowbridgeGateway"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"supportsAVS"`
+ */
+export const readDataHavenServiceManagerSupportsAvs = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "supportsAVS"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorEthAddressToSolochainAddress"`
+ */
+export const readDataHavenServiceManagerValidatorEthAddressToSolochainAddress =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "validatorEthAddressToSolochainAddress"
+  });
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorsAllowlist"`
+ */
+export const readDataHavenServiceManagerValidatorsAllowlist = /*#__PURE__*/ createReadContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "validatorsAllowlist"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorsSupportedStrategies"`
+ */
+export const readDataHavenServiceManagerValidatorsSupportedStrategies =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "validatorsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
+ */
+export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addBspToAllowlist"`
+ */
+export const writeDataHavenServiceManagerAddBspToAllowlist = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "addBspToAllowlist"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addMspToAllowlist"`
+ */
+export const writeDataHavenServiceManagerAddMspToAllowlist = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "addMspToAllowlist"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
+ */
+export const writeDataHavenServiceManagerAddPendingAdmin = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "addPendingAdmin"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToBspsSupportedStrategies"`
+ */
+export const writeDataHavenServiceManagerAddStrategiesToBspsSupportedStrategies =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToBspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToMspsSupportedStrategies"`
+ */
+export const writeDataHavenServiceManagerAddStrategiesToMspsSupportedStrategies =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToMspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToOperatorSet"`
+ */
+export const writeDataHavenServiceManagerAddStrategiesToOperatorSet =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToOperatorSet"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToValidatorsSupportedStrategies"`
+ */
+export const writeDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToValidatorsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addValidatorToAllowlist"`
+ */
+export const writeDataHavenServiceManagerAddValidatorToAllowlist =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addValidatorToAllowlist"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
+ */
+export const writeDataHavenServiceManagerClaimOperatorRewards = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "claimOperatorRewards"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createAVSRewardsSubmission"`
+ */
+export const writeDataHavenServiceManagerCreateAvsRewardsSubmission =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "createAVSRewardsSubmission"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorDirectedOperatorSetRewardsSubmission"`
+ */
+export const writeDataHavenServiceManagerCreateOperatorDirectedOperatorSetRewardsSubmission =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "createOperatorDirectedOperatorSetRewardsSubmission"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorSets"`
+ */
+export const writeDataHavenServiceManagerCreateOperatorSets = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "createOperatorSets"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperator"`
+ */
+export const writeDataHavenServiceManagerDeregisterOperator = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "deregisterOperator"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromAVS"`
+ */
+export const writeDataHavenServiceManagerDeregisterOperatorFromAvs =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "deregisterOperatorFromAVS"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromOperatorSets"`
+ */
+export const writeDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "deregisterOperatorFromOperatorSets"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
+ */
+export const writeDataHavenServiceManagerFulfilSlashingRequest = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "fulfilSlashingRequest"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
+ */
+export const writeDataHavenServiceManagerInitialise = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "initialise"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"queueSlashingRequest"`
+ */
+export const writeDataHavenServiceManagerQueueSlashingRequest = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "queueSlashingRequest"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperator"`
+ */
+export const writeDataHavenServiceManagerRegisterOperator = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "registerOperator"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperatorToAVS"`
+ */
+export const writeDataHavenServiceManagerRegisterOperatorToAvs = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "registerOperatorToAVS"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAdmin"`
+ */
+export const writeDataHavenServiceManagerRemoveAdmin = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "removeAdmin"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAppointee"`
+ */
+export const writeDataHavenServiceManagerRemoveAppointee = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "removeAppointee"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeBspFromAllowlist"`
+ */
+export const writeDataHavenServiceManagerRemoveBspFromAllowlist = /*#__PURE__*/ createWriteContract(
+  {
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeBspFromAllowlist"
+  }
+);
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeMspFromAllowlist"`
+ */
+export const writeDataHavenServiceManagerRemoveMspFromAllowlist = /*#__PURE__*/ createWriteContract(
+  {
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeMspFromAllowlist"
+  }
+);
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
+ */
+export const writeDataHavenServiceManagerRemovePendingAdmin = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "removePendingAdmin"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromBspsSupportedStrategies"`
+ */
+export const writeDataHavenServiceManagerRemoveStrategiesFromBspsSupportedStrategies =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromBspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromMspsSupportedStrategies"`
+ */
+export const writeDataHavenServiceManagerRemoveStrategiesFromMspsSupportedStrategies =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromMspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromOperatorSet"`
+ */
+export const writeDataHavenServiceManagerRemoveStrategiesFromOperatorSet =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromOperatorSet"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromValidatorsSupportedStrategies"`
+ */
+export const writeDataHavenServiceManagerRemoveStrategiesFromValidatorsSupportedStrategies =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromValidatorsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeValidatorFromAllowlist"`
+ */
+export const writeDataHavenServiceManagerRemoveValidatorFromAllowlist =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeValidatorFromAllowlist"
+  });
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const writeDataHavenServiceManagerRenounceOwnership = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "renounceOwnership"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSet"`
+ */
+export const writeDataHavenServiceManagerSendNewValidatorSet = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "sendNewValidatorSet"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setAppointee"`
+ */
+export const writeDataHavenServiceManagerSetAppointee = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setAppointee"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setClaimerFor"`
+ */
+export const writeDataHavenServiceManagerSetClaimerFor = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setClaimerFor"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsAgent"`
+ */
+export const writeDataHavenServiceManagerSetRewardsAgent = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setRewardsAgent"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
+ */
+export const writeDataHavenServiceManagerSetRewardsInitiator = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setRewardsInitiator"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsRegistry"`
+ */
+export const writeDataHavenServiceManagerSetRewardsRegistry = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setRewardsRegistry"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSlasher"`
+ */
+export const writeDataHavenServiceManagerSetSlasher = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setSlasher"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
+ */
+export const writeDataHavenServiceManagerSetSnowbridgeGateway = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setSnowbridgeGateway"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const writeDataHavenServiceManagerTransferOwnership = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "transferOwnership"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateAVSMetadataURI"`
+ */
+export const writeDataHavenServiceManagerUpdateAvsMetadataUri = /*#__PURE__*/ createWriteContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "updateAVSMetadataURI"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateSolochainAddressForValidator"`
+ */
+export const writeDataHavenServiceManagerUpdateSolochainAddressForValidator =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "updateSolochainAddressForValidator"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
+ */
+export const simulateDataHavenServiceManager = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addBspToAllowlist"`
+ */
+export const simulateDataHavenServiceManagerAddBspToAllowlist =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addBspToAllowlist"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addMspToAllowlist"`
+ */
+export const simulateDataHavenServiceManagerAddMspToAllowlist =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addMspToAllowlist"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
+ */
+export const simulateDataHavenServiceManagerAddPendingAdmin = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "addPendingAdmin"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToBspsSupportedStrategies"`
+ */
+export const simulateDataHavenServiceManagerAddStrategiesToBspsSupportedStrategies =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToBspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToMspsSupportedStrategies"`
+ */
+export const simulateDataHavenServiceManagerAddStrategiesToMspsSupportedStrategies =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToMspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToOperatorSet"`
+ */
+export const simulateDataHavenServiceManagerAddStrategiesToOperatorSet =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToOperatorSet"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToValidatorsSupportedStrategies"`
+ */
+export const simulateDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addStrategiesToValidatorsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addValidatorToAllowlist"`
+ */
+export const simulateDataHavenServiceManagerAddValidatorToAllowlist =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addValidatorToAllowlist"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
+ */
+export const simulateDataHavenServiceManagerClaimOperatorRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "claimOperatorRewards"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createAVSRewardsSubmission"`
+ */
+export const simulateDataHavenServiceManagerCreateAvsRewardsSubmission =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "createAVSRewardsSubmission"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorDirectedOperatorSetRewardsSubmission"`
+ */
+export const simulateDataHavenServiceManagerCreateOperatorDirectedOperatorSetRewardsSubmission =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "createOperatorDirectedOperatorSetRewardsSubmission"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorSets"`
+ */
+export const simulateDataHavenServiceManagerCreateOperatorSets =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "createOperatorSets"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperator"`
+ */
+export const simulateDataHavenServiceManagerDeregisterOperator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "deregisterOperator"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromAVS"`
+ */
+export const simulateDataHavenServiceManagerDeregisterOperatorFromAvs =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "deregisterOperatorFromAVS"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromOperatorSets"`
+ */
+export const simulateDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "deregisterOperatorFromOperatorSets"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
+ */
+export const simulateDataHavenServiceManagerFulfilSlashingRequest =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "fulfilSlashingRequest"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
+ */
+export const simulateDataHavenServiceManagerInitialise = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "initialise"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"queueSlashingRequest"`
+ */
+export const simulateDataHavenServiceManagerQueueSlashingRequest =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "queueSlashingRequest"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperator"`
+ */
+export const simulateDataHavenServiceManagerRegisterOperator = /*#__PURE__*/ createSimulateContract(
+  {
+    abi: dataHavenServiceManagerAbi,
+    functionName: "registerOperator"
+  }
+);
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperatorToAVS"`
+ */
+export const simulateDataHavenServiceManagerRegisterOperatorToAvs =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "registerOperatorToAVS"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAdmin"`
+ */
+export const simulateDataHavenServiceManagerRemoveAdmin = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "removeAdmin"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAppointee"`
+ */
+export const simulateDataHavenServiceManagerRemoveAppointee = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "removeAppointee"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeBspFromAllowlist"`
+ */
+export const simulateDataHavenServiceManagerRemoveBspFromAllowlist =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeBspFromAllowlist"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeMspFromAllowlist"`
+ */
+export const simulateDataHavenServiceManagerRemoveMspFromAllowlist =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeMspFromAllowlist"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
+ */
+export const simulateDataHavenServiceManagerRemovePendingAdmin =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removePendingAdmin"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromBspsSupportedStrategies"`
+ */
+export const simulateDataHavenServiceManagerRemoveStrategiesFromBspsSupportedStrategies =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromBspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromMspsSupportedStrategies"`
+ */
+export const simulateDataHavenServiceManagerRemoveStrategiesFromMspsSupportedStrategies =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromMspsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromOperatorSet"`
+ */
+export const simulateDataHavenServiceManagerRemoveStrategiesFromOperatorSet =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromOperatorSet"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromValidatorsSupportedStrategies"`
+ */
+export const simulateDataHavenServiceManagerRemoveStrategiesFromValidatorsSupportedStrategies =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeStrategiesFromValidatorsSupportedStrategies"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeValidatorFromAllowlist"`
+ */
+export const simulateDataHavenServiceManagerRemoveValidatorFromAllowlist =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "removeValidatorFromAllowlist"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const simulateDataHavenServiceManagerRenounceOwnership =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "renounceOwnership"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"sendNewValidatorSet"`
+ */
+export const simulateDataHavenServiceManagerSendNewValidatorSet =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "sendNewValidatorSet"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setAppointee"`
+ */
+export const simulateDataHavenServiceManagerSetAppointee = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setAppointee"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setClaimerFor"`
+ */
+export const simulateDataHavenServiceManagerSetClaimerFor = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setClaimerFor"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsAgent"`
+ */
+export const simulateDataHavenServiceManagerSetRewardsAgent = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setRewardsAgent"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
+ */
+export const simulateDataHavenServiceManagerSetRewardsInitiator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "setRewardsInitiator"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsRegistry"`
+ */
+export const simulateDataHavenServiceManagerSetRewardsRegistry =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "setRewardsRegistry"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSlasher"`
+ */
+export const simulateDataHavenServiceManagerSetSlasher = /*#__PURE__*/ createSimulateContract({
+  abi: dataHavenServiceManagerAbi,
+  functionName: "setSlasher"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
+ */
+export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "setSnowbridgeGateway"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const simulateDataHavenServiceManagerTransferOwnership =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "transferOwnership"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateAVSMetadataURI"`
+ */
+export const simulateDataHavenServiceManagerUpdateAvsMetadataUri =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "updateAVSMetadataURI"
+  });
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateSolochainAddressForValidator"`
+ */
+export const simulateDataHavenServiceManagerUpdateSolochainAddressForValidator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: "updateSolochainAddressForValidator"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
+ */
+export const watchDataHavenServiceManagerEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: dataHavenServiceManagerAbi
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"BspAddedToAllowlist"`
+ */
+export const watchDataHavenServiceManagerBspAddedToAllowlistEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "BspAddedToAllowlist"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"BspRemovedFromAllowlist"`
+ */
+export const watchDataHavenServiceManagerBspRemovedFromAllowlistEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "BspRemovedFromAllowlist"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"Initialized"`
+ */
+export const watchDataHavenServiceManagerInitializedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: dataHavenServiceManagerAbi,
+  eventName: "Initialized"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"MspAddedToAllowlist"`
+ */
+export const watchDataHavenServiceManagerMspAddedToAllowlistEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "MspAddedToAllowlist"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"MspRemovedFromAllowlist"`
+ */
+export const watchDataHavenServiceManagerMspRemovedFromAllowlistEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "MspRemovedFromAllowlist"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"OperatorDeregistered"`
+ */
+export const watchDataHavenServiceManagerOperatorDeregisteredEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "OperatorDeregistered"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"OperatorRegistered"`
+ */
+export const watchDataHavenServiceManagerOperatorRegisteredEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "OperatorRegistered"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const watchDataHavenServiceManagerOwnershipTransferredEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "OwnershipTransferred"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorUpdated"`
+ */
+export const watchDataHavenServiceManagerRewardsInitiatorUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "RewardsInitiatorUpdated"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsRegistrySet"`
+ */
+export const watchDataHavenServiceManagerRewardsRegistrySetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "RewardsRegistrySet"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SnowbridgeGatewaySet"`
+ */
+export const watchDataHavenServiceManagerSnowbridgeGatewaySetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "SnowbridgeGatewaySet"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorAddedToAllowlist"`
+ */
+export const watchDataHavenServiceManagerValidatorAddedToAllowlistEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "ValidatorAddedToAllowlist"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorRemovedFromAllowlist"`
+ */
+export const watchDataHavenServiceManagerValidatorRemovedFromAllowlistEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: "ValidatorRemovedFromAllowlist"
+  });
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__
  */
 export const readDelegationManager = /*#__PURE__*/ createReadContract({
@@ -9993,6 +12491,395 @@ export const watchDelegationManagerStakerUndelegatedEvent = /*#__PURE__*/ create
 export const watchDelegationManagerUnpausedEvent = /*#__PURE__*/ createWatchContractEvent({
   abi: delegationManagerAbi,
   eventName: "Unpaused"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__
+ */
+export const readEigenPod = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"GENESIS_TIME"`
+ */
+export const readEigenPodGenesisTime = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "GENESIS_TIME"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"activeValidatorCount"`
+ */
+export const readEigenPodActiveValidatorCount = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "activeValidatorCount"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"checkpointBalanceExitedGwei"`
+ */
+export const readEigenPodCheckpointBalanceExitedGwei = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "checkpointBalanceExitedGwei"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"currentCheckpoint"`
+ */
+export const readEigenPodCurrentCheckpoint = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "currentCheckpoint"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"currentCheckpointTimestamp"`
+ */
+export const readEigenPodCurrentCheckpointTimestamp = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "currentCheckpointTimestamp"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"eigenPodManager"`
+ */
+export const readEigenPodEigenPodManager = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "eigenPodManager"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"ethPOS"`
+ */
+export const readEigenPodEthPos = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "ethPOS"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"getParentBlockRoot"`
+ */
+export const readEigenPodGetParentBlockRoot = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "getParentBlockRoot"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"lastCheckpointTimestamp"`
+ */
+export const readEigenPodLastCheckpointTimestamp = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "lastCheckpointTimestamp"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"podOwner"`
+ */
+export const readEigenPodPodOwner = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "podOwner"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"proofSubmitter"`
+ */
+export const readEigenPodProofSubmitter = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "proofSubmitter"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"validatorPubkeyHashToInfo"`
+ */
+export const readEigenPodValidatorPubkeyHashToInfo = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "validatorPubkeyHashToInfo"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"validatorPubkeyToInfo"`
+ */
+export const readEigenPodValidatorPubkeyToInfo = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "validatorPubkeyToInfo"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"validatorStatus"`
+ */
+export const readEigenPodValidatorStatus = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "validatorStatus"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"version"`
+ */
+export const readEigenPodVersion = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "version"
+});
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"withdrawableRestakedExecutionLayerGwei"`
+ */
+export const readEigenPodWithdrawableRestakedExecutionLayerGwei = /*#__PURE__*/ createReadContract({
+  abi: eigenPodAbi,
+  functionName: "withdrawableRestakedExecutionLayerGwei"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__
+ */
+export const writeEigenPod = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"initialize"`
+ */
+export const writeEigenPodInitialize = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "initialize"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"recoverTokens"`
+ */
+export const writeEigenPodRecoverTokens = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "recoverTokens"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"setProofSubmitter"`
+ */
+export const writeEigenPodSetProofSubmitter = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "setProofSubmitter"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"stake"`
+ */
+export const writeEigenPodStake = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "stake"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"startCheckpoint"`
+ */
+export const writeEigenPodStartCheckpoint = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "startCheckpoint"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyCheckpointProofs"`
+ */
+export const writeEigenPodVerifyCheckpointProofs = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "verifyCheckpointProofs"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyStaleBalance"`
+ */
+export const writeEigenPodVerifyStaleBalance = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "verifyStaleBalance"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyWithdrawalCredentials"`
+ */
+export const writeEigenPodVerifyWithdrawalCredentials = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "verifyWithdrawalCredentials"
+});
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"withdrawRestakedBeaconChainETH"`
+ */
+export const writeEigenPodWithdrawRestakedBeaconChainEth = /*#__PURE__*/ createWriteContract({
+  abi: eigenPodAbi,
+  functionName: "withdrawRestakedBeaconChainETH"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__
+ */
+export const simulateEigenPod = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"initialize"`
+ */
+export const simulateEigenPodInitialize = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "initialize"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"recoverTokens"`
+ */
+export const simulateEigenPodRecoverTokens = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "recoverTokens"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"setProofSubmitter"`
+ */
+export const simulateEigenPodSetProofSubmitter = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "setProofSubmitter"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"stake"`
+ */
+export const simulateEigenPodStake = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "stake"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"startCheckpoint"`
+ */
+export const simulateEigenPodStartCheckpoint = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "startCheckpoint"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyCheckpointProofs"`
+ */
+export const simulateEigenPodVerifyCheckpointProofs = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "verifyCheckpointProofs"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyStaleBalance"`
+ */
+export const simulateEigenPodVerifyStaleBalance = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "verifyStaleBalance"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"verifyWithdrawalCredentials"`
+ */
+export const simulateEigenPodVerifyWithdrawalCredentials = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "verifyWithdrawalCredentials"
+});
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"withdrawRestakedBeaconChainETH"`
+ */
+export const simulateEigenPodWithdrawRestakedBeaconChainEth = /*#__PURE__*/ createSimulateContract({
+  abi: eigenPodAbi,
+  functionName: "withdrawRestakedBeaconChainETH"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__
+ */
+export const watchEigenPodEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"CheckpointCreated"`
+ */
+export const watchEigenPodCheckpointCreatedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "CheckpointCreated"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"CheckpointFinalized"`
+ */
+export const watchEigenPodCheckpointFinalizedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "CheckpointFinalized"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"EigenPodStaked"`
+ */
+export const watchEigenPodEigenPodStakedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "EigenPodStaked"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"Initialized"`
+ */
+export const watchEigenPodInitializedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "Initialized"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"NonBeaconChainETHReceived"`
+ */
+export const watchEigenPodNonBeaconChainEthReceivedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "NonBeaconChainETHReceived"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ProofSubmitterUpdated"`
+ */
+export const watchEigenPodProofSubmitterUpdatedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "ProofSubmitterUpdated"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"RestakedBeaconChainETHWithdrawn"`
+ */
+export const watchEigenPodRestakedBeaconChainEthWithdrawnEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: eigenPodAbi,
+    eventName: "RestakedBeaconChainETHWithdrawn"
+  });
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorBalanceUpdated"`
+ */
+export const watchEigenPodValidatorBalanceUpdatedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "ValidatorBalanceUpdated"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorCheckpointed"`
+ */
+export const watchEigenPodValidatorCheckpointedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "ValidatorCheckpointed"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorRestaked"`
+ */
+export const watchEigenPodValidatorRestakedEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "ValidatorRestaked"
+});
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorWithdrawn"`
+ */
+export const watchEigenPodValidatorWithdrawnEvent = /*#__PURE__*/ createWatchContractEvent({
+  abi: eigenPodAbi,
+  eventName: "ValidatorWithdrawn"
 });
 
 /**

@@ -49,12 +49,11 @@ runs:
           operator/target/release/deps
           operator/target/release/build
           operator/target/release/.fingerprint
-        key: ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock', 'operator/**/*.rs') }}
+        key: ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
           ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}
           ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-
-
+            
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:

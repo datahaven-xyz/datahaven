@@ -19,11 +19,6 @@ jobs:
     uses: ./.github/workflows/task-build-operator.yml
     secrets: inherit
 
-  # TODO: Re-enable rust-audit when deps are updated
-  # rust-audit:
-  #   uses: ./.github/workflows/task-rust-audit.yml
-  #   secrets: inherit
-  
   rust-lint:
     uses: ./.github/workflows/task-rust-lint.yml
     secrets: inherit

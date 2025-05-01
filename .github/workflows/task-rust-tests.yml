@@ -30,7 +30,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-      - uses: ./.github/workflows/actions/setup-rust
+      - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
       - uses: rui314/setup-mold@v1

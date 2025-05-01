@@ -73,6 +73,6 @@ runs:
     - uses: rui314/setup-mold@v1
     - name: Install libpq-dev
       shell: bash
-      run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     - name: Install Protoc
       uses: arduino/setup-protoc@v3

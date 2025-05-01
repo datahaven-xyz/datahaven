@@ -1,4 +1,5 @@
 name: CI
+description: "Main CI Specification for DataHaven Repository"
 
 on:
     workflow_dispatch:
@@ -40,4 +41,6 @@ jobs:
   e2e-tests:
     needs: [build-operator, contract-tests]
     uses: ./.github/workflows/task-e2e.yml
+    with:
+      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
     secrets: inherit

@@ -218,6 +218,7 @@ where
         UncheckedExtrinsic::new_bare(call)
     }
 }
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
 mod runtime {
@@ -332,6 +333,12 @@ mod runtime {
 
     #[runtime::pallet_index(62)]
     pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+
+    #[runtime::pallet_index(63)]
+    pub type SnowbridgeSystem = snowbridge_pallet_system;
+
+    #[runtime::pallet_index(64)]
+    pub type SnowbridgeSystemV2 = snowbridge_pallet_system_v2;
     // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
 
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗

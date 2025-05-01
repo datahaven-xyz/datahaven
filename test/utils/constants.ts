@@ -43,7 +43,7 @@ export const ANVIL_FUNDED_ACCOUNTS = {
   derivationPath: "m/44'/60'/0'/0/"
 } as const;
 
-export const CHAIN_ID = 31337;
+export const CHAIN_ID = 3151908;
 
 export const CONTAINER_NAMES = {
   EL1: "el-1-reth-lighthouse",

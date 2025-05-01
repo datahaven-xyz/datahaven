@@ -1,4 +1,4 @@
-import { logger } from "utils";
+import { generateRandomAccount, logger } from "utils";
 import { http, createWalletClient, defineChain, parseEther, publicActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
@@ -30,7 +30,7 @@ export default async function main(privateKey: string, networkRpcUrl: string) {
     transport: http(networkRpcUrl)
   }).extend(publicActions);
 
-  const randAccount = privateKeyToAccount(generatePrivateKey());
+  const randAccount = generateRandomAccount();
   const addresses = [
     // "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     // "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",

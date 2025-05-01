@@ -31,6 +31,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
   },
-  "include": ["utils/*.ts", "scripts/*.ts", "suites/**/*.ts", "cli/**/*.ts"],
+  "include": ["utils/*.ts", "scripts/*.ts", "suites/**/*.ts", "cli/**/*.ts", "wagmi.config.ts", "contract-bindings/*.ts"],
   "exclude": ["node_modules/"]
 }

@@ -8,6 +8,7 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS,
   getPortFromKurtosis,
   logger,
+  parseDeploymentsFile,
   parseRelayConfig,
   printHeader
 } from "utils";
@@ -27,13 +28,8 @@ export const performRelayerOperations = async (
 ) => {
   printHeader("Starting Snowbridge Relayers");
   logger.info("Preparing to generate configs");
-  const anvilDeploymentsPath = "../contracts/deployments/anvil.json";
-  const anvilDeploymentsFile = Bun.file(anvilDeploymentsPath);
-  if (!(await anvilDeploymentsFile.exists())) {
-    logger.error(`File ${anvilDeploymentsPath} does not exist`);
-    throw new Error("Error reading anvil deployments file");
-  }
-  const anvilDeployments = await anvilDeploymentsFile.json();
+
+  const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
   const gatewayAddress = anvilDeployments.Gateway;
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");

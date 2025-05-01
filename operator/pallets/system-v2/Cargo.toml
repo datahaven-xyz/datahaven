@@ -1,0 +1,85 @@
+[package]
+name = "snowbridge-pallet-system-v2"
+description = "Snowbridge System Pallet V2"
+version = "0.2.0"
+authors = ["Snowfork <contact@snowfork.com>"]
+edition.workspace = true
+repository.workspace = true
+license = "Apache-2.0"
+categories = ["cryptography::cryptocurrencies"]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[package.metadata.polkadot-sdk]
+exclude-from-umbrella = true
+
+[dependencies]
+codec = { features = ["derive"], workspace = true }
+frame-benchmarking = { optional = true, workspace = true }
+frame-support.workspace = true
+frame-system.workspace = true
+log = { workspace = true }
+pallet-xcm.workspace = true
+scale-info = { features = ["derive"], workspace = true }
+snowbridge-core.workspace = true
+snowbridge-outbound-queue-primitives.workspace = true
+snowbridge-pallet-system.workspace = true
+sp-core.workspace = true
+sp-io.workspace = true
+sp-runtime.workspace = true
+sp-std.workspace = true
+xcm-executor.workspace = true
+xcm.workspace = true
+
+[dev-dependencies]
+hex-literal = { workspace = true, default-features = true }
+pallet-balances = { default-features = true, workspace = true }
+polkadot-primitives = { default-features = true, workspace = true }
+snowbridge-pallet-outbound-queue-v2 = { default-features = true, workspace = true }
+snowbridge-test-utils = { workspace = true }
+sp-keyring = { default-features = true, workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-benchmarking?/std",
+	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"pallet-xcm/std",
+	"scale-info/std",
+	"snowbridge-core/std",
+	"snowbridge-outbound-queue-primitives/std",
+	"snowbridge-pallet-system/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"xcm-executor/std",
+	"xcm/std",
+]
+runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-xcm/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
+	"snowbridge-pallet-outbound-queue-v2/runtime-benchmarks",
+	"snowbridge-pallet-system/runtime-benchmarks",
+	"snowbridge-test-utils/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-xcm/try-runtime",
+	"snowbridge-pallet-outbound-queue-v2/try-runtime",
+	"snowbridge-pallet-system/try-runtime",
+	"sp-runtime/try-runtime",
+]

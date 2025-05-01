@@ -35,8 +35,8 @@ bp-relayers = { workspace = true }
 bridge-hub-common = { workspace = true }
 
 snowbridge-core = { workspace = true }
-snowbridge-merkle-tree = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
+snowbridge-merkle-tree = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 
 xcm = { workspace = true }

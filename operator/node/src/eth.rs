@@ -1,27 +1,37 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-
+// Substrate
+use crate::client::{FullBackend, FullClient};
+use datahaven_runtime::opaque::Block;
+pub use fc_db::Backend as FrontierBackend;
 use fc_rpc::EthTask;
 pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 pub use fc_storage::{StorageOverride, StorageOverrideHandler};
 use fp_rpc::EthereumRuntimeRPCApi;
 use futures::{future, prelude::*};
-// Substrate
-use sc_client_api::BlockchainEvents;
+use sc_client_api::{Backend, BlockchainEvents, StorageProvider};
 use sc_executor::HostFunctions;
 use sc_network_sync::SyncingService;
 use sc_service::{error::Error as ServiceError, TaskManager};
 use sp_api::ConstructRuntimeApi;
 use sp_core::H256;
 use sp_runtime::traits::Block as BlockT;
-
-use crate::client::{FullBackend, FullClient};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 /// Frontier DB backend type.
-pub type FrontierBackend<B, C> = fc_db::Backend<B, C>;
+pub struct DefaultEthConfig<C, BE>(std::marker::PhantomData<(C, BE)>);
+
+impl<C, BE> fc_rpc::EthConfig<Block, C> for DefaultEthConfig<C, BE>
+where
+    C: StorageProvider<Block, BE> + Sync + Send + 'static,
+    BE: Backend<Block> + 'static,
+{
+    type EstimateGasAdapter = ();
+    type RuntimeStorageOverride =
+        fc_rpc::frontier_backend_client::SystemAccountId20StorageOverride<Block, C, BE>;
+}
 
 /// Available frontier backend types.
 #[derive(Debug, Copy, Clone, Default, clap::ValueEnum)]

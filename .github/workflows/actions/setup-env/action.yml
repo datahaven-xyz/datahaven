@@ -20,18 +20,8 @@ runs:
       with:
         submodules: true
 
-    - uses: actions/cache@v4
-      id: cache-sscache
-      with:
-        path: |
-          ~/.cache/sccache
-        key: ${{ runner.os }}-sccache-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-sccache-${{ inputs.cache-key }}
-          ${{ runner.os }}-sccache-
-
     - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.8
+      uses: mozilla-actions/sccache-action@v0.0.9
     - name: Set Rust caching env vars
       if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
       shell: bash

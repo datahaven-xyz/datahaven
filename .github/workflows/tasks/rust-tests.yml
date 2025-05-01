@@ -9,11 +9,8 @@
 name: DataHave Operator Rust Tests
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   setup:

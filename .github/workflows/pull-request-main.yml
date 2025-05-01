@@ -1,0 +1,37 @@
+name: Workflow - Main CI
+
+on:
+    workflow_dispatch:
+    push:
+      branches:
+        - main
+    pull_request:
+      branches: [main]
+
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+
+  rust-audit:
+    uses: ./.github/workflows/tasks/rust-audit.yml
+    secrets: inherit
+  rust-lint:
+    uses: ./.github/workflows/tasks/rust-lint.yml
+    secrets: inherit
+  ts-build:
+    uses: ./.github/workflows/tasks/ts-build.yml
+    secrets: inherit
+  ts-lint:
+    uses: ./.github/workflows/tasks/ts-lint.yml
+    secrets: inherit
+  unit-tests:
+    uses: ./.github/workflows/tasks/rust-tests.yml
+    secrets: inherit
+  contract-tests:
+    uses: ./.github/workflows/tasks/foundry-tests.yml
+    secrets: inherit
+  e2e-tests:
+    uses: ./.github/workflows/tasks/e2e.yml
+    secrets: inherit

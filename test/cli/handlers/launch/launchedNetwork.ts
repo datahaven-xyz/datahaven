@@ -4,7 +4,7 @@ import { logger } from "utils";
 
 export class LaunchedNetwork {
   protected runId: string;
-  protected processes: Bun.Subprocess[];
+  protected processes: Bun.Subprocess<"inherit" | "pipe" | "ignore", number, number>[];
   protected fileDescriptors: number[];
   protected DHNodes: { id: string; port: number }[];
 
@@ -33,7 +33,7 @@ export class LaunchedNetwork {
     this.fileDescriptors.push(fd);
   }
 
-  addProcess(process: Bun.Subprocess) {
+  addProcess(process: Bun.Subprocess<"inherit" | "pipe" | "ignore", number, number>) {
     this.processes.push(process);
   }
 

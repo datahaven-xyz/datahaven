@@ -4,6 +4,7 @@
 //! # Outbound
 //!
 //! Common traits and types
+pub mod v1;
 pub mod v2;
 
 use codec::{Decode, DecodeWithMemTracking, Encode};

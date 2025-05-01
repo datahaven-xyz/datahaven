@@ -51,5 +51,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: datahaven-node-${{ steps.hash-binary.outputs.datahaven-node-hash }}
-          path: target/release/datahaven-node
+          path: operator/target/release/datahaven-node
           retention-days: 1

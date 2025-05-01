@@ -46,6 +46,7 @@ jobs:
 
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
+    needs: [prepare]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -71,3 +71,7 @@ runs:
         components: rustfmt, clippy
 
     - uses: rui314/setup-mold@v1
+    - name: Install libpq-dev
+      run: sudo apt-get update && sudo apt-get install -y libpq-dev
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v3

@@ -15,23 +15,23 @@ concurrency:
 jobs:
 
   rust-audit:
-    uses: ./.github/workflows/tasks/rust-audit.yml
+    uses: ./.github/workflows/task-rust-audit.yml
     secrets: inherit
   rust-lint:
-    uses: ./.github/workflows/tasks/rust-lint.yml
+    uses: ./.github/workflows/task-rust-lint.yml
     secrets: inherit
   ts-build:
-    uses: ./.github/workflows/tasks/ts-build.yml
+    uses: ./.github/workflows/task-ts-build.yml
     secrets: inherit
   ts-lint:
-    uses: ./.github/workflows/tasks/ts-lint.yml
+    uses: ./.github/workflows/task-ts-lint.yml
     secrets: inherit
   unit-tests:
-    uses: ./.github/workflows/tasks/rust-tests.yml
+    uses: ./.github/workflows/task-rust-tests.yml
     secrets: inherit
   contract-tests:
-    uses: ./.github/workflows/tasks/foundry-tests.yml
+    uses: ./.github/workflows/task-foundry-tests.yml
     secrets: inherit
   e2e-tests:
-    uses: ./.github/workflows/tasks/e2e.yml
+    uses: ./.github/workflows/task-e2e.yml
     secrets: inherit

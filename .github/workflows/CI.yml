@@ -1,4 +1,4 @@
-name: Workflow - Main CI
+name: Main CI
 
 on:
     workflow_dispatch:
@@ -38,6 +38,6 @@ jobs:
     secrets: inherit
 
   e2e-tests:
-    needs: [build-operator]
+    needs: [build-operator, contract-tests]
     uses: ./.github/workflows/task-e2e.yml
     secrets: inherit

@@ -1,0 +1,44 @@
+# Build Operator: CI for building the operator binary
+
+name: DataHave Operator Rust Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+
+  build-node:
+    name: Build operator binary
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # By default actions/checkout checks out a merge commit. Check out the PR head instead.
+          # https://github.com/actions/checkout#checkout-pull-request-head-commit-instead-of-merge-commit
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/workflows/actions/setup-rust
+        with:
+          cache-key: BIN_BUILD
+      - uses: rui314/setup-mold@v1
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Install libpq-dev
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+      - name: Build node binary
+        run: cargo build --release
+      - name: Upload binary to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: datahaven-node
+          path: target/release/datahaven-node

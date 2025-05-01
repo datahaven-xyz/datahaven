@@ -14,6 +14,10 @@ concurrency:
 
 jobs:
 
+  build-operator:
+    uses: ./.github/workflows/task-build-operator.yml
+    secrets: inherit
+
   rust-audit:
     uses: ./.github/workflows/task-rust-audit.yml
     secrets: inherit
@@ -32,6 +36,8 @@ jobs:
   contract-tests:
     uses: ./.github/workflows/task-foundry-tests.yml
     secrets: inherit
+
   e2e-tests:
+    needs: [build-operator]
     uses: ./.github/workflows/task-e2e.yml
     secrets: inherit

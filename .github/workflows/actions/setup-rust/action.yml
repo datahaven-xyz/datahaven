@@ -1,0 +1,69 @@
+name: "Setup Rust Environment"
+description: "Creates a Rust environment with the specified toolchain, cache, and dependencies"
+
+inputs:
+  cache-key:
+    description: "Cache key used to retrieve built data. Usually matches the profile of the build"
+    required: false
+    default: "cache"
+
+  install-foundry:
+    description: "Whether to install Foundry"
+    required: false
+    default: "false"
+
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - uses: actions/cache@v4
+      id: cache-sscache
+      with:
+        path: |
+          ~/.cache/sccache
+        key: ${{ runner.os }}-${{ inputs.rust-version }}-${{ inputs.cache-key }}-sccache
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.8
+    - name: Set Rust caching env vars
+      if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
+      shell: bash
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        sccache --show-stats
+
+    - uses: actions/cache@v4
+      id: cache-cargo
+      with:
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-registry-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-${{ inputs.cache-key }}
+          ${{ runner.os }}-cargo-registry-
+
+    - uses: actions/cache@v4
+      id: cache-build-deps
+      with:
+        path: |
+          target/release/deps
+          target/release/build
+          target/release/.fingerprint
+        key: ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock', 'src/**/*.rs') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+          ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.rust-version }}
+        components: rustfmt, clippy
+
+    - uses: rui314/setup-mold@v1

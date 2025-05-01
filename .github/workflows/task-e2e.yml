@@ -49,6 +49,13 @@ jobs:
           key: ${{ runner.os }}-foundry-${{ hashFiles('**/foundry.toml') }}
           restore-keys: |
             ${{ runner.os }}-foundry-
+      - name: Download operator binary
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-node
+          path: ../operator/target/release/datahaven-node
+      - run: chmod +x ../operator/target/release/datahaven-node
+      - run: ../operator/target/release/datahaven-node --help
 
       - run: bun install
       - run: bun start:e2e:ci

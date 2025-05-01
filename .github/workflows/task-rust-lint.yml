@@ -19,33 +19,7 @@ env:
   WORKING_DIR: operator
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      node_changed: ${{ steps.node_check.outputs.changed }}
-    env:
-      SKIP_BUILD_LABEL_PRESENT: ${{ contains(github.event.pull_request.labels.*.name, 'skip-node-build') }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Check if Substrate Node needs rebuild
-        id: node_check
-        run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
-          HEAD_SHA="${{ github.sha }}"
-
-          if [[ "${{ env.SKIP_BUILD_LABEL_PRESENT }}" != "true" ]] && git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^operator/(client|node|pallets|runtime)/|^operator/Cargo\.toml$'; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "Comparing changes from $BASE_SHA to $HEAD_SHA"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
   cargo-fmt:
-    needs: [setup]
-    if: needs.setup.outputs.node_changed == 'true'
     name: "Check format with rustfmt"
     runs-on: ubuntu-latest
     defaults:
@@ -54,23 +28,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
-      # ! If this action starts failing, it may be because of this,
-      # ! For now this is not needed, and makes the workflow slower
-      # - name: Install protoc
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y protobuf-compiler
-      #     protoc --version
+      - uses: ./.github/workflows/actions/setup-rust
+        with:
+          cache-key: "LINT"
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
   check-rust-lint:
-    needs: [setup]
-    if: needs.setup.outputs.node_changed == 'true'
     name: "Check lint with clippy"
     runs-on: ubuntu-latest
     defaults:
@@ -79,28 +44,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install protoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          protoc --version
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/workflows/actions/setup-rust
         with:
-          components: clippy
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install libpq-dev
-        run: sudo apt-get update && sudo apt-get install -y libpq-dev
-
-      - name: Install protoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          protoc --version
+          cache-key: "LINT"
 
       - name: Run cargo clippy
         run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked

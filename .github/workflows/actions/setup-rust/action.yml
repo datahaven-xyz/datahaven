@@ -25,7 +25,11 @@ runs:
       with:
         path: |
           ~/.cache/sccache
-        key: ${{ runner.os }}-${{ inputs.rust-version }}-${{ inputs.cache-key }}-sccache
+        key: ${{ runner.os }}-sccache-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-sccache-${{ inputs.cache-key }}
+          ${{ runner.os }}-sccache-
+
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.8
     - name: Set Rust caching env vars
@@ -59,6 +63,7 @@ runs:
         restore-keys: |
           ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
           ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}
+          ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-
 
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable

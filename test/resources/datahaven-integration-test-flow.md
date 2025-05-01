@@ -99,6 +99,7 @@ In this phase, we register validators as operators in EigenLayer and sync the va
    - Configures validator addresses and permissions
 
 3. **Sync Validator Set to DataHaven**
+
    - Use `update-validator-set.ts` script to sync validators
    - Calls `sendNewValidatorSet` function in the DataHavenServiceManager contract
    - Sends validator set through Snowbridge Gateway to DataHaven solochain

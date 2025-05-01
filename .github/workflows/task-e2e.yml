@@ -52,7 +52,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ../contracts/lib
-          key: ${{ runner.os }}-foundry-libs-${{ hashFiles('../contracts/.gitmodules') }}
+          key: ${{ runner.os }}-foundry-libs-${{ hashFiles('../.gitmodules') }}
           restore-keys: |
             ${{ runner.os }}-foundry-libs-
 

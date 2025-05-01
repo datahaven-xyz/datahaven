@@ -1,80 +1,43 @@
 import * as generated from "contract-bindings";
-import {
-  type Abi,
-  type ChainConfig,
-  type Client,
-  createClient,
-  getContract,
-  isAddress
-} from "viem";
-import { http, createConfig } from "wagmi";
-import { mainnet, sepolia } from "wagmi/chains";
+import { type Abi, erc20Abi, getContract, isAddress } from "viem";
 import { z } from "zod";
 import { logger } from "./logger";
-import { type ViemClientInterface, createChainConfig, createDefaultClient } from "./viem";
+import { type ViemClientInterface, createDefaultClient } from "./viem";
 
-import type { Config } from "@wagmi/core";
 import invariant from "tiny-invariant";
 
+const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+const ethAddress = z.string().regex(ethAddressRegex, "Invalid Ethereum address");
+const ethAddressCustom = z.custom<`0x${string}`>(
+  (val) => typeof val === "string" && ethAddressRegex.test(val),
+  { message: "Invalid Ethereum address" }
+);
+
 const DeployedStrategySchema = z.object({
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  underlyingToken: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  tokenCreator: z.string().regex(/^0x[a-fA-F0-9]{40}$/)
+  address: ethAddress,
+  underlyingToken: ethAddress,
+  tokenCreator: ethAddress
 });
 
 const AnvilDeploymentsSchema = z.object({
   network: z.string(),
-  BeefyClient: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  AgentExecutor: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  Gateway: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  ServiceManager: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  VetoableSlasher: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  RewardsRegistry: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  Agent: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  DelegationManager: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  StrategyManager: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  AVSDirectory: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  EigenPodManager: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  EigenPodBeacon: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  RewardsCoordinator: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  AllocationManager: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  PermissionController: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  ETHPOSDeposit: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
-  BaseStrategyImplementation: z.custom<`0x${string}`>(
-    (val) => typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val)
-  ),
+  BeefyClient: ethAddressCustom,
+  AgentExecutor: ethAddressCustom,
+  Gateway: ethAddressCustom,
+  ServiceManager: ethAddressCustom,
+  VetoableSlasher: ethAddressCustom,
+  RewardsRegistry: ethAddressCustom,
+  Agent: ethAddressCustom,
+  DelegationManager: ethAddressCustom,
+  StrategyManager: ethAddressCustom,
+  AVSDirectory: ethAddressCustom,
+  EigenPodManager: ethAddressCustom,
+  EigenPodBeacon: ethAddressCustom,
+  RewardsCoordinator: ethAddressCustom,
+  AllocationManager: ethAddressCustom,
+  PermissionController: ethAddressCustom,
+  ETHPOSDeposit: ethAddressCustom,
+  BaseStrategyImplementation: ethAddressCustom,
   DeployedStrategies: z.array(DeployedStrategySchema)
 });
 
@@ -117,9 +80,8 @@ const abiMap = {
   PermissionController: generated.permissionControllerAbi,
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
-  network: generated.beefyClientAbi, // placeholder
-  DeployedStrategies: generated.beefyClientAbi // placeholder
-} as const satisfies Record<keyof AnvilDeployments, Abi>;
+  DeployedStrategies: erc20Abi
+} as const satisfies Record<keyof Omit<AnvilDeployments, "network">, Abi>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];
@@ -127,6 +89,7 @@ export type ContractInstance<C extends ContractName> = Awaited<
   ReturnType<typeof getContractInstance<C>>
 >;
 
+// TODO: make this work with DeployedStrategies
 export const getContractInstance = async <C extends ContractName>(
   contract: C,
   viemClient?: ViemClientInterface

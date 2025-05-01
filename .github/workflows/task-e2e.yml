@@ -70,7 +70,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: datahaven-node-${{ inputs.binary-hash }}
-          path: operator/target/release/datahaven-node
+          path: operator/target/release/
       - run: chmod +x ../operator/target/release/datahaven-node
       - run: ../operator/target/release/datahaven-node --help
 

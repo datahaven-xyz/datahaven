@@ -22,12 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # By default actions/checkout checks out a merge commit. Check out the PR head instead.
-          # https://github.com/actions/checkout#checkout-pull-request-head-commit-instead-of-merge-commit
-          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: recursive
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup-rust
         with:
-          cache-key: BIN_BUILD
+          cache-key: "BIN_BUILD"
       - uses: rui314/setup-mold@v1
       - name: Install nextest
         uses: taiki-e/install-action@nextest

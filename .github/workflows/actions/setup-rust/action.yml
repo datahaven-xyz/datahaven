@@ -63,7 +63,6 @@ runs:
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: ${{ inputs.rust-version }}
         components: rustfmt, clippy
 
     - uses: rui314/setup-mold@v1

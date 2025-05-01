@@ -40,7 +40,7 @@ export const timeoutConfirm = createPrompt<boolean, TimeoutConfirmConfig>((cfg, 
         clearInterval(id);
         done(cfg.default ?? true);
       }
-    }, 200);
+    }, 500);
 
     return () => clearInterval(id);
   }, []);
@@ -64,7 +64,7 @@ export const timeoutConfirm = createPrompt<boolean, TimeoutConfirmConfig>((cfg, 
 
   const main = `${prefix} ${theme.style.message(cfg.message, status)} \
 ${defaultBadge} ${input}`;
-  const border = chalk.yellow("=".repeat(cfg.message.length + 40));
+  const border = chalk.yellow("=".repeat(80));
   const hint = theme.style.help(
     chalk.magenta(
       `⏱ Will default to ${chalk.bold(cfg.default ? "YES" : "NO")} in ${chalk.bold((left / 1000).toFixed(0))}s`
@@ -77,12 +77,14 @@ ${main}
 ${border}`;
 });
 
-export const confirmWithTimeout = (
+export const confirmWithTimeout = async (
   question: string,
   defaultValue: boolean,
   timeoutSeconds: number
-) =>
-  timeoutConfirm({
+) => {
+  await Bun.sleep(50); //debounce
+
+  return timeoutConfirm({
     message: question,
     default: defaultValue,
     timeoutMs: timeoutSeconds * 1000,
@@ -93,3 +95,4 @@ export const confirmWithTimeout = (
       }
     }
   });
+};

@@ -8,3 +8,4 @@ export * from "./viem";
 export * from "./kurtosis";
 export * from "./parser";
 export * from "./contracts";
+export * from "./shell";

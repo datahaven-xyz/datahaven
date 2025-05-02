@@ -18,10 +18,10 @@ jobs:
     name: Prepare artifacts for Rust tests
     runs-on: ubuntu-latest
     env:
-      SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
+      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
     defaults:
       run:
         working-directory: ./operator
@@ -33,7 +33,6 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-      - uses: rui314/setup-mold@v1
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Build and archive tests

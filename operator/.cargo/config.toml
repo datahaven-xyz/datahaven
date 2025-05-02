@@ -1,0 +1,7 @@
+[profile.ci] 
+inherits = "release"
+debug = 1
+incremental = false
+codegen-units = 16
+lto = false
+

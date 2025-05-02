@@ -16,44 +16,31 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
-
+    - name: Set Rust version
+      shell: bash
+      run: |
+        echo "BUILD_RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
+      with:
+        use-gha-cache: false
+    
     - name: Set Rust caching env vars
       if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
       shell: bash
       run: |
-        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
         sccache --show-stats
 
-    - uses: actions/cache@v4
-      id: cache-cargo
+    - name: Cache cargo + target + sccache
+      uses: Swatinem/rust-cache@v2
       with:
-        path: |
-          ~/.cargo/bin
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-registry-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-registry-${{ inputs.cache-key }}
-          ${{ runner.os }}-cargo-registry-
+        shared-key: ${{ inputs.cache-key }}
+        workspaces: |
+          operator -> target
+        cache-directories: |
+          ~/.cache/sccache
 
-    - uses: actions/cache@v4
-      id: cache-build-deps
-      with:
-        path: |
-          operator/target/release/deps
-          operator/target/release/build
-          operator/target/release/.fingerprint
-        key: ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-${{ inputs.cache-key }}
-          ${{ runner.os }}-${{ env.BUILD_RUST_VERSION }}-build-deps-
-            
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:

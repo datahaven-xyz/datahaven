@@ -46,9 +46,9 @@ jobs:
 
       - uses: ./.github/workflows/actions/setup-env
         with:
-          cache-key: "LINT"
+          cache-key: "BIN_BUILD"
 
       - name: Run cargo clippy
-        run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked
+        run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci
         env:
           RUSTFLAGS: -D warnings

@@ -2,12 +2,12 @@ name: CI
 description: "Main CI Specification for DataHaven Repository"
 
 on:
-    workflow_dispatch:
-    push:
-      branches:
-        - main
-    pull_request:
-      branches: [main]
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [main]
 
 concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -15,12 +15,9 @@ concurrency:
 
 jobs:
 
+  # First Tier
   build-operator:
     uses: ./.github/workflows/task-build-operator.yml
-    secrets: inherit
-
-  rust-lint:
-    uses: ./.github/workflows/task-rust-lint.yml
     secrets: inherit
   ts-build:
     uses: ./.github/workflows/task-ts-build.yml
@@ -35,8 +32,14 @@ jobs:
     uses: ./.github/workflows/task-foundry-tests.yml
     secrets: inherit
 
+  # Second Tier
+  rust-lint:
+    needs: [build-operator] # So we can re-use the build cache
+    uses: ./.github/workflows/task-rust-lint.yml
+    secrets: inherit
+
   e2e-tests:
-    needs: [build-operator, contract-tests]
+    needs: [build-operator]
     uses: ./.github/workflows/task-e2e.yml
     with:
       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}

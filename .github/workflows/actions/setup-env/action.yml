@@ -22,8 +22,6 @@ runs:
         echo "BUILD_RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
-      with:
-        use-gha-cache: false
     
     - name: Set Rust caching env vars
       if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'

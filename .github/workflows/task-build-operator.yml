@@ -54,5 +54,4 @@ jobs:
       - name: Build Stats
         run: |
           sccache --show-stats
-          cargo build -Z timings --profile ci
         

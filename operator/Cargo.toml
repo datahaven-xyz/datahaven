@@ -210,7 +210,6 @@ fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stabl
 
 [profile.ci]
 inherits = "release"
-debug = 1
 incremental = false
 codegen-units = 16
 lto = false

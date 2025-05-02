@@ -17,6 +17,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
+  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold -D warnings" 
 
 jobs:
   cargo-fmt:
@@ -30,7 +31,8 @@ jobs:
 
       - uses: ./.github/workflows/actions/setup-env
         with:
-          cache-key: "LINT"
+          cache-key: FMT
+          cache-targets: false
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
@@ -46,9 +48,7 @@ jobs:
 
       - uses: ./.github/workflows/actions/setup-env
         with:
-          cache-key: "BIN_BUILD"
+          cache-key: CI
 
       - name: Run cargo clippy
-        run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci
-        env:
-          RUSTFLAGS: -D warnings
+        run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci

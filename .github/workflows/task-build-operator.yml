@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/workflows/actions/setup-env
         with:
-          cache-key: "BIN_BUILD"
+          cache-key: CI
       - name: Build node binary
         run: cargo build --profile ci
       - name: Hash binary

@@ -53,7 +53,9 @@ libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
 parity-bytes = { version = "0.1.2", default-features = false }
-parity-scale-codec = { version = "3.0.0", default-features = false, features = ["derive"] }
+parity-scale-codec = { version = "3.0.0", default-features = false, features = [
+    "derive",
+] }
 rand = { version = "0.8.5", default-features = false }
 rlp = { version = "0.6.1", default-features = false }
 scale-info = { version = "2.11.6", default-features = false }
@@ -204,3 +206,11 @@ fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "
 fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+
+
+[profile.ci]
+inherits = "release"
+debug = 1
+incremental = false
+codegen-units = 16
+lto = false

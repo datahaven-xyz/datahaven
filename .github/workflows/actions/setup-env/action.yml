@@ -7,10 +7,11 @@ inputs:
     required: false
     default: "cache"
 
-  install-foundry:
-    description: "Whether to install Foundry"
+  cache-targets:
+    description: "Whether to cache targets"
     required: false
-    default: "false"
+    default: "true"
+
 
 
 runs:
@@ -33,12 +34,13 @@ runs:
     - name: Cache cargo + target + sccache
       uses: Swatinem/rust-cache@v2
       with:
+        cache-targets: ${{ inputs.cache-targets }}
         shared-key: ${{ inputs.cache-key }}
         workspaces: |
           operator -> target
         cache-directories: |
           ~/.cache/sccache
-
+    
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:

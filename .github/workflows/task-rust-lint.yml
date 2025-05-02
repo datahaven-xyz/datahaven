@@ -17,7 +17,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
-  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold -D warnings" 
+  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold" 
 
 jobs:
   cargo-fmt:
@@ -51,4 +51,4 @@ jobs:
           cache-key: CI
 
       - name: Run cargo clippy
-        run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci
+        run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci

@@ -25,6 +25,7 @@ const program = new Command()
   .option("-b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--datahaven", "Enable Datahaven network to be launched")
+  .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option(
     "--datahaven-bin-path <value>",
     "Path to the datahaven binary",

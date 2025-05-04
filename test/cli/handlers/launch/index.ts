@@ -31,6 +31,7 @@ export interface LaunchOptions {
   alwaysClean?: boolean;
   datahavenBinPath?: string;
   datahaven?: boolean;
+  kurtosisNetworkArgs?: string;
   slotTime?: number;
 }
 

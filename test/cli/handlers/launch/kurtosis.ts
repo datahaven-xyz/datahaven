@@ -122,6 +122,15 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
     parsedConfig.network_params.seconds_per_slot = options.slotTime;
   }
 
+  if (options.kurtosisNetworkArgs) {
+    logger.debug(`Using custom Kurtosis network args: ${options.kurtosisNetworkArgs}`);
+    const args = options.kurtosisNetworkArgs.split(" ");
+    for (const arg of args) {
+      const [key, value] = arg.split("=");
+      parsedConfig.network_params[key] = value;
+    }
+  }
+
   logger.trace(parsedConfig);
   const outputFile = `${outputDir}/modified-config.yaml`;
   logger.debug(`Modified config saving to ${outputFile}`);

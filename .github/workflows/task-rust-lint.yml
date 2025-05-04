@@ -51,4 +51,6 @@ jobs:
           cache-key: CI
 
       - name: Run cargo clippy
-        run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci
+        env:
+          SCCACHE_LOG: debug
+        run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --profile ci

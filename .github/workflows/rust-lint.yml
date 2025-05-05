@@ -48,7 +48,7 @@ jobs:
           fi
 
   cargo-fmt:
-    needs: [setup]
+    needs: [ setup ]
     if: needs.setup.outputs.node_changed == 'true'
     name: "Check format with rustfmt"
     runs-on: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
         run: cargo fmt --all -- --check
 
   check-rust-lint:
-    needs: [setup]
+    needs: [ setup ]
     if: needs.setup.outputs.node_changed == 'true'
     name: "Check lint with clippy"
     runs-on: ubuntu-latest
@@ -110,3 +110,20 @@ jobs:
         run: SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --features try-runtime,runtime-benchmarks --locked
         env:
           RUSTFLAGS: -D warnings
+
+  check-cargo-sort:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Check out the repository to the runner
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x scripts/sort-cargo-deps.sh
+
+      - name: Run the script on all Cargo.toml files
+        run: find . -name "Cargo.toml" -exec scripts/sort-cargo-deps.sh {} \;

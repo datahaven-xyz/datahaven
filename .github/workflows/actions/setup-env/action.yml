@@ -31,15 +31,20 @@ runs:
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
         sccache --show-stats
 
-    - name: Cache cargo + target + sccache
+    - name: Cache cargo + target + sccache2
       uses: Swatinem/rust-cache@v2
       with:
-        cache-targets: ${{ inputs.cache-targets }}
-        shared-key: ${{ inputs.cache-key }}
+        cache-targets: true
+        cache-all-crates: true
+        shared-key: ${{ runner.os }}-${{inputs.cache-key}}-${{ hashFiles('operator/rust-toolchain.toml') }}-${{ hashFiles('operator/Cargo.lock') }}
         workspaces: |
           operator -> target
+        cache-on-failure: true
+        cache-bin: true
         cache-directories: |
-          ~/.cache/sccache
+          ~/.cache/sccache         
+          ~/.cargo/registry
+          ~/.cargo/git
     
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable

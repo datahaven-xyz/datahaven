@@ -9,6 +9,7 @@ edition = "2021"
 members = [
     "node",
     "pallets/commitments",
+    "pallets/outbound-commitment-store",
     "pallets/ethereum-client",
     "pallets/inbound-queue-v2",
     "pallets/outbound-queue-v2",
@@ -30,6 +31,7 @@ datahaven-runtime-common = { path = "./runtime/common", default-features = false
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 pallet-commitments = { path = "./pallets/commitments", default-features = false }
+pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }

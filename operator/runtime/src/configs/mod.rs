@@ -28,10 +28,10 @@ mod runtime_params;
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Commitments,
     EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent,
-    RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
-    Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage, Runtime,
+    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
+    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
+    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -810,6 +810,7 @@ pub struct CommitmentHandler;
 impl OnNewCommitment for CommitmentHandler {
     fn on_new_commitment(commitment: H256) {
         let _ = Commitments::store_commitment(commitment);
+        let _ = OutboundCommitmentStore::store_commitment(commitment);
     }
 }
 
@@ -870,5 +871,9 @@ pub mod benchmark_helpers {
 }
 
 impl pallet_commitments::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
+impl pallet_outbound_commitment_store::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 }

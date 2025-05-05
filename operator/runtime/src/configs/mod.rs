@@ -350,18 +350,14 @@ parameter_types! {
 
 #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
 pub struct LeafExtraData {
-    /// General purpose extra data field (can be used for any purpose)
     extra: H256,
-    /// Latest commitment from the outbound queue
-    commitment: H256,
 }
 
 pub struct LeafExtraDataProvider;
 impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
     fn extra_data() -> LeafExtraData {
         LeafExtraData {
-            extra: H256::zero(),
-            commitment: Commitments::get_latest_commitment().unwrap_or_default(),
+            extra: Commitments::get_latest_commitment().unwrap_or_default(),
         }
     }
 }
@@ -813,7 +809,6 @@ parameter_types! {
 pub struct CommitmentHandler;
 impl OnNewCommitment for CommitmentHandler {
     fn on_new_commitment(commitment: H256) {
-        // Store the commitment in the dedicated pallet
         let _ = Commitments::store_commitment(commitment);
     }
 }

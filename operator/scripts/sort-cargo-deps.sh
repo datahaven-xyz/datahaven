@@ -2,8 +2,9 @@
 
 set -euo pipefail
 
-# Use first argument as file path, default to Cargo.toml if not provided
+# Use first argument as file path, default to Cargo.toml
 FILE="${1:-Cargo.toml}"
+MODE="${2:-fix}" # "fix" (default) or "check"
 
 # Check if file exists
 if [[ ! -f "$FILE" ]]; then
@@ -72,10 +73,23 @@ process_file() {
         fi
     done < "$FILE"
 
-    # Flush any remaining content
     if [[ -n "$section_content" ]]; then
         echo -n "$section_content" | LC_ALL=C sort -f
     fi
 }
 
-process_file > "$TMP_FILE" && mv "$TMP_FILE" "$FILE"
+process_file > "$TMP_FILE"
+
+if [[ "$MODE" == "check" ]]; then
+    if ! diff -q "$TMP_FILE" "$FILE" > /dev/null; then
+        echo "Error: $FILE is not sorted. Please run the script to sort it."
+        diff "$FILE" "$TMP_FILE"
+        rm "$TMP_FILE"
+        exit 1
+    else
+        echo "Check passed: $FILE is properly sorted."
+        rm "$TMP_FILE"
+    fi
+else
+    mv "$TMP_FILE" "$FILE"
+fi

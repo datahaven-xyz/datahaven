@@ -26,7 +26,7 @@
 mod runtime_params;
 
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Commitments,
     EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
     OriginCaller, OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent,
     RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
@@ -78,6 +78,7 @@ use snowbridge_outbound_queue_primitives::{
     v2::ConstantGasMeter,
     SendError, SendMessageFeeProvider,
 };
+use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
 use snowbridge_pallet_system::BalanceOf;
 use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
@@ -349,7 +350,10 @@ parameter_types! {
 
 #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
 pub struct LeafExtraData {
+    /// General purpose extra data field (can be used for any purpose)
     extra: H256,
+    /// Latest commitment from the outbound queue
+    commitment: H256,
 }
 
 pub struct LeafExtraDataProvider;
@@ -357,6 +361,7 @@ impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
     fn extra_data() -> LeafExtraData {
         LeafExtraData {
             extra: H256::zero(),
+            commitment: Commitments::get_latest_commitment().unwrap_or_default(),
         }
     }
 }
@@ -805,6 +810,14 @@ parameter_types! {
     pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
 }
 
+pub struct CommitmentHandler;
+impl OnNewCommitment for CommitmentHandler {
+    fn on_new_commitment(commitment: H256) {
+        // Store the commitment in the dedicated pallet
+        let _ = Commitments::store_commitment(commitment);
+    }
+}
+
 impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Hashing = Keccak256;
@@ -813,7 +826,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type Balance = Balance;
     type MaxMessagePayloadSize = ConstU32<2048>;
     type MaxMessagesPerBlock = ConstU32<32>;
-    type OnNewCommitment = ();
+    type OnNewCommitment = CommitmentHandler;
     type WeightToFee = IdentityFee<Balance>;
     type WeightInfo = ();
     type Verifier = EthereumBeaconClient;
@@ -859,4 +872,8 @@ pub mod benchmark_helpers {
             RuntimeOrigin::root()
         }
     }
+}
+
+impl pallet_commitments::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
 }

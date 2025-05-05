@@ -37,12 +37,10 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn store_commitment(commitment: H256) -> DispatchResult {
+    pub fn store_commitment(commitment: H256) {
         LatestCommitment::<T>::put(commitment);
 
         Self::deposit_event(Event::CommitmentStored { hash: commitment });
-
-        Ok(())
     }
 
     pub fn get_latest_commitment() -> Option<H256> {

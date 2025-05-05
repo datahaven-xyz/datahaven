@@ -2415,7 +2415,6 @@ dependencies = [
  "pallet-balances",
  "pallet-beefy",
  "pallet-beefy-mmr",
- "pallet-commitments",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
@@ -7401,17 +7400,6 @@ dependencies = [
  "sp-arithmetic",
  "sp-core",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-commitments"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
 ]
 
 [[package]]

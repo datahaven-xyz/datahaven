@@ -93,7 +93,6 @@ sp-version = { features = ["serde"], workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
-pallet-commitments = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
 
 [build-dependencies]
@@ -173,7 +172,6 @@ std = [
     "sp-transaction-pool/std",
     "sp-version/std",
     "substrate-wasm-builder",
-    "pallet-commitments/std",
     "pallet-outbound-commitment-store/std",
 ]
 
@@ -210,7 +208,6 @@ runtime-benchmarks = [
     "snowbridge-pallet-outbound-queue-v2/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
     "snowbridge-pallet-system/runtime-benchmarks",
-    "pallet-commitments/runtime-benchmarks",
     "pallet-outbound-commitment-store/runtime-benchmarks",
 ]
 
@@ -249,7 +246,6 @@ try-runtime = [
     "snowbridge-pallet-outbound-queue-v2/try-runtime",
     "sp-runtime/try-runtime",
     "snowbridge-pallet-system/try-runtime",
-    "pallet-commitments/try-runtime",
     "pallet-outbound-commitment-store/try-runtime",
 ]
 

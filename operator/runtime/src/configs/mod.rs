@@ -26,7 +26,7 @@
 mod runtime_params;
 
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, Commitments,
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
     EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
     OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage, Runtime,
     RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
@@ -357,7 +357,7 @@ pub struct LeafExtraDataProvider;
 impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
     fn extra_data() -> LeafExtraData {
         LeafExtraData {
-            extra: Commitments::get_latest_commitment().unwrap_or_default(),
+            extra: OutboundCommitmentStore::get_latest_commitment().unwrap_or_default(),
         }
     }
 }
@@ -809,8 +809,7 @@ parameter_types! {
 pub struct CommitmentHandler;
 impl OnNewCommitment for CommitmentHandler {
     fn on_new_commitment(commitment: H256) {
-        let _ = Commitments::store_commitment(commitment);
-        let _ = OutboundCommitmentStore::store_commitment(commitment);
+        OutboundCommitmentStore::store_commitment(commitment);
     }
 }
 
@@ -868,10 +867,6 @@ pub mod benchmark_helpers {
             RuntimeOrigin::root()
         }
     }
-}
-
-impl pallet_commitments::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
 }
 
 impl pallet_outbound_commitment_store::Config for Runtime {

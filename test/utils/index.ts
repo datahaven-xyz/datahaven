@@ -7,3 +7,4 @@ export * from "./rpc";
 export * from "./viem";
 export * from "./kurtosis";
 export * from "./parser";
+export * from "./contracts";

@@ -7,8 +7,9 @@
 
 use crate::consensus::BabeConsensusDataProvider;
 use crate::eth::DefaultEthConfig;
-use datahaven_runtime_common::time::SLOT_DURATION;
-use datahaven_runtime_common::{AccountId, Balance, Block, BlockNumber, Hash, Nonce};
+use datahaven_runtime_common::{
+    time::SLOT_DURATION, AccountId, Balance, Block, BlockNumber, Hash, Nonce,
+};
 use fc_rpc::TxPool;
 use fc_rpc::{Eth, EthBlockDataCacheTask, EthFilter, Net, Web3};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};

@@ -4,23 +4,21 @@
 pragma solidity >=0.8.2 <0.9.0;
 
 contract DataHavenTest {
-        uint256 public number;
-        address public owner;
+    uint256 public number;
+    address public owner;
 
-        constructor(){
-            number = 10;
-            owner = msg.sender;
-        }
+    constructor() {
+        number = 10;
+        owner = msg.sender;
+    }
 
+    function decrement() external {
+        require(number > 0, "Number should be greater than 0");
+        number = number - 1;
+    }
 
-        function decrement() external {
-            require(number > 0, "Number should be greater than 0");
-            number = number-1;
-        }
-
-        function reset()external {
-            require(msg.sender == owner, "Only callable by owner!");
-            number = 10;
-        }
+    function reset() external {
+        require(msg.sender == owner, "Only callable by owner!");
+        number = 10;
+    }
 }
-

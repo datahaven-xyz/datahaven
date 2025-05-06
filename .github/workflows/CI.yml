@@ -1,5 +1,6 @@
+#! Main CI Specification for DataHaven Repository
+
 name: CI
-description: "Main CI Specification for DataHaven Repository"
 
 on:
   workflow_dispatch:
@@ -14,11 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   # First Tier
   build-operator:
     uses: ./.github/workflows/task-build-operator.yml
-    secrets: inherit # For demonstrative purposes, we dont use any secrets yet.
+    secrets: inherit # For demonstrative purposes, we don't use any secrets yet.
   ts-build:
     uses: ./.github/workflows/task-ts-build.yml
   ts-lint:

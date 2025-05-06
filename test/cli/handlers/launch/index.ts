@@ -133,15 +133,7 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const {
-    blockscout,
-    verified,
-    fundValidators,
-    setupValidators,
-    updateValidatorSet,
-    deployContracts,
-    slotTime
-  } = thisCmd.opts();
+  const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
   }

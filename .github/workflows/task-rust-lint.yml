@@ -17,7 +17,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
-  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold" 
+  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
 
 jobs:
   cargo-fmt:
@@ -52,3 +52,20 @@ jobs:
 
       - name: Run cargo clippy
         run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --release
+
+  check-cargo-sort:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Check out the repository to the runner
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x scripts/sort-cargo-deps.sh
+
+      - name: Run the script on all Cargo.toml files
+        run: find . -name "Cargo.toml" -print0 | xargs -0 -n1 -I{} bash -c 'scripts/sort-cargo-deps.sh "{}" check' || exit 1

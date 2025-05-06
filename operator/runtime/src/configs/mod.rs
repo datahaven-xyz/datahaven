@@ -28,10 +28,10 @@ mod runtime_params;
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
     EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent,
-    RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
-    Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage, Runtime,
+    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
+    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
+    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -78,6 +78,7 @@ use snowbridge_outbound_queue_primitives::{
     v2::ConstantGasMeter,
     SendError, SendMessageFeeProvider,
 };
+use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
 use snowbridge_pallet_system::BalanceOf;
 use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
@@ -255,7 +256,7 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    type SessionManager = ValidatorSet;
+    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ValidatorSet>;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -356,7 +357,7 @@ pub struct LeafExtraDataProvider;
 impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
     fn extra_data() -> LeafExtraData {
         LeafExtraData {
-            extra: H256::zero(),
+            extra: OutboundCommitmentStore::get_latest_commitment().unwrap_or_default(),
         }
     }
 }
@@ -805,6 +806,13 @@ parameter_types! {
     pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
 }
 
+pub struct CommitmentHandler;
+impl OnNewCommitment for CommitmentHandler {
+    fn on_new_commitment(commitment: H256) {
+        OutboundCommitmentStore::store_commitment(commitment);
+    }
+}
+
 impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Hashing = Keccak256;
@@ -813,7 +821,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type Balance = Balance;
     type MaxMessagePayloadSize = ConstU32<2048>;
     type MaxMessagesPerBlock = ConstU32<32>;
-    type OnNewCommitment = ();
+    type OnNewCommitment = CommitmentHandler;
     type WeightToFee = IdentityFee<Balance>;
     type WeightInfo = ();
     type Verifier = EthereumBeaconClient;
@@ -859,4 +867,8 @@ pub mod benchmark_helpers {
             RuntimeOrigin::root()
         }
     }
+}
+
+impl pallet_outbound_commitment_store::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
 }

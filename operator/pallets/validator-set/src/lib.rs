@@ -369,7 +369,9 @@ impl<T: Config> SessionManager<T::ValidatorId> for Pallet<T> {
     }
 }
 
-impl<T: Config> pallet_session::historical::SessionManager<T::ValidatorId, T::ValidatorId> for Pallet<T> {
+impl<T: Config> pallet_session::historical::SessionManager<T::ValidatorId, T::ValidatorId>
+    for Pallet<T>
+{
     fn new_session(new_index: SessionIndex) -> Option<Vec<(T::ValidatorId, T::ValidatorId)>> {
         <Self as pallet_session::SessionManager<_>>::new_session(new_index)
             .map(|r| r.into_iter().map(|v| (v.clone(), v)).collect())

@@ -36,7 +36,8 @@ export const runShellCommandWithLogger = async (
           const { done, value } = await reader.read();
           if (done) break;
           const text = new TextDecoder().decode(value);
-          logger.info(text.trim());
+          const trimmedText = text.trim();
+          logger.info(trimmedText.includes("\n") ? `\n${trimmedText}` : trimmedText);
         }
       } catch (err) {
         logger.error(`Error reading from ${streamName} stream:`, err);

@@ -34,11 +34,10 @@ The first step involves setting up the testing infrastructure using Kurtosis, a 
 ```bash
 # Start the E2E CLI environment with the minimal configuration
 bun cli
-# Alternative
-bun start:e2e:minimal
 
 # Start the E2E CLI environment with Blockscout and verified contracts
 bun start:e2e:verified
+```
 
 ## 2. Ethereum-side Contract Deployment
 
@@ -80,12 +79,14 @@ In this phase, we register validators as operators in EigenLayer and sync the va
 ### Steps
 
 1. **Fund Validators with Tokens**
+
    - Use `fund-validators.ts` script to fund validators with necessary tokens
    - Transfers 5% of creator's tokens to each validator
    - Transfers 1% of creator's ETH to validators with zero balance
    - Ensures validators have sufficient funds for operations
 
 2. **Register Operators in EigenLayer**
+
    - Use `setup-validators.ts` script to register validators
    - Deposits stake and registers for operator sets
    - Sets up the validator set in the Ethereum side

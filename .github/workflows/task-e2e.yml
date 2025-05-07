@@ -73,7 +73,7 @@ jobs:
             ${{ runner.os }}-foundry-build-
 
       # Start the DataHaven node (placeholder for future use)
-      - run: docker run --rm -d -p 9944:9944 --name local-dh-node moonsonglabs/datahaven:${{ inputs.image-tag }} --dev --unsafe-rpc-external 
+      - run: docker run --rm -d -p 9944:9944 --name local-dh-node ${{ inputs.image-tag }} --dev --unsafe-rpc-external 
       - run: sleep 30
       - run: docker logs local-dh-node
       - run: |

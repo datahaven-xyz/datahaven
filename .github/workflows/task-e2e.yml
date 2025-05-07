@@ -71,6 +71,10 @@ jobs:
           key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol') }}
           restore-keys: |
             ${{ runner.os }}-foundry-build-
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # Start the DataHaven node (placeholder for future use)
       - run: docker run --rm -d -p 9944:9944 --name local-dh-node ${{ inputs.image-tag }} --dev --unsafe-rpc-external 

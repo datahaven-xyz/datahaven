@@ -36,5 +36,6 @@ jobs:
   e2e-tests:
     needs: [docker-build]
     uses: ./.github/workflows/task-e2e.yml
+    secrets: inherit
     with:
       image-tag: ${{ needs.docker-build.outputs.image-tag }}

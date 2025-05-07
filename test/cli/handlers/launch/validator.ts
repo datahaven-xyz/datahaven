@@ -4,7 +4,11 @@ import { updateValidatorSet } from "scripts/update-validator-set";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from "..";
 
-export const performValidatorOperations = async (options: LaunchOptions, networkRpcUrl: string) => {
+export const performValidatorOperations = async (
+  options: LaunchOptions,
+  networkRpcUrl: string,
+  contractsDeployed: boolean
+) => {
   let shouldFundValidators = options.fundValidators;
   let shouldSetupValidators = options.setupValidators;
   let shouldUpdateValidatorSet = options.updateValidatorSet;
@@ -49,6 +53,12 @@ export const performValidatorOperations = async (options: LaunchOptions, network
   }
 
   if (shouldFundValidators) {
+    if (!contractsDeployed) {
+      logger.warn(
+        "⚠️ Funding validators but contracts were not deployed in this CLI run. Could have unexpected results."
+      );
+    }
+
     await fundValidators({
       rpcUrl: networkRpcUrl
     });
@@ -57,11 +67,23 @@ export const performValidatorOperations = async (options: LaunchOptions, network
   }
 
   if (shouldSetupValidators) {
+    if (!contractsDeployed) {
+      logger.warn(
+        "⚠️ Setting up validators but contracts were not deployed in this CLI run. Could have unexpected results."
+      );
+    }
+
     await setupValidators({
       rpcUrl: networkRpcUrl
     });
 
     if (shouldUpdateValidatorSet) {
+      if (!contractsDeployed) {
+        logger.warn(
+          "⚠️ Updating validator set but contracts were not deployed in this CLI run. Could have unexpected results."
+        );
+      }
+
       await updateValidatorSet({
         rpcUrl: networkRpcUrl
       });

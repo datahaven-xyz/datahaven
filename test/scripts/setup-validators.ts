@@ -31,13 +31,25 @@ interface ValidatorConfig {
 }
 
 /**
- * Registers validators in EigenLayer
+ * Registers validators in EigenLayer based on a configuration file.
+ * This function reads validator details (public/private keys, optional solochain addresses)
+ * from a JSON file. If `executeSignup` is true (or confirmed by user prompt),
+ * it iterates through the configured validators and runs the
+ * `script/transact/SignUpValidator.s.sol` forge script for each to register them.
+ * Environment variables `OPERATOR_PRIVATE_KEY`, `OPERATOR_SOLOCHAIN_ADDRESS`, and `NETWORK`
+ * are set for the forge script execution.
  *
- * @param options - Configuration options for setup
- * @param options.rpcUrl - The RPC URL to connect to
- * @param options.validatorsConfig - Path to JSON config file (uses default config if not provided)
- * @param options.executeSignup - Whether to run the SignUpValidator script
- * @returns Promise resolving to true if validators were set up successfully, false if skipped
+ * @param options - Configuration options for the validator setup process.
+ * @param options.rpcUrl - The RPC URL for the Ethereum network to interact with.
+ * @param options.validatorsConfig - Optional path to the JSON file containing validator configurations.
+ *                                   Defaults to `../configs/validator-set.json` relative to this script.
+ * @param options.executeSignup - Optional. If true, proceeds with registration. If false, skips.
+ *                                If undefined, the user is prompted to confirm registration.
+ * @param options.networkName - Optional network name used when executing underlying scripts (e.g., for setting the `NETWORK` environment variable).
+ *                              Defaults to "anvil".
+ * @returns A Promise resolving to `true` if the validator registration process was executed
+ *          (for all configured validators), or `false` if the registration was skipped
+ *          (either due to the `executeSignup` option or user declining the prompt).
  */
 export const setupValidators = async (options: SetupValidatorsOptions): Promise<boolean> => {
   const {

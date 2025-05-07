@@ -51,13 +51,10 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   const timeStart = performance.now();
 
-  printHeader("Environment Checks");
-
   await checkDependencies();
 
   await launchKurtosis(options);
 
-  printHeader("Sending Test ETH Transaction");
   logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
   const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
@@ -85,17 +82,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     deployContracts: options.deployContracts
   });
 
-  if (contractsDeployed) {
-    await performValidatorOperations(options, networkRpcUrl);
-  } else if (options.setupValidators || options.fundValidators) {
-    logger.warn(
-      "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
-    );
-  }
-
-  if (options.datahaven) {
-    await performDatahavenOperations(options, launchedNetwork);
-  }
+  await performValidatorOperations(options, networkRpcUrl, contractsDeployed);
 
   if (options.relayer) {
     await performRelayerOperations(options, launchedNetwork);

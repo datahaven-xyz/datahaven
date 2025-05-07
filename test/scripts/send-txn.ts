@@ -1,8 +1,10 @@
-import { generateRandomAccount, logger, printDivider } from "utils";
+import { generateRandomAccount, logger, printDivider, printHeader } from "utils";
 import { http, createWalletClient, defineChain, parseEther, publicActions } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 
 export default async function main(privateKey: string, networkRpcUrl: string) {
+  printHeader("Sending Test ETH Transaction");
+
   const datahaven = defineChain({
     id: 3151908,
     name: "datahaven",

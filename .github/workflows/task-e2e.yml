@@ -9,6 +9,11 @@ name: E2E - Kurtosis Deploy and Verify
 
 on:
   workflow_dispatch:
+    inputs:
+      binary-hash:
+        description: "The hash of the operator binary"
+        required: true
+        type: string
   workflow_call:
     inputs:
       binary-hash:

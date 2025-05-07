@@ -1,0 +1,107 @@
+name: Docker Build
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  local:
+    runs-on: ubuntu-latest
+    name: Build & Test Docker Image
+    defaults:
+      run:
+        working-directory: operator
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+            context: ./operator 
+            file: ./operator/Dockerfile 
+            push: false 
+            load: true 
+            tags: moonsonglabs/datahaven-node:local 
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+      - name: Test node help
+        run: docker run --rm moonsonglabs/datahaven-node:local --help
+      - run: docker run --rm -d -p 9944:9944 moonsonglabs/datahaven-node:local --dev --unsafe-rpc-external 
+      - run: sleep 10
+      - run: |
+          curl --location 'http://127.0.0.1:9944' \
+            --header 'Content-Type: application/json' \
+            --data '{
+                "jsonrpc":"2.0",
+                "id"     :1,
+                "method" :"system_chain",
+                "params" :[]
+            }'
+    
+  remote:
+    needs: local
+    runs-on: ubuntu-latest
+    name: Publish Remote Image
+    defaults:
+      run:
+        working-directory: operator
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: moonsonglabs/datahaven-node
+          tags: |
+            # uses latest for merging to main
+            type=raw,value=latest,enable={{is_default_branch}}
+            # uses branch name for pulls/pushes to other branches
+            type=ref,event=branch
+            # Tag 'pr-NUMBER' for pull requests
+            type=ref,event=pr
+            # Tag with commit SHA as a unique identifier
+            type=sha,format=short,prefix=sha-
+
+      - name: Prepare PR source branch tag
+        id: pr_branch_tag
+        if: github.event_name == 'pull_request' # Only run this step for PRs
+        run: |
+          # Sanitize the branch name for Docker tag compatibility
+          BRANCH_NAME_SANITIZED=$(echo "${{ github.head_ref }}" | sed -e 's#/#-#g' -e 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
+
+          if [[ -n "$BRANCH_NAME_SANITIZED" ]]; then
+            echo "tag=moonsonglabs/datahaven-node:$BRANCH_NAME_SANITIZED" >> $GITHUB_OUTPUT
+          else
+            # Output an empty tag if sanitization results in an empty string (should be rare)
+            echo "tag=" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./operator
+          file: ./operator/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ steps.pr_branch_tag.outputs.tag }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max 
+

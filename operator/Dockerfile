@@ -1,4 +1,4 @@
-FROM docker.io/paritytech/ci-unified:latest as builder
+FROM docker.io/paritytech/ci-unified:latest AS builder
 
 WORKDIR /polkadot
 COPY . /polkadot

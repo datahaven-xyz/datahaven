@@ -8,6 +8,7 @@ edition = "2021"
 [workspace]
 members = [
     "node",
+    "pallets/outbound-commitment-store",
     "pallets/*",
     "primitives/bridge",
     "runtime/*",
@@ -23,6 +24,7 @@ datahaven-runtime-common = { path = "./runtime/common", default-features = false
 datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = false }
 datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
+pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 
 # Crates.io (wasm)
@@ -202,3 +204,9 @@ fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "
 fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+
+[profile.ci]
+inherits = "release"
+incremental = false
+codegen-units = 16
+lto = false

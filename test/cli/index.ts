@@ -1,6 +1,15 @@
 #!/usr/bin/env bun
-import { Command } from "@commander-js/extra-typings";
+import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
 import { launch, launchPreActionHook } from "./handlers";
+
+// Function to parse integer
+function parseIntValue(value: string): number {
+  const parsedValue = Number.parseInt(value, 10);
+  if (Number.isNaN(parsedValue)) {
+    throw new InvalidArgumentError("Not a number.");
+  }
+  return parsedValue;
+}
 
 // So far we only have the launch command
 // we can expand this to more commands in the future
@@ -14,13 +23,16 @@ const program = new Command()
   .option("-u, --update-validator-set", "Update validator set")
   .option("--no-update-validator-set", "Skip update validator set")
   .option("-b, --blockscout", "Enable Blockscout")
+  .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--datahaven", "Enable Datahaven network to be launched")
+  .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option(
     "--datahaven-bin-path <value>",
     "Path to the datahaven binary",
     "../operator/target/release/datahaven-node"
   )
   .option("-v, --verified", "Verify smart contracts with Blockscout")
+  .option("--always-clean", "Always clean Kurtosis", false)
   .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
   .option("-r, --relayer", "Enable Relayer")
   .option(

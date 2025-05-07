@@ -316,5 +316,7 @@ mod runtime {
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
     // Start with index 100
+    #[runtime::pallet_index(100)]
+    pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }

@@ -1,0 +1,72 @@
+# Lint and Format: CI for Rust components (DataHaven runtime and node Rust tests)
+#
+# Overview:
+# 1. Check Rust Format: Check that the Rust code is formatted correctly
+# 2. Check Rust Lint: Check that the Rust code is linted correctly
+
+name: Lint and Format
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: set to pull_request number to execute on external pr
+        required: false
+
+env:
+  CARGO_TERM_COLOR: always
+  WORKING_DIR: operator
+  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+
+jobs:
+  cargo-fmt:
+    name: "Check format with rustfmt"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: FMT
+          cache-targets: false
+
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
+
+  check-rust-lint:
+    name: "Check lint with clippy"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: LINT
+
+      - name: Run cargo clippy
+        run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --release
+
+  check-cargo-sort:
+    name: "Check Cargo sort"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Check out the repository to the runner
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x scripts/sort-cargo-deps.sh
+
+      - name: Run the script on all Cargo.toml files
+        run: find . -name "Cargo.toml" -print0 | xargs -0 -n1 -I{} bash -c 'scripts/sort-cargo-deps.sh "{}" check' || exit 1

@@ -1,6 +1,5 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import { launchKurtosis } from "scripts/launch-kurtosis";
 import sendTxn from "scripts/send-txn";
 import invariant from "tiny-invariant";
 import {
@@ -12,6 +11,7 @@ import {
 } from "utils";
 import { checkDependencies } from "./checks";
 import { performDatahavenOperations } from "./datahaven";
+import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { performRelayerOperations } from "./relayer";
 import { performSummaryOperations } from "./summary";
@@ -28,13 +28,16 @@ export interface LaunchOptions {
   relayer?: boolean;
   relayerBinPath?: string;
   skipCleaning?: boolean;
+  alwaysClean?: boolean;
   datahavenBinPath?: string;
   datahaven?: boolean;
+  kurtosisNetworkArgs?: string;
+  slotTime?: number;
 }
 
 export const BASE_SERVICES = [
   "cl-1-lighthouse-reth",
-  "cl-1-lighthouse-reth",
+  "cl-2-lighthouse-reth",
   "el-1-reth-lighthouse",
   "el-2-reth-lighthouse",
   "dora"
@@ -53,11 +56,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   await checkDependencies();
 
   logger.trace("Launching Kurtosis enclave");
-  await launchKurtosis({
-    launchKurtosis: options.launchKurtosis,
-    blockscout: options.blockscout,
-    skipCleaning: options.skipCleaning
-  });
+  await launchKurtosis(options);
   logger.trace("Kurtosis enclave launched");
 
   logger.trace("Send test transaction");
@@ -116,7 +115,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   printDivider();
 
   performSummaryOperations(options, launchedNetwork);
-  logger.debug("Launch function completed successfully");
+  const fullEnd = performance.now();
+  const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
+  logger.info(`Launch function completed successfully in ${fullMinutes} minutes`);
 };
 
 export const launch = async (options: LaunchOptions) => {
@@ -132,14 +133,7 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const {
-    blockscout,
-    verified,
-    fundValidators,
-    setupValidators,
-    updateValidatorSet,
-    deployContracts
-  } = thisCmd.opts();
+  const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
   }

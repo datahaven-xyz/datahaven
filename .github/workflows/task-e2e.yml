@@ -3,21 +3,22 @@
 # Overview:
 # 1. Start kurtosis network
 # 2. Deploy AVS contracts
-# 3. Run E2E tests
+# 3. Start DataHaven node
+# 4. Run E2E tests
 
 name: E2E - Kurtosis Deploy and Verify
 
 on:
   workflow_dispatch:
     inputs:
-      binary-hash:
-        description: "The hash of the operator binary"
+      image-tag:
+        description: "The tag of the docker image"
         required: true
         type: string
   workflow_call:
     inputs:
-      binary-hash:
-        description: "The hash of the operator binary"
+      image-tag:
+        description: "The tag of the docker image"
         required: true
         type: string
 
@@ -71,13 +72,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-foundry-build-
 
-      - name: Download operator binary
-        uses: actions/download-artifact@v4
-        with:
-          name: datahaven-node-${{ inputs.binary-hash }}
-          path: operator/target/release/
-      - run: chmod +x ../operator/target/release/datahaven-node
-      - run: ../operator/target/release/datahaven-node --help
+      # Start the DataHaven node (placeholder for future use)
+      - run: docker run --rm -d -p 9944:9944 --name local-dh-node moonsonglabs/datahaven:${{ inputs.image-tag }} --dev --unsafe-rpc-external 
+      - run: sleep 30
+      - run: docker logs local-dh-node
+      - run: |
+          curl --location 'http://127.0.0.1:9944' \
+            --header 'Content-Type: application/json' \
+            --data '{
+                "jsonrpc":"2.0",
+                "id"     :1,
+                "method" :"system_chain",
+                "params" :[]
+            }'
 
       - run: bun install
       - run: bun start:e2e:ci

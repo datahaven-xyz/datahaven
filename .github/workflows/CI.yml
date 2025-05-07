@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   # First Tier
-  build-operator:
-    uses: ./.github/workflows/task-build-operator.yml
+  # build-operator:
+  #   uses: ./.github/workflows/task-build-operator.yml
   ts-build:
     uses: ./.github/workflows/task-ts-build.yml
   ts-lint:
@@ -34,7 +34,7 @@ jobs:
 
   # Second Tier
   e2e-tests:
-    needs: [build-operator]
+    needs: [docker-build]
     uses: ./.github/workflows/task-e2e.yml
     with:
-      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
+      image-tag: ${{ needs.docker-build.outputs.image-tag }}

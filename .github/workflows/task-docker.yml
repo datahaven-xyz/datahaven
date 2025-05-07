@@ -3,6 +3,10 @@ name: Docker Build
 on:
   workflow_dispatch:
   workflow_call:
+    outputs:
+      image-tag:
+        description: "The tag of the docker image"
+        value: ${{ jobs.remote.outputs.image-tag }}
 
 jobs:
   local:
@@ -50,6 +54,8 @@ jobs:
     needs: local
     runs-on: ubuntu-latest
     name: Publish Remote Image
+    outputs:
+      image-tag: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
     defaults:
       run:
         working-directory: operator
@@ -63,28 +69,9 @@ jobs:
         with:
           images: moonsonglabs/datahaven
           tags: |
-            # uses latest for merging to main
-            type=raw,value=latest,enable={{is_default_branch}}
-            # uses branch name for pulls/pushes to other branches
-            type=ref,event=branch
-            # Tag 'pr-NUMBER' for pull requests
-            type=ref,event=pr
-            # Tag with commit SHA as a unique identifier
             type=sha,format=short,prefix=sha-
-
-      - name: Prepare PR source branch tag
-        id: pr_branch_tag
-        if: github.event_name == 'pull_request' # Only run this step for PRs
-        run: |
-          # Sanitize the branch name for Docker tag compatibility
-          BRANCH_NAME_SANITIZED=$(echo "${{ github.head_ref }}" | sed -e 's#/#-#g' -e 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
-
-          if [[ -n "$BRANCH_NAME_SANITIZED" ]]; then
-            echo "tag=moonsonglabs/datahaven:$BRANCH_NAME_SANITIZED" >> $GITHUB_OUTPUT
-          else
-            # Output an empty tag if sanitization results in an empty string (should be rare)
-            echo "tag=" >> $GITHUB_OUTPUT
-          fi
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -99,9 +86,7 @@ jobs:
           context: ./operator
           file: ./operator/Dockerfile
           push: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-            ${{ steps.pr_branch_tag.outputs.tag }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max 

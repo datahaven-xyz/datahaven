@@ -27,12 +27,11 @@
 use super::{
     AccountId, Babe, Balance, Beefy, BeefyMmrLeaf, Block, BlockNumber, Ethereum, Executive,
     Grandpa, Historical, InherentDataExt, Mmr, Nonce, Runtime, RuntimeCall, RuntimeGenesisConfig,
-    SessionKeys, System, TransactionPayment, VERSION,
+    RuntimeOrigin, SessionKeys, System, TransactionPayment, UncheckedExtrinsic, VERSION,
 };
 // External crates imports
 use crate::configs::BABE_GENESIS_EPOCH_CONFIG;
-use crate::{RuntimeOrigin, UncheckedExtrinsic};
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use codec::Encode;
 use datahaven_runtime_common::time::EpochDurationInBlocks;
 use fp_rpc::TransactionStatus;
@@ -51,6 +50,7 @@ use pallet_evm::FeeCalculator;
 use pallet_evm::Runner;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use polkadot_primitives::Hash;
+use snowbridge_core::AgentId;
 use sp_api::impl_runtime_apis;
 use sp_consensus_beefy::{
     ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -66,7 +66,7 @@ use sp_runtime::{
     ApplyExtrinsicResult, Permill,
 };
 use sp_version::RuntimeVersion;
-
+use xcm::VersionedLocation;
 /// MMR helper types.
 mod mmr {
     use super::Runtime;
@@ -489,6 +489,18 @@ impl_runtime_apis! {
         }
     }
 
+    impl snowbridge_outbound_queue_v2_runtime_api::OutboundQueueV2Api<Block, Balance> for Runtime {
+        fn prove_message(leaf_index: u64) -> Option<snowbridge_merkle_tree::MerkleProof> {
+            snowbridge_pallet_outbound_queue_v2::api::prove_message::<Runtime>(leaf_index)
+        }
+    }
+
+    impl snowbridge_system_v2_runtime_api::ControlV2Api<Block> for Runtime {
+        fn agent_id(location: VersionedLocation) -> Option<AgentId> {
+            snowbridge_pallet_system_v2::api::agent_id::<Runtime>(location)
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (
@@ -512,7 +524,7 @@ impl_runtime_apis! {
         #[expect(non_local_definitions)]
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, String> {
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, alloc::string::String> {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;

@@ -52,32 +52,7 @@ interface ValidatorConfig {
  *          (either due to the `executeSignup` option or user declining the prompt).
  */
 export const setupValidators = async (options: SetupValidatorsOptions): Promise<boolean> => {
-  const {
-    rpcUrl,
-    validatorsConfig,
-    executeSignup,
-    networkName = "anvil",
-    deploymentPath
-  } = options;
-
-  // Check if executeSignup option was set via flags, or prompt if not
-  let shouldExecuteSignup = executeSignup;
-  if (shouldExecuteSignup === undefined) {
-    shouldExecuteSignup = await confirmWithTimeout(
-      "Do you want to register validators in EigenLayer?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `Using flag option: ${shouldExecuteSignup ? "will register" : "will not register"} validators`
-    );
-  }
-
-  if (!shouldExecuteSignup) {
-    logger.info("Skipping validator setup. Done!");
-    return false;
-  }
+  const { rpcUrl, validatorsConfig, networkName = "anvil" } = options;
 
   printHeader("Setting Up DataHaven Validators");
 

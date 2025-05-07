@@ -44,6 +44,8 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
 
   if (!shouldDeployContracts) {
     logger.info("Skipping contract deployment. Done!");
+    printDivider();
+
     return false;
   }
 

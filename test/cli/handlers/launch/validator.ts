@@ -9,11 +9,8 @@ export const performValidatorOperations = async (
   networkRpcUrl: string,
   contractsDeployed: boolean
 ) => {
-  let shouldFundValidators = options.fundValidators;
-  let shouldSetupValidators = options.setupValidators;
-  let shouldUpdateValidatorSet = options.updateValidatorSet;
-
   // If not specified, prompt for funding
+  let shouldFundValidators = options.fundValidators;
   if (shouldFundValidators === undefined) {
     shouldFundValidators = await confirmWithTimeout(
       "Do you want to fund validators with tokens and ETH?",
@@ -23,32 +20,6 @@ export const performValidatorOperations = async (
   } else {
     logger.info(
       `Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
-    );
-  }
-
-  // If not specified, prompt for setup
-  if (shouldSetupValidators === undefined) {
-    shouldSetupValidators = await confirmWithTimeout(
-      "Do you want to register validators in EigenLayer?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
-    );
-  }
-
-  // If not specified, prompt for update
-  if (shouldUpdateValidatorSet === undefined) {
-    shouldUpdateValidatorSet = await confirmWithTimeout(
-      "Do you want to update the validator set on the substrate chain?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
     );
   }
 
@@ -64,6 +35,21 @@ export const performValidatorOperations = async (
     });
   } else {
     logger.debug("Skipping validator funding");
+    printDivider();
+  }
+
+  // If not specified, prompt for setup
+  let shouldSetupValidators = options.setupValidators;
+  if (shouldSetupValidators === undefined) {
+    shouldSetupValidators = await confirmWithTimeout(
+      "Do you want to register validators in EigenLayer?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
+    );
   }
 
   if (shouldSetupValidators) {
@@ -77,6 +63,20 @@ export const performValidatorOperations = async (
       rpcUrl: networkRpcUrl
     });
 
+    // If not specified, prompt for update
+    let shouldUpdateValidatorSet = options.updateValidatorSet;
+    if (shouldUpdateValidatorSet === undefined) {
+      shouldUpdateValidatorSet = await confirmWithTimeout(
+        "Do you want to update the validator set on the substrate chain?",
+        true,
+        10
+      );
+    } else {
+      logger.info(
+        `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+      );
+    }
+
     if (shouldUpdateValidatorSet) {
       if (!contractsDeployed) {
         logger.warn(
@@ -89,8 +89,10 @@ export const performValidatorOperations = async (
       });
     } else {
       logger.debug("Skipping validator set update");
+      printDivider();
     }
   } else {
     logger.debug("Skipping validator setup");
+    printDivider();
   }
 };

@@ -56,7 +56,7 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
 
   logger.debug(`Running command: ${sendCommand}`);
 
-  const { exitCode, stderr } = await $`sh -c ${sendCommand}`.nothrow();
+  const { exitCode, stderr } = await $`sh -c ${sendCommand}`.nothrow().quiet();
 
   if (exitCode !== 0) {
     logger.error(`Failed to send validator set: ${stderr.toString()}`);

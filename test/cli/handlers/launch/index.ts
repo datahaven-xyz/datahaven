@@ -11,7 +11,7 @@ import {
   printHeader
 } from "utils";
 import { checkDependencies } from "./checks";
-import { performDatahavenOperations } from "./datahaven";
+import { performDatahavenOperations, prepareDatahavenAuthoritiesConfig } from "./datahaven";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { performRelayerOperations } from "./relayer";
 import { performSummaryOperations } from "./summary";
@@ -30,6 +30,7 @@ export interface LaunchOptions {
   skipCleaning?: boolean;
   datahavenBinPath?: string;
   datahaven?: boolean;
+  fastRuntime?: boolean;
 }
 
 export const BASE_SERVICES = [
@@ -51,6 +52,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   printHeader("Environment Checks");
 
   await checkDependencies();
+
+  // Prepare Datahaven authorities config before deploying contracts
+  await prepareDatahavenAuthoritiesConfig();
 
   logger.trace("Launching Kurtosis enclave");
   await launchKurtosis({
@@ -110,6 +114,10 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   if (options.relayer) {
+    logger.info(
+      "Waiting 30 seconds (around 5 blocks) for networks to settle before launching relayers..."
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30000));
     await performRelayerOperations(options, launchedNetwork);
   }
 

@@ -41,7 +41,7 @@ use {
     sp_runtime::{traits::Get, RuntimeDebug},
     sp_staking::SessionIndex,
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
-    tp_traits::{
+    traits::{
         ActiveEraInfo, EraIndex, EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider,
         OnEraEnd, OnEraStart, ValidatorProvider,
     },
@@ -49,6 +49,7 @@ use {
 
 #[cfg(test)]
 mod mock;
+mod traits;
 
 #[cfg(test)]
 mod tests;

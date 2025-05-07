@@ -20,6 +20,7 @@ const program = new Command()
     "Path to the datahaven binary",
     "../operator/target/release/datahaven-node"
   )
+  .option("--fast-runtime", "Build Substrate runtime in fast mode")
   .option("-v, --verified", "Verify smart contracts with Blockscout")
   .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
   .option("-r, --relayer", "Enable Relayer")

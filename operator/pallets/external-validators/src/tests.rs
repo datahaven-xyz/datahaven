@@ -19,11 +19,11 @@ use {
             last_event, new_test_ext, run_to_block, run_to_session, ExternalValidators, HookCall,
             Mock, RootAccount, RuntimeEvent, RuntimeOrigin, Session, System, Test,
         },
+        traits::{ExternalIndexProvider, ValidatorProvider},
         Error,
     },
     frame_support::{assert_noop, assert_ok},
     sp_runtime::traits::BadOrigin,
-    tp_traits::{ExternalIndexProvider, ValidatorProvider},
 };
 
 #[test]

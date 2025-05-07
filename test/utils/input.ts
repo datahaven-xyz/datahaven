@@ -1,102 +1,98 @@
 import {
-	type Status,
-	type Theme,
-	createPrompt,
-	isEnterKey,
-	makeTheme,
-	useEffect,
-	useKeypress,
-	usePrefix,
-	useState,
+  type Status,
+  type Theme,
+  createPrompt,
+  isEnterKey,
+  makeTheme,
+  useEffect,
+  useKeypress,
+  usePrefix,
+  useState
 } from "@inquirer/core";
 import type { PartialDeep } from "@inquirer/type";
 import chalk from "chalk";
 
 type TimeoutConfirmConfig = {
-	message: string;
-	default?: boolean;
-	timeoutMs: number;
-	theme?: PartialDeep<Theme>;
+  message: string;
+  default?: boolean;
+  timeoutMs: number;
+  theme?: PartialDeep<Theme>;
 };
 
-export const timeoutConfirm = createPrompt<boolean, TimeoutConfirmConfig>(
-	(cfg, done) => {
-		const [status, setStatus] = useState<Status>("loading");
-		const [input, setInput] = useState("");
-		const [left, setLeft] = useState(cfg.timeoutMs);
+export const timeoutConfirm = createPrompt<boolean, TimeoutConfirmConfig>((cfg, done) => {
+  const [status, setStatus] = useState<Status>("loading");
+  const [input, setInput] = useState("");
+  const [left, setLeft] = useState(cfg.timeoutMs);
 
-		const theme = makeTheme(cfg.theme);
-		const prefix = usePrefix({ status, theme });
+  const theme = makeTheme(cfg.theme);
+  const prefix = usePrefix({ status, theme });
 
-		useEffect(() => {
-			const startTime = Date.now();
-			const id = setInterval(() => {
-				const elapsed = Date.now() - startTime;
-				const newLeft = Math.max(0, cfg.timeoutMs - elapsed);
+  useEffect(() => {
+    const startTime = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const newLeft = Math.max(0, cfg.timeoutMs - elapsed);
 
-				setLeft(newLeft);
+      setLeft(newLeft);
 
-				if (newLeft <= 0) {
-					setStatus("done");
-					clearInterval(id);
-					done(cfg.default ?? true);
-				}
-			}, 500);
+      if (newLeft <= 0) {
+        setStatus("done");
+        clearInterval(id);
+        done(cfg.default ?? true);
+      }
+    }, 500);
 
-			return () => clearInterval(id);
-		}, []);
+    return () => clearInterval(id);
+  }, []);
 
-		const finish = () => {
-			const val = /^(y|yes)$/i.test(input)
-				? true
-				: /^(n|no)$/i.test(input)
-					? false
-					: (cfg.default ?? true);
-			setStatus("done");
-			done(val);
-		};
+  const finish = () => {
+    const val = /^(y|yes)$/i.test(input)
+      ? true
+      : /^(n|no)$/i.test(input)
+        ? false
+        : (cfg.default ?? true);
+    setStatus("done");
+    done(val);
+  };
 
-		useKeypress((key, rl) => {
-			if (isEnterKey(key)) finish();
-			else setInput(rl.line);
-		});
+  useKeypress((key, rl) => {
+    if (isEnterKey(key)) finish();
+    else setInput(rl.line);
+  });
 
-		const defaultBadge = theme.style.defaultAnswer(
-			cfg.default === false ? "y/N" : "Y/n",
-		);
+  const defaultBadge = theme.style.defaultAnswer(cfg.default === false ? "y/N" : "Y/n");
 
-		const main = `${prefix} ${theme.style.message(cfg.message, status)} \
+  const main = `${prefix} ${theme.style.message(cfg.message, status)} \
 ${defaultBadge} ${input}`;
-		const border = chalk.yellow("=".repeat(80));
-		const hint = theme.style.help(
-			chalk.magenta(
-				`⏱ Will default to ${chalk.bold(cfg.default ? "YES" : "NO")} in ${chalk.bold((left / 1000).toFixed(0))}s`,
-			),
-		);
+  const border = chalk.yellow("=".repeat(80));
+  const hint = theme.style.help(
+    chalk.magenta(
+      `⏱ Will default to ${chalk.bold(cfg.default ? "YES" : "NO")} in ${chalk.bold((left / 1000).toFixed(0))}s`
+    )
+  );
 
-		return `${border}
+  return `${border}
 ${hint}
 ${main}
 ${border}`;
-	},
-);
+});
 
 export const confirmWithTimeout = async (
-	question: string,
-	defaultValue: boolean,
-	timeoutSeconds: number,
+  question: string,
+  defaultValue: boolean,
+  timeoutSeconds: number
 ) => {
-	await Bun.sleep(50); //debounce
+  await Bun.sleep(50); //debounce
 
-	return timeoutConfirm({
-		message: question,
-		default: defaultValue,
-		timeoutMs: timeoutSeconds * 1000,
-		theme: {
-			style: {
-				message: (text: string) => chalk.cyan(text),
-				answer: (text: string) => chalk.green(text),
-			},
-		},
-	});
+  return timeoutConfirm({
+    message: question,
+    default: defaultValue,
+    timeoutMs: timeoutSeconds * 1000,
+    theme: {
+      style: {
+        message: (text: string) => chalk.cyan(text),
+        answer: (text: string) => chalk.green(text)
+      }
+    }
+  });
 };

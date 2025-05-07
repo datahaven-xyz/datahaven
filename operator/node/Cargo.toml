@@ -64,40 +64,23 @@ sc-service = { workspace = true, default-features = true }
 sc-telemetry = { workspace = true, default-features = true }
 sc-transaction-pool = { workspace = true, default-features = true }
 sc-transaction-pool-api = { workspace = true, default-features = true }
-sp-api.default-features = true
-sp-api.workspace = true
-sp-block-builder.default-features = true
-sp-block-builder.workspace = true
-sp-blockchain.default-features = true
-sp-blockchain.workspace = true
-sp-consensus-babe.default-features = true
-sp-consensus-babe.workspace = true
-sp-consensus-beefy.default-features = true
-sp-consensus-beefy.workspace = true
-sp-consensus-grandpa.default-features = true
-sp-consensus-grandpa.workspace = true
-sp-core.default-features = true
-sp-core.workspace = true
-sp-genesis-builder.default-features = true
-sp-genesis-builder.workspace = true
-sp-inherents.default-features = true
-sp-inherents.workspace = true
-sp-io.default-features = true
-sp-io.workspace = true
-sp-keyring.default-features = true
-sp-keyring.workspace = true
-sp-offchain.default-features = true
-sp-offchain.workspace = true
-sp-runtime.default-features = true
-sp-runtime.workspace = true
-sp-session.default-features = true
-sp-session.workspace = true
-sp-timestamp.default-features = true
-sp-timestamp.workspace = true
-sp-transaction-pool.default-features = true
-sp-transaction-pool.workspace = true
-substrate-frame-rpc-system.default-features = true
-substrate-frame-rpc-system.workspace = true
+sp-api = { workspace = true, default-features = true }
+sp-block-builder = { workspace = true, default-features = true }
+sp-blockchain = { workspace = true, default-features = true }
+sp-consensus-babe = { workspace = true, default-features = true }
+sp-consensus-beefy = { workspace = true, default-features = true }
+sp-consensus-grandpa = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+sp-genesis-builder = { workspace = true, default-features = true }
+sp-inherents = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
+sp-keyring = { workspace = true, default-features = true }
+sp-offchain = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-session = { workspace = true, default-features = true }
+sp-timestamp = { workspace = true, default-features = true }
+sp-transaction-pool = { workspace = true, default-features = true }
+substrate-frame-rpc-system = { workspace = true, default-features = true }
 
 # Frontier
 fc-api = { workspace = true }

@@ -33,8 +33,9 @@ jobs:
             cache-to: type=gha,mode=max
       - name: Test node help
         run: docker run --rm moonsonglabs/datahaven-node:local --help
-      - run: docker run --rm -d -p 9944:9944 moonsonglabs/datahaven-node:local --dev --unsafe-rpc-external 
+      - run: docker run --rm -d -p 9944:9944 --name local-dh-node moonsonglabs/datahaven-node:local --dev --unsafe-rpc-external 
       - run: sleep 10
+      - run: docker logs local-dh-node
       - run: |
           curl --location 'http://127.0.0.1:9944' \
             --header 'Content-Type: application/json' \

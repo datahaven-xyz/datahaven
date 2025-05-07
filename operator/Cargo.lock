@@ -2436,7 +2436,6 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-validator-set",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -7878,23 +7877,6 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-validator-set"
-version = "1.0.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-session",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-staking",
 ]
 
 [[package]]

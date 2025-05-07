@@ -56,7 +56,6 @@ pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-utility = { workspace = true }
-pallet-validator-set = { workspace = true }
 pallet-external-validators = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -137,7 +136,6 @@ std = [
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
     "pallet-utility/std",
-    "pallet-validator-set/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "scale-info/std",

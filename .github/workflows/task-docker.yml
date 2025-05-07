@@ -28,12 +28,12 @@ jobs:
             file: ./operator/Dockerfile 
             push: false 
             load: true 
-            tags: moonsonglabs/datahaven-node:local 
+            tags: moonsonglabs/datahaven:local 
             cache-from: type=gha
             cache-to: type=gha,mode=max
       - name: Test node help
-        run: docker run --rm moonsonglabs/datahaven-node:local --help
-      - run: docker run --rm -d -p 9944:9944 --name local-dh-node moonsonglabs/datahaven-node:local --dev --unsafe-rpc-external 
+        run: docker run --rm moonsonglabs/datahaven:local --help
+      - run: docker run --rm -d -p 9944:9944 --name local-dh-node moonsonglabs/datahaven:local --dev --unsafe-rpc-external 
       - run: sleep 60
       - run: docker logs local-dh-node
       - run: |

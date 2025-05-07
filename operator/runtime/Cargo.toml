@@ -57,6 +57,7 @@ pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-utility = { workspace = true }
 pallet-validator-set = { workspace = true }
+pallet-external-validators = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 scale-info = { features = ["derive", "serde"], workspace = true }
@@ -173,6 +174,7 @@ std = [
     "sp-version/std",
     "substrate-wasm-builder",
     "pallet-outbound-commitment-store/std",
+    "pallet-external-validators/std",
 ]
 
 runtime-benchmarks = [
@@ -209,6 +211,7 @@ runtime-benchmarks = [
     "sp-runtime/runtime-benchmarks",
     "snowbridge-pallet-system/runtime-benchmarks",
     "pallet-outbound-commitment-store/runtime-benchmarks",
+    "pallet-external-validators/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -247,6 +250,7 @@ try-runtime = [
     "sp-runtime/try-runtime",
     "snowbridge-pallet-system/try-runtime",
     "pallet-outbound-commitment-store/try-runtime",
+    "pallet-external-validators/try-runtime",
 ]
 
 fast-runtime = [

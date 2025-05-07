@@ -349,5 +349,8 @@ mod runtime {
     // Start with index 100
     #[runtime::pallet_index(100)]
     pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
+
+    #[runtime::pallet_index(101)]
+    pub type ExternalValidators = pallet_external_validators;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }

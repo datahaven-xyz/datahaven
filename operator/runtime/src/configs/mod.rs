@@ -27,11 +27,11 @@ mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
-    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    EthereumBeaconClient, EvmChainId, ExternalValidators, Hash, Historical, ImOnline, MessageQueue,
+    Nonce, Offences, OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
+    RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, ValidatorSet,
+    EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -871,4 +871,28 @@ pub mod benchmark_helpers {
 
 impl pallet_outbound_commitment_store::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+}
+
+parameter_types! {
+    pub const MaxWhitelistedValidators: u32 = 100;
+    pub const MaxExternalValidators: u32 = 100;
+}
+
+impl pallet_external_validators::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type HistoryDepth = ConstU32<84>;
+    type MaxWhitelistedValidators = MaxWhitelistedValidators;
+    type MaxExternalValidators = MaxExternalValidators;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type ValidatorRegistration = Session;
+    type UnixTime = Timestamp;
+    type SessionsPerEra = SessionsPerEra;
+    // TODO: Implement OnEraStart and OnEraEnd when ExternalValidatorsRewards is added
+    type OnEraStart = ();
+    type OnEraEnd = ();
+    type WeightInfo = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Currency = Balances;
 }

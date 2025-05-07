@@ -25,6 +25,14 @@
 
 mod runtime_params;
 
+use super::{
+    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage, Runtime,
+    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
+    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
+    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+};
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
@@ -47,7 +55,7 @@ use frame_support::{
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot,
+    EnsureRoot, EnsureRootWithSuccess,
 };
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
@@ -61,14 +69,23 @@ use pallet_transaction_payment::{
     ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
 };
 use polkadot_primitives::Moment;
+use runtime_params::RuntimeParameters;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
+use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards};
 use snowbridge_inbound_queue_primitives::RewardLedger;
-use snowbridge_outbound_queue_primitives::v2::ConstantGasMeter;
+use snowbridge_outbound_queue_primitives::{
+    v1::{Fee, Message, SendMessage},
+    v2::ConstantGasMeter,
+    SendError, SendMessageFeeProvider,
+};
+use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
+use snowbridge_pallet_system::BalanceOf;
 use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
     mmr::{BeefyDataProvider, MmrLeafVersion},
 };
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
+use sp_runtime::FixedU128;
 use sp_runtime::{
     traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
@@ -80,16 +97,7 @@ use sp_std::{
 };
 use sp_version::RuntimeVersion;
 use xcm::latest::NetworkId;
-
-use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent,
-    RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys,
-    Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
-};
-use runtime_params::RuntimeParameters;
+use xcm::prelude::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
@@ -248,7 +256,7 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    type SessionManager = ValidatorSet;
+    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ValidatorSet>;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -349,7 +357,7 @@ pub struct LeafExtraDataProvider;
 impl BeefyDataProvider<LeafExtraData> for LeafExtraDataProvider {
     fn extra_data() -> LeafExtraData {
         LeafExtraData {
-            extra: H256::zero(),
+            extra: OutboundCommitmentStore::get_latest_commitment().unwrap_or_default(),
         }
     }
 }
@@ -619,6 +627,72 @@ impl pallet_evm_chain_id::Config for Runtime {}
 //║                                          SNOWBRIDGE PALLETS                                                   ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
+// --- Snowbridge Config Constants & Parameter Types ---
+parameter_types! {
+    pub UniversalLocation: InteriorLocation = Here.into();
+    pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
+    pub RootLocation: Location = Location::here();
+    pub Parameters: PricingParameters<u128> = PricingParameters {
+        exchange_rate: FixedU128::from_rational(1, 400),
+        fee_per_gas: gwei(20),
+        rewards: Rewards { local: 1 * UNIT, remote: meth(1) },
+        multiplier: FixedU128::from_rational(1, 1),
+    };
+    pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
+    pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
+}
+
+pub struct DoNothingOutboundQueue;
+impl SendMessage for DoNothingOutboundQueue {
+    type Ticket = ();
+
+    fn validate(
+        _: &Message,
+    ) -> Result<(Self::Ticket, Fee<<Self as SendMessageFeeProvider>::Balance>), SendError> {
+        Ok(((), Fee::from((0, 0))))
+    }
+
+    fn deliver(_: Self::Ticket) -> Result<H256, snowbridge_outbound_queue_primitives::SendError> {
+        Ok(H256::zero())
+    }
+}
+
+impl SendMessageFeeProvider for DoNothingOutboundQueue {
+    type Balance = u128;
+
+    fn local_fee() -> Self::Balance {
+        1
+    }
+}
+
+// Implement the Snowbridge System V1 config trait
+impl snowbridge_pallet_system::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OutboundQueue = DoNothingOutboundQueue;
+    type SiblingOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
+    type AgentIdOf = AgentIdOf;
+    type Token = Balances;
+    type TreasuryAccount = TreasuryAccountId;
+    type DefaultPricingParameters = Parameters;
+    type InboundDeliveryCost = InboundDeliveryCost;
+    type WeightInfo = ();
+    type UniversalLocation = UniversalLocation;
+    type EthereumLocation = EthereumLocation;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = ();
+}
+
+// Implement the Snowbridge System v2 config trait
+impl snowbridge_pallet_system_v2::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type OutboundQueue = OutboundQueueV2;
+    type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
+    type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
+    type WeightInfo = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = ();
+}
+
 // For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
 #[cfg(any(
     feature = "std",
@@ -732,6 +806,13 @@ parameter_types! {
     pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
 }
 
+pub struct CommitmentHandler;
+impl OnNewCommitment for CommitmentHandler {
+    fn on_new_commitment(commitment: H256) {
+        OutboundCommitmentStore::store_commitment(commitment);
+    }
+}
+
 impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Hashing = Keccak256;
@@ -740,8 +821,9 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type Balance = Balance;
     type MaxMessagePayloadSize = ConstU32<2048>;
     type MaxMessagesPerBlock = ConstU32<32>;
-    type OnNewCommitment = ();
+    type OnNewCommitment = CommitmentHandler;
     type WeightToFee = IdentityFee<Balance>;
+    type WeightInfo = ();
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type RewardKind = ();
@@ -749,7 +831,6 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RewardPayment = DummyRewardPayment;
     type EthereumNetwork = EthereumNetwork;
     type ConvertAssetId = ();
-    type WeightInfo = ();
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -762,15 +843,32 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
+    use crate::RuntimeOrigin;
     use crate::{EthereumBeaconClient, Runtime};
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
-    // use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
     use sp_core::H256;
+    use xcm::opaque::latest::Location;
 
     impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
         fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }
+
+    impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
+        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
+            RuntimeOrigin::root()
+        }
+    }
+
+    impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
+        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
+            RuntimeOrigin::root()
+        }
+    }
+}
+
+impl pallet_outbound_commitment_store::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
 }

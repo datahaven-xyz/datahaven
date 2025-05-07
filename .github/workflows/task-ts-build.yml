@@ -1,0 +1,47 @@
+name: TS Build
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  generate-wagmi:
+    runs-on: ubuntu-latest
+    name: Check Bindings are current
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Run Forge build
+        run: |
+            forge build
+        working-directory: contracts
+      - name: Install dependencies
+        working-directory: test
+        run: bun install
+      - name: Generate Wagmi Bindings
+        working-directory: test
+        run: bun generate:wagmi
+      - run: bun fmt:fix
+        working-directory: test
+      - name: Check no local changes
+        run: |
+          changes=$(git status --porcelain .)
+          if [ -n "$changes" ]; then
+            echo "generate:wagmi produced changes:"
+            echo "$changes"
+            echo "Please run 'bun generate:wagmi' locally and commit the changes."
+            exit 1
+          else
+            echo "No changes"
+            exit 0
+          fi

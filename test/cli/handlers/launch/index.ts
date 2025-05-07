@@ -1,160 +1,178 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import { launchKurtosis } from "scripts/launch-kurtosis";
 import sendTxn from "scripts/send-txn";
 import invariant from "tiny-invariant";
 import {
-  ANVIL_FUNDED_ACCOUNTS,
-  getPortFromKurtosis,
-  logger,
-  printDivider,
-  printHeader
+	ANVIL_FUNDED_ACCOUNTS,
+	getPortFromKurtosis,
+	logger,
+	printDivider,
+	printHeader,
 } from "utils";
 import { checkDependencies } from "./checks";
-import { performDatahavenOperations, prepareDatahavenAuthoritiesConfig } from "./datahaven";
+import {
+	performDatahavenOperations,
+	prepareDatahavenAuthoritiesConfig,
+} from "./datahaven";
+import { launchKurtosis } from "scripts/launch-kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { performRelayerOperations } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 
 export interface LaunchOptions {
-  verified?: boolean;
-  launchKurtosis?: boolean;
-  deployContracts?: boolean;
-  fundValidators?: boolean;
-  setupValidators?: boolean;
-  updateValidatorSet?: boolean;
-  blockscout?: boolean;
-  relayer?: boolean;
-  relayerBinPath?: string;
-  skipCleaning?: boolean;
-  datahavenBinPath?: string;
-  datahaven?: boolean;
-  fastRuntime?: boolean;
+	verified?: boolean;
+	launchKurtosis?: boolean;
+	deployContracts?: boolean;
+	fundValidators?: boolean;
+	setupValidators?: boolean;
+	updateValidatorSet?: boolean;
+	blockscout?: boolean;
+	relayer?: boolean;
+	relayerBinPath?: string;
+	skipCleaning?: boolean;
+	alwaysClean?: boolean;
+	datahavenBinPath?: string;
+	datahaven?: boolean;
+	fastRuntime?: boolean;
+	kurtosisNetworkArgs?: string;
+	slotTime?: number;
 }
 
 export const BASE_SERVICES = [
-  "cl-1-lighthouse-reth",
-  "cl-1-lighthouse-reth",
-  "el-1-reth-lighthouse",
-  "el-2-reth-lighthouse",
-  "dora"
+	"cl-1-lighthouse-reth",
+	"cl-2-lighthouse-reth",
+	"el-1-reth-lighthouse",
+	"el-2-reth-lighthouse",
+	"dora",
 ];
 
 // =====  Launch Handler Functions  =====
 
-const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedNetwork) => {
-  logger.debug("Running with options:");
-  logger.debug(options);
+const launchFunction = async (
+	options: LaunchOptions,
+	launchedNetwork: LaunchedNetwork,
+) => {
+	logger.debug("Running with options:");
+	logger.debug(options);
 
-  const timeStart = performance.now();
+	const timeStart = performance.now();
 
-  printHeader("Environment Checks");
+	printHeader("Environment Checks");
 
-  await checkDependencies();
+	await checkDependencies();
 
-  // Prepare Datahaven authorities config before deploying contracts
-  await prepareDatahavenAuthoritiesConfig();
+	logger.trace("Launching Kurtosis enclave");
+	await launchKurtosis(options);
+	logger.trace("Kurtosis enclave launched");
 
-  logger.trace("Launching Kurtosis enclave");
-  await launchKurtosis({
-    launchKurtosis: options.launchKurtosis,
-    blockscout: options.blockscout,
-    skipCleaning: options.skipCleaning
-  });
-  logger.trace("Kurtosis enclave launched");
+	logger.trace("Send test transaction");
+	printHeader("Setting Up Blockchain");
+	logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
+	const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
+	const rethPublicPort = await getPortFromKurtosis(
+		"el-1-reth-lighthouse",
+		"rpc",
+	);
+	const networkRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
+	invariant(networkRpcUrl, "❌ Network RPC URL not found");
 
-  logger.trace("Send test transaction");
-  printHeader("Setting Up Blockchain");
-  logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
-  const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
-  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
-  const networkRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-  invariant(networkRpcUrl, "❌ Network RPC URL not found");
+	logger.info("💸 Sending test transaction...");
+	await sendTxn(privateKey, networkRpcUrl);
 
-  logger.info("💸 Sending test transaction...");
-  await sendTxn(privateKey, networkRpcUrl);
+	printDivider();
 
-  printDivider();
+	logger.trace("Show completion information");
+	const timeEnd = performance.now();
+	const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
 
-  logger.trace("Show completion information");
-  const timeEnd = performance.now();
-  const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
+	logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
 
-  logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
+	// Prepare Datahaven authorities config before deploying contracts
+	logger.trace("Prepare Datahaven authorities config");
+	if (options.datahaven) {
+		logger.debug("Datahaven is enabled, preparing authorities config");
+		await prepareDatahavenAuthoritiesConfig();
+	}
 
-  logger.trace("Deploy contracts using the extracted function");
-  let blockscoutBackendUrl: string | undefined = undefined;
+	logger.trace("Deploy contracts using the extracted function");
+	let blockscoutBackendUrl: string | undefined = undefined;
 
-  if (options.blockscout === true) {
-    const blockscoutPublicPort = await getPortFromKurtosis("blockscout", "http");
-    blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
-  } else if (options.verified) {
-    logger.warn(
-      "⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped."
-    );
-  }
+	if (options.blockscout === true) {
+		const blockscoutPublicPort = await getPortFromKurtosis(
+			"blockscout",
+			"http",
+		);
+		blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
+	} else if (options.verified) {
+		logger.warn(
+			"⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped.",
+		);
+	}
 
-  const contractsDeployed = await deployContracts({
-    rpcUrl: networkRpcUrl,
-    verified: options.verified,
-    blockscoutBackendUrl,
-    deployContracts: options.deployContracts
-  });
+	const contractsDeployed = await deployContracts({
+		rpcUrl: networkRpcUrl,
+		verified: options.verified,
+		blockscoutBackendUrl,
+		deployContracts: options.deployContracts,
+	});
 
-  if (contractsDeployed) {
-    await performValidatorOperations(options, networkRpcUrl);
-  } else if (options.setupValidators || options.fundValidators) {
-    logger.warn(
-      "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
-    );
-  }
-  if (options.datahaven) {
-    await performDatahavenOperations(options, launchedNetwork);
-  }
+	if (contractsDeployed) {
+		await performValidatorOperations(options, networkRpcUrl);
+	} else if (options.setupValidators || options.fundValidators) {
+		logger.warn(
+			"⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations.",
+		);
+	}
+	if (options.datahaven) {
+		await performDatahavenOperations(options, launchedNetwork);
+	}
 
-  if (options.relayer) {
-    logger.info(
-      "Waiting 30 seconds (around 5 blocks) for networks to settle before launching relayers..."
-    );
-    await new Promise((resolve) => setTimeout(resolve, 30000));
-    await performRelayerOperations(options, launchedNetwork);
-  }
+	if (options.relayer) {
+		logger.info(
+			"Waiting 30 seconds (around 5 blocks) for networks to settle before launching relayers...",
+		);
+		await new Promise((resolve) => setTimeout(resolve, 30000));
+		await performRelayerOperations(options, launchedNetwork);
+	}
 
-  printDivider();
+	printDivider();
 
-  performSummaryOperations(options, launchedNetwork);
-  logger.debug("Launch function completed successfully");
+	performSummaryOperations(options, launchedNetwork);
+	const fullEnd = performance.now();
+	const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
+	logger.info(
+		`Launch function completed successfully in ${fullMinutes} minutes`,
+	);
 };
 
 export const launch = async (options: LaunchOptions) => {
-  const run = new LaunchedNetwork();
-  try {
-    await launchFunction(options, run);
-    logger.success("Launch script completed successfully");
-  } finally {
-    await run.cleanup();
-  }
+	const run = new LaunchedNetwork();
+	try {
+		await launchFunction(options, run);
+		logger.success("Launch script completed successfully");
+	} finally {
+		await run.cleanup();
+	}
 };
 
 export const launchPreActionHook = (
-  thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
+	thisCmd: Command<[], LaunchOptions & { [key: string]: any }>,
 ) => {
-  const {
-    blockscout,
-    verified,
-    fundValidators,
-    setupValidators,
-    updateValidatorSet,
-    deployContracts
-  } = thisCmd.opts();
-  if (verified && !blockscout) {
-    thisCmd.error("--verified requires --blockscout to be set");
-  }
-  if (deployContracts === false && setupValidators) {
-    thisCmd.error("--setupValidators requires --deployContracts to be set");
-  }
-  if (deployContracts === false && fundValidators) {
-    thisCmd.error("--fundValidators requires --deployContracts to be set");
-  }
+	const {
+		blockscout,
+		verified,
+		fundValidators,
+		setupValidators,
+		deployContracts,
+	} = thisCmd.opts();
+	if (verified && !blockscout) {
+		thisCmd.error("--verified requires --blockscout to be set");
+	}
+	if (deployContracts === false && setupValidators) {
+		thisCmd.error("--setupValidators requires --deployContracts to be set");
+	}
+	if (deployContracts === false && fundValidators) {
+		thisCmd.error("--fundValidators requires --deployContracts to be set");
+	}
 };

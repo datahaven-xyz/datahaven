@@ -84,6 +84,16 @@ bun test:e2e
 > [!NOTE]
 > You can increase the logging level by setting `LOG_LEVEL=debug` before running the tests.
 
+### Wagmi Bindings Generation
+
+To ensure contract bindings are up-to-date, run the following command after modifying smart contracts or updating ABIs:
+
+```bash
+bun generate:wagmi
+```
+
+This command generates TypeScript bindings for interacting with the deployed smart contracts using Wagmi.
+
 ## Troubleshooting
 
 ### E2E Network Launch doesn't work

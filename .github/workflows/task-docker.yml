@@ -61,7 +61,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven-node
+          images: moonsonglabs/datahaven
           tags: |
             # uses latest for merging to main
             type=raw,value=latest,enable={{is_default_branch}}

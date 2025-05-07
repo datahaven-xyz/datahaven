@@ -1,0 +1,88 @@
+# Rust Tests: CI for Rust components (DataHaven runtime and node Rust tests)
+#
+# Overview:
+# 1. Prepare: This job handles the setup phase where the cargo nextest archive is created
+#    and uploaded to the workflow for use in the subsequent jobs
+# 2. All Rust Tests: Executes the full suite of Rust tests across two partitions to
+#    to reduce total execution time.
+
+name: DataHave Operator Rust Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+
+  prepare:
+    name: Prepare artifacts for Rust tests
+    runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: "TEST"
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Build and archive tests
+        run: cargo nextest archive --archive-file nextest-archive.tar.zst
+      - name: Upload archive to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextest-archive
+          path: ./operator/nextest-archive.tar.zst
+
+  all-rust-tests:
+    name: Run all Operator Rust tests (/w partitioning)
+    needs: [prepare]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2]
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - name: Download archive
+        uses: actions/download-artifact@v4
+        with:
+          name: nextest-archive
+      - name: Run Tests for All Projects!
+        run: |
+          ~/.cargo/bin/cargo-nextest nextest run \
+            --archive-file ../nextest-archive.tar.zst \
+            --partition count:${{ matrix.partition }}/2
+
+  tests-result-checker:
+    name: Check tests were successful
+    needs: [all-rust-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate test results
+        run: |
+          echo "matrix result: ${{ needs.all-rust-tests.result }}"
+
+          if [ "${{ needs.all-rust-tests.result }}" != "success" ]; then
+            echo "Rust tests failed or were cancelled"
+            exit 1
+          else
+            echo "Rust tests passed"
+          fi
+

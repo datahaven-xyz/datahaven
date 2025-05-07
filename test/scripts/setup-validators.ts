@@ -1,9 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-// Setup of validators for DataHaven
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printHeader } from "../utils/index";
+import { confirmWithTimeout, logger, printHeader, runShellCommandWithLogger } from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -113,16 +112,11 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
   const validators = config.validators;
   logger.info(`Found ${validators.length} validators to register`);
 
-  // Get forge path
-  const { stdout: forgePath } = await $`which forge`.quiet();
-  const forgeExecutable = forgePath.toString().trim();
-
   // Iterate through all validators to register them
   for (let i = 0; i < validators.length; i++) {
     const validator = validators[i];
     logger.info(`Setting up validator ${i} (${validator.publicKey})`);
 
-    // Setting up the environment variables directly
     const env = {
       ...process.env,
       NETWORK: networkName,
@@ -133,20 +127,10 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     };
 
     // Prepare command to register validator
-    const signupCommand = `${forgeExecutable} script script/transact/SignUpValidator.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
-
+    const signupCommand = `forge script script/transact/SignUpValidator.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
     logger.debug(`Running command: ${signupCommand}`);
 
-    // Run with environment variables directly passed to the environment
-    const { exitCode, stderr } = await $`sh -c ${signupCommand}`
-      .cwd("../contracts")
-      .env(env)
-      .nothrow();
-
-    if (exitCode !== 0) {
-      logger.error(`Failed to register validator ${validator.publicKey}: ${stderr.toString()}`);
-      continue;
-    }
+    await runShellCommandWithLogger(signupCommand, { env, cwd: "../contracts" });
 
     logger.success(`Successfully registered validator ${validator.publicKey}`);
   }

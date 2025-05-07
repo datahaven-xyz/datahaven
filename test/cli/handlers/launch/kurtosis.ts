@@ -1,4 +1,6 @@
 import { $ } from "bun";
+import type { LaunchOptions } from "cli/handlers";
+import invariant from "tiny-invariant";
 import {
   type KurtosisService,
   confirmWithTimeout,
@@ -7,27 +9,18 @@ import {
   printDivider,
   printHeader
 } from "utils";
+import { parse, stringify } from "yaml";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
  *
- * This function checks if a Kurtosis network is already running. If it is:
- * - With `launchKurtosis: false` - keeps the existing enclave
- * - With `launchKurtosis: true` - cleans and relaunches the enclave
- * - With `launchKurtosis: undefined` - prompts the user to decide whether to relaunch
- *
- * If no network is running, it launches a new one.
- *
  * @param options - Configuration options
- * @param options.launchKurtosis - Whether to forcibly launch Kurtosis (true), keep existing (false), or prompt user (undefined)
- * @param options.blockscout - Whether to add Blockscout service (true/undefined) or not (false)
- * @param options.skipCleaning - Whether to skip cleaning Kurtosis (true) or not (false)
  * @returns Object containing success status and Docker services information
  */
 export const launchKurtosis = async (
-  options: { launchKurtosis?: boolean; blockscout?: boolean; skipCleaning?: boolean } = {}
+  options: LaunchOptions = {}
 ): Promise<Record<string, KurtosisService>> => {
-  if (await checkKurtosisRunning()) {
+  if ((await checkKurtosisRunning()) && !options.alwaysClean) {
     logger.info("ℹ️  Kurtosis network is already running.");
 
     logger.trace("Checking if launchKurtosis option was set via flags");
@@ -73,10 +66,9 @@ export const launchKurtosis = async (
   }
 
   logger.info("🚀 Starting Kurtosis enclave...");
-  const configFile =
-    options.blockscout === true
-      ? "configs/kurtosis/minimal-with-bs.yaml"
-      : "configs/kurtosis/minimal.yaml";
+
+  const configFile = await modifyConfig(options, "configs/kurtosis/minimal.yaml");
+
   logger.info(`Using Kurtosis config file: ${configFile}`);
 
   const { stderr, stdout, exitCode } =
@@ -106,4 +98,43 @@ export const launchKurtosis = async (
 const checkKurtosisRunning = async (): Promise<boolean> => {
   const text = await $`kurtosis enclave ls | grep "datahaven-ethereum" | grep RUNNING`.text();
   return text.length > 0;
+};
+
+const modifyConfig = async (options: LaunchOptions, configFile: string) => {
+  const outputDir = "tmp/configs";
+  logger.debug(`Ensuring output directory exists: ${outputDir}`);
+  await $`mkdir -p ${outputDir}`.quiet();
+
+  const file = Bun.file(configFile);
+  invariant(file, `❌ Config file ${configFile} not found`);
+
+  const config = await file.text();
+  logger.debug(`Parsing config at ${configFile}`);
+  logger.trace(config);
+
+  const parsedConfig = parse(config);
+
+  if (options.blockscout) {
+    parsedConfig.additional_services.push("blockscout");
+  }
+
+  if (options.slotTime) {
+    parsedConfig.network_params.seconds_per_slot = options.slotTime;
+  }
+
+  if (options.kurtosisNetworkArgs) {
+    logger.debug(`Using custom Kurtosis network args: ${options.kurtosisNetworkArgs}`);
+    const args = options.kurtosisNetworkArgs.split(" ");
+    for (const arg of args) {
+      const [key, value] = arg.split("=");
+      parsedConfig.network_params[key] = value;
+    }
+  }
+
+  logger.trace(parsedConfig);
+  const outputFile = `${outputDir}/modified-config.yaml`;
+  logger.debug(`Modified config saving to ${outputFile}`);
+
+  await Bun.write(outputFile, stringify(parsedConfig));
+  return outputFile;
 };

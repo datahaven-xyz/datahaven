@@ -10,9 +10,9 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { workspace = true, features = ["derive"] }
-scale-info = { workspace = true, features = ["derive"] }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+scale-info = { workspace = true, features = ["derive"] }
 sp-core = { workspace = true }
 
 [features]

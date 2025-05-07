@@ -2,15 +2,15 @@
 name = "datahaven-runtime-common"
 description = "Common code used through the Datahaven network"
 version = "0.1.0"
-edition.workspace = true
+edition = { workspace = true }
 
 [dependencies]
-fp-account.workspace = true
-frame-support.workspace = true
-polkadot-primitives.workspace = true
-polkadot-runtime-common.workspace = true
-sp-core = { features = ["serde"], workspace = true }
-sp-runtime = { features = ["serde"], workspace = true }
+fp-account = { workspace = true }
+frame-support = { workspace = true }
+polkadot-primitives = { workspace = true }
+polkadot-runtime-common = { workspace = true }
+sp-core = { workspace = true, features = ["serde"] }
+sp-runtime = { workspace = true, features = ["serde"] }
 xcm = { workspace = true }
 
 [features]

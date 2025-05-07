@@ -34,15 +34,9 @@ The first step involves setting up the testing infrastructure using Kurtosis, a 
 ```bash
 # Start the E2E CLI environment with the minimal configuration
 bun cli
-# Alternative
-bun start:e2e:minimal
 
 # Start the E2E CLI environment with Blockscout and verified contracts
 bun start:e2e:verified
-
-# Behind the scenes both commands run:
-bun run scripts/launch-kurtosis.ts
-# And then continue setting up the environment with the next steps.
 ```
 
 ## 2. Ethereum-side Contract Deployment

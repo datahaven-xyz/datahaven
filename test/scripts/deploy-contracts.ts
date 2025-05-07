@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printHeader } from "utils";
+import { confirmWithTimeout, logger, printHeader, runShellCommandWithLogger } from "utils";
 
 interface DeployContractsOptions {
   rpcUrl: string;
@@ -63,12 +63,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   }
   logger.debug(buildStdout.toString());
 
-  // Get forge path
-  const { stdout: forgePath } = await $`which forge`.quiet();
-  const forgeExecutable = forgePath.toString().trim();
-
-  // Prepare deployment command
-  let deployCommand = `${forgeExecutable} script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+  let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 
   if (verified && blockscoutBackendUrl) {
     deployCommand += ` --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --delay 0`;
@@ -77,14 +72,8 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
 
   logger.info("⏳ Deploying contracts (this might take a few minutes)...");
 
-  const { exitCode: deployExitCode, stderr: deployStderr } = await $`sh -c ${deployCommand}`
-    .cwd("../contracts")
-    .nothrow();
-
-  if (deployExitCode !== 0) {
-    logger.error(deployStderr.toString());
-    throw Error("❌ Contracts have failed to deploy properly.");
-  }
+  // Using custom shell command to improve logging with forge's stdoutput
+  await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
 
   logger.success("Contracts deployed successfully");
   return true;
@@ -121,7 +110,6 @@ if (import.meta.main) {
     }
   }
 
-  // Check required parameters
   if (!options.rpcUrl) {
     console.error("Error: --rpc-url parameter is required");
     process.exit(1);
@@ -132,7 +120,6 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  // Run deployment
   deployContracts({
     rpcUrl: options.rpcUrl,
     verified: options.verified,

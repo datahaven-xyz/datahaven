@@ -355,8 +355,8 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> SessionManager<T::AccountId> for Pallet<T> {
-    fn new_session(_new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
+impl<T: Config> SessionManager<T::ValidatorId> for Pallet<T> {
+    fn new_session(_new_index: SessionIndex) -> Option<Vec<T::ValidatorId>> {
         Some(Self::validators())
     }
 
@@ -366,6 +366,23 @@ impl<T: Config> SessionManager<T::AccountId> for Pallet<T> {
         for (who, _) in NextDisabledValidators::<T>::drain() {
             pallet_session::Pallet::<T>::disable(&who);
         }
+    }
+}
+
+impl<T: Config> pallet_session::historical::SessionManager<T::ValidatorId, T::ValidatorId>
+    for Pallet<T>
+{
+    fn new_session(new_index: SessionIndex) -> Option<Vec<(T::ValidatorId, T::ValidatorId)>> {
+        <Self as pallet_session::SessionManager<_>>::new_session(new_index)
+            .map(|r| r.into_iter().map(|v| (v.clone(), v)).collect())
+    }
+
+    fn start_session(start_index: SessionIndex) {
+        <Self as pallet_session::SessionManager<_>>::start_session(start_index)
+    }
+
+    fn end_session(end_index: SessionIndex) {
+        <Self as pallet_session::SessionManager<_>>::end_session(end_index)
     }
 }
 

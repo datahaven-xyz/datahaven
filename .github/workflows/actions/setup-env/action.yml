@@ -1,0 +1,59 @@
+name: "Setup Rust Environment"
+description: "Creates a Rust environment with the specified toolchain, cache, and dependencies"
+
+inputs:
+  cache-key:
+    description: "Cache key used to retrieve built data. Usually matches the profile of the build"
+    required: false
+    default: "cache"
+
+  cache-targets:
+    description: "Whether to cache targets"
+    required: false
+    default: "true"
+
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Rust version
+      shell: bash
+      run: |
+        echo "BUILD_RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.9
+    
+    - name: Set Rust caching env vars
+      if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
+      shell: bash
+      run: |
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        sccache --show-stats
+
+    - name: Cache cargo + target + sccache2
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-targets: true
+        cache-all-crates: true
+        shared-key: ${{ runner.os }}-${{inputs.cache-key}}-${{ hashFiles('operator/rust-toolchain.toml') }}-${{ hashFiles('operator/Cargo.lock') }}
+        workspaces: |
+          operator -> target
+        cache-on-failure: true
+        cache-bin: true
+        cache-directories: |
+          ~/.cache/sccache         
+          ~/.cargo/registry
+          ~/.cargo/git
+    
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - uses: rui314/setup-mold@v1
+    - name: Install libpq-dev
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v3

@@ -1,0 +1,38 @@
+#! Main CI Specification for DataHaven Repository
+
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  # First Tier
+  build-operator:
+    uses: ./.github/workflows/task-build-operator.yml
+    secrets: inherit # For demonstrative purposes, we don't use any secrets yet.
+  ts-build:
+    uses: ./.github/workflows/task-ts-build.yml
+  ts-lint:
+    uses: ./.github/workflows/task-ts-lint.yml
+  unit-tests:
+    uses: ./.github/workflows/task-rust-tests.yml
+  contract-tests:
+    uses: ./.github/workflows/task-foundry-tests.yml
+  rust-lint:
+    uses: ./.github/workflows/task-rust-lint.yml
+
+  # Second Tier
+  e2e-tests:
+    needs: [build-operator]
+    uses: ./.github/workflows/task-e2e.yml
+    with:
+      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}

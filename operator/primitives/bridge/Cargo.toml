@@ -10,7 +10,7 @@ edition = { workspace = true }
 [dependencies]
 frame-support = { workspace = true }
 frame-system = { workspace = true }
-pallet-validator-set = { workspace = true }
+pallet-external-validators = { workspace = true }
 parity-scale-codec = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
@@ -23,6 +23,6 @@ std = [
     "frame-system/std",
     "snowbridge-core/std",
     "parity-scale-codec/std",
-    "pallet-validator-set/std",
+    "pallet-external-validators/std",
     "sp-std/std",
 ]

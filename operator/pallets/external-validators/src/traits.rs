@@ -18,15 +18,18 @@ pub struct ActiveEraInfo {
 /// Counter for the number of eras that have passed.
 pub type EraIndex = u32;
 
+#[allow(dead_code)]
 pub trait EraIndexProvider {
     fn active_era() -> ActiveEraInfo;
     fn era_to_session_start(era_index: EraIndex) -> Option<u32>;
 }
 
+#[allow(dead_code)]
 pub trait ValidatorProvider<ValidatorId> {
     fn validators() -> Vec<ValidatorId>;
 }
 
+#[allow(dead_code)]
 pub trait InvulnerablesProvider<ValidatorId> {
     fn invulnerables() -> Vec<ValidatorId>;
 }
@@ -55,6 +58,7 @@ impl OnEraEnd for Tuple {
 
 // A trait to retrieve the external index provider identifying some set of data
 // In starlight, used to retrieve the external index associated to validators
+#[allow(dead_code)]
 pub trait ExternalIndexProvider {
     fn get_external_index() -> u64;
 }

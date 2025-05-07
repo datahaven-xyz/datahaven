@@ -261,29 +261,25 @@ mod runtime {
     #[runtime::pallet_index(6)]
     pub type Historical = pallet_session::historical;
 
-    // Validator set must be before Session.
     #[runtime::pallet_index(7)]
-    pub type ValidatorSet = pallet_validator_set;
-
-    #[runtime::pallet_index(8)]
     pub type Session = pallet_session;
 
-    #[runtime::pallet_index(9)]
+    #[runtime::pallet_index(8)]
     pub type ImOnline = pallet_im_online;
 
-    #[runtime::pallet_index(10)]
+    #[runtime::pallet_index(9)]
     pub type Grandpa = pallet_grandpa;
 
-    #[runtime::pallet_index(11)]
+    #[runtime::pallet_index(10)]
     pub type TransactionPayment = pallet_transaction_payment;
 
-    #[runtime::pallet_index(12)]
+    #[runtime::pallet_index(11)]
     pub type Beefy = pallet_beefy;
 
-    #[runtime::pallet_index(13)]
+    #[runtime::pallet_index(12)]
     pub type Mmr = pallet_mmr;
 
-    #[runtime::pallet_index(14)]
+    #[runtime::pallet_index(13)]
     pub type BeefyMmrLeaf = pallet_beefy_mmr;
     // ╚═════════════════ System and Consensus Pallets ══════════════════╝
 

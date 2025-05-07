@@ -80,7 +80,7 @@ jobs:
           BRANCH_NAME_SANITIZED=$(echo "${{ github.head_ref }}" | sed -e 's#/#-#g' -e 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
 
           if [[ -n "$BRANCH_NAME_SANITIZED" ]]; then
-            echo "tag=moonsonglabs/datahaven-node:$BRANCH_NAME_SANITIZED" >> $GITHUB_OUTPUT
+            echo "tag=moonsonglabs/datahaven:$BRANCH_NAME_SANITIZED" >> $GITHUB_OUTPUT
           else
             # Output an empty tag if sanitization results in an empty string (should be rare)
             echo "tag=" >> $GITHUB_OUTPUT

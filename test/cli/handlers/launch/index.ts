@@ -55,35 +55,23 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await checkDependencies();
 
-  logger.trace("Launching Kurtosis enclave");
   await launchKurtosis(options);
-  logger.trace("Kurtosis enclave launched");
 
-  logger.trace("Send test transaction");
-  printHeader("Setting Up Blockchain");
+  printHeader("Sending Test ETH Transaction");
   logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
   const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
   const networkRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
   invariant(networkRpcUrl, "❌ Network RPC URL not found");
 
-  logger.info("💸 Sending test transaction...");
   await sendTxn(privateKey, networkRpcUrl);
 
-  printDivider();
-
-  logger.trace("Show completion information");
-  const timeEnd = performance.now();
-  const minutes = ((timeEnd - timeStart) / (1000 * 60)).toFixed(1);
-
-  logger.success(`Kurtosis network started successfully in ${minutes} minutes`);
-
-  logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined = undefined;
 
   if (options.blockscout === true) {
     const blockscoutPublicPort = await getPortFromKurtosis("blockscout", "http");
     blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
+    logger.trace("Blockscout backend URL:", blockscoutBackendUrl);
   } else if (options.verified) {
     logger.warn(
       "⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped."
@@ -104,6 +92,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
       "⚠️ Validator operations requested but contracts were not deployed. Skipping validator operations."
     );
   }
+
   if (options.datahaven) {
     await performDatahavenOperations(options, launchedNetwork);
   }
@@ -112,19 +101,16 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     await performRelayerOperations(options, launchedNetwork);
   }
 
-  printDivider();
-
   performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
-  logger.info(`Launch function completed successfully in ${fullMinutes} minutes`);
+  logger.success(`Launch function completed successfully in ${fullMinutes} minutes`);
 };
 
 export const launch = async (options: LaunchOptions) => {
   const run = new LaunchedNetwork();
   try {
     await launchFunction(options, run);
-    logger.success("Launch script completed successfully");
   } finally {
     await run.cleanup();
   }

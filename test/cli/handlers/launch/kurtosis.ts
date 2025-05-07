@@ -85,6 +85,7 @@ export const launchKurtosis = async (
   logger.info("🔍 Gathering Kurtosis public ports...");
   const services = await getServicesFromKurtosis();
 
+  logger.success("Kurtosis network started successfully");
   printDivider();
 
   return services;

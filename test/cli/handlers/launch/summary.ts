@@ -7,10 +7,8 @@ export const performSummaryOperations = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
-  logger.trace("Display service information in a clean table");
   printHeader("Service Endpoints");
 
-  logger.trace("Filter services to display based on blockscout option");
   const servicesToDisplay = BASE_SERVICES;
 
   if (options.blockscout === true) {
@@ -23,6 +21,8 @@ export const performSummaryOperations = async (
       servicesToDisplay.push(`datahaven-${id}`);
     }
   }
+
+  logger.trace("Services to display", servicesToDisplay);
 
   const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
   for (const service of servicesToDisplay) {
@@ -106,5 +106,4 @@ export const performSummaryOperations = async (
   }
 
   console.table(displayData);
-  logger.debug("Summary completed successfully");
 };

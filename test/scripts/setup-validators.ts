@@ -2,7 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printHeader, runShellCommandWithLogger } from "../utils/index";
+import {
+  confirmWithTimeout,
+  logger,
+  printDivider,
+  printHeader,
+  runShellCommandWithLogger
+} from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -133,6 +139,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     await runShellCommandWithLogger(signupCommand, { env, cwd: "../contracts" });
 
     logger.success(`Successfully registered validator ${validator.publicKey}`);
+    printDivider();
   }
 
   return true;

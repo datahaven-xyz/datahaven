@@ -1,16 +1,15 @@
 import { fundValidators } from "scripts/fund-validators";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
-import { confirmWithTimeout, logger } from "utils";
+import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from "..";
 
 export const performValidatorOperations = async (options: LaunchOptions, networkRpcUrl: string) => {
-  logger.trace("Set up validators using the extracted function");
   let shouldFundValidators = options.fundValidators;
   let shouldSetupValidators = options.setupValidators;
   let shouldUpdateValidatorSet = options.updateValidatorSet;
 
-  logger.trace("If not specified, prompt for funding");
+  // If not specified, prompt for funding
   if (shouldFundValidators === undefined) {
     shouldFundValidators = await confirmWithTimeout(
       "Do you want to fund validators with tokens and ETH?",
@@ -23,7 +22,7 @@ export const performValidatorOperations = async (options: LaunchOptions, network
     );
   }
 
-  logger.trace("If not specified, prompt for setup");
+  // If not specified, prompt for setup
   if (shouldSetupValidators === undefined) {
     shouldSetupValidators = await confirmWithTimeout(
       "Do you want to register validators in EigenLayer?",
@@ -36,7 +35,7 @@ export const performValidatorOperations = async (options: LaunchOptions, network
     );
   }
 
-  logger.trace("If not specified, prompt for update");
+  // If not specified, prompt for update
   if (shouldUpdateValidatorSet === undefined) {
     shouldUpdateValidatorSet = await confirmWithTimeout(
       "Do you want to update the validator set on the substrate chain?",
@@ -54,7 +53,7 @@ export const performValidatorOperations = async (options: LaunchOptions, network
       rpcUrl: networkRpcUrl
     });
   } else {
-    logger.info("Skipping validator funding");
+    logger.debug("Skipping validator funding");
   }
 
   if (shouldSetupValidators) {
@@ -67,9 +66,9 @@ export const performValidatorOperations = async (options: LaunchOptions, network
         rpcUrl: networkRpcUrl
       });
     } else {
-      logger.info("Skipping validator set update");
+      logger.debug("Skipping validator set update");
     }
   } else {
-    logger.info("Skipping validator setup");
+    logger.debug("Skipping validator setup");
   }
 };

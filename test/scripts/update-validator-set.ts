@@ -3,7 +3,7 @@ import path from "node:path";
 // Update validator set on DataHaven substrate chain
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printHeader } from "../utils/index";
+import { logger, printDivider, printHeader } from "../utils/index";
 
 interface UpdateValidatorSetOptions {
   rpcUrl: string;
@@ -82,6 +82,8 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
     logger.warn('Validator set not properly queued on substrate chain');
   }
   */
+
+  printDivider();
 
   return true;
 };

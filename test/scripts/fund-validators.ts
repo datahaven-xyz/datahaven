@@ -3,7 +3,7 @@ import path from "node:path";
 // Script to fund validators with tokens and ETH for local testing
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printHeader } from "../utils/index";
+import { logger, printDivider, printHeader } from "../utils/index";
 
 interface FundValidatorsOptions {
   rpcUrl: string;
@@ -225,7 +225,10 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
       }
     }
   }
-  logger.info("All validators have been funded with tokens");
+
+  logger.success("All validators have been funded with tokens");
+  printDivider();
+
   return true;
 };
 

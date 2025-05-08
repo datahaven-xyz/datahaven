@@ -6,10 +6,12 @@ import {
   ANVIL_FUNDED_ACCOUNTS,
   type RelayerType,
   SUBSTRATE_FUNDED_ACCOUNTS,
+  confirmWithTimeout,
   getPortFromKurtosis,
   logger,
   parseDeploymentsFile,
   parseRelayConfig,
+  printDivider,
   printHeader
 } from "utils";
 import type { LaunchOptions } from ".";
@@ -22,12 +24,33 @@ type RelayerSpec = {
   pk: { type: "ethereum" | "substrate"; value: string };
 };
 
-export const performRelayerOperations = async (
-  options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork
-) => {
+/**
+ * Launches Snowbridge relayers for the DataHaven network.
+ *
+ * @param options - Configuration options for launching the relayers.
+ * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
+ */
+export const launchRelayers = async (options: LaunchOptions, launchedNetwork: LaunchedNetwork) => {
   printHeader("Starting Snowbridge Relayers");
-  logger.info("Preparing to generate configs");
+
+  let shouldLaunchRelayers = options.relayer;
+  if (shouldLaunchRelayers === undefined) {
+    shouldLaunchRelayers = await confirmWithTimeout(
+      "Do you want to launch the Snowbridge relayers?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldLaunchRelayers ? "will launch" : "will not launch"} Snowbridge relayers`
+    );
+  }
+
+  if (!shouldLaunchRelayers) {
+    logger.info("Skipping Snowbridge relayers launch. Done!");
+    printDivider();
+    return;
+  }
 
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
@@ -155,4 +178,5 @@ export const performRelayerOperations = async (
   }
 
   logger.success("Snowbridge relayers started");
+  printDivider();
 };

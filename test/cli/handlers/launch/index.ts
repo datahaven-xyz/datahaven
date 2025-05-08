@@ -7,7 +7,7 @@ import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
-import { performRelayerOperations } from "./relayer";
+import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 
@@ -80,10 +80,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, networkRpcUrl, contractsDeployed);
 
-  if (options.relayer) {
-    // TODO
-    await performRelayerOperations(options, launchedNetwork);
-  }
+  await launchRelayers(options, launchedNetwork);
 
   performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

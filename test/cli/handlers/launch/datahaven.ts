@@ -53,7 +53,7 @@ export const launchDataHavenSolochain = async (
   }
 
   // Kill any pre-existing datahaven processes if they exist
-  await $`pkill datahaven`.quiet();
+  await $`pkill datahaven`.nothrow().quiet();
 
   invariant(options.datahavenBinPath, "❌ Datahaven binary path not defined");
   invariant(

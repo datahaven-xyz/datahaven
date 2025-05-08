@@ -2,11 +2,13 @@ import { existsSync } from "node:fs";
 import { spawn } from "bun";
 import { logger } from "./logger";
 
+export type LogLevel = "info" | "debug" | "error" | "warn";
+
 export const runShellCommandWithLogger = async (
   command: string,
-  options?: { cwd?: string; env?: object }
+  options?: { cwd?: string; env?: object; logLevel?: LogLevel }
 ) => {
-  const { cwd = ".", env = {} } = options || {};
+  const { cwd = ".", env = {}, logLevel = "info" as LogLevel } = options || {};
 
   try {
     if (!existsSync(cwd)) {
@@ -29,7 +31,8 @@ export const runShellCommandWithLogger = async (
 
     const readStream = async (
       reader: typeof stdoutReader | typeof stderrReader,
-      streamName: string
+      streamName: string,
+      logLevel: LogLevel
     ) => {
       try {
         while (true) {
@@ -37,7 +40,9 @@ export const runShellCommandWithLogger = async (
           if (done) break;
           const text = new TextDecoder().decode(value);
           const trimmedText = text.trim();
-          logger.info(trimmedText.includes("\n") ? `\n${trimmedText}` : trimmedText);
+          if (trimmedText) {
+            logger[logLevel](trimmedText.includes("\n") ? `\n${trimmedText}` : trimmedText);
+          }
         }
       } catch (err) {
         logger.error(`Error reading from ${streamName} stream:`, err);
@@ -46,7 +51,10 @@ export const runShellCommandWithLogger = async (
       }
     };
 
-    Promise.all([readStream(stdoutReader, "stdout"), readStream(stderrReader, "stderr")]);
+    Promise.all([
+      readStream(stdoutReader, "stdout", logLevel),
+      readStream(stderrReader, "stderr", "error")
+    ]);
 
     await proc.exited;
   } catch (err) {

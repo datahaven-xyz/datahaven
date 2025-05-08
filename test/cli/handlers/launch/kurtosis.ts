@@ -20,12 +20,15 @@ import { parse, stringify } from "yaml";
 export const launchKurtosis = async (
   options: LaunchOptions = {}
 ): Promise<Record<string, KurtosisService>> => {
+  printHeader("Starting Kurtosis Network");
+
   if ((await checkKurtosisRunning()) && !options.alwaysClean) {
     logger.info("ℹ️  Kurtosis network is already running.");
 
     logger.trace("Checking if launchKurtosis option was set via flags");
     if (options.launchKurtosis === false) {
-      logger.info("Keeping existing Kurtosis enclave. Exiting...");
+      logger.info("Keeping existing Kurtosis enclave.");
+      printDivider();
       return getServicesFromKurtosis();
     }
 
@@ -40,15 +43,14 @@ export const launchKurtosis = async (
       );
 
       if (!shouldRelaunch) {
-        logger.info("Keeping existing Kurtosis enclave. Exiting...");
+        logger.info("Keeping existing Kurtosis enclave.");
+        printDivider();
         return getServicesFromKurtosis();
       }
 
       logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
     }
   }
-
-  printHeader("Starting Kurtosis Network");
 
   if (!options.skipCleaning) {
     logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
@@ -69,7 +71,7 @@ export const launchKurtosis = async (
 
   const configFile = await modifyConfig(options, "configs/kurtosis/minimal.yaml");
 
-  logger.info(`Using Kurtosis config file: ${configFile}`);
+  logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
 
   const { stderr, stdout, exitCode } =
     await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave datahaven-ethereum`
@@ -85,6 +87,7 @@ export const launchKurtosis = async (
   logger.info("🔍 Gathering Kurtosis public ports...");
   const services = await getServicesFromKurtosis();
 
+  logger.success("Kurtosis network started successfully");
   printDivider();
 
   return services;

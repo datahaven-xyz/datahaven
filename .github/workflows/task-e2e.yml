@@ -89,7 +89,15 @@ jobs:
                 "method" :"system_chain",
                 "params" :[]
             }'
-
+      - name: Download snowbridge binary
+        run: |
+          docker create --name temp moonsonglabs/snowbridge-relayer:latest
+          mkdir -p tmp/bin
+          docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
+          chmod +x tmp/bin/snowbridge-relay
+      - run: tmp/bin/snowbridge-relay --help
+      - run: chmod +x ../operator/target/release/datahaven-node
+      - run: ../operator/target/release/datahaven-node --help
       - run: bun install
       - run: bun start:e2e:ci
       - run: bun test:e2e

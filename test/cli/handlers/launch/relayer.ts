@@ -52,6 +52,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     return;
   }
 
+  // Kill any pre-existing relayer processes if they exist
+  await $`pkill snowbridge-relay`.quiet();
+
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
   const gatewayAddress = anvilDeployments.Gateway;

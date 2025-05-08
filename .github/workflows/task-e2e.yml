@@ -71,6 +71,14 @@ jobs:
         with:
           name: datahaven-node-${{ inputs.binary-hash }}
           path: operator/target/release/
+          
+      - name: Download snowbridge binary
+        run: |
+          docker create --name temp moonsonglabs/snowbridge-relayer:latest
+          mkdir -p tmp/bin
+          docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
+          chmod +x tmp/bin/snowbridge-relay
+      - run: tmp/bin/snowbridge-relay --help
       - run: chmod +x ../operator/target/release/datahaven-node
       - run: ../operator/target/release/datahaven-node --help
 

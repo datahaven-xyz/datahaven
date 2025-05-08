@@ -23,7 +23,6 @@ snowbridge-core.workspace = true
 sp-api.workspace = true
 sp-std.workspace = true
 xcm.workspace = true
-], workspace = true }
 
 [features]
 default = ["std"]

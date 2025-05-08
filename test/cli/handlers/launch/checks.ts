@@ -1,8 +1,10 @@
 import { $ } from "bun";
-import { logger } from "utils";
+import { logger, printDivider, printHeader } from "utils";
 
 //  =====  Checks  =====
 export const checkDependencies = async (): Promise<void> => {
+  printHeader("Environment Checks");
+
   if (!(await checkKurtosisInstalled())) {
     logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
     throw Error("❌ Kurtosis CLI application not found.");
@@ -23,6 +25,7 @@ export const checkDependencies = async (): Promise<void> => {
   }
 
   logger.success("Forge is installed");
+  printDivider();
 };
 
 const checkKurtosisInstalled = async (): Promise<boolean> => {

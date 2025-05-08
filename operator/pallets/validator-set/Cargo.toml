@@ -6,19 +6,17 @@ edition = '2021'
 license = 'Apache-2.0'
 
 [dependencies]
-codec = { features = [ "derive" ], workspace = true }
-frame-benchmarking.optional = true
-frame-benchmarking.workspace = true
-frame-support.workspace = true
-frame-system.workspace = true
-log.workspace = true
-scale-info = { features = [ "derive", "serde" ], workspace = true }
-sp-core.workspace = true
-sp-io.workspace = true
-sp-runtime.workspace = true
-sp-staking.workspace = true
-
+codec = { workspace = true, features = ["derive"] }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+log = { workspace = true }
 pallet-session = { workspace = true, features = ['historical'] }
+scale-info = { workspace = true, features = ["derive", "serde"] }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-staking = { workspace = true }
 
 [features]
 default = ['std']

@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
-    chain_spec,
+    chain_spec::{self, NetworkType},
     cli::{Cli, Subcommand},
     service,
 };
-use datahaven_runtime::{genesis_config_presets::alith, Block, EXISTENTIAL_DEPOSIT};
+use datahaven_runtime_common::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
-use sc_service::{DatabaseSource, PartialComponents};
+use sc_service::DatabaseSource;
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -39,13 +39,77 @@ impl SubstrateCli for Cli {
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "dev" => Box::new(chain_spec::development_chain_spec()?),
-            "" | "local" => Box::new(chain_spec::local_chain_spec()?),
+            "dev" | "stagenet-dev" => Box::new(chain_spec::stagenet::development_chain_spec()?),
+            "" | "local" | "stagenet-local" => Box::new(chain_spec::stagenet::local_chain_spec()?),
+            "testnet-dev" => Box::new(chain_spec::testnet::development_chain_spec()?),
+            "testnet-local" => Box::new(chain_spec::testnet::local_chain_spec()?),
+            "mainnet-dev" => Box::new(chain_spec::mainnet::development_chain_spec()?),
+            "mainnet-local" => Box::new(chain_spec::mainnet::local_chain_spec()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
         })
     }
+}
+
+macro_rules! construct_async_run {
+	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+		let runner = $cli.create_runner($cmd)?;
+		match runner.config().chain_spec {
+			ref spec if spec.is_mainnet() => {
+				runner.async_run(|$config| {
+					let $components = service::new_partial::<datahaven_mainnet_runtime::apis::RuntimeApi>(
+						&$config,
+                        &mut $cli.eth.clone()
+					)?;
+					let task_manager = $components.task_manager;
+					{ $( $code )* }.map(|v| (v, task_manager))
+				})
+			}
+            ref spec if spec.is_testnet() => {
+                runner.async_run(|$config| {
+					let $components = service::new_partial::<datahaven_testnet_runtime::apis::RuntimeApi>(
+						&$config,
+                        &mut $cli.eth.clone()
+					)?;
+					let task_manager = $components.task_manager;
+					{ $( $code )* }.map(|v| (v, task_manager))
+				})
+            }
+			_ => {
+				runner.async_run(|$config| {
+					let $components = service::new_partial::<datahaven_stagenet_runtime::apis::RuntimeApi>(
+						&$config,
+                        &mut $cli.eth.clone()
+					)?;
+					let task_manager = $components.task_manager;
+					{ $( $code )* }.map(|v| (v, task_manager))
+				})
+			}
+		}
+	}}
+}
+
+macro_rules! construct_benchmark_partials {
+    ($cli:expr, $config:expr, |$partials:ident| $code:expr) => {
+        match $config.chain_spec {
+            ref spec if spec.is_mainnet() => {
+                let $partials =
+                    service::new_partial::<datahaven_mainnet_runtime::apis::RuntimeApi>(&$config, &mut $cli.eth.clone())?;
+                $code
+            }
+            ref spec if spec.is_testnet() => {
+                let $partials =
+                    service::new_partial::<datahaven_testnet_runtime::apis::RuntimeApi>(&$config, &mut $cli.eth.clone())?;
+                $code
+            }
+            _ => {
+                let $partials =
+                    service::new_partial::<datahaven_stagenet_runtime::apis::RuntimeApi>(&$config, &mut $cli.eth.clone())?;
+                $code
+            }
+        }
+    };
 }
 
 /// Parse and run command line arguments
@@ -59,49 +123,23 @@ pub fn run() -> sc_cli::Result<()> {
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
         }
         Some(Subcommand::CheckBlock(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.async_run(|config| {
-                let PartialComponents {
-                    client,
-                    task_manager,
-                    import_queue,
-                    ..
-                } = service::new_partial(&config, &mut cli.eth.clone())?;
-                Ok((cmd.run(client, import_queue), task_manager))
+            construct_async_run!(|components, cli, cmd, config| {
+                Ok(cmd.run(components.client, components.import_queue))
             })
         }
         Some(Subcommand::ExportBlocks(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.async_run(|config| {
-                let PartialComponents {
-                    client,
-                    task_manager,
-                    ..
-                } = service::new_partial(&config, &mut cli.eth.clone())?;
-                Ok((cmd.run(client, config.database), task_manager))
+            construct_async_run!(|components, cli, cmd, config| {
+                Ok(cmd.run(components.client, config.database))
             })
         }
         Some(Subcommand::ExportState(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.async_run(|config| {
-                let PartialComponents {
-                    client,
-                    task_manager,
-                    ..
-                } = service::new_partial(&config, &mut cli.eth.clone())?;
-                Ok((cmd.run(client, config.chain_spec), task_manager))
+            construct_async_run!(|components, cli, cmd, config| {
+                Ok(cmd.run(components.client, config.chain_spec))
             })
         }
         Some(Subcommand::ImportBlocks(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.async_run(|config| {
-                let PartialComponents {
-                    client,
-                    task_manager,
-                    import_queue,
-                    ..
-                } = service::new_partial(&config, &mut cli.eth.clone())?;
-                Ok((cmd.run(client, import_queue), task_manager))
+            construct_async_run!(|components, cli, cmd, config| {
+                Ok(cmd.run(components.client, components.import_queue))
             })
         }
         Some(Subcommand::PurgeChain(cmd)) => {
@@ -124,20 +162,14 @@ pub fn run() -> sc_cli::Result<()> {
             })
         }
         Some(Subcommand::Revert(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.async_run(|config| {
-                let PartialComponents {
-                    client,
-                    task_manager,
-                    backend,
-                    ..
-                } = service::new_partial(&config, &mut cli.eth.clone())?;
-                let aux_revert = Box::new(|client: Arc<service::FullClient>, backend, blocks| {
-                    sc_consensus_babe::revert(client.clone(), backend, blocks)?;
-                    sc_consensus_grandpa::revert(client, blocks)?;
-                    Ok(())
-                });
-                Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
+            construct_async_run!(|components, cli, cmd, config| {
+                let aux_revert =
+                    Box::new(|client: Arc<service::FullClient<_>>, backend, blocks| {
+                        sc_consensus_babe::revert(client.clone(), backend, blocks)?;
+                        sc_consensus_grandpa::revert(client, blocks)?;
+                        Ok(())
+                    });
+                Ok(cmd.run(components.client, components.backend, Some(aux_revert)))
             })
         }
         Some(Subcommand::Benchmark(cmd)) => {
@@ -151,7 +183,7 @@ pub fn run() -> sc_cli::Result<()> {
                         if !cfg!(feature = "runtime-benchmarks") {
                             return Err(
                                 "Runtime benchmarking wasn't enabled when building the node. \
-							You can enable it with `--features runtime-benchmarks`."
+            				You can enable it with `--features runtime-benchmarks`."
                                     .into(),
                             );
                         }
@@ -161,9 +193,8 @@ pub fn run() -> sc_cli::Result<()> {
                         ))
                     }
                     BenchmarkCmd::Block(cmd) => {
-                        let PartialComponents { client, .. } =
-                            service::new_partial(&config, &mut cli.eth.clone())?;
-                        cmd.run(client)
+                        construct_benchmark_partials!(cli, config, |partials| cmd
+                            .run(partials.client))
                     }
                     #[cfg(not(feature = "runtime-benchmarks"))]
                     BenchmarkCmd::Storage(_) => Err(
@@ -172,42 +203,46 @@ pub fn run() -> sc_cli::Result<()> {
                     ),
                     #[cfg(feature = "runtime-benchmarks")]
                     BenchmarkCmd::Storage(cmd) => {
-                        let PartialComponents {
-                            client, backend, ..
-                        } = service::new_partial(&config, &mut cli.eth.clone())?;
-                        let db = backend.expose_db();
-                        let storage = backend.expose_storage();
+                        construct_benchmark_partials!(cli, config, |partials| {
+                            let db = partials.backend.expose_db();
+                            let storage = partials.backend.expose_storage();
 
-                        cmd.run(config, client, db, storage)
+                            cmd.run(config, partials.client.clone(), db, storage)
+                        })
                     }
                     BenchmarkCmd::Overhead(cmd) => {
-                        let PartialComponents { client, .. } =
-                            service::new_partial(&config, &mut cli.eth.clone())?;
-                        let ext_builder = RemarkBuilder::new(client.clone());
-
-                        cmd.run(
-                            config.chain_spec.name().to_string(),
-                            client,
-                            inherent_benchmark_data()?,
-                            Vec::new(),
-                            &ext_builder,
-                            false,
-                        )
+                        construct_benchmark_partials!(cli, config, |partials| {
+                            let ext_builder = RemarkBuilder::new(partials.client.clone());
+                            cmd.run(
+                                config.chain_spec.name().to_string(),
+                                partials.client,
+                                inherent_benchmark_data()?,
+                                Vec::new(),
+                                &ext_builder,
+                                false,
+                            )
+                        })
                     }
                     BenchmarkCmd::Extrinsic(cmd) => {
-                        let PartialComponents { client, .. } =
-                            service::new_partial(&config, &mut cli.eth.clone())?;
-                        // Register the *Remark* and *TKA* builders.
-                        let ext_factory = ExtrinsicFactory(vec![
-                            Box::new(RemarkBuilder::new(client.clone())),
-                            Box::new(TransferKeepAliveBuilder::new(
-                                client.clone(),
-                                alith(),
-                                EXISTENTIAL_DEPOSIT,
-                            )),
-                        ]);
+                        construct_benchmark_partials!(cli, config, |partials| {
+                            // Register the *Remark* and *TKA* builders.
+                            let ext_factory = ExtrinsicFactory(vec![
+                                Box::new(RemarkBuilder::new(partials.client.clone())),
+                                Box::new(TransferKeepAliveBuilder::new(
+                                    partials.client.clone(),
+                                    datahaven_stagenet_runtime::genesis_config_presets::alith(),
+                                    // Assume the existential deposit is the same for all runtimes
+                                    datahaven_stagenet_runtime::EXISTENTIAL_DEPOSIT,
+                                )),
+                            ]);
 
-                        cmd.run(client, inherent_benchmark_data()?, Vec::new(), &ext_factory)
+                            cmd.run(
+                                partials.client,
+                                inherent_benchmark_data()?,
+                                Vec::new(),
+                                &ext_factory,
+                            )
+                        })
                     }
                     BenchmarkCmd::Machine(cmd) => {
                         cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone())
@@ -223,22 +258,54 @@ pub fn run() -> sc_cli::Result<()> {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
                 match config.network.network_backend.unwrap_or_default() {
-                    sc_network::config::NetworkBackendType::Libp2p => service::new_full::<
-                        sc_network::NetworkWorker<
-                            datahaven_runtime::opaque::Block,
-                            <datahaven_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
-                        >,
-                    >(
-                        config, cli.eth
-                    )
-                    .await
-                    .map_err(sc_cli::Error::Service),
-
-                    sc_network::config::NetworkBackendType::Litep2p => {
-                        service::new_full::<sc_network::Litep2pNetworkBackend>(config, cli.eth)
+                    sc_network::config::NetworkBackendType::Libp2p => match config.chain_spec {
+                        ref spec if spec.is_mainnet() => {
+                            service::new_full::<
+                                datahaven_mainnet_runtime::apis::RuntimeApi,
+                                sc_network::NetworkWorker<_, _>,
+                            >(config, cli.eth)
                             .await
-                            .map_err(sc_cli::Error::Service)
+                        }
+                        ref spec if spec.is_testnet() => {
+                            service::new_full::<
+                                datahaven_testnet_runtime::apis::RuntimeApi,
+                                sc_network::NetworkWorker<_, _>,
+                            >(config, cli.eth)
+                            .await
+                        }
+                        _ => {
+                            service::new_full::<
+                                datahaven_stagenet_runtime::apis::RuntimeApi,
+                                sc_network::NetworkWorker<_, _>,
+                            >(config, cli.eth)
+                            .await
+                        }
                     }
+                    .map_err(sc_cli::Error::Service),
+                    sc_network::config::NetworkBackendType::Litep2p => match config.chain_spec {
+                        ref spec if spec.is_mainnet() => {
+                            service::new_full::<
+                                datahaven_mainnet_runtime::apis::RuntimeApi,
+                                sc_network::Litep2pNetworkBackend,
+                            >(config, cli.eth)
+                            .await
+                        }
+                        ref spec if spec.is_testnet() => {
+                            service::new_full::<
+                                datahaven_testnet_runtime::apis::RuntimeApi,
+                                sc_network::Litep2pNetworkBackend,
+                            >(config, cli.eth)
+                            .await
+                        }
+                        _ => {
+                            service::new_full::<
+                                datahaven_stagenet_runtime::apis::RuntimeApi,
+                                sc_network::Litep2pNetworkBackend,
+                            >(config, cli.eth)
+                            .await
+                        }
+                    }
+                    .map_err(sc_cli::Error::Service),
                 }
             })
         }

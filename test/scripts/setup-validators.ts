@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printHeader, runShellCommandWithLogger } from "../utils/index";
+import { logger, printDivider, printHeader, runShellCommandWithLogger } from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -25,41 +24,28 @@ interface ValidatorConfig {
 }
 
 /**
- * Registers validators in EigenLayer
+ * Registers validators in EigenLayer based on a configuration file.
+ * This function reads validator details (public/private keys, optional solochain addresses)
+ * from a JSON file. If `executeSignup` is true (or confirmed by user prompt),
+ * it iterates through the configured validators and runs the
+ * `script/transact/SignUpValidator.s.sol` forge script for each to register them.
+ * Environment variables `OPERATOR_PRIVATE_KEY`, `OPERATOR_SOLOCHAIN_ADDRESS`, and `NETWORK`
+ * are set for the forge script execution.
  *
- * @param options - Configuration options for setup
- * @param options.rpcUrl - The RPC URL to connect to
- * @param options.validatorsConfig - Path to JSON config file (uses default config if not provided)
- * @param options.executeSignup - Whether to run the SignUpValidator script
- * @returns Promise resolving to true if validators were set up successfully, false if skipped
+ * @param options - Configuration options for the validator setup process.
+ * @param options.rpcUrl - The RPC URL for the Ethereum network to interact with.
+ * @param options.validatorsConfig - Optional path to the JSON file containing validator configurations.
+ *                                   Defaults to `../configs/validator-set.json` relative to this script.
+ * @param options.executeSignup - Optional. If true, proceeds with registration. If false, skips.
+ *                                If undefined, the user is prompted to confirm registration.
+ * @param options.networkName - Optional network name used when executing underlying scripts (e.g., for setting the `NETWORK` environment variable).
+ *                              Defaults to "anvil".
+ * @returns A Promise resolving to `true` if the validator registration process was executed
+ *          (for all configured validators), or `false` if the registration was skipped
+ *          (either due to the `executeSignup` option or user declining the prompt).
  */
 export const setupValidators = async (options: SetupValidatorsOptions): Promise<boolean> => {
-  const {
-    rpcUrl,
-    validatorsConfig,
-    executeSignup,
-    networkName = "anvil",
-    deploymentPath
-  } = options;
-
-  // Check if executeSignup option was set via flags, or prompt if not
-  let shouldExecuteSignup = executeSignup;
-  if (shouldExecuteSignup === undefined) {
-    shouldExecuteSignup = await confirmWithTimeout(
-      "Do you want to register validators in EigenLayer?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `Using flag option: ${shouldExecuteSignup ? "will register" : "will not register"} validators`
-    );
-  }
-
-  if (!shouldExecuteSignup) {
-    logger.info("Skipping validator setup. Done!");
-    return false;
-  }
+  const { rpcUrl, validatorsConfig, networkName = "anvil" } = options;
 
   printHeader("Setting Up DataHaven Validators");
 
@@ -130,13 +116,12 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     const signupCommand = `forge script script/transact/SignUpValidator.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
     logger.debug(`Running command: ${signupCommand}`);
 
-    await runShellCommandWithLogger(signupCommand, {
-      env,
-      cwd: "../contracts"
-    });
+    await runShellCommandWithLogger(signupCommand, { env, cwd: "../contracts", logLevel: "debug" });
 
     logger.success(`Successfully registered validator ${validator.publicKey}`);
   }
+
+  printDivider();
 
   return true;
 };

@@ -7,8 +7,8 @@
 
 use crate::consensus::BabeConsensusDataProvider;
 use crate::eth::DefaultEthConfig;
-use datahaven_runtime::{
-    opaque::Block, AccountId, Balance, BlockNumber, Hash, Nonce, SLOT_DURATION,
+use datahaven_runtime_common::{
+    time::SLOT_DURATION, AccountId, Balance, Block, BlockNumber, Hash, Nonce,
 };
 use fc_rpc::TxPool;
 use fc_rpc::{Eth, EthBlockDataCacheTask, EthFilter, Net, Web3};
@@ -240,6 +240,8 @@ where
 
     let tx_pool = TxPool::new(client.clone(), graph.clone());
     module.merge(tx_pool.into_rpc())?;
+
+    // module.merge(FrontierFinality::new(client.clone(), frontier_backend.clone()).into_rpc())?;
 
     // Extend this RPC with a custom API by using the following syntax.
     // `YourRpcStruct` should have a reference to a client, which is needed

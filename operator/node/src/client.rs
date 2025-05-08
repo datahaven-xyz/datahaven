@@ -1,7 +1,7 @@
 use crate::eth::EthCompatRuntimeApiCollection;
 use codec::Codec;
 // Substrate
-use datahaven_runtime::{AccountId, Nonce};
+use datahaven_runtime_common::{AccountId, Nonce};
 use sc_executor::WasmExecutor;
 use sp_runtime::traits::{Block as BlockT, MaybeDisplay};
 

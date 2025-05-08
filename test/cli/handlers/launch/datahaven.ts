@@ -6,6 +6,10 @@ import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 import { ethers } from "ethers";
+import { ApiPromise, WsProvider } from "@polkadot/api";
+import type { Option } from "@polkadot/types";
+import type { AuthorityId } from "@polkadot/types/interfaces/consensus";
+import type { ValidatorSet } from "@polkadot/types/interfaces/beefy";
 
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
@@ -22,10 +26,10 @@ const COMMON_LAUNCH_ARGS = [
 // <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
 const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
 
-// Actual 33-byte compressed public keys for Datahaven next validators
+// 33-byte compressed public keys for Datahaven next validator set
 // These correspond to Alice, Bob, Charlie, Dave, Eve, Ferdie
-// TODO: Ideally, we launch first the Datahaven network, obtain the BEEFY authorities from there and use them here
-const DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
+// These are the fallback keys if we can't fetch the next authorities directly from the network
+const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   alice: "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
   bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
   charlie: "0x031d10105e323c4afce225208f71a6441ee327a65b9e646e772500c74d31f669aa",
@@ -45,20 +49,74 @@ function compressedPubKeyToEthereumAddress(compressedPubKey: string): string {
  * Prepares the configuration for Datahaven authorities by converting their
  * compressed public keys to Ethereum addresses and saving them to a JSON file.
  */
-export async function prepareDatahavenAuthoritiesConfig(): Promise<void> {
+export async function setupDatahavenValidatorConfig(
+  options: LaunchOptions,
+  launchedNetwork: LaunchedNetwork
+): Promise<void> {
   const networkName = process.env.NETWORK || "anvil";
-  logger.info(`🔧 Preparing Datahaven authorities configuration for network: ${networkName}...`);
+  logger.info(
+    `🔧 Preparing Datahaven authorities configuration for network: ${networkName}...`
+  );
 
-  const validatorHashes: string[] = [];
-  const authoritiesToProcess = Object.values(DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
+  let authorityPublicKeys: string[] = [];
+  const dhNodes = launchedNetwork.getDHNodes();
 
-  for (const compressedKey of authoritiesToProcess) {
+  if (dhNodes.length === 0) {
+    logger.warn(
+      "⚠️ No DataHaven nodes found in launchedNetwork. Falling back to hardcoded authority set for validator config."
+    );
+    authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
+  } else {
+    const firstNode = dhNodes[0];
+    const provider = new WsProvider(`ws://127.0.0.1:${firstNode.port}`);
+    try {
+      logger.info(
+        `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.id} (port ${firstNode.port})...`
+      );
+      const api = await ApiPromise.create({ provider, noInitWarn: true });
+      await api.isReady;
+
+      // Read NextAuthorities directly from storage, which contains the next authority set
+      const nextAuthorities: AuthorityId[] = (await api.query.beefy.nextAuthorities()) as unknown as AuthorityId[];
+
+      if (nextAuthorities && nextAuthorities.length > 0) {
+        authorityPublicKeys = nextAuthorities.map((v: AuthorityId) => v.toHex());
+        logger.success(
+          `Successfully fetched ${authorityPublicKeys.length} BEEFY next authorities directly from storage.`
+        );
+      } else {
+        logger.warn(
+          "⚠️ Fetched BEEFY nextAuthorities is empty. Falling back to hardcoded authority set."
+        );
+        authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
+      }
+      await api.disconnect();
+    } catch (error) {
+      logger.error(
+        `❌ Error fetching BEEFY next authorities from node ${firstNode.id}: ${error}. Falling back to hardcoded authority set.`
+      );
+      authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
+      if (provider.isConnected) {
+        await provider.disconnect(); // Ensure provider is disconnected even on error
+      }
+    }
+  }
+
+  if (authorityPublicKeys.length === 0) {
+    logger.error(
+      "❌ No authority public keys available (neither fetched nor hardcoded). Cannot prepare validator config."
+    );
+    throw new Error("No Datahaven authority keys available.");
+  }
+
+  const authorityHashes: string[] = [];
+  for (const compressedKey of authorityPublicKeys) {
     try {
       const ethAddress = compressedPubKeyToEthereumAddress(compressedKey);
-      const validatorHash = ethers.keccak256(ethAddress);
-      validatorHashes.push(validatorHash);
+      const authorityHash = ethers.keccak256(ethAddress);
+      authorityHashes.push(authorityHash);
       logger.debug(
-        `Processed public key ${compressedKey} -> ETH address ${ethAddress} -> Validator hash ${validatorHash}`
+        `Processed public key ${compressedKey} -> ETH address ${ethAddress} -> Authority hash ${authorityHash}`
       );
     } catch (error) {
       logger.error(`❌ Failed to process public key ${compressedKey}: ${error}`);
@@ -88,14 +146,14 @@ export async function prepareDatahavenAuthoritiesConfig(): Promise<void> {
       logger.warn(`"snowbridge" section not found in ${configFilePath}, created it.`);
     }
 
-    configJson.snowbridge.initialValidators = validatorHashes;
-    configJson.snowbridge.nextValidators = validatorHashes;
+    configJson.snowbridge.initialValidators = authorityHashes;
+    configJson.snowbridge.nextValidators = authorityHashes;
 
     fs.writeFileSync(configFilePath, JSON.stringify(configJson, null, 2));
-    logger.success(`✅ Datahaven validator hashes updated in: ${configFilePath}`);
+    logger.success(`Datahaven authority hashes updated in: ${configFilePath}`);
   } catch (error) {
     logger.error(`❌ Failed to read or update ${configFilePath}: ${error}`);
-    throw new Error(`Failed to update validator sets in ${configFilePath}.`);
+    throw new Error(`Failed to update authority hashes in ${configFilePath}.`);
   }
 }
 
@@ -287,11 +345,21 @@ export const launchDataHavenSolochain = async (
     logger.debug(`Started ${id} at ${process.pid}`);
   }
 
+  // Check if network is ready
   for (let i = 0; i < 10; i++) {
     logger.info("Waiting for datahaven to start...");
 
-    if (await isNetworkReady(9944)) {
-      logger.success("Datahaven network started");
+    // Get the port of the primary node (or default)
+    const primaryNodePort = launchedNetwork.getDHNodes()[0]?.port || 9944;
+
+    if (await isNetworkReady(primaryNodePort)) {
+      logger.success(`Datahaven network started, primary node accessible on port ${primaryNodePort}`);
+
+      // Call setupDatahavenValidatorConfig now that nodes are up
+      logger.info("Proceeding with DataHaven validator configuration setup...");
+      await setupDatahavenValidatorConfig(options, launchedNetwork);
+
+      printDivider();
       return;
     }
     logger.debug("Node not ready, waiting 1 second...");

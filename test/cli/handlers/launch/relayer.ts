@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
+import { ApiPromise, WsProvider } from "@polkadot/api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
   type RelayerType,
@@ -16,6 +17,42 @@ import {
 } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
+
+export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Promise<boolean> => {
+  const provider = new WsProvider(`ws://127.0.0.1:${port}`);
+  try {
+    const api = await ApiPromise.create({ provider, noInitWarn: true });
+    await api.isReady;
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        logger.debug(`Attempt ${i + 1}/${retries} to check beefy_getFinalizedHead on port ${port}`);
+        const finalizedHead = await api.rpc.beefy.getFinalizedHead();
+        if (finalizedHead && finalizedHead.toHex() !== "0x0000000000000000000000000000000000000000000000000000000000000000") {
+          logger.success(`🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHead.toHex()}`);
+          await api.disconnect();
+          return true;
+        }
+        logger.debug(
+          `BEEFY not ready on port ${port}, or finalized head is zero. Retrying in ${delay / 1000}s...`
+        );
+      } catch (rpcError) {
+        logger.warn(`RPC error checking BEEFY status on port ${port}: ${rpcError}. Retrying...`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    logger.error(`❌ BEEFY failed to become ready on port ${port} after ${retries} attempts.`);
+    await api.disconnect();
+    return false;
+  } catch (error) {
+    logger.error(`❌ Failed to connect to DataHaven node on port ${port} for BEEFY check: ${error}`);
+    if (provider.isConnected) {
+      await provider.disconnect();
+    }
+    return false;
+  }
+};
 
 type RelayerSpec = {
   name: string;
@@ -52,8 +89,38 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     return;
   }
 
+  // Get DataHaven node port
+  const dhNodes = launchedNetwork.getDHNodes();
+  let substrateWsPort: number;
+  let substrateNodeId: string;
+
+  if (dhNodes.length === 0) {
+    logger.warn(
+      "⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to port 9944 for relayers."
+    );
+    substrateWsPort = 9944;
+    substrateNodeId = "default (assumed)";
+  } else {
+    const firstDhNode = dhNodes[0];
+    substrateWsPort = firstDhNode.port;
+    substrateNodeId = firstDhNode.id;
+    logger.info(
+      `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
+    );
+  }
+
   // Kill any pre-existing relayer processes if they exist
   await $`pkill snowbridge-relay`.nothrow().quiet();
+
+  // Check if BEEFY is ready before proceeding
+  logger.info(`Checking BEEFY readiness on port ${substrateWsPort} (node: ${substrateNodeId}) before launching relayers...`);
+  const beefyIsReady = await isBeefyReady(substrateWsPort);
+  if (!beefyIsReady) {
+    throw new Error(
+      `BEEFY protocol not ready on port ${substrateWsPort} (node: ${substrateNodeId}). Relayers cannot be launched.`
+    );
+  }
+  logger.success(`🥩 BEEFY is ready (node: ${substrateNodeId}, port: ${substrateWsPort}), proceeding with relayer launch.`);
 
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
@@ -109,9 +176,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     const ethWsPort = await getPortFromKurtosis("el-1-reth-lighthouse", "ws");
     const ethHttpPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
-    const substrateWsPort = 9944;
+    // const substrateWsPort = 9944; // Removed hardcoded port
     logger.debug(
-      `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (hardcoded)`
+      `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );
 
     if (type === "beacon") {

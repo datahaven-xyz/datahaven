@@ -4,7 +4,7 @@ import sendTxn from "scripts/send-txn";
 import invariant from "tiny-invariant";
 import { ANVIL_FUNDED_ACCOUNTS, getPortFromKurtosis, logger } from "utils";
 import { checkDependencies } from "./checks";
-import { launchDataHavenSolochain, prepareDatahavenAuthoritiesConfig } from "./datahaven";
+import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { launchRelayers } from "./relayer";
@@ -59,10 +59,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   invariant(networkRpcUrl, "❌ Network RPC URL not found");
 
   await sendTxn(privateKey, networkRpcUrl);
-
-  if (options.datahaven) {
-    await prepareDatahavenAuthoritiesConfig();
-  }
 
   logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined = undefined;

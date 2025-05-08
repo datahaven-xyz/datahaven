@@ -68,10 +68,12 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: moonsonglabs/datahaven
+          flavor: |
+            latest=auto
           tags: |
             type=sha,format=short,prefix=sha-
-            type=edge
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            
 
       - name: Log Docker Metadata
         run: |

@@ -7,12 +7,14 @@ export class LaunchedNetwork {
   protected processes: Bun.Subprocess<"inherit" | "pipe" | "ignore", number, number>[];
   protected fileDescriptors: number[];
   protected DHNodes: { id: string; port: number }[];
+  protected Relays: { id: string }[];
 
   constructor() {
     this.runId = crypto.randomUUID();
     this.processes = [];
     this.fileDescriptors = [];
     this.DHNodes = [];
+    this.Relays = [];
   }
 
   getRunId(): string {
@@ -21,6 +23,10 @@ export class LaunchedNetwork {
 
   getDHNodes(): { id: string; port: number }[] {
     return [...this.DHNodes];
+  }
+
+  getRelays(): { id: string }[] {
+    return [...this.Relays];
   }
 
   getDHPort(id: string): number {
@@ -39,6 +45,10 @@ export class LaunchedNetwork {
 
   addDHNode(id: string, port: number) {
     this.DHNodes.push({ id, port });
+  }
+
+  addRelay(id: string) {
+    this.Relays.push({ id });
   }
 
   async cleanup() {

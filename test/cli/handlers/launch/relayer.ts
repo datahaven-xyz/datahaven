@@ -170,6 +170,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
       launchedNetwork.addFileDescriptor(fd);
       launchedNetwork.addProcess(process);
+      launchedNetwork.addRelay(name);
       logger.debug(`Started relayer ${name} with process ${process.pid}`);
     } catch (e) {
       logger.error(`Error starting relayer ${name}`);

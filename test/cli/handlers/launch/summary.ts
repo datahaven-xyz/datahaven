@@ -20,15 +20,21 @@ export const performSummaryOperations = async (
     servicesToDisplay.push(`datahaven-${id}`);
   }
 
+  const relays = launchedNetwork.getRelays();
+  for (const relay of relays) {
+    servicesToDisplay.push(relay.id);
+  }
+
   logger.trace("Services to display", servicesToDisplay);
 
   const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
   for (const service of servicesToDisplay) {
     logger.debug(`Checking service: ${service}`);
 
-    const serviceInfo = service.startsWith("datahaven-")
-      ? undefined
-      : await getServiceFromKurtosis(service);
+    const serviceInfo =
+      service.startsWith("datahaven-") || service.startsWith("relayer-")
+        ? undefined
+        : await getServiceFromKurtosis(service);
     logger.trace("Service info", serviceInfo);
     switch (true) {
       case service.startsWith("cl-"): {
@@ -93,6 +99,15 @@ export const performSummaryOperations = async (
           service,
           ports: { http: port },
           url: `http://127.0.0.1:${port}`
+        });
+        break;
+      }
+
+      case service.startsWith("relayer-"): {
+        displayData.push({
+          service,
+          ports: {},
+          url: "N/A"
         });
         break;
       }

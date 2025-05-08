@@ -82,6 +82,7 @@ jobs:
           mkdir -p tmp/bin
           docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
           chmod +x tmp/bin/snowbridge-relay
+          docker rm temp
       - run: tmp/bin/snowbridge-relay --help
       - name: Download datahaven binary
         run: |
@@ -89,6 +90,7 @@ jobs:
           mkdir -p ../operator/target/release/
           docker cp temp:/usr/local/bin/datahaven-node ../operator/target/release/
           chmod +x ../operator/target/release/datahaven-node
+          docker rm temp
       - run: ../operator/target/release/datahaven-node --help
       - run: bun install
       - run: bun start:e2e:ci

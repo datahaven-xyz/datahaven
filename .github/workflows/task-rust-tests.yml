@@ -33,6 +33,14 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
+      - name: Free up disk space
+        # Remove some pre-installed tooling that we don't use to free space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          echo "Disk space after cleanup:"
+          df -h /
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Build and archive tests

@@ -16,7 +16,7 @@ jobs:
   build-test-push:
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+      image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
     defaults:
       run:
         working-directory: operator
@@ -35,9 +35,14 @@ jobs:
           flavor: |
             latest=auto
           tags: |
+            type=sha,format=short,prefix=sha-
             type=ref,event=tag
             type=ref,event=pr
-            type=sha,format=short,prefix=sha-
+
+      - name: Extract last tag for job output
+        id: last_tag_extractor
+        run: |
+          echo "last_tag_value=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')" >> $GITHUB_OUTPUT
 
       - name: Log Docker Metadata
         run: |
@@ -68,12 +73,12 @@ jobs:
       # --- Smoke tests ---
 
       - name: Test node --help
-        run: docker run --rm ${{ fromJSON(steps.meta.outputs.json).tags[0] }} --help
+        run: docker run --rm ${{ steps.last_tag_extractor.outputs.last_tag_value }} --help
 
       - name: Integration test (dev chain starts)
         run: |
           docker run --rm -d -p 9944:9944 --name local-dh-node \
-            ${{ fromJSON(steps.meta.outputs.json).tags[0] }} --dev --unsafe-rpc-external
+            ${{ steps.last_tag_extractor.outputs.last_tag_value }} --dev --unsafe-rpc-external
       - run: sleep 60
       - run: docker logs local-dh-node --tail 100
       - run: |

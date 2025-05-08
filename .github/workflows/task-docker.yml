@@ -72,7 +72,7 @@ jobs:
             latest=auto
           tags: |
             type=sha,format=short,prefix=sha-
-            type=ref,event=branch
+            type=ref
             
 
       - name: Log Docker Metadata

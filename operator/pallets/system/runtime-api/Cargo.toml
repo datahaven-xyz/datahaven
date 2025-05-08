@@ -1,12 +1,12 @@
 [package]
-name = "snowbridge-system-runtime-api"
-description = "Snowbridge System Runtime API"
-version = "0.13.0"
 authors = ["Snowfork <contact@snowfork.com>"]
-edition.workspace = true
-repository.workspace = true
-license = "Apache-2.0"
 categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge System Runtime API"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-system-runtime-api"
+repository.workspace = true
+version = "0.13.0"
 
 [lints]
 workspace = true

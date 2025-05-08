@@ -1,12 +1,12 @@
 [package]
-name = "bridge-hub-common"
-version = "0.13.1"
 authors.workspace = true
-edition.workspace = true
 description = "Bridge hub common utilities"
-license = "Apache-2.0"
+edition.workspace = true
 homepage.workspace = true
+license = "Apache-2.0"
+name = "bridge-hub-common"
 repository.workspace = true
+version = "0.13.1"
 
 [dependencies]
 codec = { features = ["derive"], workspace = true }
@@ -18,33 +18,33 @@ snowbridge-core.workspace = true
 sp-core.workspace = true
 sp-runtime.workspace = true
 sp-std.workspace = true
+xcm.workspace = true
 xcm-builder.workspace = true
 xcm-executor.workspace = true
-xcm.workspace = true
 
 [features]
 default = ["std"]
 std = [
-	"codec/std",
-	"cumulus-primitives-core/std",
-	"frame-support/std",
-	"pallet-message-queue/std",
-	"scale-info/std",
-	"snowbridge-core/std",
-	"sp-core/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"xcm-builder/std",
-	"xcm-executor/std",
-	"xcm/std",
+    "codec/std",
+    "cumulus-primitives-core/std",
+    "frame-support/std",
+    "pallet-message-queue/std",
+    "scale-info/std",
+    "snowbridge-core/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "xcm-builder/std",
+    "xcm-executor/std",
+    "xcm/std",
 ]
 
 runtime-benchmarks = [
-	"cumulus-primitives-core/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"pallet-message-queue/runtime-benchmarks",
-	"snowbridge-core/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
-	"xcm-builder/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
+    "cumulus-primitives-core/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "pallet-message-queue/runtime-benchmarks",
+    "snowbridge-core/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "xcm-builder/runtime-benchmarks",
+    "xcm-executor/runtime-benchmarks",
 ]

@@ -16,9 +16,8 @@ concurrency:
 
 jobs:
   # First Tier
-  build-operator:
-    uses: ./.github/workflows/task-build-operator.yml
-    secrets: inherit # For demonstrative purposes, we don't use any secrets yet.
+  # build-operator:
+  #   uses: ./.github/workflows/task-build-operator.yml
   ts-build:
     uses: ./.github/workflows/task-ts-build.yml
   ts-lint:
@@ -29,10 +28,14 @@ jobs:
     uses: ./.github/workflows/task-foundry-tests.yml
   rust-lint:
     uses: ./.github/workflows/task-rust-lint.yml
+  docker-build:
+    uses: ./.github/workflows/task-docker.yml
+    secrets: inherit
 
   # Second Tier
   e2e-tests:
-    needs: [build-operator]
+    needs: [docker-build]
     uses: ./.github/workflows/task-e2e.yml
+    secrets: inherit
     with:
-      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
+      image-tag: ${{ needs.docker-build.outputs.image-tag }}

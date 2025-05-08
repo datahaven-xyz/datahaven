@@ -1,9 +1,9 @@
 [package]
+authors = { workspace = true }
+description = "Pallet for storing the latest commitment hash from the outbound queue for cross-chain verification"
+edition = { workspace = true }
 name = "pallet-outbound-commitment-store"
 version = "0.1.0"
-description = "Pallet for storing the latest commitment hash from the outbound queue for cross-chain verification"
-authors = { workspace = true }
-edition = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -17,6 +17,10 @@ sp-core = { workspace = true }
 
 [features]
 default = ["std"]
+runtime-benchmarks = [
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+]
 std = [
     "codec/std",
     "frame-support/std",
@@ -24,11 +28,4 @@ std = [
     "scale-info/std",
     "sp-core/std",
 ]
-try-runtime = [
-    "frame-support/try-runtime",
-    "frame-system/try-runtime",
-]
-runtime-benchmarks = [
-    "frame-support/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-]
+try-runtime = ["frame-support/try-runtime", "frame-system/try-runtime"]

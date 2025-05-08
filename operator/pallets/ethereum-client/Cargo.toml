@@ -1,12 +1,12 @@
 [package]
-name = "snowbridge-pallet-ethereum-client"
-description = "Snowbridge Ethereum Client Pallet"
-version = "0.2.0"
 authors = ["Snowfork <contact@snowfork.com>"]
-edition.workspace = true
-repository.workspace = true
-license = "Apache-2.0"
 categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Ethereum Client Pallet"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-pallet-ethereum-client"
+repository.workspace = true
+version = "0.2.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -50,41 +50,41 @@ sp-io = { workspace = true, default-features = true }
 [features]
 default = ["std"]
 fuzzing = ["hex-literal", "pallet-timestamp", "serde", "serde_json", "sp-io"]
-std = [
-	"codec/std",
-	"frame-support/std",
-	"frame-system/std",
-	"log/std",
-	"pallet-timestamp/std",
-	"scale-info/std",
-	"serde",
-	"snowbridge-beacon-primitives/std",
-	"snowbridge-core/std",
-	"snowbridge-ethereum/std",
-	"snowbridge-inbound-queue-primitives/std",
-	"snowbridge-pallet-ethereum-client-fixtures/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	'frame-benchmarking/std',
-]
 runtime-benchmarks = [
-	"frame-benchmarking/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"hex-literal",
-	"pallet-timestamp?/runtime-benchmarks",
-	"snowbridge-core/runtime-benchmarks",
-	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
-	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "hex-literal",
+    "pallet-timestamp?/runtime-benchmarks",
+    "snowbridge-core/runtime-benchmarks",
+    "snowbridge-inbound-queue-primitives/runtime-benchmarks",
+    "snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+]
+std = [
+    "codec/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-timestamp/std",
+    "scale-info/std",
+    "serde",
+    "snowbridge-beacon-primitives/std",
+    "snowbridge-core/std",
+    "snowbridge-ethereum/std",
+    "snowbridge-inbound-queue-primitives/std",
+    "snowbridge-pallet-ethereum-client-fixtures/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    'frame-benchmarking/std',
 ]
 try-runtime = [
-	"frame-support/try-runtime",
-	"frame-system/try-runtime",
-	"pallet-timestamp?/try-runtime",
-	"sp-runtime/try-runtime",
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-timestamp?/try-runtime",
+    "sp-runtime/try-runtime",
 ]
 
 # THIS IS JUST TO AVOID TESTS RUNNING IN THE CI.

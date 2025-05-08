@@ -33,7 +33,7 @@ jobs:
         with:
           cache-key: CI
       - name: Build node binary
-        run: cargo build --profile ci --locked
+        run: cargo build --release --locked
       - name: Hash binary
         id: hash-binary
         run: |

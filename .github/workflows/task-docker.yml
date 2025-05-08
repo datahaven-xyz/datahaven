@@ -70,8 +70,14 @@ jobs:
           images: moonsonglabs/datahaven
           tags: |
             type=sha,format=short,prefix=sha-
-            type=ref,event=branch
+            type=raw,value={{ref_name}},enable={{eq ref_type "branch"}}
             type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Log Docker Metadata
+        run: |
+          echo "Generated tags: ${{ steps.meta.outputs.tags }}"
+          echo "Generated labels: ${{ steps.meta.outputs.labels }}"
+          echo "Full JSON output: ${{ steps.meta.outputs.json }}"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3

@@ -16,7 +16,7 @@ jobs:
   build-test-push:
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
+      image-tag: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
     defaults:
       run:
         working-directory: operator

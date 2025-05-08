@@ -119,8 +119,9 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     await runShellCommandWithLogger(signupCommand, { env, cwd: "../contracts", logLevel: "debug" });
 
     logger.success(`Successfully registered validator ${validator.publicKey}`);
-    printDivider();
   }
+
+  printDivider();
 
   return true;
 };

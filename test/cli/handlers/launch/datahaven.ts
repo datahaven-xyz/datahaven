@@ -87,7 +87,7 @@ export const launchDataHavenSolochain = async (
 
     let completed = false;
     const file = Bun.file(logFilePath);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 60; i++) {
       const pattern = "Running JSON-RPC server: addr=127.0.0.1:";
       const blob = await file.text();
       logger.debug(`Blob: ${blob}`);

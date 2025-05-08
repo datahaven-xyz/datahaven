@@ -70,7 +70,7 @@ jobs:
           images: moonsonglabs/datahaven
           tags: |
             type=sha,format=short,prefix=sha-
-            type=raw,value={{ref_name}},enable={{eq ref_type "branch"}}
+            type=raw,value={{ref_name}},enable={{eq .Ref.Type "branch"}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Log Docker Metadata

@@ -102,7 +102,7 @@ use xcm::prelude::*;
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
 
-const EVM_CHAIN_ID: u64 = 1289;
+const EVM_CHAIN_ID: u64 = 1283;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 
 // TODO: We need to define what do we want here as max PoV size

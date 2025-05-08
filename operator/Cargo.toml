@@ -1,17 +1,17 @@
 [workspace.package]
-license = "GPL-3"
 authors = ["MoonsongLabs <dev@moonsonglabs.com>"]
-homepage = "https://moonbeam.network/"
-repository = "https://github.com/Moonsong-Labs/datahaven.git"
 edition = "2021"
+homepage = "https://moonbeam.network/"
+license = "GPL-3"
+repository = "https://github.com/Moonsong-Labs/datahaven.git"
 
 [workspace]
 members = [
-  "node",
-  "pallets/outbound-commitment-store",
-  "pallets/*",
-  "primitives/bridge",
-  "runtime/*",
+    "node",
+    "pallets/outbound-commitment-store",
+    "pallets/*",
+    "primitives/bridge",
+    "runtime/*",
 ]
 resolver = "2"
 
@@ -52,7 +52,7 @@ log = { version = "0.4.25" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
 parity-bytes = { version = "0.1.2", default-features = false }
 parity-scale-codec = { version = "3.0.0", default-features = false, features = [
-  "derive",
+    "derive",
 ] }
 rand = { version = "0.8.5", default-features = false }
 rlp = { version = "0.6.1", default-features = false }

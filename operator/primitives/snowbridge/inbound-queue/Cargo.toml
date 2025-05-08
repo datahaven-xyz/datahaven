@@ -1,12 +1,12 @@
 [package]
-name = "snowbridge-inbound-queue-primitives"
-description = "Snowbridge Inbound Queue Primitives"
-version = "0.9.0"
 authors = ["Snowfork <contact@snowfork.com>"]
-edition.workspace = true
-repository.workspace = true
-license = "Apache-2.0"
 categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Inbound Queue Primitives"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-inbound-queue-primitives"
+repository.workspace = true
+version = "0.9.0"
 
 [package.metadata.polkadot-sdk]
 exclude-from-umbrella = true
@@ -39,30 +39,30 @@ hex-literal = { workspace = true, default-features = true }
 [dev-dependencies]
 [features]
 default = ["std"]
-std = [
-  "alloy-core/std",
-  "codec/std",
-  "frame-support/std",
-  "frame-system/std",
-  "hex/std",
-  "log/std",
-  "scale-info/std",
-  "snowbridge-beacon-primitives/std",
-  "snowbridge-core/std",
-  "snowbridge-verification-primitives/std",
-  "sp-core/std",
-  "sp-io/std",
-  "sp-runtime/std",
-  "sp-std/std",
-  "xcm-builder/std",
-  "xcm-executor/std",
-  "xcm/std",
-]
 runtime-benchmarks = [
-  "frame-support/runtime-benchmarks",
-  "frame-system/runtime-benchmarks",
-  "snowbridge-core/runtime-benchmarks",
-  "sp-runtime/runtime-benchmarks",
-  "xcm-builder/runtime-benchmarks",
-  "xcm-executor/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "snowbridge-core/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "xcm-builder/runtime-benchmarks",
+    "xcm-executor/runtime-benchmarks",
+]
+std = [
+    "alloy-core/std",
+    "codec/std",
+    "frame-support/std",
+    "frame-system/std",
+    "hex/std",
+    "log/std",
+    "scale-info/std",
+    "snowbridge-beacon-primitives/std",
+    "snowbridge-core/std",
+    "snowbridge-verification-primitives/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "xcm-builder/std",
+    "xcm-executor/std",
+    "xcm/std",
 ]

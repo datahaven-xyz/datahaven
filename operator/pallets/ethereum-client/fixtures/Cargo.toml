@@ -1,12 +1,12 @@
 [package]
-name = "snowbridge-pallet-ethereum-client-fixtures"
-description = "Snowbridge Ethereum Client Test Fixtures"
-version = "0.9.0"
 authors = ["Snowfork <contact@snowfork.com>"]
-edition.workspace = true
-repository.workspace = true
-license = "Apache-2.0"
 categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Ethereum Client Test Fixtures"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-pallet-ethereum-client-fixtures"
+repository.workspace = true
+version = "0.9.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -24,14 +24,14 @@ sp-std = { workspace = true }
 
 [features]
 default = ["std"]
-std = [
-  "snowbridge-beacon-primitives/std",
-  "snowbridge-core/std",
-  "snowbridge-inbound-queue-primitives/std",
-  "sp-core/std",
-  "sp-std/std",
-]
 runtime-benchmarks = [
-  "snowbridge-core/runtime-benchmarks",
-  "snowbridge-inbound-queue-primitives/runtime-benchmarks",
+    "snowbridge-core/runtime-benchmarks",
+    "snowbridge-inbound-queue-primitives/runtime-benchmarks",
+]
+std = [
+    "snowbridge-beacon-primitives/std",
+    "snowbridge-core/std",
+    "snowbridge-inbound-queue-primitives/std",
+    "sp-core/std",
+    "sp-std/std",
 ]

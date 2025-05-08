@@ -1,11 +1,11 @@
 [package]
-name = "dhp-bridge"
-version = "0.1.0"
-license = { workspace = true }
 authors = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
 edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+name = "dhp-bridge"
+repository = { workspace = true }
+version = "0.1.0"
 
 [dependencies]
 frame-support = { workspace = true }
@@ -19,10 +19,10 @@ sp-std = { workspace = true }
 [features]
 default = ["std"]
 std = [
-  "frame-support/std",
-  "frame-system/std",
-  "snowbridge-core/std",
-  "parity-scale-codec/std",
-  "pallet-validator-set/std",
-  "sp-std/std",
+    "frame-support/std",
+    "frame-system/std",
+    "snowbridge-core/std",
+    "parity-scale-codec/std",
+    "pallet-validator-set/std",
+    "sp-std/std",
 ]

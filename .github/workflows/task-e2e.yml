@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: d
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -76,19 +76,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Start the DataHaven node (placeholder for future use)
-      - run: docker run --rm -d -p 9944:9944 --name local-dh-node ${{ inputs.image-tag }} --dev --unsafe-rpc-external 
-      - run: sleep 30
-      - run: docker logs local-dh-node
-      - run: |
-          curl --location 'http://127.0.0.1:9944' \
-            --header 'Content-Type: application/json' \
-            --data '{
-                "jsonrpc":"2.0",
-                "id"     :1,
-                "method" :"system_chain",
-                "params" :[]
-            }'
       - name: Download snowbridge binary
         run: |
           docker create --name temp moonsonglabs/snowbridge-relayer:latest
@@ -96,7 +83,12 @@ jobs:
           docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
           chmod +x tmp/bin/snowbridge-relay
       - run: tmp/bin/snowbridge-relay --help
-      - run: chmod +x ../operator/target/release/datahaven-node
+      - name: Download datahaven binary
+        run: |
+          docker create --name temp ${{ inputs.image-tag }}
+          mkdir -p ../operator/target/release/
+          docker cp temp:/usr/local/bin/datahaven-node ../operator/target/release/
+          chmod +x ../operator/target/release/datahaven-node
       - run: ../operator/target/release/datahaven-node --help
       - run: bun install
       - run: bun start:e2e:ci

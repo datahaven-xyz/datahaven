@@ -35,9 +35,9 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=sha,format=short,prefix=sha-
             type=ref,event=tag
             type=ref,event=pr
+            type=sha,format=short,prefix=sha-
 
       - name: Log Docker Metadata
         run: |
@@ -50,23 +50,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Free up disk space
-        run: |
-          echo "Disk space before cleanup:"
-          df -h /
-          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/lib/android /opt/hostedtoolcache/swift /opt/hostedtoolcache/go
-          sudo apt-get clean
-          echo "Disk space after cleanup:"
-          df -h /
-          echo "Largest directories in root:"
-          sudo du -sh /* | sort -rh | head -n 20
-          echo "Largest directories in /opt/hostedtoolcache:"
-          sudo du -sh /opt/hostedtoolcache/* | sort -rh | head -n 10
-          echo "Largest directories in /usr/local:"
-          sudo du -sh /usr/local/* | sort -rh | head -n 10
-          echo "Largest directories in /var/lib:"
-          sudo du -sh /var/lib/* | sort -rh | head -n 10
-
       - name: Build Docker image (load for tests)
         id: build
         uses: docker/build-push-action@v5

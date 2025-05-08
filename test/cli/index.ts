@@ -14,6 +14,7 @@ function parseIntValue(value: string): number {
 // So far we only have the launch command
 // we can expand this to more commands in the future
 const program = new Command()
+  .option("--datahaven", "Enable Datahaven network to be launched")
   .option("-l, --launch-kurtosis", "Launch Kurtosis")
   .option("-d, --deploy-contracts", "Deploy smart contracts")
   .option("-f, --fund-validators", "Fund validators")
@@ -24,17 +25,16 @@ const program = new Command()
   .option("--no-update-validator-set", "Skip update validator set")
   .option("-b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
-  .option("--datahaven", "Enable Datahaven network to be launched")
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
+  .option("-v, --verified", "Verify smart contracts with Blockscout")
+  .option("--always-clean", "Always clean Kurtosis", false)
+  .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
+  .option("-r, --relayer", "Enable Relayer")
   .option(
     "--datahaven-bin-path <value>",
     "Path to the datahaven binary",
     "../operator/target/release/datahaven-node"
   )
-  .option("-v, --verified", "Verify smart contracts with Blockscout")
-  .option("--always-clean", "Always clean Kurtosis", false)
-  .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
-  .option("-r, --relayer", "Enable Relayer")
   .option(
     "-p, --relayer-bin-path <value>",
     "Path to the relayer binary",

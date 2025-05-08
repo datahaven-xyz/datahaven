@@ -2,15 +2,9 @@ import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
 import sendTxn from "scripts/send-txn";
 import invariant from "tiny-invariant";
-import {
-  ANVIL_FUNDED_ACCOUNTS,
-  getPortFromKurtosis,
-  logger,
-  printDivider,
-  printHeader
-} from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, getPortFromKurtosis, logger } from "utils";
 import { checkDependencies } from "./checks";
-import { performDatahavenOperations } from "./datahaven";
+import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { performRelayerOperations } from "./relayer";
@@ -53,6 +47,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await checkDependencies();
 
+  await launchDataHavenSolochain(options, launchedNetwork);
+
   await launchKurtosis(options);
 
   logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
@@ -85,6 +81,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   await performValidatorOperations(options, networkRpcUrl, contractsDeployed);
 
   if (options.relayer) {
+    // TODO
     await performRelayerOperations(options, launchedNetwork);
   }
 

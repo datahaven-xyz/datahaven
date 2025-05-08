@@ -9,15 +9,9 @@ edition = "2021"
 members = [
   "node",
   "pallets/outbound-commitment-store",
-  "pallets/ethereum-client",
-  "pallets/inbound-queue-v2",
-  "pallets/outbound-queue-v2",
-  "pallets/system",
-  "pallets/system-v2",
-  "pallets/validator-set",
+  "pallets/*",
   "primitives/bridge",
-  "runtime",
-  "runtime/common",
+  "runtime/*",
 ]
 resolver = "2"
 
@@ -25,8 +19,10 @@ resolver = "2"
 
 [workspace.dependencies]
 # Local
-datahaven-runtime = { path = "./runtime", default-features = false }
+datahaven-mainnet-runtime = { path = "./runtime/mainnet", default-features = false }
 datahaven-runtime-common = { path = "./runtime/common", default-features = false }
+datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = false }
+datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
@@ -137,12 +133,14 @@ sp-consensus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "s
 sp-consensus-babe = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-consensus-beefy = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
+sp-consensus-slots = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-crypto-hashing = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-genesis-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-inherents = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
+sp-keystore = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sp-runtime-interface = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }

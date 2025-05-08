@@ -1,6 +1,6 @@
 // Substrate
 use crate::client::{FullBackend, FullClient};
-use datahaven_runtime::opaque::Block;
+use datahaven_runtime_common::Block;
 pub use fc_db::Backend as FrontierBackend;
 use fc_rpc::EthTask;
 pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};

@@ -1,14 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import invariant from "tiny-invariant";
-import {
-  confirmWithTimeout,
-  logger,
-  printDivider,
-  printHeader,
-  runShellCommandWithLogger
-} from "../utils/index";
+import { logger, printDivider, printHeader, runShellCommandWithLogger } from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -123,7 +116,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     const signupCommand = `forge script script/transact/SignUpValidator.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
     logger.debug(`Running command: ${signupCommand}`);
 
-    await runShellCommandWithLogger(signupCommand, { env, cwd: "../contracts" });
+    await runShellCommandWithLogger(signupCommand, { env, cwd: "../contracts", logLevel: "debug" });
 
     logger.success(`Successfully registered validator ${validator.publicKey}`);
     printDivider();

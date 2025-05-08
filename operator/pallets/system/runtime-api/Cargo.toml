@@ -27,9 +27,9 @@ xcm.workspace = true
 [features]
 default = ["std"]
 std = [
-    "codec/std",
-    "snowbridge-core/std",
-    "sp-api/std",
-    "sp-std/std",
-    "xcm/std",
+  "codec/std",
+  "snowbridge-core/std",
+  "sp-api/std",
+  "sp-std/std",
+  "xcm/std",
 ]

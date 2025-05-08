@@ -19,10 +19,10 @@ sp-std = { workspace = true }
 [features]
 default = ["std"]
 std = [
-    "frame-support/std",
-    "frame-system/std",
-    "snowbridge-core/std",
-    "parity-scale-codec/std",
-    "pallet-validator-set/std",
-    "sp-std/std",
+  "frame-support/std",
+  "frame-system/std",
+  "snowbridge-core/std",
+  "parity-scale-codec/std",
+  "pallet-validator-set/std",
+  "sp-std/std",
 ]

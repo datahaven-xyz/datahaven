@@ -38,7 +38,9 @@ mmr-rpc = { workspace = true, default-features = true }
 pallet-im-online = { workspace = true }
 pallet-transaction-payment = { workspace = true, default-features = true }
 pallet-transaction-payment-rpc = { workspace = true, default-features = true }
-pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = ["std"] }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = [
+  "std",
+] }
 sc-basic-authorship = { workspace = true, default-features = true }
 sc-cli = { workspace = true, default-features = true }
 sc-client-api = { workspace = true, default-features = true }
@@ -94,23 +96,21 @@ substrate-build-script-utils = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
-std = [
-    "datahaven-runtime/std",
-]
+std = ["datahaven-runtime/std"]
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
-    "datahaven-runtime/runtime-benchmarks",
-    "frame-benchmarking-cli/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-    "sc-service/runtime-benchmarks",
-    "sp-runtime/runtime-benchmarks",
+  "datahaven-runtime/runtime-benchmarks",
+  "frame-benchmarking-cli/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+  "sc-service/runtime-benchmarks",
+  "sp-runtime/runtime-benchmarks",
 ]
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = [
-    "datahaven-runtime/try-runtime",
-    "frame-system/try-runtime",
-    "pallet-transaction-payment/try-runtime",
-    "sp-runtime/try-runtime",
+  "datahaven-runtime/try-runtime",
+  "frame-system/try-runtime",
+  "pallet-transaction-payment/try-runtime",
+  "sp-runtime/try-runtime",
 ]

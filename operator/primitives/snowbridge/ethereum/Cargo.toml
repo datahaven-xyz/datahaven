@@ -19,8 +19,12 @@ hex-literal = { workspace = true }
 parity-bytes = { workspace = true }
 rlp = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
-serde = { optional = true, features = ["derive"], workspace = true, default-features = true }
-serde-big-array = { optional = true, features = ["const-generics"], workspace = true }
+serde = { optional = true, features = [
+  "derive",
+], workspace = true, default-features = true }
+serde-big-array = { optional = true, features = [
+  "const-generics",
+], workspace = true }
 
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
@@ -36,16 +40,16 @@ serde_json = { workspace = true, default-features = true }
 default = ["std"]
 expensive_tests = []
 std = [
-	"codec/std",
-	"ethabi/std",
-	"ethbloom/std",
-	"ethereum-types/std",
-	"parity-bytes/std",
-	"rlp/std",
-	"scale-info/std",
-	"serde",
-	"serde-big-array",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
+  "codec/std",
+  "ethabi/std",
+  "ethbloom/std",
+  "ethereum-types/std",
+  "parity-bytes/std",
+  "rlp/std",
+  "scale-info/std",
+  "serde",
+  "serde-big-array",
+  "sp-io/std",
+  "sp-runtime/std",
+  "sp-std/std",
 ]

@@ -16,7 +16,9 @@ codec = { workspace = true }
 hex = { workspace = true }
 rlp = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
-serde = { optional = true, features = ["derive"], workspace = true, default-features = true }
+serde = { optional = true, features = [
+  "derive",
+], workspace = true, default-features = true }
 
 frame-support = { workspace = true }
 sp-core = { workspace = true }
@@ -37,18 +39,18 @@ hex-literal = { workspace = true, default-features = true }
 [features]
 default = ["std"]
 std = [
-	"byte-slice-cast/std",
-	"codec/std",
-	"frame-support/std",
-	"hex/std",
-	"milagro-bls/std",
-	"rlp/std",
-	"scale-info/std",
-	"serde",
-	"snowbridge-ethereum/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"ssz_rs/std",
+  "byte-slice-cast/std",
+  "codec/std",
+  "frame-support/std",
+  "hex/std",
+  "milagro-bls/std",
+  "rlp/std",
+  "scale-info/std",
+  "serde",
+  "snowbridge-ethereum/std",
+  "sp-core/std",
+  "sp-io/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "ssz_rs/std",
 ]

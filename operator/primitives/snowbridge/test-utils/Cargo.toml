@@ -19,7 +19,9 @@ frame-system = { workspace = true, default-features = true }
 hex = { workspace = true, default-features = true }
 log = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
-scale-info = { features = ["derive"], workspace = true, default-features = true }
+scale-info = { features = [
+  "derive",
+], workspace = true, default-features = true }
 snowbridge-outbound-queue-primitives = { workspace = true, default-features = true }
 sp-core = { workspace = true, default-features = true }
 sp-std = { workspace = true, default-features = true }
@@ -29,10 +31,10 @@ xcm-executor = { workspace = true, default-features = true }
 
 [features]
 runtime-benchmarks = [
-	"frame-benchmarking/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"pallet-xcm/runtime-benchmarks",
-	"xcm-builder/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
+  "frame-benchmarking/runtime-benchmarks",
+  "frame-support/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+  "pallet-xcm/runtime-benchmarks",
+  "xcm-builder/runtime-benchmarks",
+  "xcm-executor/runtime-benchmarks",
 ]

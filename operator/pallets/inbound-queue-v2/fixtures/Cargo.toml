@@ -25,13 +25,13 @@ sp-std = { workspace = true }
 [features]
 default = ["std"]
 std = [
-	"snowbridge-beacon-primitives/std",
-	"snowbridge-core/std",
-	"snowbridge-inbound-queue-primitives/std",
-	"sp-core/std",
-	"sp-std/std",
+  "snowbridge-beacon-primitives/std",
+  "snowbridge-core/std",
+  "snowbridge-inbound-queue-primitives/std",
+  "sp-core/std",
+  "sp-std/std",
 ]
 runtime-benchmarks = [
-	"snowbridge-core/runtime-benchmarks",
-	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
+  "snowbridge-core/runtime-benchmarks",
+  "snowbridge-inbound-queue-primitives/runtime-benchmarks",
 ]

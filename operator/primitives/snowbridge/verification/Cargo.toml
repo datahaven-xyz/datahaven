@@ -22,10 +22,10 @@ sp-std = { workspace = true }
 [features]
 default = ["std"]
 std = [
-	"codec/std",
-	"frame-support/std",
-	"scale-info/std",
-	"snowbridge-beacon-primitives/std",
-	"sp-core/std",
-	"sp-std/std",
+  "codec/std",
+  "frame-support/std",
+  "scale-info/std",
+  "snowbridge-beacon-primitives/std",
+  "sp-core/std",
+  "sp-std/std",
 ]

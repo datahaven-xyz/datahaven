@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printHeader } from "utils";
+import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
@@ -21,11 +21,39 @@ const COMMON_LAUNCH_ARGS = [
 const AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
 
 // TODO: This is very rough and will need something more substantial when we know what we want!
-export const performDatahavenOperations = async (
+/**
+ * Launches a DataHaven solochain network for testing.
+ *
+ * @param options - Configuration options for launching the network.
+ * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
+ */
+export const launchDataHavenSolochain = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
-  printHeader("Starting Datahaven Network");
+  printHeader("Starting DataHaven Network");
+
+  let shouldLaunchDataHaven = options.datahaven;
+  if (shouldLaunchDataHaven === undefined) {
+    shouldLaunchDataHaven = await confirmWithTimeout(
+      "Do you want to launch the DataHaven network?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
+    );
+  }
+
+  if (!shouldLaunchDataHaven) {
+    logger.info("Skipping DataHaven network launch. Done!");
+    printDivider();
+    return;
+  }
+
+  // Kill any pre-existing datahaven processes if they exist
+  await $`pkill datahaven`.nothrow().quiet();
 
   invariant(options.datahavenBinPath, "❌ Datahaven binary path not defined");
   invariant(
@@ -59,7 +87,7 @@ export const performDatahavenOperations = async (
 
     let completed = false;
     const file = Bun.file(logFilePath);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 60; i++) {
       const pattern = "Running JSON-RPC server: addr=127.0.0.1:";
       const blob = await file.text();
       logger.debug(`Blob: ${blob}`);

@@ -15,11 +15,9 @@ export const performSummaryOperations = async (
     servicesToDisplay.push(...["blockscout", "blockscout-frontend"]);
   }
 
-  if (options.datahaven === true) {
-    const dhNodes = launchedNetwork.getDHNodes();
-    for (const { id } of dhNodes) {
-      servicesToDisplay.push(`datahaven-${id}`);
-    }
+  const dhNodes = launchedNetwork.getDHNodes();
+  for (const { id } of dhNodes) {
+    servicesToDisplay.push(`datahaven-${id}`);
   }
 
   logger.trace("Services to display", servicesToDisplay);

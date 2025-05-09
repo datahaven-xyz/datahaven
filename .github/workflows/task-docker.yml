@@ -55,7 +55,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build Docker image (load for tests)
+      - name: Build Docker image (load for tests) with detailed cache logging
         id: build
         uses: docker/build-push-action@v5
         with:
@@ -65,10 +65,13 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
           cache-from: type=gha,scope=polkadot-build
-          cache-to:   type=gha,mode=max,scope=polkadot-build
+          cache-to: type=gha,mode=max,scope=polkadot-build
+
+      - name: Log build cache statistics
+        run: |
+          echo "Build cache statistics:"
+          docker buildx du --verbose
 
       # --- Smoke tests ---
 
@@ -88,7 +91,7 @@ jobs:
       - run: docker rm -f local-dh-node
 
       # --- Push to Docker Hub ---
-      - name: Push Docker image
+      - name: Push Docker image with detailed cache logging
         uses: docker/build-push-action@v5
         with:
           context: ./operator
@@ -98,6 +101,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=polkadot-build
-          cache-to:   type=gha,mode=max,scope=polkadot-build
+          cache-to: type=gha,mode=max,scope=polkadot-build
           provenance: mode=max
           sbom: true
+
+      - name: Log final build cache statistics
+        run: |
+          echo "Final build cache statistics:"
+          docker buildx du --verbose

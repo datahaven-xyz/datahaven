@@ -15,6 +15,9 @@ concurrency:
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
+    env:
+      # SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     outputs:
       image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
     defaults:
@@ -37,6 +40,7 @@ jobs:
           tags: |
             type=sha,format=short,prefix=sha-
             type=ref,event=tag
+            type=ref,event=branch
             type=ref,event=pr
 
       - name: Extract last tag for job output
@@ -55,6 +59,26 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Restore cache‑mount blobs
+        uses: actions/cache@v4
+        with:
+          path: |
+            cargo-registry
+            cargo-git
+            sccache
+          key: ${{ runner.os }}-rust-buildkit-${{ hashFiles('operator/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-buildkit-
+      - name: inject cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+        with:
+          cache-map: |
+            {
+              "cargo-registry": { "target": "/usr/local/cargo/registry" },
+              "cargo-git":      { "target": "/usr/local/cargo/git" },
+              "sccache":        { "target": "/sccache", "sharing": "locked" },
+              "cargo-target":   { "target": "/datahaven/target" }
+            }
       - name: Build Docker image (load for tests) with detailed cache logging
         id: build
         uses: docker/build-push-action@v5

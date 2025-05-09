@@ -1,28 +1,36 @@
+#  --- Setup Build Environment ---
+FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
+RUN cargo install sccache --version ^0.10
+RUN cargo install cargo-chef --version ^1.71
+ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
+RUN echo $CARGO_HOME
+
 #  --- Analyze dependencies ---
-
-FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS chef
-
+FROM base as planner
 WORKDIR /datahaven
-
-RUN cargo install cargo-chef --locked -q
-
 COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+	--mount=type=cache,target=/datahaven/target \
+    --mount=type=cache,target=/sccache,sharing=locked \
+    cargo chef prepare --recipe-path recipe.json
 
 
 # --- Build dependencies ---
-FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS builder
-
+FROM base AS builder
 WORKDIR /datahaven
-
-RUN cargo install cargo-chef --locked -q
-COPY --from=chef /datahaven/recipe.json recipe.json
-RUN cargo chef cook --recipe-path recipe.json --release
-
-# Copy the full workspace *after* the dep cache is warm.
+COPY --from=planner /datahaven/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+	--mount=type=cache,target=/datahaven/target \
+    --mount=type=cache,target=/sccache,sharing=locked \
+    cargo chef cook --recipe-path recipe.json --release
 COPY . .
-
-RUN cargo build --locked --release --bin datahaven-node
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+	--mount=type=cache,target=/usr/local/cargo/git \
+	--mount=type=cache,target=/datahaven/target \
+	--mount=type=cache,target=/sccache,sharing=locked \
+    cargo build --locked --release --bin datahaven-node
 
 
 # --- Prepare Runtime Environment ---

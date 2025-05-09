@@ -53,7 +53,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # --- Prepare Runtime Environment ---
 FROM docker.io/parity/base-bin:latest
 
-COPY --from=builder /datahaven/target/release/datahaven-node /usr/local/bin
+COPY --from=builder /usr/local/bin/datahaven-node /usr/local/bin
 
 # --- Create minimal, non‑root runtime user ---
 USER root

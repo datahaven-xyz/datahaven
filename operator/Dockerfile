@@ -1,7 +1,7 @@
 #  --- Setup Build Environment ---
 FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
 
-ARG MOLD_VERSION=2.3.9
+ARG MOLD_VERSION=2.39.0
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     xz-utils \

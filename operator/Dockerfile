@@ -45,7 +45,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/usr/local/cargo/git \
 	--mount=type=cache,target=/datahaven/target \
 	--mount=type=cache,target=/sccache,sharing=locked \
-    cargo build --locked --release --bin datahaven-node
+    cargo build --locked --release --bin datahaven-node \
+ 	&& install -Dm755 /datahaven/target/release/datahaven-node \
+               /usr/local/bin/datahaven-node   
 
 
 # --- Prepare Runtime Environment ---

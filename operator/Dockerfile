@@ -23,7 +23,7 @@ RUN echo $CARGO_HOME
 #  --- Analyze dependencies ---
 FROM base AS planner
 WORKDIR /datahaven
-COPY . .
+COPY ./operator/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
 	--mount=type=cache,target=/datahaven/target \
@@ -40,9 +40,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/datahaven/target \
     --mount=type=cache,target=/sccache,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
-COPY ../.git/HEAD .git/HEAD
-COPY ../.git/refs .git/refs
-COPY . .
+COPY .git/ .git/
+COPY ./operator/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/usr/local/cargo/git \
 	--mount=type=cache,target=/datahaven/target \

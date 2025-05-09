@@ -7,7 +7,8 @@ const logLevel = process.env.LOG_LEVEL || "info";
 const stream = pinoPretty({
   colorize: true,
   // Log to STDERR so it doesn't interfere with CLI output
-  destination: 2
+  destination: 2,
+  sync: true
 });
 
 // Custom logger type with success method

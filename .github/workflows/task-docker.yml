@@ -83,7 +83,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: ./operator
+          context: ./
           file: ./operator/Dockerfile
           load: true
           push: false
@@ -131,7 +131,7 @@ jobs:
       - name: Push Docker image with detailed cache logging
         uses: docker/build-push-action@v5
         with:
-          context: ./operator
+          context: ./
           file: ./operator/Dockerfile
           push: true
           load: false

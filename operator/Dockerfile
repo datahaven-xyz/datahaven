@@ -6,7 +6,7 @@ ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
 RUN echo $CARGO_HOME
 
 #  --- Analyze dependencies ---
-FROM base as planner
+FROM base AS planner
 WORKDIR /datahaven
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

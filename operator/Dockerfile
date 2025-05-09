@@ -1,8 +1,23 @@
 #  --- Setup Build Environment ---
 FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
+
+ARG MOLD_VERSION=2.3.9
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    xz-utils \
+    clang \
+    && echo "Installing mold v${MOLD_VERSION}..." \
+    && curl -Lo mold.tar.gz "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/mold-${MOLD_VERSION}-x86_64-linux.tar.gz" \
+    && tar -xf mold.tar.gz --strip-components=1 -C /usr/local \
+    && rm mold.tar.gz \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN cargo install sccache --version 0.10.0
 RUN cargo install cargo-chef --version 0.1.71
-ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
+ENV RUSTC_WRAPPER=sccache \
+    SCCACHE_DIR=/sccache \
+    RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold"
 RUN echo $CARGO_HOME
 
 #  --- Analyze dependencies ---

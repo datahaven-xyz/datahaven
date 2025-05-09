@@ -1,7 +1,7 @@
 #  --- Setup Build Environment ---
 FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
 RUN cargo install sccache --version ^0.10
-RUN cargo install cargo-chef --version ^1.71
+RUN cargo install cargo-chef --version ^0.1.72
 ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
 RUN echo $CARGO_HOME
 

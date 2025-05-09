@@ -40,6 +40,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/datahaven/target \
     --mount=type=cache,target=/sccache,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
+COPY ../.git/HEAD .git/HEAD
+COPY ../.git/refs .git/refs
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/usr/local/cargo/git \
@@ -55,15 +57,12 @@ FROM docker.io/parity/base-bin:latest
 
 COPY --from=builder /usr/local/bin/datahaven-node /usr/local/bin
 
-# --- Create minimal, non‑root runtime user ---
 USER root
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
 	mkdir -p /data /datahaven/.local/share && \
 	chown -R datahaven:datahaven /data && \
 	ln -s /data /datahaven/.local/share/datahaven && \
-	# unclutter and minimise the attack surface
 	rm -rf /usr/bin /usr/sbin && \
-	# sanity check that the binary is runnable inside this image
 	/usr/local/bin/datahaven-node --version
 
 USER datahaven

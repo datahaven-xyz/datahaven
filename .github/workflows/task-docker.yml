@@ -127,6 +127,23 @@ jobs:
         if: always()
         run: docker rm -f local-dh-node
 
+      - name: Copy build artifacts from container
+        run: |
+          docker cp local-dh-node:/tmp/cargo-timing.html ./cargo-timing.html || echo "Failed to copy cargo-timing.html"
+          docker cp local-dh-node:/tmp/sccache_stats.log ./sccache_stats.log || echo "Failed to copy sccache_stats.log"
+
+      - name: Upload cargo timing report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timing-report
+          path: ./cargo-timing.html
+          if-no-files-found: warn
+
+      - name: Display sccache stats
+        run: |
+          echo "SCCACHE Stats:"
+          cat ./sccache_stats.log || echo "sccache_stats.log not found"
+
       # --- Push to Docker Hub ---
       - name: Push Docker image with detailed cache logging
         uses: docker/build-push-action@v5

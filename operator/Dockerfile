@@ -46,15 +46,18 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/usr/local/cargo/git \
 	--mount=type=cache,target=/datahaven/target \
 	--mount=type=cache,target=/sccache,sharing=locked \
-    cargo build --locked --release --bin datahaven-node \
+    cargo build --timings --locked --release --bin datahaven-node \
  	&& install -Dm755 /datahaven/target/release/datahaven-node \
-               /usr/local/bin/datahaven-node   
+               /usr/local/bin/datahaven-node \
+    && sccache --show-stats > /datahaven/sccache_stats.log
 
 
 # --- Prepare Runtime Environment ---
 FROM docker.io/parity/base-bin:latest
 
 COPY --from=builder /usr/local/bin/datahaven-node /usr/local/bin
+COPY --from=builder /datahaven/target/cargo-timings/cargo-timing.html /datahaven/cargo-build-timings.html
+COPY --from=builder /datahaven/sccache_stats.log /datahaven/sccache_stats.log
 
 USER root
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \

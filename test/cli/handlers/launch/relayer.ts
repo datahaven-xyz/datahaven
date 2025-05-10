@@ -89,7 +89,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       config: "beacon-relay.json",
       pk: {
         type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey
+        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
       }
     }
   ];

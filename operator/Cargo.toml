@@ -206,3 +206,9 @@ fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "
 fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+
+[dependencies]
+librocksdb-sys = "0.11.0+8.1.1"
+
+[patch.crates-io]
+librocksdb-sys = { path = "/tmp/FIXME-PATH-TO-PATCHED-LIBROCKSDB-SYS/librocksdb-sys" }

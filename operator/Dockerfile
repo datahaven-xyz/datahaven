@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/datahaven/target \
 	--mount=type=cache,target=/sccache,sharing=locked \
     cargo build --timings --locked --release --bin datahaven-node \
-    && mv /datahaven/target/cargo-timings/cargo-timing-*.html /datahaven/target/cargo-timings/cargo-timing.html \
+    && cp /datahaven/target/cargo-timings/cargo-timing-*.html /datahaven/target/cargo-timings/cargo-timing.html \
  	&& install -Dm755 /datahaven/target/release/datahaven-node \
                /usr/local/bin/datahaven-node \
     && sccache --show-stats > /datahaven/sccache_stats.log

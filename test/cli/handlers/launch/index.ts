@@ -48,11 +48,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchDataHavenSolochain(options, launchedNetwork);
 
-  await launchKurtosis(options);
-
-  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
-  const networkRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-  invariant(networkRpcUrl, "❌ Network RPC URL not found");
+  await launchKurtosis(launchedNetwork, options);
 
   let blockscoutBackendUrl: string | undefined = undefined;
 
@@ -67,13 +63,13 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: networkRpcUrl,
+    rpcUrl: launchedNetwork.getElRpcUrl(),
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
 
-  await performValidatorOperations(options, networkRpcUrl, contractsDeployed);
+  await performValidatorOperations(options, launchedNetwork.getElRpcUrl(), contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
 

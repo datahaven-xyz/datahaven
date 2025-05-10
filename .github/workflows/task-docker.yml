@@ -150,7 +150,7 @@ jobs:
         with:
           context: ./
           file: ./operator/Dockerfile
-          push: true
+          push: false
           load: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

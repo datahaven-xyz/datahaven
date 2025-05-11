@@ -96,6 +96,7 @@ jobs:
         run: |
           echo "Build cache statistics:"
           docker buildx du --verbose
+        
 
       # --- Smoke tests ---
 
@@ -106,26 +107,6 @@ jobs:
         run: |
           docker run --rm -d -p 9944:9944 --name local-dh-node \
             ${{ steps.last_tag_extractor.outputs.last_tag_value }} --dev --unsafe-rpc-external
-      - name: Wait for node to be healthy and test
-        run: |
-          echo "Waiting for node to start..."
-          for i in {1..30}; do # Retry for 30 * 5s = 150 seconds
-            if curl --fail --location 'http://127.0.0.1:9944' \
-              --header 'Content-Type: application/json' \
-              --data '{"jsonrpc":"2.0","id":1,"method":"system_chain","params":[]}' ; then
-              echo "Node is healthy!"
-              docker logs local-dh-node --tail 100
-              exit 0
-            fi
-            echo "Attempt $i: Node not ready yet, sleeping 5s..."
-            sleep 5
-          done
-          echo "Node failed to start or respond in time."
-          docker logs local-dh-node --tail 100
-          exit 1
-      - name: Cleanup integration test container
-        if: always()
-        run: docker rm -f local-dh-node
 
       - name: Copy build artifacts from container
         run: |
@@ -143,7 +124,28 @@ jobs:
         run: |
           echo "SCCACHE Stats:"
           cat ./sccache_stats.log || echo "sccache_stats.log not found"
+          
+      - name: Wait for node to be healthy and test
+        run: |
+          echo "Waiting for node to start..."
+          for i in {1..30}; do # Retry for 30 * 5s = 150 seconds
+            if curl --fail --location 'http://127.0.0.1:9944' \
+              --header 'Content-Type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"system_chain","params":[]}' ; then
+              echo "Node is healthy!"
+              docker logs local-dh-node --tail 100
+              exit 0
+            fi
+            echo "Attempt $i: Node not ready yet, sleeping 5s..."
+            sleep 5
+          done
+          echo "Node failed to start or respond in time."
+          docker logs local-dh-node --tail 100
+          exit 1
 
+      - name: Cleanup integration test container
+        if: always()
+        run: docker rm -f local-dh-node
       # --- Push to Docker Hub ---
       - name: Push Docker image with detailed cache logging
         uses: docker/build-push-action@v5

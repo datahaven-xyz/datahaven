@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cargo install sccache --version 0.10.0
-RUN cargo install cargo-chef --version 0.1.71
+RUN cargo install sccache --version 0.10.0 --locked
+RUN cargo install cargo-chef --version 0.1.71 --locked
 ENV RUSTC_WRAPPER=sccache \
     SCCACHE_DIR=/var/cache/sccache \
     SCCACHE_CACHE_SIZE=2G \
@@ -25,25 +25,22 @@ RUN echo $CARGO_HOME
 FROM base AS planner
 WORKDIR /datahaven
 COPY ./operator/ .
-RUN --mount=type=cache,id=registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=git,target=/usr/local/cargo/git \
-    --mount=type=cache,id=sccache,target=/var/cache/sccache \
-    cargo chef prepare --recipe-path recipe.json
+RUN cargo chef prepare --recipe-path recipe.json
 
 
 # --- Build dependencies ---
 FROM base AS builder
 WORKDIR /datahaven
 COPY --from=planner /datahaven/recipe.json recipe.json
-RUN --mount=type=cache,id=registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=git,target=/usr/local/cargo/git \
-    --mount=type=cache,id=sccache,target=/var/cache/sccache \
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/var/cache/sccache,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
 COPY .git/ .git/
 COPY ./operator/ .
-RUN --mount=type=cache,id=registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=git,target=/usr/local/cargo/git \
-    --mount=type=cache,id=sccache,target=/var/cache/sccache \
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/var/cache/sccache,sharing=locked \
     cargo build --timings --locked --release --bin datahaven-node \
     && cp /datahaven/target/cargo-timings/cargo-timing.html /datahaven/cargo-timing.html \
  	&& install -Dm755 /datahaven/target/release/datahaven-node \

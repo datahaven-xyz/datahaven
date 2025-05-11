@@ -59,16 +59,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Restore cache‑mount blobs
+      - name: Cache Mount blobs
         uses: actions/cache@v4
         with:
           path: |
             cargo-registry
             cargo-git
             sccache
-          key: ${{ runner.os }}-rust-buildkit-${{ hashFiles('operator/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-rust-buildkit-
+          key: cache-${{ hashFiles('.github/workflows/test/Dockerfile') }}
       - name: inject cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:
@@ -76,8 +74,7 @@ jobs:
             {
               "cargo-registry": { "target": "/usr/local/cargo/registry" },
               "cargo-git":      { "target": "/usr/local/cargo/git" },
-              "sccache":        { "target": "/sccache", "sharing": "locked" },
-              "cargo-target":   { "target": "/datahaven/target" }
+              "sccache":        { "target": "/var/cache/sccache" }
             }
       - name: Build Docker image (load for tests) with detailed cache logging
         id: build

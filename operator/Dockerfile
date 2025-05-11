@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN cargo install sccache --version 0.10.0
 RUN cargo install cargo-chef --version 0.1.71
 ENV RUSTC_WRAPPER=sccache \
-    SCCACHE_DIR=/sccache \
+    SCCACHE_DIR=/var/cache/sccache \
+    SCCACHE_CACHE_SIZE=2G \
     RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold"
 RUN echo $CARGO_HOME
 
@@ -24,10 +25,9 @@ RUN echo $CARGO_HOME
 FROM base AS planner
 WORKDIR /datahaven
 COPY ./operator/ .
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-	--mount=type=cache,target=/datahaven/target \
-    --mount=type=cache,target=/sccache,sharing=locked \
+RUN --mount=type=cache,id=registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=sccache,target=/var/cache/sccache \
     cargo chef prepare --recipe-path recipe.json
 
 
@@ -35,17 +35,15 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 FROM base AS builder
 WORKDIR /datahaven
 COPY --from=planner /datahaven/recipe.json recipe.json
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-	--mount=type=cache,target=/datahaven/target \
-    --mount=type=cache,target=/sccache,sharing=locked \
+RUN --mount=type=cache,id=registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=sccache,target=/var/cache/sccache \
     cargo chef cook --recipe-path recipe.json --release
 COPY .git/ .git/
 COPY ./operator/ .
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-	--mount=type=cache,target=/usr/local/cargo/git \
-	--mount=type=cache,target=/datahaven/target \
-	--mount=type=cache,target=/sccache,sharing=locked \
+RUN --mount=type=cache,id=registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=sccache,target=/var/cache/sccache \
     cargo build --timings --locked --release --bin datahaven-node \
     && cp /datahaven/target/cargo-timings/cargo-timing.html /datahaven/cargo-timing.html \
  	&& install -Dm755 /datahaven/target/release/datahaven-node \

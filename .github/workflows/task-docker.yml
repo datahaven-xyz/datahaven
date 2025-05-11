@@ -129,8 +129,8 @@ jobs:
 
       - name: Copy build artifacts from container
         run: |
-          docker cp local-dh-node:/tmp/cargo-timing.html ./cargo-timing.html || echo "Failed to copy cargo-timing.html"
-          docker cp local-dh-node:/tmp/sccache_stats.log ./sccache_stats.log || echo "Failed to copy sccache_stats.log"
+          docker cp local-dh-node:/datahaven/cargo-timing.html ./cargo-timing.html || echo "Failed to copy cargo-timing.html"
+          docker cp local-dh-node:/datahaven/sccache_stats.log ./sccache_stats.log || echo "Failed to copy sccache_stats.log"
 
       - name: Upload cargo timing report
         uses: actions/upload-artifact@v4
@@ -150,7 +150,7 @@ jobs:
         with:
           context: ./
           file: ./operator/Dockerfile
-          push: false
+          push: true
           load: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

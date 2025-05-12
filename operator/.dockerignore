@@ -1,0 +1,78 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+**/*.so
+**/*.dylib
+**/*.dll
+**/*.rlib
+
+# Editor/IDE specific
+**/.idea/
+**/.vscode/
+**/.DS_Store
+**/*.swp
+**/*.swo
+**/*.bak
+**/*~
+
+# Git
+.git/
+.github/
+.gitignore
+.gitmodules
+.gitattributes
+
+# Temporary/cache files
+**/*.tmp
+**/*.log
+**/.cargo/
+**/*.profraw
+**/*.profdata
+**/.rustc_info.json
+**/__pycache__/
+**/*.py[cod]
+**/*.o
+**/*.a
+
+# CI/CD
+.travis.yml
+.circleci/
+.gitlab-ci.yml
+.github/
+
+# Documentation
+docs/
+**/doc/
+**/*.md
+!README.md
+!LICENSE
+
+# Tests
+**/tests/
+**/test/
+**/*.test
+**/*.spec.js
+
+# Local build artifacts
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.next/
+**/.nuxt/
+**/.output/
+
+# Other project directories and files not needed for build
+.ropeproject/
+resources/
+contracts/
+timbo.log
+sccache*
+scripts/
+examples/
+.editorconfig
+.prettierrc
+.eslintrc
+Cargo.lock.old
+*.toml.old
+*.lock.old

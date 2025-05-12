@@ -2,6 +2,7 @@
 FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
 
 ARG MOLD_VERSION=2.39.0
+ARG SCCACHE_VERSION=0.10.0
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     xz-utils \
@@ -11,13 +12,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && tar -xf mold.tar.gz --strip-components=1 -C /usr/local \
     && rm mold.tar.gz \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && echo "Installing sccache v${SCCACHE_VERSION}..." \
+    && curl -Lo sccache.tar.gz "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+    && tar -xf sccache.tar.gz --strip-components=1 -C /usr/local/bin sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl/sccache \
+    && rm sccache.tar.gz
 
-RUN cargo install sccache --version 0.10.0 --locked
 RUN cargo install cargo-chef --version 0.1.71 --locked
 
 ENV RUSTC_WRAPPER=sccache \
-    SCCACHE_DIR=/var/cache/sccache \
+    SCCACHE_DIR=/usr/local/sccache \
     SCCACHE_CACHE_SIZE=25G \
     RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold"
 
@@ -33,15 +37,16 @@ WORKDIR /datahaven
 COPY --from=planner /datahaven/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/var/cache/sccache,sharing=locked \
+    --mount=type=cache,target=/usr/local/sccache,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
 COPY ./operator/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/var/cache/sccache,sharing=locked \
+    --mount=type=cache,target=/usr/local/sccache,sharing=locked \
     cargo build --locked --release
 
 RUN output=$(sccache --show-stats) && echo "${output}"
+RUN ls /usr/local/sccache
 
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest

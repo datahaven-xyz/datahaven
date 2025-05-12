@@ -17,7 +17,7 @@ jobs:
     # runs-on: ubuntu-latest
     runs-on: ubuntu-24.04-32core-128gb
     env:
-      RUSTC_WRAPPER: "sccache"
+      SCCACHE_GHA_ENABLED: true
     outputs:
       image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
     defaults:
@@ -62,11 +62,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Cache Mount blobs
         uses: actions/cache@v4
+        id: cache
         with:
           path: |
-            operator/cargo-registry
-            operator/cargo-git
-            operator/sccache
+            cargo-registry
+            cargo-git
+            sccache
           key: cache-mount-${{ hashFiles('./operator/Dockerfile', './operator/Cargo.lock') }}
           restore-keys: |
             cache-mount-${{ hashFiles('./operator/Dockerfile') }}
@@ -83,12 +84,8 @@ jobs:
             {
               "cargo-registry": { "target": "/usr/local/cargo/registry" },
               "cargo-git":      { "target": "/usr/local/cargo/git" },
-              "sccache":        { "target": "/var/cache/sccache" }
+              "sccache":        { "target": "/usr/local/sccache" }
             }
-      - name: Log cache injection details
-        run: |
-          echo "Cache directories after injection:"
-          ls -la cargo-registry cargo-git sccache || echo "Cache directories not found"
       - name: Build Docker image (load for tests) with detailed cache logging
         id: build
         uses: docker/build-push-action@v5
@@ -98,6 +95,8 @@ jobs:
           load: true
           push: false
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: 
+            RUSTC_WRAPPER=sccache
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=datahaven-build
           cache-to: type=gha,mode=max,scope=datahaven-build

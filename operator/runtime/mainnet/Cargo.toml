@@ -1,13 +1,13 @@
 [package]
-name = "datahaven-mainnet-runtime"
-description = "DataHaven Mainnet runtime"
-version = "0.1.0"
-license = "Unlicense"
 authors = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
+description = "DataHaven Mainnet runtime"
 edition = { workspace = true }
+homepage = { workspace = true }
+license = "Unlicense"
+name = "datahaven-mainnet-runtime"
 publish = false
+repository = { workspace = true }
+version = "0.1.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -60,7 +60,9 @@ pallet-validator-set = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
-serde_json = { workspace = true, default-features = false, features = ["alloc"] }
+serde_json = { workspace = true, default-features = false, features = [
+    "alloc",
+] }
 snowbridge-beacon-primitives = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
@@ -249,9 +251,7 @@ try-runtime = [
     "pallet-outbound-commitment-store/try-runtime",
 ]
 
-fast-runtime = [
-    "datahaven-runtime-common/fast-runtime",
-]
+fast-runtime = ["datahaven-runtime-common/fast-runtime"]
 
 # Enable the metadata hash generation.
 #

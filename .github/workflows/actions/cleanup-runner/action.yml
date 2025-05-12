@@ -1,0 +1,30 @@
+name: "Cleanup Runner"
+description: "Cleans up the runner environment to free up disk space"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install duf (optional pretty output)
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq duf
+      shell: bash
+    - run: duf
+      shell: bash
+    - name: Free up disk space
+      id: prune
+      shell: bash
+      run: |
+        echo "Space before:" ; df -h /
+        sudo rm -rf \
+          /usr/local/lib/android \
+          /usr/local/lib/heroku \
+          /usr/share/dotnet \
+          /opt/hostedtoolcache/CodeQL \
+          /opt/hostedtoolcache/go \
+          /opt/hostedtoolcache/Python \
+          /opt/hostedtoolcache/Ruby \
+          /opt/hostedtoolcache/Java
+        sudo apt-get clean
+        echo "Space after:" ; df -h /
+    - run: duf
+      shell: bash
+ 

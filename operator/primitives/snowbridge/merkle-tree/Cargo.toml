@@ -1,12 +1,12 @@
 [package]
-name = "snowbridge-merkle-tree"
-description = "Snowbridge Merkle Tree"
-version = "0.2.0"
 authors = ["Snowfork <contact@snowfork.com>"]
-edition.workspace = true
-repository.workspace = true
-license = "Apache-2.0"
 categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Merkle Tree"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-merkle-tree"
+repository.workspace = true
+version = "0.2.0"
 
 [package.metadata.polkadot-sdk]
 exclude-from-umbrella = true

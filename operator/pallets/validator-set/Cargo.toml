@@ -1,9 +1,12 @@
 [package]
-name = 'pallet-validator-set'
-version = '1.0.0'
-authors = ['Gautam Dhameja <quasijatt@outlook.com>', 'Parity Technologies <admin@parity.io>']
+authors = [
+    'Gautam Dhameja <quasijatt@outlook.com>',
+    'Parity Technologies <admin@parity.io>',
+]
 edition = '2021'
 license = 'Apache-2.0'
+name = 'pallet-validator-set'
+version = '1.0.0'
 
 [dependencies]
 codec = { workspace = true, features = ["derive"] }

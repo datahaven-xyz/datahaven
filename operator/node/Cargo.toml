@@ -1,13 +1,13 @@
 [package]
-name = "datahaven-node"
-description = "A solochain node template built with Substrate, part of Polkadot Sdk."
-version = "0.1.0"
-license = "Unlicense"
 authors = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
+description = "A solochain node template built with Substrate, part of Polkadot Sdk."
 edition = { workspace = true }
+homepage = { workspace = true }
+license = "Unlicense"
+name = "datahaven-node"
 publish = false
+repository = { workspace = true }
+version = "0.1.0"
 
 build = "build.rs"
 
@@ -45,7 +45,9 @@ frame-system-rpc-runtime-api = { workspace = true }
 pallet-im-online = { workspace = true }
 pallet-transaction-payment = { workspace = true, default-features = true }
 pallet-transaction-payment-rpc = { workspace = true, default-features = true }
-pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = ["std"] }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = [
+    "std",
+] }
 sc-basic-authorship = { workspace = true, default-features = true }
 sc-cli = { workspace = true, default-features = true }
 sc-client-api = { workspace = true, default-features = true }
@@ -102,30 +104,30 @@ substrate-build-script-utils = { workspace = true, default-features = true }
 [features]
 default = ["std"]
 std = [
-	"datahaven-runtime-common/std",
-	"datahaven-stagenet-runtime/std",
-	"datahaven-mainnet-runtime/std",
-	"datahaven-testnet-runtime/std",
+    "datahaven-runtime-common/std",
+    "datahaven-stagenet-runtime/std",
+    "datahaven-mainnet-runtime/std",
+    "datahaven-testnet-runtime/std",
 ]
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
-	"frame-benchmarking-cli/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"sc-service/runtime-benchmarks",
-	"datahaven-runtime-common/runtime-benchmarks",
-	"datahaven-stagenet-runtime/runtime-benchmarks",
-	"datahaven-mainnet-runtime/runtime-benchmarks",
-	"datahaven-testnet-runtime/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "sc-service/runtime-benchmarks",
+    "datahaven-runtime-common/runtime-benchmarks",
+    "datahaven-stagenet-runtime/runtime-benchmarks",
+    "datahaven-mainnet-runtime/runtime-benchmarks",
+    "datahaven-testnet-runtime/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = [
-	"frame-system/try-runtime",
-	"pallet-transaction-payment/try-runtime",
-	"datahaven-stagenet-runtime/try-runtime",
-	"datahaven-mainnet-runtime/try-runtime",
-	"datahaven-testnet-runtime/try-runtime",
-	"sp-runtime/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-transaction-payment/try-runtime",
+    "datahaven-stagenet-runtime/try-runtime",
+    "datahaven-mainnet-runtime/try-runtime",
+    "datahaven-testnet-runtime/try-runtime",
+    "sp-runtime/try-runtime",
 ]

@@ -2,9 +2,14 @@
 timeout = 120
 
 [relaychain]
-default_command = "${output_bin_dir:-./target/release}/datahaven-node"
 chain = "local"
-default_args = [ "-l=debug", "--pruning=archive", "--enable-offchain-indexing=true", "--offchain-worker=when-authority" ]
+default_args = [
+    "-l=debug",
+    "--pruning=archive",
+    "--enable-offchain-indexing=true",
+    "--offchain-worker=when-authority",
+]
+default_command = "${output_bin_dir:-./target/release}/datahaven-node"
 
 [[relaychain.nodes]]
 name = "alice"

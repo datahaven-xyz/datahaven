@@ -1,8 +1,13 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import sendTxn from "scripts/send-txn";
+import { sendDataHavenTxn, sendEthTxn } from "scripts/send-txn";
 import invariant from "tiny-invariant";
-import { ANVIL_FUNDED_ACCOUNTS, getPortFromKurtosis, logger } from "utils";
+import {
+  ANVIL_FUNDED_ACCOUNTS,
+  getPortFromKurtosis,
+  logger,
+  SUBSTRATE_FUNDED_ACCOUNTS
+} from "utils";
 import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
@@ -51,13 +56,22 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchKurtosis(options);
 
-  logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey}`);
+  logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey} for ETH transaction`);
   const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
-  const networkRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-  invariant(networkRpcUrl, "❌ Network RPC URL not found");
+  const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
+  invariant(elRpcUrl, "❌ Network RPC URL not found");
 
-  await sendTxn(privateKey, networkRpcUrl);
+  await sendEthTxn(privateKey, elRpcUrl);
+
+  logger.debug(
+    `Using account ${SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey} for DataHaven transaction`
+  );
+  const dhPort = launchedNetwork.getDHNodes()[0].port;
+  const dhRpcUrl = `http://127.0.0.1:${dhPort}`;
+  invariant(dhRpcUrl, "❌ DataHaven RPC URL not found");
+
+  await sendDataHavenTxn(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey, dhRpcUrl);
 
   let blockscoutBackendUrl: string | undefined = undefined;
 
@@ -72,13 +86,13 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: networkRpcUrl,
+    rpcUrl: elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
 
-  await performValidatorOperations(options, networkRpcUrl, contractsDeployed);
+  await performValidatorOperations(options, elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
 

@@ -33,6 +33,8 @@
     "@commander-js/extra-typings": "^13.1.0",
     "@dotenvx/dotenvx": "^1.41.0",
     "@inquirer/prompts": "^7.5.0",
+    "@noble/curves": "^1.9.0",
+    "@noble/hashes": "^1.8.0",
     "@polkadot-api/descriptors": "file:.papi/descriptors",
     "@types/dockerode": "^3.3.38",
     "@types/node": "^22.14.1",

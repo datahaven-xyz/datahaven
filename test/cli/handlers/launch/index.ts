@@ -82,7 +82,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, networkRpcUrl, contractsDeployed);
 
-  await launchRelayers(options, launchedNetwork); // TODO: Check first if the BEEFY RPC is ready before launching the relayers
+  await launchRelayers(options, launchedNetwork);
 
   performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

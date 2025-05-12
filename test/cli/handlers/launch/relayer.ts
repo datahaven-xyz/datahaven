@@ -28,8 +28,14 @@ export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Pr
       try {
         logger.debug(`Attempt ${i + 1}/${retries} to check beefy_getFinalizedHead on port ${port}`);
         const finalizedHead = await api.rpc.beefy.getFinalizedHead();
-        if (finalizedHead && finalizedHead.toHex() !== "0x0000000000000000000000000000000000000000000000000000000000000000") {
-          logger.success(`🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHead.toHex()}`);
+        if (
+          finalizedHead &&
+          finalizedHead.toHex() !==
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ) {
+          logger.success(
+            `🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHead.toHex()}`
+          );
           await api.disconnect();
           return true;
         }
@@ -46,7 +52,9 @@ export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Pr
     await api.disconnect();
     return false;
   } catch (error) {
-    logger.error(`❌ Failed to connect to DataHaven node on port ${port} for BEEFY check: ${error}`);
+    logger.error(
+      `❌ Failed to connect to DataHaven node on port ${port} for BEEFY check: ${error}`
+    );
     if (provider.isConnected) {
       await provider.disconnect();
     }
@@ -113,14 +121,18 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   await $`pkill snowbridge-relay`.nothrow().quiet();
 
   // Check if BEEFY is ready before proceeding
-  logger.info(`Checking BEEFY readiness on port ${substrateWsPort} (node: ${substrateNodeId}) before launching relayers...`);
+  logger.info(
+    `Checking BEEFY readiness on port ${substrateWsPort} (node: ${substrateNodeId}) before launching relayers...`
+  );
   const beefyIsReady = await isBeefyReady(substrateWsPort);
   if (!beefyIsReady) {
     throw new Error(
       `BEEFY protocol not ready on port ${substrateWsPort} (node: ${substrateNodeId}). Relayers cannot be launched.`
     );
   }
-  logger.success(`🥩 BEEFY is ready (node: ${substrateNodeId}, port: ${substrateWsPort}), proceeding with relayer launch.`);
+  logger.success(
+    `🥩 BEEFY is ready (node: ${substrateNodeId}, port: ${substrateWsPort}), proceeding with relayer launch.`
+  );
 
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
@@ -176,7 +188,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     const ethWsPort = await getPortFromKurtosis("el-1-reth-lighthouse", "ws");
     const ethHttpPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
-    // const substrateWsPort = 9944; // Removed hardcoded port
     logger.debug(
       `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );

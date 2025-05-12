@@ -46,7 +46,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --locked --release
 
 RUN output=$(sccache --show-stats) && echo "${output}"
-RUN ls /usr/local/sccache
 
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest

@@ -1,6 +1,6 @@
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { keccak_256 } from "@noble/hashes/sha3";
-import { getPolkadotSigner, type PolkadotSigner } from "polkadot-api/signer";
+import { type PolkadotSigner, getPolkadotSigner } from "polkadot-api/signer";
 
 // A signer for EVM like chains that use AccountId20 as their public address
 export const getEvmEcdsaSigner = (privateKey: string): PolkadotSigner => {

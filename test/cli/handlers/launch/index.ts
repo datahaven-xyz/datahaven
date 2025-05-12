@@ -4,9 +4,9 @@ import { sendDataHavenTxn, sendEthTxn } from "scripts/send-txn";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  SUBSTRATE_FUNDED_ACCOUNTS,
   getPortFromKurtosis,
-  logger,
-  SUBSTRATE_FUNDED_ACCOUNTS
+  logger
 } from "utils";
 import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";

@@ -7,7 +7,7 @@
       "./target/*",
       "**/tmp/*",
       "*.spec.json",
-      "test/.papi/descriptors/"
+      "**/.papi/descriptors/**/*"
     ]
   },
   "organizeImports": {

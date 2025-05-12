@@ -101,6 +101,39 @@ jobs:
           cache-from: type=gha,scope=datahaven-build
           cache-to: type=gha,mode=max,scope=datahaven-build
 
+      - name: Setup sccache binary using Mozilla-Actions/sccache-action
+        uses: mozilla-actions/sccache-action@v0.0.9
+        with:
+          version: 'v0.10.0'
+
+      - name: Report sccache statistics
+        working-directory: operator
+        env:
+          SCCACHE_DIR: ${{ github.workspace }}/operator/sccache
+        run: |
+          echo "==== Sccache Statistics (using sccache from Mozilla Action) ===="
+          echo "Attempting to read stats from SCCACHE_DIR: $SCCACHE_DIR"
+          if [ ! -d "$SCCACHE_DIR" ]; then
+            echo "Warning: SCCACHE_DIR ($SCCACHE_DIR) does not exist or is not a directory."
+            echo "This might indicate an issue with the cache persistence from the Docker build."
+            # sccache --show-stats might create it, or error. Let's allow it to try.
+          else
+            echo "Contents of SCCACHE_DIR ($SCCACHE_DIR):"
+            ls -la "$SCCACHE_DIR"
+          fi
+
+          if [ -n "${SCCACHE_PATH}" ]; then
+            echo "Using sccache from SCCACHE_PATH: ${SCCACHE_PATH}"
+            ${SCCACHE_PATH} --show-stats
+          elif command -v sccache &> /dev/null; then
+            echo "SCCACHE_PATH not set or empty, using sccache from system PATH: $(command -v sccache)"
+            sccache --show-stats
+          else
+            echo "Error: sccache command not found. Mozilla-Actions/sccache-action might not have set it up as expected."
+            exit 1
+          fi
+          echo "================================================================="
+
       - name: Log build cache statistics
         run: |
           echo "Build cache statistics:"

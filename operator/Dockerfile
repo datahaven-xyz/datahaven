@@ -45,8 +45,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/sccache,sharing=locked \
     cargo build --locked --release
 
-RUN output=$(sccache --show-stats) && echo "${output}"
-
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest
 COPY --from=builder /datahaven/target/release/datahaven-node /usr/local/bin

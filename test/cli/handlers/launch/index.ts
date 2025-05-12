@@ -56,22 +56,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchKurtosis(options);
 
-  logger.debug(`Using account ${ANVIL_FUNDED_ACCOUNTS[1].publicKey} for ETH transaction`);
-  const privateKey = ANVIL_FUNDED_ACCOUNTS[1].privateKey;
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
   const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
   invariant(elRpcUrl, "❌ Network RPC URL not found");
-
-  await sendEthTxn(privateKey, elRpcUrl);
-
-  logger.debug(
-    `Using account ${SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey} for DataHaven transaction`
-  );
-  const dhPort = launchedNetwork.getDHNodes()[0].port;
-  const dhRpcUrl = `http://127.0.0.1:${dhPort}`;
-  invariant(dhRpcUrl, "❌ DataHaven RPC URL not found");
-
-  await sendDataHavenTxn(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey, dhRpcUrl);
 
   let blockscoutBackendUrl: string | undefined = undefined;
 

@@ -173,22 +173,26 @@ const shouldRebuildBinary = async (binaryPath: string): Promise<boolean> => {
   try {
     // Check for uncommitted changes in the operator folder
     logger.debug(`Checking for uncommitted changes in 'operator/' directory...`);
-    // We use .nothrow() because grep exits with 1 if no lines are selected, which would throw an error.
-    const statusCheckProcess = await $`git status --porcelain | grep 'operator/'`.nothrow().quiet();
 
-    if (statusCheckProcess.exitCode === 0) {
-      // exitCode 0 means grep found matches
+    const gitStatusProcess = await $`git status --porcelain`.nothrow().quiet();
+    if (gitStatusProcess.exitCode !== 0) {
+      logger.warn(`⚠️ 'git status --porcelain' failed. Exit code: ${gitStatusProcess.exitCode}. Stderr: ${gitStatusProcess.stderr.toString().trim()}. Will rebuild to be safe.`);
+      return true;
+    }
+
+    const gitStatusOutput = gitStatusProcess.stdout.toString();
+    logger.debug(`Raw 'git status --porcelain' output:\n---\n${gitStatusOutput}\n---`);
+
+    if (gitStatusOutput.includes("operator/")) {
       logger.info(
         `🔄 Found uncommitted changes related to 'operator/', rebuild required.`
       );
-      logger.debug(`Grep match for uncommitted changes stdout: ${statusCheckProcess.stdout.toString().trim()}`);
+      const matchingLines = gitStatusOutput.split('\n').filter(line => line.includes('operator/')).join('\n');
+      logger.debug(`Matching lines for 'operator/':\n${matchingLines}`);
       return true;
     }
-    if (statusCheckProcess.exitCode !== 1) {
-      // exitCode 1 means grep found no matches. Other codes are errors.
-      logger.warn(`⚠️ Git status or grep command failed (uncommitted changes check). Exit code: ${statusCheckProcess.exitCode}. Stderr: ${statusCheckProcess.stderr.toString().trim()}. Will rebuild to be safe.`);
-      return true;
-    }
+    logger.debug("✅ No uncommitted changes found for 'operator/'.");
+
 
     // Get the current branch name
     logger.debug(`Checking for changes in 'operator/' directory compared to default branch...`);
@@ -205,17 +209,20 @@ const shouldRebuildBinary = async (binaryPath: string): Promise<boolean> => {
       logger.debug(`✅ Currently on default branch ('${currentBranch}'), no diff to check for 'operator/' changes.`);
     } else {
       logger.debug(`Attempting to diff 'operator/' in main..${currentBranch}`);
-      const diffCheckProcess = await $`git diff --name-only main..${currentBranch} -- operator/ | grep 'operator/'`.nothrow().quiet();
 
-      if (diffCheckProcess.exitCode === 0) {
+      const diffOutputProcess = await $`git diff --name-only main..${currentBranch} -- operator/`.nothrow().quiet();
+      if (diffOutputProcess.exitCode !== 0 && diffOutputProcess.exitCode !== 1) { // git diff exits 1 if no differences
+        logger.warn(`⚠️ 'git diff --name-only main..${currentBranch} -- operator/' failed. Exit code: ${diffOutputProcess.exitCode}. Stderr: ${diffOutputProcess.stderr.toString().trim()}. Will rebuild to be safe.`);
+        return true;
+      }
+      const diffOutput = diffOutputProcess.stdout.toString();
+      logger.debug(`Raw 'git diff --name-only main..${currentBranch} -- operator/' output:\n---\n${diffOutput}\n---`);
+
+      if (diffOutput.includes("operator/")) {
         logger.info(
           `🔄 Found changes related to 'operator/' (comparing main..${currentBranch}), rebuild required.`
         );
-        logger.debug(`Grep match for diff (main..${currentBranch}) stdout: ${diffCheckProcess.stdout.toString().trim()}`);
-        return true;
-      }
-      if (diffCheckProcess.exitCode !== 1) {
-        logger.warn(`⚠️ Git diff or grep command failed for main..${currentBranch}. Exit code: ${diffCheckProcess.exitCode}. Stderr: ${diffCheckProcess.stderr.toString().trim()}.`);
+        logger.debug(`Diff output for 'operator/':\n${diffOutput.trim()}`);
         return true;
       } else {
         logger.debug(`✅ No changes found in 'operator/' folder when comparing main..${currentBranch}.`);

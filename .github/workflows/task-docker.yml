@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-    
+
       - uses: ./.github/workflows/actions/cleanup-runner
 
       - name: Docker meta
@@ -66,7 +66,7 @@ jobs:
             cargo-registry
             cargo-git
             sccache
-          key: cache-${{ hashFiles('.github/workflows/test/Dockerfile') }}
+          key: cache-mount-${{ hashFiles('./operator/Dockerfile') }}
       - name: inject cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:
@@ -93,7 +93,6 @@ jobs:
         run: |
           echo "Build cache statistics:"
           docker buildx du --verbose
-        
 
       # --- Smoke tests ---
 
@@ -105,23 +104,6 @@ jobs:
           docker run --rm -d -p 9944:9944 --name local-dh-node \
             ${{ steps.last_tag_extractor.outputs.last_tag_value }} --dev --unsafe-rpc-external
 
-      - name: Copy build artifacts from container
-        run: |
-          docker cp local-dh-node:/datahaven/cargo-timing.html ./cargo-timing.html || echo "Failed to copy cargo-timing.html"
-          docker cp local-dh-node:/datahaven/sccache_stats.log ./sccache_stats.log || echo "Failed to copy sccache_stats.log"
-
-      - name: Upload cargo timing report
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-timing-report
-          path: ./cargo-timing.html
-          if-no-files-found: warn
-
-      - name: Display sccache stats
-        run: |
-          echo "SCCACHE Stats:"
-          cat ./sccache_stats.log || echo "sccache_stats.log not found"
-          
       - name: Wait for node to be healthy and test
         run: |
           echo "Waiting for node to start..."

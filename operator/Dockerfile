@@ -17,7 +17,7 @@ RUN cargo install sccache --version 0.10.0 --locked
 RUN cargo install cargo-chef --version 0.1.71 --locked
 ENV RUSTC_WRAPPER=sccache \
     SCCACHE_DIR=/var/cache/sccache \
-    SCCACHE_CACHE_SIZE=2G \
+    SCCACHE_CACHE_SIZE=25G \
     RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold"
 RUN echo $CARGO_HOME
 
@@ -26,7 +26,6 @@ FROM base AS planner
 WORKDIR /datahaven
 COPY ./operator/ .
 RUN cargo chef prepare --recipe-path recipe.json
-
 
 # --- Build dependencies ---
 FROM base AS builder
@@ -41,19 +40,12 @@ COPY ./operator/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/var/cache/sccache,sharing=locked \
-    cargo build --timings --locked --release --bin datahaven-node \
-    && cp /datahaven/target/cargo-timings/cargo-timing.html /datahaven/cargo-timing.html \
- 	&& install -Dm755 /datahaven/target/release/datahaven-node \
-               /usr/local/bin/datahaven-node \
-    && sccache --show-stats > /datahaven/sccache_stats.log
+    cargo build --locked --release
 
-
+RUN sccache --show-stats
 # --- Prepare Runtime Environment ---
 FROM docker.io/parity/base-bin:latest
-
-COPY --from=builder /usr/local/bin/datahaven-node /usr/local/bin
-COPY --from=builder /datahaven/cargo-timing.html /datahaven/cargo-timing.html
-COPY --from=builder /datahaven/sccache_stats.log /datahaven/sccache_stats.log
+COPY --from=builder /datahaven/target/release/datahaven-node /usr/local/bin
 
 USER root
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \

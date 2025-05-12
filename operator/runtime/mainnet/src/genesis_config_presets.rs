@@ -59,8 +59,10 @@ fn testnet_genesis(
         sudo: SudoConfig {
             key: Some(root_key),
         },
-        validator_set: pallet_validator_set::GenesisConfig {
-            initial_validators: initial_authorities
+        external_validators: pallet_external_validators::GenesisConfig {
+            skip_external_validators: false,
+            whitelisted_validators: vec![],
+            external_validators: initial_authorities
                 .iter()
                 .map(|(account, ..)| *account)
                 .collect::<Vec<_>>()

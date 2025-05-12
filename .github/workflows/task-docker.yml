@@ -78,6 +78,7 @@ jobs:
               "cargo-git":      { "target": "/usr/local/cargo/git" },
               "sccache":        { "target": "/usr/local/sccache" }
             }
+          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
       - name: Build Docker image (load for tests) with detailed cache logging
         id: build
         uses: docker/build-push-action@v5

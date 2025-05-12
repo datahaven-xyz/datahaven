@@ -71,7 +71,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, launchedNetwork.getElRpcUrl(), contractsDeployed);
 
-  await initEthClientPallet(launchedNetwork);
+  await initEthClientPallet(options, launchedNetwork);
 
   await launchRelayers(options, launchedNetwork);
 

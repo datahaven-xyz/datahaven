@@ -26,6 +26,13 @@ type RelayerSpec = {
   pk: { type: "ethereum" | "substrate"; value: string };
 };
 
+const RELAYER_CONFIG_DIR = "tmp/configs";
+const RELAYER_CONFIG_PATHS = {
+  BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
+  BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
+};
+const INITIAL_CHECKPOINT_PATH = "./dump-initial-checkpoint.json";
+
 /**
  * Launches Snowbridge relayers for the DataHaven network.
  *
@@ -63,9 +70,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
 
-  const outputDir = "tmp/configs";
-  logger.debug(`Ensuring output directory exists: ${outputDir}`);
-  await $`mkdir -p ${outputDir}`.quiet();
+  logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
+  await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
   const datastorePath = "tmp/datastore";
   logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
@@ -79,7 +85,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     {
       name: "relayer-🥩",
       type: "beefy",
-      config: "beefy-relay.json",
+      config: RELAYER_CONFIG_PATHS.BEEFY,
       pk: {
         type: "ethereum",
         value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
@@ -88,7 +94,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     {
       name: "relayer-🥓",
       type: "beacon",
-      config: "beacon-relay.json",
+      config: RELAYER_CONFIG_PATHS.BEACON,
       pk: {
         type: "substrate",
         value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
@@ -96,7 +102,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     }
   ];
 
-  for (const { config: configFileName, type, name } of relayersToStart) {
+  for (const { config, type, name } of relayersToStart) {
+    const configFileName = path.basename(config);
+
     logger.debug(`Creating config for ${name}`);
     const templateFilePath = `configs/snowbridge/${configFileName}`;
     const outputFilePath = `tmp/configs/${configFileName}`;
@@ -159,7 +167,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         "run",
         type,
         "--config",
-        path.join("tmp/configs", config),
+        config,
         type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
         pk.value
       ];
@@ -186,9 +194,27 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   printDivider();
 };
 
-export const initEthClientPallet = async (launchedNetwork: LaunchedNetwork) => {
+export const initEthClientPallet = async (
+  options: LaunchOptions,
+  launchedNetwork: LaunchedNetwork
+) => {
   // Poll the beacon chain until it's ready every 2 seconds for 20 seconds
   await waitBeaconChainReady(launchedNetwork, 2000, 20000);
+
+  // Generate the initial checkpoint for the CL client in Substrate
+  const clInitialCheckpoint =
+    await $`${options.relayerBinPath} generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
+      .nothrow()
+      .text();
+
+  logger.trace(`CL initial checkpoint: ${clInitialCheckpoint}`);
+
+  // Load the checkpoint into a JSON object and clean it up
+  const initialCheckpointRaw = fs.readFileSync(INITIAL_CHECKPOINT_PATH, "utf-8");
+  const initialCheckpointJson = JSON.parse(initialCheckpointRaw);
+  fs.unlinkSync(INITIAL_CHECKPOINT_PATH);
+
+  console.log(initialCheckpointJson);
 };
 
 const waitBeaconChainReady = async (

@@ -1,6 +1,12 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printHeader, runShellCommandWithLogger } from "utils";
+import {
+  confirmWithTimeout,
+  logger,
+  printDivider,
+  printHeader,
+  runShellCommandWithLogger
+} from "utils";
 
 interface DeployContractsOptions {
   rpcUrl: string;
@@ -38,6 +44,8 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
 
   if (!shouldDeployContracts) {
     logger.info("Skipping contract deployment. Done!");
+    printDivider();
+
     return false;
   }
 
@@ -76,6 +84,8 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
 
   logger.success("Contracts deployed successfully");
+  printDivider();
+
   return true;
 };
 

@@ -3,16 +3,22 @@
 # Overview:
 # 1. Start kurtosis network
 # 2. Deploy AVS contracts
-# 3. Run E2E tests
+# 3. Start DataHaven node
+# 4. Run E2E tests
 
 name: E2E - Kurtosis Deploy and Verify
 
 on:
   workflow_dispatch:
+    inputs:
+      image-tag:
+        description: "The tag of the docker image"
+        required: true
+        type: string
   workflow_call:
     inputs:
-      binary-hash:
-        description: "The hash of the operator binary"
+      image-tag:
+        description: "The tag of the docker image"
         required: true
         type: string
 
@@ -30,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: d
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -65,15 +71,27 @@ jobs:
           key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol') }}
           restore-keys: |
             ${{ runner.os }}-foundry-build-
-
-      - name: Download operator binary
-        uses: actions/download-artifact@v4
+      - uses: docker/login-action@v3
         with:
-          name: datahaven-node-${{ inputs.binary-hash }}
-          path: operator/target/release/
-      - run: chmod +x ../operator/target/release/datahaven-node
-      - run: ../operator/target/release/datahaven-node --help
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Download snowbridge binary
+        run: |
+          docker create --name temp moonsonglabs/snowbridge-relayer:latest
+          mkdir -p tmp/bin
+          docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
+          chmod +x tmp/bin/snowbridge-relay
+          docker rm temp
+      - run: tmp/bin/snowbridge-relay --help
+      - name: Download datahaven binary
+        run: |
+          docker create --name temp ${{ inputs.image-tag }}
+          mkdir -p ../operator/target/release/
+          docker cp temp:/usr/local/bin/datahaven-node ../operator/target/release/
+          chmod +x ../operator/target/release/datahaven-node
+          docker rm temp
+      - run: ../operator/target/release/datahaven-node --help
       - run: bun install
       - run: bun start:e2e:ci
       - run: bun test:e2e

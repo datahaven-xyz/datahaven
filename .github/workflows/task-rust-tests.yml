@@ -33,6 +33,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
+      - uses: ./.github/workflows/actions/cleanup-runner
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Build and archive tests

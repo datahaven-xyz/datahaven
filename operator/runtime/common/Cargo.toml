@@ -1,27 +1,34 @@
 [package]
-name = "datahaven-runtime-common"
 description = "Common code used through the Datahaven network"
+edition = { workspace = true }
+name = "datahaven-runtime-common"
 version = "0.1.0"
-edition.workspace = true
 
 [dependencies]
-frame-support.workspace = true
-polkadot-primitives.workspace = true
-polkadot-runtime-common.workspace = true
+fp-account = { workspace = true }
+frame-support = { workspace = true }
+polkadot-primitives = { workspace = true }
+polkadot-runtime-common = { workspace = true }
+sp-core = { workspace = true, features = ["serde"] }
+sp-runtime = { workspace = true, features = ["serde"] }
 xcm = { workspace = true }
+
 [features]
 default = ["std"]
 std = [
     "frame-support/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
-    "xcm/std"
+    "xcm/std",
+    "sp-core/std",
+    "sp-runtime/std",
 ]
 
 runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.

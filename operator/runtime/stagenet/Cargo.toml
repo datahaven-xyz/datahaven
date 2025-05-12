@@ -1,0 +1,267 @@
+[package]
+authors = { workspace = true }
+description = "DataHaven Stagenet runtime"
+edition = { workspace = true }
+homepage = { workspace = true }
+license = "Unlicense"
+name = "datahaven-stagenet-runtime"
+publish = false
+repository = { workspace = true }
+version = "0.1.0"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+bridge-hub-common = { workspace = true, optional = true }
+codec = { workspace = true, features = ["derive"] }
+datahaven-runtime-common = { workspace = true }
+dhp-bridge = { workspace = true }
+fp-account = { workspace = true, features = ["serde"] }
+fp-evm = { workspace = true, features = ["serde"] }
+fp-rpc = { workspace = true }
+fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
+frame-benchmarking = { workspace = true, optional = true }
+frame-executive = { workspace = true }
+frame-metadata-hash-extension = { workspace = true }
+frame-support = { workspace = true, features = ["experimental"] }
+frame-system = { workspace = true }
+frame-system-benchmarking = { workspace = true, optional = true }
+frame-system-rpc-runtime-api = { workspace = true }
+frame-try-runtime = { workspace = true, optional = true }
+hex = { workspace = true }
+hex-literal = { workspace = true }
+pallet-authorship = { workspace = true }
+pallet-babe = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-beefy = { workspace = true }
+pallet-beefy-mmr = { workspace = true }
+pallet-ethereum = { workspace = true }
+pallet-evm = { workspace = true }
+pallet-evm-chain-id = { workspace = true }
+pallet-grandpa = { workspace = true }
+pallet-identity = { workspace = true }
+pallet-im-online = { workspace = true }
+pallet-message-queue = { workspace = true }
+pallet-mmr = { workspace = true }
+pallet-multisig = { workspace = true }
+pallet-offences = { workspace = true }
+pallet-outbound-commitment-store = { workspace = true }
+pallet-parameters = { workspace = true }
+pallet-preimage = { workspace = true }
+pallet-scheduler = { workspace = true }
+pallet-session = { workspace = true }
+pallet-sudo = { workspace = true }
+pallet-timestamp = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-utility = { workspace = true }
+pallet-validator-set = { workspace = true }
+polkadot-primitives = { workspace = true }
+polkadot-runtime-common = { workspace = true }
+scale-info = { workspace = true, features = ["derive", "serde"] }
+serde_json = { workspace = true, default-features = false, features = [
+    "alloc",
+] }
+snowbridge-beacon-primitives = { workspace = true }
+snowbridge-core = { workspace = true }
+snowbridge-inbound-queue-primitives = { workspace = true }
+snowbridge-merkle-tree = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
+snowbridge-outbound-queue-v2-runtime-api = { workspace = true }
+snowbridge-pallet-ethereum-client = { workspace = true }
+snowbridge-pallet-inbound-queue-v2 = { workspace = true }
+snowbridge-pallet-outbound-queue-v2 = { workspace = true }
+snowbridge-pallet-system = { workspace = true }
+snowbridge-pallet-system-v2 = { workspace = true }
+snowbridge-system-v2-runtime-api = { workspace = true }
+snowbridge-verification-primitives = { workspace = true }
+sp-api = { workspace = true }
+sp-block-builder = { workspace = true }
+sp-consensus-babe = { workspace = true, features = ["serde"] }
+sp-consensus-beefy = { workspace = true, features = ["serde"] }
+sp-consensus-grandpa = { workspace = true, features = ["serde"] }
+sp-core = { workspace = true, features = ["serde"] }
+sp-genesis-builder = { workspace = true }
+sp-inherents = { workspace = true }
+sp-keyring = { workspace = true }
+sp-offchain = { workspace = true }
+sp-runtime = { workspace = true, features = ["serde"] }
+sp-session = { workspace = true }
+sp-staking = { workspace = true }
+sp-std = { workspace = true }
+sp-storage = { workspace = true }
+sp-transaction-pool = { workspace = true }
+sp-version = { workspace = true, features = ["serde"] }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
+
+[build-dependencies]
+substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "datahaven-runtime-common/std",
+    "fp-account/std",
+    "frame-benchmarking?/std",
+    "frame-executive/std",
+    "frame-metadata-hash-extension/std",
+    "frame-support/std",
+    "frame-system-benchmarking?/std",
+    "frame-system-rpc-runtime-api/std",
+    "frame-system/std",
+    "frame-try-runtime?/std",
+    "pallet-authorship/std",
+    "pallet-babe/std",
+    "pallet-balances/std",
+    "pallet-beefy-mmr/std",
+    "pallet-beefy/std",
+    "pallet-ethereum/std",
+    "pallet-evm-chain-id/std",
+    "pallet-evm/std",
+    "pallet-grandpa/std",
+    "pallet-identity/std",
+    "pallet-im-online/std",
+    "pallet-message-queue/std",
+    "pallet-mmr/std",
+    "pallet-multisig/std",
+    "pallet-offences/std",
+    "pallet-parameters/std",
+    "pallet-preimage/std",
+    "pallet-scheduler/std",
+    "pallet-session/std",
+    "pallet-sudo/std",
+    "pallet-timestamp/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
+    "pallet-transaction-payment/std",
+    "pallet-utility/std",
+    "pallet-validator-set/std",
+    "polkadot-primitives/std",
+    "polkadot-runtime-common/std",
+    "scale-info/std",
+    "serde_json/std",
+    "snowbridge-beacon-primitives/std",
+    "snowbridge-inbound-queue-primitives/std",
+    "snowbridge-outbound-queue-primitives/std",
+    "snowbridge-pallet-ethereum-client/std",
+    "snowbridge-pallet-inbound-queue-v2/std",
+    "snowbridge-pallet-outbound-queue-v2/std",
+    "snowbridge-merkle-tree/std",
+    "snowbridge-outbound-queue-v2-runtime-api/std",
+    "snowbridge-pallet-system/std",
+    "snowbridge-pallet-system-v2/std",
+    "snowbridge-system-v2-runtime-api/std",
+    "dhp-bridge/std",
+    "snowbridge-verification-primitives/std",
+    "sp-api/std",
+    "sp-block-builder/std",
+    "sp-consensus-babe/std",
+    "sp-consensus-beefy/std",
+    "sp-consensus-grandpa/std",
+    "sp-core/std",
+    "sp-genesis-builder/std",
+    "sp-inherents/std",
+    "sp-keyring/std",
+    "sp-offchain/std",
+    "sp-runtime/std",
+    "sp-session/std",
+    "sp-staking/std",
+    "sp-std/std",
+    "sp-storage/std",
+    "sp-transaction-pool/std",
+    "sp-version/std",
+    "substrate-wasm-builder",
+    "pallet-outbound-commitment-store/std",
+]
+
+runtime-benchmarks = [
+    "bridge-hub-common",
+    "datahaven-runtime-common/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system-benchmarking/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-beefy-mmr/runtime-benchmarks",
+    "pallet-ethereum/runtime-benchmarks",
+    "pallet-evm/runtime-benchmarks",
+    "pallet-grandpa/runtime-benchmarks",
+    "pallet-identity/runtime-benchmarks",
+    "pallet-im-online/runtime-benchmarks",
+    "pallet-message-queue/runtime-benchmarks",
+    "pallet-mmr/runtime-benchmarks",
+    "pallet-multisig/runtime-benchmarks",
+    "pallet-offences/runtime-benchmarks",
+    "pallet-parameters/runtime-benchmarks",
+    "pallet-preimage/runtime-benchmarks",
+    "pallet-scheduler/runtime-benchmarks",
+    "pallet-sudo/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks",
+    "polkadot-primitives/runtime-benchmarks",
+    "polkadot-runtime-common/runtime-benchmarks",
+    "snowbridge-inbound-queue-primitives/runtime-benchmarks",
+    "snowbridge-pallet-ethereum-client/runtime-benchmarks",
+    "snowbridge-pallet-inbound-queue-v2/runtime-benchmarks",
+    "snowbridge-pallet-system-v2/runtime-benchmarks",
+    "snowbridge-pallet-outbound-queue-v2/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "snowbridge-pallet-system/runtime-benchmarks",
+    "pallet-outbound-commitment-store/runtime-benchmarks",
+]
+
+try-runtime = [
+    "fp-self-contained/try-runtime",
+    "frame-executive/try-runtime",
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "frame-try-runtime/try-runtime",
+    "pallet-authorship/try-runtime",
+    "pallet-babe/try-runtime",
+    "pallet-balances/try-runtime",
+    "pallet-beefy-mmr/try-runtime",
+    "pallet-beefy/try-runtime",
+    "pallet-ethereum/try-runtime",
+    "pallet-evm/try-runtime",
+    "pallet-grandpa/try-runtime",
+    "pallet-identity/try-runtime",
+    "pallet-im-online/try-runtime",
+    "pallet-message-queue/try-runtime",
+    "pallet-mmr/try-runtime",
+    "pallet-multisig/try-runtime",
+    "pallet-offences/try-runtime",
+    "pallet-parameters/try-runtime",
+    "pallet-preimage/try-runtime",
+    "pallet-scheduler/try-runtime",
+    "pallet-session/try-runtime",
+    "pallet-sudo/try-runtime",
+    "pallet-timestamp/try-runtime",
+    "pallet-transaction-payment/try-runtime",
+    "pallet-utility/try-runtime",
+    "polkadot-runtime-common/try-runtime",
+    "snowbridge-pallet-ethereum-client/try-runtime",
+    "snowbridge-pallet-inbound-queue-v2/try-runtime",
+    "snowbridge-pallet-system-v2/try-runtime",
+    "snowbridge-pallet-outbound-queue-v2/try-runtime",
+    "sp-runtime/try-runtime",
+    "snowbridge-pallet-system/try-runtime",
+    "pallet-outbound-commitment-store/try-runtime",
+]
+
+fast-runtime = ["datahaven-runtime-common/fast-runtime"]
+
+# Enable the metadata hash generation.
+#
+# This is hidden behind a feature because it increases the compile time.
+# The wasm binary needs to be compiled twice, once to fetch the metadata,
+# generate the metadata hash and then a second time with the
+# `RUNTIME_METADATA_HASH` environment variable set for the `CheckMetadataHash`
+# extension.
+metadata-hash = ["substrate-wasm-builder/metadata-hash"]
+
+# A convenience feature for enabling things when doing a build
+# for an on-chain release.
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]

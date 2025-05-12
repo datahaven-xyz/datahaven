@@ -13,7 +13,7 @@ use sp_core::{ecdsa, Pair, Public};
 use sp_genesis_builder::{self, PresetId};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
-const TESTNET_EVM_CHAIN_ID: u64 = 1283;
+const MAINNET_EVM_CHAIN_ID: u64 = 1289;
 
 // Returns the genesis config presets populated with given parameters.
 fn testnet_genesis(
@@ -59,10 +59,8 @@ fn testnet_genesis(
         sudo: SudoConfig {
             key: Some(root_key),
         },
-        external_validators: pallet_external_validators::GenesisConfig {
-            skip_external_validators: false,
-            whitelisted_validators: vec![],
-            external_validators: initial_authorities
+        validator_set: pallet_validator_set::GenesisConfig {
+            initial_validators: initial_authorities
                 .iter()
                 .map(|(account, ..)| *account)
                 .collect::<Vec<_>>()
@@ -84,7 +82,7 @@ pub fn development_config_genesis() -> Value {
         vec![authority_keys_from_seed("Alice")],
         alith(),
         endowed_accounts,
-        TESTNET_EVM_CHAIN_ID,
+        MAINNET_EVM_CHAIN_ID,
     )
 }
 
@@ -104,7 +102,7 @@ pub fn local_config_genesis() -> Value {
         ],
         alith(),
         endowed_accounts,
-        TESTNET_EVM_CHAIN_ID,
+        MAINNET_EVM_CHAIN_ID,
     )
 }
 

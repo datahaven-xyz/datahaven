@@ -135,7 +135,9 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
 };
 
 const registerServices = async (launchedNetwork: LaunchedNetwork) => {
-  logger.info("⚙️ Configuring Execution Layer RPC URL...");
+  logger.info("⚙️ Registering Kurtosis service endpoints...");
+
+  // Configure EL RPC URL
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
   const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
   invariant(
@@ -143,5 +145,15 @@ const registerServices = async (launchedNetwork: LaunchedNetwork) => {
     "❌ EL RPC URL could not be determined from Kurtosis service el-1-reth-lighthouse"
   );
   launchedNetwork.setElRpcUrl(elRpcUrl);
-  logger.info("👍 Execution Layer RPC URL configured:", elRpcUrl);
+  logger.info(`👍 Execution Layer RPC URL configured: ${elRpcUrl}`);
+
+  // Configure CL Endpoint
+  const lighthousePublicPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+  const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
+  invariant(
+    clEndpoint,
+    "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
+  );
+  launchedNetwork.setClEndpoint(clEndpoint);
+  logger.info(`👍 Consensus Layer Endpoint configured: ${clEndpoint}`);
 };

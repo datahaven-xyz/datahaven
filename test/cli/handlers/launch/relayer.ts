@@ -17,6 +17,8 @@ import {
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
+const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
 type RelayerSpec = {
   name: string;
   type: RelayerType;
@@ -183,3 +185,74 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   logger.success("Snowbridge relayers started");
   printDivider();
 };
+
+export const initEthClientPallet = async (launchedNetwork: LaunchedNetwork) => {
+  // Poll the beacon chain until it's ready every 2 seconds for 20 seconds
+  await waitBeaconChainReady(launchedNetwork, 2000, 20000);
+};
+
+const waitBeaconChainReady = async (
+  launchedNetwork: LaunchedNetwork,
+  pollIntervalMs: number,
+  timeoutMs: number
+) => {
+  let initialBeaconBlock = ZERO_HASH;
+  let attempts = 0;
+  let keepPolling = true;
+  const maxAttempts = timeoutMs / pollIntervalMs;
+
+  logger.trace("Waiting for beacon chain to be ready...");
+
+  while (keepPolling && attempts < maxAttempts) {
+    try {
+      const response = await fetch(
+        `${launchedNetwork.getClEndpoint()}/eth/v1/beacon/states/head/finality_checkpoints`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = (await response.json()) as FinalityCheckpointsResponse;
+      logger.trace(`Beacon chain state: ${JSON.stringify(data)}`);
+
+      invariant(data.data, "❌ No data returned from beacon chain");
+      invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
+      invariant(data.data.finalized.root, "❌ No finalised block root returned from beacon chain");
+      initialBeaconBlock = data.data.finalized.root;
+    } catch (error) {
+      logger.debug(`Failed to fetch beacon chain state: ${error}`);
+    }
+
+    if (initialBeaconBlock === ZERO_HASH) {
+      attempts++;
+      logger.debug(`Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    } else {
+      keepPolling = false;
+    }
+  }
+
+  logger.trace(`Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
+};
+
+/**
+ * Type definition for the response from the /eth/v1/beacon/states/head/finality_checkpoints endpoint.
+ */
+interface FinalityCheckpointsResponse {
+  execution_optimistic: boolean;
+  finalized: boolean;
+  data: {
+    previous_justified: {
+      epoch: string;
+      root: string;
+    };
+    current_justified: {
+      epoch: string;
+      root: string;
+    };
+    finalized: {
+      epoch: string;
+      root: string;
+    };
+  };
+}

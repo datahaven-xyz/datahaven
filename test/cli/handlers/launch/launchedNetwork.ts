@@ -13,6 +13,8 @@ export class LaunchedNetwork {
   protected DHNodes: { id: string; port: number }[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected elRpcUrl?: string;
+  /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
+  protected clEndpoint?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -20,6 +22,7 @@ export class LaunchedNetwork {
     this.fileDescriptors = [];
     this.DHNodes = [];
     this.elRpcUrl = undefined;
+    this.clEndpoint = undefined;
   }
 
   /**
@@ -91,6 +94,24 @@ export class LaunchedNetwork {
   getElRpcUrl(): string {
     invariant(this.elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
     return this.elRpcUrl;
+  }
+
+  /**
+   * Sets the HTTP endpoint for the Ethereum Consensus Layer (CL) client.
+   * @param url - The CL HTTP endpoint string.
+   */
+  setClEndpoint(url: string) {
+    this.clEndpoint = url;
+  }
+
+  /**
+   * Gets the HTTP endpoint for the Ethereum Consensus Layer (CL) client.
+   * @returns The CL HTTP endpoint string.
+   * @throws If the CL HTTP endpoint has not been set.
+   */
+  getClEndpoint(): string {
+    invariant(this.clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
+    return this.clEndpoint;
   }
 
   async cleanup() {

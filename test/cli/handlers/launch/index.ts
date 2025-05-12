@@ -6,7 +6,7 @@ import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
-import { launchRelayers } from "./relayer";
+import { initEthClientPallet, launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 
@@ -70,6 +70,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   });
 
   await performValidatorOperations(options, launchedNetwork.getElRpcUrl(), contractsDeployed);
+
+  await initEthClientPallet(launchedNetwork);
 
   await launchRelayers(options, launchedNetwork);
 

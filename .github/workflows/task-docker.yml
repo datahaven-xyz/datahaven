@@ -64,13 +64,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            cargo-registry
-            cargo-git
-            sccache
+            operator/cargo-registry
+            operator/cargo-git
+            operator/sccache
           key: cache-mount-${{ hashFiles('./operator/Dockerfile', './operator/Cargo.lock') }}
           restore-keys: |
             cache-mount-${{ hashFiles('./operator/Dockerfile') }}
             cache-mount-
+      - name: Create cache directories if they don't exist
+        run: |
+          mkdir -p cargo-registry cargo-git sccache
+          echo "Created cache directories:"
+          ls -la cargo-registry cargo-git sccache
       - name: inject cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:

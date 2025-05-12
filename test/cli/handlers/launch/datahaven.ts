@@ -1,15 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ApiPromise, WsProvider } from "@polkadot/api";
+import type { Option } from "@polkadot/types";
+import type { ValidatorSet } from "@polkadot/types/interfaces/beefy";
+import type { AuthorityId } from "@polkadot/types/interfaces/consensus";
 import { $ } from "bun";
+import { ethers } from "ethers";
 import invariant from "tiny-invariant";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
-import { ethers } from "ethers";
-import { ApiPromise, WsProvider } from "@polkadot/api";
-import type { Option } from "@polkadot/types";
-import type { AuthorityId } from "@polkadot/types/interfaces/consensus";
-import type { ValidatorSet } from "@polkadot/types/interfaces/beefy";
 
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
@@ -54,9 +54,7 @@ export async function setupDatahavenValidatorConfig(
   launchedNetwork: LaunchedNetwork
 ): Promise<void> {
   const networkName = process.env.NETWORK || "anvil";
-  logger.info(
-    `🔧 Preparing Datahaven authorities configuration for network: ${networkName}...`
-  );
+  logger.info(`🔧 Preparing Datahaven authorities configuration for network: ${networkName}...`);
 
   let authorityPublicKeys: string[] = [];
   const dhNodes = launchedNetwork.getDHNodes();
@@ -77,7 +75,8 @@ export async function setupDatahavenValidatorConfig(
       await api.isReady;
 
       // Read NextAuthorities directly from storage, which contains the next authority set
-      const nextAuthorities: AuthorityId[] = (await api.query.beefy.nextAuthorities()) as unknown as AuthorityId[];
+      const nextAuthorities: AuthorityId[] =
+        (await api.query.beefy.nextAuthorities()) as unknown as AuthorityId[];
 
       if (nextAuthorities && nextAuthorities.length > 0) {
         authorityPublicKeys = nextAuthorities.map((v: AuthorityId) => v.toHex());
@@ -176,7 +175,9 @@ const shouldRebuildBinary = async (binaryPath: string): Promise<boolean> => {
 
     const gitStatusProcess = await $`git status --porcelain`.nothrow().quiet();
     if (gitStatusProcess.exitCode !== 0) {
-      logger.warn(`⚠️ 'git status --porcelain' failed. Exit code: ${gitStatusProcess.exitCode}. Stderr: ${gitStatusProcess.stderr.toString().trim()}. Will rebuild to be safe.`);
+      logger.warn(
+        `⚠️ 'git status --porcelain' failed. Exit code: ${gitStatusProcess.exitCode}. Stderr: ${gitStatusProcess.stderr.toString().trim()}. Will rebuild to be safe.`
+      );
       return true;
     }
 
@@ -184,39 +185,49 @@ const shouldRebuildBinary = async (binaryPath: string): Promise<boolean> => {
     logger.debug(`Raw 'git status --porcelain' output:\n---\n${gitStatusOutput}\n---`);
 
     if (gitStatusOutput.includes("operator/")) {
-      logger.info(
-        `🔄 Found uncommitted changes related to 'operator/', rebuild required.`
-      );
-      const matchingLines = gitStatusOutput.split('\n').filter(line => line.includes('operator/')).join('\n');
+      logger.info(`🔄 Found uncommitted changes related to 'operator/', rebuild required.`);
+      const matchingLines = gitStatusOutput
+        .split("\n")
+        .filter((line) => line.includes("operator/"))
+        .join("\n");
       logger.debug(`Matching lines for 'operator/':\n${matchingLines}`);
       return true;
     }
     logger.debug("✅ No uncommitted changes found for 'operator/'.");
 
-
     // Get the current branch name
     logger.debug(`Checking for changes in 'operator/' directory compared to default branch...`);
-    const currentBranchProcess =
-      await $`git rev-parse --abbrev-ref HEAD`.quiet();
+    const currentBranchProcess = await $`git rev-parse --abbrev-ref HEAD`.quiet();
 
     if (currentBranchProcess.exitCode !== 0) {
-      logger.warn(`⚠️ Failed to get current branch name. Stderr: ${currentBranchProcess.stderr.toString().trim()}. Will rebuild to be safe.`);
+      logger.warn(
+        `⚠️ Failed to get current branch name. Stderr: ${currentBranchProcess.stderr.toString().trim()}. Will rebuild to be safe.`
+      );
       return true;
     }
     const currentBranch = currentBranchProcess.stdout.toString().trim();
 
     if (currentBranch === "main") {
-      logger.debug(`✅ Currently on default branch ('${currentBranch}'), no diff to check for 'operator/' changes.`);
+      logger.debug(
+        `✅ Currently on default branch ('${currentBranch}'), no diff to check for 'operator/' changes.`
+      );
     } else {
       logger.debug(`Attempting to diff 'operator/' in main..${currentBranch}`);
 
-      const diffOutputProcess = await $`git diff --name-only main..${currentBranch} -- operator/`.nothrow().quiet();
-      if (diffOutputProcess.exitCode !== 0 && diffOutputProcess.exitCode !== 1) { // git diff exits 1 if no differences
-        logger.warn(`⚠️ 'git diff --name-only main..${currentBranch} -- operator/' failed. Exit code: ${diffOutputProcess.exitCode}. Stderr: ${diffOutputProcess.stderr.toString().trim()}. Will rebuild to be safe.`);
+      const diffOutputProcess = await $`git diff --name-only main..${currentBranch} -- operator/`
+        .nothrow()
+        .quiet();
+      if (diffOutputProcess.exitCode !== 0 && diffOutputProcess.exitCode !== 1) {
+        // git diff exits 1 if no differences
+        logger.warn(
+          `⚠️ 'git diff --name-only main..${currentBranch} -- operator/' failed. Exit code: ${diffOutputProcess.exitCode}. Stderr: ${diffOutputProcess.stderr.toString().trim()}. Will rebuild to be safe.`
+        );
         return true;
       }
       const diffOutput = diffOutputProcess.stdout.toString();
-      logger.debug(`Raw 'git diff --name-only main..${currentBranch} -- operator/' output:\n---\n${diffOutput}\n---`);
+      logger.debug(
+        `Raw 'git diff --name-only main..${currentBranch} -- operator/' output:\n---\n${diffOutput}\n---`
+      );
 
       if (diffOutput.includes("operator/")) {
         logger.info(
@@ -224,16 +235,21 @@ const shouldRebuildBinary = async (binaryPath: string): Promise<boolean> => {
         );
         logger.debug(`Diff output for 'operator/':\n${diffOutput.trim()}`);
         return true;
-      } else {
-        logger.debug(`✅ No changes found in 'operator/' folder when comparing main..${currentBranch}.`);
       }
+      logger.debug(
+        `✅ No changes found in 'operator/' folder when comparing main..${currentBranch}.`
+      );
     }
 
-    logger.info(`✅ No relevant uncommitted changes or diffs detected for 'operator/'. Skipping build.`);
+    logger.info(
+      `✅ No relevant uncommitted changes or diffs detected for 'operator/'. Skipping build.`
+    );
     return false;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.warn(`⚠️ Error during Git checks for 'operator/': ${errorMessage}. Will rebuild to be safe.`);
+    logger.warn(
+      `⚠️ Error during Git checks for 'operator/': ${errorMessage}. Will rebuild to be safe.`
+    );
     return true;
   }
 };
@@ -360,7 +376,9 @@ export const launchDataHavenSolochain = async (
     const primaryNodePort = launchedNetwork.getDHNodes()[0]?.port || 9944;
 
     if (await isNetworkReady(primaryNodePort)) {
-      logger.success(`Datahaven network started, primary node accessible on port ${primaryNodePort}`);
+      logger.success(
+        `Datahaven network started, primary node accessible on port ${primaryNodePort}`
+      );
 
       // Call setupDatahavenValidatorConfig now that nodes are up
       logger.info("Proceeding with DataHaven validator configuration setup...");
@@ -398,4 +416,3 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
     return false;
   }
 };
-

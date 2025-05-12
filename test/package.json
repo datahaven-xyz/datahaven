@@ -35,6 +35,7 @@
 		"@commander-js/extra-typings": "^13.1.0",
 		"@dotenvx/dotenvx": "^1.41.0",
 		"@inquirer/prompts": "^7.5.0",
+		"@polkadot/api": "^15.9.3",
 		"@types/dockerode": "^3.3.38",
 		"@types/node": "^22.14.1",
 		"@wagmi/cli": "^2.3.0",

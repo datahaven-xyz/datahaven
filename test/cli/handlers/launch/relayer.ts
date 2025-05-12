@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ApiPromise, WsProvider } from "@polkadot/api";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { ApiPromise, WsProvider } from "@polkadot/api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
   type RelayerType,

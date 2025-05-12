@@ -17,7 +17,12 @@
 
 ## QuickStart
 
-Run: `bun start:e2e:minimal`
+Run:
+
+```bash
+bun i
+bun cli
+```
 
 ## Manual Deployment
 
@@ -26,7 +31,7 @@ Follow these steps to set up and interact with your test environment:
 1. **Deploy a minimal test environment**
 
    ```bash
-   bun start:e2e:minimal
+   bun cli
    ```
 
    This script will:
@@ -74,8 +79,8 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 
 ### E2E Tests
 
-> [!TIP]  
-> Remember to run the network with `bun start:e2e:minimal` before running the tests.
+> [!TIP]
+> Remember to run the network with `bun cli` before running the tests.
 
 ```bash
 bun test:e2e
@@ -100,7 +105,7 @@ This command generates TypeScript bindings for interacting with the deployed sma
 
 #### Script halts unexpectedly
 
-When running `start:e2e:minimal` the script appears to halt after the following:
+When running `bun cli` the script appears to halt after the following:
 
 ```shell
 ## Setting up 1 EVM.

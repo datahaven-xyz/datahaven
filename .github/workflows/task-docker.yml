@@ -80,6 +80,10 @@ jobs:
               "cargo-git":      { "target": "/usr/local/cargo/git" },
               "sccache":        { "target": "/var/cache/sccache" }
             }
+      - name: Log cache injection details
+        run: |
+          echo "Cache directories after injection:"
+          ls -la cargo-registry cargo-git sccache || echo "Cache directories not found"
       - name: Build Docker image (load for tests) with detailed cache logging
         id: build
         uses: docker/build-push-action@v5

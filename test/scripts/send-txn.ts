@@ -82,5 +82,8 @@ export const sendDataHavenTxn = async (privateKey: string, networkRpcUrl: string
     `Transaction with hash ${txFinalisedPayload.txHash} submitted and finalised in block ${txFinalisedPayload.block.hash}`
   );
 
+  client.destroy();
+  logger.debug("Destroyed client");
+
   printDivider();
 };

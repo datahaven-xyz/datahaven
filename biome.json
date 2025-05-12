@@ -2,7 +2,13 @@
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
     "include": ["*.js", "*.ts", "*.json", "*.yml", "*.md"],
-    "ignore": ["./node_modules/*", "./target/*", "**/tmp/*", "*.spec.json"]
+    "ignore": [
+      "./node_modules/*",
+      "./target/*",
+      "**/tmp/*",
+      "*.spec.json",
+      "test/.papi/descriptors/"
+    ]
   },
   "organizeImports": {
     "enabled": true

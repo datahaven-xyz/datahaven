@@ -10,4 +10,3 @@ export * from "./rpc";
 export * from "./shell";
 export * from "./viem";
 export * from "./kurtosis";
-export * from "./parser";

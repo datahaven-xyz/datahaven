@@ -8,6 +8,7 @@
         "@commander-js/extra-typings": "^13.1.0",
         "@dotenvx/dotenvx": "^1.41.0",
         "@inquirer/prompts": "^7.5.0",
+        "@polkadot-api/descriptors": "file:.papi/descriptors",
         "@types/dockerode": "^3.3.38",
         "@types/node": "^22.14.1",
         "@wagmi/cli": "^2.3.0",
@@ -279,6 +280,8 @@
     "@polkadot-api/cli": ["@polkadot-api/cli@0.11.13", "", { "dependencies": { "@commander-js/extra-typings": "^13.1.0", "@polkadot-api/codegen": "0.14.0", "@polkadot-api/ink-contracts": "0.3.0", "@polkadot-api/json-rpc-provider": "0.0.4", "@polkadot-api/known-chains": "0.7.4", "@polkadot-api/metadata-compatibility": "0.2.1", "@polkadot-api/observable-client": "0.9.1", "@polkadot-api/polkadot-sdk-compat": "2.3.2", "@polkadot-api/sm-provider": "0.1.7", "@polkadot-api/smoldot": "0.3.8", "@polkadot-api/substrate-bindings": "0.12.0", "@polkadot-api/substrate-client": "0.3.0", "@polkadot-api/utils": "0.1.2", "@polkadot-api/wasm-executor": "^0.1.2", "@polkadot-api/ws-provider": "0.4.0", "@types/node": "^22.14.1", "commander": "^13.1.0", "execa": "^9.5.2", "fs.promises.exists": "^1.1.4", "ora": "^8.2.0", "read-pkg": "^9.0.1", "rxjs": "^7.8.2", "tsc-prog": "^2.3.0", "tsup": "^8.4.0", "typescript": "^5.8.3", "write-package": "^7.1.0" }, "bin": { "papi": "dist/main.js", "polkadot-api": "dist/main.js" } }, "sha512-ZIU3HrG7zlXCdjYOawjkRe7E94fODjWCXtyyFkclhwVlCHIUYcuc5OrP9jwo95pwhwRysmhdJ4lBEAm2Z1ry2w=="],
 
     "@polkadot-api/codegen": ["@polkadot-api/codegen@0.14.0", "", { "dependencies": { "@polkadot-api/ink-contracts": "0.3.0", "@polkadot-api/metadata-builders": "0.11.0", "@polkadot-api/metadata-compatibility": "0.2.1", "@polkadot-api/substrate-bindings": "0.12.0", "@polkadot-api/utils": "0.1.2" } }, "sha512-X9wSdkp4Adfy0SD22QbY1zMIt47TmdeSwbluxQjiHlhqTAxGz/WD3nBCOl7An0DnQlCvstcXdtsHfBIKSm19xA=="],
+
+    "@polkadot-api/descriptors": ["@polkadot-api/descriptors@file:.papi/descriptors", { "peerDependencies": { "polkadot-api": ">=1.9.11" } }],
 
     "@polkadot-api/ink-contracts": ["@polkadot-api/ink-contracts@0.3.0", "", { "dependencies": { "@polkadot-api/metadata-builders": "0.11.0", "@polkadot-api/substrate-bindings": "0.12.0", "@polkadot-api/utils": "0.1.2" } }, "sha512-OjFeOIAE1DGzBjnDXExg7DuBbjnz/xgiN1WuKpmF3CC6TqIW55Ay6rhLah4/i1yMKvFmj4VfyqSwhF78JLsk5A=="],
 

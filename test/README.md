@@ -17,7 +17,12 @@
 
 ## QuickStart
 
-Run: `bun start:e2e:minimal`
+Run:
+
+```bash
+bun i
+bun cli
+```
 
 ## Manual Deployment
 
@@ -26,7 +31,7 @@ Follow these steps to set up and interact with your test environment:
 1. **Deploy a minimal test environment**
 
    ```bash
-   bun start:e2e:minimal
+   bun cli
    ```
 
    This script will:
@@ -74,14 +79,16 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 
 ### E2E Tests
 
-> [!TIP]  
-> Remember to run the network with `bun start:e2e:minimal` before running the tests.
+> 🧙‍♂️ TIP
+>
+> Remember to run the network with `bun cli` before running the tests.
 
 ```bash
 bun test:e2e
 ```
 
-> [!NOTE]
+> ℹ️ NOTE
+>
 > You can increase the logging level by setting `LOG_LEVEL=debug` before running the tests.
 
 ### Wagmi Bindings Generation
@@ -100,7 +107,7 @@ This command generates TypeScript bindings for interacting with the deployed sma
 
 #### Script halts unexpectedly
 
-When running `start:e2e:minimal` the script appears to halt after the following:
+When running `bun cli` the script appears to halt after the following:
 
 ```shell
 ## Setting up 1 EVM.
@@ -130,7 +137,7 @@ Try running `forge clean` to clear any spurious build artefacts, and running for
 If you look at the browser console, if you see the following:
 
 ```browser
-Content-Security-Policy: The page’s settings blocked the loading of a resource (connect-src) at http://127.0.0.1:3000/node-api/proxy/api/v2/stats because it violates the following directive: “connect-src ' ...
+Content-Security-Policy: The page's settings blocked the loading of a resource (connect-src) at http://127.0.0.1:3000/node-api/proxy/api/v2/stats because it violates the following directive: "connect-src ' ...
 ```
 
 this is a result of CORS and CSP errors due to running this as a local docker network.
@@ -152,6 +159,25 @@ I have found that ipV6 on Arch Linux does not play very nicely with Kurtosis net
 ![Docker Network Settings](../resources/mac_docker.png)
 
 If using Docker Desktop, make sure settings have permissive networking enabled.
+
+### Polkadot-API types don't match expected runtime types
+
+If you've made changes to the runtime types, you need to re-generate the TS types for the Polkadot-API. Don't worry, this is fully automated.
+
+From the `./test` directory run the following command:
+
+```bash
+bun generate:types
+```
+
+This script will:
+
+1. Compile the runtime using `cargo build --release` in the `../operator` directory.
+2. Re-generate the Polkadot-API types using the newly built WASM binary.
+
+> ℹ️ NOTE
+>
+> The script uses the `--release` flag by default, meaning it uses the WASM binary from `./operator/target/release`. If you need to use a different build target, you may need to adjust the script or run the steps manually.
 
 ## Further Information
 

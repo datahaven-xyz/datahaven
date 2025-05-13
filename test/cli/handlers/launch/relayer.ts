@@ -207,8 +207,8 @@ export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
-  // Poll the beacon chain until it's ready every 2 seconds for 60 seconds
-  await waitBeaconChainReady(launchedNetwork, 2000, 60000);
+  // Poll the beacon chain until it's ready every 6 seconds for 60 seconds
+  await waitBeaconChainReady(launchedNetwork, 6000, 60000);
 
   // Generate the initial checkpoint for the CL client in Substrate
   const { stdout, stderr, exitCode } =
@@ -223,15 +223,15 @@ export const initEthClientPallet = async (
 
   // Load the checkpoint into a JSON object and clean it up
   const initialCheckpointRaw = fs.readFileSync(INITIAL_CHECKPOINT_PATH, "utf-8");
-  const initialCheckpointJson = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
+  const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
   fs.unlinkSync(INITIAL_CHECKPOINT_PATH);
 
-  logger.trace("Initial checkpoint JSON:");
-  logger.trace(initialCheckpointJson);
+  logger.trace("Initial checkpoint:");
+  logger.trace(initialCheckpoint.toJSON());
 
   // Send the checkpoint to the Substrate runtime
   const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getDHNodes()[0].port}`;
-  await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpointJson);
+  await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpoint);
 };
 
 /**

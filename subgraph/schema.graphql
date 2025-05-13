@@ -1,0 +1,108 @@
+type BspAddedToAllowlist @entity(immutable: true) {
+  id: Bytes!
+  bsp: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type BspRemovedFromAllowlist @entity(immutable: true) {
+  id: Bytes!
+  bsp: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Initialized @entity(immutable: true) {
+  id: Bytes!
+  version: Int! # uint8
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type MspAddedToAllowlist @entity(immutable: true) {
+  id: Bytes!
+  msp: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type MspRemovedFromAllowlist @entity(immutable: true) {
+  id: Bytes!
+  msp: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OperatorDeregistered @entity(immutable: true) {
+  id: Bytes!
+  operator: Bytes! # address
+  operatorSetId: BigInt! # uint32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OperatorRegistered @entity(immutable: true) {
+  id: Bytes!
+  operator: Bytes! # address
+  operatorSetId: BigInt! # uint32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RewardsInitiatorUpdated @entity(immutable: true) {
+  id: Bytes!
+  prevRewardsInitiator: Bytes! # address
+  newRewardsInitiator: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RewardsRegistrySet @entity(immutable: true) {
+  id: Bytes!
+  operatorSetId: BigInt! # uint32
+  rewardsRegistry: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SnowbridgeGatewaySet @entity(immutable: true) {
+  id: Bytes!
+  snowbridgeGateway: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ValidatorAddedToAllowlist @entity(immutable: true) {
+  id: Bytes!
+  validator: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ValidatorRemovedFromAllowlist @entity(immutable: true) {
+  id: Bytes!
+  validator: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

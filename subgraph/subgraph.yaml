@@ -1,0 +1,62 @@
+specVersion: 1.3.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: DataHavenServiceManager
+    network: local
+    source:
+      address: "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570"
+      abi: DataHavenServiceManager
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - BspAddedToAllowlist
+        - BspRemovedFromAllowlist
+        - Initialized
+        - MspAddedToAllowlist
+        - MspRemovedFromAllowlist
+        - OperatorDeregistered
+        - OperatorRegistered
+        - OwnershipTransferred
+        - RewardsInitiatorUpdated
+        - RewardsRegistrySet
+        - SnowbridgeGatewaySet
+        - ValidatorAddedToAllowlist
+        - ValidatorRemovedFromAllowlist
+      abis:
+        - name: DataHavenServiceManager
+          file: ./abis/DataHavenServiceManager.json
+      eventHandlers:
+        - event: BspAddedToAllowlist(indexed address)
+          handler: handleBspAddedToAllowlist
+        - event: BspRemovedFromAllowlist(indexed address)
+          handler: handleBspRemovedFromAllowlist
+        - event: Initialized(uint8)
+          handler: handleInitialized
+        - event: MspAddedToAllowlist(indexed address)
+          handler: handleMspAddedToAllowlist
+        - event: MspRemovedFromAllowlist(indexed address)
+          handler: handleMspRemovedFromAllowlist
+        - event: OperatorDeregistered(indexed address,indexed uint32)
+          handler: handleOperatorDeregistered
+        - event: OperatorRegistered(indexed address,indexed uint32)
+          handler: handleOperatorRegistered
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: RewardsInitiatorUpdated(address,address)
+          handler: handleRewardsInitiatorUpdated
+        - event: RewardsRegistrySet(indexed uint32,indexed address)
+          handler: handleRewardsRegistrySet
+        - event: SnowbridgeGatewaySet(indexed address)
+          handler: handleSnowbridgeGatewaySet
+        - event: ValidatorAddedToAllowlist(indexed address)
+          handler: handleValidatorAddedToAllowlist
+        - event: ValidatorRemovedFromAllowlist(indexed address)
+          handler: handleValidatorRemovedFromAllowlist
+      file: ./src/data-haven-service-manager.ts

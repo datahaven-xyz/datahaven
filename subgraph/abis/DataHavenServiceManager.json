@@ -1,0 +1,1031 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "__rewardsCoordinator",
+        "type": "address",
+        "internalType": "contract IRewardsCoordinator"
+      },
+      {
+        "name": "__permissionController",
+        "type": "address",
+        "internalType": "contract IPermissionController"
+      },
+      {
+        "name": "__allocationManager",
+        "type": "address",
+        "internalType": "contract IAllocationManager"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "BSPS_SET_ID",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DATAHAVEN_AVS_METADATA",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MSPS_SET_ID",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "VALIDATORS_SET_ID",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "addBspToAllowlist",
+    "inputs": [{ "name": "bsp", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addMspToAllowlist",
+    "inputs": [{ "name": "msp", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addPendingAdmin",
+    "inputs": [
+      { "name": "admin", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addStrategiesToBspsSupportedStrategies",
+    "inputs": [
+      {
+        "name": "_strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addStrategiesToMspsSupportedStrategies",
+    "inputs": [
+      {
+        "name": "_strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addStrategiesToOperatorSet",
+    "inputs": [
+      { "name": "operatorSetId", "type": "uint32", "internalType": "uint32" },
+      {
+        "name": "strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addStrategiesToValidatorsSupportedStrategies",
+    "inputs": [
+      {
+        "name": "_strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addValidatorToAllowlist",
+    "inputs": [
+      { "name": "validator", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "avs",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "bspsAllowlist",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "bspsSupportedStrategies",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "buildNewValidatorSetMessage",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes", "internalType": "bytes" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "claimOperatorRewards",
+    "inputs": [
+      { "name": "operatorSetId", "type": "uint32", "internalType": "uint32" },
+      {
+        "name": "operatorPoints",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      { "name": "proof", "type": "bytes32[]", "internalType": "bytes32[]" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createAVSRewardsSubmission",
+    "inputs": [
+      {
+        "name": "rewardsSubmissions",
+        "type": "tuple[]",
+        "internalType": "struct IRewardsCoordinatorTypes.RewardsSubmission[]",
+        "components": [
+          {
+            "name": "strategiesAndMultipliers",
+            "type": "tuple[]",
+            "internalType": "struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]",
+            "components": [
+              {
+                "name": "strategy",
+                "type": "address",
+                "internalType": "contract IStrategy"
+              },
+              {
+                "name": "multiplier",
+                "type": "uint96",
+                "internalType": "uint96"
+              }
+            ]
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          { "name": "amount", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "startTimestamp",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          { "name": "duration", "type": "uint32", "internalType": "uint32" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createOperatorDirectedOperatorSetRewardsSubmission",
+    "inputs": [
+      {
+        "name": "operatorSet",
+        "type": "tuple",
+        "internalType": "struct OperatorSet",
+        "components": [
+          { "name": "avs", "type": "address", "internalType": "address" },
+          { "name": "id", "type": "uint32", "internalType": "uint32" }
+        ]
+      },
+      {
+        "name": "operatorDirectedRewardsSubmissions",
+        "type": "tuple[]",
+        "internalType": "struct IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[]",
+        "components": [
+          {
+            "name": "strategiesAndMultipliers",
+            "type": "tuple[]",
+            "internalType": "struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]",
+            "components": [
+              {
+                "name": "strategy",
+                "type": "address",
+                "internalType": "contract IStrategy"
+              },
+              {
+                "name": "multiplier",
+                "type": "uint96",
+                "internalType": "uint96"
+              }
+            ]
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "operatorRewards",
+            "type": "tuple[]",
+            "internalType": "struct IRewardsCoordinatorTypes.OperatorReward[]",
+            "components": [
+              {
+                "name": "operator",
+                "type": "address",
+                "internalType": "address"
+              },
+              { "name": "amount", "type": "uint256", "internalType": "uint256" }
+            ]
+          },
+          {
+            "name": "startTimestamp",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          { "name": "duration", "type": "uint32", "internalType": "uint32" },
+          { "name": "description", "type": "string", "internalType": "string" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createOperatorSets",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple[]",
+        "internalType": "struct IAllocationManagerTypes.CreateSetParams[]",
+        "components": [
+          {
+            "name": "operatorSetId",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "strategies",
+            "type": "address[]",
+            "internalType": "contract IStrategy[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deregisterOperator",
+    "inputs": [
+      { "name": "operator", "type": "address", "internalType": "address" },
+      { "name": "avs", "type": "address", "internalType": "address" },
+      {
+        "name": "operatorSetIds",
+        "type": "uint32[]",
+        "internalType": "uint32[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deregisterOperatorFromAVS",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deregisterOperatorFromOperatorSets",
+    "inputs": [
+      { "name": "operator", "type": "address", "internalType": "address" },
+      {
+        "name": "operatorSetIds",
+        "type": "uint32[]",
+        "internalType": "uint32[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "fulfilSlashingRequest",
+    "inputs": [
+      { "name": "requestId", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getOperatorRestakedStrategies",
+    "inputs": [
+      { "name": "operator", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "", "type": "address[]", "internalType": "address[]" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRestakeableStrategies",
+    "inputs": [],
+    "outputs": [
+      { "name": "", "type": "address[]", "internalType": "address[]" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialise",
+    "inputs": [
+      { "name": "initialOwner", "type": "address", "internalType": "address" },
+      {
+        "name": "rewardsInitiator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "validatorsStrategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      },
+      {
+        "name": "bspsStrategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      },
+      {
+        "name": "mspsStrategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      },
+      {
+        "name": "_snowbridgeGatewayAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "mspsAllowlist",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mspsSupportedStrategies",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "operatorSetToRewardsRegistry",
+    "inputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IRewardsRegistry"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "queueSlashingRequest",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct IAllocationManagerTypes.SlashingParams",
+        "components": [
+          { "name": "operator", "type": "address", "internalType": "address" },
+          {
+            "name": "operatorSetId",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "strategies",
+            "type": "address[]",
+            "internalType": "contract IStrategy[]"
+          },
+          {
+            "name": "wadsToSlash",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          { "name": "description", "type": "string", "internalType": "string" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerOperator",
+    "inputs": [
+      { "name": "operator", "type": "address", "internalType": "address" },
+      { "name": "avs", "type": "address", "internalType": "address" },
+      {
+        "name": "operatorSetIds",
+        "type": "uint32[]",
+        "internalType": "uint32[]"
+      },
+      { "name": "data", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerOperatorToAVS",
+    "inputs": [
+      { "name": "", "type": "address", "internalType": "address" },
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry",
+        "components": [
+          { "name": "signature", "type": "bytes", "internalType": "bytes" },
+          { "name": "salt", "type": "bytes32", "internalType": "bytes32" },
+          { "name": "expiry", "type": "uint256", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeAdmin",
+    "inputs": [
+      { "name": "admin", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeAppointee",
+    "inputs": [
+      { "name": "appointee", "type": "address", "internalType": "address" },
+      { "name": "target", "type": "address", "internalType": "address" },
+      { "name": "selector", "type": "bytes4", "internalType": "bytes4" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeBspFromAllowlist",
+    "inputs": [{ "name": "bsp", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeMspFromAllowlist",
+    "inputs": [{ "name": "msp", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removePendingAdmin",
+    "inputs": [
+      { "name": "pendingAdmin", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeStrategiesFromBspsSupportedStrategies",
+    "inputs": [
+      {
+        "name": "_strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeStrategiesFromMspsSupportedStrategies",
+    "inputs": [
+      {
+        "name": "_strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeStrategiesFromOperatorSet",
+    "inputs": [
+      { "name": "operatorSetId", "type": "uint32", "internalType": "uint32" },
+      {
+        "name": "strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeStrategiesFromValidatorsSupportedStrategies",
+    "inputs": [
+      {
+        "name": "_strategies",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeValidatorFromAllowlist",
+    "inputs": [
+      { "name": "validator", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "rewardsInitiator",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "sendNewValidatorSet",
+    "inputs": [
+      { "name": "executionFee", "type": "uint128", "internalType": "uint128" },
+      { "name": "relayerFee", "type": "uint128", "internalType": "uint128" }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "setAppointee",
+    "inputs": [
+      { "name": "appointee", "type": "address", "internalType": "address" },
+      { "name": "target", "type": "address", "internalType": "address" },
+      { "name": "selector", "type": "bytes4", "internalType": "bytes4" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setClaimerFor",
+    "inputs": [
+      { "name": "claimer", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRewardsAgent",
+    "inputs": [
+      { "name": "operatorSetId", "type": "uint32", "internalType": "uint32" },
+      { "name": "rewardsAgent", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRewardsInitiator",
+    "inputs": [
+      {
+        "name": "newRewardsInitiator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRewardsRegistry",
+    "inputs": [
+      { "name": "operatorSetId", "type": "uint32", "internalType": "uint32" },
+      {
+        "name": "rewardsRegistry",
+        "type": "address",
+        "internalType": "contract IRewardsRegistry"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSlasher",
+    "inputs": [
+      {
+        "name": "slasher",
+        "type": "address",
+        "internalType": "contract IVetoableSlasher"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSnowbridgeGateway",
+    "inputs": [
+      {
+        "name": "_newSnowbridgeGateway",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "snowbridgeGateway",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "supportsAVS",
+    "inputs": [
+      { "name": "avsAddress", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      { "name": "newOwner", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateAVSMetadataURI",
+    "inputs": [
+      { "name": "_metadataURI", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateSolochainAddressForValidator",
+    "inputs": [
+      {
+        "name": "solochainAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "validatorEthAddressToSolochainAddress",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "validatorsAllowlist",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "validatorsSupportedStrategies",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "contract IStrategy[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "BspAddedToAllowlist",
+    "inputs": [
+      {
+        "name": "bsp",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BspRemovedFromAllowlist",
+    "inputs": [
+      {
+        "name": "bsp",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Initialized",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MspAddedToAllowlist",
+    "inputs": [
+      {
+        "name": "msp",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MspRemovedFromAllowlist",
+    "inputs": [
+      {
+        "name": "msp",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OperatorDeregistered",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "operatorSetId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OperatorRegistered",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "operatorSetId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RewardsInitiatorUpdated",
+    "inputs": [
+      {
+        "name": "prevRewardsInitiator",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "newRewardsInitiator",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RewardsRegistrySet",
+    "inputs": [
+      {
+        "name": "operatorSetId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "rewardsRegistry",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SnowbridgeGatewaySet",
+    "inputs": [
+      {
+        "name": "snowbridgeGateway",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ValidatorAddedToAllowlist",
+    "inputs": [
+      {
+        "name": "validator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ValidatorRemovedFromAllowlist",
+    "inputs": [
+      {
+        "name": "validator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  { "type": "error", "name": "CallerIsNotValidator", "inputs": [] },
+  {
+    "type": "error",
+    "name": "CantDeregisterFromMultipleOperatorSets",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CantRegisterToMultipleOperatorSets",
+    "inputs": []
+  },
+  { "type": "error", "name": "DelayPeriodNotPassed", "inputs": [] },
+  { "type": "error", "name": "IncorrectAVSAddress", "inputs": [] },
+  { "type": "error", "name": "InvalidOperatorSetId", "inputs": [] },
+  { "type": "error", "name": "NoRewardsRegistryForOperatorSet", "inputs": [] },
+  { "type": "error", "name": "OnlyRegistryCoordinator", "inputs": [] },
+  { "type": "error", "name": "OnlyRewardsInitiator", "inputs": [] },
+  { "type": "error", "name": "OnlyStakeRegistry", "inputs": [] },
+  { "type": "error", "name": "OperatorNotInAllowlist", "inputs": [] },
+  { "type": "error", "name": "OperatorNotInOperatorSet", "inputs": [] }
+]

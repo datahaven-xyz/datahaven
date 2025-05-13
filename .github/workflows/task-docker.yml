@@ -69,7 +69,7 @@ jobs:
           restore-keys: |
             cache-mount-${{ hashFiles('./operator/Dockerfile') }}
             cache-mount-
-      - name: inject cache into docker
+      - name: Inject cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:
           cache-map: |

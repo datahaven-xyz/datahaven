@@ -13,6 +13,9 @@ runs:
         echo "Top-level directories before cleanup (du -h --max-depth=1 /):"
         sudo du -h --max-depth=1 --exclude=/proc --exclude=/sys --exclude=/dev / | sort -rh | head -n 10
         echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/ before cleanup:"
+        sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10
+        echo "-------------------------------------------"
         echo "Detailed breakdown for /usr/local/lib before cleanup:"
         sudo du -h --max-depth=1 /usr/local/lib | sort -rh | head -n 10
         echo "-------------------------------------------"
@@ -33,6 +36,8 @@ runs:
           /usr/local/lib/android \
           /usr/local/lib/heroku \
           /usr/share/dotnet \
+          /usr/lib/google-cloud-sdk \
+          /usr/lib/jvm \
           /opt/hostedtoolcache/CodeQL \
           /opt/hostedtoolcache/go \
           /opt/hostedtoolcache/Python \
@@ -48,6 +53,9 @@ runs:
         echo "-------------------------------------------"
         echo "Top-level directories after cleanup (du -h --max-depth=1 /):"
         sudo du -h --max-depth=1 --exclude=/proc --exclude=/sys --exclude=/dev / | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/ before cleanup:"
+        sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10
         echo "-------------------------------------------"
         echo "Detailed breakdown for /usr/local/lib after cleanup:"
         sudo du -h --max-depth=1 /usr/local/lib | sort -rh | head -n 10

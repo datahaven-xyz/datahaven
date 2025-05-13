@@ -227,28 +227,31 @@ mod runtime {
     #[runtime::pallet_index(5)]
     pub type Offences = pallet_offences;
 
-    #[runtime::pallet_index(6)]
-    pub type Historical = pallet_session::historical;
-
+    // External Validators must be before Session.
     #[runtime::pallet_index(7)]
-    pub type Session = pallet_session;
+    pub type ExternalValidators = pallet_external_validators;
 
     #[runtime::pallet_index(8)]
-    pub type ImOnline = pallet_im_online;
-
+    pub type Historical = pallet_session::historical;
     #[runtime::pallet_index(9)]
-    pub type Grandpa = pallet_grandpa;
+    pub type Session = pallet_session;
 
     #[runtime::pallet_index(10)]
-    pub type TransactionPayment = pallet_transaction_payment;
+    pub type ImOnline = pallet_im_online;
 
     #[runtime::pallet_index(11)]
-    pub type Beefy = pallet_beefy;
+    pub type Grandpa = pallet_grandpa;
 
     #[runtime::pallet_index(12)]
-    pub type Mmr = pallet_mmr;
+    pub type TransactionPayment = pallet_transaction_payment;
 
     #[runtime::pallet_index(13)]
+    pub type Beefy = pallet_beefy;
+
+    #[runtime::pallet_index(14)]
+    pub type Mmr = pallet_mmr;
+
+    #[runtime::pallet_index(15)]
     pub type BeefyMmrLeaf = pallet_beefy_mmr;
     // ╚═════════════════ System and Consensus Pallets ══════════════════╝
 
@@ -314,8 +317,5 @@ mod runtime {
     // Start with index 100
     #[runtime::pallet_index(100)]
     pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
-
-    #[runtime::pallet_index(101)]
-    pub type ExternalValidators = pallet_external_validators;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }

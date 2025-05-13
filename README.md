@@ -18,7 +18,8 @@ datahaven/
 
 This repo publishes images to [DockerHub](https://hub.docker.com/r/moonsonglabs/datahaven).
 
-> [!TIP]  
+> 🧙‍♂️ TIP
+>
 > If you cannot see this repo you must be added to the permission list for the private repo.
 
 To aid with speed it employs the following:
@@ -41,7 +42,7 @@ Using the [act](https://github.com/nektos/act) binary, you can run GitHub Action
 For example, to run the entire `e2e` workflow:
 
 ```bash
-act -W .github/workflows/e2e.yml -s GITHUB_TOKEN="$(gh auth token)"   
+act -W .github/workflows/e2e.yml -s GITHUB_TOKEN="$(gh auth token)"
 ```
 
 Which results in:

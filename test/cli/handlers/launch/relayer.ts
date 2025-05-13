@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
+import { createClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
@@ -16,12 +20,9 @@ import {
   printHeader
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
+import { parseJsonToBeaconCheckpoint } from "utils/types";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
-import { createClient } from "polkadot-api";
-import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
-import { datahaven } from "@polkadot-api/descriptors";
 
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -206,8 +207,8 @@ export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
-  // Poll the beacon chain until it's ready every 2 seconds for 20 seconds
-  await waitBeaconChainReady(launchedNetwork, 2000, 20000);
+  // Poll the beacon chain until it's ready every 2 seconds for 60 seconds
+  await waitBeaconChainReady(launchedNetwork, 2000, 60000);
 
   // Generate the initial checkpoint for the CL client in Substrate
   const { stdout, stderr, exitCode } =
@@ -222,7 +223,7 @@ export const initEthClientPallet = async (
 
   // Load the checkpoint into a JSON object and clean it up
   const initialCheckpointRaw = fs.readFileSync(INITIAL_CHECKPOINT_PATH, "utf-8");
-  const initialCheckpointJson = JSON.parse(initialCheckpointRaw) as BeaconCheckpoint;
+  const initialCheckpointJson = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
   fs.unlinkSync(INITIAL_CHECKPOINT_PATH);
 
   logger.trace("Initial checkpoint JSON:");
@@ -315,12 +316,11 @@ const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: Beac
   logger.debug("Sudo call:");
   logger.debug(tx.decodedCall);
 
-  await tx.sign(signer);
-  // const txFinalisedPayload = await tx.signAndSubmit(signer);
+  const txFinalisedPayload = await tx.signAndSubmit(signer);
 
-  // logger.info(
-  //   `"force_checkpoint" transaction with hash ${txFinalisedPayload.txHash} submitted and finalised in block ${txFinalisedPayload.block.hash}`
-  // );
+  logger.info(
+    `"force_checkpoint" transaction with hash ${txFinalisedPayload.txHash} submitted and finalised in block ${txFinalisedPayload.block.hash}`
+  );
 
   client.destroy();
   logger.debug("Destroyed client");

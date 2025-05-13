@@ -325,7 +325,7 @@ where
         import_queue,
         keystore_container,
         select_chain,
-        transaction_pool: transaction_pool.into(),
+        transaction_pool,
         other: (
             block_import,
             grandpa_link,
@@ -504,7 +504,7 @@ where
             frontier_partial_components: FrontierPartialComponents {
                 filter_pool: filter_pool.clone(),
                 fee_history_cache: fee_history_cache.clone(),
-                fee_history_cache_limit: fee_history_cache_limit.clone(),
+                fee_history_cache_limit,
             },
             storage_override,
             sync: sync_service.clone(),

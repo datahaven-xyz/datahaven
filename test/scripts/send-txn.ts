@@ -1,11 +1,18 @@
-import { generateRandomAccount, logger, printDivider, printHeader } from "utils";
+import { generateRandomAccount, getEvmEcdsaSigner, logger, printDivider, printHeader } from "utils";
+
 import { http, createWalletClient, defineChain, parseEther, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-export default async function main(privateKey: string, networkRpcUrl: string) {
+import { datahaven } from "@polkadot-api/descriptors";
+import { Binary } from "@polkadot-api/substrate-bindings";
+import { createClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
+
+export const sendEthTxn = async (privateKey: string, networkRpcUrl: string) => {
   printHeader("Sending Test ETH Transaction");
 
-  const datahaven = defineChain({
+  const localEth = defineChain({
     id: 3151908,
     name: "datahaven",
     nativeCurrency: {
@@ -28,7 +35,7 @@ export default async function main(privateKey: string, networkRpcUrl: string) {
   logger.debug(`Using account: ${signer.address}`);
   const client = createWalletClient({
     account: signer,
-    chain: datahaven,
+    chain: localEth,
     transport: http(networkRpcUrl)
   }).extend(publicActions);
 
@@ -54,4 +61,29 @@ export default async function main(privateKey: string, networkRpcUrl: string) {
 
     printDivider();
   }
-}
+};
+
+export const sendDataHavenTxn = async (privateKey: string, networkRpcUrl: string) => {
+  printHeader("Sending Test DataHaven Transaction");
+
+  const client = createClient(withPolkadotSdkCompat(getWsProvider(networkRpcUrl)));
+  const dhApi = client.getTypedApi(datahaven);
+
+  const signer = getEvmEcdsaSigner(privateKey);
+
+  const remarkBytes = new TextEncoder().encode("Hello, world!");
+  const tx = dhApi.tx.System.remark_with_event({
+    remark: new Binary(remarkBytes)
+  });
+
+  const txFinalisedPayload = await tx.signAndSubmit(signer);
+
+  logger.info(
+    `Transaction with hash ${txFinalisedPayload.txHash} submitted and finalised in block ${txFinalisedPayload.block.hash}`
+  );
+
+  client.destroy();
+  logger.debug("Destroyed client");
+
+  printDivider();
+};

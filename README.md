@@ -18,9 +18,8 @@ datahaven/
 
 This repo publishes images to [DockerHub](https://hub.docker.com/r/moonsonglabs/datahaven).
 
-> 🧙‍♂️ TIP
->
-> If you cannot see this repo you must be added to the permission list for the private repo.
+> [!TIP]  
+> 🧙‍♂️ If you cannot see this repo you must be added to the permission list for the private repo.
 
 To aid with speed it employs the following:
 

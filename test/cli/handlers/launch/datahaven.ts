@@ -84,7 +84,7 @@ export const launchDataHavenSolochain = async (
       "--name",
       containerName,
       ...(id === "alice" ? ["-p", "9944:9944"] : []),
-      `moonsonglabs/datahaven:${options.datahavenImageTag}`,
+      options.datahavenImageTag,
       ...COMMON_LAUNCH_ARGS
     ];
 
@@ -145,19 +145,16 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
 };
 
 const checkTagExists = async (tag: string) => {
-  const cleaned = tag.trim().replaceAll(":", "");
+  const cleaned = tag.trim();
   logger.debug(`Checking if image  ${cleaned} is available locally`);
-  const { exitCode: localExists } = await $`docker image inspect moonsonglabs/datahaven:${cleaned}`
-    .nothrow()
-    .quiet();
+  const { exitCode: localExists } = await $`docker image inspect ${cleaned}`.nothrow().quiet();
 
   if (localExists !== 0) {
-    const result = await $`docker manifest inspect moonsonglabs/datahaven:${cleaned}`
-      .nothrow()
-      .quiet();
+    logger.debug(`Checking if image ${cleaned} is available on docker hub`);
+    const result = await $`docker manifest inspect ${cleaned}`.nothrow().quiet();
     invariant(
       result.exitCode === 0,
-      `❌ Image moonsonglabs/datahaven:${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
+      `❌ Image ${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
     );
   }
 

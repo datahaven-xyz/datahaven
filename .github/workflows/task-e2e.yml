@@ -84,6 +84,7 @@ jobs:
           chmod +x tmp/bin/snowbridge-relay
           docker rm temp
       - run: tmp/bin/snowbridge-relay --help
+      - run: docker pull ${{ inputs.image-tag }}
       - run: bun install
       - run: bun start:e2e:ci --datahaven-image-tag ${{ inputs.image-tag }}
       - run: bun test:e2e

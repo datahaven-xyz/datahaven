@@ -8,11 +8,31 @@ An EVM compatible Substrate chain, powered by StorageHub and secured by EigenLay
 datahaven/
 ├── .github/ # GitHub Actions workflows.
 ├── contracts/ # Implementation of the DataHaven AVS (Autonomous Verifiable Service) smart contracts to interact with EigenLayer.
-├── docker/ # Docker build files.
 ├── operator/ # DataHaven node based on Substrate. The "Operator" in EigenLayer terms.
 ├── test/ # Integration tests for the AVS and Operator.
 ├── resources/ # Miscellaneous resources for the DataHaven project.
 └── README.md
+```
+
+## Docker
+
+This repo publishes images to [DockerHub](https://hub.docker.com/r/moonsonglabs/datahaven).
+
+> [!TIP]  
+>
+> If you cannot see this repo you must be added to the permission list for the private repo.
+
+To aid with speed it employs the following:
+
+- [sccache](https://github.com/mozilla/sccache/tree/main): De-facto caching tool to speed up rust builds.
+- [cargo chef](https://lpalmieri.com/posts/fast-rust-docker-builds/): A method of caching building the dependencies as a docker layer to cut down compilation times.
+- [buildx cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts): Using buildx's new feature to mount an externally restored cache into a container.
+- [cache dance](https://github.com/reproducible-containers/buildkit-cache-dance): Weird workaround (endorsed by docker themselves) to inject caches into containers and return the result back to the CI.
+
+To run a docker image locally (`moonsonglabs/datahaven:local`), from the `/test` folder run:
+
+```sh
+bun build:docker:operator
 ```
 
 ## CI
@@ -22,7 +42,7 @@ Using the [act](https://github.com/nektos/act) binary, you can run GitHub Action
 For example, to run the entire `e2e` workflow:
 
 ```bash
-act -W .github/workflows/e2e.yml -s GITHUB_TOKEN="$(gh auth token)"   
+act -W .github/workflows/e2e.yml -s GITHUB_TOKEN="$(gh auth token)"
 ```
 
 Which results in:

@@ -1,6 +1,5 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import invariant from "tiny-invariant";
 import { getPortFromKurtosis, logger } from "utils";
 import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";

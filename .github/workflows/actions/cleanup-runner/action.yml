@@ -4,27 +4,67 @@ description: "Cleans up the runner environment to free up disk space"
 runs:
   using: "composite"
   steps:
-    - name: Install duf (optional pretty output)
-      run: sudo apt-get update -qq && sudo apt-get install -y -qq duf
+    - name: Show disk space and largest directories before cleanup
       shell: bash
-    - run: duf
-      shell: bash
+      run: |
+        echo "Overall disk space before cleanup (df -h /):"
+        df -h /
+        echo "-------------------------------------------"
+        echo "Top-level directories before cleanup (du -h --max-depth=1 /):"
+        sudo du -h --max-depth=1 --exclude=/proc --exclude=/sys --exclude=/dev / | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/ before cleanup:"
+        sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/local/lib before cleanup:"
+        sudo du -h --max-depth=1 /usr/local/lib | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/lib before cleanup:"
+        sudo du -h --max-depth=1 /usr/lib | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /opt before cleanup:"
+        sudo du -h --max-depth=1 /opt | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /opt/hostedtoolcache before cleanup:"
+        sudo du -h --max-depth=1 /opt/hostedtoolcache | sort -rh | head -n 10
     - name: Free up disk space
       id: prune
       shell: bash
       run: |
-        echo "Space before:" ; df -h /
+        echo "--- Starting Cleanup ---"
         sudo rm -rf \
           /usr/local/lib/android \
           /usr/local/lib/heroku \
           /usr/share/dotnet \
+          /usr/lib/google-cloud-sdk \
+          /usr/lib/jvm \
           /opt/hostedtoolcache/CodeQL \
           /opt/hostedtoolcache/go \
           /opt/hostedtoolcache/Python \
           /opt/hostedtoolcache/Ruby \
           /opt/hostedtoolcache/Java
         sudo apt-get clean
-        echo "Space after:" ; df -h /
-    - run: duf
+        echo "--- Cleanup Finished ---"
+    - name: Show disk space and largest directories after cleanup
       shell: bash
- 
+      run: |
+        echo "Overall disk space after cleanup (df -h /):"
+        df -h /
+        echo "-------------------------------------------"
+        echo "Top-level directories after cleanup (du -h --max-depth=1 /):"
+        sudo du -h --max-depth=1 --exclude=/proc --exclude=/sys --exclude=/dev / | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/ before cleanup:"
+        sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/local/lib after cleanup:"
+        sudo du -h --max-depth=1 /usr/local/lib | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /usr/lib after cleanup:"
+        sudo du -h --max-depth=1 /usr/lib | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /opt after cleanup:"
+        sudo du -h --max-depth=1 /opt | sort -rh | head -n 10
+        echo "-------------------------------------------"
+        echo "Detailed breakdown for /opt/hostedtoolcache after cleanup:"
+        sudo du -h --max-depth=1 /opt/hostedtoolcache | sort -rh | head -n 10

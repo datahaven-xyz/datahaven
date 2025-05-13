@@ -67,7 +67,7 @@ export const launchDataHavenSolochain = async (
 
   invariant(options.datahavenImageTag, "❌ Datahaven binary path not defined");
 
-  checkTagExists(options.datahavenImageTag);
+  await checkTagExists(options.datahavenImageTag);
 
   const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
   logger.debug(`Ensuring logs directory exists: ${logsPath}`);

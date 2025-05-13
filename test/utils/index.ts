@@ -2,7 +2,6 @@ export * from "./blockscout";
 export * from "./constants";
 export * from "./contracts";
 export * from "./docker";
-export * from "./hex";
 export * from "./input";
 export * from "./kurtosis";
 export * from "./logger";

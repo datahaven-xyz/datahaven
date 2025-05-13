@@ -1,5 +1,9 @@
 import { type FixedSizeArray, FixedSizeBinary } from "polkadot-api";
-import { hexToUint8Array } from "./hex";
+
+/**
+ * The type of the response from the `/eth/v1/beacon/states/head/finality_checkpoints`
+ * RPC method from the Beacon Chain.
+ */
 export interface FinalityCheckpointsResponse {
   execution_optimistic: boolean;
   finalized: boolean;
@@ -19,6 +23,13 @@ export interface FinalityCheckpointsResponse {
   };
 }
 
+/**
+ * The type of the argument of the `force_checkpoint` extrinsic from the Ethereum
+ * Beacon Client pallet.
+ *
+ * Represents the structure of the BeaconCheckpoint as it should be after type
+ * coercions (e.g., to BigInt).
+ */
 export interface BeaconCheckpoint {
   header: {
     slot: bigint;
@@ -35,10 +46,13 @@ export interface BeaconCheckpoint {
   validators_root: FixedSizeBinary<32>;
   block_roots_root: FixedSizeBinary<32>;
   block_roots_branch: FixedSizeBinary<32>[];
+  toJSON: () => JsonBeaconCheckpoint;
 }
 
-// Represents the structure of the BeaconCheckpoint as it might be after JSON.parse
-// before specific type coercions (e.g., to BigInt).
+/**
+ * Represents the structure of the BeaconCheckpoint as it might be after JSON.parse
+ * before specific type coercions (e.g., to BigInt).
+ */
 interface RawBeaconCheckpoint {
   header: {
     slot: number | string | bigint; // JSON.parse will yield number or string for big numbers
@@ -57,6 +71,34 @@ interface RawBeaconCheckpoint {
   block_roots_branch: string[]; // Assuming array of hex strings
 }
 
+/**
+ * Represents the structure of a BeaconCheckpoint when serialized to JSON.
+ * BigInts are converted to strings, and FixedSizeBinary types are converted to hex strings.
+ */
+interface JsonBeaconCheckpoint {
+  header: {
+    slot: string;
+    proposer_index: string;
+    parent_root: string;
+    state_root: string;
+    body_root: string;
+  };
+  current_sync_committee: {
+    pubkeys: string[];
+    aggregate_pubkey: string;
+  };
+  current_sync_committee_branch: string[];
+  validators_root: string;
+  block_roots_root: string;
+  block_roots_branch: string[];
+}
+
+/**
+ * Parses a JSON object into a BeaconCheckpoint.
+ *
+ * @param jsonInput - The JSON object to parse.
+ * @returns The parsed BeaconCheckpoint.
+ */
 export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint => {
   const raw = jsonInput as RawBeaconCheckpoint;
 
@@ -76,7 +118,7 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
     pubkeys[i] = new FixedSizeBinary<48>(hexToUint8Array(raw.current_sync_committee.pubkeys[i]));
   }
 
-  return {
+  const checkpointData: Omit<BeaconCheckpoint, "toJSON"> = {
     header: {
       slot: BigInt(raw.header.slot),
       proposer_index: BigInt(raw.header.proposer_index),
@@ -99,6 +141,31 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
       (branch) => new FixedSizeBinary<32>(hexToUint8Array(branch))
     )
   };
+
+  return {
+    ...checkpointData,
+    toJSON: function (this: BeaconCheckpoint): JsonBeaconCheckpoint {
+      return {
+        header: {
+          slot: this.header.slot.toString(),
+          proposer_index: this.header.proposer_index.toString(),
+          parent_root: this.header.parent_root.asHex(),
+          state_root: this.header.state_root.asHex(),
+          body_root: this.header.body_root.asHex()
+        },
+        current_sync_committee: {
+          pubkeys: this.current_sync_committee.pubkeys.map((pk) => pk.asHex()),
+          aggregate_pubkey: this.current_sync_committee.aggregate_pubkey.asHex()
+        },
+        current_sync_committee_branch: this.current_sync_committee_branch.map((branch) =>
+          branch.asHex()
+        ),
+        validators_root: this.validators_root.asHex(),
+        block_roots_root: this.block_roots_root.asHex(),
+        block_roots_branch: this.block_roots_branch.map((branch) => branch.asHex())
+      };
+    }
+  };
 };
 
 /**
@@ -117,4 +184,18 @@ export const asFixedSizeArray = <T, L extends number>(
     throw new Error(`Array length mismatch. Expected ${expectedLength}, got ${arr.length}.`);
   }
   return arr as FixedSizeArray<L, T>;
+};
+
+/**
+ * Converts a hex string to a Uint8Array.
+ *
+ * @param hex - The hex string to convert.
+ * @returns The Uint8Array representation of the hex string.
+ */
+const hexToUint8Array = (hex: string): Uint8Array => {
+  let hexString = hex;
+  if (hexString.startsWith("0x")) {
+    hexString = hexString.slice(2);
+  }
+  return Buffer.from(hexString, "hex");
 };

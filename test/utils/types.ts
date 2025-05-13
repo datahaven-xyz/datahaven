@@ -85,7 +85,7 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
       body_root: new FixedSizeBinary<32>(hexToUint8Array(raw.header.body_root))
     },
     current_sync_committee: {
-      pubkeys: pubkeys as unknown as FixedSizeArray<512, FixedSizeBinary<48>>,
+      pubkeys: asFixedSizeArray(pubkeys, 512),
       aggregate_pubkey: new FixedSizeBinary<48>(
         hexToUint8Array(raw.current_sync_committee.aggregate_pubkey)
       )
@@ -99,4 +99,22 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
       (branch) => new FixedSizeBinary<32>(hexToUint8Array(branch))
     )
   };
+};
+
+/**
+ * Converts an array to a FixedSizeArray of the specified length.
+ * Throws an error if the array length does not match the expected length.
+ *
+ * @param arr - The array to convert.
+ * @param expectedLength - The expected length of the FixedSizeArray.
+ * @returns The array as a FixedSizeArray of the specified length.
+ */
+export const asFixedSizeArray = <T, L extends number>(
+  arr: T[],
+  expectedLength: L
+): FixedSizeArray<L, T> => {
+  if (arr.length !== expectedLength) {
+    throw new Error(`Array length mismatch. Expected ${expectedLength}, got ${arr.length}.`);
+  }
+  return arr as FixedSizeArray<L, T>;
 };

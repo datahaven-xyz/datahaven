@@ -2,7 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import {
+  confirmWithTimeout,
+  logger,
+  printDivider,
+  printHeader,
+  runShellCommandWithLogger,
+  waitForContainerToStart,
+  waitForLog
+} from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
@@ -12,6 +20,8 @@ const COMMON_LAUNCH_ARGS = [
   "--port=0",
   "--validator",
   "--no-prometheus",
+  "--unsafe-rpc-external",
+  "--rpc-cors=all",
   "--force-authoring",
   "--no-telemetry"
 ];
@@ -55,11 +65,9 @@ export const launchDataHavenSolochain = async (
   // Kill any pre-existing datahaven processes if they exist
   await $`pkill datahaven`.nothrow().quiet();
 
-  invariant(options.datahavenBinPath, "❌ Datahaven binary path not defined");
-  invariant(
-    await Bun.file(options.datahavenBinPath).exists(),
-    "❌ Datahaven binary does not exist"
-  );
+  invariant(options.datahavenImageTag, "❌ Datahaven binary path not defined");
+
+  checkTagExists(options.datahavenImageTag);
 
   const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
   logger.debug(`Ensuring logs directory exists: ${logsPath}`);
@@ -67,46 +75,39 @@ export const launchDataHavenSolochain = async (
 
   for (const id of AUTHORITY_IDS) {
     logger.info(`Starting ${id}...`);
+    const containerName = `datahaven-${id}`;
 
-    const command: string[] = [options.datahavenBinPath, ...COMMON_LAUNCH_ARGS, `--${id}`];
-
-    const logFileName = `datahaven-${id}.log`;
-    const logFilePath = path.join(logsPath, logFileName);
-    logger.debug(`Writing logs to ${logFilePath}`);
-
-    const fd = fs.openSync(logFilePath, "a");
-    launchedNetwork.addFileDescriptor(fd);
+    const command: string[] = [
+      "docker",
+      "run",
+      "-d",
+      "--name",
+      containerName,
+      ...(id === "alice" ? ["-p", "9944:9944"] : []),
+      `moonsonglabs/datahaven:${options.datahavenImageTag}`,
+      ...COMMON_LAUNCH_ARGS
+    ];
 
     logger.debug(`Spawning command: ${command.join(" ")}`);
-    const process = Bun.spawn(command, {
-      stdout: fd,
-      stderr: fd
-    });
+    const process = Bun.spawn(command);
 
     process.unref();
 
-    let completed = false;
-    const file = Bun.file(logFilePath);
-    for (let i = 0; i < 60; i++) {
-      const pattern = "Running JSON-RPC server: addr=127.0.0.1:";
-      const blob = await file.text();
-      logger.debug(`Blob: ${blob}`);
-      if (blob.includes(pattern)) {
-        const port = blob.split(pattern)[1].split("\n")[0].replaceAll(",", "");
-        launchedNetwork.addDHNode(id, Number.parseInt(port));
-        logger.debug(`${id} started at port ${port}`);
-        completed = true;
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    invariant(completed, "❌ Could not find 'Running JSON-RPC server:' in logs");
+    launchedNetwork.addContainer(containerName);
+
+    await waitForContainerToStart(containerName);
+    await waitForLog({
+      searchString: "Running JSON-RPC server: addr=0.0.0.0:",
+      containerName,
+      timeoutSeconds: 30,
+      tail: 1
+    });
 
     launchedNetwork.addProcess(process);
     logger.debug(`Started ${id} at ${process.pid}`);
   }
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 30; i++) {
     logger.info("Waiting for datahaven to start...");
 
     if (await isNetworkReady(9944)) {
@@ -117,7 +118,7 @@ export const launchDataHavenSolochain = async (
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  throw new Error("Datahaven network failed to start after 10 seconds");
+  throw new Error("Datahaven network failed to start after 30 seconds");
 };
 
 export const isNetworkReady = async (port: number): Promise<boolean> => {
@@ -141,4 +142,24 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
     logger.debug(`isNodeReady check failed for port ${port}: ${error}`);
     return false;
   }
+};
+
+const checkTagExists = async (tag: string) => {
+  const cleaned = tag.trim().replaceAll(":", "");
+  logger.debug(`Checking if image  ${cleaned} is available locally`);
+  const { exitCode: localExists } = await $`docker image inspect moonsonglabs/datahaven:${cleaned}`
+    .nothrow()
+    .quiet();
+
+  if (localExists !== 0) {
+    const result = await $`docker manifest inspect moonsonglabs/datahaven:${cleaned}`
+      .nothrow()
+      .quiet();
+    invariant(
+      result.exitCode === 0,
+      `❌ Image moonsonglabs/datahaven:${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
+    );
+  }
+
+  logger.success(`Image ${tag} found locally`);
 };

@@ -30,11 +30,7 @@ const program = new Command()
   .option("--always-clean", "Always clean Kurtosis", false)
   .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
   .option("-r, --relayer", "Enable Relayer")
-  .option(
-    "--datahaven-bin-path <value>",
-    "Path to the datahaven binary",
-    "../operator/target/release/datahaven-node"
-  )
+  .option("-i, --datahaven-image-tag <value>", "Tag of the datahaven image to use", "local")
   .option(
     "-p, --relayer-bin-path <value>",
     "Path to the relayer binary",

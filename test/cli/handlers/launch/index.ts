@@ -28,8 +28,8 @@ export interface LaunchOptions {
   relayerBinPath?: string;
   skipCleaning?: boolean;
   alwaysClean?: boolean;
-  datahavenBinPath?: string;
   datahaven?: boolean;
+  datahavenImageTag?: string;
   kurtosisNetworkArgs?: string;
   slotTime?: number;
 }

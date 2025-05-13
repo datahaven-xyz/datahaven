@@ -7,6 +7,7 @@ import {
   type RelayerType,
   SUBSTRATE_FUNDED_ACCOUNTS,
   confirmWithTimeout,
+  getEvmEcdsaSigner,
   getPortFromKurtosis,
   logger,
   parseDeploymentsFile,
@@ -14,8 +15,13 @@ import {
   printDivider,
   printHeader
 } from "utils";
+import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
+import { createClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { datahaven } from "@polkadot-api/descriptors";
 
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -153,6 +159,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     `❌ Relayer binary does not exist at ${options.relayerBinPath}`
   );
 
+  await initEthClientPallet(options, launchedNetwork);
+
   for (const { config, name, type, pk } of relayersToStart) {
     try {
       logger.info(`Starting relayer ${name} ...`);
@@ -202,21 +210,37 @@ export const initEthClientPallet = async (
   await waitBeaconChainReady(launchedNetwork, 2000, 20000);
 
   // Generate the initial checkpoint for the CL client in Substrate
-  const clInitialCheckpoint =
+  const { stdout, stderr, exitCode } =
     await $`${options.relayerBinPath} generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
       .nothrow()
-      .text();
-
-  logger.trace(`CL initial checkpoint: ${clInitialCheckpoint}`);
+      .quiet();
+  if (exitCode !== 0) {
+    logger.error(stderr);
+    throw new Error("Error generating beacon checkpoint");
+  }
+  logger.trace(`Beacon checkpoint stdout: ${stdout}`);
 
   // Load the checkpoint into a JSON object and clean it up
   const initialCheckpointRaw = fs.readFileSync(INITIAL_CHECKPOINT_PATH, "utf-8");
-  const initialCheckpointJson = JSON.parse(initialCheckpointRaw);
+  const initialCheckpointJson = JSON.parse(initialCheckpointRaw) as BeaconCheckpoint;
   fs.unlinkSync(INITIAL_CHECKPOINT_PATH);
 
-  console.log(initialCheckpointJson);
+  logger.trace("Initial checkpoint JSON:");
+  logger.trace(initialCheckpointJson);
+
+  // Send the checkpoint to the Substrate runtime
+  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getDHNodes()[0].port}`;
+  await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpointJson);
 };
 
+/**
+ * Waits for the beacon chain to be ready by polling its finality checkpoints.
+ *
+ * @param launchedNetwork - An instance of LaunchedNetwork to get the CL endpoint.
+ * @param pollIntervalMs - The interval in milliseconds to poll the beacon chain.
+ * @param timeoutMs - The total time in milliseconds to wait before timing out.
+ * @throws Error if the beacon chain is not ready within the timeout.
+ */
 const waitBeaconChainReady = async (
   launchedNetwork: LaunchedNetwork,
   pollIntervalMs: number,
@@ -229,7 +253,7 @@ const waitBeaconChainReady = async (
 
   logger.trace("Waiting for beacon chain to be ready...");
 
-  while (keepPolling && attempts < maxAttempts) {
+  while (keepPolling) {
     try {
       const response = await fetch(
         `${launchedNetwork.getClEndpoint()}/eth/v1/beacon/states/head/finality_checkpoints`
@@ -239,19 +263,24 @@ const waitBeaconChainReady = async (
       }
 
       const data = (await response.json()) as FinalityCheckpointsResponse;
-      logger.trace(`Beacon chain state: ${JSON.stringify(data)}`);
+      logger.debug(`Beacon chain state: ${JSON.stringify(data)}`);
 
       invariant(data.data, "❌ No data returned from beacon chain");
       invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
       invariant(data.data.finalized.root, "❌ No finalised block root returned from beacon chain");
       initialBeaconBlock = data.data.finalized.root;
     } catch (error) {
-      logger.debug(`Failed to fetch beacon chain state: ${error}`);
+      logger.error(`Failed to fetch beacon chain state: ${error}`);
     }
 
     if (initialBeaconBlock === ZERO_HASH) {
       attempts++;
-      logger.debug(`Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
+
+      if (attempts >= maxAttempts) {
+        throw new Error(`Beacon chain is not ready after ${maxAttempts} attempts`);
+      }
+
+      logger.info(`Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     } else {
       keepPolling = false;
@@ -261,24 +290,38 @@ const waitBeaconChainReady = async (
   logger.trace(`Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
 };
 
-/**
- * Type definition for the response from the /eth/v1/beacon/states/head/finality_checkpoints endpoint.
- */
-interface FinalityCheckpointsResponse {
-  execution_optimistic: boolean;
-  finalized: boolean;
-  data: {
-    previous_justified: {
-      epoch: string;
-      root: string;
-    };
-    current_justified: {
-      epoch: string;
-      root: string;
-    };
-    finalized: {
-      epoch: string;
-      root: string;
-    };
-  };
-}
+const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: BeaconCheckpoint) => {
+  logger.trace("Sending checkpoint to Substrate...");
+
+  const client = createClient(withPolkadotSdkCompat(getWsProvider(networkRpcUrl)));
+  const dhApi = client.getTypedApi(datahaven);
+
+  logger.trace("Client created");
+
+  const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
+  logger.trace("Signer created");
+
+  const forceCheckpointCall = dhApi.tx.EthereumBeaconClient.force_checkpoint({
+    update: checkpoint
+  });
+
+  logger.debug("Force checkpoint call:");
+  logger.debug(forceCheckpointCall.decodedCall);
+
+  const tx = dhApi.tx.Sudo.sudo({
+    call: forceCheckpointCall.decodedCall
+  });
+
+  logger.debug("Sudo call:");
+  logger.debug(tx.decodedCall);
+
+  await tx.sign(signer);
+  // const txFinalisedPayload = await tx.signAndSubmit(signer);
+
+  // logger.info(
+  //   `"force_checkpoint" transaction with hash ${txFinalisedPayload.txHash} submitted and finalised in block ${txFinalisedPayload.block.hash}`
+  // );
+
+  client.destroy();
+  logger.debug("Destroyed client");
+};

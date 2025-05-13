@@ -18,6 +18,8 @@ env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
   RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
 
 jobs:
   cargo-fmt:
@@ -64,9 +66,9 @@ jobs:
     steps:
       - name: Check out the repository to the runner
         uses: actions/checkout@v4
+      - uses: uncenter/setup-taplo@v1
+        with:
+          version: "0.8.1"
 
-      - name: Make script executable
-        run: chmod +x scripts/sort-cargo-deps.sh
-
-      - name: Run the script on all Cargo.toml files
-        run: find . -name "Cargo.toml" -print0 | xargs -0 -n1 -I{} bash -c 'scripts/sort-cargo-deps.sh "{}" check' || exit 1
+      - run: taplo fmt --check
+      - run: taplo lint

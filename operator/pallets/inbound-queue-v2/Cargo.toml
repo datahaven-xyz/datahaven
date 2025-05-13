@@ -1,12 +1,12 @@
 [package]
-name = "snowbridge-pallet-inbound-queue-v2"
-description = "Snowbridge Inbound Queue Pallet V2"
-version = "0.2.0"
 authors = ["Snowfork <contact@snowfork.com>"]
-edition.workspace = true
-repository.workspace = true
-license = "Apache-2.0"
 categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Inbound Queue Pallet V2"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-pallet-inbound-queue-v2"
+repository.workspace = true
+version = "0.2.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -53,50 +53,50 @@ sp-keyring = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]
-std = [
-	"alloy-core/std",
-	"bp-relayers/std",
-	"codec/std",
-	"frame-benchmarking/std",
-	"frame-support/std",
-	"frame-system/std",
-	"log/std",
-	"pallet-balances/std",
-	"scale-info/std",
-	"serde",
-	"snowbridge-beacon-primitives/std",
-	"snowbridge-core/std",
-	"snowbridge-inbound-queue-primitives/std",
-	"snowbridge-pallet-inbound-queue-v2-fixtures?/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"tracing/std",
-	"xcm-builder/std",
-	"xcm-executor/std",
-	"xcm/std",
-]
 runtime-benchmarks = [
-	"frame-benchmarking",
-	"frame-benchmarking/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"hex-literal",
-	"pallet-balances/runtime-benchmarks",
-	"snowbridge-core/runtime-benchmarks",
-	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
-	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
-	"snowbridge-pallet-inbound-queue-v2-fixtures/runtime-benchmarks",
-	"snowbridge-test-utils/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
-	"xcm-builder/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
+    "frame-benchmarking",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "hex-literal",
+    "pallet-balances/runtime-benchmarks",
+    "snowbridge-core/runtime-benchmarks",
+    "snowbridge-inbound-queue-primitives/runtime-benchmarks",
+    "snowbridge-pallet-ethereum-client/runtime-benchmarks",
+    "snowbridge-pallet-inbound-queue-v2-fixtures/runtime-benchmarks",
+    "snowbridge-test-utils/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "xcm-builder/runtime-benchmarks",
+    "xcm-executor/runtime-benchmarks",
+]
+std = [
+    "alloy-core/std",
+    "bp-relayers/std",
+    "codec/std",
+    "frame-benchmarking/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-balances/std",
+    "scale-info/std",
+    "serde",
+    "snowbridge-beacon-primitives/std",
+    "snowbridge-core/std",
+    "snowbridge-inbound-queue-primitives/std",
+    "snowbridge-pallet-inbound-queue-v2-fixtures?/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "tracing/std",
+    "xcm-builder/std",
+    "xcm-executor/std",
+    "xcm/std",
 ]
 try-runtime = [
-	"frame-support/try-runtime",
-	"frame-system/try-runtime",
-	"pallet-balances/try-runtime",
-	"snowbridge-pallet-ethereum-client/try-runtime",
-	"sp-runtime/try-runtime",
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-balances/try-runtime",
+    "snowbridge-pallet-ethereum-client/try-runtime",
+    "sp-runtime/try-runtime",
 ]

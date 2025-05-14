@@ -43,7 +43,7 @@ COPY ./operator/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/sccache,sharing=locked \
-    cargo build --locked --release
+    cargo build --locked --release --features fast-runtime
 
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest

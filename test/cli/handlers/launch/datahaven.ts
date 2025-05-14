@@ -17,8 +17,8 @@ import type { LaunchedNetwork } from "./launchedNetwork";
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
   "--tmp",
-  "--port=0",
   "--validator",
+  "--discover-local",
   "--no-prometheus",
   "--unsafe-rpc-external",
   "--rpc-cors=all",
@@ -87,6 +87,7 @@ export const launchDataHavenSolochain = async (
       containerName,
       ...(id === "alice" ? ["-p", "9944:9944"] : []),
       options.datahavenImageTag,
+      `--${id}`,
       ...COMMON_LAUNCH_ARGS
     ];
 

@@ -59,6 +59,11 @@ describe("Datahaven solochain", () => {
 
     const resp = await sendTxn(ext);
     logger.debug(`Transaction submitted: ${resp.txHash}`);
+    const {
+      data: { free: freeBalance }
+    } = await api.query.System.Account.getValue(dest, { at: "best" });
+    logger.debug(`Balance of ${dest} on DH is ${freeBalance}`);
+    expect(freeBalance).toBeGreaterThan(0n);
   });
 
   it("Can listen to events", async () => {

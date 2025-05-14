@@ -1,13 +1,5 @@
 import { ANVIL_FUNDED_ACCOUNTS, CHAIN_ID, getRPCUrl, getWSUrl } from "utils";
-import {
-  http,
-  type PublicActions,
-  type WalletClient,
-  createPublicClient,
-  createWalletClient,
-  defineChain,
-  publicActions
-} from "viem";
+import { http, createWalletClient, defineChain, publicActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 export const createChainConfig = async () =>

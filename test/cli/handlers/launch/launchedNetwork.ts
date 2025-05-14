@@ -67,12 +67,13 @@ export class LaunchedNetwork {
     }
 
     for (const container of this.containers) {
-      try {
-        await $`docker rm -f ${container}`.quiet();
-        logger.debug(`Removed container ${container}`);
-      } catch (error) {
-        logger.error(`Error removing container ${container}: ${error}`);
-      }
+      logger.debug(`Container is still running: ${container}`);
+      // try {
+      //   await $`docker rm -f ${container}`.quiet();
+      //   logger.debug(`Removed container ${container}`);
+      // } catch (error) {
+      //   logger.error(`Error removing container ${container}: ${error}`);
+      // }
     }
   }
 }

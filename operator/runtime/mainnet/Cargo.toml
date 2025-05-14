@@ -39,6 +39,7 @@ pallet-beefy-mmr = { workspace = true }
 pallet-ethereum = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-chain-id = { workspace = true }
+pallet-external-validators = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -56,7 +57,6 @@ pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-utility = { workspace = true }
-pallet-validator-set = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
@@ -122,6 +122,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-external-validators/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
@@ -138,7 +139,6 @@ std = [
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
     "pallet-utility/std",
-    "pallet-validator-set/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "scale-info/std",
@@ -188,6 +188,7 @@ runtime-benchmarks = [
     "pallet-beefy-mmr/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
+    "pallet-external-validators/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
@@ -226,6 +227,7 @@ try-runtime = [
     "pallet-beefy/try-runtime",
     "pallet-ethereum/try-runtime",
     "pallet-evm/try-runtime",
+    "pallet-external-validators/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",

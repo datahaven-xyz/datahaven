@@ -24,8 +24,8 @@ datahaven-runtime-common = { path = "./runtime/common", default-features = false
 datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = false }
 datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
+pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
-pallet-validator-set = { path = "./pallets/validator-set", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }

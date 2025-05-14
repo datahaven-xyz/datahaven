@@ -46,7 +46,8 @@ use sp_version::RuntimeVersion;
 use xcm::VersionedLocation;
 
 pub use datahaven_runtime_common::{
-    AccountId, Address, Balance, BlockNumber, Hash, Header, Nonce, Signature,
+    time::EpochDurationInBlocks, AccountId, Address, Balance, BlockNumber, Hash, Header, Nonce,
+    Signature,
 };
 
 pub mod genesis_config_presets;
@@ -506,7 +507,7 @@ impl_runtime_apis! {
             let epoch_config = Babe::epoch_config().unwrap_or(crate::configs::BABE_GENESIS_EPOCH_CONFIG);
             sp_consensus_babe::BabeConfiguration {
                 slot_duration: Babe::slot_duration(),
-                epoch_length: <configs::runtime_params::dynamic_params::runtime_config::EpochDurationInBlocks as Get<u64>>::get(),
+                epoch_length: EpochDurationInBlocks::get().into(),
                 c: epoch_config.c,
                 authorities: Babe::authorities().to_vec(),
                 randomness: Babe::randomness(),

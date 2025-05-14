@@ -1,13 +1,7 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import { sendDataHavenTxn, sendEthTxn } from "scripts/send-txn";
 import invariant from "tiny-invariant";
-import {
-  ANVIL_FUNDED_ACCOUNTS,
-  SUBSTRATE_FUNDED_ACCOUNTS,
-  getPortFromKurtosis,
-  logger
-} from "utils";
+import { getPortFromKurtosis, logger } from "utils";
 import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
@@ -30,7 +24,6 @@ export interface LaunchOptions {
   alwaysClean?: boolean;
   datahavenBinPath?: string;
   datahaven?: boolean;
-  fastRuntime?: boolean;
   kurtosisNetworkArgs?: string;
   slotTime?: number;
 }

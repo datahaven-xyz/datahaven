@@ -7,14 +7,7 @@ import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-import {
-  confirmWithTimeout,
-  logger,
-  printDivider,
-  printHeader,
-  SUBSTRATE_FUNDED_ACCOUNTS,
-  getEvmEcdsaSigner
-} from "utils";
+import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
@@ -267,26 +260,6 @@ export const launchDataHavenSolochain = async (
       logger.info("Proceeding with DataHaven validator configuration setup...");
       await setupDatahavenValidatorConfig(options, launchedNetwork);
 
-      // Prompt for fast runtime after validator config is set up
-      let enableFastRuntime = options.fastRuntime;
-      if (enableFastRuntime === undefined) {
-        enableFastRuntime = await confirmWithTimeout(
-          "Do you want to enable the fast runtime parameters (sends a test remark transaction for now)?",
-          false, // Default to false
-          10
-        );
-      } else {
-        logger.info(
-          `Using flag option: ${enableFastRuntime ? "will enable" : "will not enable"} fast runtime parameters`
-        );
-      }
-
-      // If fastRuntime is enabled, set the parameters
-      if (enableFastRuntime) {
-        logger.info("🚀 Fast runtime enabled. Setting runtime parameters (via test remark)...");
-        await setFastRuntimeParameters(options, launchedNetwork);
-      }
-
       printDivider();
       return;
     }
@@ -296,115 +269,6 @@ export const launchDataHavenSolochain = async (
 
   throw new Error("Datahaven network failed to start after 10 seconds");
 };
-
-/**
- * Sets fast runtime parameters via Sudo.
- * This is a placeholder and will need actual parameter names and values.
- */
-async function setFastRuntimeParameters(
-  options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork
-): Promise<void> {
-  logger.debug("🔧 Setting fast runtime parameters (sending test remark with Alith)...");
-  const dhNodes = launchedNetwork.getDHNodes();
-  if (dhNodes.length === 0) {
-    logger.warn("⚠️ No DataHaven nodes found. Cannot set fast runtime parameters.");
-    return;
-  }
-
-  const firstNode = dhNodes[0];
-  const wsUrl = `ws://127.0.0.1:${firstNode.port}`;
-  let papiClient: PolkadotClient | undefined;
-
-  try {
-    logger.debug(
-      `📡 Connecting to DataHaven node ${firstNode.id} (port ${firstNode.port}) for setting runtime parameters...`
-    );
-    papiClient = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-    const dhApi = papiClient.getTypedApi(datahaven);
-
-    // Get Alith public and private keys, since Alith account is the sudo account
-    const sudoAccount = SUBSTRATE_FUNDED_ACCOUNTS.ALITH;
-    invariant(sudoAccount, "Sudo (ALITH) account not found in SUBSTRATE_FUNDED_ACCOUNTS");
-    invariant(sudoAccount.privateKey, "Sudo (ALITH) private key not found");
-
-    logger.debug(`Using Sudo (ALITH) account: ${sudoAccount.publicKey} for tx.`);
-    const signer = getEvmEcdsaSigner(sudoAccount.privateKey);
-
-    /* #[codec(index = 1)]
-        #[allow(non_upper_case_globals)]
-        /// Set the epoch duration in blocks.
-        /// This is a parameter since it allows us to set it to a lower value when testing, or the
-        /// default value when on mainnet.
-        pub static EpochDurationInBlocks: BlockNumber = ONE_HOUR;
-
-        #[codec(index = 2)]
-        #[allow(non_upper_case_globals)]
-        /// Set the bonding duration in amount of eras.
-        /// This is a parameter since it allows us to set it to a lower value when testing, or the
-        /// default value when on mainnet.
-        pub static BondingDuration: EraIndex = 28;
-
-        #[codec(index = 3)]
-        #[allow(non_upper_case_globals)]
-        /// Set the number of sessions per era.
-        /// This is a parameter since it allows us to set it to a lower value when testing, or the
-        /// default value when on mainnet.
-        pub static SessionsPerEra: SessionIndex = 6;
-
-        #[codec(index = 4)]
-        #[allow(non_upper_case_globals)]
-        /// Set the longevity of BABE equivocation report system.
-        pub static ReportLongevity: u64 = BondingDuration::get() as u64
-            * SessionsPerEra::get() as u64
-            * (<EpochDurationInBlocks as Get<BlockNumber>>::get() as u64);
-
-        #[codec(index = 5)]
-        #[allow(non_upper_case_globals)]
-        /// Set the equivocation report period in blocks.
-        pub static EquivocationReportPeriodInBlocks: u64 = EquivocationReportPeriodInEpochs::get()
-            * (<EpochDurationInBlocks as Get<BlockNumber>>::get() as u64);
-
-        #[codec(index = 6)]
-        #[allow(non_upper_case_globals)]
-        /// Set the maximum number of session entries for a set ID.
-        pub static MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
-
-        #[codec(index = 7)]
-        #[allow(non_upper_case_globals)]
-        /// Set the maximum number of entries to keep in the set id to session index mapping for BEEFY.
-        pub static BeefySetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get(); */
-
-    const epochDurationInBlocksCall = dhApi.tx.Parameters.set_parameter({
-      key_value: {
-        type: "RuntimeConfig",
-        value: {
-          type: "EpochDurationInBlocks",
-          value: [10]
-        }
-      }
-    }).decodedCall;
-    const tx = dhApi.tx.Sudo.sudo({
-      call: epochDurationInBlocksCall
-    });
-
-    logger.debug("Sending tx to update epoch duration in blocks to 10 (one minute epochs)");
-    const txFinalisedPayload = await tx.signAndSubmit(signer);
-
-    logger.debug(
-      `Tx submitted by Alith and finalised in block ${txFinalisedPayload.block.hash} (tx: ${txFinalisedPayload.txHash})`
-    );
-
-    await papiClient.destroy();
-    logger.success("Fast runtime parameter setting (tx) completed.");
-  } catch (error) {
-    logger.error(`❌ Error during test remark transaction on node ${firstNode.id}: ${error}`);
-    if (papiClient) {
-      await papiClient.destroy();
-    }
-    throw new Error("Failed to send test remark for fast runtime check.");
-  }
-}
 
 export const isNetworkReady = async (port: number): Promise<boolean> => {
   const wsUrl = `ws://127.0.0.1:${port}`;

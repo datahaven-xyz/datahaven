@@ -15,7 +15,6 @@ function parseIntValue(value: string): number {
 // we can expand this to more commands in the future
 const program = new Command()
   .option("--datahaven", "Enable Datahaven network to be launched")
-  .option("--fast-runtime", "Build Substrate runtime in fast mode")
   .option("-l, --launch-kurtosis", "Launch Kurtosis")
   .option("-d, --deploy-contracts", "Deploy smart contracts")
   .option("-f, --fund-validators", "Fund validators")

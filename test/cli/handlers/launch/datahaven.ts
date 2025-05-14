@@ -1,15 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ApiPromise, WsProvider } from "@polkadot/api";
-import type { Option } from "@polkadot/types";
-import type { ValidatorSet } from "@polkadot/types/interfaces/beefy";
-import type { AuthorityId } from "@polkadot/types/interfaces/consensus";
+import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
 import { ethers } from "ethers";
+import { type PolkadotClient, createClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
+
+// PAPI imports
 
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
@@ -66,22 +68,23 @@ export async function setupDatahavenValidatorConfig(
     authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
   } else {
     const firstNode = dhNodes[0];
-    const provider = new WsProvider(`ws://127.0.0.1:${firstNode.port}`);
+    const wsUrl = `ws://127.0.0.1:${firstNode.port}`;
+    let papiClient: PolkadotClient | undefined;
     try {
       logger.info(
         `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.id} (port ${firstNode.port})...`
       );
-      const api = await ApiPromise.create({ provider, noInitWarn: true });
-      await api.isReady;
+      papiClient = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
+      const dhApi = papiClient.getTypedApi(datahaven);
 
-      // Read NextAuthorities directly from storage, which contains the next authority set
-      const nextAuthorities: AuthorityId[] =
-        (await api.query.beefy.nextAuthorities()) as unknown as AuthorityId[];
+      // Fetch NextAuthorities
+      // Beefy.NextAuthorities returns a fixed-length array of bytes representing the authority public keys
+      const nextAuthoritiesRaw = await dhApi.query.Beefy.NextAuthorities.getValue({ at: "best" });
 
-      if (nextAuthorities && nextAuthorities.length > 0) {
-        authorityPublicKeys = nextAuthorities.map((v: AuthorityId) => v.toHex());
+      if (nextAuthoritiesRaw && nextAuthoritiesRaw.length > 0) {
+        authorityPublicKeys = nextAuthoritiesRaw.map((key) => key.asHex()); // .asHex() returns the hex string representation of the corresponding key
         logger.success(
-          `Successfully fetched ${authorityPublicKeys.length} BEEFY next authorities directly from storage.`
+          `Successfully fetched ${authorityPublicKeys.length} BEEFY next authorities directly.`
         );
       } else {
         logger.warn(
@@ -89,14 +92,14 @@ export async function setupDatahavenValidatorConfig(
         );
         authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
       }
-      await api.disconnect();
+      await papiClient.destroy();
     } catch (error) {
       logger.error(
         `❌ Error fetching BEEFY next authorities from node ${firstNode.id}: ${error}. Falling back to hardcoded authority set.`
       );
       authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
-      if (provider.isConnected) {
-        await provider.disconnect(); // Ensure provider is disconnected even on error
+      if (papiClient) {
+        await papiClient.destroy(); // Ensure client is destroyed even on error
       }
     }
   }
@@ -270,24 +273,20 @@ export const launchDataHavenSolochain = async (
 };
 
 export const isNetworkReady = async (port: number): Promise<boolean> => {
+  const wsUrl = `ws://127.0.0.1:${port}`;
+  let client: PolkadotClient | undefined;
   try {
-    const response = await fetch(`http://localhost:${port}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "system_chain",
-        params: []
-      })
-    });
-    logger.debug(`isNodeReady check response: ${response.status}`);
-    logger.trace(await response.json());
-    return response.ok;
+    // Use withPolkadotSdkCompat for consistency, though _request might not strictly need it.
+    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
+    const chainName = await client._request<string>("system_chain", []);
+    logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
+    await client.destroy();
+    return !!chainName; // Ensure it's a boolean and chainName is truthy
   } catch (error) {
-    logger.debug(`isNodeReady check failed for port ${port}: ${error}`);
+    logger.debug(`isNetworkReady PAPI check failed for port ${port}: ${error}`);
+    if (client) {
+      await client.destroy();
+    }
     return false;
   }
 };

@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ApiPromise, WsProvider } from "@polkadot/api";
 import { $ } from "bun";
+import { type PolkadotClient, createClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
@@ -18,25 +20,22 @@ import {
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
+const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
 export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Promise<boolean> => {
-  const provider = new WsProvider(`ws://127.0.0.1:${port}`);
+  const wsUrl = `ws://127.0.0.1:${port}`;
+  let client: PolkadotClient | undefined;
   try {
-    const api = await ApiPromise.create({ provider, noInitWarn: true });
-    await api.isReady;
+    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
 
     for (let i = 0; i < retries; i++) {
       try {
         logger.debug(`Attempt ${i + 1}/${retries} to check beefy_getFinalizedHead on port ${port}`);
-        const finalizedHead = await api.rpc.beefy.getFinalizedHead();
-        if (
-          finalizedHead &&
-          finalizedHead.toHex() !==
-            "0x0000000000000000000000000000000000000000000000000000000000000000"
-        ) {
-          logger.success(
-            `🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHead.toHex()}`
-          );
-          await api.disconnect();
+        // beefy_getFinalizedHead returns a hex string
+        const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
+        if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
+          logger.success(`🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHeadHex}`);
+          await client.destroy();
           return true;
         }
         logger.debug(
@@ -49,14 +48,14 @@ export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Pr
     }
 
     logger.error(`❌ BEEFY failed to become ready on port ${port} after ${retries} attempts.`);
-    await api.disconnect();
+    if (client) await client.destroy(); // Destroy after loop if not returned true
     return false;
   } catch (error) {
     logger.error(
       `❌ Failed to connect to DataHaven node on port ${port} for BEEFY check: ${error}`
     );
-    if (provider.isConnected) {
-      await provider.disconnect();
+    if (client) {
+      await client.destroy(); // Ensure client is destroyed on outer catch too
     }
     return false;
   }

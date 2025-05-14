@@ -54,6 +54,7 @@ export class LaunchedNetwork {
   async cleanup() {
     for (const process of this.processes) {
       logger.debug(`Process is still running: ${process.pid}`);
+      process.unref();
     }
 
     for (const fd of this.fileDescriptors) {

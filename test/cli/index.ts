@@ -30,6 +30,7 @@ const program = new Command()
   .option("--always-clean", "Always clean Kurtosis", false)
   .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
   .option("-r, --relayer", "Enable Relayer")
+  .option("--no-relayer", "Disable Relayer")
   .option(
     "-i, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
@@ -45,7 +46,7 @@ const program = new Command()
 
 // =====  Program  =====
 program
-  .version("0.1.0")
+  .version("0.2.0")
   .name("bun cli")
   .summary("🫎  Datahaven: Network Launcher CLI")
   .usage("[options]")

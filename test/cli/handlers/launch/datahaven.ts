@@ -65,7 +65,7 @@ export const launchDataHavenSolochain = async (
   // Kill any pre-existing datahaven processes if they exist
   await $`pkill datahaven`.nothrow().quiet();
 
-  invariant(options.datahavenImageTag, "❌ Datahaven binary path not defined");
+  invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
 
   await checkTagExists(options.datahavenImageTag);
 
@@ -81,6 +81,8 @@ export const launchDataHavenSolochain = async (
       "docker",
       "run",
       "-d",
+      "--platform",
+      "linux/amd64",
       "--name",
       containerName,
       ...(id === "alice" ? ["-p", "9944:9944"] : []),

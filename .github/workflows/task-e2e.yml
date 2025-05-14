@@ -87,4 +87,8 @@ jobs:
       - run: docker pull ${{ inputs.image-tag }}
       - run: bun install
       - run: bun start:e2e:ci --datahaven-image-tag ${{ inputs.image-tag }}
+      - name: Check network
+        run: |
+          kurtosis enclave inspect datahaven-ethereum
+          docker container ls
       - run: bun test:e2e

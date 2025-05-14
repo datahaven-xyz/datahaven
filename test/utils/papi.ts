@@ -68,7 +68,7 @@ export const sendTxn = async <P extends {}, R extends string, Q extends string, 
       next: (event) => {
         logger.debug(`Txn ${event.txHash} event: ${event.type}`);
         if (event.type === "txBestBlocksState") {
-          console.log("The tx is now in a best block, check it out:");
+          logger.trace("Txn included, returning...");
           resolve(event);
         }
       },

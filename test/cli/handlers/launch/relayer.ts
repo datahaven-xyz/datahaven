@@ -207,8 +207,8 @@ export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
-  // Poll the beacon chain until it's ready every 6 seconds for 60 seconds
-  await waitBeaconChainReady(launchedNetwork, 6000, 60000);
+  // Poll the beacon chain until it's ready every 6 seconds for 120 seconds
+  await waitBeaconChainReady(launchedNetwork, 6000, 120000);
 
   // Generate the initial checkpoint for the CL client in Substrate
   const { stdout, stderr, exitCode } =

@@ -3,6 +3,7 @@ use sp_inherents::InherentData;
 use sp_runtime::{generic::Digest, traits::Block as BlockT, DigestItem};
 
 /// Implement pending consensus data provider for BABE.
+#[derive(Default)]
 pub struct BabeConsensusDataProvider {}
 
 impl BabeConsensusDataProvider {

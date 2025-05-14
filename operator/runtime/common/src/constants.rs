@@ -1,6 +1,6 @@
 /// Time and blocks.
 pub mod time {
-    use polkadot_primitives::{BlockNumber, Moment};
+    use polkadot_primitives::{BlockNumber, Moment, SessionIndex};
     use polkadot_runtime_common::prod_or_fast;
 
     pub const MILLISECS_PER_BLOCK: Moment = 6000;
@@ -11,6 +11,7 @@ pub mod time {
 
     frame_support::parameter_types! {
         pub const EpochDurationInBlocks: BlockNumber = prod_or_fast!(ONE_HOUR, ONE_MINUTE);
+        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 3);
     }
 
     // These time units are defined in number of blocks.

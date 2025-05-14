@@ -2345,6 +2345,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
+ "pallet-external-validators",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2362,7 +2363,6 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-validator-set",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -2524,6 +2524,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
+ "pallet-external-validators",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2541,7 +2542,6 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-validator-set",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -2612,6 +2612,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
+ "pallet-external-validators",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2629,7 +2630,6 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
- "pallet-validator-set",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -2811,7 +2811,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "pallet-validator-set",
+ "pallet-external-validators",
  "parity-scale-codec",
  "snowbridge-core 0.2.0",
  "snowbridge-inbound-queue-primitives",
@@ -7615,6 +7615,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-external-validators"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "log",
+ "pallet-balances",
+ "pallet-session",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rand 0.8.5",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-fast-unstake"
 version = "38.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#85c4d688c2b24fe5907887ef9f5984a7148eb0b8"
@@ -7975,23 +7997,6 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-validator-set"
-version = "1.0.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-session",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-staking",
 ]
 
 [[package]]

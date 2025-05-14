@@ -9,8 +9,9 @@ contract DeployParams is Script, Config {
     function getSnowbridgeConfig() public view returns (SnowbridgeConfig memory) {
         SnowbridgeConfig memory config;
 
-        string memory network = vm.envOr("NETWORK", string("anvil"));
-        string memory configPath = string.concat(vm.projectRoot(), "/config/", network, ".json");
+        string memory configPath = string.concat(
+            vm.projectRoot(), "/config/", vm.envOr("NETWORK", string("anvil")), ".json"
+        );
         string memory configJson = vm.readFile(configPath);
 
         config.randaoCommitDelay = vm.parseJsonUint(configJson, ".snowbridge.randaoCommitDelay");

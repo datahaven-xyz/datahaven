@@ -156,104 +156,6 @@ export async function setupDatahavenValidatorConfig(
   }
 }
 
-/**
- * Checks if the binary needs to be rebuilt based on:
- * 1. If the binary doesn't exist
- * 2. If there are changes in the operator folder compared to the main branch
- * 3. If there are uncommitted changes in the operator folder
- */
-const shouldRebuildBinary = async (binaryPath: string): Promise<boolean> => {
-  // Check if binary exists
-  if (!(await Bun.file(binaryPath).exists())) {
-    logger.info("📦 Binary doesn't exist, build required");
-    return true;
-  }
-
-  try {
-    // Check for uncommitted changes in the operator folder
-    logger.debug(`Checking for uncommitted changes in 'operator/' directory...`);
-
-    const gitStatusProcess = await $`git status --porcelain`.nothrow().quiet();
-    if (gitStatusProcess.exitCode !== 0) {
-      logger.warn(
-        `⚠️ 'git status --porcelain' failed. Exit code: ${gitStatusProcess.exitCode}. Stderr: ${gitStatusProcess.stderr.toString().trim()}. Will rebuild to be safe.`
-      );
-      return true;
-    }
-
-    const gitStatusOutput = gitStatusProcess.stdout.toString();
-    logger.debug(`Raw 'git status --porcelain' output:\n---\n${gitStatusOutput}\n---`);
-
-    if (gitStatusOutput.includes("operator/")) {
-      logger.info(`🔄 Found uncommitted changes related to 'operator/', rebuild required.`);
-      const matchingLines = gitStatusOutput
-        .split("\n")
-        .filter((line) => line.includes("operator/"))
-        .join("\n");
-      logger.debug(`Matching lines for 'operator/':\n${matchingLines}`);
-      return true;
-    }
-    logger.debug("✅ No uncommitted changes found for 'operator/'.");
-
-    // Get the current branch name
-    logger.debug(`Checking for changes in 'operator/' directory compared to default branch...`);
-    const currentBranchProcess = await $`git rev-parse --abbrev-ref HEAD`.quiet();
-
-    if (currentBranchProcess.exitCode !== 0) {
-      logger.warn(
-        `⚠️ Failed to get current branch name. Stderr: ${currentBranchProcess.stderr.toString().trim()}. Will rebuild to be safe.`
-      );
-      return true;
-    }
-    const currentBranch = currentBranchProcess.stdout.toString().trim();
-
-    if (currentBranch === "main") {
-      logger.debug(
-        `✅ Currently on default branch ('${currentBranch}'), no diff to check for 'operator/' changes.`
-      );
-    } else {
-      logger.debug(`Attempting to diff 'operator/' in main..${currentBranch}`);
-
-      const diffOutputProcess = await $`git diff --name-only main..${currentBranch} -- operator/`
-        .nothrow()
-        .quiet();
-      if (diffOutputProcess.exitCode !== 0 && diffOutputProcess.exitCode !== 1) {
-        // git diff exits 1 if no differences
-        logger.warn(
-          `⚠️ 'git diff --name-only main..${currentBranch} -- operator/' failed. Exit code: ${diffOutputProcess.exitCode}. Stderr: ${diffOutputProcess.stderr.toString().trim()}. Will rebuild to be safe.`
-        );
-        return true;
-      }
-      const diffOutput = diffOutputProcess.stdout.toString();
-      logger.debug(
-        `Raw 'git diff --name-only main..${currentBranch} -- operator/' output:\n---\n${diffOutput}\n---`
-      );
-
-      if (diffOutput.includes("operator/")) {
-        logger.info(
-          `🔄 Found changes related to 'operator/' (comparing main..${currentBranch}), rebuild required.`
-        );
-        logger.debug(`Diff output for 'operator/':\n${diffOutput.trim()}`);
-        return true;
-      }
-      logger.debug(
-        `✅ No changes found in 'operator/' folder when comparing main..${currentBranch}.`
-      );
-    }
-
-    logger.info(
-      `✅ No relevant uncommitted changes or diffs detected for 'operator/'. Skipping build.`
-    );
-    return false;
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.warn(
-      `⚠️ Error during Git checks for 'operator/': ${errorMessage}. Will rebuild to be safe.`
-    );
-    return true;
-  }
-};
-
 // TODO: This is very rough and will need something more substantial when we know what we want!
 /**
  * Launches a DataHaven solochain network for testing.
@@ -290,33 +192,6 @@ export const launchDataHavenSolochain = async (
   await $`pkill datahaven`.nothrow().quiet();
 
   invariant(options.datahavenBinPath, "❌ Datahaven binary path not defined");
-
-  // Check if we need to rebuild
-  const needsRebuild = await shouldRebuildBinary(options.datahavenBinPath);
-
-  // Build the Datahaven binary with the appropriate options if needed
-  if (needsRebuild) {
-    const buildCommand = ["cargo", "build", "--release"];
-    if (options.fastRuntime) {
-      buildCommand.push("--features", "fast-runtime");
-      logger.info("🚀 Building Datahaven binary with fast runtime enabled");
-    } else {
-      logger.info("🏗️ Building Datahaven binary in normal mode");
-    }
-
-    logger.debug(`Running build command: ${buildCommand.join(" ")}`);
-    try {
-      await $`cd ../operator && ${buildCommand}`.quiet();
-      logger.success("Datahaven binary built successfully");
-    } catch (error) {
-      logger.error(`Failed to build Datahaven binary: ${error}`);
-      throw new Error("Failed to build Datahaven binary");
-    }
-  } else if (options.fastRuntime) {
-    logger.info("Using existing Datahaven binary with fast runtime");
-  } else {
-    logger.info("Using existing Datahaven binary in normal mode");
-  }
 
   invariant(
     await Bun.file(options.datahavenBinPath).exists(),

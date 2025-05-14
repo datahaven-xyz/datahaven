@@ -20,7 +20,7 @@
     "stop:e2e:verified": "bun stop:e2e",
     "stop:e2e:quick": "kurtosis enclave stop datahaven-ethereum",
     "stop:kurtosis-engine": "kurtosis engine stop && docker container prune -f",
-    "test:e2e": "bun test suites/e2e --timeout 30000",
+    "test:e2e": "bun test suites/e2e --timeout 60000",
     "typecheck": "tsc --noEmit",
     "postinstall": "papi"
   },

@@ -6,8 +6,8 @@ pub mod time {
     pub const MILLISECS_PER_BLOCK: Moment = 6000;
     pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 
-    const ONE_HOUR: BlockNumber = HOURS;
-    const ONE_MINUTE: BlockNumber = MINUTES;
+    pub const ONE_HOUR: BlockNumber = HOURS;
+    pub const ONE_MINUTE: BlockNumber = MINUTES;
 
     frame_support::parameter_types! {
         pub const EpochDurationInBlocks: BlockNumber = prod_or_fast!(ONE_HOUR, ONE_MINUTE);

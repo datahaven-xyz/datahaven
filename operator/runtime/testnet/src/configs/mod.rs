@@ -36,7 +36,7 @@ use super::{
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
-    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
+    time::{DAYS, MILLISECS_PER_BLOCK, MINUTES},
 };
 use dhp_bridge::EigenLayerMessageProcessor;
 use frame_support::{
@@ -90,7 +90,6 @@ use sp_runtime::{
     traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill,
 };
-use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
     convert::{From, Into},
     prelude::*,
@@ -123,8 +122,6 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
-    pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -187,12 +184,10 @@ pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
 
 parameter_types! {
     pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
-    pub ReportLongevity: u64 =
-        BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * (EpochDurationInBlocks::get() as u64);
 }
 
 impl pallet_babe::Config for Runtime {
-    type EpochDuration = EpochDurationInBlocks;
+    type EpochDuration = runtime_params::dynamic_params::runtime_config::EpochDurationInBlocks;
     type ExpectedBlockTime = ExpectedBlockTime;
     type EpochChangeTrigger = pallet_babe::ExternalTrigger;
     type DisabledValidators = Session;
@@ -203,8 +198,12 @@ impl pallet_babe::Config for Runtime {
     type KeyOwnerProof =
         <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
 
-    type EquivocationReportSystem =
-        pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_babe::EquivocationReportSystem<
+        Self,
+        Offences,
+        Historical,
+        runtime_params::dynamic_params::runtime_config::ReportLongevity,
+    >;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -292,9 +291,6 @@ impl pallet_im_online::Config for Runtime {
 
 parameter_types! {
     pub const EquivocationReportPeriodInEpochs: u64 = 168;
-    pub const EquivocationReportPeriodInBlocks: u64 =
-        EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
-        pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -303,14 +299,15 @@ impl pallet_grandpa::Config for Runtime {
     type WeightInfo = ();
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
-    type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
+    type MaxSetIdSessionEntries =
+        runtime_params::dynamic_params::runtime_config::MaxSetIdSessionEntries;
 
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
         Self,
         Offences,
         Historical,
-        EquivocationReportPeriodInBlocks,
+        runtime_params::dynamic_params::runtime_config::EquivocationReportPeriodInBlocks,
     >;
 }
 
@@ -328,15 +325,12 @@ impl pallet_transaction_payment::Config for Runtime {
     type WeightInfo = ();
 }
 
-parameter_types! {
-    pub const BeefySetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
-}
-
 impl pallet_beefy::Config for Runtime {
     type BeefyId = BeefyId;
     type MaxAuthorities = ConstU32<32>;
     type MaxNominators = ConstU32<0>;
-    type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
+    type MaxSetIdSessionEntries =
+        runtime_params::dynamic_params::runtime_config::BeefySetIdSessionEntries;
     type OnNewValidatorSet = BeefyMmrLeaf;
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();

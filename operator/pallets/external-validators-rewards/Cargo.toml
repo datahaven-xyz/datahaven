@@ -1,0 +1,97 @@
+[package]
+name = "pallet-external-validators-rewards"
+authors = { workspace = true }
+description = "Simple pallet to store external validators rewards."
+edition = "2021"
+license = "GPL-3.0-only"
+version = "0.1.0"
+
+[package.metadata.docs.rs]
+targets = [ "x86_64-unknown-linux-gnu" ]
+
+[lints]
+workspace = true
+
+[dependencies]
+log = { workspace = true }
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true, features = [ "derive" ] }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-staking = { workspace = true }
+sp-std = { workspace = true }
+tp-bridge = { workspace = true }
+tp-traits = { workspace = true }
+
+frame-benchmarking = { workspace = true }
+
+pallet-balances = { workspace = true, optional = true }
+pallet-session = { workspace = true, features = [ "historical" ] }
+runtime-parachains = { workspace = true }
+
+snowbridge-core = { workspace = true }
+snowbridge-merkle-tree = { workspace = true }
+
+cumulus-primitives-core = { workspace = true }
+polkadot-primitives = { workspace = true }
+
+xcm = { workspace = true }
+
+[dev-dependencies]
+pallet-timestamp = { workspace = true }
+sp-io = { workspace = true }
+
+[features]
+default = [ "std" ]
+std = [
+	"cumulus-primitives-core/std",
+	"frame-benchmarking/std",
+	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"pallet-balances/std",
+	"pallet-session/std",
+	"pallet-timestamp/std",
+	"parity-scale-codec/std",
+	"polkadot-primitives/std",
+	"runtime-parachains/std",
+	"scale-info/std",
+	"snowbridge-core/std",
+	"snowbridge-merkle-tree/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-staking/std",
+	"sp-std/std",
+	"tp-bridge/std",
+	"tp-traits/std",
+	"xcm/std",
+]
+runtime-benchmarks = [
+	"cumulus-primitives-core/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-balances/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
+	"runtime-parachains/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
+	"tp-bridge/runtime-benchmarks",
+	"tp-traits/runtime-benchmarks",
+]
+
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-balances?/try-runtime",
+	"pallet-session/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"runtime-parachains/try-runtime",
+	"sp-runtime/try-runtime",
+]

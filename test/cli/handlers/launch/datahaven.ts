@@ -27,7 +27,6 @@ const COMMON_LAUNCH_ARGS = [
 // <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
 const AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
 
-// TODO: This is very rough and will need something more substantial when we know what we want!
 /**
  * Launches a DataHaven solochain network for testing.
  *
@@ -58,9 +57,6 @@ export const launchDataHavenSolochain = async (
     printDivider();
     return;
   }
-
-  // Kill any pre-existing datahaven processes if they exist
-  await $`pkill datahaven`.nothrow().quiet();
 
   invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
 

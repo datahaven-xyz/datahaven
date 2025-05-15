@@ -27,16 +27,16 @@ mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Session, SessionKeys, Signature, System, Timestamp, ValidatorSet, EXISTENTIAL_DEPOSIT,
+    EthereumBeaconClient, EvmChainId, ExternalValidators, Hash, Historical, ImOnline, MessageQueue,
+    Nonce, Offences, OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
+    RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT,
     SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
-    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK, MINUTES},
+    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::EigenLayerMessageProcessor;
 use frame_support::{
@@ -87,7 +87,9 @@ use sp_consensus_beefy::{
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
-    traits::{ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto},
+    traits::{
+        Convert, ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto,
+    },
     FixedPointNumber, Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
@@ -242,12 +244,19 @@ impl pallet_authorship::Config for Runtime {
 impl pallet_offences::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
-    type OnOffenceHandler = ValidatorSet;
+    // TODO set to External Validators Slashs Pallet once it's added to the runtime
+    type OnOffenceHandler = ();
 }
 
+pub struct FullIdentificationOf;
+impl Convert<AccountId, Option<()>> for FullIdentificationOf {
+    fn convert(_: AccountId) -> Option<()> {
+        Some(())
+    }
+}
 impl pallet_session::historical::Config for Runtime {
-    type FullIdentification = Self::ValidatorId;
-    type FullIdentificationOf = Self::ValidatorIdOf;
+    type FullIdentification = ();
+    type FullIdentificationOf = FullIdentificationOf;
 }
 
 impl pallet_session::Config for Runtime {
@@ -256,22 +265,10 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ValidatorSet>;
+    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
-    pub const SetKeysCooldownBlocks: BlockNumber = 5 * MINUTES;
-}
-
-impl pallet_validator_set::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type AddRemoveOrigin = EnsureRoot<AccountId>;
-    type MaxAuthorities = MaxAuthorities;
-    type SetKeysCooldownBlocks = SetKeysCooldownBlocks;
-    type WeightInfo = pallet_validator_set::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -874,4 +871,28 @@ pub mod benchmark_helpers {
 
 impl pallet_outbound_commitment_store::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+}
+
+parameter_types! {
+    pub const MaxWhitelistedValidators: u32 = 100;
+    pub const MaxExternalValidators: u32 = 100;
+}
+
+impl pallet_external_validators::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type HistoryDepth = ConstU32<84>;
+    type MaxWhitelistedValidators = MaxWhitelistedValidators;
+    type MaxExternalValidators = MaxExternalValidators;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type ValidatorRegistration = Session;
+    type UnixTime = Timestamp;
+    type SessionsPerEra = SessionsPerEra;
+    // TODO: Implement OnEraStart and OnEraEnd when ExternalValidatorsRewards is added
+    type OnEraStart = ();
+    type OnEraEnd = ();
+    type WeightInfo = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Currency = Balances;
 }

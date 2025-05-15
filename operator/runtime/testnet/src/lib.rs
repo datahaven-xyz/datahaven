@@ -252,9 +252,9 @@ mod runtime {
     #[runtime::pallet_index(6)]
     pub type Historical = pallet_session::historical;
 
-    // Validator set must be before Session.
+    // External Validators must be before Session.
     #[runtime::pallet_index(7)]
-    pub type ValidatorSet = pallet_validator_set;
+    pub type ExternalValidators = pallet_external_validators;
 
     #[runtime::pallet_index(8)]
     pub type Session = pallet_session;
@@ -340,6 +340,7 @@ mod runtime {
     // Start with index 100
     #[runtime::pallet_index(100)]
     pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
+
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
 

@@ -1,7 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_system::RawOrigin;
 use parity_scale_codec::DecodeAll;
 use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
 use sp_std::vec::Vec;
@@ -11,7 +10,7 @@ pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56];
 #[derive(Encode, Decode)]
 pub struct Payload<T>
 where
-    T: pallet_validator_set::Config,
+    T: pallet_external_validators::Config,
 {
     message: Message<T>,
     message_id: [u8; 4],
@@ -20,7 +19,7 @@ where
 #[derive(Encode, Decode)]
 pub enum Message<T>
 where
-    T: pallet_validator_set::Config,
+    T: pallet_external_validators::Config,
 {
     V1(InboundCommand<T>),
 }
@@ -28,9 +27,12 @@ where
 #[derive(Encode, Decode)]
 pub enum InboundCommand<T>
 where
-    T: pallet_validator_set::Config,
+    T: pallet_external_validators::Config,
 {
-    SetValidators(Vec<T::AccountId>),
+    ReceiveValidators {
+        validators: Vec<<T as pallet_external_validators::Config>::ValidatorId>,
+        external_index: u64,
+    },
 }
 
 /// EigenLayer Message Processor
@@ -38,7 +40,7 @@ pub struct EigenLayerMessageProcessor<T>(PhantomData<T>);
 
 impl<T, AccountId> MessageProcessor<AccountId> for EigenLayerMessageProcessor<T>
 where
-    T: pallet_validator_set::Config,
+    T: pallet_external_validators::Config,
 {
     fn can_process_message(_who: &AccountId, message: &SnowbridgeMessage) -> bool {
         let payload = match &message.xcm {
@@ -75,10 +77,13 @@ where
         };
 
         match message {
-            Message::V1(InboundCommand::SetValidators(validators)) => {
-                pallet_validator_set::Pallet::<T>::set_validators(
-                    RawOrigin::Root.into(),
+            Message::V1(InboundCommand::ReceiveValidators {
+                validators,
+                external_index,
+            }) => {
+                pallet_external_validators::Pallet::<T>::set_external_validators_inner(
                     validators,
+                    external_index,
                 )?;
                 let mut id = [0u8; 32];
                 id[..EL_MESSAGE_ID.len()].copy_from_slice(&EL_MESSAGE_ID);

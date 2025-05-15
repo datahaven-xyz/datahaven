@@ -20,47 +20,6 @@ import {
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
-const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
-export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Promise<boolean> => {
-  const wsUrl = `ws://127.0.0.1:${port}`;
-  let client: PolkadotClient | undefined;
-  try {
-    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-
-    for (let i = 0; i < retries; i++) {
-      try {
-        logger.debug(`Attempt ${i + 1}/${retries} to check beefy_getFinalizedHead on port ${port}`);
-        // beefy_getFinalizedHead returns a hex string
-        const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
-        if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
-          logger.success(`🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHeadHex}`);
-          await client.destroy();
-          return true;
-        }
-        logger.debug(
-          `BEEFY not ready on port ${port}, or finalized head is zero. Retrying in ${delay / 1000}s...`
-        );
-      } catch (rpcError) {
-        logger.warn(`RPC error checking BEEFY status on port ${port}: ${rpcError}. Retrying...`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-
-    logger.error(`❌ BEEFY failed to become ready on port ${port} after ${retries} attempts.`);
-    if (client) await client.destroy(); // Destroy after loop if not returned true
-    return false;
-  } catch (error) {
-    logger.error(
-      `❌ Failed to connect to DataHaven node on port ${port} for BEEFY check: ${error}`
-    );
-    if (client) {
-      await client.destroy(); // Ensure client is destroyed on outer catch too
-    }
-    return false;
-  }
-};
-
 type RelayerSpec = {
   name: string;
   type: RelayerType;
@@ -120,18 +79,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   await $`pkill snowbridge-relay`.nothrow().quiet();
 
   // Check if BEEFY is ready before proceeding
-  logger.info(
-    `Checking BEEFY readiness on port ${substrateWsPort} (node: ${substrateNodeId}) before launching relayers...`
-  );
-  const beefyIsReady = await isBeefyReady(substrateWsPort);
-  if (!beefyIsReady) {
-    throw new Error(
-      `BEEFY protocol not ready on port ${substrateWsPort} (node: ${substrateNodeId}). Relayers cannot be launched.`
-    );
-  }
-  logger.success(
-    `🥩 BEEFY is ready (node: ${substrateNodeId}, port: ${substrateWsPort}), proceeding with relayer launch.`
-  );
+  await isBeefyReady(substrateWsPort);
 
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
@@ -259,4 +207,53 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   logger.success("Snowbridge relayers started");
   printDivider();
+};
+
+const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+/**
+ * Checks if the BEEFY protocol is ready on the given port.
+ *
+ * @param port - The port to check.
+ * @param retries - The number of retries to make.
+ * @param delay - The delay between retries in milliseconds.
+ */
+export const isBeefyReady = async (port: number, retries = 30, delay = 2000): Promise<void> => {
+  logger.info(`Checking BEEFY readiness on port ${port}...`);
+  const wsUrl = `ws://127.0.0.1:${port}`;
+  let client: PolkadotClient | undefined;
+  try {
+    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        logger.debug(`Attempt ${i + 1}/${retries} to check beefy_getFinalizedHead on port ${port}`);
+        // beefy_getFinalizedHead returns a hex string
+        const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
+        if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
+          logger.success(`🥩 BEEFY is ready on port ${port}. Finalized head: ${finalizedHeadHex}`);
+          await client.destroy();
+          return;
+        }
+        logger.debug(
+          `BEEFY not ready on port ${port}, or finalized head is zero. Retrying in ${delay / 1000}s...`
+        );
+      } catch (rpcError) {
+        logger.warn(`RPC error checking BEEFY status on port ${port}: ${rpcError}. Retrying...`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    logger.error(`❌ BEEFY failed to become ready on port ${port} after ${retries} attempts.`);
+    if (client) await client.destroy(); // Destroy after loop if not returned true
+    throw new Error(`BEEFY protocol not ready on port ${port}. Relayers cannot be launched.`);
+  } catch (error) {
+    logger.error(
+      `❌ Failed to connect to DataHaven node on port ${port} for BEEFY check: ${error}`
+    );
+    if (client) {
+      await client.destroy(); // Ensure client is destroyed on outer catch too
+    }
+    throw new Error(`BEEFY protocol not ready on port ${port}. Relayers cannot be launched.`);
+  }
 };

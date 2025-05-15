@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { ethers } from "ethers";
+import { type Hex, keccak256, toHex } from "viem";
+import { publicKeyToAddress } from "viem/utils";
+import { secp256k1 } from "@noble/curves/secp256k1";
 import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
@@ -38,19 +40,11 @@ const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   ferdie: "0x03bc9d0ca094bd5b8b3225d7651eac5d18c1c04bf8ae8f8b263eebca4e1410ed0c"
 };
 
-// Function to convert compressed public key to Ethereum address
-function compressedPubKeyToEthereumAddress(compressedPubKey: string): string {
-  const uncompressedPubKey = ethers.SigningKey.computePublicKey(compressedPubKey, false);
-  const address = ethers.computeAddress(uncompressedPubKey);
-  return address;
-}
-
 /**
  * Prepares the configuration for Datahaven authorities by converting their
  * compressed public keys to Ethereum addresses and saving them to a JSON file.
  */
 export async function setupDatahavenValidatorConfig(
-  options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> {
   const networkName = process.env.NETWORK || "anvil";
@@ -113,7 +107,7 @@ export async function setupDatahavenValidatorConfig(
   for (const compressedKey of authorityPublicKeys) {
     try {
       const ethAddress = compressedPubKeyToEthereumAddress(compressedKey);
-      const authorityHash = ethers.keccak256(ethAddress);
+      const authorityHash = keccak256(ethAddress as Hex);
       authorityHashes.push(authorityHash);
       logger.debug(
         `Processed public key ${compressedKey} -> ETH address ${ethAddress} -> Authority hash ${authorityHash}`
@@ -258,7 +252,7 @@ export const launchDataHavenSolochain = async (
 
       // Call setupDatahavenValidatorConfig now that nodes are up
       logger.info("Proceeding with DataHaven validator configuration setup...");
-      await setupDatahavenValidatorConfig(options, launchedNetwork);
+      await setupDatahavenValidatorConfig(launchedNetwork);
 
       printDivider();
       return;
@@ -287,4 +281,23 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
     }
     return false;
   }
+};
+
+// Function to convert compressed public key to Ethereum address
+export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {
+  // Ensure the input is a hex string and remove "0x" prefix
+  const compressedKeyHex = compressedPubKey.startsWith("0x")
+    ? compressedPubKey.substring(2)
+    : compressedPubKey;
+
+  // Decompress the public key
+  const point = secp256k1.ProjectivePoint.fromHex(compressedKeyHex);
+  // toRawBytes(false) returns the uncompressed key (64 bytes, x and y coordinates)
+  const uncompressedPubKeyBytes = point.toRawBytes(false);
+  const uncompressedPubKeyHex = toHex(uncompressedPubKeyBytes); // Prefixes with "0x"
+
+  // Compute the Ethereum address from the uncompressed public key
+  // publicKeyToAddress expects a 0x-prefixed hex string representing the 64-byte uncompressed public key
+  const address = publicKeyToAddress(uncompressedPubKeyHex);
+  return address;
 };

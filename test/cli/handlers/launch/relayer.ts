@@ -141,7 +141,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   for (const { config, name, type, pk } of relayersToStart) {
     try {
-      const containerName = `snowbridge-${name}-relay`;
+      const containerName = `snowbridge-${type}-relay`;
       logger.info(`Starting relayer ${containerName} ...`);
 
       const command: string[] = [
@@ -151,6 +151,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         "--platform",
         "linux/amd64",
         options.relayerImageTag,
+        "--name",
+        containerName,
         "run",
         type,
         "--config",

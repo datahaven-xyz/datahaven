@@ -74,7 +74,7 @@ export class LaunchedNetwork {
    * Adds a running process to be managed and cleaned up.
    * @param process - The Bun subprocess object.
    */
-  addProcess(process: Bun.Subprocess<"inherit" | "pipe" | "ignore", number, number>) {
+  addProcess(process: BunProcess) {
     this.processes.push(process);
   }
 

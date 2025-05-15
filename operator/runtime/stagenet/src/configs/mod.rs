@@ -694,6 +694,9 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 }
 
 // For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
+// The version numbers are taken from looking at the Dora explorer when launching the
+// kurtosis Ethereum network. Hovering over the fork names, shows the version numbers.
+// These version numbers need to match, otherwise the aggregated signature verification will fail.
 #[cfg(any(
     feature = "std",
     feature = "fast-runtime",

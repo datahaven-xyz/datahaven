@@ -1,25 +1,20 @@
 import { $ } from "bun";
 import type { LaunchOptions } from "cli/handlers";
 import invariant from "tiny-invariant";
-import {
-  type KurtosisService,
-  confirmWithTimeout,
-  getServicesFromKurtosis,
-  logger,
-  printDivider,
-  printHeader
-} from "utils";
+import { confirmWithTimeout, getPortFromKurtosis, logger, printDivider, printHeader } from "utils";
 import { parse, stringify } from "yaml";
+import type { LaunchedNetwork } from "./launchedNetwork";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
  *
+ * @param launchedNetwork - The LaunchedNetwork instance to store network details
  * @param options - Configuration options
- * @returns Object containing success status and Docker services information
  */
 export const launchKurtosis = async (
+  launchedNetwork: LaunchedNetwork,
   options: LaunchOptions = {}
-): Promise<Record<string, KurtosisService>> => {
+): Promise<void> => {
   printHeader("Starting Kurtosis Network");
 
   if ((await checkKurtosisRunning()) && !options.alwaysClean) {
@@ -28,14 +23,14 @@ export const launchKurtosis = async (
     logger.trace("Checking if launchKurtosis option was set via flags");
     if (options.launchKurtosis === false) {
       logger.info("Keeping existing Kurtosis enclave.");
+      await registerServices(launchedNetwork);
       printDivider();
-      return getServicesFromKurtosis();
+      return;
     }
 
     if (options.launchKurtosis === true) {
       logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
     } else {
-      // Use confirmWithTimeout if launchKurtosis is undefined
       const shouldRelaunch = await confirmWithTimeout(
         "Do you want to clean and relaunch the Kurtosis enclave?",
         true,
@@ -44,8 +39,9 @@ export const launchKurtosis = async (
 
       if (!shouldRelaunch) {
         logger.info("Keeping existing Kurtosis enclave.");
+        await registerServices(launchedNetwork);
         printDivider();
-        return getServicesFromKurtosis();
+        return;
       }
 
       logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
@@ -84,13 +80,9 @@ export const launchKurtosis = async (
   }
   logger.debug(stdout.toString());
 
-  logger.info("🔍 Gathering Kurtosis public ports...");
-  const services = await getServicesFromKurtosis();
-
-  logger.success("Kurtosis network started successfully");
+  await registerServices(launchedNetwork);
+  logger.success("Kurtosis network operations completed successfully.");
   printDivider();
-
-  return services;
 };
 
 /**
@@ -140,4 +132,30 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
 
   await Bun.write(outputFile, stringify(parsedConfig));
   return outputFile;
+};
+
+/**
+ * Registers the EL and CL service endpoints with the LaunchedNetwork instance.
+ *
+ * @param launchedNetwork - The LaunchedNetwork instance to store network details.
+ */
+const registerServices = async (launchedNetwork: LaunchedNetwork) => {
+  logger.info("⚙️ Registering Kurtosis service endpoints...");
+
+  // Configure EL RPC URL
+  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
+  invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
+  const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
+  launchedNetwork.setElRpcUrl(elRpcUrl);
+  logger.info(`👍 Execution Layer RPC URL configured: ${elRpcUrl}`);
+
+  // Configure CL Endpoint
+  const lighthousePublicPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+  const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
+  invariant(
+    clEndpoint,
+    "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
+  );
+  launchedNetwork.setClEndpoint(clEndpoint);
+  logger.info(`👍 Consensus Layer Endpoint configured: ${clEndpoint}`);
 };

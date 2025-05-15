@@ -5,7 +5,7 @@ import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
-import { initEthClientPallet, launchRelayers } from "./relayer";
+import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 

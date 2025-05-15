@@ -112,6 +112,26 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
     );
   }
 
+  if (
+    !raw.current_sync_committee?.pubkeys ||
+    !raw.current_sync_committee.aggregate_pubkey ||
+    !Array.isArray(raw.current_sync_committee.pubkeys) ||
+    !Array.isArray(raw.current_sync_committee_branch) ||
+    !raw.validators_root ||
+    !raw.block_roots_root ||
+    !Array.isArray(raw.block_roots_branch)
+  ) {
+    throw new Error(
+      "Invalid JSON structure for BeaconCheckpoint: missing sync-committee or root fields"
+    );
+  }
+
+  if (raw.current_sync_committee.pubkeys.length !== 512) {
+    throw new Error(
+      `Invalid sync-committee size. Expected 512 pubkeys, got ${raw.current_sync_committee.pubkeys.length}`
+    );
+  }
+
   // Map pubkeys to FixedSizeBinary<48>
   const pubkeys = new Array<FixedSizeBinary<48>>(512);
   for (let i = 0; i < raw.current_sync_committee.pubkeys.length; i++) {

@@ -134,16 +134,18 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
   return outputFile;
 };
 
+/**
+ * Registers the EL and CL service endpoints with the LaunchedNetwork instance.
+ *
+ * @param launchedNetwork - The LaunchedNetwork instance to store network details.
+ */
 const registerServices = async (launchedNetwork: LaunchedNetwork) => {
   logger.info("⚙️ Registering Kurtosis service endpoints...");
 
   // Configure EL RPC URL
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
+  invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
   const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-  invariant(
-    elRpcUrl,
-    "❌ EL RPC URL could not be determined from Kurtosis service el-1-reth-lighthouse"
-  );
   launchedNetwork.setElRpcUrl(elRpcUrl);
   logger.info(`👍 Execution Layer RPC URL configured: ${elRpcUrl}`);
 

@@ -203,6 +203,15 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   printDivider();
 };
 
+/**
+ * Initialises the Ethereum Beacon Client pallet on the Substrate chain.
+ * It waits for the beacon chain to be ready, generates an initial checkpoint,
+ * and submits this checkpoint to the Substrate runtime via a sudo call.
+ *
+ * @param options - Launch options containing the relayer binary path.
+ * @param launchedNetwork - An instance of LaunchedNetwork to interact with the running network.
+ * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
+ */
 export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
@@ -291,6 +300,13 @@ const waitBeaconChainReady = async (
   logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
 };
 
+/**
+ * Sends the beacon checkpoint to the Substrate runtime, waiting for the transaction to be finalised and successful.
+ *
+ * @param networkRpcUrl - The RPC URL of the Substrate network.
+ * @param checkpoint - The beacon checkpoint to send.
+ * @throws If the transaction signing fails, it becomes an invalid transaction, or the transaction is included but fails.
+ */
 const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: BeaconCheckpoint) => {
   logger.trace("Sending checkpoint to Substrate...");
 
@@ -316,12 +332,21 @@ const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: Beac
   logger.debug("Sudo call:");
   logger.debug(tx.decodedCall);
 
-  const txFinalisedPayload = await tx.signAndSubmit(signer);
+  try {
+    const txFinalisedPayload = await tx.signAndSubmit(signer);
 
-  logger.info(
-    `"force_checkpoint" transaction with hash ${txFinalisedPayload.txHash} submitted and finalised in block ${txFinalisedPayload.block.hash}`
-  );
+    if (!txFinalisedPayload.ok) {
+      throw new Error("❌ Beacon checkpoint transaction failed");
+    }
 
-  client.destroy();
-  logger.debug("Destroyed client");
+    logger.info(
+      `📪 "force_checkpoint" transaction with hash ${txFinalisedPayload.txHash} submitted successfully and finalised in block ${txFinalisedPayload.block.hash}`
+    );
+  } catch (error) {
+    logger.error(`Failed to submit checkpoint transaction: ${error}`);
+    throw new Error(`Failed to submit checkpoint: ${error}`);
+  } finally {
+    client.destroy();
+    logger.debug("Destroyed client");
+  }
 };

@@ -71,10 +71,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
   await $`mkdir -p ${datastorePath}`.quiet();
 
-  const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
-  logger.debug(`Ensuring logs directory exists: ${logsPath}`);
-  await $`mkdir -p ${logsPath}`.quiet();
-
   const relayersToStart: RelayerSpec[] = [
     {
       name: "relayer-🥩",
@@ -118,18 +114,17 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     if (type === "beacon") {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.beacon.endpoint = `http://127.0.0.1:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://127.0.0.1:${ethHttpPort}`;
+      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+      cfg.source.beacon.datastore.location = "/data";
+      cfg.sink.parachain.endpoint = "ws://datahaven-alice:9944";
 
-      cfg.source.beacon.datastore.location = datastorePath;
-
-      cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beacon config written to ${outputFilePath}`);
     } else {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.polkadot.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
-      cfg.sink.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
+      cfg.source.polkadot.endpoint = "ws://datahaven-alice:9944";
+      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
       cfg.sink.contracts.BeefyClient = beefyClientAddress;
       cfg.sink.contracts.Gateway = gatewayAddress;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
@@ -144,21 +139,47 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       const containerName = `snowbridge-${type}-relay`;
       logger.info(`Starting relayer ${containerName} ...`);
 
-      const command: string[] = [
+      const hostConfigFilePath = path.resolve("tmp/configs", config);
+      const containerConfigFilePath = `/app/${config}`;
+      const networkName = launchedNetwork.networkName;
+      invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
+
+      const commandBase: string[] = [
         "docker",
         "run",
         "-d",
         "--platform",
         "linux/amd64",
-        options.relayerImageTag,
+        "--add-host",
+        "host.docker.internal:host-gateway",
         "--name",
         containerName,
+        "--network",
+        networkName
+      ];
+
+      const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+
+      if (type === "beacon") {
+        const hostDatastorePath = path.resolve(datastorePath);
+        const containerDatastorePath = "/data";
+        volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
+      }
+
+      const relayerCommandArgs: string[] = [
         "run",
         type,
         "--config",
-        path.join("tmp/configs", config),
+        containerConfigFilePath,
         type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
         pk.value
+      ];
+
+      const command: string[] = [
+        ...commandBase,
+        ...volumeMounts,
+        options.relayerImageTag,
+        ...relayerCommandArgs
       ];
 
       logger.debug(`Spawning command: ${command.join(" ")}`);

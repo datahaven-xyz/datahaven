@@ -14,6 +14,7 @@ export class LaunchedNetwork {
   protected fileDescriptors: number[];
   protected DHNodes: { id: string; port: number }[];
   protected _activeRelayers: RelayerType[];
+  protected _networkName: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -22,6 +23,15 @@ export class LaunchedNetwork {
     this.DHNodes = [];
     this._containers = [];
     this._activeRelayers = [];
+    this._networkName = "default";
+  }
+
+  public set networkName(name: string) {
+    this._networkName = name;
+  }
+
+  public get networkName(): string {
+    return this._networkName;
   }
 
   getRunId(): string {

@@ -13,6 +13,8 @@ import {
   waitForLog
 } from "utils";
 import type { LaunchOptions } from ".";
+
+const DOCKER_NETWORK_NAME = "datahaven-net";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
 const COMMON_LAUNCH_ARGS = [
@@ -63,14 +65,17 @@ export const launchDataHavenSolochain = async (
     return;
   }
 
-  // Kill any pre-existing datahaven processes if they exist
   await killRunningContainers(options.datahavenImageTag);
 
-  await checkTagExists(options.datahavenImageTag);
+  logger.info(`Attempting to remove existing Docker network: ${DOCKER_NETWORK_NAME}`);
+  await $`docker network rm ${DOCKER_NETWORK_NAME} || true`.quiet();
+  logger.info(`Creating Docker network: ${DOCKER_NETWORK_NAME}`);
+  await $`docker network create ${DOCKER_NETWORK_NAME}`.quiet();
 
-  const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
-  logger.debug(`Ensuring logs directory exists: ${logsPath}`);
-  await $`mkdir -p ${logsPath}`.quiet();
+  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
+  logger.info(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
+
+  await checkTagExists(options.datahavenImageTag);
 
   for (const id of AUTHORITY_IDS) {
     logger.info(`Starting ${id}...`);
@@ -84,6 +89,8 @@ export const launchDataHavenSolochain = async (
       "linux/amd64",
       "--name",
       containerName,
+      "--network",
+      DOCKER_NETWORK_NAME,
       ...(id === "alice" ? ["-p", "9944:9944"] : []),
       options.datahavenImageTag,
       `--${id}`,

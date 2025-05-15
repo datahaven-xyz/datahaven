@@ -7637,6 +7637,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-external-validators-rewards"
+version = "0.1.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "ethabi-decode",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-external-validators",
+ "pallet-session",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "snowbridge-core 0.2.0",
+ "snowbridge-merkle-tree",
+ "snowbridge-outbound-queue-primitives",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+ "staging-xcm",
+]
+
+[[package]]
 name = "pallet-fast-unstake"
 version = "38.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#85c4d688c2b24fe5907887ef9f5984a7148eb0b8"

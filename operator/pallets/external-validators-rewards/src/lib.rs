@@ -28,15 +28,20 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod types;
 pub mod weights;
 
 pub use pallet::*;
 
 use {
+    crate::types::{
+        Command, DeliverMessage, ExternalIndexProvider, Message, TicketInfo, ValidateMessage,
+    },
     frame_support::traits::{
         fungible::{self, Mutate},
         Defensive, Get, ValidatorSet,
     },
+    pallet_external_validators::traits::{OnEraEnd, OnEraStart},
     parity_scale_codec::Encode,
     polkadot_primitives::ValidatorIndex,
     runtime_parachains::session_info,
@@ -46,8 +51,6 @@ use {
     sp_runtime::traits::{Hash, MaybeEquivalence, Zero},
     sp_staking::SessionIndex,
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
-    tp_bridge::{Command, DeliverMessage, Message, TicketInfo, ValidateMessage},
-    tp_traits::ExternalIndexProvider,
     xcm::prelude::*,
 };
 
@@ -64,8 +67,9 @@ pub struct EraRewardsUtils {
 pub mod pallet {
     pub use crate::weights::WeightInfo;
     use {
-        super::*, frame_support::pallet_prelude::*, sp_runtime::Saturating,
-        sp_std::collections::btree_map::BTreeMap, tp_traits::EraIndexProvider,
+        super::*, frame_support::pallet_prelude::*,
+        pallet_external_validators::traits::EraIndexProvider, sp_runtime::Saturating,
+        sp_std::collections::btree_map::BTreeMap,
     };
 
     /// The current storage version.
@@ -261,7 +265,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> tp_traits::OnEraStart for Pallet<T> {
+    impl<T: Config> OnEraStart for Pallet<T> {
         fn on_era_start(era_index: EraIndex, _session_start: u32, _external_idx: u64) {
             let Some(era_index_to_delete) = era_index.checked_sub(T::HistoryDepth::get()) else {
                 return;
@@ -271,7 +275,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> tp_traits::OnEraEnd for Pallet<T> {
+    impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
             // Will send a ReportRewards message to Ethereum unless:
             // - the reward token is misconfigured

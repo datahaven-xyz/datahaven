@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import {

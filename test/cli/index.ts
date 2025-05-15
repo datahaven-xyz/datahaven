@@ -14,7 +14,7 @@ function parseIntValue(value: string): number {
 // So far we only have the launch command
 // we can expand this to more commands in the future
 const program = new Command()
-  .option("--datahaven", "Enable Datahaven network to be launched")
+  .option("--datahaven", "Enable DataHaven network to be launched")
   .option("-l, --launch-kurtosis", "Launch Kurtosis")
   .option("-d, --deploy-contracts", "Deploy smart contracts")
   .option("-f, --fund-validators", "Fund validators")
@@ -47,9 +47,9 @@ const program = new Command()
 program
   .version("0.1.0")
   .name("bun cli")
-  .summary("🫎  Datahaven: Network Launcher CLI")
+  .summary("🫎  DataHaven: Network Launcher CLI")
   .usage("[options]")
-  .description(`🫎  Datahaven: Network Launcher CLI for launching a full Datahaven network.
+  .description(`🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
     Complete with:
     - Solo-chain validators,
     - Storage providers,

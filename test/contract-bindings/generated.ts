@@ -10748,7 +10748,7 @@ export const readDataHavenServiceManagerBspsSetId = /*#__PURE__*/ createReadCont
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_AVS_METADATA"`
  */
-export const readDataHavenServiceManagerDatahavenAvsMetadata = /*#__PURE__*/ createReadContract({
+export const readDataHavenServiceManagerDataHavenAvsMetadata = /*#__PURE__*/ createReadContract({
   abi: dataHavenServiceManagerAbi,
   functionName: "DATAHAVEN_AVS_METADATA"
 });

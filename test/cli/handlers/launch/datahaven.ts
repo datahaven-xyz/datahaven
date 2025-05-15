@@ -28,7 +28,7 @@ const COMMON_LAUNCH_ARGS = [
 // <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
 const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
 
-// 33-byte compressed public keys for Datahaven next validator set
+// 33-byte compressed public keys for DataHaven next validator set
 // These correspond to Alice, Bob, Charlie, Dave, Eve, Ferdie
 // These are the fallback keys if we can't fetch the next authorities directly from the network
 const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
@@ -41,14 +41,14 @@ const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
 };
 
 /**
- * Prepares the configuration for Datahaven authorities by converting their
+ * Prepares the configuration for DataHaven authorities by converting their
  * compressed public keys to Ethereum addresses and saving them to a JSON file.
  */
-export async function setupDatahavenValidatorConfig(
+export async function setupDataHavenValidatorConfig(
   launchedNetwork: LaunchedNetwork
 ): Promise<void> {
   const networkName = process.env.NETWORK || "anvil";
-  logger.info(`🔧 Preparing Datahaven authorities configuration for network: ${networkName}...`);
+  logger.info(`🔧 Preparing DataHaven authorities configuration for network: ${networkName}...`);
 
   let authorityPublicKeys: string[] = [];
   const dhNodes = launchedNetwork.getDHNodes();
@@ -100,7 +100,7 @@ export async function setupDatahavenValidatorConfig(
     logger.error(
       "❌ No authority public keys available (neither fetched nor hardcoded). Cannot prepare validator config."
     );
-    throw new Error("No Datahaven authority keys available.");
+    throw new Error("No DataHaven authority keys available.");
   }
 
   const authorityHashes: string[] = [];
@@ -144,7 +144,7 @@ export async function setupDatahavenValidatorConfig(
     configJson.snowbridge.nextValidators = authorityHashes;
 
     fs.writeFileSync(configFilePath, JSON.stringify(configJson, null, 2));
-    logger.success(`Datahaven authority hashes updated in: ${configFilePath}`);
+    logger.success(`DataHaven authority hashes updated in: ${configFilePath}`);
   } catch (error) {
     logger.error(`❌ Failed to read or update ${configFilePath}: ${error}`);
     throw new Error(`Failed to update authority hashes in ${configFilePath}.`);
@@ -186,11 +186,11 @@ export const launchDataHavenSolochain = async (
   // Kill any pre-existing datahaven processes if they exist
   await $`pkill datahaven`.nothrow().quiet();
 
-  invariant(options.datahavenBinPath, "❌ Datahaven binary path not defined");
+  invariant(options.datahavenBinPath, "❌ DataHaven binary path not defined");
 
   invariant(
     await Bun.file(options.datahavenBinPath).exists(),
-    "❌ Datahaven binary does not exist"
+    "❌ DataHaven binary does not exist"
   );
 
   const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
@@ -247,12 +247,12 @@ export const launchDataHavenSolochain = async (
 
     if (await isNetworkReady(primaryNodePort)) {
       logger.success(
-        `Datahaven network started, primary node accessible on port ${primaryNodePort}`
+        `DataHaven network started, primary node accessible on port ${primaryNodePort}`
       );
 
-      // Call setupDatahavenValidatorConfig now that nodes are up
+      // Call setupDataHavenValidatorConfig now that nodes are up
       logger.info("Proceeding with DataHaven validator configuration setup...");
-      await setupDatahavenValidatorConfig(launchedNetwork);
+      await setupDataHavenValidatorConfig(launchedNetwork);
 
       printDivider();
       return;
@@ -261,7 +261,7 @@ export const launchDataHavenSolochain = async (
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  throw new Error("Datahaven network failed to start after 10 seconds");
+  throw new Error("DataHaven network failed to start after 10 seconds");
 };
 
 export const isNetworkReady = async (port: number): Promise<boolean> => {

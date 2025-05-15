@@ -1,5 +1,5 @@
 [package]
-description = "Common code used through the Datahaven network"
+description = "Common code used through the DataHaven network"
 edition = { workspace = true }
 name = "datahaven-runtime-common"
 version = "0.1.0"

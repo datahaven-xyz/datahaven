@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
 import {
-  type DatahavenApi,
+  type DataHavenApi,
   SUBSTRATE_FUNDED_ACCOUNTS,
   createPapiConnectors,
   generateRandomAccount,
@@ -12,7 +12,7 @@ import {
 import { isAddress, parseEther } from "viem";
 
 describe("Datahaven solochain", () => {
-  let api: DatahavenApi;
+  let api: DataHavenApi;
   let signer: PolkadotSigner;
 
   beforeAll(() => {

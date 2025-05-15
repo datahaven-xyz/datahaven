@@ -47,7 +47,7 @@ export const signEcdsa = (
 
 export const createPapiConnectors = (
   wsUrl?: string
-): { client: PolkadotClient; typedApi: DatahavenApi } => {
+): { client: PolkadotClient; typedApi: DataHavenApi } => {
   const url = wsUrl ?? "ws://127.0.0.1:9944";
   const client = createClient(withPolkadotSdkCompat(getWsProvider(url)));
   return { client, typedApi: client.getTypedApi(datahaven) };
@@ -56,7 +56,7 @@ export const createPapiConnectors = (
 export const getPapiSigner = (person: keyof typeof SUBSTRATE_FUNDED_ACCOUNTS = "ALITH") =>
   getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS[person].privateKey);
 
-export type DatahavenApi = TypedApi<typeof datahaven>;
+export type DataHavenApi = TypedApi<typeof datahaven>;
 
 export const sendTxn = async <P extends {}, R extends string, Q extends string, T>(
   ext: Transaction<P, R, Q, T>,

@@ -7,7 +7,6 @@ import {
   logger,
   printDivider,
   printHeader,
-  runShellCommandWithLogger,
   waitForContainerToStart,
   waitForLog
 } from "utils";

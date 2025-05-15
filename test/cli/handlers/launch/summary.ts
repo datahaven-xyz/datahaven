@@ -20,6 +20,11 @@ export const performSummaryOperations = async (
     servicesToDisplay.push(`datahaven-${id}`);
   }
 
+  const activeRelayers = launchedNetwork.relayers;
+  for (const relayer of activeRelayers) {
+    servicesToDisplay.push(`${relayer}-relayer`);
+  }
+
   logger.trace("Services to display", servicesToDisplay);
 
   const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
@@ -97,10 +102,34 @@ export const performSummaryOperations = async (
         break;
       }
 
+      case service === "beefy-relayer": {
+        displayData.push({
+          service,
+          ports: {},
+          url: "Background process (connects to other services)"
+        });
+        break;
+      }
+
+      case service === "beacon-relayer": {
+        displayData.push({
+          service,
+          ports: {},
+          url: "Background process (connects to other services)"
+        });
+        break;
+      }
+
       default: {
         logger.error(`Unknown service: ${service}`);
       }
     }
+  }
+
+  const containers = launchedNetwork.containers;
+  for (const { name, publicPorts } of containers) {
+    const url = "ws" in publicPorts ? `ws://127.0.0.1:${publicPorts.ws}` : "un-exposed";
+    displayData.push({ service: name, ports: publicPorts, url });
   }
 
   console.table(displayData);

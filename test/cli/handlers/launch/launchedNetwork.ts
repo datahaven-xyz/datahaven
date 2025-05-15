@@ -1,24 +1,27 @@
 import fs from "node:fs";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger } from "utils";
+import { type RelayerType, logger } from "utils";
 
 type PipeOptions = number | "inherit" | "pipe" | "ignore";
 type BunProcess = Bun.Subprocess<PipeOptions, PipeOptions, PipeOptions>;
+type ContainerSpec = { name: string; publicPorts: Record<string, number> };
 
 export class LaunchedNetwork {
   protected runId: string;
   protected processes: BunProcess[];
-  protected containers: string[];
+  protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
   protected DHNodes: { id: string; port: number }[];
+  protected _activeRelayers: RelayerType[];
 
   constructor() {
     this.runId = crypto.randomUUID();
     this.processes = [];
     this.fileDescriptors = [];
     this.DHNodes = [];
-    this.containers = [];
+    this._containers = [];
+    this._activeRelayers = [];
   }
 
   getRunId(): string {
@@ -43,12 +46,26 @@ export class LaunchedNetwork {
     this.processes.push(process);
   }
 
-  addContainer(containerName: string) {
-    this.containers.push(containerName);
+  addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
+    this._containers.push({ name: containerName, publicPorts });
   }
 
   addDHNode(id: string, port: number) {
     this.DHNodes.push({ id, port });
+  }
+
+  registerRelayerType(type: RelayerType): void {
+    if (!this._activeRelayers.includes(type)) {
+      this._activeRelayers.push(type);
+    }
+  }
+
+  public get containers(): ContainerSpec[] {
+    return this._containers;
+  }
+
+  public get relayers(): RelayerType[] {
+    return [...this._activeRelayers];
   }
 
   async cleanup() {

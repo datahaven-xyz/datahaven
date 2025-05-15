@@ -96,7 +96,7 @@ export const launchDataHavenSolochain = async (
 
     process.unref();
 
-    launchedNetwork.addContainer(containerName);
+    launchedNetwork.addContainer(containerName, id === "alice" ? { ws: 9944 } : {});
 
     await waitForContainerToStart(containerName);
     await waitForLog({

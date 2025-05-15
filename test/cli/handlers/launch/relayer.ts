@@ -74,24 +74,33 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   await $`mkdir -p ${logsPath}`.quiet();
 
   const relayersToStart: RelayerSpec[] = [
-    {
-      name: "relayer-🥩",
-      type: "beefy",
-      config: "beefy-relay.json",
-      pk: {
-        type: "ethereum",
-        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
-      }
-    },
-    {
-      name: "relayer-🥓",
-      type: "beacon",
-      config: "beacon-relay.json",
-      pk: {
-        type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey
-      }
-    }
+      {
+          name: "relayer-🥩",
+          type: "beefy",
+          config: "beefy-relay.json",
+          pk: {
+              type: "ethereum",
+              value: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+          },
+      },
+      {
+          name: "relayer-🥓",
+          type: "beacon",
+          config: "beacon-relay.json",
+          pk: {
+              type: "substrate",
+              value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey,
+          },
+      },
+      {
+          name: "relayer-⚙️",
+          type: "execution",
+          config: "execution-relay.json",
+          pk: {
+              type: "substrate",
+              value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey,
+          },
+      },
   ];
 
   for (const { config: configFileName, type, name } of relayersToStart) {
@@ -124,7 +133,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beacon config written to ${outputFilePath}`);
-    } else {
+    } else if (type === "beefy") {
       const cfg = parseRelayConfig(json, type);
       cfg.source.polkadot.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
       cfg.sink.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
@@ -132,6 +141,16 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.sink.contracts.Gateway = gatewayAddress;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beefy config written to ${outputFilePath}`);
+    } else if (type === "execution") {
+      const cfg = parseRelayConfig(json, type);
+      cfg.source.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
+      cfg.source.beacon.endpoint = `http://127.0.0.1:${ethHttpPort}`;
+      cfg.source.beacon.stateEndpoint = `http://127.0.0.1:${ethHttpPort}`;
+
+      cfg.source.beacon.datastore.location = datastorePath;
+      cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
+      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+      logger.success(`Updated execution config written to ${outputFilePath}`);
     }
   }
 

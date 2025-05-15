@@ -1,15 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
+import { secp256k1 } from "@noble/curves/secp256k1";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { type Hex, keccak256, toHex } from "viem";
-import { publicKeyToAddress } from "viem/utils";
-import { secp256k1 } from "@noble/curves/secp256k1";
 import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import { type Hex, keccak256, toHex } from "viem";
+import { publicKeyToAddress } from "viem/utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 

@@ -37,9 +37,9 @@ const program = new Command()
     "moonsonglabs/datahaven:local"
   )
   .option(
-    "-p, --relayer-bin-path <value>",
-    "Path to the relayer binary",
-    "tmp/bin/snowbridge-relay"
+    "-p, --relayer-image-tag <value>",
+    "Tag of the relayer",
+    "moonsonglabs/snowbridge-relayer:latest"
   )
   .hook("preAction", launchPreActionHook)
   .action(launch);

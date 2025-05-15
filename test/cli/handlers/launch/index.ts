@@ -25,7 +25,7 @@ export interface LaunchOptions {
   updateValidatorSet?: boolean;
   blockscout?: boolean;
   relayer?: boolean;
-  relayerBinPath?: string;
+  relayerImageTag?: string;
   skipCleaning?: boolean;
   alwaysClean?: boolean;
   datahaven?: boolean;

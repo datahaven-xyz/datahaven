@@ -1,7 +1,7 @@
 import { PassThrough, type Readable } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { type ServiceInfo, type ServiceMapping, StandardServiceMappings, logger } from "utils";
+import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
 
 export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   const docker = new Docker();
@@ -99,7 +99,13 @@ export const waitForLog = async (options: {
     const container = docker.getContainer(options.containerName);
 
     container.logs(
-      { follow: true, stdout: true, stderr: true, tail: options.tail, timestamps: false }, // set tail default to 10 to get the 10 last lines of logs printed
+      {
+        follow: true,
+        stdout: true,
+        stderr: true,
+        tail: options.tail,
+        timestamps: false
+      }, // set tail default to 10 to get the 10 last lines of logs printed
       (err, stream) => {
         if (err) {
           return reject(err);
@@ -179,4 +185,22 @@ export const waitForContainerToStart = async (
     false,
     `❌ container ${containerName} cannot be found  in running container list after ${seconds} seconds`
   );
+};
+
+export const killRunningContainers = async (imageName: string) => {
+  logger.debug(`Searching for containers with image ${imageName}...`);
+  const docker = new Docker();
+  const containerInfos = (await docker.listContainers()).filter((container) =>
+    container.Image.includes(imageName)
+  );
+
+  if (containerInfos.length === 0) {
+    logger.debug(`No containers found with image ${imageName}`);
+    return;
+  }
+
+  const promises = containerInfos.map(({ Id }) => docker.getContainer(Id).remove({ force: true }));
+  await Promise.all(promises);
+
+  logger.debug(`${containerInfos.length} containers with image ${imageName} killed`);
 };

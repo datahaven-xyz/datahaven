@@ -4,6 +4,7 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
+  killRunningContainers,
   logger,
   printDivider,
   printHeader,
@@ -42,7 +43,7 @@ export const launchDataHavenSolochain = async (
   launchedNetwork: LaunchedNetwork
 ) => {
   printHeader("Starting DataHaven Network");
-
+  invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
   let shouldLaunchDataHaven = options.datahaven;
   if (shouldLaunchDataHaven === undefined) {
     shouldLaunchDataHaven = await confirmWithTimeout(
@@ -63,9 +64,7 @@ export const launchDataHavenSolochain = async (
   }
 
   // Kill any pre-existing datahaven processes if they exist
-  await $`pkill datahaven`.nothrow().quiet();
-
-  invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
+  await killRunningContainers(options.datahavenImageTag);
 
   await checkTagExists(options.datahavenImageTag);
 
@@ -93,7 +92,6 @@ export const launchDataHavenSolochain = async (
 
     logger.debug(`Spawning command: ${command.join(" ")}`);
     const process = Bun.spawn(command);
-
     process.unref();
 
     launchedNetwork.addContainer(containerName, id === "alice" ? { ws: 9944 } : {});

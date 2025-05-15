@@ -8,11 +8,13 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS,
   confirmWithTimeout,
   getPortFromKurtosis,
+  killRunningContainers,
   logger,
   parseDeploymentsFile,
   parseRelayConfig,
   printDivider,
-  printHeader
+  printHeader,
+  waitForContainerToStart
 } from "utils";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
@@ -52,8 +54,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     return;
   }
 
-  // Kill any pre-existing relayer processes if they exist
-  await $`pkill snowbridge-relay`.nothrow().quiet();
+  invariant(options.relayerImageTag, "❌ relayerImageTag is required");
+  await killRunningContainers(options.relayerImageTag);
 
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
@@ -137,23 +139,18 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   logger.info("Spawning Snowbridge relayers processes");
 
-  invariant(options.relayerBinPath, "❌ Relayer binary path not defined");
-  invariant(
-    await Bun.file(options.relayerBinPath).exists(),
-    `❌ Relayer binary does not exist at ${options.relayerBinPath}`
-  );
-
   for (const { config, name, type, pk } of relayersToStart) {
     try {
-      logger.info(`Starting relayer ${name} ...`);
-      const logFileName = `${type}-${name.replace(/[^a-zA-Z0-9-]/g, "")}.log`;
-      const logFilePath = path.join(logsPath, logFileName);
-      logger.debug(`Writing logs to ${logFilePath}`);
+      const containerName = `snowbridge-${name}-relay`;
+      logger.info(`Starting relayer ${containerName} ...`);
 
-      const fd = fs.openSync(logFilePath, "a");
-
-      const spawnCommand = [
-        options.relayerBinPath,
+      const command: string[] = [
+        "docker",
+        "run",
+        "-d",
+        "--platform",
+        "linux/amd64",
+        options.relayerImageTag,
         "run",
         type,
         "--config",
@@ -162,16 +159,22 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         pk.value
       ];
 
-      logger.debug(`Spawning command: ${spawnCommand.join(" ")}`);
-
-      const process = Bun.spawn(spawnCommand, {
-        stdout: fd,
-        stderr: fd
-      });
-
+      logger.debug(`Spawning command: ${command.join(" ")}`);
+      const process = Bun.spawn(command);
       process.unref();
 
-      launchedNetwork.addFileDescriptor(fd);
+      launchedNetwork.addContainer(containerName);
+
+      await waitForContainerToStart(containerName);
+
+      // TODO: Renable when we know what we want to tail for
+      // await waitForLog({
+      //   searchString: "<LOG LINE TO WAIT FOR>",
+      //   containerName,
+      //   timeoutSeconds: 30,
+      //   tail: 1
+      // });
+
       launchedNetwork.addProcess(process);
       logger.debug(`Started relayer ${name} with process ${process.pid}`);
     } catch (e) {

@@ -207,8 +207,8 @@ export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
-  // Poll the beacon chain until it's ready every 6 seconds for 120 seconds
-  await waitBeaconChainReady(launchedNetwork, 6000, 120000);
+  // Poll the beacon chain until it's ready every 6 seconds for 5 minutes
+  await waitBeaconChainReady(launchedNetwork, 6000, 300000);
 
   // Generate the initial checkpoint for the CL client in Substrate
   const { stdout, stderr, exitCode } =
@@ -281,14 +281,14 @@ const waitBeaconChainReady = async (
         throw new Error(`Beacon chain is not ready after ${maxAttempts} attempts`);
       }
 
-      logger.info(`Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
+      logger.info(`⌛️ Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     } else {
       keepPolling = false;
     }
   }
 
-  logger.trace(`Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
+  logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
 };
 
 const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: BeaconCheckpoint) => {

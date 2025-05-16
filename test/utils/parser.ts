@@ -1,3 +1,4 @@
+import { match } from "node:assert";
 import { z } from "zod";
 
 export const BeaconRelayConfigSchema = z.object({
@@ -59,10 +60,10 @@ export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 export const ExecutionRelayConfigSchema = z.object({
   source: z.object({
     ethereum: z.object({
-        endpoint: z.string(),
+      endpoint: z.string()
     }),
     contracts: z.object({
-        Gateway: z.string(),
+      Gateway: z.string()
     }),
     "channel-id": z.string(),
     beacon: z.object({
@@ -74,28 +75,28 @@ export const ExecutionRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number(),
-        }),
+          electra: z.number()
+        })
       }),
       datastore: z.object({
         location: z.string(),
-        maxEntries: z.number(),
-      }),
-    }),
+        maxEntries: z.number()
+      })
+    })
   }),
   sink: z.object({
     parachain: z.object({
       endpoint: z.string(),
       maxWatchedExtrinsics: z.number(),
-      headerRedundancy: z.number(),
-    }),
+      headerRedundancy: z.number()
+    })
   }),
   instantVerification: z.boolean(),
   schedule: z.object({
     id: z.number(),
     totalRelayerCount: z.number(),
-    sleepInterval: z.number(),
-  }),
+    sleepInterval: z.number()
+  })
 });
 export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;
 

@@ -119,8 +119,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       config: RELAYER_CONFIG_PATHS.BEEFY,
       pk: {
         type: "ethereum",
-        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
-      },
+        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
+      }
     },
     {
       name: "relayer-🥓",
@@ -128,8 +128,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       config: RELAYER_CONFIG_PATHS.BEACON,
       pk: {
         type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey,
-      },
+        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
+      }
     },
     {
       name: "relayer-⚙️",
@@ -139,7 +139,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         type: "substrate",
         value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey
       }
-    }  
+    }
   ];
 
   for (const { config, type, name } of relayersToStart) {

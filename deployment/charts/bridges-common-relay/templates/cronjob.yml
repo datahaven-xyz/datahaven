@@ -1,0 +1,90 @@
+{{ range $val := .Values.rewards }}
+{{ range $reward_owner := tuple "ThisChain" "BridgedChain" }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: bridge-{{ $val.name | lower }}-{{ $reward_owner | lower }}
+  labels:
+    {{- include "bridges-common-relay.labels" $ | nindent 4 }}
+spec:
+  schedule: {{ $val.schedule | quote }}
+  concurrencyPolicy: Forbid # Because of extrinsic nonces.
+  jobTemplate:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") $ | sha256sum }}
+      labels:
+        {{- include "bridges-common-relay.labels" $ | nindent 8 }}
+    spec:
+      backOffLimit: 0
+      template:
+        metadata:
+          annotations:
+          {{- with $.Values.podAnnotations }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "bridges-common-relay.serviceAccountName" $ }}
+          {{- if or $.Values.secrets $.Values.existingSecretName }}
+          volumes:
+            - name: secrets
+              secret:
+                secretName: {{ include "bridges-common-relay.secretName" $ }}
+                optional: false
+          {{- end}}
+          containers:
+            - name: bridges-common-relay-{{ $val.name | lower }}-{{ $reward_owner | lower }}
+              image: paritytech/polkadotjs-cli:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: RPC_URL
+                  value: {{ $val.rpc_url | quote }}
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  rewards_account_params=$(
+                    jq --null-input \
+                      --arg lane_id {{ $val.lane_id | quote }} \
+                      --arg bridged_chain_id {{ $val.bridged_chain_id | quote }} \
+                      --arg owner {{ $reward_owner | quote }} \
+                      '{
+                          "laneId": $lane_id,
+                          "bridgedChainId": $bridged_chain_id,
+                          "owner": $owner
+                        }'
+                  )
+
+                  reward=$(
+                    polkadot-js-api --ws "$RPC_URL" query.bridgeRelayers.relayerRewards \
+                      {{ $val.address | quote }} \
+                      "$rewards_account_params" \
+                      | jq -r '.relayerRewards'
+                  )
+                  if [[ "$reward" == "null" || "$reward" == "0" ]]
+                  then
+                    echo "No reward to claim, exiting."
+                    exit 0
+                  fi
+                  echo "{{ $val.name }} on {{ $reward_owner }} has a reward of ${reward}."
+
+                  # Avoid nonce collision with "ThisChain".
+                  {{ if eq $reward_owner "BridgedChain" }}sleep 10{{ end }}
+
+                  polkadot-js-api --ws "$RPC_URL" \
+                      --seed "$(cat /secrets/{{ $val.seed_phrase_secret_name }})" \
+                    tx.bridgeRelayers.claimRewards "$rewards_account_params"
+              resources:
+                {{- toYaml $.Values.resources | nindent 16 }}
+             {{- if or $.Values.secrets $.Values.existingSecretName }}
+              volumeMounts:
+                - name: secrets
+                  mountPath: "/secrets"
+                  readOnly: true
+             {{- end}}
+---
+{{- end }}
+{{- end }}

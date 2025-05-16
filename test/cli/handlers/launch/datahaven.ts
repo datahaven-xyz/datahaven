@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { secp256k1 } from "@noble/curves/secp256k1";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
 import { type PolkadotClient, createClient } from "polkadot-api";
@@ -8,7 +9,8 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import { waitForContainerToStart } from "utils";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
-import { type Hex, keccak256 } from "viem";
+import { type Hex, keccak256, toHex } from "viem";
+import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
@@ -258,9 +260,7 @@ export const launchDataHavenSolochain = async (
 
   for (let i = 0; i < 30; i++) {
     logger.info("Waiting for datahaven to start...");
-    // Get the port of the primary node (or default)
-    const primaryNodePort =
-      launchedNetwork.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1) || 9944;
+    const primaryNodePort = launchedNetwork.getPublicWsPort();
     if (await isNetworkReady(primaryNodePort)) {
       logger.success(
         `DataHaven network started, primary node accessible on port ${primaryNodePort}`

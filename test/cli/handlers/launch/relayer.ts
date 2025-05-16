@@ -69,7 +69,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   // Get DataHaven node port
-  const dhNodes = launchedNetwork.getDHNodes();
+  const dhNodes = launchedNetwork.containers.filter((container) =>
+    container.name.includes("datahaven")
+  );
   let substrateWsPort: number;
   let substrateNodeId: string;
 
@@ -81,8 +83,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     substrateNodeId = "default (assumed)";
   } else {
     const firstDhNode = dhNodes[0];
-    substrateWsPort = firstDhNode.port;
-    substrateNodeId = firstDhNode.id;
+    substrateWsPort = firstDhNode.publicPorts.ws;
+    substrateNodeId = firstDhNode.name;
     logger.info(
       `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
     );
@@ -238,7 +240,7 @@ const waitBeefyReady = async (
   pollIntervalMs: number,
   timeoutMs: number
 ): Promise<void> => {
-  const port = launchedNetwork.getDHNodes()[0]?.port ?? 9944;
+  const port = launchedNetwork.getPublicWsPort();
   const wsUrl = `ws://127.0.0.1:${port}`;
   const maxAttempts = Math.floor(timeoutMs / pollIntervalMs);
 
@@ -255,7 +257,7 @@ const waitBeefyReady = async (
 
         if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
           logger.success(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
-          await client.destroy();
+          client.destroy();
           return;
         }
 
@@ -270,12 +272,12 @@ const waitBeefyReady = async (
     }
 
     logger.error(`❌ BEEFY failed to become ready after ${timeoutMs / 1000} seconds`);
-    if (client) await client.destroy();
+    if (client) client.destroy();
     throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   } catch (error) {
     logger.error(`❌ Failed to connect to DataHaven node for BEEFY check: ${error}`);
     if (client) {
-      await client.destroy();
+      client.destroy();
     }
     throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   }
@@ -317,7 +319,7 @@ export const initEthClientPallet = async (
   logger.trace(initialCheckpoint.toJSON());
 
   // Send the checkpoint to the Substrate runtime
-  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getDHPort()}`;
+  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpoint);
 };
 

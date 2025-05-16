@@ -6,8 +6,7 @@ import {
   createPapiConnectors,
   generateRandomAccount,
   getPapiSigner,
-  logger,
-  sendTxn
+  logger
 } from "utils";
 import { isAddress, parseEther } from "viem";
 
@@ -57,7 +56,7 @@ describe("Datahaven solochain", () => {
       value
     });
 
-    const resp = await sendTxn(ext);
+    const resp = await ext.signAndSubmit(signer, { at: "best" });
     logger.debug(`Transaction submitted: ${resp.txHash}`);
     const {
       data: { free: freeBalance }

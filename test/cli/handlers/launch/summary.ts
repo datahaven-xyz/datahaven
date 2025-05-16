@@ -92,7 +92,7 @@ export const performSummaryOperations = async (
       }
 
       case service === "datahaven-alice": {
-        const port = launchedNetwork.getDHPort();
+        const port = launchedNetwork.getContainerPort(service);
         displayData.push({
           service,
           ports: { ws: port },

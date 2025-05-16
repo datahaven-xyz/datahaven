@@ -17,7 +17,7 @@ export class LaunchedNetwork {
   protected fileDescriptors: number[];
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
-  protected elRpcUrl?: string;
+  protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
   protected clEndpoint?: string;
 
@@ -27,7 +27,7 @@ export class LaunchedNetwork {
     this.fileDescriptors = [];
     this._containers = [];
     this._activeRelayers = [];
-    this.elRpcUrl = undefined;
+    this._elRpcUrl = undefined;
     this.clEndpoint = undefined;
   }
 
@@ -79,6 +79,12 @@ export class LaunchedNetwork {
     }
   }
 
+  public getPublicWsPort(): number {
+    const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
+    invariant(port !== undefined, "❌ No public port found in containers");
+    return port;
+  }
+
   public get containers(): ContainerSpec[] {
     return this._containers;
   }
@@ -90,8 +96,8 @@ export class LaunchedNetwork {
    * Sets the RPC URL for the Ethereum Execution Layer (EL) client.
    * @param url - The EL RPC URL string.
    */
-  setElRpcUrl(url: string) {
-    this.elRpcUrl = url;
+  public set elRpcUrl(url: string) {
+    this._elRpcUrl = url;
   }
 
   /**
@@ -99,9 +105,9 @@ export class LaunchedNetwork {
    * @returns The EL RPC URL string.
    * @throws If the EL RPC URL has not been set.
    */
-  getElRpcUrl(): string {
-    invariant(this.elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
-    return this.elRpcUrl;
+  public get elRpcUrl(): string {
+    invariant(this._elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
+    return this._elRpcUrl;
   }
 
   /**

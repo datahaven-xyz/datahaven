@@ -7,23 +7,16 @@ import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-<<<<<<< HEAD
 import {
   confirmWithTimeout,
   killRunningContainers,
   logger,
   printDivider,
   printHeader,
-  runShellCommandWithLogger,
   waitForContainerToStart,
-  waitForLog
 } from "utils";
-=======
-import { waitForContainerToStart } from "utils";
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
->>>>>>> 82145b882b1ef0dc4ca1cd8345c1f62e5e9869f0
 import type { LaunchOptions } from ".";
 
 const DOCKER_NETWORK_NAME = "datahaven-net";
@@ -237,23 +230,19 @@ export const launchDataHavenSolochain = async (
     return;
   }
 
-<<<<<<< HEAD
   await killRunningContainers(options.datahavenImageTag);
 
   logger.info(`Attempting to remove existing Docker network: ${DOCKER_NETWORK_NAME}`);
   await $`docker network rm ${DOCKER_NETWORK_NAME} || true`.quiet();
   logger.info(`Creating Docker network: ${DOCKER_NETWORK_NAME}`);
   await $`docker network create ${DOCKER_NETWORK_NAME}`.quiet();
-=======
   invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
 
   await checkTagExists(options.datahavenImageTag);
->>>>>>> 82145b882b1ef0dc4ca1cd8345c1f62e5e9869f0
 
   launchedNetwork.networkName = DOCKER_NETWORK_NAME;
   logger.info(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
 
-  await checkTagExists(options.datahavenImageTag);
 
   for (const id of CLI_AUTHORITY_IDS) {
     logger.info(`Starting ${id}...`);
@@ -267,36 +256,13 @@ export const launchDataHavenSolochain = async (
       "linux/amd64",
       "--name",
       containerName,
-<<<<<<< HEAD
       "--network",
       DOCKER_NETWORK_NAME,
-      ...(id === "alice" ? ["-p", "9944:9944"] : []),
-=======
       ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
->>>>>>> 82145b882b1ef0dc4ca1cd8345c1f62e5e9869f0
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS
     ];
-<<<<<<< HEAD
-
-    logger.debug(`Spawning command: ${command.join(" ")}`);
-    const process = Bun.spawn(command);
-    process.unref();
-
-    launchedNetwork.addContainer(containerName, id === "alice" ? { ws: 9944 } : {});
-
-    await waitForContainerToStart(containerName);
-    await waitForLog({
-      searchString: "Running JSON-RPC server: addr=0.0.0.0:",
-      containerName,
-      timeoutSeconds: 30,
-      tail: 1
-    });
-
-    launchedNetwork.addProcess(process);
-    logger.debug(`Started ${id} at ${process.pid}`);
-=======
 
     logger.debug($`sh -c "${command.join(" ")}"`.text());
 
@@ -311,7 +277,6 @@ export const launchDataHavenSolochain = async (
     //   timeoutSeconds: 30
     // });
     // logger.debug(listeningLine);
->>>>>>> 82145b882b1ef0dc4ca1cd8345c1f62e5e9869f0
   }
 
   for (let i = 0; i < 30; i++) {
@@ -394,15 +359,12 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
   }
 };
 
-<<<<<<< HEAD
-=======
 /**
  * Checks if an image exists locally or on Docker Hub.
  *
  * @param tag - The tag of the image to check.
  * @returns A promise that resolves when the image is found.
  */
->>>>>>> 82145b882b1ef0dc4ca1cd8345c1f62e5e9869f0
 const checkTagExists = async (tag: string) => {
   const cleaned = tag.trim();
   logger.debug(`Checking if image  ${cleaned} is available locally`);
@@ -419,8 +381,6 @@ const checkTagExists = async (tag: string) => {
 
   logger.success(`Image ${tag} found locally`);
 };
-<<<<<<< HEAD
-=======
 
 const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
   const targetContainerName = "datahaven-alice";
@@ -465,4 +425,3 @@ export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): str
   const address = publicKeyToAddress(uncompressedPubKeyHex);
   return address;
 };
->>>>>>> 82145b882b1ef0dc4ca1cd8345c1f62e5e9869f0

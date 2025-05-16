@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { type RelayerType, logger } from "utils";
 
@@ -16,7 +15,6 @@ export class LaunchedNetwork {
   protected processes: BunProcess[];
   protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
-  protected DHNodes: { id: string; port: number }[];
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected elRpcUrl?: string;
@@ -27,7 +25,6 @@ export class LaunchedNetwork {
     this.runId = crypto.randomUUID();
     this.processes = [];
     this.fileDescriptors = [];
-    this.DHNodes = [];
     this._containers = [];
     this._activeRelayers = [];
     this.elRpcUrl = undefined;
@@ -43,23 +40,19 @@ export class LaunchedNetwork {
   }
 
   /**
-   * Gets the list of launched DataHaven (DH) nodes.
-   * @returns An array of DH node objects, each with an id and port.
-   */
-  getDHNodes(): { id: string; port: number }[] {
-    return [...this.DHNodes];
-  }
-
-  /**
-   * Gets the port for a specific DataHaven (DH) node by its ID.
-   * @param id - The ID of the DH node.
+   * Gets the port for a DataHaven RPC node.
+   *
+   * In reality, it just looks for the "ws" port of the
+   * `datahaven-alice` container, if it was registered.
    * @returns The port number of the DH node.
-   * @throws If the node with the given ID is not found.
+   * @throws If the node is not found.
    */
-  getDHPort(id: string): number {
-    const node = this.DHNodes.find((x) => x.id === id);
-    invariant(node, `❌ Datahaven node ${id} not found`);
-    return node.port;
+  getDHPort(): number {
+    const container = this.containers.find((c) => c.name === "datahaven-alice");
+    if (!container) {
+      throw new Error("❌ DataHaven node not found");
+    }
+    return container.publicPorts.ws;
   }
 
   /**
@@ -80,15 +73,6 @@ export class LaunchedNetwork {
 
   addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
     this._containers.push({ name: containerName, publicPorts });
-  }
-
-  /**
-   * Adds a DataHaven (DH) node to the list of launched nodes.
-   * @param id - The ID of the DH node.
-   * @param port - The port number the DH node is running on.
-   */
-  addDHNode(id: string, port: number) {
-    this.DHNodes.push({ id, port });
   }
 
   registerRelayerType(type: RelayerType): void {
@@ -158,12 +142,6 @@ export class LaunchedNetwork {
 
     for (const container of this.containers) {
       logger.debug(`Container is still running: ${container}`);
-      // try {
-      //   await $`docker rm -f ${container}`.quiet();
-      //   logger.debug(`Removed container ${container}`);
-      // } catch (error) {
-      //   logger.error(`Error removing container ${container}: ${error}`);
-      // }
     }
   }
 }

@@ -239,7 +239,7 @@ export const initEthClientPallet = async (
   logger.trace(initialCheckpoint.toJSON());
 
   // Send the checkpoint to the Substrate runtime
-  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getDHNodes()[0].port}`;
+  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getDHPort()}`;
   await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpoint);
 };
 

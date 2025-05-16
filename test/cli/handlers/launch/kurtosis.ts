@@ -23,6 +23,7 @@ export const launchKurtosis = async (
     logger.trace("Checking if launchKurtosis option was set via flags");
     if (options.launchKurtosis === false) {
       logger.info("Keeping existing Kurtosis enclave.");
+
       await registerServices(launchedNetwork);
       printDivider();
       return;
@@ -39,6 +40,7 @@ export const launchKurtosis = async (
 
       if (!shouldRelaunch) {
         logger.info("Keeping existing Kurtosis enclave.");
+
         await registerServices(launchedNetwork);
         printDivider();
         return;

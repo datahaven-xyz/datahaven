@@ -1,7 +1,7 @@
 import { PassThrough, type Readable } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { type ServiceInfo, type ServiceMapping, StandardServiceMappings, logger } from "utils";
+import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
 
 export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   const docker = new Docker();

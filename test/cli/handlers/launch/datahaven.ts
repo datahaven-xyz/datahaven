@@ -48,8 +48,8 @@ export const launchDataHavenSolochain = async (
     logger.trace("Checking if datahaven option was set via flags");
     if (options.datahaven === false) {
       logger.info("Keeping existing DataHaven containers.");
-      // Potentially re-register services or confirm network readiness
-      // For now, just skipping
+
+      await registerNodes(launchedNetwork);
       printDivider();
       return;
     }
@@ -66,8 +66,8 @@ export const launchDataHavenSolochain = async (
 
       if (!shouldRelaunch) {
         logger.info("Keeping existing DataHaven containers.");
-        // Potentially re-register services or confirm network readiness
-        // For now, just skipping
+
+        await registerNodes(launchedNetwork);
         printDivider();
         return;
       }
@@ -120,19 +120,16 @@ export const launchDataHavenSolochain = async (
       ...COMMON_LAUNCH_ARGS
     ];
 
-    await runShellCommandWithLogger(command.join(" "), {
-      logLevel: "debug"
-    });
-
-    launchedNetwork.addContainer(containerName, id === "alice" ? { ws: 9944 } : {});
+    logger.debug($`sh -c "${command.join(" ")}"`.text());
 
     await waitForContainerToStart(containerName);
-    await waitForLog({
-      searchString: "Running JSON-RPC server: addr=0.0.0.0:",
-      containerName,
-      timeoutSeconds: 30,
-      tail: 1
-    });
+    // TODO: Add this back once `waitForLog` cleans up its resources well
+    // await waitForLog({
+    //   searchString: "Running JSON-RPC server: addr=0.0.0.0:",
+    //   containerName,
+    //   timeoutSeconds: 30,
+    //   tail: 1
+    // });
   }
 
   for (let i = 0; i < 30; i++) {
@@ -140,6 +137,9 @@ export const launchDataHavenSolochain = async (
 
     if (await isNetworkReady(9944)) {
       logger.success("Datahaven network started");
+
+      await registerNodes(launchedNetwork);
+      printDivider();
       return;
     }
     logger.debug("Node not ready, waiting 1 second...");
@@ -231,4 +231,29 @@ const checkTagExists = async (tag: string) => {
   }
 
   logger.success(`Image ${tag} found locally`);
+};
+
+const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
+  const targetContainerName = "datahaven-alice";
+  const aliceHostWsPort = 9944; // Standard host port for Alice's WS, as set during launch.
+
+  logger.debug(`Checking Docker status for container: ${targetContainerName}`);
+  // Use ^ and $ for an exact name match in the filter.
+  const dockerPsOutput = await $`docker ps -q --filter "name=^${targetContainerName}$"`.text();
+  const isContainerRunning = dockerPsOutput.trim().length > 0;
+
+  if (!isContainerRunning) {
+    // If the target Docker container is not running, we cannot register it.
+    throw new Error(
+      `❌ Docker container ${targetContainerName} is not running. Cannot register node.`
+    );
+  }
+
+  // If the Docker container is running, proceed to register it in launchedNetwork.
+  // We use the standard host WS port that "datahaven-alice" is expected to use.
+  logger.info(
+    `✅ Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
+  );
+  launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
+  logger.success(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
 };

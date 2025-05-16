@@ -7,7 +7,7 @@ import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-import { waitForContainerToStart, waitForLog } from "utils";
+import { waitForContainerToStart } from "utils";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
@@ -89,14 +89,14 @@ export async function setupDataHavenValidatorConfig(
         );
         authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
       }
-      await papiClient.destroy();
+      papiClient.destroy();
     } catch (error) {
       logger.error(
         `❌ Error fetching BEEFY next authorities from node ${firstNode.name}: ${error}. Falling back to hardcoded authority set.`
       );
       authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
       if (papiClient) {
-        await papiClient.destroy(); // Ensure client is destroyed even on error
+        papiClient.destroy();
       }
     }
   }
@@ -251,12 +251,16 @@ export const launchDataHavenSolochain = async (
     logger.debug($`sh -c "${command.join(" ")}"`.text());
 
     await waitForContainerToStart(containerName);
-    const listeningLine = await waitForLog({
-      search: "Running JSON-RPC server: addr=0.0.0.0:",
-      containerName,
-      timeoutSeconds: 30
-    });
-    logger.debug(listeningLine);
+
+    // TODO: Un-comment this when it doesn't stop process from hanging
+    // This is working on SH, but not here so probably a Bun defect
+    //
+    // const listeningLine = await waitForLog({
+    //   search: "Running JSON-RPC server: addr=0.0.0.0:",
+    //   containerName,
+    //   timeoutSeconds: 30
+    // });
+    // logger.debug(listeningLine);
   }
 
   for (let i = 0; i < 30; i++) {
@@ -328,12 +332,12 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
     client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
     const chainName = await client._request<string>("system_chain", []);
     logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
-    await client.destroy();
+    client.destroy();
     return !!chainName; // Ensure it's a boolean and chainName is truthy
   } catch (error) {
     logger.debug(`isNetworkReady PAPI check failed for port ${port}: ${error}`);
     if (client) {
-      await client.destroy();
+      client.destroy();
     }
     return false;
   }

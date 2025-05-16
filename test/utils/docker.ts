@@ -1,13 +1,12 @@
-import { type Duplex, PassThrough } from "node:stream";
+import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
 import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
 
+const docker = new Docker({});
+
 export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
-  const docker = new Docker();
-
   const containers = await docker.listContainers();
-
   const services: ServiceInfo[] = [];
 
   for (const mapping of StandardServiceMappings) {
@@ -85,78 +84,69 @@ export const getPublicPort = async (
   return portMappings.PublicPort;
 };
 
-export const waitForLog = async (options: {
+export async function waitForLog(opts: {
   search: string | RegExp;
   containerName: string;
   timeoutSeconds?: number;
-}): Promise<string> => {
-  logger.debug(`Waiting for log ${options.search} in container ${options.containerName}...`);
-  const docker = new Docker();
-  const container = docker.getContainer(options.containerName);
-  invariant(
-    await container.inspect(),
-    `❌ container ${options.containerName} cannot be found  in running container list`
-  );
+}): Promise<string> {
+  const container = docker.getContainer(opts.containerName);
+  await container.inspect();
+  const timeoutMs = (opts.timeoutSeconds ?? 10) * 1_000;
 
-  const timeoutMs = (options.timeoutSeconds ?? 10) * 1000;
-  let timer: NodeJS.Timeout;
-
-  const timeoutPromise = new Promise<string>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(
-        new Error(
-          `Timed out after ${timeoutMs} ms waiting for “${options.search}” in logs of ${options.containerName}`
-        )
-      );
-    }, timeoutMs);
-  });
-
-  const logStream = (await container.logs({
+  const rawStream = (await container.logs({
     stdout: true,
     stderr: true,
     follow: true,
     since: 0
   })) as Duplex;
+  const pass = new PassThrough();
+  container.modem.demuxStream(rawStream, pass, pass);
 
-  const passthrough = new PassThrough();
-
-  container.modem.demuxStream(logStream, passthrough, passthrough);
-
-  const foundPromise = new Promise<string>((resolve, reject) => {
-    passthrough.on("data", (chunk: Buffer) => {
-      const text = chunk.toString("utf8");
-      if (
-        (typeof options.search === "string" && text.includes(options.search)) ||
-        (options.search instanceof RegExp && options.search.test(text))
-      ) {
-        cleanup();
-        resolve(text);
-      }
-    });
-
-    passthrough.on("error", (err) => {
-      cleanup();
-      reject(err);
-    });
-
-    passthrough.on("end", () => {
-      cleanup();
-      reject(
+  const { readable } = Transform.toWeb(pass);
+  const decoder = new TextDecoder();
+  const timer = setTimeout(
+    () =>
+      pass.destroy(
         new Error(
-          `Log stream ended before “${options.search}” appeared for container ${options.containerName}`
+          `Timed out after ${timeoutMs} ms waiting for “${opts.search}” in ${opts.containerName}`
         )
-      );
-    });
+      ),
+    timeoutMs
+  );
 
-    function cleanup() {
-      clearTimeout(timer);
-      passthrough.destroy();
-      logStream.destroy();
+  try {
+    for await (const chunk of readable) {
+      const text = decoder.decode(chunk as Uint8Array, { stream: false });
+
+      const hit =
+        typeof opts.search === "string" ? text.includes(opts.search) : opts.search.test(text);
+
+      if (hit) return text.trim();
     }
-  });
 
-  return Promise.race([foundPromise, timeoutPromise]);
-};
+    throw new Error(
+      `Log stream ended before “${opts.search}” appeared for container ${opts.containerName}`
+    );
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    if (pass && typeof pass.destroy === "function" && !pass.destroyed) {
+      pass.destroy();
+    }
+
+    if (rawStream) {
+      if (typeof rawStream.destroy === "function" && !rawStream.destroyed) {
+        rawStream.destroy();
+      }
+      const socket = (rawStream as any).socket;
+      if (socket && typeof socket.destroy === "function" && !socket.destroyed) {
+        socket.destroy();
+      }
+    }
+  }
+}
 
 export const waitForContainerToStart = async (
   containerName: string,

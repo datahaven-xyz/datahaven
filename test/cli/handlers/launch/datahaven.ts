@@ -6,9 +6,7 @@ import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-import {
-  waitForContainerToStart,
-} from "utils";
+import { waitForContainerToStart } from "utils";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { type Hex, keccak256 } from "viem";
 import type { LaunchOptions } from ".";
@@ -261,7 +259,8 @@ export const launchDataHavenSolochain = async (
   for (let i = 0; i < 30; i++) {
     logger.info("Waiting for datahaven to start...");
     // Get the port of the primary node (or default)
-    const primaryNodePort = launchedNetwork.containers.map(x => x.publicPorts.ws).find(x => x !== -1) || 9944;
+    const primaryNodePort =
+      launchedNetwork.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1) || 9944;
     if (await isNetworkReady(primaryNodePort)) {
       logger.success(
         `DataHaven network started, primary node accessible on port ${primaryNodePort}`
@@ -386,8 +385,7 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
   );
   launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
   logger.success(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
-
-}
+};
 
 // Function to convert compressed public key to Ethereum address
 export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {

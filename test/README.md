@@ -15,6 +15,11 @@
 - [Bun](https://bun.sh/): TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 
+##### MacOS
+
+> [!IMPORTANT]
+> If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+
 ## QuickStart
 
 Run:

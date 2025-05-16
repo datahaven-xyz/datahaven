@@ -10,7 +10,7 @@ import {
 } from "utils";
 import { isAddress, parseEther } from "viem";
 
-describe("Datahaven solochain", () => {
+describe("DataHaven solochain", () => {
   let api: DataHavenApi;
   let signer: PolkadotSigner;
 

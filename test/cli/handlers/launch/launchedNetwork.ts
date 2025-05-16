@@ -44,15 +44,13 @@ export class LaunchedNetwork {
    *
    * In reality, it just looks for the "ws" port of the
    * `datahaven-alice` container, if it was registered.
-   * @returns The port number of the DH node.
-   * @throws If the node is not found.
+   * @returns The port number of the container, or -1 if ws port is not found.
+   * @throws If the container is not found.
    */
-  getDHPort(): number {
-    const container = this.containers.find((c) => c.name === "datahaven-alice");
-    if (!container) {
-      throw new Error("❌ DataHaven node not found");
-    }
-    return container.publicPorts.ws;
+  getContainerPort(id: string): number {
+    const container = this._containers.find((x) => x.name === id);
+    invariant(container, `❌ Container ${id} not found`);
+    return container.publicPorts.ws ?? -1;
   }
 
   /**

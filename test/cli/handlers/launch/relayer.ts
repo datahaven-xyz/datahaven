@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { createClient } from "polkadot-api";
+import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
@@ -68,8 +68,31 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     return;
   }
 
+  // Get DataHaven node port
+  const dhNodes = launchedNetwork.getDHNodes();
+  let substrateWsPort: number;
+  let substrateNodeId: string;
+
+  if (dhNodes.length === 0) {
+    logger.warn(
+      "⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to port 9944 for relayers."
+    );
+    substrateWsPort = 9944;
+    substrateNodeId = "default (assumed)";
+  } else {
+    const firstDhNode = dhNodes[0];
+    substrateWsPort = firstDhNode.port;
+    substrateNodeId = firstDhNode.id;
+    logger.info(
+      `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
+    );
+  }
+
   // Kill any pre-existing relayer processes if they exist
   await $`pkill snowbridge-relay`.nothrow().quiet();
+
+  // Check if BEEFY is ready before proceeding
+  await waitBeefyReady(launchedNetwork, 2000, 60000);
 
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
@@ -126,9 +149,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     const ethWsPort = await getPortFromKurtosis("el-1-reth-lighthouse", "ws");
     const ethHttpPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
-    const substrateWsPort = 9944;
     logger.debug(
-      `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (hardcoded)`
+      `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );
 
     if (type === "beacon") {
@@ -201,6 +223,62 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   logger.success("Snowbridge relayers started");
   printDivider();
+};
+
+/**
+ * Waits for the BEEFY protocol to be ready by polling its finalized head.
+ *
+ * @param launchedNetwork - An instance of LaunchedNetwork to get the node endpoint.
+ * @param pollIntervalMs - The interval in milliseconds to poll the BEEFY endpoint.
+ * @param timeoutMs - The total time in milliseconds to wait before timing out.
+ * @throws Error if BEEFY is not ready within the timeout.
+ */
+const waitBeefyReady = async (
+  launchedNetwork: LaunchedNetwork,
+  pollIntervalMs: number,
+  timeoutMs: number
+): Promise<void> => {
+  const port = launchedNetwork.getDHNodes()[0]?.port ?? 9944;
+  const wsUrl = `ws://127.0.0.1:${port}`;
+  const maxAttempts = Math.floor(timeoutMs / pollIntervalMs);
+
+  logger.info(`Waiting for BEEFY to be ready on port ${port}...`);
+
+  let client: PolkadotClient | undefined;
+  try {
+    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        logger.debug(`Attempt ${attempt}/${maxAttempts} to check beefy_getFinalizedHead`);
+        const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
+
+        if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
+          logger.success(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
+          await client.destroy();
+          return;
+        }
+
+        logger.debug(
+          `BEEFY not ready or finalized head is zero. Retrying in ${pollIntervalMs / 1000}s...`
+        );
+      } catch (rpcError) {
+        logger.warn(`RPC error checking BEEFY status: ${rpcError}. Retrying...`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    logger.error(`❌ BEEFY failed to become ready after ${timeoutMs / 1000} seconds`);
+    if (client) await client.destroy();
+    throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
+  } catch (error) {
+    logger.error(`❌ Failed to connect to DataHaven node for BEEFY check: ${error}`);
+    if (client) {
+      await client.destroy();
+    }
+    throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
+  }
 };
 
 /**

@@ -24,7 +24,6 @@
     "allocationConfigurationDelay": 75,
     "beaconChainGenesisTimestamp": 1695902400
   },
-
   "avs": {
     "avsOwner": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
     "rewardsInitiator": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
@@ -34,7 +33,6 @@
     "bspsStrategies": [],
     "mspsStrategies": []
   },
-
   "snowbridge": {
     "randaoCommitDelay": 4,
     "randaoCommitExpiration": 24,
@@ -42,12 +40,20 @@
     "startBlock": 1,
     "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "initialValidators": [
-      "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199914b9e5506744e80bd0fd33d",
-      "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e"
+      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
+      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde",
+      "0x3eb799651607280e854bd2e42c1df1c8e4a6167772dfb3c64a813e40f6e87136",
+      "0x50bdd3ac4f54a04702a055c33303025b2038446c7334ed3b3341f310f052116f",
+      "0x55ca68207e72b7a7cd012364e03ac9ee560eb1b26de63f0ee42a649d74f3bf58",
+      "0x0c7d65cd92edbbe78113c7e966f65ad65bb55d8d9134d9f395ac340d62b04732"
     ],
     "nextValidators": [
-      "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199914b9e5506744e80bd0fd33d",
-      "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e"
+      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
+      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde",
+      "0x3eb799651607280e854bd2e42c1df1c8e4a6167772dfb3c64a813e40f6e87136",
+      "0x50bdd3ac4f54a04702a055c33303025b2038446c7334ed3b3341f310f052116f",
+      "0x55ca68207e72b7a7cd012364e03ac9ee560eb1b26de63f0ee42a649d74f3bf58",
+      "0x0c7d65cd92edbbe78113c7e966f65ad65bb55d8d9134d9f395ac340d62b04732"
     ]
   }
 }

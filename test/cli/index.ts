@@ -47,9 +47,9 @@ const program = new Command()
 program
   .version("0.2.0")
   .name("bun cli")
-  .summary("🫎  Datahaven: Network Launcher CLI")
+  .summary("🫎  DataHaven: Network Launcher CLI")
   .usage("[options]")
-  .description(`🫎  Datahaven: Network Launcher CLI for launching a full Datahaven network.
+  .description(`🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
     Complete with:
     - Solo-chain validators,
     - Storage providers,

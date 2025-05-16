@@ -89,16 +89,22 @@ const substrateRelaySchema = z
         BeefyClient: z.string(),
         Gateway: z.string()
       }),
-      "channel-id": z.string()
     }),
     sink: z.object({
       contracts: z.object({
         Gateway: z.string()
       }),
       ethereum: z.object({
-        endpoint: z.string()
+        endpoint: z.string(),
+        "gas-limit": z.string()
       })
-    })
+    }),
+    schedule: z.object({
+      id: z.number(),
+      totalRelayerCount: z.number(),
+      sleepInterval: z.number()
+    }),
+    "reward-address": z.string()
   })
   .describe("Substrate Relay Configuration");
 
@@ -285,9 +291,9 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.source.polkadot.endpoint = options.relaychainEndpoint;
       obj.source.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
       obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
-      obj.source["channel-id"] = options.primaryGovernanceChannelId;
       obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.sink.ethereum.endpoint = options.ethWriterEndpoint;
+      obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
     },
     commonOptions
   );
@@ -303,9 +309,9 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.source.polkadot.endpoint = options.relaychainEndpoint;
       obj.source.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
       obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
-      obj.source["channel-id"] = options.secondaryGovernanceChannelId;
       obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.sink.ethereum.endpoint = options.ethWriterEndpoint;
+      obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
     },
     commonOptions
   );

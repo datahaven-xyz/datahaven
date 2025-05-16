@@ -6,15 +6,18 @@
         "polkadot": {
             "endpoint": ""
         },
+        "parachain": {
+            "endpoint": ""
+        },
         "contracts": {
             "BeefyClient": "",
             "Gateway": ""
-        },
-        "channel-id": ""
+        }
     },
     "sink": {
         "ethereum": {
-            "endpoint": ""
+            "endpoint": "",
+            "gas-limit": ""
         },
         "contracts": {
             "Gateway": ""
@@ -24,5 +27,6 @@
         "id": 0,
         "totalRelayerCount": 1,
         "sleepInterval": 10
-    }
+    },
+    "reward-address": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
 }

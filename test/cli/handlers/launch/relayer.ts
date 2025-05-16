@@ -22,6 +22,7 @@ type RelayerSpec = {
   type: RelayerType;
   config: string;
   pk: { type: "ethereum" | "substrate"; value: string };
+  secondaryPk?: { type: "ethereum" | "substrate"; value: string };
 };
 
 /**
@@ -91,6 +92,19 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         type: "substrate",
         value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey
       }
+    },
+    {
+      name: "relayer-substrate",
+      type: "substrate",
+      config: "substrate-relay.json",
+      pk: {
+        type: "ethereum",
+        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
+      },
+      secondaryPk: {
+        type: "substrate",
+        value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey
+      }
     }
   ];
 
@@ -124,7 +138,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beacon config written to ${outputFilePath}`);
-    } else {
+    } else if (type === "beefy") {
       const cfg = parseRelayConfig(json, type);
       cfg.source.polkadot.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
       cfg.sink.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
@@ -132,6 +146,17 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.sink.contracts.Gateway = gatewayAddress;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beefy config written to ${outputFilePath}`);
+    } else if (type === "substrate") {
+      const cfg = parseRelayConfig(json, type);
+      cfg.source.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
+      cfg.source.polkadot.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
+      cfg.source.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
+      cfg.source.contracts.BeefyClient = beefyClientAddress;
+      cfg.source.contracts.Gateway = gatewayAddress;
+      cfg.sink.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
+      cfg.sink.contracts.Gateway = gatewayAddress;
+      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+      logger.success(`Updated substrate config written to ${outputFilePath}`);
     }
   }
 
@@ -143,7 +168,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     `❌ Relayer binary does not exist at ${options.relayerBinPath}`
   );
 
-  for (const { config, name, type, pk } of relayersToStart) {
+  for (const { config, name, type, pk, secondaryPk } of relayersToStart) {
     try {
       logger.info(`Starting relayer ${name} ...`);
       const logFileName = `${type}-${name.replace(/[^a-zA-Z0-9-]/g, "")}.log`;
@@ -155,12 +180,16 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       const spawnCommand = [
         options.relayerBinPath,
         "run",
-        type,
+        type === "substrate" ? "parachain" : type,
         "--config",
         path.join("tmp/configs", config),
         type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
         pk.value
       ];
+
+      if (type === "substrate" && secondaryPk) {
+        spawnCommand.push("--substrate.private-key", secondaryPk.value);
+      }
 
       logger.debug(`Spawning command: ${spawnCommand.join(" ")}`);
 

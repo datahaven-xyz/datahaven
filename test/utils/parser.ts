@@ -56,7 +56,42 @@ export const BeefyRelayConfigSchema = z.object({
 });
 export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 
-export type RelayerType = "beefy" | "beacon";
+export const SubstrateRelayConfigSchema = z
+  .object({
+    source: z.object({
+      ethereum: z.object({
+        endpoint: z.string()
+      }),
+      polkadot: z.object({
+        endpoint: z.string()
+      }),
+      parachain: z.object({
+        endpoint: z.string()
+      }),
+      contracts: z.object({
+        BeefyClient: z.string(),
+        Gateway: z.string()
+      }),
+    }),
+    sink: z.object({
+      contracts: z.object({
+        Gateway: z.string()
+      }),
+      ethereum: z.object({
+        endpoint: z.string(),
+        "gas-limit": z.string()
+      })
+    }),
+    schedule: z.object({
+      id: z.number(),
+      totalRelayerCount: z.number(),
+      sleepInterval: z.number()
+    }),
+    "reward-address": z.string(),
+  });
+export type SubstrateRelayConfig = z.infer<typeof SubstrateRelayConfigSchema>;
+
+export type RelayerType = "beefy" | "beacon" | "substrate";
 
 /**
  * Parse beacon relay configuration
@@ -81,6 +116,17 @@ function parseBeefyConfig(config: unknown): BeefyRelayConfig {
 }
 
 /**
+ * Parse substrate relay configuration
+ */
+function parseSubstrateConfig(config: unknown): SubstrateRelayConfig {
+  const result = SubstrateRelayConfigSchema.safeParse(config);
+  if (result.success) {
+    return result.data;
+  }
+  throw new Error(`Failed to parse config as SubstrateRelayConfig: ${result.error.message}`);
+}
+
+/**
  * Type Guard to check if a config object is a BeaconRelayConfig
  */
 export function isBeaconConfig(
@@ -91,13 +137,14 @@ export function isBeaconConfig(
 
 export function parseRelayConfig(config: unknown, type: "beacon"): BeaconRelayConfig;
 export function parseRelayConfig(config: unknown, type: "beefy"): BeefyRelayConfig;
+export function parseRelayConfig(config: unknown, type: "substrate"): SubstrateRelayConfig;
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType
-): BeaconRelayConfig | BeefyRelayConfig;
+): BeaconRelayConfig | BeefyRelayConfig | SubstrateRelayConfig;
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType
-): BeaconRelayConfig | BeefyRelayConfig {
-  return type === "beacon" ? parseBeaconConfig(config) : parseBeefyConfig(config);
+): BeaconRelayConfig | BeefyRelayConfig | SubstrateRelayConfig {
+  return type === "beacon" ? parseBeaconConfig(config) : type === "beefy" ? parseBeefyConfig(config) : parseSubstrateConfig(config);
 }

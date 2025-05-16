@@ -54,7 +54,6 @@ RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
     mkdir -p /data /datahaven/.local/share && \
     chown -R datahaven:datahaven /data && \
     ln -s /data /datahaven/.local/share/datahaven && \
-    rm -rf /usr/bin /usr/sbin && \
     /usr/local/bin/datahaven-node --version
 
 USER datahaven

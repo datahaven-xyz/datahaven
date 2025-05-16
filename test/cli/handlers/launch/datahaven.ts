@@ -9,7 +9,6 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
-  killRunningContainers,
   logger,
   printDivider,
   printHeader,
@@ -230,18 +229,15 @@ export const launchDataHavenSolochain = async (
     return;
   }
 
-  await killRunningContainers(options.datahavenImageTag);
+  logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
 
-  logger.info(`Attempting to remove existing Docker network: ${DOCKER_NETWORK_NAME}`);
-  await $`docker network rm ${DOCKER_NETWORK_NAME} || true`.quiet();
-  logger.info(`Creating Docker network: ${DOCKER_NETWORK_NAME}`);
-  await $`docker network create ${DOCKER_NETWORK_NAME}`.quiet();
   invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
 
   await checkTagExists(options.datahavenImageTag);
 
   launchedNetwork.networkName = DOCKER_NETWORK_NAME;
-  logger.info(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
 
   for (const id of CLI_AUTHORITY_IDS) {
     logger.info(`Starting ${id}...`);
@@ -331,6 +327,9 @@ const cleanDataHavenContainers = async (): Promise<void> => {
     }
   }
   logger.info("✅ Existing DataHaven containers stopped and removed.");
+
+  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME}`.text());
+  logger.info("✅ DataHaven Docker network removed.");
 };
 
 /**

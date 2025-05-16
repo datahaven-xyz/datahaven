@@ -14,11 +14,26 @@ datahaven/
 └── README.md
 ```
 
+## E2E CLI
+
+This repo comes with a CLI for launching a local DataHaven network, packaged with:
+
+1. A full Ethereum network with:
+   - 2 x Execution Layer clients (e.g., reth)
+   - 2 x Consensus Layer clients (e.g., lighthouse)
+   - Blockscout Explorer services for EL (if enabled with --blockscout)
+   - Dora Explorer service for CL
+   - Contracts deployed and configured for the DataHaven network.
+2. A DataHaven solochain.
+3. Snowbridge relayers for cross-chain communication.
+
+To launch the network, follow the instructions in the [test README](./test/README.md).
+
 ## Docker
 
 This repo publishes images to [DockerHub](https://hub.docker.com/r/moonsonglabs/datahaven).
 
-> [!TIP]  
+> [!TIP]
 >
 > If you cannot see this repo you must be added to the permission list for the private repo.
 

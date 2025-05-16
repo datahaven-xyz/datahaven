@@ -5,6 +5,7 @@ import {
   logger,
   printDivider,
   printHeader,
+  runShellCommandWithLogger,
   waitForContainerToStart,
   waitForLog
 } from "utils";
@@ -40,6 +41,41 @@ export const launchDataHavenSolochain = async (
   printHeader("Starting DataHaven Network");
 
   let shouldLaunchDataHaven = options.datahaven;
+
+  if ((await checkDataHavenRunning()) && !options.alwaysClean) {
+    logger.info("ℹ️  DataHaven network (Docker containers) is already running.");
+
+    logger.trace("Checking if datahaven option was set via flags");
+    if (options.datahaven === false) {
+      logger.info("Keeping existing DataHaven containers.");
+      // Potentially re-register services or confirm network readiness
+      // For now, just skipping
+      printDivider();
+      return;
+    }
+
+    if (options.datahaven === true) {
+      logger.info("Proceeding to clean and relaunch DataHaven containers...");
+      await cleanDataHavenContainers();
+    } else {
+      const shouldRelaunch = await confirmWithTimeout(
+        "Do you want to clean and relaunch the DataHaven containers?",
+        true,
+        10
+      );
+
+      if (!shouldRelaunch) {
+        logger.info("Keeping existing DataHaven containers.");
+        // Potentially re-register services or confirm network readiness
+        // For now, just skipping
+        printDivider();
+        return;
+      }
+      logger.info("Proceeding to clean and relaunch DataHaven containers...");
+      await cleanDataHavenContainers();
+    }
+  }
+
   if (shouldLaunchDataHaven === undefined) {
     shouldLaunchDataHaven = await confirmWithTimeout(
       "Do you want to launch the DataHaven network?",
@@ -84,10 +120,9 @@ export const launchDataHavenSolochain = async (
       ...COMMON_LAUNCH_ARGS
     ];
 
-    logger.debug(`Spawning command: ${command.join(" ")}`);
-    const process = Bun.spawn(command);
-
-    process.unref();
+    await runShellCommandWithLogger(command.join(" "), {
+      logLevel: "debug"
+    });
 
     launchedNetwork.addContainer(containerName, id === "alice" ? { ws: 9944 } : {});
 
@@ -98,9 +133,6 @@ export const launchDataHavenSolochain = async (
       timeoutSeconds: 30,
       tail: 1
     });
-
-    launchedNetwork.addProcess(process);
-    logger.debug(`Started ${id} at ${process.pid}`);
   }
 
   for (let i = 0; i < 30; i++) {
@@ -117,6 +149,44 @@ export const launchDataHavenSolochain = async (
   throw new Error("Datahaven network failed to start after 30 seconds");
 };
 
+/**
+ * Checks if any DataHaven containers are currently running.
+ *
+ * @returns True if any DataHaven containers are running, false otherwise.
+ */
+const checkDataHavenRunning = async (): Promise<boolean> => {
+  // Check for any container whose name starts with "datahaven-"
+  const PIDS = await $`docker ps -q --filter "name=^datahaven-"`.text();
+  return PIDS.trim().length > 0;
+};
+
+/**
+ * Stops and removes all DataHaven containers.
+ */
+const cleanDataHavenContainers = async (): Promise<void> => {
+  logger.info("🧹 Stopping and removing existing DataHaven containers...");
+  const containerIds = (await $`docker ps -a -q --filter "name=^datahaven-"`.text()).trim();
+  logger.debug(`Container IDs: ${containerIds}`);
+  if (containerIds.length > 0) {
+    const idsArray = containerIds
+      .split("\n")
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+    for (const id of idsArray) {
+      logger.debug(`Stopping container ${id}`);
+      logger.debug(await $`docker stop ${id}`.nothrow().text());
+      logger.debug(await $`docker rm ${id}`.nothrow().text());
+    }
+  }
+  logger.info("✅ Existing DataHaven containers stopped and removed.");
+};
+
+/**
+ * Checks if the DataHaven network is ready by sending a POST request to the system_chain method.
+ *
+ * @param port - The port number to check.
+ * @returns True if the network is ready, false otherwise.
+ */
 export const isNetworkReady = async (port: number): Promise<boolean> => {
   try {
     const response = await fetch(`http://localhost:${port}`, {
@@ -140,6 +210,12 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
   }
 };
 
+/**
+ * Checks if an image exists locally or on Docker Hub.
+ *
+ * @param tag - The tag of the image to check.
+ * @returns A promise that resolves when the image is found.
+ */
 const checkTagExists = async (tag: string) => {
   const cleaned = tag.trim();
   logger.debug(`Checking if image  ${cleaned} is available locally`);

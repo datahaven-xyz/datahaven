@@ -7,7 +7,7 @@ import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-import { waitForContainerToStart } from "utils";
+import { waitForContainerToStart, waitForLog } from "utils";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
@@ -251,14 +251,12 @@ export const launchDataHavenSolochain = async (
     logger.debug($`sh -c "${command.join(" ")}"`.text());
 
     await waitForContainerToStart(containerName);
-
-    // TODO: Add this back once `waitForLog` cleans up its resources well
-    // await waitForLog({
-    //   searchString: "Running JSON-RPC server: addr=0.0.0.0:",
-    //   containerName,
-    //   timeoutSeconds: 30,
-    //   tail: 1
-    // });
+    const listeningLine = await waitForLog({
+      search: "Running JSON-RPC server: addr=0.0.0.0:",
+      containerName,
+      timeoutSeconds: 30
+    });
+    logger.debug(listeningLine);
   }
 
   for (let i = 0; i < 30; i++) {

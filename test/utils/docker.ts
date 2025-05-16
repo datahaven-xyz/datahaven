@@ -1,4 +1,4 @@
-import { PassThrough, type Readable } from "node:stream";
+import { type Duplex, PassThrough } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
 import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
@@ -86,74 +86,76 @@ export const getPublicPort = async (
 };
 
 export const waitForLog = async (options: {
-  searchString: string;
+  search: string | RegExp;
   containerName: string;
   timeoutSeconds?: number;
-  tail?: number;
 }): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    logger.debug(
-      `Waiting for log ${options.searchString} in container ${options.containerName}...`
-    );
-    const docker = new Docker();
-    const container = docker.getContainer(options.containerName);
+  logger.debug(`Waiting for log ${options.search} in container ${options.containerName}...`);
+  const docker = new Docker();
+  const container = docker.getContainer(options.containerName);
+  invariant(
+    await container.inspect(),
+    `❌ container ${options.containerName} cannot be found  in running container list`
+  );
 
-    container.logs(
-      { follow: true, stdout: true, stderr: true, tail: options.tail, timestamps: false }, // set tail default to 10 to get the 10 last lines of logs printed
-      (err, stream) => {
-        if (err) {
-          return reject(err);
-        }
+  const timeoutMs = (options.timeoutSeconds ?? 10) * 1000;
+  let timer: NodeJS.Timeout;
 
-        if (stream === undefined) {
-          return reject(new Error("No stream returned."));
-        }
-
-        const stdout = new PassThrough();
-        const stderr = new PassThrough();
-
-        docker.modem.demuxStream(stream, stdout, stderr);
-
-        let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-
-        const cleanup = () => {
-          (stream as Readable).destroy();
-          stdout.destroy();
-          stderr.destroy();
-          if (timeoutHandle) {
-            clearTimeout(timeoutHandle);
-          }
-        };
-
-        const onData = (chunk: Buffer) => {
-          const log = chunk.toString("utf8");
-          if (log.includes(options.searchString)) {
-            cleanup();
-            resolve(log);
-          }
-        };
-
-        stdout.on("data", onData);
-        stderr.on("data", onData);
-
-        stream.on("error", (err) => {
-          cleanup();
-          reject(err);
-        });
-
-        if (options.timeoutSeconds) {
-          timeoutHandle = setTimeout(() => {
-            cleanup();
-            reject(
-              new Error(
-                `Timeout of ${options.timeoutSeconds}s exceeded while waiting for log ${options.searchString}`
-              )
-            );
-          }, options.timeoutSeconds * 1000);
-        }
-      }
-    );
+  const timeoutPromise = new Promise<string>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new Error(
+          `Timed out after ${timeoutMs} ms waiting for “${options.search}” in logs of ${options.containerName}`
+        )
+      );
+    }, timeoutMs);
   });
+
+  const logStream = (await container.logs({
+    stdout: true,
+    stderr: true,
+    follow: true,
+    since: 0
+  })) as Duplex;
+
+  const passthrough = new PassThrough();
+
+  container.modem.demuxStream(logStream, passthrough, passthrough);
+
+  const foundPromise = new Promise<string>((resolve, reject) => {
+    passthrough.on("data", (chunk: Buffer) => {
+      const text = chunk.toString("utf8");
+      if (
+        (typeof options.search === "string" && text.includes(options.search)) ||
+        (options.search instanceof RegExp && options.search.test(text))
+      ) {
+        cleanup();
+        resolve(text);
+      }
+    });
+
+    passthrough.on("error", (err) => {
+      cleanup();
+      reject(err);
+    });
+
+    passthrough.on("end", () => {
+      cleanup();
+      reject(
+        new Error(
+          `Log stream ended before “${options.search}” appeared for container ${options.containerName}`
+        )
+      );
+    });
+
+    function cleanup() {
+      clearTimeout(timer);
+      passthrough.destroy();
+      logStream.destroy();
+    }
+  });
+
+  return Promise.race([foundPromise, timeoutPromise]);
 };
 
 export const waitForContainerToStart = async (

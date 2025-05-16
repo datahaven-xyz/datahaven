@@ -19,7 +19,7 @@ export class LaunchedNetwork {
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
-  protected clEndpoint?: string;
+  protected _clEndpoint?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -28,7 +28,7 @@ export class LaunchedNetwork {
     this._containers = [];
     this._activeRelayers = [];
     this._elRpcUrl = undefined;
-    this.clEndpoint = undefined;
+    this._clEndpoint = undefined;
   }
 
   /**
@@ -80,6 +80,9 @@ export class LaunchedNetwork {
   }
 
   public getPublicWsPort(): number {
+    logger.debug("Getting public WebSocket port for LaunchedNetwork");
+    logger.debug("Containers:");
+    logger.debug(JSON.stringify(this.containers));
     const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
     invariant(port !== undefined, "❌ No public port found in containers");
     return port;
@@ -114,8 +117,8 @@ export class LaunchedNetwork {
    * Sets the HTTP endpoint for the Ethereum Consensus Layer (CL) client.
    * @param url - The CL HTTP endpoint string.
    */
-  setClEndpoint(url: string) {
-    this.clEndpoint = url;
+  public set clEndpoint(url: string) {
+    this._clEndpoint = url;
   }
 
   /**
@@ -123,9 +126,9 @@ export class LaunchedNetwork {
    * @returns The CL HTTP endpoint string.
    * @throws If the CL HTTP endpoint has not been set.
    */
-  getClEndpoint(): string {
-    invariant(this.clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
-    return this.clEndpoint;
+  public get clEndpoint(): string {
+    invariant(this._clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
+    return this._clEndpoint;
   }
 
   async cleanup() {
@@ -142,10 +145,6 @@ export class LaunchedNetwork {
       } catch (error) {
         logger.error(`Error closing file descriptor ${fd}: ${error}`);
       }
-    }
-
-    for (const container of this.containers) {
-      logger.debug(`Container is still running: ${container}`);
     }
   }
 }

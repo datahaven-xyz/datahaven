@@ -27,9 +27,11 @@ const COMMON_LAUNCH_ARGS = [
   "--enable-offchain-indexing=true"
 ];
 
+const DEFAULT_PUBLIC_WS_PORT = 9944;
+
 // We need 5 since the (2/3 + 1) of 6 authority set is 5
 // <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
-const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
+const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"] as const;
 
 // 33-byte compressed public keys for DataHaven next validator set
 // These correspond to Alice, Bob, Charlie, Dave, Eve, Ferdie
@@ -41,7 +43,7 @@ const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   dave: "0x0291f1217d5a04cb83312ee3d88a6e6b33284e053e6ccfc3a90339a0299d12967c",
   eve: "0x0389411795514af1627765eceffcbd002719f031604fadd7d188e2dc585b4e1afb",
   ferdie: "0x03bc9d0ca094bd5b8b3225d7651eac5d18c1c04bf8ae8f8b263eebca4e1410ed0c"
-};
+} as const;
 
 /**
  * Prepares the configuration for DataHaven authorities by converting their
@@ -240,7 +242,7 @@ export const launchDataHavenSolochain = async (
       "linux/amd64",
       "--name",
       containerName,
-      ...(id === "alice" ? ["-p", "9944:9944"] : []),
+      ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS
@@ -249,6 +251,7 @@ export const launchDataHavenSolochain = async (
     logger.debug($`sh -c "${command.join(" ")}"`.text());
 
     await waitForContainerToStart(containerName);
+
     // TODO: Add this back once `waitForLog` cleans up its resources well
     // await waitForLog({
     //   searchString: "Running JSON-RPC server: addr=0.0.0.0:",
@@ -260,10 +263,9 @@ export const launchDataHavenSolochain = async (
 
   for (let i = 0; i < 30; i++) {
     logger.info("Waiting for datahaven to start...");
-    const primaryNodePort = launchedNetwork.getPublicWsPort();
-    if (await isNetworkReady(primaryNodePort)) {
+    if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
       logger.success(
-        `DataHaven network started, primary node accessible on port ${primaryNodePort}`
+        `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
       );
 
       await registerNodes(launchedNetwork);

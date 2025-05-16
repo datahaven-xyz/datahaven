@@ -346,7 +346,7 @@ const waitBeaconChainReady = async (
   while (keepPolling) {
     try {
       const response = await fetch(
-        `${launchedNetwork.getClEndpoint()}/eth/v1/beacon/states/head/finality_checkpoints`
+        `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
       );
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);

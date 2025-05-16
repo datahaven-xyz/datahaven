@@ -158,6 +158,6 @@ const registerServices = async (launchedNetwork: LaunchedNetwork) => {
     clEndpoint,
     "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
   );
-  launchedNetwork.setClEndpoint(clEndpoint);
+  launchedNetwork.clEndpoint = clEndpoint;
   logger.info(`👍 Consensus Layer Endpoint configured: ${clEndpoint}`);
 };

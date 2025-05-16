@@ -3,6 +3,7 @@ FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
 
 ARG MOLD_VERSION=2.39.0
 ARG SCCACHE_VERSION=0.10.0
+ARG FAST_RUNTIME=TRUE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     xz-utils \
@@ -43,7 +44,11 @@ COPY ./operator/ .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/sccache,sharing=locked \
-    cargo build --locked --release --features fast-runtime
+    if [ "$FAST_RUNTIME" = "TRUE" ]; then \
+        cargo build --locked --release --features fast-runtime; \
+    else \
+        cargo build --locked --release; \
+    fi
 
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest

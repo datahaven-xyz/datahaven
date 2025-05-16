@@ -154,11 +154,14 @@ export function parseRelayConfig(
   config: unknown,
   type: RelayerType
 ): BeaconRelayConfig | BeefyRelayConfig | ExecutionRelayConfig {
-  if (type === "beacon") {
-    return parseBeaconConfig(config);
-  } else if (type === "beefy") {
-    return parseBeefyConfig(config);
-  } else {
-    return parseExecutionConfig(config);
+  switch (type) {
+    case "beacon":
+      return parseBeaconConfig(config);
+    case "beefy":
+      return parseBeefyConfig(config);
+    case "execution":
+      return parseExecutionConfig(config);
+    default:
+      throw new Error(`Unknown relayer type: ${type}`);
   }
 }

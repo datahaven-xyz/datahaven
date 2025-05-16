@@ -326,9 +326,18 @@ export const initEthClientPallet = async (
   // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
   await waitBeaconChainReady(launchedNetwork, 10000, 300000);
 
-  // Generate the initial checkpoint for the CL client in Substrate
+  const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
+  const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
+  const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
+  const checkpointContainerPath = `/app/${path.basename(INITIAL_CHECKPOINT_PATH)}`;
+
   const { stdout, stderr, exitCode } =
-    await $`docker run --rm ${options.relayerImageTag} generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
+    await $`docker run --rm \
+      -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
+      -v ${checkpointHostPath}:${checkpointContainerPath} \
+      --workdir /app \
+      ${options.relayerImageTag} \
+      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
       .nothrow()
       .quiet();
   if (exitCode !== 0) {

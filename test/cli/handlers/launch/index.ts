@@ -85,8 +85,6 @@ export const launch = async (options: LaunchOptions) => {
     await launchFunction(options, run);
   } finally {
     await run.cleanup();
-    await Bun.sleep(2000);
-    process.exit();
   }
 };
 

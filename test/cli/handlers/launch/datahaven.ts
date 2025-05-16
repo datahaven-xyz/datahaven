@@ -231,7 +231,7 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
 };
 
 const buildLocalImage = async (options: LaunchOptions) => {
-  let shouldBuildDataHaven = options.buildDataHaven;
+  let shouldBuildDataHaven = options.buildDatahaven;
 
   if (shouldBuildDataHaven === undefined) {
     shouldBuildDataHaven = await confirmWithTimeout(

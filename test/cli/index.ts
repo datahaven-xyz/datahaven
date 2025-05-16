@@ -14,8 +14,10 @@ function parseIntValue(value: string): number {
 // So far we only have the launch command
 // we can expand this to more commands in the future
 const program = new Command()
-  .option("--d, --datahaven", "(Re)Launch Datahaven network")
-  .option("--nd, --no-datahaven", "Skip launching Datahaven network")
+  .option("--d, --datahaven", "(Re)Launch DataHaven network")
+  .option("--nd, --no-datahaven", "Skip launching DataHaven network")
+  .option("--bd, --build-datahaven", "Build DataHaven node local Docker image")
+  .option("--nbd, --no-build-datahaven", "Skip building DataHaven node local Docker image")
   .option("--lk, --launch-kurtosis", "Launch Kurtosis Ethereum network with EL and CL clients")
   .option("--nlk, --no-launch-kurtosis", "Skip launching Kurtosis Ethereum network")
   .option("--dc, --deploy-contracts", "Deploy smart contracts")
@@ -30,6 +32,11 @@ const program = new Command()
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
+  .option(
+    "--datahaven-build-extra-args <value>",
+    "Extra args for DataHaven node Cargo build (the plain command is `cargo zigbuild --target x86_64-unknown-linux-gnu --release`)",
+    "--features=fast-runtime"
+  )
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
   .option("--always-clean", "Always clean Kurtosis", false)

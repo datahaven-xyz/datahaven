@@ -22,7 +22,9 @@ export interface LaunchOptions {
   skipCleaning?: boolean;
   alwaysClean?: boolean;
   datahaven?: boolean;
+  buildDataHaven?: boolean;
   datahavenImageTag?: string;
+  datahavenBuildExtraArgs?: string;
   kurtosisNetworkArgs?: string;
   slotTime?: number;
 }

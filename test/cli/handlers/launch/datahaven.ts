@@ -15,6 +15,8 @@ import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 
+const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
+
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
   "--tmp",
@@ -248,10 +250,14 @@ const buildLocalImage = async (options: LaunchOptions) => {
     return;
   }
 
-  cargoCrossbuild({ datahavenBuildExtraArgs: options.datahavenBuildExtraArgs });
+  await cargoCrossbuild({ datahavenBuildExtraArgs: options.datahavenBuildExtraArgs });
 
   logger.info("🐳 Building DataHaven node local Docker image...");
-  logger.debug(await $`bun build:docker:operator`.text());
+  if (LOG_LEVEL === "trace") {
+    await $`bun build:docker:operator`;
+  } else {
+    await $`bun build:docker:operator`.quiet();
+  }
   logger.success("DataHaven node local Docker image build completed successfully");
 };
 

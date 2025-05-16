@@ -2,7 +2,9 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { $ } from "bun";
-import { logger, runShellCommandWithLogger } from "utils";
+import { logger } from "utils";
+
+const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,10 +42,12 @@ export const cargoCrossbuild = async (options: {
 
     const command = `cargo zigbuild --target ${target} --release ${additionalArgs}`;
     logger.debug(`Running build command: ${command}`);
-    await runShellCommandWithLogger(command, {
-      logLevel: "info",
-      cwd: `${process.cwd()}/../operator`
-    });
+
+    if (LOG_LEVEL === "debug") {
+      await $`sh -c "${command}"`.cwd(`${process.cwd()}/../operator`);
+    } else {
+      await $`sh -c "${command}"`.cwd(`${process.cwd()}/../operator`).quiet();
+    }
 
     // Case: Linux x86
   } else if (ARCH === "x86_64" && OS === "Linux") {
@@ -51,7 +55,12 @@ export const cargoCrossbuild = async (options: {
 
     const command = "cargo build --release";
     logger.debug(`Running build command: ${command}`);
-    await runShellCommandWithLogger(command, { logLevel: "debug" });
+
+    if (LOG_LEVEL === "debug") {
+      await $`sh -c "${command}"`.cwd(`${process.cwd()}/../operator`);
+    } else {
+      await $`sh -c "${command}"`.cwd(`${process.cwd()}/../operator`).quiet();
+    }
 
     // Case: Unsupported architecture or OS
   } else {

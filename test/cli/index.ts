@@ -34,7 +34,7 @@ const program = new Command()
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option(
     "--datahaven-build-extra-args <value>",
-    "Extra args for DataHaven node Cargo build (the plain command is `cargo zigbuild --target x86_64-unknown-linux-gnu --release`)",
+    "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",
     "--features=fast-runtime"
   )
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")

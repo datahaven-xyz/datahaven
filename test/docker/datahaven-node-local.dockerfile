@@ -29,7 +29,7 @@ RUN apt-get update && \
 
 USER datahaven
 
-COPY --chown=datahaven:datahaven ./operator/target/release/datahaven-node /usr/local/bin/datahaven-node
+COPY --chown=datahaven:datahaven ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node /usr/local/bin/datahaven-node
 RUN chmod uog+x /usr/local/bin/datahaven-node
 
 EXPOSE 9333 9944 30333 30334 9615

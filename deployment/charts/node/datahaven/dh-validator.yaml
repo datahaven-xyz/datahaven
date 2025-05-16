@@ -60,27 +60,27 @@ node:
 #       hosts:
 #         - datahaven.example.com
 
-# extraInitContainers:
-#   - name: dump-state-and-wasm
-#     image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-#     imagePullPolicy: "{{ .Values.image.pullPolicy }}"
-#     securityContext:
-#       runAsUser: 0
-#     command: [ "/bin/bash" ]
-#     args:
-#       - -c
-#       - |
-#         if [ "${HOSTNAME##*-}" = "0" ]; then
-#           echo "Chain Id:"
-#           {{ .Values.node.command }} build-spec --chain {{ .Values.node.chain }} | grep -E 'chain_id|chainId' 
-#           echo "Genesis head:"
-#           {{ .Values.node.command }} export-genesis-state --chain {{ .Values.node.chain }}
-#           echo ""
-#           echo "Genesis wasm (validationCode) stored in /chain-data/genesis-wasm"
-#           {{ .Values.node.command }} export-genesis-wasm  --chain {{ .Values.node.chain }} > /chain-data/genesis-wasm
-#         else
-#          echo "Genesis head and wasm are in pod ${HOSTNAME%-*}-0"
-#         fi
-#     volumeMounts:
-#       - mountPath: /chain-data
-#         name: chain-data
+extraInitContainers:
+  - name: dump-state-and-wasm
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+    imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+    securityContext:
+      runAsUser: 0
+    command: [ "/bin/bash" ]
+    args:
+      - -c
+      - |
+        if [ "${HOSTNAME##*-}" = "0" ]; then
+          echo "Chain Id:"
+          {{ .Values.node.command }} build-spec --chain {{ .Values.node.chain }} | grep -E 'chain_id|chainId' 
+          echo "Genesis head:"
+          {{ .Values.node.command }} export-genesis-state --chain {{ .Values.node.chain }}
+          echo ""
+          echo "Genesis wasm (validationCode) stored in /chain-data/genesis-wasm"
+          {{ .Values.node.command }} export-genesis-wasm  --chain {{ .Values.node.chain }} > /chain-data/genesis-wasm
+        else
+         echo "Genesis head and wasm are in pod ${HOSTNAME%-*}-0"
+        fi
+    volumeMounts:
+      - mountPath: /chain-data
+        name: chain-data

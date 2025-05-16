@@ -33,7 +33,7 @@ const program = new Command()
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
   .option("--always-clean", "Always clean Kurtosis", false)
-  .option("-q, --skip-cleaning", "Skip cleaning Kurtosis")
+  .option("--skip-cleaning", "Skip cleaning Kurtosis")
   .option(
     "-i, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",

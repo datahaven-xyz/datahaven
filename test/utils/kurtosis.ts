@@ -121,6 +121,5 @@ export const getServicesFromKurtosis = async (): Promise<Record<string, Kurtosis
   });
 
   const results = await Promise.all(promises);
-  logger.debug("timbo3");
   return results.reduce((acc, current) => ({ ...acc, ...current }), {});
 };

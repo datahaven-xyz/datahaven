@@ -73,7 +73,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  performSummaryOperations(options, launchedNetwork);
+  await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
   logger.success(`Launch function completed successfully in ${fullMinutes} minutes`);

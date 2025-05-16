@@ -3,7 +3,7 @@ import path from "node:path";
 import { $ } from "bun";
 import { Octokit } from "octokit";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "utils";
+import { logger, printHeader } from "utils";
 
 const IMAGE_NAME = "snowbridge-relay:local";
 const RELATIVE_DOCKER_FILE_PATH = "../../docker/SnowbridgeRelayer.dockerfile";

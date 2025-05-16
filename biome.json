@@ -27,6 +27,7 @@
       "trailingCommas": "none",
       "semicolons": "always",
       "indentStyle": "space",
+      "indentWidth": 2,
       "lineWidth": 100,
       "quoteStyle": "double"
     }
@@ -35,6 +36,10 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "warn"
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noAsyncPromiseExecutor": "off"

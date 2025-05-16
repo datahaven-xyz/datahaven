@@ -219,3 +219,9 @@ const hexToUint8Array = (hex: string): Uint8Array => {
   }
   return Buffer.from(hexString, "hex");
 };
+
+// This squashes together the properties of the input type T
+// making it easier to view in an IDE
+export type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};

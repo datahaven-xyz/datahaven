@@ -35,9 +35,9 @@ const program = new Command()
   .option("--always-clean", "Always clean Kurtosis", false)
   .option("--skip-cleaning", "Skip cleaning Kurtosis")
   .option(
-    "--datahaven-bin-path <value>",
-    "Path to the datahaven binary",
-    "../operator/target/release/datahaven-node"
+    "-i, --datahaven-image-tag <value>",
+    "Tag of the datahaven image to use",
+    "moonsonglabs/datahaven:local"
   )
   .option("--relayer-bin-path <value>", "Path to the relayer binary", "tmp/bin/snowbridge-relay")
   .hook("preAction", launchPreActionHook)
@@ -45,7 +45,7 @@ const program = new Command()
 
 // =====  Program  =====
 program
-  .version("0.1.0")
+  .version("0.2.0")
   .name("bun cli")
   .summary("🫎  DataHaven: Network Launcher CLI")
   .usage("[options]")

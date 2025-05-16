@@ -21,8 +21,8 @@ export interface LaunchOptions {
   relayerBinPath?: string;
   skipCleaning?: boolean;
   alwaysClean?: boolean;
-  datahavenBinPath?: string;
   datahaven?: boolean;
+  datahavenImageTag?: string;
   kurtosisNetworkArgs?: string;
   slotTime?: number;
 }
@@ -63,13 +63,13 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: launchedNetwork.getElRpcUrl(),
+    rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
 
-  await performValidatorOperations(options, launchedNetwork.getElRpcUrl(), contractsDeployed);
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
 

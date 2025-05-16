@@ -173,8 +173,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     }
   }
 
-  logger.info("Spawning Snowbridge relayers processes");
-
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
   await initEthClientPallet(options, launchedNetwork);
@@ -271,7 +269,7 @@ const waitBeefyReady = async (
   const wsUrl = `ws://127.0.0.1:${port}`;
   const maxAttempts = Math.floor(timeoutMs / pollIntervalMs);
 
-  logger.info(`Waiting for BEEFY to be ready on port ${port}...`);
+  logger.info(`⌛️ Waiting for BEEFY to be ready on port ${port}...`);
 
   let client: PolkadotClient | undefined;
   try {
@@ -283,7 +281,7 @@ const waitBeefyReady = async (
         const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
 
         if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
-          logger.success(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
+          logger.info(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
           client.destroy();
           return;
         }
@@ -331,15 +329,14 @@ export const initEthClientPallet = async (
   const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
   const checkpointContainerPath = `/app/${path.basename(INITIAL_CHECKPOINT_PATH)}`;
 
-  const { stdout, stderr, exitCode } =
-    await $`docker run --rm \
+  const { stdout, stderr, exitCode } = await $`docker run --rm \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
       --workdir /app \
       ${options.relayerImageTag} \
       generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
-      .nothrow()
-      .quiet();
+    .nothrow()
+    .quiet();
   if (exitCode !== 0) {
     logger.error(stderr);
     throw new Error("Error generating beacon checkpoint");

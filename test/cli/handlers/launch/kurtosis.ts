@@ -29,9 +29,7 @@ export const launchKurtosis = async (
       return;
     }
 
-    if (options.launchKurtosis === true) {
-      logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
-    } else {
+    if (options.launchKurtosis !== true) {
       const shouldRelaunch = await confirmWithTimeout(
         "Do you want to clean and relaunch the Kurtosis enclave?",
         true,
@@ -142,7 +140,7 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
  * @param launchedNetwork - The LaunchedNetwork instance to store network details.
  */
 const registerServices = async (launchedNetwork: LaunchedNetwork) => {
-  logger.info("⚙️ Registering Kurtosis service endpoints...");
+  logger.info("📝 Registering Kurtosis service endpoints...");
 
   // Configure EL RPC URL
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");

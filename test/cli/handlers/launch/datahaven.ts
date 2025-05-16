@@ -82,7 +82,6 @@ export const launchDataHavenSolochain = async (
     }
 
     if (options.datahaven === true) {
-      logger.info("Proceeding to clean and relaunch DataHaven containers...");
       await cleanDataHavenContainers();
     } else {
       const shouldRelaunch = await confirmWithTimeout(
@@ -133,7 +132,7 @@ export const launchDataHavenSolochain = async (
   logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
 
   for (const id of CLI_AUTHORITY_IDS) {
-    logger.info(`Starting ${id}...`);
+    logger.info(`🚀 Starting ${id}...`);
     const containerName = `datahaven-${id}`;
 
     const command: string[] = [
@@ -166,7 +165,7 @@ export const launchDataHavenSolochain = async (
   }
 
   for (let i = 0; i < 30; i++) {
-    logger.info("Waiting for datahaven to start...");
+    logger.info("⌛️ Waiting for datahaven to start...");
     if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
       logger.success(
         `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
@@ -175,7 +174,7 @@ export const launchDataHavenSolochain = async (
       await registerNodes(launchedNetwork);
 
       // Call setupDataHavenValidatorConfig now that nodes are up
-      logger.info("Proceeding with DataHaven validator configuration setup...");
+      logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
       await setupDataHavenValidatorConfig(launchedNetwork);
 
       printDivider();
@@ -320,11 +319,11 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
 
   // If the Docker container is running, proceed to register it in launchedNetwork.
   // We use the standard host WS port that "datahaven-alice" is expected to use.
-  logger.info(
-    `✅ Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
+  logger.debug(
+    `Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
   );
   launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
-  logger.success(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
+  logger.info(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
 };
 
 // Function to convert compressed public key to Ethereum address

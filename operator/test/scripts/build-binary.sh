@@ -30,8 +30,8 @@ check_local_changes() {
 }
 
 if [ -z "${from_build_binary:-}" ]; then
-    echo "Building Datahaven Binary"
+    echo "Building DataHaven Binary"
     trap kill_all SIGINT SIGTERM EXIT
     build_binary
-    echo "Datahaven Binary built"
+    echo "DataHaven Binary built"
 fi

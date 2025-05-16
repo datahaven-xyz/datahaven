@@ -587,7 +587,7 @@ contract Deploy is Script, DeployParams, Accounts {
         bytes32[] memory validators
     ) internal pure returns (BeefyClient.ValidatorSet memory) {
         // Calculate the merkle root from the validators array using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRoot(validators);
+        bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validators);
 
         // Create and return the validator set with the calculated merkle root
         return

@@ -291,7 +291,7 @@ parameter_types! {
     pub const EquivocationReportPeriodInEpochs: u64 = 168;
     pub const EquivocationReportPeriodInBlocks: u64 =
         EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
-        pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
+    pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
 }
 
 impl pallet_grandpa::Config for Runtime {

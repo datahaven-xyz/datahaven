@@ -49,7 +49,7 @@ export class LaunchedNetwork {
    */
   getDHPort(id: string): number {
     const node = this.DHNodes.find((x) => x.id === id);
-    invariant(node, `❌ Datahaven node ${id} not found`);
+    invariant(node, `❌ DataHaven node ${id} not found`);
     return node.port;
   }
 

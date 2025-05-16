@@ -49,6 +49,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchKurtosis(launchedNetwork, options);
 
+  logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined = undefined;
 
   if (options.blockscout === true) {

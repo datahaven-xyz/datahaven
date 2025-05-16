@@ -9,28 +9,31 @@
     "allowJs": false,
     "importHelpers": true,
     "incremental": true,
-
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-
     // Best practices
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
-
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-
     "baseUrl": "./",
     "preserveConstEnums": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": true
   },
-  "include": ["utils/*.ts", "scripts/*.ts", "suites/**/*.ts", "cli/**/*.ts", "wagmi.config.ts", "contract-bindings/*.ts"],
+  "include": [
+    "utils/*.ts",
+    "scripts/*.ts",
+    "suites/**/*.ts",
+    "cli/**/*.ts",
+    "wagmi.config.ts",
+    "contract-bindings/*.ts"
+  ],
   "exclude": ["node_modules/"]
 }

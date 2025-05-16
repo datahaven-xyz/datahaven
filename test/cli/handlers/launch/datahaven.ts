@@ -13,7 +13,7 @@ import {
   logger,
   printDivider,
   printHeader,
-  waitForContainerToStart,
+  waitForContainerToStart
 } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
@@ -242,7 +242,6 @@ export const launchDataHavenSolochain = async (
 
   launchedNetwork.networkName = DOCKER_NETWORK_NAME;
   logger.info(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
-
 
   for (const id of CLI_AUTHORITY_IDS) {
     logger.info(`Starting ${id}...`);

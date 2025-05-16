@@ -228,8 +228,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       ];
 
       logger.debug(`Spawning command: ${command.join(" ")}`);
-      const process = Bun.spawn(command);
-      process.unref();
+
+      logger.debug($`sh -c "${command.join(" ")}"`.text());
 
       launchedNetwork.addContainer(containerName);
 
@@ -243,7 +243,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       //   tail: 1
       // });
 
-      launchedNetwork.addProcess(process);
       logger.debug(`Started relayer ${name} with process ${process.pid}`);
     } catch (e) {
       logger.error(`Error starting relayer ${name}`);

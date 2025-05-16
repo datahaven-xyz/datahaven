@@ -121,10 +121,16 @@ export const launchDataHavenSolochain = async (
     return;
   }
 
+  logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
+
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
 
   await buildLocalImage(options);
   await checkTagExists(options.datahavenImageTag);
+
+  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
+  logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
 
   for (const id of CLI_AUTHORITY_IDS) {
     logger.info(`Starting ${id}...`);
@@ -136,6 +142,8 @@ export const launchDataHavenSolochain = async (
       "-d",
       "--name",
       containerName,
+      "--network",
+      DOCKER_NETWORK_NAME,
       ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
       options.datahavenImageTag,
       `--${id}`,
@@ -210,6 +218,9 @@ const cleanDataHavenContainers = async (): Promise<void> => {
     }
   }
   logger.info("✅ Existing DataHaven containers stopped and removed.");
+
+  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME}`.text());
+  logger.info("✅ DataHaven Docker network removed.");
 };
 
 /**
@@ -445,264 +456,3 @@ export async function setupDataHavenValidatorConfig(
     throw new Error(`Failed to update authority hashes in ${configFilePath}.`);
   }
 }
-
-/**
- * Launches a DataHaven solochain network for testing.
- *
- * @param options - Configuration options for launching the network.
- * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
- */
-export const launchDataHavenSolochain = async (
-  options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork
-) => {
-  printHeader("Starting DataHaven Network");
-  invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
-  let shouldLaunchDataHaven = options.datahaven;
-
-  if ((await checkDataHavenRunning()) && !options.alwaysClean) {
-    logger.info("ℹ️  DataHaven network (Docker containers) is already running.");
-
-    logger.trace("Checking if datahaven option was set via flags");
-    if (options.datahaven === false) {
-      logger.info("Keeping existing DataHaven containers.");
-
-      await registerNodes(launchedNetwork);
-      printDivider();
-      return;
-    }
-
-    if (options.datahaven === true) {
-      logger.info("Proceeding to clean and relaunch DataHaven containers...");
-      await cleanDataHavenContainers();
-    } else {
-      const shouldRelaunch = await confirmWithTimeout(
-        "Do you want to clean and relaunch the DataHaven containers?",
-        true,
-        10
-      );
-
-      if (!shouldRelaunch) {
-        logger.info("Keeping existing DataHaven containers.");
-
-        await registerNodes(launchedNetwork);
-        printDivider();
-        return;
-      }
-      logger.info("Proceeding to clean and relaunch DataHaven containers...");
-      await cleanDataHavenContainers();
-    }
-  }
-
-  if (shouldLaunchDataHaven === undefined) {
-    shouldLaunchDataHaven = await confirmWithTimeout(
-      "Do you want to launch the DataHaven network?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
-    );
-  }
-
-  if (!shouldLaunchDataHaven) {
-    logger.info("Skipping DataHaven network launch. Done!");
-    printDivider();
-    return;
-  }
-
-  logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
-  logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
-
-  invariant(options.datahavenImageTag, "❌ Datahaven image tag not defined");
-
-  await checkTagExists(options.datahavenImageTag);
-
-  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
-  logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
-
-  for (const id of CLI_AUTHORITY_IDS) {
-    logger.info(`Starting ${id}...`);
-    const containerName = `datahaven-${id}`;
-
-    const command: string[] = [
-      "docker",
-      "run",
-      "-d",
-      "--platform",
-      "linux/amd64",
-      "--name",
-      containerName,
-      "--network",
-      DOCKER_NETWORK_NAME,
-      ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
-      options.datahavenImageTag,
-      `--${id}`,
-      ...COMMON_LAUNCH_ARGS
-    ];
-
-    logger.debug($`sh -c "${command.join(" ")}"`.text());
-
-    await waitForContainerToStart(containerName);
-
-    // TODO: Un-comment this when it doesn't stop process from hanging
-    // This is working on SH, but not here so probably a Bun defect
-    //
-    // const listeningLine = await waitForLog({
-    //   search: "Running JSON-RPC server: addr=0.0.0.0:",
-    //   containerName,
-    //   timeoutSeconds: 30
-    // });
-    // logger.debug(listeningLine);
-  }
-
-  for (let i = 0; i < 30; i++) {
-    logger.info("Waiting for datahaven to start...");
-    if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
-      logger.success(
-        `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
-      );
-
-      await registerNodes(launchedNetwork);
-
-      // Call setupDataHavenValidatorConfig now that nodes are up
-      logger.info("Proceeding with DataHaven validator configuration setup...");
-      await setupDataHavenValidatorConfig(launchedNetwork);
-
-      printDivider();
-      return;
-    }
-    logger.debug("Node not ready, waiting 1 second...");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  throw new Error("Datahaven network failed to start after 30 seconds");
-};
-
-/**
- * Checks if any DataHaven containers are currently running.
- *
- * @returns True if any DataHaven containers are running, false otherwise.
- */
-const checkDataHavenRunning = async (): Promise<boolean> => {
-  // Check for any container whose name starts with "datahaven-"
-  const PIDS = await $`docker ps -q --filter "name=^datahaven-"`.text();
-  return PIDS.trim().length > 0;
-};
-
-/**
- * Stops and removes all DataHaven containers.
- */
-const cleanDataHavenContainers = async (): Promise<void> => {
-  logger.info("🧹 Stopping and removing existing DataHaven containers...");
-  const containerIds = (await $`docker ps -a -q --filter "name=^datahaven-"`.text()).trim();
-  logger.debug(`Container IDs: ${containerIds}`);
-  if (containerIds.length > 0) {
-    const idsArray = containerIds
-      .split("\n")
-      .map((id) => id.trim())
-      .filter((id) => id.length > 0);
-    for (const id of idsArray) {
-      logger.debug(`Stopping container ${id}`);
-      logger.debug(await $`docker stop ${id}`.nothrow().text());
-      logger.debug(await $`docker rm ${id}`.nothrow().text());
-    }
-  }
-  logger.info("✅ Existing DataHaven containers stopped and removed.");
-
-  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME}`.text());
-  logger.info("✅ DataHaven Docker network removed.");
-};
-
-/**
- * Checks if the DataHaven network is ready by sending a POST request to the system_chain method.
- *
- * @param port - The port number to check.
- * @returns True if the network is ready, false otherwise.
- */
-export const isNetworkReady = async (port: number): Promise<boolean> => {
-  const wsUrl = `ws://127.0.0.1:${port}`;
-  let client: PolkadotClient | undefined;
-  try {
-    // Use withPolkadotSdkCompat for consistency, though _request might not strictly need it.
-    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-    const chainName = await client._request<string>("system_chain", []);
-    logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
-    client.destroy();
-    return !!chainName; // Ensure it's a boolean and chainName is truthy
-  } catch (error) {
-    logger.debug(`isNetworkReady PAPI check failed for port ${port}: ${error}`);
-    if (client) {
-      client.destroy();
-    }
-    return false;
-  }
-};
-
-/**
- * Checks if an image exists locally or on Docker Hub.
- *
- * @param tag - The tag of the image to check.
- * @returns A promise that resolves when the image is found.
- */
-const checkTagExists = async (tag: string) => {
-  const cleaned = tag.trim();
-  logger.debug(`Checking if image  ${cleaned} is available locally`);
-  const { exitCode: localExists } = await $`docker image inspect ${cleaned}`.nothrow().quiet();
-
-  if (localExists !== 0) {
-    logger.debug(`Checking if image ${cleaned} is available on docker hub`);
-    const result = await $`docker manifest inspect ${cleaned}`.nothrow().quiet();
-    invariant(
-      result.exitCode === 0,
-      `❌ Image ${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
-    );
-  }
-
-  logger.success(`Image ${tag} found locally`);
-};
-
-const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
-  const targetContainerName = "datahaven-alice";
-  const aliceHostWsPort = 9944; // Standard host port for Alice's WS, as set during launch.
-
-  logger.debug(`Checking Docker status for container: ${targetContainerName}`);
-  // Use ^ and $ for an exact name match in the filter.
-  const dockerPsOutput = await $`docker ps -q --filter "name=^${targetContainerName}$"`.text();
-  const isContainerRunning = dockerPsOutput.trim().length > 0;
-
-  if (!isContainerRunning) {
-    // If the target Docker container is not running, we cannot register it.
-    throw new Error(
-      `❌ Docker container ${targetContainerName} is not running. Cannot register node.`
-    );
-  }
-
-  // If the Docker container is running, proceed to register it in launchedNetwork.
-  // We use the standard host WS port that "datahaven-alice" is expected to use.
-  logger.info(
-    `✅ Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
-  );
-  launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
-  logger.success(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
-};
-
-// Function to convert compressed public key to Ethereum address
-export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {
-  // Ensure the input is a hex string and remove "0x" prefix
-  const compressedKeyHex = compressedPubKey.startsWith("0x")
-    ? compressedPubKey.substring(2)
-    : compressedPubKey;
-
-  // Decompress the public key
-  const point = secp256k1.ProjectivePoint.fromHex(compressedKeyHex);
-  // toRawBytes(false) returns the uncompressed key (64 bytes, x and y coordinates)
-  const uncompressedPubKeyBytes = point.toRawBytes(false);
-  const uncompressedPubKeyHex = toHex(uncompressedPubKeyBytes); // Prefixes with "0x"
-
-  // Compute the Ethereum address from the uncompressed public key
-  // publicKeyToAddress expects a 0x-prefixed hex string representing the 64-byte uncompressed public key
-  const address = publicKeyToAddress(uncompressedPubKeyHex);
-  return address;
-};

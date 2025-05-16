@@ -13,11 +13,11 @@ trap kill_all SIGINT SIGTERM EXIT
 echo "Check building tools"
 check_tool
 
-# 1. Buid Datahaven Binary
+# 1. Buid DataHaven Binary
 build_binary
 
-# 2. Start Datahaven Nodes
-echo "Starting Datahaven Nodes"
+# 2. Start DataHaven Nodes
+echo "Starting DataHaven Nodes"
 source scripts/deploy-datahaven.sh
 deploy_datahaven
 

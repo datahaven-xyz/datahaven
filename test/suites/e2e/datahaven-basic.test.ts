@@ -1,18 +1,17 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
 import {
-  type DatahavenApi,
+  type DataHavenApi,
   SUBSTRATE_FUNDED_ACCOUNTS,
   createPapiConnectors,
   generateRandomAccount,
   getPapiSigner,
-  logger,
-  sendTxn
+  logger
 } from "utils";
 import { isAddress, parseEther } from "viem";
 
 describe("Datahaven solochain", () => {
-  let api: DatahavenApi;
+  let api: DataHavenApi;
   let signer: PolkadotSigner;
 
   beforeAll(() => {
@@ -57,7 +56,7 @@ describe("Datahaven solochain", () => {
       value
     });
 
-    const resp = await sendTxn(ext);
+    const resp = await ext.signAndSubmit(signer, { at: "best" });
     logger.debug(`Transaction submitted: ${resp.txHash}`);
     const {
       data: { free: freeBalance }

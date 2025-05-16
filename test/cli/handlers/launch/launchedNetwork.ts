@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { type RelayerType, logger } from "utils";
 
@@ -7,14 +6,22 @@ type PipeOptions = number | "inherit" | "pipe" | "ignore";
 type BunProcess = Bun.Subprocess<PipeOptions, PipeOptions, PipeOptions>;
 type ContainerSpec = { name: string; publicPorts: Record<string, number> };
 
+/**
+ * Represents the state and associated resources of a launched network environment,
+ * including DataHaven nodes, Kurtosis services, and related process/file descriptors.
+ */
 export class LaunchedNetwork {
   protected runId: string;
   protected processes: BunProcess[];
   protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
   protected DHNodes: { id: string; port: number }[];
-  protected _activeRelayers: RelayerType[];
   protected _networkName: string;
+  protected _activeRelayers: RelayerType[];
+  /** The RPC URL for the Ethereum Execution Layer (EL) client. */
+  protected _elRpcUrl?: string;
+  /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
+  protected _clEndpoint?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -24,6 +31,8 @@ export class LaunchedNetwork {
     this._containers = [];
     this._activeRelayers = [];
     this._networkName = "default";
+    this._elRpcUrl = undefined;
+    this._clEndpoint = undefined;
   }
 
   public set networkName(name: string) {
@@ -34,24 +43,40 @@ export class LaunchedNetwork {
     return this._networkName;
   }
 
+  /**
+   * Gets the unique ID for this run of the launched network.
+   * @returns The run ID string.
+   */
   getRunId(): string {
     return this.runId;
   }
 
-  getDHNodes(): { id: string; port: number }[] {
-    return [...this.DHNodes];
+  /**
+   * Gets the port for a DataHaven RPC node.
+   *
+   * In reality, it just looks for the "ws" port of the
+   * `datahaven-alice` container, if it was registered.
+   * @returns The port number of the container, or -1 if ws port is not found.
+   * @throws If the container is not found.
+   */
+  getContainerPort(id: string): number {
+    const container = this._containers.find((x) => x.name === id);
+    invariant(container, `❌ Container ${id} not found`);
+    return container.publicPorts.ws ?? -1;
   }
 
-  getDHPort(id: string): number {
-    const node = this.DHNodes.find((x) => x.id === id);
-    invariant(node, `❌ Datahaven node ${id} not found`);
-    return node.port;
-  }
-
+  /**
+   * Adds a file descriptor to be managed and cleaned up.
+   * @param fd - The file descriptor number.
+   */
   addFileDescriptor(fd: number) {
     this.fileDescriptors.push(fd);
   }
 
+  /**
+   * Adds a running process to be managed and cleaned up.
+   * @param process - The Bun subprocess object.
+   */
   addProcess(process: BunProcess) {
     this.processes.push(process);
   }
@@ -62,6 +87,51 @@ export class LaunchedNetwork {
 
   addDHNode(id: string, port: number) {
     this.DHNodes.push({ id, port });
+  }
+
+  public getPublicWsPort(): number {
+    logger.debug("Getting public WebSocket port for LaunchedNetwork");
+    logger.debug("Containers:");
+    logger.debug(JSON.stringify(this.containers));
+    const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
+    invariant(port !== undefined, "❌ No public port found in containers");
+    return port;
+  }
+
+  /**
+   * Sets the RPC URL for the Ethereum Execution Layer (EL) client.
+   * @param url - The EL RPC URL string.
+   */
+  public set elRpcUrl(url: string) {
+    this._elRpcUrl = url;
+  }
+
+  /**
+   * Gets the RPC URL for the Ethereum Execution Layer (EL) client.
+   * @returns The EL RPC URL string.
+   * @throws If the EL RPC URL has not been set.
+   */
+  public get elRpcUrl(): string {
+    invariant(this._elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
+    return this._elRpcUrl;
+  }
+
+  /**
+   * Sets the HTTP endpoint for the Ethereum Consensus Layer (CL) client.
+   * @param url - The CL HTTP endpoint string.
+   */
+  public set clEndpoint(url: string) {
+    this._clEndpoint = url;
+  }
+
+  /**
+   * Gets the HTTP endpoint for the Ethereum Consensus Layer (CL) client.
+   * @returns The CL HTTP endpoint string.
+   * @throws If the CL HTTP endpoint has not been set.
+   */
+  public get clEndpoint(): string {
+    invariant(this._clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
+    return this._clEndpoint;
   }
 
   registerRelayerType(type: RelayerType): void {
@@ -79,6 +149,7 @@ export class LaunchedNetwork {
   }
 
   async cleanup() {
+    logger.debug("Running cleanup");
     for (const process of this.processes) {
       logger.debug(`Process is still running: ${process.pid}`);
       process.unref();
@@ -92,16 +163,6 @@ export class LaunchedNetwork {
       } catch (error) {
         logger.error(`Error closing file descriptor ${fd}: ${error}`);
       }
-    }
-
-    for (const container of this.containers) {
-      logger.debug(`Container is still running: ${container}`);
-      // try {
-      //   await $`docker rm -f ${container}`.quiet();
-      //   logger.debug(`Removed container ${container}`);
-      // } catch (error) {
-      //   logger.error(`Error removing container ${container}: ${error}`);
-      // }
     }
   }
 }

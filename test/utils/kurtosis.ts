@@ -63,7 +63,6 @@ const portDetailSchema = z.object({
 });
 
 const portsListSchema = z.record(z.string(), portDetailSchema);
-type PortsList = z.infer<typeof portsListSchema>;
 
 const serviceSchema = z.object({
   image: z.string(),

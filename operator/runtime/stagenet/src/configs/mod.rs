@@ -291,7 +291,7 @@ parameter_types! {
     pub const EquivocationReportPeriodInEpochs: u64 = 168;
     pub const EquivocationReportPeriodInBlocks: u64 =
         EquivocationReportPeriodInEpochs::get() * (EpochDurationInBlocks::get() as u64);
-        pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
+    pub const MaxSetIdSessionEntries: u32 = BondingDuration::get() * SessionsPerEra::get();
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -691,6 +691,9 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 }
 
 // For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
+// The version numbers are taken from looking at the Dora explorer when launching the
+// kurtosis Ethereum network. Hovering over the fork names, shows the version numbers.
+// These version numbers need to match, otherwise the aggregated signature verification will fail.
 #[cfg(any(
     feature = "std",
     feature = "fast-runtime",
@@ -700,27 +703,27 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: [0, 0, 0, 0], // 0x00000000
+            version: [16, 0, 0, 56], // 0x10000038
             epoch: 0,
         },
         altair: Fork {
-            version: [1, 0, 0, 0], // 0x01000000
+            version: [32, 0, 0, 56], // 0x20000038
             epoch: 0,
         },
         bellatrix: Fork {
-            version: [2, 0, 0, 0], // 0x02000000
+            version: [48, 0, 0, 56], // 0x30000038
             epoch: 0,
         },
         capella: Fork {
-            version: [3, 0, 0, 0], // 0x03000000
+            version: [64, 0, 0, 56], // 0x40000038
             epoch: 0,
         },
         deneb: Fork {
-            version: [4, 0, 0, 0], // 0x04000000
+            version: [80, 0, 0, 56], // 0x50000038
             epoch: 0,
         },
         electra: Fork {
-            version: [5, 0, 0, 0], // 0x05000000
+            version: [96, 0, 0, 56], // 0x60000038
             epoch: 0,
         },
     };

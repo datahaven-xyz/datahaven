@@ -43,8 +43,6 @@ export const launchKurtosis = async (
         printDivider();
         return;
       }
-
-      logger.info("Proceeding to clean and relaunch the Kurtosis enclave...");
     }
   }
 

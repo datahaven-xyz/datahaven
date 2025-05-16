@@ -97,7 +97,6 @@ export const launchDataHavenSolochain = async (
         printDivider();
         return;
       }
-      logger.info("Proceeding to clean and relaunch DataHaven containers...");
       await cleanDataHavenContainers();
     }
   }

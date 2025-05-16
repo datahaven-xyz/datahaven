@@ -6,6 +6,7 @@ import { $ } from "bun";
 import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
 import { waitForContainerToStart } from "utils";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
@@ -13,7 +14,6 @@ import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
-import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 

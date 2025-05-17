@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
@@ -13,12 +12,13 @@ import {
   confirmWithTimeout,
   getEvmEcdsaSigner,
   getPortFromKurtosis,
-  killRunningContainers,
+  killExistingContainers,
   logger,
   parseDeploymentsFile,
   parseRelayConfig,
   printDivider,
   printHeader,
+  runShellCommandWithLogger,
   waitForContainerToStart
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
@@ -40,7 +40,9 @@ const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
 };
-const INITIAL_CHECKPOINT_PATH = "./dump-initial-checkpoint.json";
+const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
+const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
+const INITIAL_CHECKPOINT_PATH = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
 
 /**
  * Launches Snowbridge relayers for the DataHaven network.
@@ -93,7 +95,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   invariant(options.relayerImageTag, "❌ relayerImageTag is required");
-  await killRunningContainers(options.relayerImageTag);
+  await killExistingContainers(options.relayerImageTag);
 
   // Check if BEEFY is ready before proceeding
   await waitBeefyReady(launchedNetwork, 2000, 60000);
@@ -137,7 +139,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     logger.debug(`Creating config for ${name}`);
     const templateFilePath = `configs/snowbridge/${configFileName}`;
-    const outputFilePath = `tmp/configs/${configFileName}`;
+    const outputFilePath = path.resolve(RELAYER_CONFIG_DIR, configFileName);
     logger.debug(`Reading config file ${templateFilePath}`);
     const file = Bun.file(templateFilePath);
 
@@ -158,13 +160,13 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.datastore.location = "/data";
-      cfg.sink.parachain.endpoint = "ws://datahaven-alice:9944";
+      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:9944`;
 
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beacon config written to ${outputFilePath}`);
     } else {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.polkadot.endpoint = "ws://datahaven-alice:9944";
+      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:9944`;
       cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
       cfg.sink.contracts.BeefyClient = beefyClientAddress;
       cfg.sink.contracts.Gateway = gatewayAddress;
@@ -182,8 +184,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       const containerName = `snowbridge-${type}-relay`;
       logger.info(`Starting relayer ${containerName} ...`);
 
-      const hostConfigFilePath = path.resolve("tmp/configs", config);
-      const containerConfigFilePath = `/app/${config}`;
+      const hostConfigFilePath = path.resolve(config);
+      const containerConfigFilePath = `/${config}`;
       const networkName = launchedNetwork.networkName;
       invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
 
@@ -225,9 +227,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         ...relayerCommandArgs
       ];
 
-      logger.debug(`Spawning command: ${command.join(" ")}`);
-
-      logger.debug($`sh -c "${command.join(" ")}"`.text());
+      logger.debug(`Running command: ${command.join(" ")}`);
+      await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
 
       launchedNetwork.addContainer(containerName);
 
@@ -327,26 +328,25 @@ export const initEthClientPallet = async (
   const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
   const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
   const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
-  const checkpointContainerPath = `/app/${path.basename(INITIAL_CHECKPOINT_PATH)}`;
+  const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
 
-  const { stdout, stderr, exitCode } = await $`docker run --rm \
+  // Pre-create the checkpoint file so that Docker doesn't interpret it as a directory
+  await Bun.write(INITIAL_CHECKPOINT_PATH, "");
+
+  logger.debug(
+    await $`docker run --rm \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
       --workdir /app \
       ${options.relayerImageTag} \
-      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
-    .nothrow()
-    .quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr);
-    throw new Error("Error generating beacon checkpoint");
-  }
-  logger.trace(`Beacon checkpoint stdout: ${stdout}`);
+      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`.text()
+  );
 
   // Load the checkpoint into a JSON object and clean it up
-  const initialCheckpointRaw = fs.readFileSync(INITIAL_CHECKPOINT_PATH, "utf-8");
+  const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
+  const initialCheckpointRaw = await initialCheckpointFile.text();
   const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
-  fs.unlinkSync(INITIAL_CHECKPOINT_PATH);
+  await initialCheckpointFile.delete();
 
   logger.trace("Initial checkpoint:");
   logger.trace(initialCheckpoint.toJSON());

@@ -104,8 +104,10 @@ export const performSummaryOperations = async (
 
   const containers = launchedNetwork.containers.filter((c) => !c.name.startsWith("datahaven-"));
   for (const { name, publicPorts } of containers) {
-    const url = "ws" in publicPorts ? `ws://127.0.0.1:${publicPorts.ws}` : "un-exposed";
-    displayData.push({ service: name, ports: publicPorts, url });
+    const url = "ws" in publicPorts ? `ws://127.0.0.1:${publicPorts.ws}` : undefined;
+    if (url) {
+      displayData.push({ service: name, ports: publicPorts, url });
+    }
   }
 
   console.table(displayData);

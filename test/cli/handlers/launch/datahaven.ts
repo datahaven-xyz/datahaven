@@ -193,8 +193,9 @@ export const launchDataHavenSolochain = async (
  */
 const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-"
-  const PIDS = await $`docker ps -q --filter "name=^datahaven-"`.text();
-  return PIDS.trim().length > 0;
+  const containerIds = await $`docker ps -q --filter "name=^datahaven-"`.text();
+  const networkIds = await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$"`.text();
+  return containerIds.trim().length > 0 || networkIds.trim().length > 0;
 };
 
 /**

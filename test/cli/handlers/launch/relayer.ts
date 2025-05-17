@@ -322,6 +322,7 @@ export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
+  logger.debug("Initialising eth client pallet");
   // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
   await waitBeaconChainReady(launchedNetwork, 10000, 300000);
 
@@ -330,17 +331,25 @@ export const initEthClientPallet = async (
   const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
   const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
 
+  logger.debug("Generating beacon checkpoint");
   // Pre-create the checkpoint file so that Docker doesn't interpret it as a directory
   await Bun.write(INITIAL_CHECKPOINT_PATH, "");
 
-  logger.debug(
-    await $`docker run --rm \
+  logger.debug("Removing 'generate-beacon-checkpoint' container if it exists");
+  logger.debug($`docker rm -f generate-beacon-checkpoint`.text());
+
+  logger.debug("Generating beacon checkpoint");
+  const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
+      --name generate-beacon-checkpoint \
       --workdir /app \
+      --add-host host.docker.internal:host-gateway \
+      --network ${launchedNetwork.networkName} \
       ${options.relayerImageTag} \
-      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`.text()
-  );
+      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`;
+  logger.debug(`Running command: ${command}`);
+  logger.debug(await $`sh -c "${command}"`.text());
 
   // Load the checkpoint into a JSON object and clean it up
   const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
@@ -354,6 +363,7 @@ export const initEthClientPallet = async (
   // Send the checkpoint to the Substrate runtime
   const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpoint);
+  logger.success("Ethereum Beacon Client pallet initialised");
 };
 
 /**

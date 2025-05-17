@@ -15,7 +15,6 @@ export class LaunchedNetwork {
   protected processes: BunProcess[];
   protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
-  protected DHNodes: { id: string; port: number }[];
   protected _networkName: string;
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
@@ -27,7 +26,6 @@ export class LaunchedNetwork {
     this.runId = crypto.randomUUID();
     this.processes = [];
     this.fileDescriptors = [];
-    this.DHNodes = [];
     this._containers = [];
     this._activeRelayers = [];
     this._networkName = "default";
@@ -83,10 +81,6 @@ export class LaunchedNetwork {
 
   addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
     this._containers.push({ name: containerName, publicPorts });
-  }
-
-  addDHNode(id: string, port: number) {
-    this.DHNodes.push({ id, port });
   }
 
   public getPublicWsPort(): number {

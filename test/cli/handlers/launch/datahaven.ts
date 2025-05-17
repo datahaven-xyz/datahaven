@@ -10,7 +10,7 @@ import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
-  killRunningContainers,
+  killExistingContainers,
   logger,
   printDivider,
   printHeader,
@@ -206,7 +206,7 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
   logger.info("🧹 Stopping and removing existing DataHaven containers...");
 
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
-  await killRunningContainers(options.datahavenImageTag);
+  await killExistingContainers(options.datahavenImageTag);
 
   logger.info("✅ Existing DataHaven containers stopped and removed.");
 

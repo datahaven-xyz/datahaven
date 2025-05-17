@@ -173,10 +173,10 @@ export const waitForContainerToStart = async (
   );
 };
 
-export const killRunningContainers = async (imageName: string) => {
+export const killExistingContainers = async (imageName: string) => {
   logger.debug(`Searching for containers with image ${imageName}...`);
   const docker = new Docker();
-  const containerInfos = (await docker.listContainers()).filter((container) =>
+  const containerInfos = (await docker.listContainers({ all: true })).filter((container) =>
     container.Image.includes(imageName)
   );
 

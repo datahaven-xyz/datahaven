@@ -108,7 +108,7 @@ export async function waitForLog(opts: {
     () =>
       pass.destroy(
         new Error(
-          `Timed out after ${timeoutMs} ms waiting for “${opts.search}” in ${opts.containerName}`
+          `Timed out after ${timeoutMs} ms waiting for "${opts.search}" in ${opts.containerName}`
         )
       ),
     timeoutMs
@@ -125,7 +125,7 @@ export async function waitForLog(opts: {
     }
 
     throw new Error(
-      `Log stream ended before “${opts.search}” appeared for container ${opts.containerName}`
+      `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`
     );
   } finally {
     if (timer) {

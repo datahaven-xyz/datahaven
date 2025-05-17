@@ -10,6 +10,7 @@ import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
+  killRunningContainers,
   logger,
   printDivider,
   printHeader,
@@ -82,7 +83,7 @@ export const launchDataHavenSolochain = async (
     }
 
     if (options.datahaven === true) {
-      await cleanDataHavenContainers();
+      await cleanDataHavenContainers(options);
     } else {
       const shouldRelaunch = await confirmWithTimeout(
         "Do you want to clean and relaunch the DataHaven containers?",
@@ -97,7 +98,7 @@ export const launchDataHavenSolochain = async (
         printDivider();
         return;
       }
-      await cleanDataHavenContainers();
+      await cleanDataHavenContainers(options);
     }
   }
 
@@ -201,24 +202,15 @@ const checkDataHavenRunning = async (): Promise<boolean> => {
 /**
  * Stops and removes all DataHaven containers.
  */
-const cleanDataHavenContainers = async (): Promise<void> => {
+const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> => {
   logger.info("🧹 Stopping and removing existing DataHaven containers...");
-  const containerIds = (await $`docker ps -a -q --filter "name=^datahaven-"`.text()).trim();
-  logger.debug(`Container IDs: ${containerIds}`);
-  if (containerIds.length > 0) {
-    const idsArray = containerIds
-      .split("\n")
-      .map((id) => id.trim())
-      .filter((id) => id.length > 0);
-    for (const id of idsArray) {
-      logger.debug(`Stopping container ${id}`);
-      logger.debug(await $`docker stop ${id}`.nothrow().text());
-      logger.debug(await $`docker rm ${id}`.nothrow().text());
-    }
-  }
+
+  invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
+  await killRunningContainers(options.datahavenImageTag);
+
   logger.info("✅ Existing DataHaven containers stopped and removed.");
 
-  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME}`.text());
+  logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
   logger.info("✅ DataHaven Docker network removed.");
 };
 

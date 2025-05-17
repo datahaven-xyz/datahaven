@@ -73,16 +73,12 @@ interface JsonBeaconCheckpoint {
 }
 
 // Zod schema for hex strings, ensuring they start with "0x" if not empty
-const hexStringSchema = z.string().refine(
-  (val) => {
-    if (val === "") return true; // Allow empty strings if necessary, or adjust as needed
-    if (!val.startsWith("0x")) return false;
-    return /^(0x)?[0-9a-fA-F]*$/.test(val);
-  },
-  {
+const hexStringSchema = z.union([
+  z.string().regex(/^0x[0-9a-fA-F]*$/, {
     message: "Invalid hex string"
-  }
-);
+  }),
+  z.literal("")
+]);
 
 // Zod schema for the RawBeaconCheckpoint structure
 const rawBeaconCheckpointSchema = z.object({

@@ -150,7 +150,7 @@ export const launchDataHavenSolochain = async (
       ...COMMON_LAUNCH_ARGS
     ];
 
-    logger.debug($`sh -c "${command.join(" ")}"`.text());
+    logger.debug(await $`sh -c "${command.join(" ")}"`.text());
 
     await waitForContainerToStart(containerName);
 

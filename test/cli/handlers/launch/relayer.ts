@@ -328,6 +328,7 @@ export const initEthClientPallet = async (
 
   const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
   const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
+  await $`mkdir -p ${INITIAL_CHECKPOINT_DIR}`.quiet();
   const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
   const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
 
@@ -336,7 +337,7 @@ export const initEthClientPallet = async (
   await Bun.write(INITIAL_CHECKPOINT_PATH, "");
 
   logger.debug("Removing 'generate-beacon-checkpoint' container if it exists");
-  logger.debug($`docker rm -f generate-beacon-checkpoint`.text());
+  logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
   const command = `docker run \

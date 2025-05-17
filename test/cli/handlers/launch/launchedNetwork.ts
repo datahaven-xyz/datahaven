@@ -28,13 +28,14 @@ export class LaunchedNetwork {
     this.fileDescriptors = [];
     this._containers = [];
     this._activeRelayers = [];
-    this._networkName = "default";
+    this._networkName = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
   }
 
   public set networkName(name: string) {
-    this._networkName = name;
+    invariant(name.trim().length > 0, "❌ networkName cannot be empty");
+    this._networkName = name.trim();
   }
 
   public get networkName(): string {

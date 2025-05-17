@@ -19,11 +19,6 @@ export const performSummaryOperations = async (
     servicesToDisplay.push("datahaven-alice");
   }
 
-  const activeRelayers = launchedNetwork.relayers;
-  for (const relayer of activeRelayers) {
-    servicesToDisplay.push(`${relayer}-relayer`);
-  }
-
   logger.trace("Services to display", servicesToDisplay);
 
   const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
@@ -97,24 +92,6 @@ export const performSummaryOperations = async (
           service,
           ports: { ws: port },
           url: `http://127.0.0.1:${port}`
-        });
-        break;
-      }
-
-      case service === "beefy-relayer": {
-        displayData.push({
-          service,
-          ports: {},
-          url: "Background process (connects to other services)"
-        });
-        break;
-      }
-
-      case service === "beacon-relayer": {
-        displayData.push({
-          service,
-          ports: {},
-          url: "Background process (connects to other services)"
         });
         break;
       }

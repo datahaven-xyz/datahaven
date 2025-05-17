@@ -160,13 +160,13 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.datastore.location = "/data";
-      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:9944`;
+      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beacon config written to ${outputFilePath}`);
     } else {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:9944`;
+      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
       cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
       cfg.sink.contracts.BeefyClient = beefyClientAddress;
       cfg.sink.contracts.Gateway = gatewayAddress;
@@ -234,7 +234,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
       await waitForContainerToStart(containerName);
 
-      // TODO: Renable when we know what we want to tail for
+      // TODO: Re-enable when we know what we want to tail for
       // await waitForLog({
       //   searchString: "<LOG LINE TO WAIT FOR>",
       //   containerName,

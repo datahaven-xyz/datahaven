@@ -51,7 +51,6 @@ const program = new Command()
     "Tag of the relayer",
     "moonsonglabs/snowbridge-relayer:latest"
   )
-  .option("--relayer-bin-path <value>", "Path to the relayer binary", "tmp/bin/snowbridge-relay")
   .hook("preAction", launchPreActionHook)
   .action(launch);
 

@@ -121,6 +121,7 @@ export const launchDataHavenSolochain = async (
   }
 
   logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME} -f`.text());
   logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
 
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");

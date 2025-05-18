@@ -19,9 +19,9 @@ import {
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchOptions } from ".";
+import type { LaunchedNetwork } from "./launchedNetwork";
 
 const DOCKER_NETWORK_NAME = "datahaven-net";
-import type { LaunchedNetwork } from "./launchedNetwork";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 
@@ -196,8 +196,19 @@ export const launchDataHavenSolochain = async (
 const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-"
   const containerIds = await $`docker ps -q --filter "name=^datahaven-"`.text();
-  const networkIds = await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$"`.text();
-  return containerIds.trim().length > 0 || networkIds.trim().length > 0;
+  const networkOutput =
+    await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
+
+  // Check if containerIds has any actual IDs (not just whitespace)
+  const containersExist = containerIds.trim().length > 0;
+  // Check if networkOutput has any network names (not just whitespace or empty lines)
+  const networksExist =
+    networkOutput
+      .trim()
+      .split("\n")
+      .filter((line) => line.trim().length > 0).length > 0;
+
+  return containersExist || networksExist;
 };
 
 /**

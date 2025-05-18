@@ -1,0 +1,41 @@
+{
+    "source": {
+        "ethereum": {
+            "endpoint": "ws://el-1-reth-lighthouse:8546"
+        },
+        "contracts": {
+            "Gateway": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf"
+        },
+        "channel-id": "",
+        "beacon": {
+            "endpoint": "http://cl-1-lighthouse-reth:4000",
+            "stateEndpoint": "http://cl-1-lighthouse-reth:4000",
+            "spec": {
+                "syncCommitteeSize": 512,
+                "slotsInEpoch": 32,
+                "epochsPerSyncCommitteePeriod": 256,
+                "forkVersions": {
+                    "deneb": 0,
+                    "electra": 0
+                }
+            },
+            "datastore": {
+                "location": "",
+                "maxEntries": 100
+            }
+        }
+    },
+    "sink": {
+        "parachain": {
+            "endpoint": "ws://dh-validator-0:9944",
+            "maxWatchedExtrinsics": 8,
+            "headerRedundancy": 20
+        }
+    },
+    "instantVerification": false,
+    "schedule": {
+        "id": 1,
+        "totalRelayerCount": 1,
+        "sleepInterval": 1
+    }
+}

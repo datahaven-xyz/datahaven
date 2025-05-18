@@ -182,7 +182,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   for (const { config, name, type, pk } of relayersToStart) {
     try {
       const containerName = `snowbridge-${type}-relay`;
-      logger.info(`Starting relayer ${containerName} ...`);
+      logger.info(`🚀 Starting relayer ${containerName} ...`);
 
       const hostConfigFilePath = path.resolve(config);
       const containerConfigFilePath = `/${config}`;
@@ -328,7 +328,6 @@ export const initEthClientPallet = async (
 
   const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
   const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
-  await $`mkdir -p ${INITIAL_CHECKPOINT_DIR}`.quiet();
   const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
   const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
 

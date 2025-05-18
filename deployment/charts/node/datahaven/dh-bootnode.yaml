@@ -1,8 +1,10 @@
+name: dh-bootnode
+description: Datahaven Bootnode
 fullnameOverride: dh-bootnode
 
 image:
   repository: moonsonglabs/datahaven
-  tag: sha-885139e
+  tag: pr-78
   pullPolicy: Always
 
 imagePullSecrets:
@@ -10,7 +12,8 @@ imagePullSecrets:
 
 node:
   chain: stagenet-local
-  customChainspec: true # see extraInitContainers, chainspec-generator
+  command: datahaven-node
+  # customChainspec: true # see extraInitContainers, chainspec-generator
   role: full
   replicas: 1
   chainData:
@@ -19,10 +22,10 @@ node:
   chainKeystore:
     mountInMemory:
       enabled: true
-  perNodeServices:
-    relayP2pService:
-      enabled: true
-  # to generate new key run: docker run parity/polkadot key generate-node-key
+  # perNodeServices:
+  #   relayP2pService:
+  #     enabled: true
+  # to generate new key run: docker run moonsonglabs/datahaven key generate-node-key
   # 12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk
   customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238
   flags:
@@ -42,7 +45,7 @@ extraInitContainers:
         apt update || true
         apt install -y jq
         {{ .Values.node.command }} build-spec --chain {{ .Values.node.chain }} > base.json
-        echo '{"bootNodes":["/dns/bootnode-0/tcp/30333/p2p/12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk"]}' > override1.json
+        echo '{"bootNodes":["/dns/dh-bootnode-0/tcp/30333/p2p/12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk"]}' > override1.json
         jq  -s '.[0] * .[1]' base.json override1.json | sed 's/1e+18/1000000000000000000/' > plain.json
         cut -c -256 plain.json
         {{ .Values.node.command }} build-spec --chain plain.json --raw  > chainspec.json

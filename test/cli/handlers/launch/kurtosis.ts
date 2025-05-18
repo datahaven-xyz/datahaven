@@ -22,7 +22,7 @@ export const launchKurtosis = async (
 
     logger.trace("Checking if launchKurtosis option was set via flags");
     if (options.launchKurtosis === false) {
-      logger.info("Keeping existing Kurtosis enclave.");
+      logger.info("👍 Keeping existing Kurtosis enclave.");
 
       await registerServices(launchedNetwork);
       printDivider();
@@ -37,7 +37,7 @@ export const launchKurtosis = async (
       );
 
       if (!shouldRelaunch) {
-        logger.info("Keeping existing Kurtosis enclave.");
+        logger.info("👍 Keeping existing Kurtosis enclave.");
 
         await registerServices(launchedNetwork);
         printDivider();
@@ -145,7 +145,7 @@ const registerServices = async (launchedNetwork: LaunchedNetwork) => {
   invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
   const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
   launchedNetwork.elRpcUrl = elRpcUrl;
-  logger.info(`👍 Execution Layer RPC URL configured: ${elRpcUrl}`);
+  logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
 
   // Configure CL Endpoint
   const lighthousePublicPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
@@ -155,5 +155,5 @@ const registerServices = async (launchedNetwork: LaunchedNetwork) => {
     "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
   );
   launchedNetwork.clEndpoint = clEndpoint;
-  logger.info(`👍 Consensus Layer Endpoint configured: ${clEndpoint}`);
+  logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
 };

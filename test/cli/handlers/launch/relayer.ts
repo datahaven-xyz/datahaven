@@ -62,7 +62,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldLaunchRelayers ? "will launch" : "will not launch"} Snowbridge relayers`
+      `🏳️ Using flag option: ${shouldLaunchRelayers ? "will launch" : "will not launch"} Snowbridge relayers`
     );
   }
 

@@ -19,7 +19,7 @@ export const performValidatorOperations = async (
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
+      `🏳️ Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
     );
   }
 
@@ -48,7 +48,7 @@ export const performValidatorOperations = async (
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
+      `🏳️ Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
     );
   }
 
@@ -73,7 +73,7 @@ export const performValidatorOperations = async (
       );
     } else {
       logger.info(
-        `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+        `🏳️ Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
       );
     }
 

@@ -38,7 +38,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
+      `🏳️ Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
     );
   }
 

@@ -32,6 +32,10 @@ serviceAccount:
 
 params: []
 
+# -- Config file
+config:
+  # -- Config name
+  name: ""
 
 # -- Secrets will be mounted to pod /secrets/{key}
 secrets: {}

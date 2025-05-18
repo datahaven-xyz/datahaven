@@ -110,7 +110,7 @@ export const launchDataHavenSolochain = async (
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
+      `🏳️ Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
     );
   }
 
@@ -220,6 +220,13 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
   await killExistingContainers(options.datahavenImageTag);
 
+  if (options.relayerImageTag) {
+    logger.info(
+      "🧹 Stopping and removing existing relayer containers (relayers depend on DataHaven nodes)..."
+    );
+    await killExistingContainers(options.relayerImageTag);
+  }
+
   logger.info("✅ Existing DataHaven containers stopped and removed.");
 
   logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
@@ -262,12 +269,12 @@ const buildLocalImage = async (options: LaunchOptions) => {
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldBuildDataHaven ? "will build" : "will not build"} DataHaven node local Docker image`
+      `🏳️ Using flag option: ${shouldBuildDataHaven ? "will build" : "will not build"} DataHaven node local Docker image`
     );
   }
 
   if (!shouldBuildDataHaven) {
-    logger.info("Skipping DataHaven node local Docker image build. Done!");
+    logger.info("👍 Skipping DataHaven node local Docker image build. Done!");
     return;
   }
 
@@ -327,7 +334,7 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
     `Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
   );
   launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
-  logger.info(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
+  logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
 };
 
 // Function to convert compressed public key to Ethereum address

@@ -15,21 +15,18 @@
 
 use {
     crate as pallet_external_validators_rewards,
+    crate::types::{ExternalIndexProvider, HandleInflation},
     frame_support::{
         parameter_types,
-        traits::{ConstU32, ConstU64},
+        traits::{fungible::Mutate, ConstU32, ConstU64},
     },
     pallet_balances::AccountData,
-    snowbridge_core::{
-        outbound::{SendError, SendMessageFeeProvider},
-        TokenId,
-    },
+    snowbridge_outbound_queue_primitives::{SendError, SendMessageFeeProvider},
     sp_core::H256,
     sp_runtime::{
-        traits::{BlakeTwo256, IdentityLookup, Keccak256, MaybeEquivalence},
-        BuildStorage,
+        traits::{BlakeTwo256, IdentityLookup, Keccak256},
+        BuildStorage, DispatchError,
     },
-    xcm::prelude::*,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -117,9 +114,15 @@ impl pallet_timestamp::Config for Test {
 impl mock_data::Config for Test {}
 
 pub struct MockOkOutboundQueue;
-impl tp_bridge::DeliverMessage for MockOkOutboundQueue {
+impl crate::types::SendMessage for MockOkOutboundQueue {
     type Ticket = ();
-
+    type Message = ();
+    fn build(_: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
+        Some(())
+    }
+    fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {
+        Ok(())
+    }
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
         Ok(H256::zero())
     }
@@ -134,36 +137,21 @@ impl SendMessageFeeProvider for MockOkOutboundQueue {
 }
 
 pub struct TimestampProvider;
-impl tp_traits::ExternalIndexProvider for TimestampProvider {
+impl ExternalIndexProvider for TimestampProvider {
     fn get_external_index() -> u64 {
         Timestamp::get()
-    }
-}
-
-pub struct MockTokenIdConvert;
-impl MaybeEquivalence<TokenId, Location> for MockTokenIdConvert {
-    fn convert(_id: &TokenId) -> Option<Location> {
-        Some(Location::parent())
-    }
-    fn convert_back(loc: &Location) -> Option<TokenId> {
-        if *loc == Location::here() {
-            Some(H256::repeat_byte(0x01))
-        } else {
-            None
-        }
     }
 }
 
 parameter_types! {
     pub const RewardsEthereumSovereignAccount: u64
         = 0xffffffffffffffff;
-    pub RewardTokenLocation: Location = Location::here();
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
 }
 
 impl pallet_external_validators_rewards::Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type EraIndexProvider = Mock;
+    type EraIndexProvider = mock_data::Pallet<Test>;
     type HistoryDepth = ConstU32<10>;
     type BackingPoints = ConstU32<20>;
     type DisputeStatementPoints = ConstU32<20>;
@@ -171,15 +159,29 @@ impl pallet_external_validators_rewards::Config for Test {
     type ExternalIndexProvider = TimestampProvider;
     type GetWhitelistedValidators = ();
     type Hashing = Keccak256;
-    type ValidateMessage = ();
-    type OutboundQueue = MockOkOutboundQueue;
+    type SendMessage = MockOkOutboundQueue;
+    type HandleInflation = InflationMinter;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = RewardsEthereumSovereignAccount;
-    type TokenLocationReanchored = Mock;
-    type TokenIdFromLocation = MockTokenIdConvert;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+pub struct InflationMinter;
+impl HandleInflation<u64> for InflationMinter {
+    fn mint_inflation(account: &u64, amount: u128) -> sp_runtime::DispatchResult {
+        if amount == 0 {
+            log::error!(target: "ext_validators_rewards", "No rewards to distribute");
+            return Err(DispatchError::Other("No rewards to distribute"));
+        }
+        <Test as pallet_external_validators_rewards::Config>::Currency::mint_into(
+            account,
+            amount.into(),
+        )
+        .map(|_| ())
+        .map_err(|_| DispatchError::Other("Failed to mint inflation"))
+    }
 }
 
 // Pallet to provide some mock data, used to test
@@ -187,7 +189,7 @@ impl pallet_external_validators_rewards::Config for Test {
 pub mod mock_data {
     use {
         frame_support::pallet_prelude::*,
-        tp_traits::{ActiveEraInfo, EraIndex, EraIndexProvider},
+        pallet_external_validators::traits::{ActiveEraInfo, EraIndex, EraIndexProvider},
         xcm::latest::prelude::*,
     };
 

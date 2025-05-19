@@ -37,8 +37,6 @@ snowbridge-outbound-queue-primitives = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 polkadot-primitives = { workspace = true }
 
-xcm = { workspace = true }
-
 [dev-dependencies]
 pallet-timestamp = { workspace = true }
 sp-io = { workspace = true }
@@ -65,7 +63,6 @@ std = [
 	"sp-runtime/std",
 	"sp-staking/std",
 	"sp-std/std",
-	"xcm/std",
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",

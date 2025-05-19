@@ -16,11 +16,8 @@
 
 use {
     crate::{self as pallet_external_validators_rewards, mock::*},
-    sp_core::H256,
+    pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_std::collections::btree_map::BTreeMap,
-    tp_bridge::Command,
-    tp_traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
-    xcm::latest::prelude::*,
 };
 
 #[test]
@@ -110,72 +107,17 @@ fn test_on_era_end() {
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None);
 
-        let expected_command = Command::ReportRewards {
-            external_idx: 31000u64,
-            era_index: 1u32,
-            total_points: total_points as u128,
-            tokens_inflated:
-                <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get(), // test inflation value used in mock
-            rewards_merkle_root: rewards_utils.unwrap().rewards_merkle_root,
-            token_id: H256::repeat_byte(0x01),
-        };
-
+        let root = rewards_utils.unwrap().rewards_merkle_root;
+        let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
         System::assert_last_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsMessageSent {
                 message_id: Default::default(),
-                rewards_command: expected_command,
+                era_index: 1,
+                total_points: total_points as u128,
+                inflation_amount: inflation,
+                rewards_merkle_root: root,
             },
         ));
-    })
-}
-
-#[test]
-fn test_on_era_end_without_proper_token() {
-    new_test_ext().execute_with(|| {
-        run_to_block(1);
-        Mock::mutate(|mock| {
-            mock.active_era = Some(ActiveEraInfo {
-                index: 1,
-                start: None,
-            })
-        });
-        Mock::set_location(Location::parent());
-        let points = vec![10u32, 30u32, 50u32];
-        let total_points: u32 = points.iter().cloned().sum();
-        let accounts = vec![1u64, 3u64, 5u64];
-        let accounts_points: Vec<(u64, crate::RewardPoints)> = accounts
-            .iter()
-            .cloned()
-            .zip(points.iter().cloned())
-            .collect();
-        ExternalValidatorsRewards::reward_by_ids(accounts_points);
-        ExternalValidatorsRewards::on_era_end(1);
-
-        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
-        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None);
-
-        let expected_command = Command::ReportRewards {
-            external_idx: 31000u64,
-            era_index: 1u32,
-            total_points: total_points as u128,
-            tokens_inflated:
-                <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get(), // test inflation value used in mock
-            rewards_merkle_root: rewards_utils.unwrap().rewards_merkle_root,
-            token_id: H256::repeat_byte(0x01),
-        };
-
-        let events = System::events();
-        let expected_not_thrown_event =
-            RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent {
-                message_id: Default::default(),
-                rewards_command: expected_command,
-            });
-        assert!(
-            !events
-                .iter()
-                .any(|record| record.event == expected_not_thrown_event),
-            "event should not have been thrown",
-        );
     })
 }
 
@@ -204,22 +146,18 @@ fn test_on_era_end_with_zero_inflation() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None);
-        let expected_command = Command::ReportRewards {
-            external_idx: 31000u64,
-            era_index: 1u32,
-            total_points: total_points as u128,
-            tokens_inflated:
-                <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get(), // test inflation value used in mock
-            rewards_merkle_root: rewards_utils.unwrap().rewards_merkle_root,
-            token_id: H256::repeat_byte(0x01),
-        };
-
-        let events = System::events();
-        let expected_not_thrown_event =
-            RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent {
+        let root = rewards_utils.unwrap().rewards_merkle_root;
+        let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        let expected_not_thrown_event = RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageSent {
                 message_id: Default::default(),
-                rewards_command: expected_command,
-            });
+                era_index: 1,
+                total_points: total_points as u128,
+                inflation_amount: inflation,
+                rewards_merkle_root: root,
+            }
+        );
+        let events = System::events();
         assert!(
             !events
                 .iter()
@@ -253,22 +191,18 @@ fn test_on_era_end_with_zero_points() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None);
-        let expected_command = Command::ReportRewards {
-            external_idx: 31000u64,
-            era_index: 1u32,
-            total_points: total_points as u128,
-            tokens_inflated:
-                <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get(), // test inflation value used in mock
-            rewards_merkle_root: rewards_utils.unwrap().rewards_merkle_root,
-            token_id: H256::repeat_byte(0x01),
-        };
-
-        let events = System::events();
-        let expected_not_thrown_event =
-            RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent {
+        let root = rewards_utils.unwrap().rewards_merkle_root;
+        let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        let expected_not_thrown_event = RuntimeEvent::ExternalValidatorsRewards(
+            crate::Event::RewardsMessageSent {
                 message_id: Default::default(),
-                rewards_command: expected_command,
-            });
+                era_index: 1,
+                total_points: total_points as u128,
+                inflation_amount: inflation,
+                rewards_merkle_root: root,
+            }
+        );
+        let events = System::events();
         assert!(
             !events
                 .iter()

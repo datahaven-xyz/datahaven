@@ -46,7 +46,9 @@ export const runShellCommandWithLogger = async (
           const text = new TextDecoder().decode(value);
           const trimmedText = text.trim();
           if (trimmedText) {
-            logger[logLevel](trimmedText.includes("\n") ? `\n${trimmedText}` : trimmedText);
+            logger[logLevel](
+              trimmedText.includes("\n") ? `>_ \n${trimmedText}` : `>_ ${trimmedText}`
+            );
           }
         }
       } catch (err) {

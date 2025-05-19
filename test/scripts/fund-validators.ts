@@ -101,7 +101,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   }
 
   const validators = config.validators;
-  logger.info(`Found ${validators.length} validators to fund`);
+  logger.info(`🔎 Found ${validators.length} validators to fund`);
 
   // Get cast path for transactions
   const { stdout: castPath } = await $`which cast`.quiet();
@@ -127,7 +127,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   logger.debug(`Found ${deployments.DeployedStrategies.length} strategies with token information`);
 
   // We need to ensure all operators to be registered have the necessary tokens
-  logger.info("Funding validators with tokens...");
+  logger.info("💸 Funding validators with tokens...");
 
   // Iterate through the strategies, using the embedded token information to fund validators
   for (const strategy of deployments.DeployedStrategies) {

@@ -108,7 +108,7 @@ export async function waitForLog(opts: {
     () =>
       pass.destroy(
         new Error(
-          `Timed out after ${timeoutMs} ms waiting for “${opts.search}” in ${opts.containerName}`
+          `Timed out after ${timeoutMs} ms waiting for "${opts.search}" in ${opts.containerName}`
         )
       ),
     timeoutMs
@@ -125,7 +125,7 @@ export async function waitForLog(opts: {
     }
 
     throw new Error(
-      `Log stream ended before “${opts.search}” appeared for container ${opts.containerName}`
+      `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`
     );
   } finally {
     if (timer) {
@@ -171,4 +171,22 @@ export const waitForContainerToStart = async (
     false,
     `❌ container ${containerName} cannot be found  in running container list after ${seconds} seconds`
   );
+};
+
+export const killExistingContainers = async (imageName: string) => {
+  logger.debug(`Searching for containers with image ${imageName}...`);
+  const docker = new Docker();
+  const containerInfos = (await docker.listContainers({ all: true })).filter((container) =>
+    container.Image.includes(imageName)
+  );
+
+  if (containerInfos.length === 0) {
+    logger.debug(`No containers found with image ${imageName}`);
+    return;
+  }
+
+  const promises = containerInfos.map(({ Id }) => docker.getContainer(Id).remove({ force: true }));
+  await Promise.all(promises);
+
+  logger.debug(`${containerInfos.length} containers with image ${imageName} killed`);
 };

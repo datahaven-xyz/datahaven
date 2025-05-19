@@ -50,6 +50,9 @@
       "performance": {
         "noAccumulatingSpread": "off"
       },
+      "nursery": {
+        "noFloatingPromises": "error"
+      },
       "style": {
         "noParameterAssign": "error",
         "useAsConstAssertion": "error",

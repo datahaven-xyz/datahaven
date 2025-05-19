@@ -49,7 +49,7 @@ const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
 // These are the fallback keys if we can't fetch the next authorities directly from the network
 const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   alice: "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
-  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
+  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27"
 } as const;
 
 /**

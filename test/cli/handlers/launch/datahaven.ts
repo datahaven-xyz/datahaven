@@ -351,7 +351,7 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
  */
 const checkTagExists = async (tag: string) => {
   const cleaned = tag.trim();
-  logger.debug(`Checking if image  ${cleaned} is available locally`);
+  logger.debug(`Checking if image ${cleaned} is available locally`);
   const { exitCode: localExists } = await $`docker image inspect ${cleaned}`.nothrow().quiet();
 
   if (localExists !== 0) {

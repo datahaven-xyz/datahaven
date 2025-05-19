@@ -76,27 +76,37 @@ const executionRelaySchema = z
   })
   .describe("Execution Layer Relay Configuration");
 
-const substrateRelaySchema = z
+const solochainRelaySchema = z
   .object({
     source: z.object({
       ethereum: z.object({
         endpoint: z.string()
       }),
-      polkadot: z.object({
+      solochain: z.object({
         endpoint: z.string()
       }),
       contracts: z.object({
         BeefyClient: z.string(),
         Gateway: z.string()
       }),
+      beacon: z.object({
+        endpoint: z.string(),
+        spec: z.object({
+          forkVersions: z.object({
+            electra: z.number()
+          })
+        }),
+        datastore: z.object({
+          location: z.string()
+        })
+      })
     }),
     sink: z.object({
       contracts: z.object({
         Gateway: z.string()
       }),
       ethereum: z.object({
-        endpoint: z.string(),
-        "gas-limit": z.string()
+        endpoint: z.string()
       })
     }),
     schedule: z.object({
@@ -106,7 +116,7 @@ const substrateRelaySchema = z
     }),
     "reward-address": z.string()
   })
-  .describe("Substrate Relay Configuration");
+  .describe("Solochain Relay Configuration");
 
 const beaconFinalitySchema = z
   .object({
@@ -137,7 +147,7 @@ interface SnowbridgeConfigOptions {
   relayBin: string;
   ethEndpointWs: string;
   ethGasLimit: string;
-  relaychainEndpoint: string;
+  solochainEndpoint: string;
   beaconEndpointHttp: string;
   ethWriterEndpoint: string;
   primaryGovernanceChannelId: string;
@@ -155,7 +165,7 @@ const DEFAULT_OPTIONS = {
   relayBin: "relay",
   ethEndpointWs: "ws://localhost:8545",
   ethGasLimit: "8000000",
-  relaychainEndpoint: "ws://localhost:9944",
+  solochainEndpoint: "ws://localhost:9944",
   beaconEndpointHttp: "http://localhost:5052",
   ethWriterEndpoint: "",
   primaryGovernanceChannelId: "0",
@@ -243,7 +253,7 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.sink.ethereum.endpoint = options.ethEndpointWs;
       obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
-      obj.source.polkadot.endpoint = options.relaychainEndpoint;
+      obj.source.polkadot.endpoint = options.solochainEndpoint;
     },
     commonOptions
   );
@@ -258,7 +268,7 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.source.beacon.endpoint = options.beaconEndpointHttp;
       obj.source.beacon.spec.forkVersions.electra = options.beaconElectraForkVersion;
       obj.source.beacon.datastore.location = options.dataStoreDir;
-      obj.sink.parachain.endpoint = options.relaychainEndpoint;
+      obj.sink.parachain.endpoint = options.solochainEndpoint;
     },
     commonOptions
   );
@@ -274,44 +284,28 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.source["channel-id"] = options.primaryGovernanceChannelId;
       obj.source.beacon.datastore.location = options.dataStoreDir;
-      obj.sink.parachain.endpoint = options.relaychainEndpoint;
+      obj.sink.parachain.endpoint = options.solochainEndpoint;
       obj.schedule.id = options.executionScheduleId;
     },
     commonOptions
   );
 
-  // Substrate relay - primary
-  logger.debug("Configuring Primary Substrate relay...");
+  // Solochain relay
+  logger.debug("Configuring Solochain relay...");
   await updateJsonConfig(
-    "substrate-relay.json",
-    "substrate-relay-primary.json",
-    substrateRelaySchema,
+    "solochain-relay.json",
+    "solochain-relay.json",
+    solochainRelaySchema,
     async (obj) => {
       obj.source.ethereum.endpoint = options.ethEndpointWs;
-      obj.source.polkadot.endpoint = options.relaychainEndpoint;
+      obj.source.solochain.endpoint = options.solochainEndpoint;
       obj.source.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
       obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.sink.ethereum.endpoint = options.ethWriterEndpoint;
-      obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
-    },
-    commonOptions
-  );
-
-  // Substrate relay - secondary
-  logger.debug("Configuring Secondary Substrate relay...");
-  await updateJsonConfig(
-    "substrate-relay.json",
-    "substrate-relay-secondary.json",
-    substrateRelaySchema,
-    async (obj) => {
-      obj.source.ethereum.endpoint = options.ethEndpointWs;
-      obj.source.polkadot.endpoint = options.relaychainEndpoint;
-      obj.source.contracts.BeefyClient = await getSnowbridgeAddressFromEnv("BeefyClient");
-      obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
-      obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
-      obj.sink.ethereum.endpoint = options.ethWriterEndpoint;
-      obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
+      obj.source.beacon.endpoint = options.beaconEndpointHttp;
+      obj.source.beacon.spec.forkVersions.electra = options.beaconElectraForkVersion;
+      obj.source.beacon.datastore.location = options.dataStoreDir;
     },
     commonOptions
   );
@@ -425,7 +419,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       relayBin: { type: "string" },
       ethEndpointWs: { type: "string" },
       ethGasLimit: { type: "string" },
-      relaychainEndpoint: { type: "string" },
+      solochainEndpoint: { type: "string" },
       beaconEndpointHttp: { type: "string" },
       ethWriterEndpoint: { type: "string" },
       primaryGovernanceChannelId: { type: "string" },
@@ -444,7 +438,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (values.relayBin) options.relayBin = values.relayBin;
   if (values.ethEndpointWs) options.ethEndpointWs = values.ethEndpointWs;
   if (values.ethGasLimit) options.ethGasLimit = values.ethGasLimit;
-  if (values.relaychainEndpoint) options.relaychainEndpoint = values.relaychainEndpoint;
+  if (values.solochainEndpoint) options.solochainEndpoint = values.solochainEndpoint;
   if (values.beaconEndpointHttp) options.beaconEndpointHttp = values.beaconEndpointHttp;
   if (values.ethWriterEndpoint) options.ethWriterEndpoint = values.ethWriterEndpoint;
   if (values.primaryGovernanceChannelId)

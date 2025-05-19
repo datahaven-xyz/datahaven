@@ -56,42 +56,58 @@ export const BeefyRelayConfigSchema = z.object({
 });
 export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 
-export const SubstrateRelayConfigSchema = z
-  .object({
-    source: z.object({
-      ethereum: z.object({
-        endpoint: z.string()
-      }),
-      polkadot: z.object({
-        endpoint: z.string()
-      }),
-      parachain: z.object({
-        endpoint: z.string()
-      }),
-      contracts: z.object({
-        BeefyClient: z.string(),
-        Gateway: z.string()
-      }),
+export const SolochainRelayConfigSchema = z.object({
+  source: z.object({
+    ethereum: z.object({
+      endpoint: z.string()
     }),
-    sink: z.object({
-      contracts: z.object({
-        Gateway: z.string()
+    solochain: z.object({
+      endpoint: z.string()
+    }),
+    contracts: z.object({
+      BeefyClient: z.string(),
+      Gateway: z.string()
+    }),
+    beacon: z.object({
+      endpoint: z.string(),
+      stateEndpoint: z.string(),
+      spec: z.object({
+        syncCommitteeSize: z.number(),
+        slotsInEpoch: z.number(),
+        epochsPerSyncCommitteePeriod: z.number(),
+        forkVersions: z.object({
+          deneb: z.number(),
+          electra: z.number()
+        })
       }),
-      ethereum: z.object({
-        endpoint: z.string(),
-        "gas-limit": z.string()
+      datastore: z.object({
+        location: z.string(),
+        maxEntries: z.number()
       })
+    })
+  }),
+  sink: z.object({
+    contracts: z.object({
+      Gateway: z.string()
     }),
-    schedule: z.object({
-      id: z.number(),
-      totalRelayerCount: z.number(),
-      sleepInterval: z.number()
-    }),
-    "reward-address": z.string(),
-  });
-export type SubstrateRelayConfig = z.infer<typeof SubstrateRelayConfigSchema>;
+    ethereum: z.object({
+      endpoint: z.string(),
+    })
+  }),
+  schedule: z.object({
+    id: z.number(),
+    totalRelayerCount: z.number(),
+    sleepInterval: z.number()
+  }),
+  "reward-address": z.string(),
+  ofac: z.object({
+    enabled: z.boolean(),
+    apiKey: z.string()
+  })
+});
+export type SolochainRelayConfig = z.infer<typeof SolochainRelayConfigSchema>;
 
-export type RelayerType = "beefy" | "beacon" | "substrate";
+export type RelayerType = "beefy" | "beacon" | "solochain";
 
 /**
  * Parse beacon relay configuration
@@ -116,14 +132,14 @@ function parseBeefyConfig(config: unknown): BeefyRelayConfig {
 }
 
 /**
- * Parse substrate relay configuration
+ * Parse solochain relay configuration
  */
-function parseSubstrateConfig(config: unknown): SubstrateRelayConfig {
-  const result = SubstrateRelayConfigSchema.safeParse(config);
+function parseSolochainConfig(config: unknown): SolochainRelayConfig {
+  const result = SolochainRelayConfigSchema.safeParse(config);
   if (result.success) {
     return result.data;
   }
-  throw new Error(`Failed to parse config as SubstrateRelayConfig: ${result.error.message}`);
+  throw new Error(`Failed to parse config as SolochainRelayConfig: ${result.error.message}`);
 }
 
 /**
@@ -137,14 +153,18 @@ export function isBeaconConfig(
 
 export function parseRelayConfig(config: unknown, type: "beacon"): BeaconRelayConfig;
 export function parseRelayConfig(config: unknown, type: "beefy"): BeefyRelayConfig;
-export function parseRelayConfig(config: unknown, type: "substrate"): SubstrateRelayConfig;
+export function parseRelayConfig(config: unknown, type: "solochain"): SolochainRelayConfig;
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType
-): BeaconRelayConfig | BeefyRelayConfig | SubstrateRelayConfig;
+): BeaconRelayConfig | BeefyRelayConfig | SolochainRelayConfig;
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType
-): BeaconRelayConfig | BeefyRelayConfig | SubstrateRelayConfig {
-  return type === "beacon" ? parseBeaconConfig(config) : type === "beefy" ? parseBeefyConfig(config) : parseSubstrateConfig(config);
+): BeaconRelayConfig | BeefyRelayConfig | SolochainRelayConfig {
+  return type === "beacon"
+    ? parseBeaconConfig(config)
+    : type === "beefy"
+      ? parseBeefyConfig(config)
+      : parseSolochainConfig(config);
 }

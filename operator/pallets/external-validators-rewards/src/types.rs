@@ -39,3 +39,15 @@ pub trait SendMessage {
 pub trait HandleInflation<AccountId> {
     fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+pub trait BenchmarkHelper {
+    fn setup();
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper for () {
+    fn setup() {
+        ()
+    }
+}

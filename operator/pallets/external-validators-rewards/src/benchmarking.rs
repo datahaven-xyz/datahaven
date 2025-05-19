@@ -21,11 +21,10 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as ExternalValidatorsRewards;
 use {
+    crate::{BenchmarkHelper, OnEraEnd},
     frame_benchmarking::{account, v2::*, BenchmarkError},
-    frame_support::traits::{Currency, Get},
+    frame_support::traits::Currency,
     sp_std::prelude::*,
-    tp_bridge::TokenChannelSetterBenchmarkHelperTrait,
-    tp_traits::OnEraEnd,
 };
 
 const SEED: u32 = 0;
@@ -55,19 +54,14 @@ mod benchmarks {
         frame_system::Pallet::<T>::set_block_number(0u32.into());
 
         let mut era_reward_points = EraRewardPoints::default();
-        era_reward_points.total = T::BackingPoints::get() * 1000;
+        era_reward_points.total = 20 * 1000;
 
         for i in 0..1000 {
             let account_id = create_funded_user::<T>("candidate", i, 100);
-            era_reward_points
-                .individual
-                .insert(account_id, T::BackingPoints::get());
+            era_reward_points.individual.insert(account_id, 20);
         }
 
-        T::BenchmarkHelper::set_up_token(
-            T::TokenLocationReanchored::get(),
-            H256::repeat_byte(0x01),
-        );
+        T::BenchmarkHelper::setup();
         <RewardPointsForEra<T>>::insert(1u32, era_reward_points);
 
         #[block]

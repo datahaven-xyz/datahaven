@@ -8,6 +8,7 @@ import { LaunchedNetwork } from "./launchedNetwork";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
+import { performValidatorSetUpdate } from "./validatorSet";
 
 export interface LaunchOptions {
   verified?: boolean;
@@ -34,7 +35,7 @@ export const BASE_SERVICES = [
   "cl-2-lighthouse-reth",
   "el-1-reth-lighthouse",
   "el-2-reth-lighthouse",
-  "dora"
+  "dora",
 ];
 
 // =====  Launch Handler Functions  =====
@@ -68,12 +69,15 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
-    deployContracts: options.deployContracts
+    deployContracts: options.deployContracts,
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
+
+  // After relayers are set up, update the validator set so the execution relayer can pick up the message
+  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
@@ -90,9 +94,7 @@ export const launch = async (options: LaunchOptions) => {
   }
 };
 
-export const launchPreActionHook = (
-  thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
-) => {
+export const launchPreActionHook = (thisCmd: Command<[], LaunchOptions & { [key: string]: any }>) => {
   const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");

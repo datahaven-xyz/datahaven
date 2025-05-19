@@ -10,9 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const RUNTIME_FEATURES = ["fast-runtime"];
 
-export const cargoCrossbuild = async (options: {
-  datahavenBuildExtraArgs?: string;
-}) => {
+export const cargoCrossbuild = async (options: { datahavenBuildExtraArgs?: string }) => {
   logger.info("🔀 Cross-building DataHaven node for Linux AMD64");
 
   const ARCH = (await $`uname -m`.text()).trim();
@@ -30,7 +28,7 @@ export const cargoCrossbuild = async (options: {
       throw new Error("Zig is not installed");
     }
 
-    installCargoZigbuild();
+    await installCargoZigbuild();
 
     const target = "x86_64-unknown-linux-gnu";
     await addRustupTarget(target);

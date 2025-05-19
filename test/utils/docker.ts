@@ -1,7 +1,7 @@
 import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
+import { logger, type ServiceInfo, StandardServiceMappings } from "utils";
 
 const docker = new Docker({});
 

@@ -35,7 +35,8 @@ pub use pallet::*;
 
 use {
     crate::types::{
-        DeliverMessage, EraRewardsUtils, ExternalIndexProvider, SendMessage, ValidateMessage,
+        DeliverMessage, EraRewardsUtils, ExternalIndexProvider, HandleInflation, SendMessage,
+        ValidateMessage,
     },
     frame_support::traits::{Defensive, Get, ValidatorSet},
     pallet_external_validators::traits::{OnEraEnd, OnEraStart},
@@ -122,6 +123,9 @@ pub mod pallet {
         /// How to send messages via Snowbridge Outbound Queue V2.
         type SendMessage: SendMessage;
 
+        /// Hook for minting inflation tokens.
+        type HandleInflation: HandleInflation<Self::AccountId>;
+
         #[cfg(feature = "runtime-benchmarks")]
         type BenchmarkHelper: tp_bridge::TokenChannelSetterBenchmarkHelperTrait;
     }
@@ -137,7 +141,7 @@ pub mod pallet {
             message_id: H256,
             era_index: EraIndex,
             total_points: u128,
-            tokens_inflated: u128,
+            inflation_amount: u128,
             rewards_merkle_root: H256,
         },
     }
@@ -297,110 +301,34 @@ pub mod pallet {
 
     impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
-            // Will send a ReportRewards message to Ethereum unless:
-            // - the reward token is misconfigured
-            // - the tokens inflation is 0 (misconfigured inflation)
-            // - the total points is 0 (no rewards to distribute)
-            // - it fails to mint the tokens in the Ethereum Sovereign Account
-            // - the generated message doesn't pass validation
-
-            // let token_location = T::TokenLocationReanchored::get();
-            // let token_id = T::TokenIdFromLocation::convert_back(&token_location);
-
-            // if let Some(token_id) = token_id {
-            //     let era_rewards = RewardPointsForEra::<T>::get(&era_index);
-            //     if let Some(utils) = era_rewards
-            //         .generate_era_rewards_utils::<<T as Config>::Hashing>(era_index, None)
-            //     {
-
-            //         if tokens_inflated.is_zero() {
-            //             log::error!(target: "ext_validators_rewards", "Not sending message because tokens_inflated is 0");
-            //             return;
-            //         }
-
-            //         if utils.total_points.is_zero() {
-            //             log::error!(target: "ext_validators_rewards", "Not sending message because total_points is 0");
-            //             return;
-            //         }
-
-            //         let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
-            //         if let Err(err) =
-            //             T::Currency::mint_into(&ethereum_sovereign_account, tokens_inflated.into())
-            //         {
-            //             log::error!(target: "ext_validators_rewards", "Failed to mint inflation into Ethereum Soverein Account: {err:?}");
-            //             log::error!(target: "ext_validators_rewards", "Not sending message since there are no rewards to distribute");
-            //             return;
-            //         }
-
-            //         let command = Command::ReportRewards {
-            //             external_idx: T::ExternalIndexProvider::get_external_index(),
-            //             era_index,
-            //             total_points: utils.total_points,
-            //             tokens_inflated,
-            //             rewards_merkle_root: utils.rewards_merkle_root,
-            //             token_id,
-            //         };
-
-            //         let channel_id: ChannelId = snowbridge_core::PRIMARY_GOVERNANCE_CHANNEL;
-
-            //         let outbound_message = Message {
-            //             id: None,
-            //             channel_id,
-            //             command: command.clone(),
-            //         };
-
-            //         // Validate and deliver the message
-            //         match T::ValidateMessage::validate(&outbound_message) {
-            //             Ok((ticket, _fee)) => {
-            //                 let message_id = ticket.message_id();
-            //                 if let Err(err) = T::OutboundQueue::deliver(ticket) {
-            //                     log::error!(target: "ext_validators_rewards", "OutboundQueue delivery of message failed. {err:?}");
-            //                 } else {
-            //                     Self::deposit_event(Event::RewardsMessageSent {
-            //                         message_id,
-            //                         rewards_command: command,
-            //                     });
-            //                 }
-            //             }
-            //             Err(err) => {
-            //                 log::error!(target: "ext_validators_rewards", "OutboundQueue validation of message failed. {err:?}");
-            //             }
-            //         }
-
-            //         frame_system::Pallet::<T>::register_extra_weight_unchecked(
-            //             T::WeightInfo::on_era_end(),
-            //             DispatchClass::Mandatory,
-            //         );
-            //     } else {
-            //         // Unreachable, this should never happen as we are sending
-            //         // None as the second param in Self::generate_era_rewards_utils.
-            //         log::error!(
-            //             target: "ext_validators_rewards",
-            //             "Outbound message not sent for era {:?}!",
-            //             era_index
-            //         );
-            //         return;
-            //     }
-            // } else {
-            //     log::error!(target: "ext_validators_rewards", "no token id found for location {:?}", token_location);
-            // }
-
-            let tokens_inflated = T::EraInflationProvider::get();
-
-            // Implenmentation n2
-            let era_rewards = RewardPointsForEra::<T>::get(&era_index);
-            let Some(utils) =
-                era_rewards.generate_era_rewards_utils::<<T as Config>::Hashing>(era_index, None)
-            else {
-                log::error!(
-                    target: "ext_validators_rewards",
-                    "Failed to generate era rewards utils"
-                );
-                return;
+            let utils = match RewardPointsForEra::<T>::get(&era_index)
+                .generate_era_rewards_utils::<<T as Config>::Hashing>(era_index, None)
+            {
+                Some(utils) if !utils.total_points.is_zero() => utils,
+                Some(_) => {
+                    log::error!(
+                        target: "ext_validators_rewards",
+                        "Not sending message because total_points is 0"
+                    );
+                    return;
+                }
+                None => {
+                    log::error!(
+                        target: "ext_validators_rewards",
+                        "Failed to generate era rewards utils"
+                    );
+                    return;
+                }
             };
 
-            if utils.total_points.is_zero() {
-                log::error!(target: "ext_validators_rewards", "Not sending message because total_points is 0");
+            // Mint tokens using the configurable handler
+            let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
+            let inflation_amount = T::EraInflationProvider::get();
+            if let Err(err) =
+                T::HandleInflation::mint_inflation(&ethereum_sovereign_account, inflation_amount)
+            {
+                log::error!(target: "ext_validators_rewards", "Failed to handle inflation: {err:?}");
+                log::error!(target: "ext_validators_rewards", "Not sending message since there are no rewards to distribute");
                 return;
             }
 
@@ -414,7 +342,7 @@ pub mod pallet {
                     message_id,
                     era_index,
                     total_points: utils.total_points,
-                    tokens_inflated,
+                    inflation_amount,
                     rewards_merkle_root: utils.rewards_merkle_root,
                 });
             }

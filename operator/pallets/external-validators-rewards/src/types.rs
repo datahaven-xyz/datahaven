@@ -137,3 +137,8 @@ pub trait SendMessage {
 
     fn deliver(ticket: Self::Ticket) -> Result<H256, SendError>;
 }
+
+// Trait for handling inflation
+pub trait HandleInflation<AccountId> {
+    fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult;
+}

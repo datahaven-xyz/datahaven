@@ -15,6 +15,7 @@ export class LaunchedNetwork {
   protected processes: BunProcess[];
   protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
+  protected _networkName: string;
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected _elRpcUrl?: string;
@@ -27,8 +28,18 @@ export class LaunchedNetwork {
     this.fileDescriptors = [];
     this._containers = [];
     this._activeRelayers = [];
+    this._networkName = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
+  }
+
+  public set networkName(name: string) {
+    invariant(name.trim().length > 0, "❌ networkName cannot be empty");
+    this._networkName = name.trim();
+  }
+
+  public get networkName(): string {
+    return this._networkName;
   }
 
   /**
@@ -73,12 +84,6 @@ export class LaunchedNetwork {
     this._containers.push({ name: containerName, publicPorts });
   }
 
-  registerRelayerType(type: RelayerType): void {
-    if (!this._activeRelayers.includes(type)) {
-      this._activeRelayers.push(type);
-    }
-  }
-
   public getPublicWsPort(): number {
     logger.debug("Getting public WebSocket port for LaunchedNetwork");
     logger.debug("Containers:");
@@ -88,13 +93,6 @@ export class LaunchedNetwork {
     return port;
   }
 
-  public get containers(): ContainerSpec[] {
-    return this._containers;
-  }
-
-  public get relayers(): RelayerType[] {
-    return [...this._activeRelayers];
-  }
   /**
    * Sets the RPC URL for the Ethereum Execution Layer (EL) client.
    * @param url - The EL RPC URL string.
@@ -129,6 +127,20 @@ export class LaunchedNetwork {
   public get clEndpoint(): string {
     invariant(this._clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
     return this._clEndpoint;
+  }
+
+  registerRelayerType(type: RelayerType): void {
+    if (!this._activeRelayers.includes(type)) {
+      this._activeRelayers.push(type);
+    }
+  }
+
+  public get containers(): ContainerSpec[] {
+    return this._containers;
+  }
+
+  public get relayers(): RelayerType[] {
+    return [...this._activeRelayers];
   }
 
   async cleanup() {

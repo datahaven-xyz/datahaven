@@ -8,6 +8,7 @@ const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const RUNTIME_FEATURES = ["fast-runtime"];
 
 export const cargoCrossbuild = async (options: {
   datahavenBuildExtraArgs?: string;
@@ -40,7 +41,7 @@ export const cargoCrossbuild = async (options: {
     // Get additional arguments from command line
     const additionalArgs = options.datahavenBuildExtraArgs ?? "";
 
-    const command = `cargo zigbuild --target ${target} --release ${additionalArgs}`;
+    const command = `cargo zigbuild --target ${target} --release ${additionalArgs} --features ${RUNTIME_FEATURES.join(",")}`;
     logger.debug(`Running build command: ${command}`);
 
     if (LOG_LEVEL === "debug") {
@@ -53,7 +54,9 @@ export const cargoCrossbuild = async (options: {
   } else if (ARCH === "x86_64" && OS === "Linux") {
     logger.info("🖥️ Linux AMD64 detected. Proceeding with cross-building...");
 
-    const command = "cargo build --release";
+    const target = "x86_64-unknown-linux-gnu";
+    addRustupTarget(target);
+    const command = `cargo build --target ${target} --release --features ${RUNTIME_FEATURES.join(",")}`;
     logger.debug(`Running build command: ${command}`);
 
     if (LOG_LEVEL === "debug") {

@@ -96,12 +96,12 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
   }
 
   const validators = config.validators;
-  logger.info(`Found ${validators.length} validators to register`);
+  logger.info(`🔎 Found ${validators.length} validators to register`);
 
   // Iterate through all validators to register them
   for (let i = 0; i < validators.length; i++) {
     const validator = validators[i];
-    logger.info(`Setting up validator ${i} (${validator.publicKey})`);
+    logger.info(`🔧 Setting up validator ${i} (${validator.publicKey})`);
 
     const env = {
       ...process.env,

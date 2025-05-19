@@ -1,0 +1,9 @@
+apiVersion: v2
+description: A Helm chart for bridges-common-relay
+maintainers:
+- email: devops+helm@parity.io
+  name: Parity
+  url: https://github.com/paritytech/helm-charts
+name: bridges-common-relay
+type: application
+version: 1.1.1

@@ -1,0 +1,66 @@
+name: dh-bootnode
+description: Datahaven Bootnode
+fullnameOverride: dh-bootnode
+
+image:
+  repository: moonsonglabs/datahaven
+  tag: pr-78
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+node:
+  chain: stagenet-local
+  command: datahaven-node
+  # customChainspec: true # see extraInitContainers, chainspec-generator
+  role: full
+  replicas: 1
+  chainData:
+    pruning: archive
+    storageClass: "gp2"
+  chainKeystore:
+    mountInMemory:
+      enabled: true
+  # perNodeServices:
+  #   relayP2pService:
+  #     enabled: true
+  # to generate new key run: docker run moonsonglabs/datahaven key generate-node-key
+  # 12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk
+  customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238
+  flags:
+    - "--allow-private-ipv4"
+    - "--discover-local"
+
+# Generate chainspec, and expose it as url
+extraInitContainers:
+  - name: chainspec-generator
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+    securityContext:
+      runAsUser: 0
+    command: [ "/bin/bash" ]
+    args:
+      - -c
+      - |
+        apt update || true
+        apt install -y jq
+        {{ .Values.node.command }} build-spec --chain {{ .Values.node.chain }} > base.json
+        echo '{"bootNodes":["/dns/dh-bootnode-0/tcp/30333/p2p/12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk"]}' > override1.json
+        jq  -s '.[0] * .[1]' base.json override1.json | sed 's/1e+18/1000000000000000000/' > plain.json
+        cut -c -256 plain.json
+        {{ .Values.node.command }} build-spec --chain plain.json --raw  > chainspec.json
+        cp chainspec.json {{ .Values.node.customChainspecPath }}
+    volumeMounts:
+      - mountPath: /chain-data
+        name: chain-data
+extraContainers:
+  - name: chainspec
+    image: nginxinc/nginx-unprivileged:stable
+    ports:
+      - containerPort: 8080
+        name: web
+    volumeMounts:
+      - name: chain-data
+        subPath: chainspec.json
+        mountPath: /usr/share/nginx/html/chainspec.json
+        readOnly: true

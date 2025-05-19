@@ -375,7 +375,9 @@ export const initEthClientPallet = async (
   const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
   const initialCheckpointRaw = await initialCheckpointFile.text();
   const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
-  await initialCheckpointFile.delete();
+  if (await initialCheckpointFile.exists()) {
+    await initialCheckpointFile.delete();
+  }
 
   logger.trace("Initial checkpoint:");
   logger.trace(initialCheckpoint.toJSON());

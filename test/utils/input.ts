@@ -1,9 +1,9 @@
 import {
-  type Status,
-  type Theme,
   createPrompt,
   isEnterKey,
   makeTheme,
+  type Status,
+  type Theme,
   useEffect,
   useKeypress,
   usePrefix,

@@ -33,7 +33,7 @@ export const cargoCrossbuild = async (options: {
     installCargoZigbuild();
 
     const target = "x86_64-unknown-linux-gnu";
-    addRustupTarget(target);
+    await addRustupTarget(target);
 
     // Build and copy libpq.so before cargo zigbuild
     await buildAndCopyLibpq(target);
@@ -55,7 +55,7 @@ export const cargoCrossbuild = async (options: {
     logger.info("🖥️ Linux AMD64 detected. Proceeding with cross-building...");
 
     const target = "x86_64-unknown-linux-gnu";
-    addRustupTarget(target);
+    await addRustupTarget(target);
     const command = `cargo build --target ${target} --release --features ${RUNTIME_FEATURES.join(",")}`;
     logger.debug(`Running build command: ${command}`);
 

@@ -25,7 +25,11 @@
     "baseUrl": "./",
     "preserveConstEnums": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    
+    // Speed
+    "tsBuildInfoFile": "tmp/tsconfig.tsbuildinfo",
+    "assumeChangesOnlyAffectDirectDependencies": true
   },
   "include": [
     "utils/*.ts",

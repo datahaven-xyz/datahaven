@@ -339,7 +339,7 @@ async function waitBeaconChainReady(options: SnowbridgeConfigOptions): Promise<v
         logger.info(`Beacon chain finalized. Finalized root: ${initialBeaconBlock}`);
         return;
       }
-    } catch (error) {
+    } catch (_error) {
       logger.trace({ attempt: i + 1 }, "Beacon finality check failed or not ready, retrying...");
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));

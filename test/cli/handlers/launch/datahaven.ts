@@ -6,27 +6,43 @@ import { $ } from "bun";
 import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import {
+  confirmWithTimeout,
+  killExistingContainers,
+  logger,
+  printDivider,
+  printHeader,
+  waitForContainerToStart
+} from "utils";
 import { type Hex, keccak256, toHex } from "viem";
-import { publicKeyToAddress } from "viem/utils";
+import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
+
+const DOCKER_NETWORK_NAME = "datahaven-net";
+
+const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 
 const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
   "--tmp",
-  "--port=0",
   "--validator",
+  "--discover-local",
   "--no-prometheus",
+  "--unsafe-rpc-external",
+  "--rpc-cors=all",
   "--force-authoring",
   "--no-telemetry",
   "--enable-offchain-indexing=true"
 ];
 
+const DEFAULT_PUBLIC_WS_PORT = 9944;
+
 // We need 5 since the (2/3 + 1) of 6 authority set is 5
 // <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
-const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"];
+const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"] as const;
 
 // 33-byte compressed public keys for DataHaven next validator set
 // These correspond to Alice, Bob, Charlie, Dave, Eve, Ferdie
@@ -38,6 +54,306 @@ const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   dave: "0x0291f1217d5a04cb83312ee3d88a6e6b33284e053e6ccfc3a90339a0299d12967c",
   eve: "0x0389411795514af1627765eceffcbd002719f031604fadd7d188e2dc585b4e1afb",
   ferdie: "0x03bc9d0ca094bd5b8b3225d7651eac5d18c1c04bf8ae8f8b263eebca4e1410ed0c"
+} as const;
+
+/**
+ * Launches a DataHaven solochain network for testing.
+ *
+ * @param options - Configuration options for launching the network.
+ * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
+ */
+export const launchDataHavenSolochain = async (
+  options: LaunchOptions,
+  launchedNetwork: LaunchedNetwork
+) => {
+  printHeader("Starting DataHaven Network");
+
+  let shouldLaunchDataHaven = options.datahaven;
+
+  if ((await checkDataHavenRunning()) && !options.alwaysClean) {
+    logger.info("ℹ️  DataHaven network (Docker containers) is already running.");
+
+    logger.trace("Checking if datahaven option was set via flags");
+    if (options.datahaven === false) {
+      logger.info("Keeping existing DataHaven containers.");
+
+      await registerNodes(launchedNetwork);
+      printDivider();
+      return;
+    }
+
+    if (options.datahaven === true) {
+      await cleanDataHavenContainers(options);
+    } else {
+      const shouldRelaunch = await confirmWithTimeout(
+        "Do you want to clean and relaunch the DataHaven containers?",
+        true,
+        10
+      );
+
+      if (!shouldRelaunch) {
+        logger.info("Keeping existing DataHaven containers.");
+
+        await registerNodes(launchedNetwork);
+        printDivider();
+        return;
+      }
+      await cleanDataHavenContainers(options);
+    }
+  }
+
+  if (shouldLaunchDataHaven === undefined) {
+    shouldLaunchDataHaven = await confirmWithTimeout(
+      "Do you want to launch the DataHaven network?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `🏳️ Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
+    );
+  }
+
+  if (!shouldLaunchDataHaven) {
+    logger.info("Skipping DataHaven network launch. Done!");
+    printDivider();
+    return;
+  }
+
+  logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME} -f`.text());
+  logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
+
+  invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
+
+  await buildLocalImage(options);
+  await checkTagExists(options.datahavenImageTag);
+
+  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
+  logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
+
+  for (const id of CLI_AUTHORITY_IDS) {
+    logger.info(`🚀 Starting ${id}...`);
+    const containerName = `datahaven-${id}`;
+
+    const command: string[] = [
+      "docker",
+      "run",
+      "-d",
+      "--name",
+      containerName,
+      "--network",
+      DOCKER_NETWORK_NAME,
+      ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
+      options.datahavenImageTag,
+      `--${id}`,
+      ...COMMON_LAUNCH_ARGS
+    ];
+
+    logger.debug(await $`sh -c "${command.join(" ")}"`.text());
+
+    await waitForContainerToStart(containerName);
+
+    // TODO: Un-comment this when it doesn't stop process from hanging
+    // This is working on SH, but not here so probably a Bun defect
+    //
+    // const listeningLine = await waitForLog({
+    //   search: "Running JSON-RPC server: addr=0.0.0.0:",
+    //   containerName,
+    //   timeoutSeconds: 30
+    // });
+    // logger.debug(listeningLine);
+  }
+
+  for (let i = 0; i < 30; i++) {
+    logger.info("⌛️ Waiting for datahaven to start...");
+    if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
+      logger.success(
+        `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
+      );
+
+      await registerNodes(launchedNetwork);
+
+      // Call setupDataHavenValidatorConfig now that nodes are up
+      logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
+      await setupDataHavenValidatorConfig(launchedNetwork);
+
+      printDivider();
+      return;
+    }
+    logger.debug("Node not ready, waiting 1 second...");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error("DataHaven network failed to start after 30 seconds");
+};
+
+/**
+ * Checks if any DataHaven containers are currently running.
+ *
+ * @returns True if any DataHaven containers are running, false otherwise.
+ */
+const checkDataHavenRunning = async (): Promise<boolean> => {
+  // Check for any container whose name starts with "datahaven-"
+  const containerIds = await $`docker ps -q --filter "name=^datahaven-"`.text();
+  const networkOutput =
+    await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
+
+  // Check if containerIds has any actual IDs (not just whitespace)
+  const containersExist = containerIds.trim().length > 0;
+  // Check if networkOutput has any network names (not just whitespace or empty lines)
+  const networksExist =
+    networkOutput
+      .trim()
+      .split("\n")
+      .filter((line) => line.trim().length > 0).length > 0;
+
+  return containersExist || networksExist;
+};
+
+/**
+ * Stops and removes all DataHaven containers.
+ */
+const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> => {
+  logger.info("🧹 Stopping and removing existing DataHaven containers...");
+
+  invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
+  await killExistingContainers(options.datahavenImageTag);
+
+  if (options.relayerImageTag) {
+    logger.info(
+      "🧹 Stopping and removing existing relayer containers (relayers depend on DataHaven nodes)..."
+    );
+    await killExistingContainers(options.relayerImageTag);
+  }
+
+  logger.info("✅ Existing DataHaven containers stopped and removed.");
+
+  logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
+  logger.info("✅ DataHaven Docker network removed.");
+};
+
+/**
+ * Checks if the DataHaven network is ready by sending a POST request to the system_chain method.
+ *
+ * @param port - The port number to check.
+ * @returns True if the network is ready, false otherwise.
+ */
+export const isNetworkReady = async (port: number): Promise<boolean> => {
+  const wsUrl = `ws://127.0.0.1:${port}`;
+  let client: PolkadotClient | undefined;
+  try {
+    // Use withPolkadotSdkCompat for consistency, though _request might not strictly need it.
+    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
+    const chainName = await client._request<string>("system_chain", []);
+    logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
+    client.destroy();
+    return !!chainName; // Ensure it's a boolean and chainName is truthy
+  } catch (error) {
+    logger.debug(`isNetworkReady PAPI check failed for port ${port}: ${error}`);
+    if (client) {
+      client.destroy();
+    }
+    return false;
+  }
+};
+
+const buildLocalImage = async (options: LaunchOptions) => {
+  let shouldBuildDataHaven = options.buildDatahaven;
+
+  if (shouldBuildDataHaven === undefined) {
+    shouldBuildDataHaven = await confirmWithTimeout(
+      "Do you want to build the DataHaven node local Docker image?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `🏳️ Using flag option: ${shouldBuildDataHaven ? "will build" : "will not build"} DataHaven node local Docker image`
+    );
+  }
+
+  if (!shouldBuildDataHaven) {
+    logger.info("👍 Skipping DataHaven node local Docker image build. Done!");
+    return;
+  }
+
+  await cargoCrossbuild({ datahavenBuildExtraArgs: options.datahavenBuildExtraArgs });
+
+  logger.info("🐳 Building DataHaven node local Docker image...");
+  if (LOG_LEVEL === "trace") {
+    await $`bun build:docker:operator`;
+  } else {
+    await $`bun build:docker:operator`.quiet();
+  }
+  logger.success("DataHaven node local Docker image build completed successfully");
+};
+
+/**
+ * Checks if an image exists locally or on Docker Hub.
+ *
+ * @param tag - The tag of the image to check.
+ * @returns A promise that resolves when the image is found.
+ */
+const checkTagExists = async (tag: string) => {
+  const cleaned = tag.trim();
+  logger.debug(`Checking if image  ${cleaned} is available locally`);
+  const { exitCode: localExists } = await $`docker image inspect ${cleaned}`.nothrow().quiet();
+
+  if (localExists !== 0) {
+    logger.debug(`Checking if image ${cleaned} is available on docker hub`);
+    const result = await $`docker manifest inspect ${cleaned}`.nothrow().quiet();
+    invariant(
+      result.exitCode === 0,
+      `❌ Image ${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
+    );
+  }
+
+  logger.success(`Image ${tag} found locally`);
+};
+
+const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
+  const targetContainerName = "datahaven-alice";
+  const aliceHostWsPort = 9944; // Standard host port for Alice's WS, as set during launch.
+
+  logger.debug(`Checking Docker status for container: ${targetContainerName}`);
+  // Use ^ and $ for an exact name match in the filter.
+  const dockerPsOutput = await $`docker ps -q --filter "name=^${targetContainerName}$"`.text();
+  const isContainerRunning = dockerPsOutput.trim().length > 0;
+
+  if (!isContainerRunning) {
+    // If the target Docker container is not running, we cannot register it.
+    throw new Error(
+      `❌ Docker container ${targetContainerName} is not running. Cannot register node.`
+    );
+  }
+
+  // If the Docker container is running, proceed to register it in launchedNetwork.
+  // We use the standard host WS port that "datahaven-alice" is expected to use.
+  logger.debug(
+    `Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
+  );
+  launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
+  logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
+};
+
+// Function to convert compressed public key to Ethereum address
+export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {
+  // Ensure the input is a hex string and remove "0x" prefix
+  const compressedKeyHex = compressedPubKey.startsWith("0x")
+    ? compressedPubKey.substring(2)
+    : compressedPubKey;
+
+  // Decompress the public key
+  const point = secp256k1.ProjectivePoint.fromHex(compressedKeyHex);
+  // toRawBytes(false) returns the uncompressed key (64 bytes, x and y coordinates)
+  const uncompressedPubKeyBytes = point.toRawBytes(false);
+  const uncompressedPubKeyHex = toHex(uncompressedPubKeyBytes); // Prefixes with "0x"
+
+  // Compute the Ethereum address from the uncompressed public key
+  // publicKeyToAddress expects a 0x-prefixed hex string representing the 64-byte uncompressed public key
+  const address = publicKeyToAddress(uncompressedPubKeyHex);
+  return address;
 };
 
 /**
@@ -51,7 +367,7 @@ export async function setupDataHavenValidatorConfig(
   logger.info(`🔧 Preparing DataHaven authorities configuration for network: ${networkName}...`);
 
   let authorityPublicKeys: string[] = [];
-  const dhNodes = launchedNetwork.getDHNodes();
+  const dhNodes = launchedNetwork.containers.filter((x) => x.name.startsWith("datahaven-"));
 
   if (dhNodes.length === 0) {
     logger.warn(
@@ -60,11 +376,11 @@ export async function setupDataHavenValidatorConfig(
     authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
   } else {
     const firstNode = dhNodes[0];
-    const wsUrl = `ws://127.0.0.1:${firstNode.port}`;
+    const wsUrl = `ws://127.0.0.1:${firstNode.publicPorts.ws}`;
     let papiClient: PolkadotClient | undefined;
     try {
       logger.info(
-        `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.id} (port ${firstNode.port})...`
+        `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.name} (port ${firstNode.publicPorts.ws})...`
       );
       papiClient = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
       const dhApi = papiClient.getTypedApi(datahaven);
@@ -84,14 +400,14 @@ export async function setupDataHavenValidatorConfig(
         );
         authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
       }
-      await papiClient.destroy();
+      papiClient.destroy();
     } catch (error) {
       logger.error(
-        `❌ Error fetching BEEFY next authorities from node ${firstNode.id}: ${error}. Falling back to hardcoded authority set.`
+        `❌ Error fetching BEEFY next authorities from node ${firstNode.name}: ${error}. Falling back to hardcoded authority set.`
       );
       authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
       if (papiClient) {
-        await papiClient.destroy(); // Ensure client is destroyed even on error
+        papiClient.destroy();
       }
     }
   }
@@ -150,154 +466,3 @@ export async function setupDataHavenValidatorConfig(
     throw new Error(`Failed to update authority hashes in ${configFilePath}.`);
   }
 }
-
-// TODO: This is very rough and will need something more substantial when we know what we want!
-/**
- * Launches a DataHaven solochain network for testing.
- *
- * @param options - Configuration options for launching the network.
- * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
- */
-export const launchDataHavenSolochain = async (
-  options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork
-) => {
-  printHeader("Starting DataHaven Network");
-
-  let shouldLaunchDataHaven = options.datahaven;
-  if (shouldLaunchDataHaven === undefined) {
-    shouldLaunchDataHaven = await confirmWithTimeout(
-      "Do you want to launch the DataHaven network?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
-    );
-  }
-
-  if (!shouldLaunchDataHaven) {
-    logger.info("Skipping DataHaven network launch. Done!");
-    printDivider();
-    return;
-  }
-
-  // Kill any pre-existing datahaven processes if they exist
-  await $`pkill datahaven`.nothrow().quiet();
-
-  invariant(options.datahavenBinPath, "❌ DataHaven binary path not defined");
-
-  invariant(
-    await Bun.file(options.datahavenBinPath).exists(),
-    "❌ DataHaven binary does not exist"
-  );
-
-  const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
-  logger.debug(`Ensuring logs directory exists: ${logsPath}`);
-  await $`mkdir -p ${logsPath}`.quiet();
-
-  for (const id of CLI_AUTHORITY_IDS) {
-    logger.info(`Starting ${id}...`);
-
-    const command: string[] = [options.datahavenBinPath, ...COMMON_LAUNCH_ARGS, `--${id}`];
-
-    const logFileName = `datahaven-${id}.log`;
-    const logFilePath = path.join(logsPath, logFileName);
-    logger.debug(`Writing logs to ${logFilePath}`);
-
-    const fd = fs.openSync(logFilePath, "a");
-    launchedNetwork.addFileDescriptor(fd);
-
-    logger.debug(`Spawning command: ${command.join(" ")}`);
-    const process = Bun.spawn(command, {
-      stdout: fd,
-      stderr: fd
-    });
-
-    process.unref();
-
-    let completed = false;
-    const file = Bun.file(logFilePath);
-    for (let i = 0; i < 60; i++) {
-      const pattern = "Running JSON-RPC server: addr=127.0.0.1:";
-      const blob = await file.text();
-      logger.debug(`Blob: ${blob}`);
-      if (blob.includes(pattern)) {
-        const port = blob.split(pattern)[1].split("\n")[0].replaceAll(",", "");
-        launchedNetwork.addDHNode(id, Number.parseInt(port));
-        logger.debug(`${id} started at port ${port}`);
-        completed = true;
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    invariant(completed, "❌ Could not find 'Running JSON-RPC server:' in logs");
-
-    launchedNetwork.addProcess(process);
-    logger.debug(`Started ${id} at ${process.pid}`);
-  }
-
-  // Check if network is ready
-  for (let i = 0; i < 10; i++) {
-    logger.info("Waiting for datahaven to start...");
-
-    // Get the port of the primary node (or default)
-    const primaryNodePort = launchedNetwork.getDHNodes()[0]?.port || 9944;
-
-    if (await isNetworkReady(primaryNodePort)) {
-      logger.success(
-        `DataHaven network started, primary node accessible on port ${primaryNodePort}`
-      );
-
-      // Call setupDataHavenValidatorConfig now that nodes are up
-      logger.info("Proceeding with DataHaven validator configuration setup...");
-      await setupDataHavenValidatorConfig(launchedNetwork);
-
-      printDivider();
-      return;
-    }
-    logger.debug("Node not ready, waiting 1 second...");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  throw new Error("DataHaven network failed to start after 10 seconds");
-};
-
-export const isNetworkReady = async (port: number): Promise<boolean> => {
-  const wsUrl = `ws://127.0.0.1:${port}`;
-  let client: PolkadotClient | undefined;
-  try {
-    // Use withPolkadotSdkCompat for consistency, though _request might not strictly need it.
-    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-    const chainName = await client._request<string>("system_chain", []);
-    logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
-    await client.destroy();
-    return !!chainName; // Ensure it's a boolean and chainName is truthy
-  } catch (error) {
-    logger.debug(`isNetworkReady PAPI check failed for port ${port}: ${error}`);
-    if (client) {
-      await client.destroy();
-    }
-    return false;
-  }
-};
-
-// Function to convert compressed public key to Ethereum address
-export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {
-  // Ensure the input is a hex string and remove "0x" prefix
-  const compressedKeyHex = compressedPubKey.startsWith("0x")
-    ? compressedPubKey.substring(2)
-    : compressedPubKey;
-
-  // Decompress the public key
-  const point = secp256k1.ProjectivePoint.fromHex(compressedKeyHex);
-  // toRawBytes(false) returns the uncompressed key (64 bytes, x and y coordinates)
-  const uncompressedPubKeyBytes = point.toRawBytes(false);
-  const uncompressedPubKeyHex = toHex(uncompressedPubKeyBytes); // Prefixes with "0x"
-
-  // Compute the Ethereum address from the uncompressed public key
-  // publicKeyToAddress expects a 0x-prefixed hex string representing the 64-byte uncompressed public key
-  const address = publicKeyToAddress(uncompressedPubKeyHex);
-  return address;
-};

@@ -65,8 +65,9 @@ jobs:
             cargo-registry
             cargo-git
             sccache
-          key: cache-mount-${{ hashFiles('./operator/Dockerfile', './operator/Cargo.lock') }}
+          key: cache-mount-${{ hashFiles('./operator/Dockerfile', './operator/Cargo.lock') }}-${{hashFiles('./operator/runtime/**/*.rs','./operator/pallets/**/*.rs', './operator/node/**/*.rs')}}
           restore-keys: |
+            cache-mount-${{ hashFiles('./operator/Dockerfile', './operator/Cargo.lock') }}
             cache-mount-${{ hashFiles('./operator/Dockerfile') }}
             cache-mount-
       - name: Inject cache into docker

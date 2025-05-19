@@ -18,11 +18,13 @@ export interface LaunchOptions {
   updateValidatorSet?: boolean;
   blockscout?: boolean;
   relayer?: boolean;
-  relayerBinPath?: string;
+  relayerImageTag?: string;
   skipCleaning?: boolean;
   alwaysClean?: boolean;
-  datahavenBinPath?: string;
   datahaven?: boolean;
+  buildDatahaven?: boolean;
+  datahavenImageTag?: string;
+  datahavenBuildExtraArgs?: string;
   kurtosisNetworkArgs?: string;
   slotTime?: number;
 }
@@ -63,17 +65,17 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: launchedNetwork.getElRpcUrl(),
+    rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
 
-  await performValidatorOperations(options, launchedNetwork.getElRpcUrl(), contractsDeployed);
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
 
-  performSummaryOperations(options, launchedNetwork);
+  await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
   logger.success(`Launch function completed successfully in ${fullMinutes} minutes`);

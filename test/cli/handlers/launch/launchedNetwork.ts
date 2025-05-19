@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import invariant from "tiny-invariant";
-import { logger } from "utils";
+import { type RelayerType, logger } from "utils";
+
+type PipeOptions = number | "inherit" | "pipe" | "ignore";
+type BunProcess = Bun.Subprocess<PipeOptions, PipeOptions, PipeOptions>;
+type ContainerSpec = { name: string; publicPorts: Record<string, number> };
 
 /**
  * Represents the state and associated resources of a launched network environment,
@@ -8,21 +12,34 @@ import { logger } from "utils";
  */
 export class LaunchedNetwork {
   protected runId: string;
-  protected processes: Bun.Subprocess<"inherit" | "pipe" | "ignore", number, number>[];
+  protected processes: BunProcess[];
+  protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
-  protected DHNodes: { id: string; port: number }[];
+  protected _networkName: string;
+  protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
-  protected elRpcUrl?: string;
+  protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
-  protected clEndpoint?: string;
+  protected _clEndpoint?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
     this.processes = [];
     this.fileDescriptors = [];
-    this.DHNodes = [];
-    this.elRpcUrl = undefined;
-    this.clEndpoint = undefined;
+    this._containers = [];
+    this._activeRelayers = [];
+    this._networkName = "";
+    this._elRpcUrl = undefined;
+    this._clEndpoint = undefined;
+  }
+
+  public set networkName(name: string) {
+    invariant(name.trim().length > 0, "❌ networkName cannot be empty");
+    this._networkName = name.trim();
+  }
+
+  public get networkName(): string {
+    return this._networkName;
   }
 
   /**
@@ -34,23 +51,17 @@ export class LaunchedNetwork {
   }
 
   /**
-   * Gets the list of launched DataHaven (DH) nodes.
-   * @returns An array of DH node objects, each with an id and port.
+   * Gets the port for a DataHaven RPC node.
+   *
+   * In reality, it just looks for the "ws" port of the
+   * `datahaven-alice` container, if it was registered.
+   * @returns The port number of the container, or -1 if ws port is not found.
+   * @throws If the container is not found.
    */
-  getDHNodes(): { id: string; port: number }[] {
-    return [...this.DHNodes];
-  }
-
-  /**
-   * Gets the port for a specific DataHaven (DH) node by its ID.
-   * @param id - The ID of the DH node.
-   * @returns The port number of the DH node.
-   * @throws If the node with the given ID is not found.
-   */
-  getDHPort(id: string): number {
-    const node = this.DHNodes.find((x) => x.id === id);
-    invariant(node, `❌ DataHaven node ${id} not found`);
-    return node.port;
+  getContainerPort(id: string): number {
+    const container = this._containers.find((x) => x.name === id);
+    invariant(container, `❌ Container ${id} not found`);
+    return container.publicPorts.ws ?? -1;
   }
 
   /**
@@ -65,25 +76,29 @@ export class LaunchedNetwork {
    * Adds a running process to be managed and cleaned up.
    * @param process - The Bun subprocess object.
    */
-  addProcess(process: Bun.Subprocess<"inherit" | "pipe" | "ignore", number, number>) {
+  addProcess(process: BunProcess) {
     this.processes.push(process);
   }
 
-  /**
-   * Adds a DataHaven (DH) node to the list of launched nodes.
-   * @param id - The ID of the DH node.
-   * @param port - The port number the DH node is running on.
-   */
-  addDHNode(id: string, port: number) {
-    this.DHNodes.push({ id, port });
+  addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
+    this._containers.push({ name: containerName, publicPorts });
+  }
+
+  public getPublicWsPort(): number {
+    logger.debug("Getting public WebSocket port for LaunchedNetwork");
+    logger.debug("Containers:");
+    logger.debug(JSON.stringify(this.containers));
+    const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
+    invariant(port !== undefined, "❌ No public port found in containers");
+    return port;
   }
 
   /**
    * Sets the RPC URL for the Ethereum Execution Layer (EL) client.
    * @param url - The EL RPC URL string.
    */
-  setElRpcUrl(url: string) {
-    this.elRpcUrl = url;
+  public set elRpcUrl(url: string) {
+    this._elRpcUrl = url;
   }
 
   /**
@@ -91,17 +106,17 @@ export class LaunchedNetwork {
    * @returns The EL RPC URL string.
    * @throws If the EL RPC URL has not been set.
    */
-  getElRpcUrl(): string {
-    invariant(this.elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
-    return this.elRpcUrl;
+  public get elRpcUrl(): string {
+    invariant(this._elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
+    return this._elRpcUrl;
   }
 
   /**
    * Sets the HTTP endpoint for the Ethereum Consensus Layer (CL) client.
    * @param url - The CL HTTP endpoint string.
    */
-  setClEndpoint(url: string) {
-    this.clEndpoint = url;
+  public set clEndpoint(url: string) {
+    this._clEndpoint = url;
   }
 
   /**
@@ -109,14 +124,30 @@ export class LaunchedNetwork {
    * @returns The CL HTTP endpoint string.
    * @throws If the CL HTTP endpoint has not been set.
    */
-  getClEndpoint(): string {
-    invariant(this.clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
-    return this.clEndpoint;
+  public get clEndpoint(): string {
+    invariant(this._clEndpoint, "❌ CL HTTP Endpoint not set in LaunchedNetwork");
+    return this._clEndpoint;
+  }
+
+  registerRelayerType(type: RelayerType): void {
+    if (!this._activeRelayers.includes(type)) {
+      this._activeRelayers.push(type);
+    }
+  }
+
+  public get containers(): ContainerSpec[] {
+    return this._containers;
+  }
+
+  public get relayers(): RelayerType[] {
+    return [...this._activeRelayers];
   }
 
   async cleanup() {
+    logger.debug("Running cleanup");
     for (const process of this.processes) {
       logger.debug(`Process is still running: ${process.pid}`);
+      process.unref();
     }
 
     for (const fd of this.fileDescriptors) {

@@ -7641,7 +7641,6 @@ name = "pallet-external-validators-rewards"
 version = "0.1.0"
 dependencies = [
  "cumulus-primitives-core",
- "ethabi-decode",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

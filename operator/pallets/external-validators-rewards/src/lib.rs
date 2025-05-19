@@ -34,10 +34,7 @@ pub mod weights;
 pub use pallet::*;
 
 use {
-    crate::types::{
-        DeliverMessage, EraRewardsUtils, ExternalIndexProvider, HandleInflation, SendMessage,
-        ValidateMessage,
-    },
+    crate::types::{EraRewardsUtils, ExternalIndexProvider, HandleInflation, SendMessage},
     frame_support::traits::{Defensive, Get, ValidatorSet},
     pallet_external_validators::traits::{OnEraEnd, OnEraStart},
     parity_scale_codec::Encode,
@@ -48,7 +45,6 @@ use {
     sp_runtime::traits::{Hash, Zero},
     sp_staking::SessionIndex,
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
-    xcm::prelude::*,
 };
 
 #[frame_support::pallet]
@@ -99,23 +95,12 @@ pub mod pallet {
         /// Hashing tool used to generate/verify merkle roots and proofs.
         type Hashing: Hash<Output = H256>;
 
-        /// Validate a message that will be sent to Ethereum.
-        type ValidateMessage: ValidateMessage;
-
-        /// Send a message to Ethereum. Needs to be validated first.
-        type OutboundQueue: DeliverMessage<
-            Ticket = <<Self as pallet::Config>::ValidateMessage as ValidateMessage>::Ticket,
-        >;
-
         /// Currency the rewards are minted in
         type Currency: fungible::Inspect<Self::AccountId, Balance: From<u128>>
             + fungible::Mutate<Self::AccountId>;
 
         /// Ethereum Sovereign Account where rewards will be minted
         type RewardsEthereumSovereignAccount: Get<Self::AccountId>;
-
-        /// Token Location from the external chain's point of view.
-        type TokenLocationReanchored: Get<Location>;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;

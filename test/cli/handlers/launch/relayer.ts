@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
@@ -13,11 +12,14 @@ import {
   confirmWithTimeout,
   getEvmEcdsaSigner,
   getPortFromKurtosis,
+  killExistingContainers,
   logger,
   parseDeploymentsFile,
   parseRelayConfig,
   printDivider,
-  printHeader
+  printHeader,
+  runShellCommandWithLogger,
+  waitForContainerToStart
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
@@ -38,7 +40,9 @@ const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
 };
-const INITIAL_CHECKPOINT_PATH = "./dump-initial-checkpoint.json";
+const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
+const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
+const INITIAL_CHECKPOINT_PATH = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
 
 /**
  * Launches Snowbridge relayers for the DataHaven network.
@@ -58,7 +62,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldLaunchRelayers ? "will launch" : "will not launch"} Snowbridge relayers`
+      `🏳️ Using flag option: ${shouldLaunchRelayers ? "will launch" : "will not launch"} Snowbridge relayers`
     );
   }
 
@@ -69,7 +73,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   // Get DataHaven node port
-  const dhNodes = launchedNetwork.getDHNodes();
+  const dhNodes = launchedNetwork.containers.filter((container) =>
+    container.name.includes("datahaven")
+  );
   let substrateWsPort: number;
   let substrateNodeId: string;
 
@@ -81,15 +87,15 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     substrateNodeId = "default (assumed)";
   } else {
     const firstDhNode = dhNodes[0];
-    substrateWsPort = firstDhNode.port;
-    substrateNodeId = firstDhNode.id;
+    substrateWsPort = firstDhNode.publicPorts.ws;
+    substrateNodeId = firstDhNode.name;
     logger.info(
       `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
     );
   }
 
-  // Kill any pre-existing relayer processes if they exist
-  await $`pkill snowbridge-relay`.nothrow().quiet();
+  invariant(options.relayerImageTag, "❌ relayerImageTag is required");
+  await killExistingContainers(options.relayerImageTag);
 
   // Check if BEEFY is ready before proceeding
   await waitBeefyReady(launchedNetwork, 2000, 60000);
@@ -106,10 +112,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   const datastorePath = "tmp/datastore";
   logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
   await $`mkdir -p ${datastorePath}`.quiet();
-
-  const logsPath = `tmp/logs/${launchedNetwork.getRunId()}/`;
-  logger.debug(`Ensuring logs directory exists: ${logsPath}`);
-  await $`mkdir -p ${logsPath}`.quiet();
 
   const relayersToStart: RelayerSpec[] = [
     {
@@ -137,7 +139,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     logger.debug(`Creating config for ${name}`);
     const templateFilePath = `configs/snowbridge/${configFileName}`;
-    const outputFilePath = `tmp/configs/${configFileName}`;
+    const outputFilePath = path.resolve(RELAYER_CONFIG_DIR, configFileName);
     logger.debug(`Reading config file ${templateFilePath}`);
     const file = Bun.file(templateFilePath);
 
@@ -155,18 +157,17 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
     if (type === "beacon") {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.beacon.endpoint = `http://127.0.0.1:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://127.0.0.1:${ethHttpPort}`;
+      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+      cfg.source.beacon.datastore.location = "/data";
+      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
-      cfg.source.beacon.datastore.location = datastorePath;
-
-      cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated beacon config written to ${outputFilePath}`);
     } else {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.polkadot.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
-      cfg.sink.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
+      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
       cfg.sink.contracts.BeefyClient = beefyClientAddress;
       cfg.sink.contracts.Gateway = gatewayAddress;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
@@ -174,27 +175,43 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     }
   }
 
-  logger.info("Spawning Snowbridge relayers processes");
-
-  invariant(options.relayerBinPath, "❌ Relayer binary path not defined");
-  invariant(
-    await Bun.file(options.relayerBinPath).exists(),
-    `❌ Relayer binary does not exist at ${options.relayerBinPath}`
-  );
+  invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
   await initEthClientPallet(options, launchedNetwork);
 
   for (const { config, name, type, pk } of relayersToStart) {
     try {
-      logger.info(`Starting relayer ${name} ...`);
-      const logFileName = `${type}-${name.replace(/[^a-zA-Z0-9-]/g, "")}.log`;
-      const logFilePath = path.join(logsPath, logFileName);
-      logger.debug(`Writing logs to ${logFilePath}`);
+      const containerName = `snowbridge-${type}-relay`;
+      logger.info(`🚀 Starting relayer ${containerName} ...`);
 
-      const fd = fs.openSync(logFilePath, "a");
+      const hostConfigFilePath = path.resolve(config);
+      const containerConfigFilePath = `/${config}`;
+      const networkName = launchedNetwork.networkName;
+      invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
 
-      const spawnCommand = [
-        options.relayerBinPath,
+      const commandBase: string[] = [
+        "docker",
+        "run",
+        "-d",
+        "--platform",
+        "linux/amd64",
+        "--add-host",
+        "host.docker.internal:host-gateway",
+        "--name",
+        containerName,
+        "--network",
+        networkName
+      ];
+
+      const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+
+      if (type === "beacon") {
+        const hostDatastorePath = path.resolve(datastorePath);
+        const containerDatastorePath = "/data";
+        volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
+      }
+
+      const relayerCommandArgs: string[] = [
         "run",
         type,
         "--config",
@@ -203,17 +220,28 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         pk.value
       ];
 
-      logger.debug(`Spawning command: ${spawnCommand.join(" ")}`);
+      const command: string[] = [
+        ...commandBase,
+        ...volumeMounts,
+        options.relayerImageTag,
+        ...relayerCommandArgs
+      ];
 
-      const process = Bun.spawn(spawnCommand, {
-        stdout: fd,
-        stderr: fd
-      });
+      logger.debug(`Running command: ${command.join(" ")}`);
+      await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
 
-      process.unref();
+      launchedNetwork.addContainer(containerName);
 
-      launchedNetwork.addFileDescriptor(fd);
-      launchedNetwork.addProcess(process);
+      await waitForContainerToStart(containerName);
+
+      // TODO: Re-enable when we know what we want to tail for
+      // await waitForLog({
+      //   searchString: "<LOG LINE TO WAIT FOR>",
+      //   containerName,
+      //   timeoutSeconds: 30,
+      //   tail: 1
+      // });
+
       logger.debug(`Started relayer ${name} with process ${process.pid}`);
     } catch (e) {
       logger.error(`Error starting relayer ${name}`);
@@ -238,11 +266,11 @@ const waitBeefyReady = async (
   pollIntervalMs: number,
   timeoutMs: number
 ): Promise<void> => {
-  const port = launchedNetwork.getDHNodes()[0]?.port ?? 9944;
+  const port = launchedNetwork.getPublicWsPort();
   const wsUrl = `ws://127.0.0.1:${port}`;
   const maxAttempts = Math.floor(timeoutMs / pollIntervalMs);
 
-  logger.info(`Waiting for BEEFY to be ready on port ${port}...`);
+  logger.info(`⌛️ Waiting for BEEFY to be ready on port ${port}...`);
 
   let client: PolkadotClient | undefined;
   try {
@@ -254,8 +282,8 @@ const waitBeefyReady = async (
         const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
 
         if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
-          logger.success(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
-          await client.destroy();
+          logger.info(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
+          client.destroy();
           return;
         }
 
@@ -270,12 +298,12 @@ const waitBeefyReady = async (
     }
 
     logger.error(`❌ BEEFY failed to become ready after ${timeoutMs / 1000} seconds`);
-    if (client) await client.destroy();
+    if (client) client.destroy();
     throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   } catch (error) {
     logger.error(`❌ Failed to connect to DataHaven node for BEEFY check: ${error}`);
     if (client) {
-      await client.destroy();
+      client.destroy();
     }
     throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   }
@@ -294,31 +322,48 @@ export const initEthClientPallet = async (
   options: LaunchOptions,
   launchedNetwork: LaunchedNetwork
 ) => {
+  logger.debug("Initialising eth client pallet");
   // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
   await waitBeaconChainReady(launchedNetwork, 10000, 300000);
 
-  // Generate the initial checkpoint for the CL client in Substrate
-  const { stdout, stderr, exitCode } =
-    await $`${options.relayerBinPath} generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`
-      .nothrow()
-      .quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr);
-    throw new Error("Error generating beacon checkpoint");
-  }
-  logger.trace(`Beacon checkpoint stdout: ${stdout}`);
+  const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
+  const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
+  const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
+  const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
+
+  logger.debug("Generating beacon checkpoint");
+  // Pre-create the checkpoint file so that Docker doesn't interpret it as a directory
+  await Bun.write(INITIAL_CHECKPOINT_PATH, "");
+
+  logger.debug("Removing 'generate-beacon-checkpoint' container if it exists");
+  logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
+
+  logger.debug("Generating beacon checkpoint");
+  const command = `docker run \
+      -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
+      -v ${checkpointHostPath}:${checkpointContainerPath} \
+      --name generate-beacon-checkpoint \
+      --workdir /app \
+      --add-host host.docker.internal:host-gateway \
+      --network ${launchedNetwork.networkName} \
+      ${options.relayerImageTag} \
+      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`;
+  logger.debug(`Running command: ${command}`);
+  logger.debug(await $`sh -c "${command}"`.text());
 
   // Load the checkpoint into a JSON object and clean it up
-  const initialCheckpointRaw = fs.readFileSync(INITIAL_CHECKPOINT_PATH, "utf-8");
+  const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
+  const initialCheckpointRaw = await initialCheckpointFile.text();
   const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
-  fs.unlinkSync(INITIAL_CHECKPOINT_PATH);
+  await initialCheckpointFile.delete();
 
   logger.trace("Initial checkpoint:");
   logger.trace(initialCheckpoint.toJSON());
 
   // Send the checkpoint to the Substrate runtime
-  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getDHNodes()[0].port}`;
+  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpoint);
+  logger.success("Ethereum Beacon Client pallet initialised");
 };
 
 /**
@@ -344,7 +389,7 @@ const waitBeaconChainReady = async (
   while (keepPolling) {
     try {
       const response = await fetch(
-        `${launchedNetwork.getClEndpoint()}/eth/v1/beacon/states/head/finality_checkpoints`
+        `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
       );
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);

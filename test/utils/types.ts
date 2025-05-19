@@ -1,4 +1,5 @@
 import { type FixedSizeArray, FixedSizeBinary } from "polkadot-api";
+import { z } from "zod";
 
 /**
  * The type of the response from the `/eth/v1/beacon/states/head/finality_checkpoints`
@@ -50,28 +51,6 @@ export interface BeaconCheckpoint {
 }
 
 /**
- * Represents the structure of the BeaconCheckpoint as it might be after JSON.parse
- * before specific type coercions (e.g., to BigInt).
- */
-interface RawBeaconCheckpoint {
-  header: {
-    slot: number | string | bigint; // JSON.parse will yield number or string for big numbers
-    proposer_index: number | string | bigint; // Same as above
-    parent_root: string; // Assuming hex string
-    state_root: string; // Assuming hex string
-    body_root: string; // Assuming hex string
-  };
-  current_sync_committee: {
-    pubkeys: string[]; // Assuming array of hex strings
-    aggregate_pubkey: string; // Assuming hex string
-  };
-  current_sync_committee_branch: string[]; // Assuming array of hex strings
-  validators_root: string; // Assuming hex string
-  block_roots_root: string; // Assuming hex string
-  block_roots_branch: string[]; // Assuming array of hex strings
-}
-
-/**
  * Represents the structure of a BeaconCheckpoint when serialized to JSON.
  * BigInts are converted to strings, and FixedSizeBinary types are converted to hex strings.
  */
@@ -93,51 +72,35 @@ interface JsonBeaconCheckpoint {
   block_roots_branch: string[];
 }
 
-/**
- * Parses a JSON object into a BeaconCheckpoint.
- *
- * @param jsonInput - The JSON object to parse.
- * @returns The parsed BeaconCheckpoint.
- */
-export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint => {
-  const raw = jsonInput as RawBeaconCheckpoint;
+// Zod schema for hex strings, ensuring they start with "0x" if not empty
+const hexStringSchema = z.union([
+  z.string().regex(/^0x[0-9a-fA-F]*$/, {
+    message: "Invalid hex string"
+  }),
+  z.literal("")
+]);
 
-  // Basic validation
-  if (!raw || typeof raw.header !== "object" || raw.header === null) {
-    throw new Error("Invalid JSON structure for BeaconCheckpoint: missing or invalid header");
-  }
-  if (typeof raw.header.slot === "undefined" || typeof raw.header.proposer_index === "undefined") {
-    throw new Error(
-      "Invalid JSON structure for BeaconCheckpoint: header missing slot or proposer_index"
-    );
-  }
+// Zod schema for the RawBeaconCheckpoint structure
+const rawBeaconCheckpointSchema = z.object({
+  header: z.object({
+    slot: z.union([z.number(), z.string(), z.bigint()]),
+    proposer_index: z.union([z.number(), z.string(), z.bigint()]),
+    parent_root: hexStringSchema,
+    state_root: hexStringSchema,
+    body_root: hexStringSchema
+  }),
+  current_sync_committee: z.object({
+    pubkeys: z.array(hexStringSchema).length(512),
+    aggregate_pubkey: hexStringSchema
+  }),
+  current_sync_committee_branch: z.array(hexStringSchema),
+  validators_root: hexStringSchema,
+  block_roots_root: hexStringSchema,
+  block_roots_branch: z.array(hexStringSchema)
+});
 
-  if (
-    !raw.current_sync_committee?.pubkeys ||
-    !raw.current_sync_committee.aggregate_pubkey ||
-    !Array.isArray(raw.current_sync_committee.pubkeys) ||
-    !Array.isArray(raw.current_sync_committee_branch) ||
-    !raw.validators_root ||
-    !raw.block_roots_root ||
-    !Array.isArray(raw.block_roots_branch)
-  ) {
-    throw new Error(
-      "Invalid JSON structure for BeaconCheckpoint: missing sync-committee or root fields"
-    );
-  }
-
-  if (raw.current_sync_committee.pubkeys.length !== 512) {
-    throw new Error(
-      `Invalid sync-committee size. Expected 512 pubkeys, got ${raw.current_sync_committee.pubkeys.length}`
-    );
-  }
-
-  // Map pubkeys to FixedSizeBinary<48>
-  const pubkeys = new Array<FixedSizeBinary<48>>(512);
-  for (let i = 0; i < raw.current_sync_committee.pubkeys.length; i++) {
-    pubkeys[i] = new FixedSizeBinary<48>(hexToUint8Array(raw.current_sync_committee.pubkeys[i]));
-  }
-
+// Zod schema for transforming RawBeaconCheckpoint to BeaconCheckpoint
+const beaconCheckpointSchema = rawBeaconCheckpointSchema.transform((raw) => {
   const checkpointData: Omit<BeaconCheckpoint, "toJSON"> = {
     header: {
       slot: BigInt(raw.header.slot),
@@ -147,7 +110,12 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
       body_root: new FixedSizeBinary<32>(hexToUint8Array(raw.header.body_root))
     },
     current_sync_committee: {
-      pubkeys: asFixedSizeArray(pubkeys, 512),
+      pubkeys: asFixedSizeArray(
+        raw.current_sync_committee.pubkeys.map(
+          (pk) => new FixedSizeBinary<48>(hexToUint8Array(pk))
+        ),
+        512
+      ),
       aggregate_pubkey: new FixedSizeBinary<48>(
         hexToUint8Array(raw.current_sync_committee.aggregate_pubkey)
       )
@@ -186,6 +154,30 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
       };
     }
   };
+});
+
+/**
+ * Parses a JSON object into a BeaconCheckpoint.
+ *
+ * @param jsonInput - The JSON object to parse.
+ * @returns The parsed BeaconCheckpoint.
+ */
+export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint => {
+  try {
+    return beaconCheckpointSchema.parse(jsonInput);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      // You can customize error handling here, e.g., throw a more specific error
+      // or log the validation issues.
+      throw new Error(
+        `Invalid JSON structure for BeaconCheckpoint: ${error.errors
+          .map((e) => `${e.path.join(".")} - ${e.message}`)
+          .join(", ")}`
+      );
+    }
+    // Re-throw other errors
+    throw error;
+  }
 };
 
 /**
@@ -217,5 +209,14 @@ const hexToUint8Array = (hex: string): Uint8Array => {
   if (hexString.startsWith("0x")) {
     hexString = hexString.slice(2);
   }
+  if (hexString.length % 2 !== 0) {
+    throw new Error("Hex string must have an even number of characters");
+  }
   return Buffer.from(hexString, "hex");
 };
+
+// This squashes together the properties of the input type T
+// making it easier to view in an IDE
+export type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};

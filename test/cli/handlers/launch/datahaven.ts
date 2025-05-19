@@ -8,12 +8,20 @@ import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
-import { waitForContainerToStart } from "utils";
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import {
+  confirmWithTimeout,
+  killExistingContainers,
+  logger,
+  printDivider,
+  printHeader,
+  waitForContainerToStart
+} from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
+
+const DOCKER_NETWORK_NAME = "datahaven-net";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 
@@ -75,8 +83,7 @@ export const launchDataHavenSolochain = async (
     }
 
     if (options.datahaven === true) {
-      logger.info("Proceeding to clean and relaunch DataHaven containers...");
-      await cleanDataHavenContainers();
+      await cleanDataHavenContainers(options);
     } else {
       const shouldRelaunch = await confirmWithTimeout(
         "Do you want to clean and relaunch the DataHaven containers?",
@@ -91,8 +98,7 @@ export const launchDataHavenSolochain = async (
         printDivider();
         return;
       }
-      logger.info("Proceeding to clean and relaunch DataHaven containers...");
-      await cleanDataHavenContainers();
+      await cleanDataHavenContainers(options);
     }
   }
 
@@ -104,7 +110,7 @@ export const launchDataHavenSolochain = async (
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
+      `🏳️ Using flag option: ${shouldLaunchDataHaven ? "will launch" : "will not launch"} DataHaven network`
     );
   }
 
@@ -114,13 +120,20 @@ export const launchDataHavenSolochain = async (
     return;
   }
 
+  logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME} -f`.text());
+  logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
+
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
 
   await buildLocalImage(options);
   await checkTagExists(options.datahavenImageTag);
 
+  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
+  logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
+
   for (const id of CLI_AUTHORITY_IDS) {
-    logger.info(`Starting ${id}...`);
+    logger.info(`🚀 Starting ${id}...`);
     const containerName = `datahaven-${id}`;
 
     const command: string[] = [
@@ -129,13 +142,15 @@ export const launchDataHavenSolochain = async (
       "-d",
       "--name",
       containerName,
+      "--network",
+      DOCKER_NETWORK_NAME,
       ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS
     ];
 
-    logger.debug($`sh -c "${command.join(" ")}"`.text());
+    logger.debug(await $`sh -c "${command.join(" ")}"`.text());
 
     await waitForContainerToStart(containerName);
 
@@ -151,7 +166,7 @@ export const launchDataHavenSolochain = async (
   }
 
   for (let i = 0; i < 30; i++) {
-    logger.info("Waiting for datahaven to start...");
+    logger.info("⌛️ Waiting for datahaven to start...");
     if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
       logger.success(
         `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
@@ -160,7 +175,7 @@ export const launchDataHavenSolochain = async (
       await registerNodes(launchedNetwork);
 
       // Call setupDataHavenValidatorConfig now that nodes are up
-      logger.info("Proceeding with DataHaven validator configuration setup...");
+      logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
       await setupDataHavenValidatorConfig(launchedNetwork);
 
       printDivider();
@@ -180,29 +195,42 @@ export const launchDataHavenSolochain = async (
  */
 const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-"
-  const PIDS = await $`docker ps -q --filter "name=^datahaven-"`.text();
-  return PIDS.trim().length > 0;
+  const containerIds = await $`docker ps -q --filter "name=^datahaven-"`.text();
+  const networkOutput =
+    await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
+
+  // Check if containerIds has any actual IDs (not just whitespace)
+  const containersExist = containerIds.trim().length > 0;
+  // Check if networkOutput has any network names (not just whitespace or empty lines)
+  const networksExist =
+    networkOutput
+      .trim()
+      .split("\n")
+      .filter((line) => line.trim().length > 0).length > 0;
+
+  return containersExist || networksExist;
 };
 
 /**
  * Stops and removes all DataHaven containers.
  */
-const cleanDataHavenContainers = async (): Promise<void> => {
+const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> => {
   logger.info("🧹 Stopping and removing existing DataHaven containers...");
-  const containerIds = (await $`docker ps -a -q --filter "name=^datahaven-"`.text()).trim();
-  logger.debug(`Container IDs: ${containerIds}`);
-  if (containerIds.length > 0) {
-    const idsArray = containerIds
-      .split("\n")
-      .map((id) => id.trim())
-      .filter((id) => id.length > 0);
-    for (const id of idsArray) {
-      logger.debug(`Stopping container ${id}`);
-      logger.debug(await $`docker stop ${id}`.nothrow().text());
-      logger.debug(await $`docker rm ${id}`.nothrow().text());
-    }
+
+  invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
+  await killExistingContainers(options.datahavenImageTag);
+
+  if (options.relayerImageTag) {
+    logger.info(
+      "🧹 Stopping and removing existing relayer containers (relayers depend on DataHaven nodes)..."
+    );
+    await killExistingContainers(options.relayerImageTag);
   }
+
   logger.info("✅ Existing DataHaven containers stopped and removed.");
+
+  logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
+  logger.info("✅ DataHaven Docker network removed.");
 };
 
 /**
@@ -241,12 +269,12 @@ const buildLocalImage = async (options: LaunchOptions) => {
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldBuildDataHaven ? "will build" : "will not build"} DataHaven node local Docker image`
+      `🏳️ Using flag option: ${shouldBuildDataHaven ? "will build" : "will not build"} DataHaven node local Docker image`
     );
   }
 
   if (!shouldBuildDataHaven) {
-    logger.info("Skipping DataHaven node local Docker image build. Done!");
+    logger.info("👍 Skipping DataHaven node local Docker image build. Done!");
     return;
   }
 
@@ -302,11 +330,11 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
 
   // If the Docker container is running, proceed to register it in launchedNetwork.
   // We use the standard host WS port that "datahaven-alice" is expected to use.
-  logger.info(
-    `✅ Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
+  logger.debug(
+    `Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
   );
   launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
-  logger.success(`👍 Node ${targetContainerName} successfully registered in launchedNetwork.`);
+  logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
 };
 
 // Function to convert compressed public key to Ethereum address

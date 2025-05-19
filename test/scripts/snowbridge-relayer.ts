@@ -27,7 +27,7 @@ async function downloadRelayBinary() {
       repo: "snowbridge"
     });
     const tagName = latestRelease.data.tag_name;
-    logger.info(`Found latest release: ${tagName}`);
+    logger.info(`🔎 Found latest release: ${tagName}`);
 
     const relayAsset = latestRelease.data.assets.find((asset) => asset.name === "snowbridge-relay");
 

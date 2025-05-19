@@ -190,7 +190,6 @@ pub mod mock_data {
     use {
         frame_support::pallet_prelude::*,
         pallet_external_validators::traits::{ActiveEraInfo, EraIndex, EraIndexProvider},
-        xcm::latest::prelude::*,
     };
 
     #[derive(Clone, Default, Encode, Decode, sp_core::RuntimeDebug, scale_info::TypeInfo)]
@@ -212,25 +211,16 @@ pub mod mock_data {
     #[pallet::storage]
     pub(super) type Mock<T: Config> = StorageValue<_, Mocks, ValueQuery>;
 
-    #[pallet::storage]
-    pub(super) type TokenLocation<T: Config> = StorageValue<_, Location, ValueQuery>;
-
     impl<T: Config> Pallet<T> {
         pub fn mock() -> Mocks {
             Mock::<T>::get()
         }
-        pub fn token_loc() -> Location {
-            TokenLocation::<T>::get()
-        }
+
         pub fn mutate<F, R>(f: F) -> R
         where
             F: FnOnce(&mut Mocks) -> R,
         {
             Mock::<T>::mutate(f)
-        }
-
-        pub fn set_location(location: Location) {
-            TokenLocation::<T>::set(location)
         }
     }
 
@@ -244,12 +234,6 @@ pub mod mock_data {
 
         fn era_to_session_start(_era_index: EraIndex) -> Option<u32> {
             unimplemented!()
-        }
-    }
-
-    impl<T: Config> Get<Location> for Pallet<T> {
-        fn get() -> Location {
-            Self::token_loc()
         }
     }
 }

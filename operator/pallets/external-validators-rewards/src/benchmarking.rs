@@ -21,7 +21,7 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as ExternalValidatorsRewards;
 use {
-    crate::{BenchmarkHelper, OnEraEnd},
+    crate::{types::BenchmarkHelper, OnEraEnd},
     frame_benchmarking::{account, v2::*, BenchmarkError},
     frame_support::traits::Currency,
     sp_std::prelude::*,

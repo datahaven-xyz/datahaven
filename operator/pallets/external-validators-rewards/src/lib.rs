@@ -112,7 +112,7 @@ pub mod pallet {
         type HandleInflation: HandleInflation<Self::AccountId>;
 
         #[cfg(feature = "runtime-benchmarks")]
-        type BenchmarkHelper: BenchmarkHelper;
+        type BenchmarkHelper: types::BenchmarkHelper;
     }
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]

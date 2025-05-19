@@ -1,13 +1,13 @@
 [package]
-name = "datahaven-node"
+authors = { workspace = true }
 description = "A solochain node template built with Substrate, part of Polkadot Sdk."
-version = "0.1.0"
+edition = { workspace = true }
+homepage = { workspace = true }
 license = "Unlicense"
-authors.workspace = true
-homepage.workspace = true
-repository.workspace = true
-edition.workspace = true
+name = "datahaven-node"
 publish = false
+repository = { workspace = true }
+version = "0.1.0"
 
 build = "build.rs"
 
@@ -15,37 +15,58 @@ build = "build.rs"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+# Local
+datahaven-mainnet-runtime = { workspace = true }
+datahaven-runtime-common = { workspace = true }
+datahaven-stagenet-runtime = { workspace = true }
+datahaven-testnet-runtime = { workspace = true }
+
+# Crates.io
 clap = { features = ["derive"], workspace = true }
 codec = { workspace = true }
-datahaven-runtime = { workspace = true }
 flume = { workspace = true }
-fp-account = { workspace = true }
+futures = { features = ["thread-pool"], workspace = true }
+hex-literal = { workspace = true }
+jsonrpsee = { features = ["server"], workspace = true }
+log = { workspace = true }
+openssl-sys = { workspace = true }
+serde_json = { workspace = true, default-features = true }
+url = { workspace = true }
+
+#MMR
+mmr-rpc = { workspace = true, default-features = true }
+pallet-beefy-mmr = { workspace = true, default-features = true }
+pallet-mmr = { workspace = true, default-features = true }
+
+# Polkadot SDK
 frame-benchmarking-cli = { workspace = true, default-features = true }
 frame-metadata-hash-extension = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 frame-system-rpc-runtime-api = { workspace = true }
-futures = { features = ["thread-pool"], workspace = true }
-hex-literal = { workspace = true }
-jsonrpsee = { features = ["server"], workspace = true }
 pallet-im-online = { workspace = true }
 pallet-transaction-payment = { workspace = true, default-features = true }
 pallet-transaction-payment-rpc = { workspace = true, default-features = true }
-pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = ["std"] }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = [
+    "std",
+] }
 sc-basic-authorship = { workspace = true, default-features = true }
 sc-cli = { workspace = true, default-features = true }
 sc-client-api = { workspace = true, default-features = true }
 sc-consensus = { workspace = true, default-features = true }
 sc-consensus-babe = { workspace = true, default-features = true }
+sc-consensus-beefy = { workspace = true, default-features = true }
+sc-consensus-beefy-rpc = { workspace = true, default-features = true }
 sc-consensus-grandpa = { workspace = true, default-features = true }
+sc-consensus-manual-seal = { workspace = true, default-features = true }
 sc-executor = { workspace = true, default-features = true }
 sc-network = { workspace = true, default-features = true }
 sc-network-sync = { workspace = true }
 sc-offchain = { workspace = true, default-features = true }
+sc-rpc = { workspace = true, default-features = true }
 sc-service = { workspace = true, default-features = true }
 sc-telemetry = { workspace = true, default-features = true }
 sc-transaction-pool = { workspace = true, default-features = true }
 sc-transaction-pool-api = { workspace = true, default-features = true }
-serde_json = { workspace = true, default-features = true }
 sp-api = { workspace = true, default-features = true }
 sp-block-builder = { workspace = true, default-features = true }
 sp-blockchain = { workspace = true, default-features = true }
@@ -57,32 +78,23 @@ sp-genesis-builder = { workspace = true, default-features = true }
 sp-inherents = { workspace = true, default-features = true }
 sp-io = { workspace = true, default-features = true }
 sp-keyring = { workspace = true, default-features = true }
-sp-offchain = { workspace = true, features = ["default"] }
+sp-offchain = { workspace = true, default-features = true }
 sp-runtime = { workspace = true, default-features = true }
-sp-session = { workspace = true, features = ["default"] }
+sp-session = { workspace = true, default-features = true }
 sp-timestamp = { workspace = true, default-features = true }
-sp-transaction-pool = { workspace = true, features = ["default"] }
+sp-transaction-pool = { workspace = true, default-features = true }
 substrate-frame-rpc-system = { workspace = true, default-features = true }
-url = { workspace = true }
-
-# RPC
-sc-rpc = { workspace = true, default-features = true }
-
-# Beefy
-sc-consensus-beefy = { workspace = true, default-features = true }
-sc-consensus-beefy-rpc = { workspace = true, default-features = true }
-
-# MMR
-mmr-rpc = { workspace = true, default-features = true }
 
 # Frontier
+fc-api = { workspace = true }
 fc-cli = { workspace = true }
 fc-consensus = { workspace = true }
 fc-db = { workspace = true }
 fc-mapping-sync = { workspace = true, features = ["sql"] }
-fc-rpc = { workspace = true }
-fc-rpc-core = { workspace = true }
+fc-rpc = { workspace = true, features = ["txpool"] }
+fc-rpc-core = { workspace = true, features = ["txpool"] }
 fc-storage = { workspace = true }
+fp-account = { workspace = true }
 fp-evm = { workspace = true }
 fp-rpc = { workspace = true }
 pallet-ethereum = { workspace = true }
@@ -93,22 +105,30 @@ substrate-build-script-utils = { workspace = true, default-features = true }
 [features]
 default = ["std"]
 std = [
-    "datahaven-runtime/std",
+    "datahaven-runtime-common/std",
+    "datahaven-stagenet-runtime/std",
+    "datahaven-mainnet-runtime/std",
+    "datahaven-testnet-runtime/std",
 ]
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
-    "datahaven-runtime/runtime-benchmarks",
     "frame-benchmarking-cli/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "sc-service/runtime-benchmarks",
+    "datahaven-runtime-common/runtime-benchmarks",
+    "datahaven-stagenet-runtime/runtime-benchmarks",
+    "datahaven-mainnet-runtime/runtime-benchmarks",
+    "datahaven-testnet-runtime/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
 ]
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = [
-    "datahaven-runtime/try-runtime",
     "frame-system/try-runtime",
     "pallet-transaction-payment/try-runtime",
+    "datahaven-stagenet-runtime/try-runtime",
+    "datahaven-mainnet-runtime/try-runtime",
+    "datahaven-testnet-runtime/try-runtime",
     "sp-runtime/try-runtime",
 ]

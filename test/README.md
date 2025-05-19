@@ -15,9 +15,19 @@
 - [Bun](https://bun.sh/): TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 
+##### MacOS
+
+> [!IMPORTANT]
+> If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+
 ## QuickStart
 
-Run: `bun start:e2e:minimal`
+Run:
+
+```bash
+bun i
+bun cli
+```
 
 ## Manual Deployment
 
@@ -26,20 +36,23 @@ Follow these steps to set up and interact with your test environment:
 1. **Deploy a minimal test environment**
 
    ```bash
-   bun start:e2e:minimal
+   bun cli
    ```
 
    This script will:
 
-   1. Start a Kurtosis network with (among other things):
-      - 2 x Ethereum Execution Layer clients (reth)
-      - 2 x Ethereum Consensus Layer clients (lighthouse)
-      - 1 x Blockscout frontend
-      - 1 x Blockscout backend
-   2. Send a test transaction to the network using the [send-txn.ts](./scripts/send-txn.ts) script.
-   3. Deploy all DataHaven smart contracts needed for a local deployment, using the [DeployLocal.s.sol](../contracts/script/deploy/DeployLocal.s.sol) script.
+   1. Check for required dependencies.
+   2. Launch a DataHaven solochain.
+   3. Start a Kurtosis network which includes:
+      - 2 Ethereum Execution Layer clients (reth)
+      - 2 Ethereum Consensus Layer clients (lighthouse)
+      - Blockscout Explorer services for EL (if enabled with --blockscout)
+      - Dora Explorer service for CL
+   4. Deploy DataHaven smart contracts to the Ethereum network. This can optionally include verification on Blockscout if the `--verified` flag is used (requires Blockscout to be enabled).
+   5. Perform validator setup and funding operations.
+   6. Launch Snowbridge relayers.
 
-   > ℹ️ NOTE
+   > [!NOTE]
    >
    > If you want to also have the contracts verified on blockscout, you can run `bun start:e2e:verified` instead. This will do all the previous steps, but also verify the contracts on blockscout. However, note that this takes some time to complete.
 
@@ -74,15 +87,27 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 
 ### E2E Tests
 
-> [!TIP]  
-> Remember to run the network with `bun start:e2e:minimal` before running the tests.
+> [!TIP]
+>
+> Remember to run the network with `bun cli` before running the tests.
 
 ```bash
 bun test:e2e
 ```
 
 > [!NOTE]
+>
 > You can increase the logging level by setting `LOG_LEVEL=debug` before running the tests.
+
+### Wagmi Bindings Generation
+
+To ensure contract bindings are up-to-date, run the following command after modifying smart contracts or updating ABIs:
+
+```bash
+bun generate:wagmi
+```
+
+This command generates TypeScript bindings for interacting with the deployed smart contracts using Wagmi.
 
 ## Troubleshooting
 
@@ -90,7 +115,7 @@ bun test:e2e
 
 #### Script halts unexpectedly
 
-When running `start:e2e:minimal` the script appears to halt after the following:
+When running `bun cli` the script appears to halt after the following:
 
 ```shell
 ## Setting up 1 EVM.
@@ -120,7 +145,7 @@ Try running `forge clean` to clear any spurious build artefacts, and running for
 If you look at the browser console, if you see the following:
 
 ```browser
-Content-Security-Policy: The page’s settings blocked the loading of a resource (connect-src) at http://127.0.0.1:3000/node-api/proxy/api/v2/stats because it violates the following directive: “connect-src ' ...
+Content-Security-Policy: The page's settings blocked the loading of a resource (connect-src) at http://127.0.0.1:3000/node-api/proxy/api/v2/stats because it violates the following directive: "connect-src ' ...
 ```
 
 this is a result of CORS and CSP errors due to running this as a local docker network.
@@ -142,6 +167,25 @@ I have found that ipV6 on Arch Linux does not play very nicely with Kurtosis net
 ![Docker Network Settings](../resources/mac_docker.png)
 
 If using Docker Desktop, make sure settings have permissive networking enabled.
+
+### Polkadot-API types don't match expected runtime types
+
+If you've made changes to the runtime types, you need to re-generate the TS types for the Polkadot-API. Don't worry, this is fully automated.
+
+From the `./test` directory run the following command:
+
+```bash
+bun generate:types
+```
+
+This script will:
+
+1. Compile the runtime using `cargo build --release` in the `../operator` directory.
+2. Re-generate the Polkadot-API types using the newly built WASM binary.
+
+> [!NOTE]
+>
+> The script uses the `--release` flag by default, meaning it uses the WASM binary from `./operator/target/release`. If you need to use a different build target, you may need to adjust the script or run the steps manually.
 
 ## Further Information
 

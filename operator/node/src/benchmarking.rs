@@ -4,7 +4,7 @@
 
 use crate::service::FullClient;
 
-use datahaven_runtime as runtime;
+use datahaven_mainnet_runtime as runtime;
 use fp_account::EthereumSignature;
 use runtime::{AccountId, Balance, BalancesCall, SystemCall};
 use sc_cli::Result;
@@ -18,18 +18,18 @@ use std::{sync::Arc, time::Duration};
 /// Generates extrinsics for the `benchmark overhead` command.
 ///
 /// Note: Should only be used for benchmarking.
-pub struct RemarkBuilder {
-    client: Arc<FullClient>,
+pub struct RemarkBuilder<RuntimeApi> {
+    client: Arc<FullClient<RuntimeApi>>,
 }
 
-impl RemarkBuilder {
+impl<RuntimeApi> RemarkBuilder<RuntimeApi> {
     /// Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient>) -> Self {
+    pub fn new(client: Arc<FullClient<RuntimeApi>>) -> Self {
         Self { client }
     }
 }
 
-impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
+impl<RuntimeApi> frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder<RuntimeApi> {
     fn pallet(&self) -> &str {
         "system"
     }
@@ -54,15 +54,15 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
 /// Generates `Balances::TransferKeepAlive` extrinsics for the benchmarks.
 ///
 /// Note: Should only be used for benchmarking.
-pub struct TransferKeepAliveBuilder {
-    client: Arc<FullClient>,
+pub struct TransferKeepAliveBuilder<RuntimeApi> {
+    client: Arc<FullClient<RuntimeApi>>,
     dest: AccountId,
     value: Balance,
 }
 
-impl TransferKeepAliveBuilder {
+impl<RuntimeApi> TransferKeepAliveBuilder<RuntimeApi> {
     /// Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient>, dest: AccountId, value: Balance) -> Self {
+    pub fn new(client: Arc<FullClient<RuntimeApi>>, dest: AccountId, value: Balance) -> Self {
         Self {
             client,
             dest,
@@ -71,7 +71,7 @@ impl TransferKeepAliveBuilder {
     }
 }
 
-impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
+impl<RuntimeApi> frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder<RuntimeApi> {
     fn pallet(&self) -> &str {
         "balances"
     }
@@ -100,8 +100,8 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 /// Create a transaction using the given `call`.
 ///
 /// Note: Should only be used for benchmarking.
-pub fn create_benchmark_extrinsic(
-    client: &FullClient,
+pub fn create_benchmark_extrinsic<RuntimeApi>(
+    client: &FullClient<RuntimeApi>,
     sender: ecdsa::Pair,
     call: runtime::RuntimeCall,
     nonce: u32,

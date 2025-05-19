@@ -1,55 +1,15 @@
+import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { logger } from "utils";
+import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
 
-interface ServiceMapping {
-  service: string;
-  containerPattern: string;
-  internalPort: number;
-  protocol: string;
-}
+const docker = new Docker({});
 
-interface ServiceInfo {
-  service: string;
-  port: string;
-  url: string;
-}
-
-const serviceMappings: ServiceMapping[] = [
-  {
-    service: "reth-1-rpc",
-    containerPattern: "el-1-reth-lighthouse",
-    internalPort: 8545,
-    protocol: "tcp"
-  },
-  {
-    service: "reth-2-rpc",
-    containerPattern: "el-2-reth-lighthouse",
-    internalPort: 8545,
-    protocol: "tcp"
-  },
-  {
-    service: "blockscout-backend",
-    containerPattern: "blockscout--",
-    internalPort: 4000,
-    protocol: "tcp"
-  },
-  {
-    service: "dora",
-    containerPattern: "dora--",
-    internalPort: 8080,
-    protocol: "tcp"
-  }
-];
-
-export async function getServicesFromDocker(): Promise<ServiceInfo[]> {
-  const docker = new Docker();
-
+export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   const containers = await docker.listContainers();
-
   const services: ServiceInfo[] = [];
 
-  for (const mapping of serviceMappings) {
+  for (const mapping of StandardServiceMappings) {
     try {
       const container = containers.find((container) =>
         container.Names.some((name) => name.includes(mapping.containerPattern))
@@ -103,7 +63,7 @@ export async function getServicesFromDocker(): Promise<ServiceInfo[]> {
   }
 
   return services;
-}
+};
 
 export const getPublicPort = async (
   containerName: string,
@@ -122,4 +82,111 @@ export const getPublicPort = async (
   logger.debug(`Port mappings for ${containerName}:${internalPort}`, portMappings);
   invariant(portMappings, `❌ port mapping not found for ${containerName}:${internalPort}`);
   return portMappings.PublicPort;
+};
+
+export async function waitForLog(opts: {
+  search: string | RegExp;
+  containerName: string;
+  timeoutSeconds?: number;
+}): Promise<string> {
+  const container = docker.getContainer(opts.containerName);
+  await container.inspect();
+  const timeoutMs = (opts.timeoutSeconds ?? 10) * 1_000;
+
+  const rawStream = (await container.logs({
+    stdout: true,
+    stderr: true,
+    follow: true,
+    since: 0
+  })) as Duplex;
+  const pass = new PassThrough();
+  container.modem.demuxStream(rawStream, pass, pass);
+
+  const { readable } = Transform.toWeb(pass);
+  const decoder = new TextDecoder();
+  const timer = setTimeout(
+    () =>
+      pass.destroy(
+        new Error(
+          `Timed out after ${timeoutMs} ms waiting for "${opts.search}" in ${opts.containerName}`
+        )
+      ),
+    timeoutMs
+  );
+
+  try {
+    for await (const chunk of readable) {
+      const text = decoder.decode(chunk as Uint8Array, { stream: false });
+
+      const hit =
+        typeof opts.search === "string" ? text.includes(opts.search) : opts.search.test(text);
+
+      if (hit) return text.trim();
+    }
+
+    throw new Error(
+      `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`
+    );
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    if (pass && typeof pass.destroy === "function" && !pass.destroyed) {
+      pass.destroy();
+    }
+
+    if (rawStream) {
+      if (typeof rawStream.destroy === "function" && !rawStream.destroyed) {
+        rawStream.destroy();
+      }
+      const socket = (rawStream as any).socket;
+      if (socket && typeof socket.destroy === "function" && !socket.destroyed) {
+        socket.destroy();
+      }
+    }
+  }
+}
+
+export const waitForContainerToStart = async (
+  containerName: string,
+  options?: { timeoutSeconds?: number }
+) => {
+  logger.debug(`Waiting for container ${containerName} to start...`);
+  const docker = new Docker();
+  const seconds = options?.timeoutSeconds ?? 30;
+
+  for (let i = 0; i < seconds; i++) {
+    const containers = await docker.listContainers();
+    const container = containers.find((container) =>
+      container.Names.some((name) => name.includes(containerName))
+    );
+    if (container) {
+      logger.debug(`Container ${containerName} started after ${i} seconds`);
+      return;
+    }
+    await Bun.sleep(1000);
+  }
+  invariant(
+    false,
+    `❌ container ${containerName} cannot be found  in running container list after ${seconds} seconds`
+  );
+};
+
+export const killExistingContainers = async (imageName: string) => {
+  logger.debug(`Searching for containers with image ${imageName}...`);
+  const docker = new Docker();
+  const containerInfos = (await docker.listContainers({ all: true })).filter((container) =>
+    container.Image.includes(imageName)
+  );
+
+  if (containerInfos.length === 0) {
+    logger.debug(`No containers found with image ${imageName}`);
+    return;
+  }
+
+  const promises = containerInfos.map(({ Id }) => docker.getContainer(Id).remove({ force: true }));
+  await Promise.all(promises);
+
+  logger.debug(`${containerInfos.length} containers with image ${imageName} killed`);
 };

@@ -1,0 +1,55 @@
+[package]
+authors = ["Snowfork <contact@snowfork.com>"]
+categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Ethereum"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-ethereum"
+repository.workspace = true
+version = "0.3.0"
+
+[package.metadata.polkadot-sdk]
+exclude-from-umbrella = true
+
+[dependencies]
+codec = { features = ["derive"], workspace = true }
+ethbloom = { workspace = true }
+ethereum-types = { features = ["codec", "rlp", "serialize"], workspace = true }
+hex-literal = { workspace = true }
+parity-bytes = { workspace = true }
+rlp = { workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+serde = { optional = true, features = [
+    "derive",
+], workspace = true, default-features = true }
+serde-big-array = { optional = true, features = [
+    "const-generics",
+], workspace = true }
+
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+ethabi = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true, default-features = true }
+serde_json = { workspace = true, default-features = true }
+
+[features]
+default = ["std"]
+expensive_tests = []
+std = [
+    "codec/std",
+    "ethabi/std",
+    "ethbloom/std",
+    "ethereum-types/std",
+    "parity-bytes/std",
+    "rlp/std",
+    "scale-info/std",
+    "serde",
+    "serde-big-array",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+]

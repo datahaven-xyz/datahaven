@@ -1,0 +1,57 @@
+# Build Operator: CI for building the operator binary
+
+name: DataHave Operator Rust Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      binary-hash:
+        description: "The hash of the operator binary"
+        value: ${{ jobs.build-node.outputs.binary-hash }}
+
+jobs:
+  build-node:
+    outputs:
+      binary-hash: ${{ steps.hash-binary.outputs.datahaven-node-hash }}
+    name: Build operator binary
+    runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: CI
+      - name: Build node binary
+        run: cargo build --release --locked
+      - name: Hash binary
+        id: hash-binary
+        run: |
+          TIMESTAMP=$(date +%s)
+
+          BINARY_PATH=./target/ci/datahaven-node
+          HASH=$(echo "$TIMESTAMP" | cat - $BINARY_PATH | sha256sum | awk '{ print $1 }')
+          echo "datahaven-node-hash=$HASH" >> $GITHUB_OUTPUT
+          echo "Hash of the datahaven-node is: $HASH (with timestamp: $TIMESTAMP)"
+
+      - name: Upload binary to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: datahaven-node-${{ steps.hash-binary.outputs.datahaven-node-hash }}
+          path: operator/target/ci/datahaven-node
+          retention-days: 1
+
+      - name: Build Stats
+        run: |
+          sccache --show-stats
+        

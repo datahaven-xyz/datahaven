@@ -3,11 +3,10 @@ import {
   ANVIL_FUNDED_ACCOUNTS,
   type ViemClientInterface,
   createDefaultClient,
-  fetchContractAbiByAddress,
-  fetchContractAddressByName,
+  generateRandomAccount,
   logger
 } from "utils";
-import { isAddress, parseAbi, parseEther } from "viem";
+import { parseEther } from "viem";
 
 describe("E2E: Read-only", () => {
   let api: ViemClientInterface;
@@ -33,44 +32,27 @@ describe("E2E: Read-only", () => {
     expect(balance).toBeGreaterThan(parseEther("1"));
   });
 
-  it("Snowbridge contract is deployed and verified", async () => {
-    const contractAddress = await fetchContractAddressByName("BeefyClient");
-    logger.info(`Contract BeefyClient deployed to ${contractAddress}`);
-    expect(isAddress(contractAddress)).toBeTrue();
-
-    const contractCode = await api.getCode({ address: contractAddress });
-    expect(contractCode).toBeTruthy();
-
-    describe("BeefyClient contract", async () => {
-      it("latestBeefyBlock()) can be read", async () => {
-        const value = await api.readContract({
-          abi: parseAbi(["function latestBeefyBlock() view returns (uint64)"]),
-          address: contractAddress,
-          functionName: "latestBeefyBlock"
-        });
-        expect(value, "Expected contract read to give positive blocknum").toBeGreaterThan(0n);
-      });
-
-      it("blockscout can fetch abi", async () => {
-        const address = await fetchContractAddressByName("BeefyClient");
-        const abi = await fetchContractAbiByAddress(address);
-
-        const resp = await api.readContract({
-          address,
-          abi,
-          functionName: "randaoCommitExpiration"
-        });
-        expect(resp, "Expected contract read").toBeGreaterThan(0n);
-      });
+  it("can send ETH txs", async () => {
+    const amount = parseEther("1");
+    const randomAddress = generateRandomAccount();
+    const balanceBefore = await api.getBalance({
+      address: randomAddress.address
     });
-  });
+    logger.debug(`Balance of ${randomAddress.address} before: ${balanceBefore}`);
 
-  it("AVS contract is deployed and verified", async () => {
-    const contractAddress = await fetchContractAddressByName("DataHavenServiceManager");
-    logger.info(`Contract DataHavenServiceManager deployed to ${contractAddress}`);
-    expect(isAddress(contractAddress)).toBeTrue();
+    const hash = await api.sendTransaction({
+      to: randomAddress.address,
+      value: amount
+    });
 
-    const contractCode = await api.getCode({ address: contractAddress });
-    expect(contractCode).toBeTruthy();
+    const receipt = await api.waitForTransactionReceipt({ hash });
+    logger.debug(`Transaction receipt: ${receipt}`);
+
+    const balanceAfter = await api.getBalance({
+      address: randomAddress.address
+    });
+
+    logger.debug(`Balance of ${randomAddress.address} after: ${balanceAfter}`);
+    expect(balanceAfter - balanceBefore).toBe(amount);
   });
 });

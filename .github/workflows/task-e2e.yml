@@ -1,0 +1,94 @@
+# End-To-End Tests: CI for starting a full ETH private network, deploying AVS and running tests.
+#
+# Overview:
+# 1. Start kurtosis network
+# 2. Deploy AVS contracts
+# 3. Start DataHaven node
+# 4. Run E2E tests
+
+name: E2E - Kurtosis Deploy and Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        description: "The tag of the docker image"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      image-tag:
+        description: "The tag of the docker image"
+        required: true
+        type: string
+
+env:
+  FOUNDRY_PROFILE: ci
+  LOG_LEVEL: debug
+
+jobs:
+  kurtosis:
+    runs-on: ubuntu-latest
+    name: E2E Tests with Kurtosis Ethereum Network
+    defaults:
+      run:
+        working-directory: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: d
+      - uses: oven-sh/setup-bun@v2
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Install Kurtosis
+        run: |
+          echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
+          sudo apt update
+          sudo apt install kurtosis-cli
+          kurtosis analytics disable
+      - run: kurtosis version
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Cache Foundry libraries
+        uses: actions/cache/restore@v4
+        with:
+          path: ../contracts/lib
+          key: ${{ runner.os }}-foundry-libs-${{ hashFiles('.gitmodules') }}
+          restore-keys: |
+            ${{ runner.os }}-foundry-libs-
+
+      - name: Cache Foundry build artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ../contracts/out
+            ../contracts/cache
+          key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol') }}
+          restore-keys: |
+            ${{ runner.os }}-foundry-build-
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Download snowbridge binary
+        run: |
+          docker create --name temp moonsonglabs/snowbridge-relayer:latest
+          mkdir -p tmp/bin
+          docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
+          chmod +x tmp/bin/snowbridge-relay
+          docker rm temp
+      - run: tmp/bin/snowbridge-relay --help
+      - run: docker pull ${{ inputs.image-tag }}
+      - run: bun install
+      - run: bun start:e2e:ci --datahaven-image-tag ${{ inputs.image-tag }}
+      - name: Check network
+        run: |
+          kurtosis enclave inspect datahaven-ethereum
+          docker container ls
+      - run: bun test:e2e

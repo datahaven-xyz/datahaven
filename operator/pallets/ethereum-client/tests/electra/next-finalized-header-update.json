@@ -1,0 +1,42 @@
+{
+  "attested_header": {
+    "slot": 8419,
+    "proposer_index": 0,
+    "parent_root": "0xd19c0b32846e7951b8435e8e1a224d3cb0061f4d7a41174b6eaf5c87c141c859",
+    "state_root": "0xd8a5296d0571c302df1fc875ad8d73c3e52df378f66413917ee068e595c5ffe5",
+    "body_root": "0xbe6414e8b84181f1b474253f19023b01a32c32a761974441e6190964084d3140"
+  },
+  "sync_aggregate": {
+    "sync_committee_bits": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "sync_committee_signature": "0x909a45e0ffb4db84dd15293461b8d167fcaab85bd9b158fac7c797a7ad306c641113f863a181a2ac739088949c27bc070d1baa471367c3ba09544d5b7809fc99c3762a322812edb4605c7e1ecec7e89d66c47f0f7e9d5748e2d722d15aea3efe"
+  },
+  "signature_slot": 8420,
+  "next_sync_committee_update": null,
+  "finalized_header": {
+    "slot": 8352,
+    "proposer_index": 3,
+    "parent_root": "0xc57675217b5c5ff892e6298bc15ac0e87cbef37ff2a7249c226ae7550808ec08",
+    "state_root": "0x368c1d1327c9b71d47def1250f505b8f9709d550e761a4176871d5a9e7d1fc9a",
+    "body_root": "0x5d5864f454d8a5884c240857d9e48623342c97bad6b1935a2239e5cf4b86075d"
+  },
+  "finality_branch": [
+    "0x0501000000000000000000000000000000000000000000000000000000000000",
+    "0x10c726fac935bf9657cc7476d3cfa7bedec5983dcfb59e8a7df6d0a619e108d7",
+    "0x14d8bc366c621b665ab710c17fb066057568d3691fa28e94ebfa42b39ed0a7d9",
+    "0x0dfa7b87f9139e824d423b0ca36fc3eb632b28c855b222cad541be21304e8bfc",
+    "0xe85edaf71d4660d5a79e8663070e712b28e6e1acd4743632f7da1b53703c1e0b",
+    "0x59c85eaa00d5af34f735dc9a20b6d33fa662d0aeb774eea6e2d2fce99241e33a",
+    "0xa1381fdc64967103fe79c0705727851ce61e7f91bee7e3e7759f9283c91ff7ff"
+  ],
+  "block_roots_root": "0x972a3c5e6c32ea540b2f4378f0ffbf87c12b75f1d8e491a90408d325b5fd1de3",
+  "block_roots_branch": [
+    "0x62231eed46bc78c41f09f6b9b451b954024217f1a64f37c7b93830692bc56f21",
+    "0xed62cd64d74c46c3fb73c39d79325eed47596b9108589f7036086443a9e17b5b",
+    "0xc05240af0c532d63e31fd387885116e409fe473450282d14539b52a1b11321f0",
+    "0x0a8ff5437eafc03d9fb23f45fcfbb3688752a2509d1542fcca1c4f450f736662",
+    "0x9ac3b74a80097470443d48af49952761e03288afab7203375507937938990800",
+    "0xa1381fdc64967103fe79c0705727851ce61e7f91bee7e3e7759f9283c91ff7ff"
+  ],
+  "execution_header": null,
+  "execution_branch": null
+}

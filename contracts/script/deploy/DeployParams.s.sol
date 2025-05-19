@@ -14,7 +14,6 @@ contract DeployParams is Script, Config {
         );
         string memory configJson = vm.readFile(configPath);
 
-        // Load from JSON config or use environment variables as fallback
         config.randaoCommitDelay = vm.parseJsonUint(configJson, ".snowbridge.randaoCommitDelay");
         config.randaoCommitExpiration =
             vm.parseJsonUint(configJson, ".snowbridge.randaoCommitExpiration");
@@ -53,6 +52,10 @@ contract DeployParams is Script, Config {
         config.rewardsInitiator = vm.parseJsonAddress(configJson, ".avs.rewardsInitiator");
         config.vetoCommitteeMember = vm.parseJsonAddress(configJson, ".avs.vetoCommitteeMember");
         config.vetoWindowBlocks = uint32(vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks"));
+        config.validatorsStrategies =
+            vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
+        config.bspsStrategies = vm.parseJsonAddressArray(configJson, ".avs.bspsStrategies");
+        config.mspsStrategies = vm.parseJsonAddressArray(configJson, ".avs.mspsStrategies");
 
         return config;
     }
@@ -81,8 +84,6 @@ contract DeployParams is Script, Config {
         config.activationDelay = uint32(vm.parseJsonUint(configJson, ".eigenLayer.activationDelay"));
         config.globalCommissionBips =
             uint16(vm.parseJsonUint(configJson, ".eigenLayer.globalCommissionBips"));
-
-        // Set default values for the new parameters
         config.executorMultisig = vm.parseJsonAddress(configJson, ".eigenLayer.executorMultisig");
         config.operationsMultisig =
             vm.parseJsonAddress(configJson, ".eigenLayer.operationsMultisig");
@@ -210,12 +211,10 @@ contract DeployParams is Script, Config {
     ) internal pure returns (bytes32[] memory) {
         // Load validators from JSON config
         string[] memory validatorsArray = vm.parseJsonStringArray(configJson, path);
-
         bytes32[] memory validators = new bytes32[](validatorsArray.length);
         for (uint256 i = 0; i < validatorsArray.length; i++) {
             validators[i] = vm.parseBytes32(validatorsArray[i]);
         }
-
         return validators;
     }
 
@@ -225,12 +224,10 @@ contract DeployParams is Script, Config {
     ) internal pure returns (address[] memory) {
         // Load addresses from JSON config
         string[] memory addressStrings = vm.parseJsonStringArray(configJson, path);
-
         address[] memory addresses = new address[](addressStrings.length);
         for (uint256 i = 0; i < addressStrings.length; i++) {
             addresses[i] = vm.parseAddress(addressStrings[i]);
         }
-
         return addresses;
     }
 }

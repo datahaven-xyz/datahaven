@@ -1,14 +1,7 @@
 import { ANVIL_FUNDED_ACCOUNTS, CHAIN_ID, getRPCUrl, getWSUrl } from "utils";
-import {
-  http,
-  type PublicActions,
-  type WalletClient,
-  createPublicClient,
-  createWalletClient,
-  defineChain,
-  publicActions
-} from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { http, createWalletClient, defineChain, publicActions } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import type { Prettify } from "./types";
 
 export const createChainConfig = async () =>
   defineChain({
@@ -45,4 +38,6 @@ export const createDefaultClient = async () =>
     transport: http()
   }).extend(publicActions);
 
-export interface ViemClientInterface extends WalletClient, PublicActions {}
+export type ViemClientInterface = Prettify<Awaited<ReturnType<typeof createDefaultClient>>>;
+
+export const generateRandomAccount = () => privateKeyToAccount(generatePrivateKey());

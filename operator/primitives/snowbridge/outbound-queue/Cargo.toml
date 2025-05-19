@@ -1,0 +1,63 @@
+[package]
+authors = ["Snowfork <contact@snowfork.com>"]
+categories = ["cryptography::cryptocurrencies"]
+description = "Snowbridge Outbound Queue Primitives"
+edition.workspace = true
+license = "Apache-2.0"
+name = "snowbridge-outbound-queue-primitives"
+repository.workspace = true
+version = "0.2.0"
+
+[package.metadata.polkadot-sdk]
+exclude-from-umbrella = true
+
+[dependencies]
+codec = { workspace = true }
+hex-literal = { workspace = true, default-features = true }
+log = { workspace = true }
+scale-info = { features = ["derive"], workspace = true }
+
+polkadot-parachain-primitives = { workspace = true }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-arithmetic = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+alloy-core = { workspace = true, features = ["sol-types"] }
+ethabi = { workspace = true }
+
+snowbridge-core = { workspace = true }
+snowbridge-verification-primitives = { workspace = true }
+
+[dev-dependencies]
+hex = { workspace = true, default-features = true }
+
+[features]
+default = ["std"]
+std = [
+    "alloy-core/std",
+    "codec/std",
+    "ethabi/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "polkadot-parachain-primitives/std",
+    "scale-info/std",
+    "snowbridge-core/std",
+    "snowbridge-verification-primitives/std",
+    "sp-arithmetic/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "xcm-builder/std",
+    "xcm-executor/std",
+    "xcm/std",
+]

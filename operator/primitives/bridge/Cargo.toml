@@ -1,0 +1,28 @@
+[package]
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+name = "dhp-bridge"
+repository = { workspace = true }
+version = "0.1.0"
+
+[dependencies]
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-external-validators = { workspace = true }
+parity-scale-codec = { workspace = true }
+snowbridge-core = { workspace = true }
+snowbridge-inbound-queue-primitives = { workspace = true }
+sp-std = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "snowbridge-core/std",
+    "parity-scale-codec/std",
+    "pallet-external-validators/std",
+    "sp-std/std",
+]

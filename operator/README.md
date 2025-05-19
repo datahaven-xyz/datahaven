@@ -1,8 +1,8 @@
-# Datahaven 🫎
+# DataHaven 🫎
 
-Based on https://github.com/paritytech/polkadot-sdk-solochain-template
+Based on [polkadot-sdk-solochain-template](https://github.com/paritytech/polkadot-sdk-solochain-template)
 
-# Zombienet testing
+## Zombienet testing
 
 First, install [zombienet](https://github.com/paritytech/zombienet).
 

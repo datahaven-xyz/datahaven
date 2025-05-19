@@ -11,9 +11,26 @@ function parseIntValue(value: string): number {
   return parsedValue;
 }
 
-// So far we only have the launch command
-// we can expand this to more commands in the future
+// =====  Program  =====
 const program = new Command()
+  .version("0.2.0")
+  .name("bun cli")
+  .summary("🫎  DataHaven CLI: Network Toolbox")
+  .usage("[options]");
+
+// ===== Launch ======
+program
+  .command("launch")
+  .description("Launch a full E2E DataHaven & Ethereum network and more")
+  .addHelpText(
+    "beforeAll",
+    `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
+  Complete with:
+  - Solo-chain validators,
+  - Storage providers,
+  - Snowbridge Relayers
+  - Ethereum Private network`
+  )
   .option("--d, --datahaven", "(Re)Launch DataHaven network")
   .option("--nd, --no-datahaven", "Skip launching DataHaven network")
   .option("--bd, --build-datahaven", "Build DataHaven node local Docker image")
@@ -51,20 +68,21 @@ const program = new Command()
     "Tag of the relayer",
     "moonsonglabs/snowbridge-relayer:latest"
   )
+  //TODO:
+  // add option for specifying enclave name
   .hook("preAction", launchPreActionHook)
   .action(launch);
 
-// =====  Program  =====
+// ===== Stop ======
+// add option for retain bd
+// add option for retain relayers
+// add option to kill engine too
+program.command("stop").description("Stop any launched running network components");
+
+// ===== Exec ======
+// template literal union of commands to run
 program
-  .version("0.2.0")
-  .name("bun cli")
-  .summary("🫎  DataHaven: Network Launcher CLI")
-  .usage("[options]")
-  .description(`🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
-    Complete with:
-    - Solo-chain validators,
-    - Storage providers,
-    - Snowbridge Relayers
-    - Ethereum Private network`);
+  .command("exec <action> [args]")
+  .description("Execute a standalone function against an running running network");
 
 program.parseAsync(Bun.argv);

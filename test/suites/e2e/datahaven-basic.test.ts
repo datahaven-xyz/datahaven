@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
 import {
-  type DataHavenApi,
-  SUBSTRATE_FUNDED_ACCOUNTS,
   createPapiConnectors,
+  type DataHavenApi,
   generateRandomAccount,
   getPapiSigner,
-  logger
+  logger,
+  SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { isAddress, parseEther } from "viem";
 

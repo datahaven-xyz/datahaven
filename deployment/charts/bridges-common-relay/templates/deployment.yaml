@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bridges-common-relay.fullname" . }}
+  labels:
+    {{- include "bridges-common-relay.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bridges-common-relay.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "bridges-common-relay.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bridges-common-relay.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- range $param := .Values.params }}
+            - {{ $param | quote }}
+            {{- end }}
+            {{- if .Values.prometheus.enabled }}
+            - "--prometheus-host 0.0.0.0"
+            - "--prometheus-port {{ .Values.prometheus.port }}"
+            {{- end }}
+            {{- if .Values.extraArgs }}
+            {{- toYaml .Values.extraArgs | nindent 12 }}
+            {{- end }}
+          env:
+          {{- range $key, $value := .Values.env }}
+            - name: "{{ $key }}"
+              value: "{{ $value }}"
+          {{- end }}
+          {{- if .Values.prometheus.enabled }}
+          ports:
+            - name: prometheus
+              containerPort: {{ .Values.prometheus.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: prometheus
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: prometheus
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          {{- if .Values.config }}
+          - name: config
+            mountPath: "/configs/{{ .Values.config.name }}.json"
+            subPath: {{ .Values.config.name }}.json
+            readOnly: true
+          {{- end }}
+          {{- if or .Values.secrets .Values.existingSecretName }}
+          - name: secrets
+            mountPath: "/secrets/{{ or .Values.secrets.name .Values.existingSecretName }}"
+            subPath: pvk
+            readOnly: true
+          {{- end }}
+      volumes:
+      {{- if .Values.config }}
+      - name: config
+        configMap:
+          name: {{ include "bridges-common-relay.fullname" . }}-config
+      {{- end }}
+      {{- if or .Values.secrets .Values.existingSecretName }}
+      - name: secrets
+        secret:
+          secretName: {{ include "bridges-common-relay.secretName" . }}
+          optional: false
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

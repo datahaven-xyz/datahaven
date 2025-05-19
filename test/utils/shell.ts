@@ -58,7 +58,7 @@ export const runShellCommandWithLogger = async (
       }
     };
 
-    Promise.all([
+    await Promise.all([
       readStream(stdoutReader, "stdout", logLevel),
       readStream(stderrReader, "stderr", "error")
     ]);

@@ -1,0 +1,12 @@
+{{ $fullname :=  include "node.fullname" . }}
+{{- range $keys := .Values.node.keys }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $fullname }}-{{ .type }}
+data:
+  type: {{ .type | b64enc }}
+  scheme: {{ .scheme | b64enc }}
+  seed: {{ .seed | b64enc }}
+{{- end }}

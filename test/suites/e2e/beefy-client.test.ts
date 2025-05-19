@@ -3,11 +3,11 @@ import { beefyClientAbi } from "contract-bindings";
 import {
   type AnvilDeployments,
   type ContractInstance,
-  type ViemClientInterface,
   createDefaultClient,
   getContractInstance,
   logger,
-  parseDeploymentsFile
+  parseDeploymentsFile,
+  type ViemClientInterface
 } from "utils";
 import { isAddress } from "viem";
 

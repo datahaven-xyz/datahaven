@@ -1,0 +1,136 @@
+# -- Number of replicas for the pod
+
+replicaCount: 1
+
+image:
+  # -- Image repository
+  repository: paritytech/substrate-relay
+  # -- Image pull policy
+  pullPolicy: Always
+  # -- Image tag
+  tag: latest
+
+# -- Reference to one or more secrets to be used when pulling images.
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# -- Provide a name in place of node for `app:` labels
+nameOverride: ""
+# -- Provide a name to substitute for the full names of resources
+fullnameOverride: ""
+# -- Additional common labels on pods and services
+extraLabels: {}
+
+# -- Service account for the node to use.
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+serviceAccount:
+  # -- Enable creation of a Service Account for the main container
+  create: true
+  # -- Annotations to add to the Service Account
+  annotations: {}
+  # -- Service Account name
+  name: ""
+
+params: []
+
+# -- Config file
+config:
+  # -- Config name
+  name: ""
+
+# -- Secrets will be mounted to pod /secrets/{key}
+secrets: {}
+  # bridge-hub-wococo-signer-file: //Charlie
+
+# -- Override secrets with already existing secret name.
+existingSecretName: ""
+
+# -- Set environment variables
+env: {}
+  # RUST_LOG: 'runtime=trace'
+
+# -- Set extra command line arguments
+extraArgs: []
+
+# -- Annotations to add to the Pod
+podAnnotations: {}
+
+# -- SecurityContext holds pod-level security attributes and common container settings.
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# -- SecurityContext holds pod-level security attributes and common container settings.
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# -- Service
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 80
+
+# -- Resource limits & requests
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Define which Nodes the Pods are scheduled on
+nodeSelector: {}
+
+# -- Tolerations for use with node taints
+tolerations: []
+
+# -- Assign custom affinity rules
+affinity: {}
+
+# -- Expose metrics via Prometheus format in /metrics endpoint.
+prometheus:
+  # -- Expose Prometheus metrics
+  enabled: false
+  # -- The port for exposed Prometheus metrics
+  port: 9615
+
+# -- Service Monitor of Prometheus-Operator
+# ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/getting-started.md#include-servicemonitors
+serviceMonitor:
+  # -- Enables Service Monitor
+  enabled: false
+  # -- Namespace to deploy Service Monitor. If not set deploys in the same namespace with the chart
+  namespace:
+  # -- Scrape interval
+  interval: 30s
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+  # -- Labels to scrape
+  targetLabels:
+    - node
+  # -- Relabelings config
+  relabelings: []
+  # -- Metric relabelings config
+  metricRelabelings: []
+
+# -- CronJobs to automatically claim relayer rewards
+rewards: {}
+  # - name: rococoToWestendRelayer
+  #   # -- cron schedule
+  #   schedule: "00 01 * * *"
+  #   # -- Public address of the relayer
+  #   address: "5Fxxx"
+  #   # -- Bridge Hub RPC URL to use
+  #   rpc_url: "wss://example.com"
+  #   # -- Bridge line ID
+  #   lane_id: "0x00000002"
+  #   # -- Bridged Chain ID, for example [rococo](https://github.com/paritytech/polkadot-sdk/blob/7241a8db7b3496816503c6058dae67f66c666b00/bridges/testing/environments/rococo-westend/bridges_rococo_westend.sh#L349).
+  #   bridged_chain_id: "0x62687764"
+  #   # -- Secret name of the seed phrase of the relayer
+  #   seed_phrase_secret_name: "bridge-hub-rococo-signer-file"

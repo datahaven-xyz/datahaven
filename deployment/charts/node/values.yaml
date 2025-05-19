@@ -1,0 +1,773 @@
+# -- Provide a name in place of node for `app:` labels
+nameOverride: ""
+
+# -- Provide a name to substitute for the full names of resources
+fullnameOverride: ""
+
+# -- Additional common labels on pods and services
+extraLabels: {}
+
+# -- Image of Polkadot Node.
+image:
+  # -- Image repository
+  repository: parity/polkadot
+  # -- Image tag
+  tag: latest
+  # -- Image pull policy
+  pullPolicy: Always
+  # -- Adds `-x` shell option to container.
+  # Note: passwords and keys used in container may appear in logs
+  debug: false
+
+# -- Additional init containers
+initContainers:
+  # -- A container to handle network configuration of the Polkadot node
+  retrieveServiceInfo:
+    image:
+      # -- Image repository
+      repository: paritytech/kubetools-kubectl
+      # -- Image tag
+      tag: latest
+    # -- The resources requests/limits for the container
+    resources: {}
+    # -- Adds `-x` shell option to container.
+    # Note: passwords and keys used in container may appear in logs
+    debug: false
+
+  downloadChainSnapshot:
+    # -- A container to use for downloading a node backup/snapshot
+    image:
+      # -- Image repository
+      repository: docker.io/rclone/rclone
+      # -- Image tag
+      tag: latest
+    # -- The resources requests/limits for the container
+    resources: {}
+    # -- Additional environment variables to add to the container
+    extraEnvVars: []
+    # -- Adds `-x` shell option to container.
+    # Note: passwords and keys used in container may appear in logs
+    debug: false
+    # -- Flags to add to the CLI command. We rely on rclone for downloading snapshots so make sure the flags are compatible.
+    cmdArgs: ""
+
+  downloadChainspec:
+    image:
+      # -- Image repository
+      repository: docker.io/alpine
+      # -- Image tag
+      tag: latest
+    # -- Additional environment variables to add to the container
+    resources: {}
+    # -- Adds `-x` shell option to container.
+    # Note: passwords and keys used in container may appear in logs
+    debug: false
+
+  downloadRuntime:
+    image:
+      # -- Image repository
+      repository: paritytech/kubetools-kubectl
+      # -- Image tag
+      tag: latest
+    # -- Additional environment variables to add to the container
+    resources: {}
+    # -- Adds `-x` shell option to container.
+    # Note: passwords and keys used in container may appear in logs
+    debug: false
+
+  persistGeneratedNodeKey:
+    # -- Additional environment variables to add to the container
+    resources: {}
+    # -- Adds `-x` shell option to container.
+    # Note: passwords and keys used in container may appear in logs
+    debug: false
+
+  injectKeys:
+    # -- Additional environment variables to add to the container
+    resources: {}
+    # -- Adds `-x` shell option to container.
+    # Note: passwords and keys used in container may appear in logs
+    debug: false
+
+# -- Reference to one or more secrets to be used when pulling images.
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+
+# -- Service account for the node to use.
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+serviceAccount:
+  # -- Enable creation of a Service Account for the main container
+  create: true
+  # -- Creates RoleBinding
+  createRoleBinding: true
+  # -- Annotations to add to the Service Account
+  annotations: {}
+
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# -- SecurityContext holds pod-level security attributes and common container settings.
+# This defaults to non root user with uid 1000 and gid 1000.
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext:
+  # -- Set container's Security Context runAsUser
+  runAsUser: 1000
+  # -- Set container's Security Context runAsGroup
+  runAsGroup: 1000
+  # -- Set container's Security Context fsGroup
+  fsGroup: 1000
+
+# -- podDisruptionBudget configuration
+podDisruptionBudget:
+  # -- Enable podDisruptionBudget
+  enabled: false
+  # -- minAvailable replicas
+  minAvailable:
+  # -- maxUnavailable replicas
+  maxUnavailable:
+
+# -- Creates an ingress resource
+ingress:
+  # -- Enable creation of Ingress
+  enabled: false
+  # -- Annotations to add to the Ingress
+  annotations: {}
+  #  kubernetes.io/ingress.class: nginx
+  #  kubernetes.io/tls-acme: "true"
+  # -- hostname used for default rpc ingress rule, if .Values.ingress.rules is set host is not used.
+  host: chart-example.local
+  # -- Ingress rules configuration, empty = default rpc rule (send all requests to rps port)
+  rules: []
+  #  - host: chart-example.local
+  #    paths:
+  #      - serviceName: node
+  #        servicePort: 9944
+  # -- Ingress TLS configuration
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+
+# -- Deploy a substrate node.
+# ref: https://docs.substrate.io/tutorials/v3/private-network/
+node:
+  # -- Name of the chain
+  chain: ""
+  # -- Command to run within the container
+  command: "polkadot"
+  # -- Number of replicas to deploy
+  replicas: 1
+  # -- Type of the node. One of: full, authority, validator, collator, light
+  role: full
+  # -- How node updates should be applied.
+  updateStrategy:
+    # -- Enable custom updateStrategy
+    enabled: false
+    # -- Type supports RollingUpdate or OnDelete
+    type: "RollingUpdate"
+    # -- Can be an int or a %
+    maxUnavailable: 1
+
+  # -- Use the file defined in `node.customChainspecPath` as the chainspec. Ensure that the file is either mounted or generated with an init container.
+  customChainspec: false
+  # -- Node may require custom name for chainspec file.
+  # ref:  moonbeam https://github.com/PureStake/moonbeam/issues/1104#issuecomment-996787548
+  # Note: path should start with /chain-data/ since this folder mount in init container download-chainspec.
+  customChainspecPath: "/chain-data/chainspec.json"
+  # -- (string) URL to retrive custom chain spec
+  customChainspecUrl:
+  # -- Replace chain spec if it already exists
+  forceDownloadChainspec: false
+
+  chainData:
+    # -- Database backend engine to use
+    database: rocksdb
+    # -- Set the amount of blocks to retain.
+    # If set to 0 archive node will be run. If deprecated `--pruning` flags is used in `node.flags`, set this to `false`.
+    pruning: 1000
+    # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.VolumeSnapshot) and use it to store chain data
+    kubernetesVolumeSnapshot:
+    # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.PersistentVolumeClaim) and use it to store chain data
+    kubernetesVolumeToClone:
+    # -- (string) Path on the volume to store chain data
+    chainPath:
+    # -- Storage class to use for persistent volume
+    storageClass: ""
+    # -- Mount chain-data volume using an ephemeral volume
+    # ref: https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#types-of-ephemeral-volumes
+    ephemeral:
+      enabled: false
+      # -- Type supports emptyDir, generic
+      type: emptyDir
+    # -- Size of the volume for chain data
+    volumeSize: 100Gi
+    # -- Annotations to add to the volumeClaimTemplates
+    annotations: {}
+
+    # -- Configure parameters for restoring chain snapshot. Uses [rclone](https://rclone.org/)
+    chainSnapshot:
+      # -- Enable chain snapshot restoration
+      enabled: false
+      # -- Restoration method. One of: gcs, s3, http-single-tar, http-single-tar-lz4, http-filelist
+      method: gcs
+      # -- A URL to download chain backup
+      url: ""
+      # -- A remote file name containing names of DB file chunks. Appended to `url`
+      filelistName: files.txt
+      # $ cat files.txt
+      # full/000187.sst
+      # full/000321.sst
+      # full/000381.sst
+      # ...
+
+  # -- Configure chain keystore parameters
+  chainKeystore:
+    # -- Mount chain keystore in memory using an emptyDir volume
+    mountInMemory:
+      # -- Enable mounting in-memory keystore
+      enabled: false
+      # -- Size limit of the emptyDir holding a keystore. Requires K8s >=1.22
+      sizeLimit:
+    # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.VolumeSnapshot) and use it for the keystore
+    kubernetesVolumeSnapshot:
+    # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.PersistentVolumeClaim) and use it for the keystore
+    kubernetesVolumeToClone:
+    # -- Storage class to use for persistent volume
+    storageClass: ""
+    # -- Size of the volume
+    volumeSize: 10Mi
+    # -- Access mode of the volume
+    accessModes: ["ReadWriteOnce"]
+    # -- Annotations to add to the volumeClaimTemplates
+    annotations: {}
+
+  # -- Deploy a collator node.
+  # ref: https://wiki.polkadot.network/docs/learn-collator
+  # If Collator is enabled, collator image must be used
+  isParachain: false
+
+  # -- EXPERIMENTAL!!!
+  # Run the collator node without a relay chain via external relay chain
+  # ref: https://github.com/paritytech/cumulus#external-relay-chain-node
+  # Enabling this option will disable the values of collatorRelayChain
+  collatorExternalRelayChain:
+    # -- Enable deployment of the external collator
+    enabled: false
+    # -- List of Relay Chain RPCs to connect
+    relayChainRpcUrls: []
+
+  # -- EXPERIMENTAL!!!
+  # Run the collator node without a relay chain via light client
+  # ref: https://github.com/paritytech/cumulus/pull/2270
+  # Enabling this option will disable the values of collatorRelayChain
+  collatorLightClient:
+    # -- Enable deployment of the external collator
+    enabled: false
+    # -- Name of the Relay Chain to connect
+    relayChain: ""
+    # -- Use the file defined in `collatorLightClient.relayChainCustomChainspecPath` as the chainspec. Ensure that the file is either mounted or generated with an init container.
+    relayChainCustomChainspec: false
+    # -- Path to the file containing the chainspec of the collator relay-chain
+    relayChainCustomChainspecPath: "/chain-data/relay_chain_chainspec.json"
+    # -- (string) URL to retrive custom chain spec
+    relayChainCustomChainspecUrl:
+
+  collatorRelayChain:
+    # -- Name of the Relay Chain to connect
+    chain: polkadot
+
+    # -- Use the file defined in `collatorRelayChain.customChainspecPath` as the chainspec. Ensure that the file is either mounted or generated with an init container.
+    customChainspec: false
+    # -- Path to the file containing the chainspec of the collator relay-chain
+    # Set to /relaychain-data to use additional volume
+    customChainspecPath: "/relaychain-data/relay_chain_chainspec.json"
+    # -- (string) URL to retrive custom chain spec
+    customChainspecUrl:
+    chainData:
+      # -- Database backend engine to use for the collator relay-chain database
+      database: rocksdb
+      # -- Set the amount of blocks to retain for the collator relay-chain database.
+      # If set to 0 archive node will be run. If deprecated `--pruning` flags is used in `node.collatorRelayChain.flags`, set this to `false`.
+      pruning: 1000
+      # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.VolumeSnapshot) and use it to store relay-chain data
+      kubernetesVolumeSnapshot:
+      # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.PersistentVolumeClaim) and use it to store relay-chain data
+      kubernetesVolumeToClone:
+      # -- (string) Path on the volume to store chain data
+      chainPath: ""
+      # -- Storage class to use for persistent volume
+      storageClass: ""
+      # -- Mount relaychain-data volume using an ephemeral volume
+      # ref: https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#types-of-ephemeral-volumes
+      ephemeral:
+        enabled: false
+        # -- Type supports emptyDir, generic
+        type: emptyDir
+      # -- Size of the volume
+      volumeSize: 100Gi
+      # -- Annotations to add to the volumeClaimTemplates
+      annotations: {}
+
+      # -- Configure parameters for restoring relay chain snapshot. Uses [rclone](https://rclone.org/)
+      chainSnapshot:
+        # -- Enable relay chain snapshot restoration
+        enabled: false
+        # -- Restoration method. One of: gcs, s3, http-single-tar, http-single-tar-lz4, http-filelist
+        method: gcs
+        # -- A URL to download chain backup
+        url: ""
+        # -- A remote file name containing names of DB file chunks. Appended to `url`
+        filelistName: files.txt
+        # $ cat files.txt
+        # full/000187.sst
+        # full/000321.sst
+        # full/000381.sst
+        # ...
+
+    chainKeystore:
+      # -- Mount relay-chain keystore in memory using an emptyDir volume
+      mountInMemory:
+        # -- Enable mounting in-memory keystore
+        enabled: false
+        # -- Size limit of the emptyDir holding a keystore. Requires K8s >=1.22
+        sizeLimit:
+      # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.VolumeSnapshot) and use it for the keystore
+      kubernetesVolumeSnapshot:
+      # -- (string) If set, create a clone of the volume (using volumeClaimTemplates.dataSource.PersistentVolumeClaim) and use it for the keystore
+      kubernetesVolumeToClone:
+      # -- Storage class to use for persistent volume
+      storageClass: ""
+      # -- Size of the volume
+      volumeSize: 10Mi
+      # -- Access mode of the volume
+      accessModes: ["ReadWriteOnce"]
+      # -- Annotations to add to the volumeClaimTemplates
+      annotations: {}
+
+    # -- Expose relay chain metrics via Prometheus format in /metrics endpoint.
+    # Passes the following args to the Polkadot binary:
+    #   - "--prometheus-external" \
+    #   - "--prometheus-port {{ port }}"
+    prometheus:
+      # -- Expose Prometheus metrics
+      enabled: false
+      # -- The port for exposed Prometheus metrics
+      port: 9625
+
+    # -- Flags to add to the Polkadot binary
+    flags: []
+
+  # -- Flags to add to the Polkadot binary
+  flags: []
+
+  # -- Keys to use by the node.
+  # ref: https://wiki.polkadot.network/docs/learn-keys
+  keys: []
+  # - type: "gran"
+  #   scheme: "ed25519"
+  #   seed: "//Alice//gran"
+  # - type: "babe"
+  #   scheme: "sr25519"
+  #   seed: "//Alice"
+  #   extraDerivation: //babe
+
+  # -- Inject keys from already existing Kubernetes secrets
+  existingSecrets:
+    # -- List of kubernetes secret names to be added to the keystore.
+    # Each secret should contain 3 keys: type, scheme and seed
+    # Secret example: templates/keys.yaml
+    # Supercedes node.vault.keys
+    keys: []
+    # Add a derivation suffix for the private key.
+    extraDerivation: ""
+
+    # -- K8s secret with node key
+    # Secret example: templates/customNodeKeySecret.yaml
+    # Supercedes node.vault.nodeKey
+    nodeKey: {}
+      # secretName: existing-node-secret
+      # secretKey: my-node-key
+      # # Append pod index to secret key (e.g., my-node-key -> my-node-key-0)
+      # # Set `appendPodIndex` to true if you want to enable appending the pod index
+      # appendPodIndex: false
+
+  # -- Component to inject secrets via annotation of Hashicorp Vault
+  # ref: https://www.vaultproject.io/docs/platform/k8s/injector/annotations
+  vault:
+    # -- Configures the authentication path for the Kubernetes auth method
+    authPath:
+    # -- Configures the Vault role used by the Vault Agent auto-auth method.
+    authRole:
+    # -- Configures the authentication type for Vault Agent.
+    # For a list of valid authentication methods, see the Vault Agent auto-auth documentation.
+    authType:
+    # -- Configures auth-config-type annotations
+    authConfigType:
+    # -- Configures auth-config-service-account annotation
+    authConfigServiceAccount:
+
+    # -- Keys to fetch from Hashicorp Vault and set on the node
+    keys: {}
+      # - name: grankey
+      #   type: type
+      #   scheme: scheme
+      #   vaultPath: kv/secret/grankey
+      #   vaultKey: gran
+      #   extraDerivation: //
+      # - name: babekey
+      #   type: type
+      #   scheme: scheme
+      #   vaultPath: kv/secrets/babeKey
+      #   vaultKey: babe
+
+    # -- Node key to use via vault
+    nodeKey: {}
+      # name: nodekey
+      # vaultPath: kv/secret/nodekey
+      # Remark; vaultKey cannot contain dashes ('-'), only alphanumeric characters due to a limitation in the go templating
+      # vaultKey: key
+      # vaultKeyAppendPodIndex: false
+
+  # -- If enabled, generate a persistent volume to use for the keys
+  persistGeneratedNodeKey: false
+  # -- List of custom node key(s) for all pods in the StatefulSet
+  # Alternatively, use `.seed` to derive node key(s).
+  customNodeKey: []
+  #
+  # Example configurations:
+  # customNodeKey:
+  #   - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  #   - bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  #
+  # OR
+  #
+  # customNodeKey:
+  #   seed: "Any secure, long, random string of at least 64 characters"
+  #   extraDerivation: ""  # Optional. The `extraDerivation` value (default: release name)
+  #                         # and pod index will be appended to the seed to derive a new node key.
+
+
+  # -- Expose metrics via Prometheus format in /metrics endpoint.
+  # Passes the following args to the Polkadot binary:
+  #   - "--prometheus-external" \
+  #   - "--prometheus-port {{ .Values.node.prometheus.port }}"
+  prometheus:
+    # -- Expose Prometheus metrics
+    enabled: true
+    # -- The port for exposed Prometheus metrics
+    port: 9615
+
+  # -- Service Monitor of Prometheus-Operator
+  # ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/getting-started.md#include-servicemonitors
+  serviceMonitor:
+    # -- Enables Service Monitor
+    enabled: false
+    # -- Namespace to deploy Service Monitor. If not set deploys in the same namespace with the chart
+    namespace:
+    # -- Scrape interval
+    interval: 30s
+    # -- Scrape timeout
+    scrapeTimeout: 10s
+    # -- Labels to scrape
+    targetLabels:
+      - node
+    # -- Relabelings config
+    relabelings: []
+    # -- Metric relabelings config
+    metricRelabelings: []
+
+  # -- Annotations to add to the Service
+  serviceAnnotations: {}
+  # -- Additional ports on main Service
+  serviceExtraPorts: []
+  # -- Use deprecated ws/rpc flags.
+  # ref: https://github.com/paritytech/substrate/pull/13384
+  legacyRpcFlags: false
+
+  # -- Configuration of individual services of the node
+  perNodeServices:
+    apiService:
+      # -- If enabled, generic service to expose common node APIs
+      enabled: true
+      # -- Traffic policy
+      externalTrafficPolicy: Cluster
+      # -- Service type
+      type: ClusterIP # or NodePort, LoadBalancer
+      # -- Annotations to add to the Service
+      annotations: {}
+      # -- Port of the RPC endpoint
+      rpcPort: 9944
+      # -- deprecated, use rpcPort
+      httpPort: 9933
+      # -- deprecated, use rpcPort
+      wsPort: 9955
+      # -- Prometheus port
+      prometheusPort: 9615
+      # -- Relay chains Prometheus port
+      relayChainPrometheusPort: 9625
+      # -- External DNS configuration
+      # ref: https://github.com/kubernetes-sigs/external-dns
+      externalDns:
+        # -- Enable External DNS
+        enabled: false
+        # -- External DNS hostname
+        hostname: example.com
+        # -- DNS record TTL
+        ttl: 300
+        # -- Custom prefix to use instead of prefixing the hostname with the name of the Pod
+        customPrefix: ""
+      # -- Additional ports on per node Services
+      extraPorts: []
+    # -- If enabled, create service to expose relay chain P2P
+    relayP2pService:
+      enabled: false
+      # -- Traffic policy
+      externalTrafficPolicy: Cluster
+      # -- Service type
+      type: NodePort # or ClusterIP or LoadBalancer
+      # -- Publish the P2P port even if the pod is not ready (e.g., node is syncing). It's recommended to keep this to true.
+      publishUnreadyAddresses: true
+      # -- Port of the P2P endpoint (relay chain)
+      port: 30333
+      # -- Annotations to add to the Service
+      annotations: {}
+      # -- External DNS configuration
+      # ref: https://github.com/kubernetes-sigs/external-dns
+      externalDns:
+        # -- Enable External DNS
+        enabled: false
+        # -- External DNS hostname
+        hostname: example.com
+        # -- DNS record TTL
+        ttl: 300
+        # -- Custom prefix to use instead of prefixing the hostname with the name of the Pod
+        customPrefix: ""
+      ws:
+        # -- If enabled, additionally expose WebSocket port. Useful for bootnodes
+        enabled: false
+        # -- WS port
+        port: 30334
+      # -- Additional ports on per node Services
+      extraPorts: []
+    # -- If enabled, create service to expose parachain P2P
+    paraP2pService:
+      # -- Enable exposing parachain P2P Service
+      enabled: false
+      # -- Traffic policy
+      externalTrafficPolicy: Cluster
+      # -- Service type
+      type: NodePort # or ClusterIP, LoadBalancer
+      # -- Publish the P2P port even if the pod is not ready (e.g., node is syncing). It's recommended to keep this to true.
+      publishUnreadyAddresses: true
+      # -- Port of the P2P endpoint (parachain)
+      port: 30334
+      # -- Annotations to add to the Service
+      annotations: {}
+      # -- External DNS configuration
+      # ref: https://github.com/kubernetes-sigs/external-dns
+      externalDns:
+        # -- Enable External DNS
+        enabled: false
+        # -- External DNS hostname
+        hostname: example.com
+        # -- DNS record TTL
+        ttl: 300
+        # -- Custom prefix to use instead of prefixing the hostname with the name of the Pod
+        customPrefix: ""
+      ws:
+        # -- If enabled, additionally expose WebSocket port. Useful for bootnodes
+        enabled: false
+        # -- WS port
+        port: 30335
+      # -- Additional ports on per node Services
+      extraPorts: []
+    setPublicAddressToExternalIp:
+      # -- If enabled, set `--public-addr` flag to be the NodePort p2p services external address
+      enabled: false
+      # -- Web service to use for public IP retrieval
+      ipRetrievalServiceUrl: https://ifconfig.io
+      # -- EXPERIMENTAL!!!
+      # libp2p autodiscovery uses the external IP and port from --listen-addr instead of --public-addr.
+      # This flag will set the service port as an additional --listen-addr.
+      autodiscoveryFix: false
+
+
+  # -- Pod management policy of stateful set.
+  # ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+  podManagementPolicy:
+  # -- Persistent volume claim retention policy of stateful set (ie. whether to retain or delete the attached PVCs when scaling down or deleting the stateful set).
+  # ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention
+  persistentVolumeClaimRetentionPolicy:
+#    whenDeleted: Delete
+#    whenScaled: Delete
+  tracing:
+    # -- Enable Jaeger Agent as a sidecar
+    enabled: false
+
+  substrateApiSidecar:
+    # -- Enable Sustrate API as a sidecar
+    enabled: false
+
+  # -- Enable Node container's startup probe
+  enableStartupProbe: true
+  # -- On startup, the number of attempts to check the probe before restarting the pod
+  startupProbeFailureThreshold: 30
+
+  # -- Enable Node readiness probe through `paritytech/ws-health-exporter` running as a sidecar container
+  enableSidecarReadinessProbe: false
+  # -- Enable Node liveness probe through `paritytech/ws-health-exporter` running as a sidecar container
+  enableSidecarLivenessProbe: false
+
+  # -- Resource limits & requests
+  resources: {}
+
+  # -- Define the WASM runtime overrides directory path
+  wasmRuntimeOverridesPath: "/chain-data/runtimes"
+  # -- Download a WASM runtime to override the on-chain runtime when the version matches.
+  # Note that this will download the runtime file in the directory specified in `node.wasmRuntimeOverridesPath`
+  # Then on startup, the node will load all runtime files from this directory including previously downloaded runtimes
+  wasmRuntimeUrl: ""
+  # -- Allow executing unsafe RPC methods
+  allowUnsafeRpcMethods: false
+  # -- Log level
+  logLevels: []
+  # -- URLs to send telemetry data
+  telemetryUrls: []
+
+  # -- Environment variables to set for the main container:
+  extraEnvVars: []
+  # - name: foo
+  #   value: bar
+
+  # -- Mount already existing ConfigMaps into the main container.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#populate-a-volume-with-data-stored-in-a-configmap
+  extraConfigmapMounts: []
+    # - name: extra-configmap
+    #   configMap: my-configmap
+    #   optional: true
+    #   mountPath: /etc/config/
+    #   readOnly: true
+
+  # -- Mount already existing k8s Secrets into main container.
+  # https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod
+  # NOTE: This is NOT used to inject keys to the keystore or add node key.
+  extraSecretMounts: []
+    # - name: extra-secret
+    #   secretName: my-secret
+    #   optional: true
+    #   defaultMode: 0400
+    #   mountPath: /etc/config/
+    #   readOnly: true
+
+  # -- Enable Offchain Indexing.
+  # https://docs.substrate.io/fundamentals/offchain-operations/
+  enableOffchainIndexing: false
+
+# -- Configuration of Substrate API
+# ref: https://github.com/paritytech/substrate-api-sidecar
+substrateApiSidecar:
+  image:
+    # -- Image repository
+    repository: parity/substrate-api-sidecar
+    # -- Image tag
+    tag: latest
+  metrics:
+    enabled: false
+    port: 9100
+  # -- Arguments to set on the API sidecar
+  args:
+    - "node"
+    - "build/src/main.js"
+  # -- Environment variables to set on the API sidecar
+  env: {}
+  # -- Resource limits & requests
+  resources: {}
+
+# -- Configuration of the WS Health exporter.
+# ref: https://github.com/paritytech/scripts/tree/master/dockerfiles/ws-health-exporter
+wsHealthExporter:
+  image:
+    # -- Image repository
+    repository: paritytech/ws-health-exporter
+    # -- Image tag
+    tag: 99611363-20240306
+  # -- Resource limits & requests
+  resources: {}
+  # -- Environment variables to set on the API sidecar
+  env: {}
+
+# -- Configuration of Jaeger agent
+# https://github.com/jaegertracing/jaeger
+jaegerAgent:
+  image:
+    # -- Image repository
+    repository: jaegertracing/jaeger-agent
+    # -- Image tag
+    tag: latest
+  ports:
+    # -- Accept jaeger.thrift over compact thrift protocol
+    compactPort: 6831
+    # -- Accept jaeger.thrift over binary thrift protocol
+    binaryPort: 6832
+    # -- (HTTP) serve configs, sampling strategies
+    samplingPort: 5778
+  # -- Collector config
+  collector:
+    url: null
+    # Jaeger Default GRPC port is 14250
+    port: 14250
+  # -- Environment variables to set on the Jaeger sidecar
+  env: {}
+  # -- Resource limits & requests
+  resources: {}
+
+# -- Annotations to add to the Pod
+podAnnotations: {}
+
+# -- Field dnsPolicy can be set to 'ClusterFirst', 'Default', 'None', or 'ClusterFirstWithHostNet' or '' to not specify dnsPolicy and let Kubernetes use its default behavior
+dnsPolicy: ""
+
+# -- Define which Nodes the Pods are scheduled on
+nodeSelector: {}
+
+# -- Grace termination period of the Pod
+terminationGracePeriodSeconds: 60
+
+# -- Tolerations for use with node taints
+tolerations: []
+
+# -- Assign custom affinity rules
+affinity: {}
+
+# -- pods' priorityClassName
+priorityClassName: ""
+
+# -- Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
+# Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
+topologySpreadConstraints: {}
+
+# -- Name of the k8s scheduler (other than default)
+# ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+schedulerName: ""
+
+# -- Additional containers to run in the pod
+extraContainers: []
+
+# -- Additional init containers to run in the pod
+extraInitContainers: []
+
+autoscaling:
+  # -- Enable Horizontal Pod Autoscaler (HPA)
+  enabled: false
+  # -- Maintain min number of replicas
+  minReplicas: 1
+  # -- Scale up to this number of replicas
+  maxReplicas:
+  # -- Target CPU utilization that triggers scale up
+  targetCPU:
+  # -- Target memory utilization that triggers scale up
+  targetMemory:
+  # -- Additional metrics to track
+  additionalMetrics: {}

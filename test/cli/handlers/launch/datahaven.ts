@@ -40,20 +40,16 @@ const COMMON_LAUNCH_ARGS = [
 
 const DEFAULT_PUBLIC_WS_PORT = 9944;
 
-// We need 5 since the (2/3 + 1) of 6 authority set is 5
-// <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
-const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"] as const;
+// 2 validators (Alice and Bob) are used for local & CI testing
+// <repo_root>/operator/runtime/stagenet/src/genesis_config_presets.rs#L98
+const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
 
 // 33-byte compressed public keys for DataHaven next validator set
-// These correspond to Alice, Bob, Charlie, Dave, Eve, Ferdie
+// These correspond to Alice & Bob
 // These are the fallback keys if we can't fetch the next authorities directly from the network
 const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   alice: "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
-  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
-  charlie: "0x031d10105e323c4afce225208f71a6441ee327a65b9e646e772500c74d31f669aa",
-  dave: "0x0291f1217d5a04cb83312ee3d88a6e6b33284e053e6ccfc3a90339a0299d12967c",
-  eve: "0x0389411795514af1627765eceffcbd002719f031604fadd7d188e2dc585b4e1afb",
-  ferdie: "0x03bc9d0ca094bd5b8b3225d7651eac5d18c1c04bf8ae8f8b263eebca4e1410ed0c"
+  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27"
 } as const;
 
 /**

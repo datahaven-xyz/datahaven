@@ -127,6 +127,7 @@ parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
     pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
+    pub const AuthorRewardPoints: u32 = 20;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -244,7 +245,7 @@ impl pallet_authorship::EventHandler<AccountId, BlockNumber> for RewardsPoints {
             pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get();
         // Do not reward whitelisted validators
         if !whitelisted_validators.contains(&author) {
-            ExternalValidatorsRewards::reward_by_ids(vec![(author, 20u32)])
+            ExternalValidatorsRewards::reward_by_ids(vec![(author, AuthorRewardPoints::get())])
         }
     }
 }

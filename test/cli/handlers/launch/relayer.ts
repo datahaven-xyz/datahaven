@@ -193,8 +193,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       cfg.source.solochain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
       cfg.source.contracts.BeefyClient = beefyClientAddress;
       cfg.source.contracts.Gateway = gatewayAddress;
-      cfg.source.beacon.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-      cfg.source.beacon.stateEndpoint = `ws://host.docker.internal:${ethWsPort}`;
+      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.datastore.location = datastorePath;
       cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
       cfg.sink.contracts.Gateway = gatewayAddress;
@@ -205,7 +205,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
-  await initEthClientPallet(options, launchedNetwork, datastorePath);
+  await initEthClientPallet(options, launchedNetwork);
 
   for (const { config, name, type, pk, secondaryPk } of relayersToStart) {
     try {
@@ -353,8 +353,7 @@ const waitBeefyReady = async (
  */
 export const initEthClientPallet = async (
   options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork,
-  datastorePath: string
+  launchedNetwork: LaunchedNetwork
 ) => {
   logger.debug("Initialising eth client pallet");
   // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
@@ -373,11 +372,9 @@ export const initEthClientPallet = async (
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
-  const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
-      -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint \
       --workdir /app \
       --add-host host.docker.internal:host-gateway \

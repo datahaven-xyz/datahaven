@@ -942,12 +942,21 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         let message = OutboundMessage {
             origin: H256::zero(),
             id: H256::zero(),
-            fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => return None,
-            },
-        };
+ let message = OutboundMessage {
+     origin: H256::zero(),
+     id: H256::zero(),
+     fee: 0,
+     commands: match vec![command].try_into() {
+         Ok(cmds) => cmds,
+         Err(e) => {
+             log::error!(
+                 target: "rewards_send_adapter",
+                 "Failed to convert commands: too many commands"
+             );
+             return None;
+         },
+     },
+ };
         Some(message)
     }
 

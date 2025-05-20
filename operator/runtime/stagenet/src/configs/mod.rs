@@ -27,11 +27,11 @@ mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, ExternalValidators, Hash, Historical, ImOnline, MessageQueue,
-    Nonce, Offences, OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage,
-    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT,
-    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    EthereumBeaconClient, EvmChainId, ExternalValidators, ExternalValidatorsRewards, Hash,
+    Historical, ImOnline, MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore,
+    OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
+    Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -75,7 +75,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards};
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::ConstantGasMeter,
+    v2::{Command, ConstantGasMeter, Message as OutboundMessage, SendMessage as SendMessageV2},
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -84,7 +84,7 @@ use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
     mmr::{BeefyDataProvider, MmrLeafVersion},
 };
-use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
+use sp_core::{crypto::KeyTypeId, Get, Hasher, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
     traits::{
@@ -236,9 +236,22 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
+pub struct RewardsPoints;
+
+impl pallet_authorship::EventHandler<AccountId, BlockNumber> for RewardsPoints {
+    fn note_author(author: AccountId) {
+        let whitelisted_validators =
+            pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get();
+        // Do not reward whitelisted validators
+        if !whitelisted_validators.contains(&author) {
+            ExternalValidatorsRewards::reward_by_ids(vec![(author, 20u32)])
+        }
+    }
+}
+
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-    type EventHandler = ImOnline;
+    type EventHandler = (RewardsPoints, ImOnline);
 }
 
 impl pallet_offences::Config for Runtime {
@@ -889,10 +902,80 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    // TODO: Implement OnEraStart and OnEraEnd when ExternalValidatorsRewards is added
-    type OnEraStart = ();
-    type OnEraEnd = ();
+    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;
+}
+
+parameter_types! {
+    pub const UpdateRewardsMerkleRootSignature: &'static [u8] =
+        b"updateRewardsMerkleRoot(bytes32)";
+}
+pub struct GetWhitelistedValidators;
+impl Get<Vec<AccountId>> for GetWhitelistedValidators {
+    fn get() -> Vec<AccountId> {
+        pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get().into()
+    }
+}
+
+// Stub SendMessage implementation for rewards pallet
+pub struct RewardsSendAdapter;
+impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(
+        rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
+    ) -> Option<Self::Message> {
+        let selector =
+            Keccak256::hash(UpdateRewardsMerkleRootSignature::get()).as_ref()[..4].to_vec();
+
+        let mut calldata = Vec::new();
+        calldata.extend_from_slice(&selector);
+        calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
+
+        let command = Command::CallContract {
+            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
+            calldata,
+            gas: 0, // TODO: Determine appropriate gas value
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: H256::zero(),
+            id: H256::zero(),
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => return None,
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        OutboundQueueV2::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        OutboundQueueV2::deliver(message)
+    }
+}
+
+impl pallet_external_validators_rewards::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type EraIndexProvider = ExternalValidators;
+    type HistoryDepth = ConstU32<64>;
+    type BackingPoints = ConstU32<20>;
+    type DisputeStatementPoints = ConstU32<20>;
+    type EraInflationProvider = ConstU128<0>;
+    type ExternalIndexProvider = ExternalValidators;
+    type GetWhitelistedValidators = GetWhitelistedValidators;
+    type Hashing = Keccak256;
+    type Currency = Balances;
+    type RewardsEthereumSovereignAccount = TreasuryAccountId;
+    type WeightInfo = ();
+    type SendMessage = RewardsSendAdapter;
+    type HandleInflation = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }

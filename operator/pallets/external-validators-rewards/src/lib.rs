@@ -34,9 +34,9 @@ pub mod weights;
 pub use pallet::*;
 
 use {
-    crate::types::{EraRewardsUtils, ExternalIndexProvider, HandleInflation, SendMessage},
+    crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
     frame_support::traits::{Defensive, Get, ValidatorSet},
-    pallet_external_validators::traits::{OnEraEnd, OnEraStart},
+    pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
     parity_scale_codec::Encode,
     polkadot_primitives::ValidatorIndex,
     runtime_parachains::session_info,

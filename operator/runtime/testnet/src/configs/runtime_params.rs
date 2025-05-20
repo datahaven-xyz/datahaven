@@ -18,6 +18,9 @@ pub mod dynamic_params {
         /// The fact that this is a parameter means that we can set it initially to the zero address,
         /// and then change it later via governance, to the actual address of the deployed contract.
         pub static EthereumGatewayAddress: H160 = H160::repeat_byte(0x0);
+
+        #[codec(index = 1)]
+        pub static RewardsRegistryAddress: H160 = H160::repeat_byte(0x0);
     }
 }
 
@@ -27,6 +30,10 @@ impl Default for RuntimeParameters {
         RuntimeParameters::RuntimeConfig(
             dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
                 dynamic_params::runtime_config::EthereumGatewayAddress,
+                Some(H160::repeat_byte(0x0)),
+            ),
+            dynamic_params::runtime_config::RewardsRegistryAddress(
+                dynamic_params::runtime_config::RewardsRegistryAddress,
                 Some(H160::repeat_byte(0x0)),
             ),
         )

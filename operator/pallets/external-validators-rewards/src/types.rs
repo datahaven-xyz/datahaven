@@ -2,13 +2,6 @@ use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::H256;
 use sp_std::vec::Vec;
 
-// A trait to retrieve the external index provider identifying some set of data
-// In starlight, used to retrieve the external index associated to validators
-#[allow(dead_code)]
-pub trait ExternalIndexProvider {
-    fn get_external_index() -> u64;
-}
-
 pub trait DeliverMessage {
     type Ticket;
 
@@ -38,6 +31,12 @@ pub trait SendMessage {
 // Trait for handling inflation
 pub trait HandleInflation<AccountId> {
     fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult;
+}
+
+impl<AccountId> HandleInflation<AccountId> for () {
+    fn mint_inflation(_: &AccountId, _: u128) -> sp_runtime::DispatchResult {
+        Ok(())
+    }
 }
 
 #[cfg(feature = "runtime-benchmarks")]

@@ -2346,6 +2346,8 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-external-validators",
+ "pallet-external-validators-rewards",
+ "pallet-external-validators-rewards-runtime-api",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2526,6 +2528,8 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-external-validators",
+ "pallet-external-validators-rewards",
+ "pallet-external-validators-rewards-runtime-api",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2614,6 +2618,8 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-external-validators",
+ "pallet-external-validators-rewards",
+ "pallet-external-validators-rewards-runtime-api",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -7672,6 +7678,16 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-external-validators-rewards-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "snowbridge-merkle-tree",
+ "sp-api",
+ "sp-core",
 ]
 
 [[package]]

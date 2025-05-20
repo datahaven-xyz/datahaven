@@ -1,4 +1,3 @@
-import { match } from "node:assert";
 import { z } from "zod";
 
 export const BeaconRelayConfigSchema = z.object({

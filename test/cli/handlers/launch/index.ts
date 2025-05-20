@@ -35,7 +35,7 @@ export const BASE_SERVICES = [
   "cl-2-lighthouse-reth",
   "el-1-reth-lighthouse",
   "el-2-reth-lighthouse",
-  "dora",
+  "dora"
 ];
 
 // =====  Launch Handler Functions  =====
@@ -69,7 +69,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
-    deployContracts: options.deployContracts,
+    deployContracts: options.deployContracts
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
@@ -94,7 +94,9 @@ export const launch = async (options: LaunchOptions) => {
   }
 };
 
-export const launchPreActionHook = (thisCmd: Command<[], LaunchOptions & { [key: string]: any }>) => {
+export const launchPreActionHook = (
+  thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
+) => {
   const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");

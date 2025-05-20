@@ -12,36 +12,36 @@ import type { LaunchOptions } from "..";
  * @returns Promise resolving when the operation is complete
  */
 export const performValidatorSetUpdate = async (
-    options: LaunchOptions,
-    networkRpcUrl: string,
-    contractsDeployed: boolean
+  options: LaunchOptions,
+  networkRpcUrl: string,
+  contractsDeployed: boolean
 ) => {
-    // If not specified, prompt for update
-    let shouldUpdateValidatorSet = options.updateValidatorSet;
-    if (shouldUpdateValidatorSet === undefined) {
-        shouldUpdateValidatorSet = await confirmWithTimeout(
-            "Do you want to update the validator set on the substrate chain?",
-            true,
-            10
-        );
-    } else {
-        logger.info(
-            `🏳️ Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
-        );
+  // If not specified, prompt for update
+  let shouldUpdateValidatorSet = options.updateValidatorSet;
+  if (shouldUpdateValidatorSet === undefined) {
+    shouldUpdateValidatorSet = await confirmWithTimeout(
+      "Do you want to update the validator set on the substrate chain?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `🏳️ Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+    );
+  }
+
+  if (shouldUpdateValidatorSet) {
+    if (!contractsDeployed) {
+      logger.warn(
+        "⚠️ Updating validator set but contracts were not deployed in this CLI run. Could have unexpected results."
+      );
     }
 
-    if (shouldUpdateValidatorSet) {
-        if (!contractsDeployed) {
-            logger.warn(
-                "⚠️ Updating validator set but contracts were not deployed in this CLI run. Could have unexpected results."
-            );
-        }
-
-        await updateValidatorSet({
-            rpcUrl: networkRpcUrl,
-        });
-    } else {
-        logger.debug("Skipping validator set update");
-        printDivider();
-    }
+    await updateValidatorSet({
+      rpcUrl: networkRpcUrl
+    });
+  } else {
+    logger.debug("Skipping validator set update");
+    printDivider();
+  }
 };

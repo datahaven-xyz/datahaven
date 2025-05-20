@@ -17,7 +17,9 @@ export const performValidatorOperations = async (
       10
     );
   } else {
-    logger.info(`🏳️ Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`);
+    logger.info(
+      `🏳️ Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
+    );
   }
 
   if (shouldFundValidators) {
@@ -28,7 +30,7 @@ export const performValidatorOperations = async (
     }
 
     await fundValidators({
-      rpcUrl: networkRpcUrl,
+      rpcUrl: networkRpcUrl
     });
   } else {
     logger.debug("Skipping validator funding");
@@ -38,7 +40,11 @@ export const performValidatorOperations = async (
   // If not specified, prompt for setup
   let shouldSetupValidators = options.setupValidators;
   if (shouldSetupValidators === undefined) {
-    shouldSetupValidators = await confirmWithTimeout("Do you want to register validators in EigenLayer?", true, 10);
+    shouldSetupValidators = await confirmWithTimeout(
+      "Do you want to register validators in EigenLayer?",
+      true,
+      10
+    );
   } else {
     logger.info(
       `🏳️ Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
@@ -53,7 +59,7 @@ export const performValidatorOperations = async (
     }
 
     await setupValidators({
-      rpcUrl: networkRpcUrl,
+      rpcUrl: networkRpcUrl
     });
   } else {
     logger.debug("Skipping validator setup");

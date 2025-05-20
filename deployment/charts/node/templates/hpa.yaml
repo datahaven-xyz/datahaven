@@ -1,0 +1,34 @@
+{{ $fullname :=  include "node.fullname" . }}
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $fullname }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ $fullname }}
+  minReplicas: {{ .Values.autoscaling.minReplicas | int }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas | int }}
+  metrics:
+    {{- if .Values.autoscaling.targetMemory }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemory | int }}
+    {{- end }}
+    {{- if .Values.autoscaling.targetCPU }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPU | int }}
+    {{- end }}
+    {{- with .Values.autoscaling.additionalMetrics }}
+    {{- toYaml . | nindent 4 }}
+    {{- end}}
+{{- end }}

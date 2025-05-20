@@ -1,13 +1,6 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import { sendDataHavenTxn, sendEthTxn } from "scripts/send-txn";
-import invariant from "tiny-invariant";
-import {
-  ANVIL_FUNDED_ACCOUNTS,
-  SUBSTRATE_FUNDED_ACCOUNTS,
-  getPortFromKurtosis,
-  logger
-} from "utils";
+import { getPortFromKurtosis, logger } from "utils";
 import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
@@ -25,11 +18,13 @@ export interface LaunchOptions {
   updateValidatorSet?: boolean;
   blockscout?: boolean;
   relayer?: boolean;
-  relayerBinPath?: string;
+  relayerImageTag?: string;
   skipCleaning?: boolean;
   alwaysClean?: boolean;
-  datahavenBinPath?: string;
   datahaven?: boolean;
+  buildDatahaven?: boolean;
+  datahavenImageTag?: string;
+  datahavenBuildExtraArgs?: string;
   kurtosisNetworkArgs?: string;
   slotTime?: number;
 }
@@ -54,13 +49,10 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchDataHavenSolochain(options, launchedNetwork);
 
-  await launchKurtosis(options);
+  await launchKurtosis(launchedNetwork, options);
 
-  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
-  const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-  invariant(elRpcUrl, "❌ Network RPC URL not found");
-
-  let blockscoutBackendUrl: string | undefined = undefined;
+  logger.trace("Deploy contracts using the extracted function");
+  let blockscoutBackendUrl: string | undefined;
 
   if (options.blockscout === true) {
     const blockscoutPublicPort = await getPortFromKurtosis("blockscout", "http");
@@ -73,17 +65,17 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: elRpcUrl,
+    rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts
   });
 
-  await performValidatorOperations(options, elRpcUrl, contractsDeployed);
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
 
-  performSummaryOperations(options, launchedNetwork);
+  await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
   logger.success(`Launch function completed successfully in ${fullMinutes} minutes`);

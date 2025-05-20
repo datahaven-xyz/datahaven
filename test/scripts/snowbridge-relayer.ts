@@ -3,7 +3,7 @@ import path from "node:path";
 import { $ } from "bun";
 import { Octokit } from "octokit";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "utils";
+import { logger, printHeader } from "utils";
 
 const IMAGE_NAME = "snowbridge-relay:local";
 const RELATIVE_DOCKER_FILE_PATH = "../../docker/SnowbridgeRelayer.dockerfile";
@@ -27,7 +27,7 @@ async function downloadRelayBinary() {
       repo: "snowbridge"
     });
     const tagName = latestRelease.data.tag_name;
-    logger.info(`Found latest release: ${tagName}`);
+    logger.info(`🔎 Found latest release: ${tagName}`);
 
     const relayAsset = latestRelease.data.assets.find((asset) => asset.name === "snowbridge-relay");
 

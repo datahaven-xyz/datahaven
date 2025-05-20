@@ -19,19 +19,3 @@ ws_port = 30444
 [[relaychain.nodes]]
 name = "bob"
 validator = true
-
-[[relaychain.nodes]]
-name = "charlie"
-validator = true
-
-[[relaychain.nodes]]
-name = "dave"
-validator = true
-
-[[relaychain.nodes]]
-name = "eve"
-validator = true
-
-[[relaychain.nodes]]
-name = "ferdie"
-validator = true

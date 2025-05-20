@@ -1,4 +1,4 @@
-# Datahaven 🫎
+# DataHaven 🫎
 
 Based on [polkadot-sdk-solochain-template](https://github.com/paritytech/polkadot-sdk-solochain-template)
 

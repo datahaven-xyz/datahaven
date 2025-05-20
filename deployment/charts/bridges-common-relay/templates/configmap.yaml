@@ -1,0 +1,11 @@
+{{- if .Values.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bridges-common-relay.fullname" . }}-config
+  labels:
+    {{- include "bridges-common-relay.labels" . | nindent 4 }}
+data:
+  {{ .Values.config.name }}.json: |-
+{{ .Files.Get (printf "configs/%s.json" .Values.config.name) | indent 4 }}
+{{- end }}

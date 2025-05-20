@@ -51,6 +51,9 @@ jsonrpsee = { version = "0.24.3" }
 libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
+openssl-sys = { version = "0.9", features = [
+    "vendored",
+] } # This is just to set the "vendored" feature required for the crossbuild, so that OpenSSL builds from source
 parity-bytes = { version = "0.1.2", default-features = false }
 parity-scale-codec = { version = "3.0.0", default-features = false, features = [
     "derive",

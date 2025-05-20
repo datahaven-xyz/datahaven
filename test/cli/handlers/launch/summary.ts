@@ -15,9 +15,8 @@ export const performSummaryOperations = async (
     servicesToDisplay.push(...["blockscout", "blockscout-frontend"]);
   }
 
-  const dhNodes = launchedNetwork.getDHNodes();
-  for (const { id } of dhNodes) {
-    servicesToDisplay.push(`datahaven-${id}`);
+  if (launchedNetwork.containers.find((c) => c.name === "datahaven-alice")) {
+    servicesToDisplay.push("datahaven-alice");
   }
 
   logger.trace("Services to display", servicesToDisplay);
@@ -87,11 +86,11 @@ export const performSummaryOperations = async (
         break;
       }
 
-      case service.startsWith("datahaven-"): {
-        const port = launchedNetwork.getDHPort(service.split("datahaven-")[1]);
+      case service === "datahaven-alice": {
+        const port = launchedNetwork.getContainerPort(service);
         displayData.push({
           service,
-          ports: { http: port },
+          ports: { ws: port },
           url: `http://127.0.0.1:${port}`
         });
         break;
@@ -100,6 +99,14 @@ export const performSummaryOperations = async (
       default: {
         logger.error(`Unknown service: ${service}`);
       }
+    }
+  }
+
+  const containers = launchedNetwork.containers.filter((c) => !c.name.startsWith("datahaven-"));
+  for (const { name, publicPorts } of containers) {
+    const url = "ws" in publicPorts ? `ws://127.0.0.1:${publicPorts.ws}` : undefined;
+    if (url) {
+      displayData.push({ service: name, ports: publicPorts, url });
     }
   }
 

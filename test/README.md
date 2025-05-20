@@ -15,6 +15,11 @@
 - [Bun](https://bun.sh/): TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 
+##### MacOS
+
+> [!IMPORTANT]
+> If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+
 ## QuickStart
 
 Run:
@@ -36,15 +41,18 @@ Follow these steps to set up and interact with your test environment:
 
    This script will:
 
-   1. Start a Kurtosis network with (among other things):
-      - 2 x Ethereum Execution Layer clients (reth)
-      - 2 x Ethereum Consensus Layer clients (lighthouse)
-      - 1 x Blockscout frontend
-      - 1 x Blockscout backend
-   2. Send a test transaction to the network using the [send-txn.ts](./scripts/send-txn.ts) script.
-   3. Deploy all DataHaven smart contracts needed for a local deployment, using the [DeployLocal.s.sol](../contracts/script/deploy/DeployLocal.s.sol) script.
+   1. Check for required dependencies.
+   2. Launch a DataHaven solochain.
+   3. Start a Kurtosis network which includes:
+      - 2 Ethereum Execution Layer clients (reth)
+      - 2 Ethereum Consensus Layer clients (lighthouse)
+      - Blockscout Explorer services for EL (if enabled with --blockscout)
+      - Dora Explorer service for CL
+   4. Deploy DataHaven smart contracts to the Ethereum network. This can optionally include verification on Blockscout if the `--verified` flag is used (requires Blockscout to be enabled).
+   5. Perform validator setup and funding operations.
+   6. Launch Snowbridge relayers.
 
-   > ℹ️ NOTE
+   > [!NOTE]
    >
    > If you want to also have the contracts verified on blockscout, you can run `bun start:e2e:verified` instead. This will do all the previous steps, but also verify the contracts on blockscout. However, note that this takes some time to complete.
 
@@ -79,7 +87,7 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 
 ### E2E Tests
 
-> 🧙‍♂️ TIP
+> [!TIP]
 >
 > Remember to run the network with `bun cli` before running the tests.
 
@@ -87,7 +95,7 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 bun test:e2e
 ```
 
-> ℹ️ NOTE
+> [!NOTE]
 >
 > You can increase the logging level by setting `LOG_LEVEL=debug` before running the tests.
 
@@ -175,7 +183,7 @@ This script will:
 1. Compile the runtime using `cargo build --release` in the `../operator` directory.
 2. Re-generate the Polkadot-API types using the newly built WASM binary.
 
-> ℹ️ NOTE
+> [!NOTE]
 >
 > The script uses the `--release` flag by default, meaning it uses the WASM binary from `./operator/target/release`. If you need to use a different build target, you may need to adjust the script or run the steps manually.
 

@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled -}}
+  {{- $fullName := include "node.fullname" . -}}
+  {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+  {{- else if semverCompare ">=1.14-0 <1.19.0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+  {{- else -}}
+apiVersion: extensions/v1beta1
+  {{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+  {{- include "node.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClassName | quote }}
+  rules:
+  {{- if .Values.ingress.rules  }}
+    {{- with .Values.ingress.rules }}
+    {{- (tpl (toYaml .) $)  | nindent 6 }}
+    {{- end }}
+  {{- else }}
+    - host: "{{ tpl .Values.ingress.host . }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ .Values.node.perNodeServices.apiService.rpcPort }}
+  {{- end }}
+  tls:
+  {{- with .Values.ingress.tls }}
+  {{- toYaml . | nindent 6 }}
+  {{- end }}
+{{- end }}

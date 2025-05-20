@@ -1,0 +1,81 @@
+name: dh-validator
+description: Datahaven Validator node
+fullnameOverride: dh-validator
+
+image:
+  repository: moonsonglabs/datahaven
+  tag: pr-78
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+node:
+  chain: stagenet-local
+  command: datahaven-node
+  # customChainspecUrl: http://dh-bootnode:8080/chainspec.json
+  # forceDownloadChainspec: true
+  role: authority
+  replicas: 2
+  chainData:
+    pruning: 1000
+    storageClass: "gp2"
+  chainKeystore:
+    storageClass: "gp2"
+  keys:
+      # This is Alice seed. To generate new seed run: docker run --rm moonsonglabs/datahaven:latest key generate
+    - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+      type: gran
+      scheme: ed25519
+      # ${HOSTNAME##*-} will be evaluated as the pod index, pod-0: //Alice, pod-1: //Bob
+      extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Alice" || echo "//Bob")'
+    - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+      type: babe
+      scheme: sr25519
+      extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Alice" || echo "//Bob")'
+    - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+      type: imon
+      scheme: sr25519
+      extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Alice" || echo "//Bob")'
+    - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+      type: beef
+      scheme: ecdsa
+      extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Alice" || echo "//Bob")'
+  customNodeKey:
+   # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
+   # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
+   - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
+   # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
+   - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
+  flags:
+    - "--bootnodes /dns/dh-bootnode-0/tcp/30333/p2p/12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk"
+  enableOffchainIndexing: true
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort
+
+extraInitContainers:
+  - name: dump-state-and-wasm
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+    imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+    securityContext:
+      runAsUser: 0
+    command: [ "/bin/bash" ]
+    args:
+      - -c
+      - |
+        if [ "${HOSTNAME##*-}" = "0" ]; then
+          echo "Chain Id:"
+          {{ .Values.node.command }} build-spec --chain {{ .Values.node.chain }} | grep -E 'chain_id|chainId' 
+          echo "Genesis head:"
+          {{ .Values.node.command }} export-state --chain {{ .Values.node.chain }}
+          # echo ""
+          # echo "Genesis wasm (validationCode) stored in /chain-data/genesis-wasm"
+          # {{ .Values.node.command }} export-genesis-wasm  --chain {{ .Values.node.chain }} > /chain-data/genesis-wasm
+        else
+         echo "Genesis head and wasm are in pod ${HOSTNAME%-*}-0"
+        fi
+    volumeMounts:
+      - mountPath: /chain-data
+        name: chain-data

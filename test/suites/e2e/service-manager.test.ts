@@ -1,14 +1,5 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { beefyClientAbi } from "contract-bindings";
-import {
-  type AnvilDeployments,
-  type ContractInstance,
-  type ViemClientInterface,
-  createDefaultClient,
-  getContractInstance,
-  logger,
-  parseDeploymentsFile
-} from "utils";
+import { type ContractInstance, getContractInstance, logger } from "utils";
 import { isAddress } from "viem";
 
 describe("BeefyClient contract", async () => {

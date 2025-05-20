@@ -10,9 +10,6 @@ runs:
         echo "Overall disk space before cleanup (df -h /):"
         df -h /
         echo "-------------------------------------------"
-        echo "Top-level directories before cleanup (du -h --max-depth=1 /):"
-        sudo du -h --max-depth=1 --exclude=/proc --exclude=/sys --exclude=/dev / | sort -rh | head -n 10
-        echo "-------------------------------------------"
         echo "Detailed breakdown for /usr/ before cleanup:"
         sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10
         echo "-------------------------------------------"
@@ -50,9 +47,6 @@ runs:
       run: |
         echo "Overall disk space after cleanup (df -h /):"
         df -h /
-        echo "-------------------------------------------"
-        echo "Top-level directories after cleanup (du -h --max-depth=1 /):"
-        sudo du -h --max-depth=1 --exclude=/proc --exclude=/sys --exclude=/dev / | sort -rh | head -n 10
         echo "-------------------------------------------"
         echo "Detailed breakdown for /usr/ before cleanup:"
         sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10

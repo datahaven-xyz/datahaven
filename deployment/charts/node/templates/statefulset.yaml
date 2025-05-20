@@ -1,0 +1,1125 @@
+{{ $fullname :=  include "node.fullname" . }}
+{{ $selectorLabels :=  include "node.selectorLabels" . }}
+{{ $serviceLabels :=  include "node.serviceLabels" .  }}
+{{ $serviceAccountName :=  include "node.serviceAccountName" . }}
+{{ $databasePath := include "node.databasePath" . }}
+{{ $chartManagedFlagsRegex := include "node.chartManagedFlagsRegex" . }}
+{{ include "validateNodeKeys" . }}
+{{ include "validateKeys" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "node.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+  {{- $selectorLabels | nindent 6 }}
+  podManagementPolicy: {{ default "OrderedReady" .Values.node.podManagementPolicy }}
+  {{- if .Values.node.persistentVolumeClaimRetentionPolicy }}
+  persistentVolumeClaimRetentionPolicy:
+    {{- toYaml .Values.node.persistentVolumeClaimRetentionPolicy | nindent 4 }}
+  {{- end }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.node.replicas | int }}
+  {{- end }}
+  serviceName: {{ $fullname }}
+  {{- if and (.Values.node.updateStrategy.enabled) (or (and (eq .Values.node.updateStrategy.type "RollingUpdate") (semverCompare ">=1.24-0" .Capabilities.KubeVersion.GitVersion)) (eq .Values.node.updateStrategy.type "OnDelete")) }}
+  updateStrategy:
+    type: {{ .Values.node.updateStrategy.type }}
+    {{- if eq .Values.node.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.node.updateStrategy.maxUnavailable  | default 1 }}
+    {{- end }}
+   {{- end }}
+  template:
+    metadata:
+    {{- if or .Values.podAnnotations .Values.node.vault.keys .Values.node.vault.nodeKey }}
+      annotations:
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- range $keys := .Values.node.vault.keys }}
+        vault.hashicorp.com/agent-inject-secret-{{ .name }}: {{ .vaultPath | squote }}
+        vault.hashicorp.com/agent-inject-template-{{ .name }}: |
+          {{`{{ with secret "`}}{{ .vaultPath }}{{`" }}{{ .Data.data.`}}{{ .vaultKey }}{{` }}{{ end }}`}}
+      {{- end }}
+      {{- if .Values.node.vault.nodeKey }}
+        {{- if .Values.node.vault.nodeKey.vaultKeyAppendPodIndex }}
+          {{- range $index := until (.Values.node.replicas | int) }}
+        vault.hashicorp.com/agent-inject-secret-{{ $.Values.node.vault.nodeKey.name }}-{{ $index }}: {{ $.Values.node.vault.nodeKey.vaultPath | squote }}
+        vault.hashicorp.com/agent-inject-template-{{ $.Values.node.vault.nodeKey.name }}-{{ $index }}: |
+            {{`{{ with secret "`}}{{ $.Values.node.vault.nodeKey.vaultPath }}{{`" }}{{ .Data.data.`}}{{ printf "%s_%s" $.Values.node.vault.nodeKey.vaultKey ($index | toString) }}{{` }}{{ end }}`}}
+          {{- end }}
+        {{- else }}
+        vault.hashicorp.com/agent-inject-secret-{{ .Values.node.vault.nodeKey.name }}: {{ .Values.node.vault.nodeKey.vaultPath | squote }}
+        vault.hashicorp.com/agent-inject-template-{{ .Values.node.vault.nodeKey.name }}: |
+          {{`{{ with secret "`}}{{ .Values.node.vault.nodeKey.vaultPath }}{{`" }}{{ .Data.data.`}}{{ .Values.node.vault.nodeKey.vaultKey }}{{` }}{{ end }}`}}
+        {{- end }}
+      {{- end }}
+      {{- if or .Values.node.vault.keys .Values.node.vault.nodeKey }}
+        vault.hashicorp.com/agent-inject: 'true'
+        vault.hashicorp.com/agent-init-first: 'true'
+        vault.hashicorp.com/agent-pre-populate-only: 'true'
+        vault.hashicorp.com/role: {{ .Values.node.vault.authRole | default (include "node.serviceAccountName" .) | squote }}
+      {{- end }}
+      {{- if .Values.node.vault.authType }}
+        vault.hashicorp.com/auth-type: {{ .Values.node.vault.authType | squote }}
+      {{- end }}
+      {{- if .Values.node.vault.authPath }}
+        vault.hashicorp.com/auth-path: {{ .Values.node.vault.authPath | squote }}
+      {{- end }}
+      {{- if .Values.node.vault.authConfigType }}
+        vault.hashicorp.com/auth-config-type: {{ .Values.node.vault.authConfigType | squote }}
+      {{- end }}
+      {{- if .Values.node.vault.authConfigServiceAccount }}
+        vault.hashicorp.com/auth-config-service-account: {{ .Values.node.vault.authConfigServiceAccount | squote }}
+      {{- end }}
+    {{- end }}
+      labels:
+      {{- include "node.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- if .Values.node.chainData.chainSnapshot.enabled }}
+        - name: download-chain-snapshot
+          image: {{ .Values.initContainers.downloadChainSnapshot.image.repository }}:{{ .Values.initContainers.downloadChainSnapshot.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu -o pipefail {{ if .Values.initContainers.downloadChainSnapshot.debug }}-x{{ end }}
+              if [ -d "/chain-data/chains/${CHAIN_PATH}/{{ $databasePath }}" ]; then
+                echo "Database directory already exists, skipping chain snapshot download"
+              else
+                trap 'echo -e "Snapshot restoration failed. Checkout the logs for errors.\nRemoving /chain-data/chains/${CHAIN_PATH}/{{ $databasePath }} ..."; rm -rf /chain-data/chains/${CHAIN_PATH}/{{ $databasePath }}' ERR
+                PARALLEL_TRANFERS="$(($(nproc --all) * 5 < 50 ? $(nproc --all) * 5 : 50))" # MIN(vCPU_count * 5, 50)
+                echo "Downloading chain snapshot"
+                SNAPSHOT_URL="{{ .Values.node.chainData.chainSnapshot.url }}"
+                mkdir -p /chain-data/chains/${CHAIN_PATH}/{{ $databasePath }}/
+
+                if [ "${METHOD}" == "http-single-tar-lz4" ]; then
+                  apk add lz4 --no-cache
+                  rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --stdout --retries 1 --error-on-no-transfer --no-gzip-encoding ${SNAPSHOT_URL} | lz4 -c -d - | tar -x -C /chain-data/chains/${CHAIN_PATH}/
+                  chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.fsGroup }} /chain-data/chains/${CHAIN_PATH}/
+
+                elif [ "${METHOD}" == "http-single-tar" ]; then
+                  rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --stdout --retries 1 --error-on-no-transfer --no-gzip-encoding ${SNAPSHOT_URL} | tar -x -C /chain-data/chains/${CHAIN_PATH}/
+
+                elif [ "${METHOD}" == "gcs" ]; then
+                  LATEST=$(rclone cat {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --quiet :gcs:${SNAPSHOT_URL}/latest_version.meta.txt)
+                  if [ -z "$LATEST" ]; then
+                    echo "Failed to retrieve latest_version.meta.txt file. Will download everything from ${SNAPSHOT_URL} instead"
+                  fi
+                  rclone sync {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --fast-list --transfers $PARALLEL_TRANFERS --progress --retries 6 --retries-sleep 10s --error-on-no-transfer --inplace --no-gzip-encoding :gcs:${SNAPSHOT_URL}/${LATEST} /chain-data/chains/${CHAIN_PATH}/{{ $databasePath }}/
+
+                elif [ "${METHOD}" == "s3" ]; then
+                  LATEST=$(rclone cat {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --quiet :s3:${SNAPSHOT_URL}/latest_version.meta.txt )
+                  if [ -z "$LATEST" ]; then
+                    echo "Failed to retrieve latest_version.meta.txt file. Will download everything from ${SNAPSHOT_URL} instead"
+                  fi
+                  rclone sync {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --fast-list --transfers $PARALLEL_TRANFERS --progress --retries 6 --retries-sleep 10s --error-on-no-transfer --inplace --no-gzip-encoding :s3:${SNAPSHOT_URL}/${LATEST} /chain-data/chains/${CHAIN_PATH}/{{ $databasePath }}/
+
+                elif [ "${METHOD}" == "http-filelist" ]; then
+                  LATEST=$(rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --stdout ${SNAPSHOT_URL}/latest_version.meta.txt )
+                  if [ -z "$LATEST" ]; then
+                    echo "Failed to retrieve latest_version.meta.txt file. Will download everything from ${SNAPSHOT_URL} instead"
+                  else
+                    SNAPSHOT_URL="${SNAPSHOT_URL}/${LATEST}"
+                  fi
+                  rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --retries 6 --retries-sleep 10s --error-on-no-transfer --inplace --no-gzip-encoding ${SNAPSHOT_URL}/{{ .Values.node.chainData.chainSnapshot.filelistName }} /tmp/filelist.txt
+                  rclone copy {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --transfers $PARALLEL_TRANFERS --progress --retries 6 --retries-sleep 10s --error-on-no-transfer --inplace --no-gzip-encoding --http-url ${SNAPSHOT_URL} --no-traverse --http-no-head --disable-http2 --size-only --files-from /tmp/filelist.txt :http: /chain-data/chains/${CHAIN_PATH}/{{ $databasePath }}/
+                fi
+              fi
+          env:
+            - name: CHAIN_PATH
+              value: {{ default .Values.node.chain .Values.node.chainData.chainPath }}
+            - name: METHOD
+              value: {{ .Values.node.chainData.chainSnapshot.method }}
+            {{- with .Values.initContainers.downloadChainSnapshot.extraEnvVars }}
+            {{- toYaml . | nindent 12 }}
+            {{- end}}
+          resources:
+          {{- toYaml .Values.initContainers.downloadChainSnapshot.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /chain-data
+              name: chain-data
+          # run as root as lz4 is missing from the default image and can only be installed by the root user
+          {{- if eq .Values.node.chainData.chainSnapshot.method "http-single-tar-lz4" }}
+          securityContext:
+            runAsUser: 0
+          {{- end }}
+        {{- end }}
+        {{- if and .Values.node.collatorRelayChain.chainData.chainSnapshot.enabled (include "node.hasCollatorRelaychain" .) }}
+        - name: download-relay-chain-snapshot
+          image: {{ .Values.initContainers.downloadChainSnapshot.image.repository }}:{{ .Values.initContainers.downloadChainSnapshot.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu -o pipefail {{ if .Values.initContainers.downloadChainSnapshot.debug }}-x{{ end }}
+              if [ -d "/relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }}" ]; then
+                echo "Database directory already exists, skipping chain snapshot download"
+              else
+                trap 'echo -e "Snapshot restoration failed. Checkout the logs for errors.\nRemoving /relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }} ..."; rm -rf /relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }}' ERR
+                PARALLEL_TRANFERS="$(($(nproc --all) * 5 < 50 ? $(nproc --all) * 5 : 50))" # MIN(vCPU_count * 5, 50)
+                echo "Downloading chain snapshot"
+                SNAPSHOT_URL="{{ .Values.node.collatorRelayChain.chainData.chainSnapshot.url }}"
+                mkdir -p /relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }}/
+
+                if [ "${METHOD}" == "http-single-tar-lz4" ]; then
+                  apk add lz4 --no-cache
+                  rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --stdout --error-on-no-transfer ${SNAPSHOT_URL} | lz4 -c -d - | tar -x -C /relaychain-data/chains/${RELAY_CHAIN_PATH}/
+                  chown -R {{ .Values.podSecurityContext.runAsUser }}:{{ .Values.podSecurityContext.fsGroup }} /relaychain-data/chains/${RELAY_CHAIN_PATH}/
+
+                elif [ "${METHOD}" == "http-single-tar" ]; then
+                  rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --stdout --error-on-no-transfer ${SNAPSHOT_URL} | tar -x -C /relaychain-data/chains/${RELAY_CHAIN_PATH}/
+
+                elif [ "${METHOD}" == "gcs" ]; then
+                  LATEST=$(rclone cat {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --quiet :gcs:${SNAPSHOT_URL}/latest_version.meta.txt)
+                  if [ -z "$LATEST" ]; then
+                    echo "Failed to retrieve latest_version.meta.txt file. Will download everything from ${SNAPSHOT_URL} instead"
+                  fi
+                  rclone sync {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --fast-list --transfers $PARALLEL_TRANFERS --progress --error-on-no-transfer :gcs:${SNAPSHOT_URL}/${LATEST} /relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }}/
+
+                elif [ "${METHOD}" == "s3" ]; then
+                  LATEST=$(rclone cat {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --quiet :s3:${SNAPSHOT_URL}/latest_version.meta.txt )
+                  if [ -z "$LATEST" ]; then
+                    echo "Failed to retrieve latest_version.meta.txt file. Will download everything from ${SNAPSHOT_URL} instead"
+                  fi
+                  rclone sync {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --fast-list --transfers $PARALLEL_TRANFERS --progress --error-on-no-transfer :s3:${SNAPSHOT_URL}/${LATEST} /relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }}/
+
+                elif [ "${METHOD}" == "http-filelist" ]; then
+                  LATEST=$(rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --stdout ${SNAPSHOT_URL}/latest_version.meta.txt )
+                  if [ -z "$LATEST" ]; then
+                    echo "Failed to retrieve latest_version.meta.txt file. Will download everything from ${SNAPSHOT_URL} instead"
+                  else
+                    SNAPSHOT_URL="${SNAPSHOT_URL}/${LATEST}"
+                  fi
+                  rclone copyurl {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --error-on-no-transfer ${SNAPSHOT_URL}/{{ .Values.node.collatorRelayChain.chainData.chainSnapshot.filelistName }} /tmp/filelist.txt
+                  rclone copy {{ .Values.initContainers.downloadChainSnapshot.cmdArgs }} --progress --error-on-no-transfer --transfers $PARALLEL_TRANFERS --http-url ${SNAPSHOT_URL} --no-traverse --http-no-head --disable-http2 --files-from /tmp/filelist.txt :http: /relaychain-data/chains/${RELAY_CHAIN_PATH}/{{ $databasePath }}/
+                fi
+              fi
+          env:
+            - name: RELAY_CHAIN_PATH
+              value: {{ default .Values.node.collatorRelayChain.chain .Values.node.collatorRelayChain.chainData.chainPath }}
+            - name: METHOD
+              value: {{ .Values.node.collatorRelayChain.chainData.chainSnapshot.method }}
+            {{- with .Values.initContainers.downloadChainSnapshot.extraEnvVars }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+          {{- toYaml .Values.initContainers.downloadChainSnapshot.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /relaychain-data
+              name: relaychain-data
+          # run as root as lz4 is missing from the default image and can only be installed by the root user
+          {{- if eq .Values.node.collatorRelayChain.chainData.chainSnapshot.method "http-single-tar-lz4" }}
+          securityContext:
+            runAsUser: 0
+          {{- end }}
+        {{- end }}
+        {{- if or .Values.node.customChainspecUrl (or .Values.node.collatorRelayChain.customChainspecUrl .Values.node.collatorLightClient.relayChainCustomChainspecUrl) }}
+        - name: download-chainspec
+          image: {{ .Values.initContainers.downloadChainspec.image.repository }}:{{ .Values.initContainers.downloadChainspec.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu -o pipefail {{ if .Values.initContainers.downloadChainspec.debug }}-x{{ end }}
+              {{- if .Values.node.customChainspecUrl }}
+              {{- if not .Values.node.forceDownloadChainspec }}
+              if [ ! -f {{ .Values.node.customChainspecPath }} ]; then
+              {{- end }}
+                wget -O {{ .Values.node.customChainspecPath }} {{ .Values.node.customChainspecUrl }}
+              {{- if not .Values.node.forceDownloadChainspec }}
+              fi
+              {{- end }}
+              {{- end }}
+              {{- if .Values.node.collatorRelayChain.customChainspecUrl }}
+              {{- if not .Values.node.forceDownloadChainspec }}
+              if [ ! -f {{ .Values.node.collatorRelayChain.customChainspecPath}} ]; then
+              {{- end }}
+                wget -O {{ .Values.node.collatorRelayChain.customChainspecPath}} {{ .Values.node.collatorRelayChain.customChainspecUrl}}
+              {{- if not .Values.node.forceDownloadChainspec }}
+              fi
+              {{- end }}
+              {{- end }}
+              {{- if .Values.node.collatorLightClient.relayChainCustomChainspecUrl }}
+              {{- if not .Values.node.forceDownloadChainspec }}
+              if [ ! -f {{ .Values.node.collatorLightClient.relayChainCustomChainspecPath}} ]; then
+              {{- end }}
+                wget -O {{ .Values.node.collatorLightClient.relayChainCustomChainspecPath}} {{ .Values.node.collatorLightClient.relayChainCustomChainspecUrl }}
+              {{- if not .Values.node.forceDownloadChainspec }}
+              fi
+              {{- end }}
+              {{- end }}
+          resources:
+          {{- toYaml .Values.initContainers.downloadChainspec.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /chain-data
+              name: chain-data
+            {{- if and .Values.node.collatorRelayChain.customChainspecUrl (include "node.hasCollatorRelaychain" .) }}
+            - mountPath: /relaychain-data
+              name: relaychain-data
+            {{- end }}
+          securityContext:
+            runAsUser: 0
+        {{- end }}
+        {{- if .Values.node.wasmRuntimeUrl }}
+        - name: download-runtime
+          image: {{ .Values.initContainers.downloadRuntime.image.repository }}:{{ .Values.initContainers.downloadRuntime.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu -o pipefail {{ if .Values.initContainers.downloadRuntime.debug }}-x{{ end }}
+              mkdir -p {{ .Values.node.wasmRuntimeOverridesPath }}
+              test -f "{{ .Values.node.wasmRuntimeOverridesPath }}/$(basename {{ .Values.node.wasmRuntimeUrl }})" || wget -P {{ .Values.node.wasmRuntimeOverridesPath }} {{ .Values.node.wasmRuntimeUrl }}
+          resources:
+          {{- toYaml .Values.initContainers.downloadRuntime.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /chain-data
+              name: chain-data
+          securityContext:
+            runAsUser: 0
+        {{- end }}
+        {{- if .Values.node.persistGeneratedNodeKey }}
+        - name: persist-generated-node-key
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu {{ if .Values.initContainers.persistGeneratedNodeKey.debug }}-x{{ end }}
+              NODE_KEY_PATH="/keystore/node-key"
+              if [ -f "${NODE_KEY_PATH}" ]; then
+                echo "Node key already exists, skipping node key generation"
+              else
+                {{ $.Values.node.command }} key generate-node-key --file ${NODE_KEY_PATH} \
+                && echo "Generate node key into Keystore" \
+                || echo "Failed to insert key into Keystore."
+              fi
+              NODE_PEER_ID="$({{ .Values.node.command }} key inspect-node-key --file ${NODE_KEY_PATH})"
+              echo "Node key present in ${NODE_KEY_PATH} with peer-id: ${NODE_PEER_ID}"
+          resources:
+          {{- toYaml .Values.initContainers.persistGeneratedNodeKey.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /keystore
+              name: chain-keystore
+        {{- end }}
+        {{- if .Values.node.keys }}
+        - name: inject-keys
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu {{ if .Values.initContainers.injectKeys.debug }}-x{{ end }}
+              {{- range $keys := .Values.node.keys }}
+              if [ ! -f /var/run/secrets/{{ .type }}/type ]; then
+                 echo "Error: File /var/run/secrets/{{ .type }}/type does not exist"
+                 exit 1
+              fi
+              {{ $.Values.node.command }} key insert \
+              --keystore-path /keystore \
+              --key-type $(cat /var/run/secrets/{{ .type }}/type) \
+              --scheme $(cat /var/run/secrets/{{ .type }}/scheme) \
+              {{- if .extraDerivation }}
+              --suri "$(cat /var/run/secrets/{{ .type }}/seed){{ .extraDerivation }}" \
+              {{- else }}
+              --suri /var/run/secrets/{{ .type }}/seed \
+              {{- end }}
+              && echo "Inserted key {{ .type }} into Keystore" \
+              || echo "Failed to insert key {{ .type}} into Keystore."
+              {{- end }}
+          env:
+            - name: CHAIN
+              value: {{ .Values.node.chain }}
+          resources:
+          {{- toYaml .Values.initContainers.injectKeys.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /keystore
+              name: chain-keystore
+          {{- range $keys := .Values.node.keys }}
+            - mountPath: /var/run/secrets/{{ .type }}
+              name: {{ .type }}
+          {{- end }}
+        {{ else if .Values.node.existingSecrets.keys }}
+        - name: inject-existing-keys
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu {{ if .Values.initContainers.injectKeys.debug }}-x{{ end }}
+              {{- range $keys := .Values.node.existingSecrets.keys }}
+              if [ ! -f /var/run/secrets/{{ $keys }}/type ]; then
+                 echo "Error: File /var/run/secrets/{{ $keys }}/type does not exist"
+                 exit 1
+              fi
+              {{ $.Values.node.command }} key insert \
+              --keystore-path /keystore \
+              --key-type $(cat /var/run/secrets/{{ $keys }}/type) \
+              --scheme $(cat /var/run/secrets/{{ $keys }}/scheme) \
+              {{- if $.Values.node.existingSecrets.extraDerivation }}
+              --suri "$(cat /var/run/secrets/{{ $keys }}/seed){{ $.Values.node.existingSecrets.extraDerivation }}" \
+              {{- else }}
+              --suri /var/run/secrets/{{ $keys }}/seed \
+              {{- end }}
+              && echo "Inserted key {{ $keys }} into Keystore" \
+              || echo "Failed to insert key {{ $keys }} into Keystore."
+              {{- end }}
+          env:
+            - name: CHAIN
+              value: {{ .Values.node.chain }}
+          resources:
+          {{- toYaml .Values.initContainers.injectKeys.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /keystore
+              name: chain-keystore
+          {{- range $keys := .Values.node.existingSecrets.keys }}
+            - mountPath: /var/run/secrets/{{ $keys }}
+              name: {{ $keys }}
+          {{- end }}
+        {{ else if .Values.node.vault.keys }}
+        - name: inject-vault-keys
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu {{ if .Values.initContainers.injectKeys.debug }}-x{{ end }}
+              {{- if .Values.node.vault.nodeKey }}
+              NODE_KEY_PATH="/vault/secrets/{{ .Values.node.vault.nodeKey.name }}{{ if .Values.node.vault.nodeKey.vaultKeyAppendPodIndex }}-${HOSTNAME##*-}{{ end }}"
+              if [ ! -f ${NODE_KEY_PATH} ]; then
+                 echo "Error: File ${NODE_KEY_PATH} does not exist"
+                 exit 1
+              fi
+              NODE_PEER_ID="$(cat ${NODE_KEY_PATH} | {{ .Values.node.command }} key inspect-node-key)"
+              echo "Inserted node key at ${NODE_KEY_PATH} with peer-id: ${NODE_PEER_ID}"
+              {{- end }}
+              {{- range $keys := .Values.node.vault.keys }}
+              if [ ! -f /vault/secrets/{{ .name }} ]; then
+                 echo "Error: File /vault/secrets/{{ .name }} does not exist"
+                 exit 1
+              fi
+              {{ $.Values.node.command }} key insert \
+              --keystore-path /keystore \
+              --key-type {{ .type }} \
+              --scheme {{ .scheme }} \
+              {{- if .extraDerivation }}
+              --suri "$(cat /vault/secrets/{{ .name }}){{ .extraDerivation }}" \
+              {{- else }}
+              --suri "/vault/secrets/{{ .name }}" \
+              {{- end }}
+              && echo "Inserted key {{ .name }} (type={{ .type }}, scheme={{ .scheme }}) into Keystore" \
+              || echo "Failed to insert key {{ .name }} (type={{ .type }}, scheme={{ .scheme }}) into Keystore."
+              {{- end }}
+          resources:
+          {{- toYaml .Values.initContainers.injectKeys.resources | nindent 12 }}
+          env:
+            - name: CHAIN
+              value: {{ .Values.node.chain }}
+          volumeMounts:
+            - mountPath: /keystore
+              name: chain-keystore
+        {{- end }}
+        {{- if or (has .Values.node.perNodeServices.relayP2pService.type (list "NodePort" "LoadBalancer")) (has .Values.node.perNodeServices.paraP2pService.type (list "NodePort" "LoadBalancer")) .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+        - name: retrieve-service-info
+          image: {{ .Values.initContainers.retrieveServiceInfo.image.repository }}:{{ .Values.initContainers.retrieveServiceInfo.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu -o pipefail {{ if .Values.initContainers.retrieveServiceInfo.debug }}-x{{ end }}
+              POD_INDEX="${HOSTNAME##*-}"
+              {{- if and .Values.node.perNodeServices.relayP2pService.enabled (include "node.hasRelaychain" .) (has .Values.node.perNodeServices.relayP2pService.type (list "NodePort" "LoadBalancer") ) }}
+              RELAY_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-relay-chain-p2p -o jsonpath='{.spec.ports[?(@.name=="p2p")].nodePort}')"
+              {{- if .Values.node.perNodeServices.relayP2pService.ws.enabled }}
+              RELAY_CHAIN_P2P_PORT_WS="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-relay-chain-p2p -o jsonpath='{.spec.ports[?(@.name=="ws")].nodePort}')"
+              echo "${RELAY_CHAIN_P2P_PORT_WS}" > /chain-data/relay_chain_p2p_port_ws
+              echo "Saved ${RELAY_CHAIN_P2P_PORT_WS} to /chain-data/relay_chain_p2p_port_ws"
+              {{- end }}
+              echo "${RELAY_CHAIN_P2P_PORT}" > /chain-data/relay_chain_p2p_port
+              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-relay-chain-p2p"
+              echo "Saved ${RELAY_CHAIN_P2P_PORT} to /chain-data/relay_chain_p2p_port"
+              {{- end }}
+              {{- if and .Values.node.isParachain .Values.node.perNodeServices.paraP2pService.enabled  (has .Values.node.perNodeServices.paraP2pService.type (list "NodePort" "LoadBalancer")) }}
+              PARA_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-para-chain-p2p -o jsonpath='{.spec.ports[0].nodePort}')"
+              echo "${PARA_CHAIN_P2P_PORT}" > /chain-data/para_chain_p2p_port
+              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-para-chain-p2p, saved ${PARA_CHAIN_P2P_PORT} to /chain-data/para_chain_p2p_port"
+              {{- if .Values.node.perNodeServices.paraP2pService.ws.enabled }}
+              PARA_CHAIN_P2P_PORT_WS="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-para-chain-p2p -o jsonpath='{.spec.ports[?(@.name=="ws")].nodePort}')"
+              echo "${PARA_CHAIN_P2P_PORT_WS}" > /chain-data/para_chain_p2p_port_ws
+              echo "Saved ${PARA_CHAIN_P2P_PORT_WS} to /chain-data/para_chain_p2p_port_ws"
+              {{- end }}
+              {{- end }}
+              {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+              EXTERNAL_IP=$(curl {{ .Values.node.perNodeServices.setPublicAddressToExternalIp.ipRetrievalServiceUrl }})
+              echo "${EXTERNAL_IP}" > /chain-data/node_external_ip
+              echo "Retrieved external IP from {{ .Values.node.perNodeServices.ipRetrievalServiceUrl }}, saved ${EXTERNAL_IP} to /chain-data/node_external_ip"
+              {{- end }}
+          resources:
+          {{- toYaml .Values.initContainers.retrieveServiceInfo.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /chain-data
+              name: chain-data
+        {{- end }}
+        {{- with .Values.extraInitContainers }}
+        {{- (tpl (toYaml .) $) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: {{ .Values.node.chain | replace "_" "-" }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu{{ if .Values.image.debug }}x{{ end }}
+              POD_INDEX="${HOSTNAME##*-}"
+              {{- if and .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled (or $.Values.node.perNodeServices.relayP2pService.enabled $.Values.node.perNodeServices.paraP2pService.enabled) }}
+              EXTERNAL_IP="$(cat /chain-data/node_external_ip)"
+              echo "EXTERNAL_IP=${EXTERNAL_IP}"
+              {{- end }}
+              {{- if (include "node.hasRelaychain" .) }}
+              {{- if and .Values.node.perNodeServices.relayP2pService.enabled (has .Values.node.perNodeServices.relayP2pService.type (list "NodePort" "LoadBalancer"))  }}
+              {{- /* For NodePort and LoadBalancer services, set the p2p port to the value saved in the retrieve-service-info init container */}}
+              RELAY_CHAIN_P2P_PORT="$(cat /chain-data/relay_chain_p2p_port)"
+              echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
+              {{- if .Values.node.perNodeServices.relayP2pService.ws.enabled }}
+              RELAY_CHAIN_P2P_PORT_WS="$(cat /chain-data/relay_chain_p2p_port_ws)"
+              echo "RELAY_CHAIN_P2P_PORT_WS=${RELAY_CHAIN_P2P_PORT_WS}"
+              {{- end }}
+              {{- else }}
+              {{- /* For non NodePort/LoadBalancer services, set the p2p port to value configured in `relayP2pService.port`*/}}
+              RELAY_CHAIN_P2P_PORT={{ $.Values.node.perNodeServices.relayP2pService.port | quote }}
+              echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
+              {{- if .Values.node.perNodeServices.relayP2pService.ws.enabled }}
+              RELAY_CHAIN_P2P_PORT_WS={{ $.Values.node.perNodeServices.relayP2pService.ws.port | quote }}
+              echo "RELAY_CHAIN_P2P_PORT_WS=${RELAY_CHAIN_P2P_PORT_WS}"
+              {{- end }}
+              {{- end }}
+              {{- end }}
+              {{- if .Values.node.isParachain }}
+              {{- if and .Values.node.perNodeServices.paraP2pService.enabled  (has .Values.node.perNodeServices.paraP2pService.type (list "NodePort" "LoadBalancer")) }}
+              {{- /* For NodePort and LoadBalancer services, set the p2p port to the value saved in the retrieve-service-info init container */}}
+              PARA_CHAIN_P2P_PORT="$(cat /chain-data/para_chain_p2p_port)"
+              echo "PARA_CHAIN_P2P_PORT=${PARA_CHAIN_P2P_PORT}"
+              {{- if .Values.node.perNodeServices.paraP2pService.ws.enabled }}
+              PARA_CHAIN_P2P_PORT_WS="$(cat /chain-data/para_chain_p2p_port_ws)"
+              echo "PARA_CHAIN_P2P_PORT_WS=${PARA_CHAIN_P2P_PORT_WS}"
+              {{- end }}
+              {{- else }}
+              {{- /* For non NodePort/LoadBalancer services, set the p2p port to value configured in `paraP2pService.port` */}}
+              PARA_CHAIN_P2P_PORT={{ $.Values.node.perNodeServices.paraP2pService.port | quote }}
+              echo "PARA_CHAIN_P2P_PORT=${PARA_CHAIN_P2P_PORT}"
+              {{- if .Values.node.perNodeServices.paraP2pService.ws.enabled }}
+              PARA_CHAIN_P2P_PORT_WS={{ $.Values.node.perNodeServices.paraP2pService.ws.port | quote }}
+              echo "PARA_CHAIN_P2P_PORT_WS=${PARA_CHAIN_P2P_PORT_WS}"
+              {{- end }}
+              {{- end }}
+              {{- end }}
+              exec {{ .Values.node.command }} \
+                --name=${POD_NAME} \
+                --base-path=/chain-data \
+                --keystore-path=/keystore \
+                --chain={{ if or .Values.node.customChainspecUrl .Values.node.customChainspec }}{{ .Values.node.customChainspecPath }}{{ else }}${CHAIN}{{ end }} \
+                {{- if or (eq .Values.node.role "authority") (eq .Values.node.role "validator") }}
+                --validator \
+                {{- end }}
+                {{- if .Values.node.chainData.database }}
+                --database={{ .Values.node.chainData.database }} \
+                {{- end }}
+                {{- if and ( not (kindIs "bool" .Values.node.chainData.pruning ) ) (ge ( int .Values.node.chainData.pruning ) 1) }}
+                --state-pruning={{ .Values.node.chainData.pruning }} \
+                {{- else if and ( not (kindIs "bool" .Values.node.chainData.pruning ) ) ( not ( kindIs "invalid" .Values.node.chainData.pruning ) ) ( eq 0 ( int .Values.node.chainData.pruning ) ) }}
+                --state-pruning=archive \
+                {{- end }}
+                {{- if eq .Values.node.role "collator" }}
+                --collator \
+                {{- end }}
+                {{- if eq .Values.node.role "light" }}
+                --light \
+                {{- end }}
+                {{- if .Values.node.prometheus.enabled }}
+                --prometheus-external \
+                --prometheus-port {{ .Values.node.prometheus.port }} \
+                {{- end }}
+                {{- /*
+                The unsafe flags are required to expose RPC interfaces.
+                It is not a security risk unless they are exposed publicly.
+                */}}
+                --unsafe-rpc-external \
+                {{- if .Values.node.legacyRpcFlags }}
+                --unsafe-ws-external \
+                {{- else }}
+                --rpc-port={{ .Values.node.perNodeServices.apiService.rpcPort | int }} \
+                {{- end }}
+                {{- /*
+                CORS must be set to 'all' to allow RPC requests including Kubernetes heathchecks.
+                */}}
+                --rpc-cors=all \
+                {{- if .Values.node.allowUnsafeRpcMethods }}
+                --rpc-methods=unsafe \
+                {{- end }}
+                {{- if .Values.node.isParachain }}
+                {{- /* Experimental Features */}}
+                {{- if and .Values.node.collatorExternalRelayChain.enabled .Values.node.collatorLightClient.enabled }}
+                {{- fail "Only one mode must be enabled. Either external relaychain or light mode." }}
+                {{- else if .Values.node.collatorExternalRelayChain.enabled }}
+                --relay-chain-rpc-urls {{- range .Values.node.collatorExternalRelayChain.relayChainRpcUrls }} "{{ . }}" {{- end }} \
+                {{- else if .Values.node.collatorLightClient.enabled }}
+                --relay-chain-light-client \
+                {{- end }}
+                --listen-addr=/ip4/0.0.0.0/tcp/30334 \
+                {{- if .Values.node.perNodeServices.paraP2pService.enabled }}
+                {{- if .Values.node.perNodeServices.paraP2pService.ws.enabled }}
+                --listen-addr=/ip4/0.0.0.0/tcp/30335/ws \
+                {{- end }}
+                {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+                --public-addr=/ip4/${EXTERNAL_IP}/tcp/${PARA_CHAIN_P2P_PORT} \
+                {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.autodiscoveryFix }}
+                --listen-addr=/ip4/0.0.0.0/tcp/${PARA_CHAIN_P2P_PORT} \
+                {{- end }}
+                {{- if .Values.node.perNodeServices.paraP2pService.ws.enabled }}
+                --public-addr=/ip4/${EXTERNAL_IP}/tcp/${PARA_CHAIN_P2P_PORT_WS}/ws \
+                {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.autodiscoveryFix }}
+                --listen-addr=/ip4/0.0.0.0/tcp/${PARA_CHAIN_P2P_PORT_WS}/ws \
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- if .Values.node.persistGeneratedNodeKey }}
+                --node-key-file /keystore/node-key \
+                {{- else if .Values.node.customNodeKey }}
+                {{- if  eq ( typeOf .Values.node.customNodeKey ) "string" }}
+                --node-key-file /custom-node-key/custom-node-key \
+                {{- else }}
+                --node-key-file /custom-node-key/custom-node-key-${POD_INDEX} \
+                {{- end }}
+                {{- else if .Values.node.existingSecrets.nodeKey }}
+                --node-key $(cat /custom-node-key/{{ .Values.node.existingSecrets.nodeKey.secretKey }}{{ if .Values.node.existingSecrets.nodeKey.appendPodIndex }}-${POD_INDEX}{{ end }}) \
+                {{- else if .Values.node.vault.nodeKey }}
+                --node-key $(cat /vault/secrets/{{ .Values.node.vault.nodeKey.name }}{{ if .Values.node.vault.nodeKey.vaultKeyAppendPodIndex }}-${POD_INDEX}{{ end }}) \
+                {{- end }}
+                {{- if .Values.node.wasmRuntimeUrl }}
+                --wasm-runtime-overrides={{ .Values.node.wasmRuntimeOverridesPath }} \
+                {{- end }}
+                {{- if .Values.node.tracing.enabled }}
+                --jaeger-agent=127.0.0.1:{{ .Values.jaegerAgent.ports.compactPort }} \
+                {{- end }}
+                {{- range .Values.node.logLevels }}
+                --log={{ . | quote }} \
+                {{- end }}
+                {{- range .Values.node.telemetryUrls }}
+                --telemetry-url={{ . | squote }} \
+                {{- end }}
+                {{- range .Values.node.flags }}
+                {{- if regexMatch $chartManagedFlagsRegex . }}
+                {{- fail (printf "%s should not be set through `node.flags` but with the appropriate chart value" .) }}
+                {{- else }}
+                {{ . }} \
+                {{- end }}
+                {{- end }}
+                {{- if .Values.node.enableOffchainIndexing }}
+                --enable-offchain-indexing true \
+                {{- end }}
+                {{- if and .Values.node.isParachain (not .Values.node.collatorExternalRelayChain.enabled ) }}
+                -- \
+                {{- if  .Values.node.collatorLightClient.enabled }}
+                --chain={{ if or .Values.node.collatorLightClient.relayChainCustomChainspecUrl .Values.node.collatorLightClient.relayChainCustomChainspec }}{{ .Values.node.collatorLightClient.relayChainCustomChainspecPath }}{{ else }}{{.Values.node.collatorLightClient.relayChain}}{{ end }}
+                {{- else if or .Values.node.collatorRelayChain.customChainspecUrl .Values.node.collatorRelayChain.customChainspec }}
+                --chain={{ .Values.node.collatorRelayChain.customChainspecPath }} \
+                {{- end }}
+                {{- if  not .Values.node.collatorLightClient.enabled }}
+                --name=${POD_NAME} \
+                --base-path=/relaychain-data \
+                --keystore-path=/relaychain-keystore \
+                {{- if .Values.node.collatorRelayChain.chainData.database}}
+                --database={{ .Values.node.collatorRelayChain.chainData.database }} \
+                {{- end }}
+                {{- if and ( not (kindIs "bool" .Values.node.collatorRelayChain.chainData.pruning )) (ge ( int .Values.node.collatorRelayChain.chainData.pruning ) 1) }}
+                --state-pruning={{ .Values.node.collatorRelayChain.chainData.pruning }} \
+                {{- else if and ( not (kindIs "bool" .Values.node.collatorRelayChain.chainData.pruning )) ( not ( kindIs "invalid" .Values.node.collatorRelayChain.chainData.pruning ) ) ( eq 0 ( int .Values.node.collatorRelayChain.chainData.pruning ) ) }}
+                --state-pruning=archive \
+                {{- end }}
+                {{- if .Values.node.collatorRelayChain.prometheus.enabled }}
+                --prometheus-external \
+                --prometheus-port {{ .Values.node.collatorRelayChain.prometheus.port }} \
+                {{- end }}
+                {{- range .Values.node.telemetryUrls }}
+                --telemetry-url={{ . | squote }} \
+                {{- end }}
+                {{- range .Values.node.collatorRelayChain.flags }}
+                {{- if regexMatch $chartManagedFlagsRegex . }}
+                {{- fail (printf "%s should not be set through `node.collatorRelayChain.flags` but with the appropriate chart value" .) }}
+                {{- else }}
+                {{ . }} \
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- if and .Values.node.perNodeServices.relayP2pService.enabled (include "node.hasRelaychain" .) }}
+                {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.enabled }}
+                --public-addr=/ip4/${EXTERNAL_IP}/tcp/${RELAY_CHAIN_P2P_PORT} \
+                {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.autodiscoveryFix }}
+                --listen-addr=/ip4/0.0.0.0/tcp/${RELAY_CHAIN_P2P_PORT} \
+                {{- end }}
+                {{- if .Values.node.perNodeServices.relayP2pService.ws.enabled }}
+                --public-addr=/ip4/${EXTERNAL_IP}/tcp/${RELAY_CHAIN_P2P_PORT_WS}/ws \
+                {{- if .Values.node.perNodeServices.setPublicAddressToExternalIp.autodiscoveryFix }}
+                --listen-addr=/ip4/0.0.0.0/tcp/${RELAY_CHAIN_P2P_PORT_WS}/ws \
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- if and (not .Values.node.isParachain) .Values.node.perNodeServices.relayP2pService.ws.enabled }}
+                --listen-addr=/ip4/0.0.0.0/tcp/30334/ws \
+                {{- end }}
+                {{- end }}
+                {{- if (include "node.hasRelaychain" .) }}
+                --listen-addr=/ip4/0.0.0.0/tcp/30333 \
+                {{- end }}
+          env:
+            - name: CHAIN
+              value: {{ .Values.node.chain }}
+            - name: NODE_NAME
+              value: "$(POD_NAME)"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            {{- with .Values.node.extraEnvVars }}
+            {{- toYaml . | nindent 12 }}
+            {{- end}}
+          ports:
+            {{- if .Values.node.legacyRpcFlags }}
+            - containerPort: 9933
+              name: http-rpc
+            - containerPort: 9944
+              name: websocket-rpc
+            {{- else }}
+            - containerPort: {{ $.Values.node.perNodeServices.apiService.rpcPort | int }}
+              name: rpc
+            {{- end }}
+            - containerPort: {{ .Values.node.prometheus.port }}
+              name: prometheus
+            {{- if and .Values.node.isParachain .Values.node.collatorRelayChain.prometheus.enabled }}
+            - containerPort: {{ .Values.node.collatorRelayChain.prometheus.port }}
+              name: prom-relaychain
+            {{- end }}
+            - containerPort: 30333
+              name: p2p
+            {{- if and (not .Values.node.isParachain) .Values.node.perNodeServices.relayP2pService.ws.enabled }}
+            - containerPort: 30334
+              name: p2p-ws
+            {{- end }}
+            {{- if and .Values.node.isParachain .Values.node.perNodeServices.paraP2pService.enabled }}
+            - containerPort: 30334
+              name: para-p2p
+            {{- if .Values.node.perNodeServices.paraP2pService.ws.enabled  }}
+            - containerPort: 30335
+              name: para-p2p-ws
+            {{- end }}
+            {{- end }}
+          {{- if .Values.node.enableStartupProbe }}
+          # On startup, retry the connection to the /health endpoint every 10s for failureThreshold * 10 = 300s before killing the container
+          startupProbe:
+            failureThreshold: {{ .Values.node.startupProbeFailureThreshold }}
+            periodSeconds: 10
+            httpGet:
+              path: /health
+              {{- if .Values.node.legacyRpcFlags }}
+              port: http-rpc
+              {{- else }}
+              port: rpc
+              {{- end }}
+          {{- end }}
+          resources:
+          {{- toYaml .Values.node.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /chain-data
+              name: chain-data
+            - mountPath: /keystore
+              name: chain-keystore
+            {{- if (include "node.hasCollatorRelaychain" .) }}
+            - mountPath: /relaychain-data
+              name: relaychain-data
+            - mountPath: /relaychain-keystore
+              name: relaychain-keystore
+            {{- end }}
+          {{- range .Values.node.extraConfigmapMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ .readOnly }}
+          {{- end }}
+          {{- range .Values.node.extraSecretMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ .readOnly }}
+          {{- end }}
+          {{- if .Values.node.persistGeneratedNodeKey }}
+          {{- else if .Values.node.customNodeKey }}
+            - mountPath: /custom-node-key/
+              name: custom-node-key
+              readOnly: true
+          {{- else if .Values.node.existingSecrets.nodeKey }}
+            - mountPath: /custom-node-key/
+              name: node-key
+              readOnly: true
+          {{- end }}
+        {{- if .Values.node.substrateApiSidecar.enabled }}
+        - name: substrate-api-sidecar
+          image: {{ .Values.substrateApiSidecar.image.repository }}:{{ .Values.substrateApiSidecar.image.tag }}
+          env:
+            {{- range $key, $val := .Values.substrateApiSidecar.env }}
+            - name: {{ $key }}
+              value: {{ $val | squote }}
+            {{- end }}
+          args:
+          {{- range .Values.substrateApiSidecar.args }}
+            - "{{ . }}"
+          {{- end }}
+          {{- if .Values.substrateApiSidecar.metrics.enabled }}
+            - "--prometheus"
+            - "--prometheus-port={{ .Values.substrateApiSidecar.metrics.port }}"
+          {{- end }}
+          resources:
+          {{- toYaml .Values.substrateApiSidecar.resources | nindent 12 }}
+          ports:
+            - containerPort: 8080
+              name: api-sidecar
+              protocol: TCP
+            {{- if .Values.substrateApiSidecar.metrics.enabled }}
+            - containerPort: {{ .Values.substrateApiSidecar.metrics.port }}
+              name: prom-sidecar
+              protocol: TCP
+            {{- end }}
+        {{- end }}
+        {{- if .Values.node.tracing.enabled }}
+        - name: jaeger-agent-sidecar
+          image: {{ .Values.jaegerAgent.image.repository }}:{{ .Values.jaegerAgent.image.tag }}
+          args:
+            - --reporter.grpc.host-port={{ .Values.jaegerAgent.collector.url }}:{{ .Values.jaegerAgent.collector.port }}
+          env:
+            {{- range $key, $val := .Values.jaegerAgent.env }}
+            - name: {{ $key }}
+              value: {{ $val | squote }}
+            {{- end }}
+          resources:
+          {{- toYaml .Values.jaegerAgent.resources | nindent 12 }}
+          ports:
+            - name: jaeger-compact
+              containerPort: {{ .Values.jaegerAgent.ports.compactPort }}
+              protocol: UDP
+            - name: jaeger-binary
+              containerPort: {{ .Values.jaegerAgent.ports.binaryPort }}
+              protocol: UDP
+            - name: http
+              containerPort: {{ .Values.jaegerAgent.ports.samplingPort }}
+              protocol: TCP
+            - name: admin
+              containerPort: 14271
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: admin
+          readinessProbe:
+            httpGet:
+              path: /
+              port: admin
+        {{- end}}
+        {{- if or .Values.node.enableSidecarReadinessProbe .Values.node.enableSidecarLivenessProbe }}
+        - name: ws-health-exporter
+          image: {{ .Values.wsHealthExporter.image.repository }}:{{ .Values.wsHealthExporter.image.tag }}
+          env:
+            {{- $wsHealthExporterEnvDefault := dict "WSHE_NODE_RPC_URLS" (tpl "ws://127.0.0.1:{{ .Values.node.perNodeServices.apiService.rpcPort | int }}" .) }}
+            {{- $wsHealthExporterEnv := mergeOverwrite $wsHealthExporterEnvDefault $.Values.wsHealthExporter.env }}
+            {{- range $key, $val := $wsHealthExporterEnv }}
+            - name: {{ $key }}
+              value: {{ $val | squote }}
+            {{- end }}
+          resources:
+          {{- toYaml .Values.wsHealthExporter.resources | nindent 12 }}
+          ports:
+            - containerPort: 8001
+              name: http-ws-he
+          {{- if .Values.node.enableSidecarReadinessProbe }}
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 8001
+          {{- end }}
+          {{- if .Values.node.enableSidecarLivenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 8001
+            failureThreshold: 10
+            periodSeconds: 60
+          {{- end }}
+        {{- end }}
+        {{- with .Values.extraContainers }}
+        {{- (tpl (toYaml .) $) | nindent 8 }}
+        {{- end}}
+      serviceAccountName: {{ $serviceAccountName }}
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 10 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.schedulerName }}
+      schedulerName: {{ .Values.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.topologySpreadConstraints }}
+      topologySpreadConstraints: {{ toYaml .Values.topologySpreadConstraints | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{- range .Values.node.extraConfigmapMounts }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+            optional: {{ .optional }}
+      {{- end }}
+      {{- range .Values.node.extraSecretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+            optional: {{ .optional }}
+            defaultMode: {{ .defaultMode }}
+      {{- end }}
+      {{- if .Values.node.persistGeneratedNodeKey }}
+      {{- else if .Values.node.customNodeKey }}
+        - name: custom-node-key
+          secret:
+            secretName: {{ $fullname }}-custom-node-key
+      {{- else if .Values.node.existingSecrets.nodeKey }}
+        - name: node-key
+          secret:
+            secretName: {{ .Values.node.existingSecrets.nodeKey.secretName }}
+      {{- end }}
+      {{- range $keys := .Values.node.keys }}
+        - name: {{ .type }}
+          secret:
+            secretName: {{ $fullname }}-{{ .type }}
+            defaultMode: 0400
+      {{- end }}
+      {{- range $keys := .Values.node.existingSecrets.keys }}
+        - name: {{ $keys }}
+          secret:
+            secretName: {{ $keys }}
+            defaultMode: 0400
+      {{- end }}
+      {{- if .Values.node.chainData.ephemeral.enabled }}
+        - name: chain-data
+          {{- if eq .Values.node.chainData.ephemeral.type "emptyDir" }}
+          emptyDir:
+            {{- if and (.Values.node.chainData.volumeSize) (semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion) }}
+            sizeLimit: {{ .Values.node.chainData.volumeSize }}
+            {{- end }}
+          {{- end }}
+          {{- if eq .Values.node.chainData.ephemeral.type "generic" }}
+          ephemeral:
+            volumeClaimTemplate:
+              {{- with .Values.node.chainData.annotations }}
+              metadata:
+                annotations: {{ toYaml . | nindent 18 }}
+              {{- end }}
+              spec:
+                accessModes: [ "ReadWriteOnce" ]
+                {{- if or .Values.node.chainData.kubernetesVolumeSnapshot .Values.node.chainData.kubernetesVolumeToClone }}
+                dataSource:
+                  {{- if .Values.node.chainData.kubernetesVolumeSnapshot }}
+                  name: {{ .Values.node.chainData.kubernetesVolumeSnapshot }}
+                  kind: VolumeSnapshot
+                  apiGroup: snapshot.storage.k8s.io
+                  {{- else }}
+                  name: {{ .Values.node.chainData.kubernetesVolumeToClone }}
+                  kind: PersistentVolumeClaim
+                  {{- end }}
+                {{- end }}
+                storageClassName: {{ .Values.node.chainData.storageClass }}
+                resources:
+                  requests:
+                    storage: {{ .Values.node.chainData.volumeSize }}
+          {{- end }}
+      {{- end }}
+      {{- if and (include "node.hasCollatorRelaychain" .) .Values.node.collatorRelayChain.chainData.ephemeral.enabled  }}
+        - name: relaychain-data
+          {{- if eq .Values.node.chainData.ephemeral.type "emptyDir" }}
+          emptyDir:
+            {{- if and (.Values.node.collatorRelayChain.chainData.volumeSize) (semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion) }}
+            sizeLimit: {{ .Values.node.collatorRelayChain.chainData.volumeSize  }}
+            {{- end }}
+          {{- end }}
+          {{- if eq .Values.node.chainData.ephemeral.type "generic" }}
+          ephemeral:
+            volumeClaimTemplate:
+              {{- with .Values.node.collatorRelayChain.chainData.annotations }}
+              metadata:
+                annotations: {{ toYaml . | nindent 18 }}
+              {{- end }}
+              spec:
+                accessModes: [ "ReadWriteOnce" ]
+                {{- if or .Values.node.collatorRelayChain.chainData.kubernetesVolumeSnapshot .Values.node.collatorRelayChain.chainData.kubernetesVolumeToClone }}
+                dataSource:
+                  {{- if .Values.node.collatorRelayChain.chainData.kubernetesVolumeSnapshot }}
+                  name: {{ .Values.node.collatorRelayChain.chainData.kubernetesVolumeSnapshot }}
+                  kind: VolumeSnapshot
+                  apiGroup: snapshot.storage.k8s.io
+                  {{- else }}
+                  name: {{ .Values.node.collatorRelayChain.chainData.kubernetesVolumeToClone }}
+                  kind: PersistentVolumeClaim
+                  {{- end }}
+                {{- end }}
+                storageClassName: {{ .Values.node.collatorRelayChain.chainData.storageClass }}
+                resources:
+                  requests:
+                    storage: {{ .Values.node.collatorRelayChain.chainData.volumeSize }}
+          {{- end }}
+      {{- end }}
+      {{- if .Values.node.chainKeystore.mountInMemory.enabled }}
+        - name: chain-keystore
+          emptyDir:
+            medium: "Memory"
+            {{- if and (.Values.node.chainKeystore.mountInMemory.sizeLimit) (semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion) }}
+            sizeLimit: {{ .Values.node.chainKeystore.mountInMemory.sizeLimit }}
+            {{- end }}
+      {{- end }}
+      {{- if and (include "node.hasCollatorRelaychain" .) .Values.node.collatorRelayChain.chainKeystore.mountInMemory.enabled }}
+        - name: relaychain-keystore
+          emptyDir:
+            medium: "Memory"
+            {{- if and (.Values.node.collatorRelayChain.chainKeystore.mountInMemory.sizeLimit) (semverCompare ">=1.22-0" .Capabilities.KubeVersion.GitVersion) }}
+            sizeLimit: {{ .Values.node.collatorRelayChain.chainKeystore.mountInMemory.sizeLimit }}
+            {{- end }}
+      {{- end }}
+  volumeClaimTemplates:
+    {{- if not .Values.node.chainData.ephemeral.enabled }}
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: chain-data
+        {{- with .Values.node.chainData.annotations }}
+        annotations: {{ toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if or .Values.node.chainData.kubernetesVolumeSnapshot .Values.node.chainData.kubernetesVolumeToClone }}
+        dataSource:
+          {{- if .Values.node.chainData.kubernetesVolumeSnapshot }}
+          name: {{ .Values.node.chainData.kubernetesVolumeSnapshot }}
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
+          {{- else }}
+          name: {{ .Values.node.chainData.kubernetesVolumeToClone }}
+          kind: PersistentVolumeClaim
+          {{- end }}
+        {{- end }}
+        storageClassName: {{ .Values.node.chainData.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.node.chainData.volumeSize }}
+    {{- end }}
+    {{- if not .Values.node.chainKeystore.mountInMemory.enabled }}
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: chain-keystore
+        {{- with .Values.node.chainKeystore.annotations }}
+        annotations: {{ toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes: {{ .Values.node.chainKeystore.accessModes }}
+        {{- if or .Values.node.chainKeystore.kubernetesVolumeSnapshot .Values.node.chainKeystore.kubernetesVolumeToClone }}
+        dataSource:
+          {{- if .Values.node.chainKeystore.kubernetesVolumeSnapshot }}
+          name: {{ .Values.node.chainKeystore.kubernetesVolumeSnapshot }}
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
+          {{- else }}
+          name: {{ .Values.node.chainKeystore.kubernetesVolumeToClone }}
+          kind: PersistentVolumeClaim
+          {{- end }}
+        {{- end }}
+        storageClassName: {{ .Values.node.chainKeystore.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.node.chainKeystore.volumeSize }}
+    {{- end }}
+    {{- if and (include "node.hasCollatorRelaychain" .) ( not .Values.node.collatorRelayChain.chainData.ephemeral.enabled ) }}
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: relaychain-data
+        {{- with .Values.node.collatorRelayChain.chainData.annotations }}
+        annotations: {{ toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        {{- if or .Values.node.collatorRelayChain.chainData.kubernetesVolumeSnapshot .Values.node.collatorRelayChain.chainData.kubernetesVolumeToClone }}
+        dataSource:
+          {{- if .Values.node.collatorRelayChain.chainData.kubernetesVolumeSnapshot }}
+          name: {{ .Values.node.collatorRelayChain.chainData.kubernetesVolumeSnapshot }}
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
+          {{- else }}
+          name: {{ .Values.node.collatorRelayChain.chainData.kubernetesVolumeToClone }}
+          kind: PersistentVolumeClaim
+          {{- end }}
+        {{- end }}
+        storageClassName: {{ .Values.node.collatorRelayChain.chainData.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.node.collatorRelayChain.chainData.volumeSize }}
+    {{- if not .Values.node.collatorRelayChain.chainKeystore.mountInMemory.enabled }}
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: relaychain-keystore
+        {{- with .Values.node.collatorRelayChain.chainKeystore.annotations }}
+        annotations: {{ toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes: {{ .Values.node.collatorRelayChain.chainKeystore.accessModes }}
+        {{- if or .Values.node.collatorRelayChain.chainKeystore.kubernetesVolumeSnapshot .Values.node.collatorRelayChain.chainKeystore.kubernetesVolumeToClone }}
+        dataSource:
+          {{- if .Values.node.collatorRelayChain.chainKeystore.kubernetesVolumeSnapshot }}
+          name: {{ .Values.node.collatorRelayChain.chainKeystore.kubernetesVolumeSnapshot }}
+          kind: VolumeSnapshot
+          apiGroup: snapshot.storage.k8s.io
+          {{- else }}
+          name: {{ .Values.node.collatorRelayChain.chainKeystore.kubernetesVolumeToClone }}
+          kind: PersistentVolumeClaim
+          {{- end }}
+        {{- end }}
+        storageClassName: {{ .Values.node.collatorRelayChain.chainKeystore.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.node.collatorRelayChain.chainKeystore.volumeSize }}
+    {{- end }}
+    {{- end }}

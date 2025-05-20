@@ -67,7 +67,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   if (!shouldLaunchRelayers) {
-    logger.info("Skipping Snowbridge relayers launch. Done!");
+    logger.info("👍  Snowbridge relayers launch. Done!");
     printDivider();
     return;
   }

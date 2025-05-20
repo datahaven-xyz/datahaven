@@ -66,38 +66,6 @@ export const launchDataHavenSolochain = async (
 
   let shouldLaunchDataHaven = options.datahaven;
 
-  if ((await checkDataHavenRunning()) && !options.alwaysClean) {
-    logger.info("ℹ️  DataHaven network (Docker containers) is already running.");
-
-    logger.trace("Checking if datahaven option was set via flags");
-    if (options.datahaven === false) {
-      logger.info("Keeping existing DataHaven containers.");
-
-      await registerNodes(launchedNetwork);
-      printDivider();
-      return;
-    }
-
-    if (options.datahaven === true) {
-      await cleanDataHavenContainers(options);
-    } else {
-      const shouldRelaunch = await confirmWithTimeout(
-        "Do you want to clean and relaunch the DataHaven containers?",
-        true,
-        10
-      );
-
-      if (!shouldRelaunch) {
-        logger.info("Keeping existing DataHaven containers.");
-
-        await registerNodes(launchedNetwork);
-        printDivider();
-        return;
-      }
-      await cleanDataHavenContainers(options);
-    }
-  }
-
   if (shouldLaunchDataHaven === undefined) {
     shouldLaunchDataHaven = await confirmWithTimeout(
       "Do you want to launch the DataHaven network?",
@@ -111,9 +79,38 @@ export const launchDataHavenSolochain = async (
   }
 
   if (!shouldLaunchDataHaven) {
-    logger.info("Skipping DataHaven network launch. Done!");
+    logger.info("👍 Skipping DataHaven network launch. Done!");
+
     printDivider();
     return;
+  }
+
+  if (await checkDataHavenRunning()) {
+    // If the user wants to launch the DataHaven network, we ask them if they want to clean the existing containers/network
+    // or just continue with the existing containers/network
+    if (shouldLaunchDataHaven) {
+      let shouldRelaunch = options.alwaysClean;
+
+      if (shouldRelaunch === undefined) {
+        shouldRelaunch = await confirmWithTimeout(
+          "Do you want to clean and relaunch the DataHaven containers?",
+          true,
+          10
+        );
+      }
+
+      // Case: User wants to keep existing containers/network
+      if (!shouldRelaunch) {
+        logger.info("👍 Keeping existing DataHaven containers/network.");
+
+        await registerNodes(launchedNetwork);
+        printDivider();
+        return;
+      }
+
+      // Case: User wants to clean and relaunch the DataHaven containers
+      await cleanDataHavenContainers(options);
+    }
   }
 
   logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
@@ -191,18 +188,25 @@ export const launchDataHavenSolochain = async (
  */
 const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-"
-  const containerIds = await $`docker ps -q --filter "name=^datahaven-"`.text();
+  const containerIds = await $`docker ps --format "{{.Names}}" --filter "name=^datahaven-"`.text();
   const networkOutput =
     await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
 
   // Check if containerIds has any actual IDs (not just whitespace)
   const containersExist = containerIds.trim().length > 0;
+  if (containersExist) {
+    logger.info(`ℹ️ DataHaven containers already running: \n${containerIds}`);
+  }
+
   // Check if networkOutput has any network names (not just whitespace or empty lines)
   const networksExist =
     networkOutput
       .trim()
       .split("\n")
       .filter((line) => line.trim().length > 0).length > 0;
+  if (networksExist) {
+    logger.info(`ℹ️ DataHaven network already running: ${networkOutput}`);
+  }
 
   return containersExist || networksExist;
 };
@@ -227,6 +231,8 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
 
   logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
   logger.info("✅ DataHaven Docker network removed.");
+
+  invariant(await checkDataHavenRunning(), "❌ DataHaven containers were not stopped and removed");
 };
 
 /**
@@ -319,9 +325,10 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
 
   if (!isContainerRunning) {
     // If the target Docker container is not running, we cannot register it.
-    throw new Error(
+    logger.error(
       `❌ Docker container ${targetContainerName} is not running. Cannot register node.`
     );
+    return;
   }
 
   // If the Docker container is running, proceed to register it in launchedNetwork.

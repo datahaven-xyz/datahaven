@@ -15,12 +15,13 @@
 
 use {
     crate as pallet_external_validators_rewards,
-    crate::types::{ExternalIndexProvider, HandleInflation},
+    crate::types::HandleInflation,
     frame_support::{
         parameter_types,
         traits::{fungible::Mutate, ConstU32, ConstU64},
     },
     pallet_balances::AccountData,
+    pallet_external_validators::traits::ExternalIndexProvider,
     snowbridge_outbound_queue_primitives::{SendError, SendMessageFeeProvider},
     sp_core::H256,
     sp_runtime::{

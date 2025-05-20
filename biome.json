@@ -1,22 +1,27 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.0.0-beta.5/schema.json",
   "files": {
-    "include": ["*.js", "*.ts", "*.json", "*.yml", "*.md"],
-    "ignore": [
-      "./node_modules/*",
-      "./target/*",
-      "**/tmp/*",
-      "*.spec.json",
-      "**/.papi/descriptors/**/*",
-      "**/contract-bindings/**/*"
+    "includes": [
+      "**/*.js",
+      "**/*.ts",
+      "**/*.json",
+      "**/*.yml",
+      "**/*.md",
+      "!node_modules/*",
+      "!target/*",
+      "!**/tmp/*",
+      "!**/*.spec.json",
+      "!**/.papi/descriptors/**/*",
+      "!**/contract-bindings/**/*"
     ]
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "formatter": {
     "enabled": true,
-    "attributePosition": "multiline"
+    "attributePosition": "multiline",
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
   },
   "json": {
     "formatter": {
@@ -27,9 +32,6 @@
     "formatter": {
       "trailingCommas": "none",
       "semicolons": "always",
-      "indentStyle": "space",
-      "indentWidth": 2,
-      "lineWidth": 100,
       "quoteStyle": "double"
     }
   },
@@ -47,6 +49,21 @@
       },
       "performance": {
         "noAccumulatingSpread": "off"
+      },
+      "nursery": {
+        "noFloatingPromises": "error"
+      },
+      "style": {
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error"
       }
     }
   }

@@ -1,10 +1,9 @@
 import * as generated from "contract-bindings";
+import invariant from "tiny-invariant";
 import { type Abi, erc20Abi, getContract, isAddress } from "viem";
 import { z } from "zod";
 import { logger } from "./logger";
-import { type ViemClientInterface, createDefaultClient } from "./viem";
-
-import invariant from "tiny-invariant";
+import { createDefaultClient, type ViemClientInterface } from "./viem";
 
 const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
 const ethAddress = z.string().regex(ethAddressRegex, "Invalid Ethereum address");

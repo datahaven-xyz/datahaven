@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import invariant from "tiny-invariant";
-import { type RelayerType, logger } from "utils";
+import { logger, type RelayerType } from "utils";
 
 type PipeOptions = number | "inherit" | "pipe" | "ignore";
 type BunProcess = Bun.Subprocess<PipeOptions, PipeOptions, PipeOptions>;

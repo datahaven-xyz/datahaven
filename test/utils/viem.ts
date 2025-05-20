@@ -1,5 +1,5 @@
 import { ANVIL_FUNDED_ACCOUNTS, CHAIN_ID, getRPCUrl, getWSUrl } from "utils";
-import { http, createWalletClient, defineChain, publicActions } from "viem";
+import { createWalletClient, defineChain, http, publicActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import type { Prettify } from "./types";
 

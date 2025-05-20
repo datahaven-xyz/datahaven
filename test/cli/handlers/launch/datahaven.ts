@@ -3,7 +3,7 @@ import path from "node:path";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { type PolkadotClient, createClient } from "polkadot-api";
+import { createClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { cargoCrossbuild } from "scripts/cargo-crossbuild";

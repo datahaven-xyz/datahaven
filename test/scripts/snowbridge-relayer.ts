@@ -5,19 +5,33 @@ import { Octokit } from "octokit";
 import invariant from "tiny-invariant";
 import { logger, printHeader } from "utils";
 
-const IMAGE_NAME = "snowbridge-relay:local";
-const RELATIVE_DOCKER_FILE_PATH = "../../docker/SnowbridgeRelayer.dockerfile";
-const CONTEXT = "../..";
-const TMP_DIR = path.resolve(__dirname, "../tmp");
-const RELAY_BINARY_PATH = path.resolve(TMP_DIR, "snowbridge-relay");
+const DEFAULT_IMAGE_NAME = "snowbridge-relay:local";
+const RELATIVE_DOCKER_FILE_PATH = "../docker/snowbridge-relayer.dockerfile";
+const CONTEXT = "../.."; // Relative to this script, resolves to project root
+const TMP_DIR = path.resolve(__dirname, "../tmp/bin");
+const TARGET_BINARY_IN_TMP_PATH = path.resolve(TMP_DIR, "snowbridge-relay");
 
-//Downloads the latest snowbridge-relay binary from SnowFork's GitHub releases
-async function downloadRelayBinary() {
-  printHeader("Downloading latest snowbridge-relay binary");
-  if (!fs.existsSync(TMP_DIR)) {
-    fs.mkdirSync(TMP_DIR, { recursive: true });
+// Parses command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let localBinaryPath: string | undefined;
+  let imageName: string = DEFAULT_IMAGE_NAME;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--local-binary-path" && i + 1 < args.length) {
+      localBinaryPath = args[i + 1];
+      i++;
+    } else if (args[i] === "--image-name" && i + 1 < args.length) {
+      imageName = args[i + 1];
+      i++;
+    }
   }
+  return { localBinaryPath, imageName };
+}
 
+// Downloads the latest snowbridge-relay binary from SnowFork's GitHub releases
+async function downloadRelayBinary(targetPath: string) {
+  printHeader("Downloading latest snowbridge-relay binary");
   const octokit = new Octokit();
 
   try {
@@ -45,32 +59,66 @@ async function downloadRelayBinary() {
     }
 
     const buffer = await response.arrayBuffer();
-    await Bun.write(RELAY_BINARY_PATH, buffer);
+    await Bun.write(targetPath, buffer);
+    await $`chmod +x ${targetPath}`;
 
-    await $`chmod +x ${RELAY_BINARY_PATH}`;
-
-    logger.success(`Successfully downloaded snowbridge-relay ${tagName} to ${RELAY_BINARY_PATH}`);
-    return RELAY_BINARY_PATH;
+    logger.success(`Successfully downloaded snowbridge-relay ${tagName} to ${targetPath}`);
+    return targetPath;
   } catch (error: any) {
     logger.error(`Failed to download snowbridge-relay: ${error.message}`);
     throw error;
   }
 }
 
-// This can be run with `bun build:docker:relayer` or via a script by importing the below function
-export default async function buildRelayer() {
-  await downloadRelayBinary();
+async function prepareRelayBinary(
+  localBinaryPathFromArg: string | undefined,
+  downloadTargetPath: string
+): Promise<string> {
+  if (!fs.existsSync(TMP_DIR)) {
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+  }
 
-  printHeader(`Running docker-build at: ${__dirname}`);
+  // If no local binary path is provided, download the latest release
+  if (!localBinaryPathFromArg) {
+    logger.info("No local binary path provided, will download the latest release.");
+    return downloadRelayBinary(downloadTargetPath);
+  }
+
+  // If a local binary path is provided, use it
+  const absoluteLocalBinaryPath = path.resolve(localBinaryPathFromArg);
+  logger.info(`Using local binary from: ${absoluteLocalBinaryPath}`);
+  if (!fs.existsSync(absoluteLocalBinaryPath)) {
+    throw new Error(`Local binary not found at: ${absoluteLocalBinaryPath}`);
+  }
+  // Copy local binary to the target path in tmp
+  await Bun.write(downloadTargetPath, Bun.file(absoluteLocalBinaryPath));
+  await $`chmod +x ${downloadTargetPath}`;
+  logger.success(`Copied local binary to ${downloadTargetPath} and made it executable.`);
+  return downloadTargetPath;
+}
+
+// This can be run with `bun test/scripts/snowbridge-relayer.ts`
+// or with options: `bun test/scripts/snowbridge-relayer.ts --local-binary-path ./path/to/bin --image-name myimage:tag`
+export default async function buildRelayer() {
+  const { localBinaryPath, imageName } = parseArgs();
+
+  await prepareRelayBinary(localBinaryPath, TARGET_BINARY_IN_TMP_PATH);
+
+  printHeader(`Building Docker image: ${imageName}`);
   const dockerfilePath = path.resolve(__dirname, RELATIVE_DOCKER_FILE_PATH);
+  // Context path should be project root for Dockerfile to find `test/tmp/snowbridge-relay`
   const contextPath = path.resolve(__dirname, CONTEXT);
 
-  const file = Bun.file(dockerfilePath);
-  invariant(await file.exists(), `Dockerfile not found at ${dockerfilePath}`);
+  const dockerfile = Bun.file(dockerfilePath);
+  invariant(await dockerfile.exists(), `Dockerfile not found at ${dockerfilePath}`);
   logger.debug(`Dockerfile found at ${dockerfilePath}`);
+  logger.debug(`Build context: ${contextPath}`);
+  logger.debug(
+    `Binary for Docker build (expected by Dockerfile at test/tmp/snowbridge-relay relative to context): ${TARGET_BINARY_IN_TMP_PATH}`
+  );
 
-  const dockerCommand = `docker build -t ${IMAGE_NAME} -f ${dockerfilePath} ${contextPath}`;
-  logger.debug(`Executing docker command: ${dockerCommand}`);
+  const dockerCommand = `docker build -t ${imageName} -f ${dockerfilePath} ${contextPath}`;
+  logger.info(`Executing docker command: ${dockerCommand}`);
   const { stdout, stderr, exitCode } = await $`sh -c ${dockerCommand}`.nothrow().quiet();
 
   if (exitCode !== 0) {
@@ -80,21 +128,16 @@ export default async function buildRelayer() {
     process.exit(exitCode);
   }
 
-  logger.info("Docker build action completed");
+  logger.success(`Docker image ${imageName} built successfully.`);
+  logger.info(
+    `You can now use this image tag in your launch configurations (e.g., --relayer-image-tag ${imageName})`
+  );
+}
 
-  const {
-    exitCode: runExitCode,
-    stdout: runStdout,
-    stderr: runStderr
-  } = await $`sh -c docker run ${IMAGE_NAME}`.quiet().nothrow();
-
-  if (runExitCode !== 0) {
-    logger.error(`Docker run failed with exit code ${runExitCode}`);
-    logger.error(`stdout: ${runStdout.toString()}`);
-    logger.error(`stderr: ${runStderr.toString()}`);
-    process.exit(runExitCode);
-  }
-
-  logger.info("Docker run action completed");
-  logger.success("Docker image built successfully");
+// If called directly, run buildRelayer
+if (import.meta.path === Bun.main) {
+  buildRelayer().catch((err) => {
+    logger.error("Script failed:", err);
+    process.exit(1);
+  });
 }

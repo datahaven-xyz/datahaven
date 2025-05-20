@@ -32,10 +32,6 @@ impl Default for RuntimeParameters {
                 dynamic_params::runtime_config::EthereumGatewayAddress,
                 Some(H160::repeat_byte(0x0)),
             ),
-            dynamic_params::runtime_config::RewardsRegistryAddress(
-                dynamic_params::runtime_config::RewardsRegistryAddress,
-                Some(H160::repeat_byte(0x0)),
-            ),
         )
     }
 }

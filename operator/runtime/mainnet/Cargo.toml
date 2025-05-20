@@ -31,6 +31,7 @@ frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { workspace = true, optional = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
+log = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
 pallet-balances = { workspace = true }

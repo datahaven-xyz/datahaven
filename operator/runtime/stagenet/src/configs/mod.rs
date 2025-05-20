@@ -948,7 +948,13 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             fee: 0,
             commands: match vec![command].try_into() {
                 Ok(cmds) => cmds,
-                Err(_) => return None,
+                Err(_) => {
+                    log::error!(
+                        target: "rewards_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
             },
         };
         Some(message)

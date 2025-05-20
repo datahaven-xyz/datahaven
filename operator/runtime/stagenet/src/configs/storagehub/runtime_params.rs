@@ -1,5 +1,5 @@
 use super::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};
-use crate::{Balance, BlockNumber, Runtime, NANOUNIT, UNIT};
+use crate::{Balance, BlockNumber, Runtime, NANO_UNIT, UNIT};
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use sp_runtime::Perbill;
 
@@ -59,7 +59,7 @@ pub mod dynamic_params {
         ///
         /// With 6 seconds per tick, this means that over a month, the price of 1 GB is:
         /// 50e-9 [`UNIT`]s * 10 ticks/min * 60 min/h * 24 h/day * 30 days/month = 21.6e-3 [`UNIT`]s
-        pub static MostlyStablePrice: Balance = 50 * NANOUNIT;
+        pub static MostlyStablePrice: Balance = 50 * NANO_UNIT;
 
         #[codec(index = 7)]
         #[allow(non_upper_case_globals)]
@@ -98,7 +98,7 @@ pub mod dynamic_params {
         /// 0-size bucket fixed rate payment stream representing the price for 1 GB of data.
         ///
         /// Base rate for a new fixed payment stream established between an MSP and a user.
-        pub static ZeroSizeBucketFixedRate: Balance = 50 * NANOUNIT;
+        pub static ZeroSizeBucketFixedRate: Balance = 50 * NANO_UNIT;
 
         #[codec(index = 12)]
         #[allow(non_upper_case_globals)]

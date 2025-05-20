@@ -4,11 +4,12 @@ use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, UNIT,
 };
 use crate::{
-    BucketNfts, Hashing, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature,
+    BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature,
     WeightToFee, HOURS,
 };
 use core::marker::PhantomData;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
+use datahaven_runtime_common::Hashing;
 use frame_support::pallet_prelude::DispatchClass;
 use frame_support::traits::AsEnsureOriginWithArg;
 use frame_support::{

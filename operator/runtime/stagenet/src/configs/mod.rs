@@ -740,28 +740,28 @@ parameter_types! {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: hex_literal::hex!("01017000"), // 0x01017000
+            version: [16, 0, 0, 56], // 0x10000038
             epoch: 0,
         },
         altair: Fork {
-            version: hex_literal::hex!("02017000"), // 0x02017000
+            version: [32, 0, 0, 56], // 0x20000038
             epoch: 0,
         },
         bellatrix: Fork {
-            version: hex_literal::hex!("03017000"), // 0x03017000
+            version: [48, 0, 0, 56], // 0x30000038
             epoch: 0,
         },
         capella: Fork {
-            version: hex_literal::hex!("04017000"), // 0x04017000
-            epoch: 256,
+            version: [64, 0, 0, 56], // 0x40000038
+            epoch: 0,
         },
         deneb: Fork {
-            version: hex_literal::hex!("05017000"), // 0x05017000
-            epoch: 29696,
+            version: [80, 0, 0, 56], // 0x50000038
+            epoch: 0,
         },
         electra: Fork {
-            version: hex_literal::hex!("06017000"), // 0x06017000
-            epoch: 115968,
+            version: [96, 0, 0, 56], // 0x60000038
+            epoch: 0,
         },
     };
 }

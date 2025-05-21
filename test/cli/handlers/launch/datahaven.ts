@@ -233,7 +233,10 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
   logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
   logger.info("✅ DataHaven Docker network removed.");
 
-  invariant(await checkDataHavenRunning(), "❌ DataHaven containers were not stopped and removed");
+  invariant(
+    (await checkDataHavenRunning()) === false,
+    "❌ DataHaven containers were not stopped and removed"
+  );
 };
 
 /**

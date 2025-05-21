@@ -69,7 +69,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   if (!shouldLaunchRelayers) {
-    logger.info("Skipping Snowbridge relayers launch. Done!");
+    logger.info("👍  Snowbridge relayers launch. Done!");
     printDivider();
     return;
   }
@@ -382,6 +382,10 @@ export const initEthClientPallet = async (
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
+  invariant(
+    launchedNetwork.networkName,
+    "❌ Docker network name not found in LaunchedNetwork instance"
+  );
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \

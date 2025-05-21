@@ -57,7 +57,6 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     unique, EnsureRoot, EnsureRootWithSuccess,
 };
-use hex_literal::hex;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -869,12 +868,6 @@ impl pallet_external_validators::Config for Runtime {
     type Currency = Balances;
 }
 
-parameter_types! {
-    // The Selector is the first 4 bytes of the keccak256 hash of the function signature("updateRewardsMerkleRoot(bytes32)")
-    pub RewardsUpdateSelector: Vec<u8> =  vec![0xdc, 0x3d, 0x04, 0xec];
-    // The Origin is the hash of the string "external_validators_rewards"
-    pub RewardsOrigin: H256 = H256::from_slice(&hex!("c505dfb2df107d106d08bd0f1a0acd10052ca9aa078629a4ccfd0c90c6e69b65"));
-}
 pub struct GetWhitelistedValidators;
 impl Get<Vec<AccountId>> for GetWhitelistedValidators {
     fn get() -> Vec<AccountId> {
@@ -890,7 +883,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let selector = RewardsUpdateSelector::get();
+        let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
 
         let mut calldata = Vec::new();
         calldata.extend_from_slice(&selector);
@@ -903,7 +896,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             value: 0,
         };
         let message = OutboundMessage {
-            origin: RewardsOrigin::get(),
+            origin: runtime_params::dynamic_params::runtime_config::RewardsOrigin::get(),
             // TODO: Determine appropriate id value
             id: unique(rewards_utils.rewards_merkle_root).into(),
             fee: 0,

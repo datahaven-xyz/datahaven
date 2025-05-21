@@ -1,9 +1,9 @@
+use crate::Runtime;
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
 use sp_runtime::BoundedVec;
-
-use crate::Runtime;
+use sp_std::vec;
 
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {

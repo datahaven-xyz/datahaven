@@ -2,6 +2,7 @@ use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
 use sp_runtime::BoundedVec;
+use sp_std::vec;
 
 use crate::Runtime;
 

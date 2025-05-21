@@ -30,6 +30,7 @@ export const launchKurtosis = async (
   if (!shouldLaunchKurtosis) {
     logger.info("👍 Skipping Kurtosis Ethereum network launch. Done!");
 
+    await registerServices(launchedNetwork);
     printDivider();
     return;
   }
@@ -155,19 +156,23 @@ const registerServices = async (launchedNetwork: LaunchedNetwork) => {
   logger.info("📝 Registering Kurtosis service endpoints...");
 
   // Configure EL RPC URL
-  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
-  invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
-  const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-  launchedNetwork.elRpcUrl = elRpcUrl;
-  logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
+  try {
+    const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
+    invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
+    const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
+    launchedNetwork.elRpcUrl = elRpcUrl;
+    logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
 
-  // Configure CL Endpoint
-  const lighthousePublicPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
-  const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
-  invariant(
-    clEndpoint,
-    "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
-  );
-  launchedNetwork.clEndpoint = clEndpoint;
-  logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
+    // Configure CL Endpoint
+    const lighthousePublicPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+    const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
+    invariant(
+      clEndpoint,
+      "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
+    );
+    launchedNetwork.clEndpoint = clEndpoint;
+    logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
+  } catch (error) {
+    logger.warn(`⚠️ Kurtosis service endpoints could not be determined: ${error}`);
+  }
 };

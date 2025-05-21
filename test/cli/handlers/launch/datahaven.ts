@@ -81,6 +81,7 @@ export const launchDataHavenSolochain = async (
   if (!shouldLaunchDataHaven) {
     logger.info("👍 Skipping DataHaven network launch. Done!");
 
+    await registerNodes(launchedNetwork);
     printDivider();
     return;
   }
@@ -326,9 +327,7 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
 
   if (!isContainerRunning) {
     // If the target Docker container is not running, we cannot register it.
-    logger.error(
-      `❌ Docker container ${targetContainerName} is not running. Cannot register node.`
-    );
+    logger.warn(`⚠️ Docker container ${targetContainerName} is not running. Cannot register node.`);
     return;
   }
 

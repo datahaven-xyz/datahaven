@@ -651,6 +651,7 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
+    // TODO: Change to the actual treasury account
     pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
 }
 

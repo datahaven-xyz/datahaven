@@ -651,6 +651,7 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
+    // TODO: Change to the actual treasury account
     pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
 }
 
@@ -709,49 +710,6 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 // The version numbers are taken from looking at the Dora explorer when launching the
 // kurtosis Ethereum network. Hovering over the fork names, shows the version numbers.
 // These version numbers need to match, otherwise the aggregated signature verification will fail.
-#[cfg(any(
-    feature = "std",
-    feature = "fast-runtime",
-    feature = "runtime-benchmarks",
-    test
-))]
-parameter_types! {
-    pub const ChainForkVersions: ForkVersions = ForkVersions {
-        genesis: Fork {
-            version: [16, 0, 0, 56], // 0x10000038
-            epoch: 0,
-        },
-        altair: Fork {
-            version: [32, 0, 0, 56], // 0x20000038
-            epoch: 0,
-        },
-        bellatrix: Fork {
-            version: [48, 0, 0, 56], // 0x30000038
-            epoch: 0,
-        },
-        capella: Fork {
-            version: [64, 0, 0, 56], // 0x40000038
-            epoch: 0,
-        },
-        deneb: Fork {
-            version: [80, 0, 0, 56], // 0x50000038
-            epoch: 0,
-        },
-        electra: Fork {
-            version: [96, 0, 0, 56], // 0x60000038
-            epoch: 0,
-        },
-    };
-}
-
-// Holesky: https://github.com/eth-clients/holesky
-// Fork versions: https://github.com/eth-clients/holesky/blob/main/metadata/config.yaml
-#[cfg(not(any(
-    feature = "std",
-    feature = "fast-runtime",
-    feature = "runtime-benchmarks",
-    test
-)))]
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {

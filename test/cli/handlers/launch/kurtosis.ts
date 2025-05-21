@@ -13,18 +13,21 @@ import type { LaunchedNetwork } from "./launchedNetwork";
  */
 export const launchKurtosis = async (
   launchedNetwork: LaunchedNetwork,
-  options: LaunchOptions = {}
+  options: LaunchOptions
 ): Promise<void> => {
   printHeader("Starting Kurtosis Network");
 
-  if ((await checkKurtosisRunning()) && !options.alwaysClean) {
+  const enclaveName = options.kurtosisEnclaveName;
+  invariant(enclaveName, `❌ No kurtosisEnclaveName provided: ${enclaveName}`);
+
+  if ((await checkKurtosisRunning(enclaveName)) && !options.alwaysClean) {
     logger.info("ℹ️  Kurtosis network is already running.");
 
     logger.trace("Checking if launchKurtosis option was set via flags");
     if (options.launchKurtosis === false) {
       logger.info("👍 Keeping existing Kurtosis enclave.");
 
-      await registerServices(launchedNetwork);
+      await registerServices(launchedNetwork, options.kurtosisEnclaveName);
       printDivider();
       return;
     }
@@ -39,7 +42,7 @@ export const launchKurtosis = async (
       if (!shouldRelaunch) {
         logger.info("👍 Keeping existing Kurtosis enclave.");
 
-        await registerServices(launchedNetwork);
+        await registerServices(launchedNetwork, options.kurtosisEnclaveName);
         printDivider();
         return;
       }
@@ -48,7 +51,7 @@ export const launchKurtosis = async (
 
   if (!options.skipCleaning) {
     logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
-    logger.debug(await $`kurtosis enclave stop datahaven-ethereum`.nothrow().text());
+    logger.debug(await $`kurtosis enclave stop ${enclaveName}`.nothrow().text());
     logger.debug(await $`kurtosis clean`.text());
     logger.debug(await $`kurtosis engine stop`.text());
     logger.debug(await $`docker system prune -f`.nothrow().text());
@@ -68,7 +71,7 @@ export const launchKurtosis = async (
   logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
 
   const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave datahaven-ethereum`
+    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave ${enclaveName}`
       .nothrow()
       .quiet();
 
@@ -78,18 +81,19 @@ export const launchKurtosis = async (
   }
   logger.debug(stdout.toString());
 
-  await registerServices(launchedNetwork);
+  await registerServices(launchedNetwork, options.kurtosisEnclaveName);
   logger.success("Kurtosis network operations completed successfully.");
   printDivider();
 };
 
 /**
- * Checks if a Kurtosis enclave named "datahaven-ethereum" is currently running.
+ * Checks if a Kurtosis enclave with the specified name is currently running.
  *
+ * @param enclaveName - The name of the Kurtosis enclave to check
  * @returns True if the enclave is running, false otherwise
  */
-const checkKurtosisRunning = async (): Promise<boolean> => {
-  const text = await $`kurtosis enclave ls | grep "datahaven-ethereum" | grep RUNNING`.text();
+const checkKurtosisRunning = async (enclaveName: string): Promise<boolean> => {
+  const text = await $`kurtosis enclave ls | grep "${enclaveName}" | grep RUNNING`.text();
   return text.length > 0;
 };
 
@@ -137,18 +141,22 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
  *
  * @param launchedNetwork - The LaunchedNetwork instance to store network details.
  */
-const registerServices = async (launchedNetwork: LaunchedNetwork) => {
+const registerServices = async (launchedNetwork: LaunchedNetwork, enclaveName: string) => {
   logger.info("📝 Registering Kurtosis service endpoints...");
 
   // Configure EL RPC URL
-  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc");
+  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc", enclaveName);
   invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
   const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
   launchedNetwork.elRpcUrl = elRpcUrl;
   logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
 
   // Configure CL Endpoint
-  const lighthousePublicPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+  const lighthousePublicPort = await getPortFromKurtosis(
+    "cl-1-lighthouse-reth",
+    "http",
+    enclaveName
+  );
   const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
   invariant(
     clEndpoint,

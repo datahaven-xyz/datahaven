@@ -54,6 +54,7 @@ program
     "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",
     "--features=fast-runtime"
   )
+  .option("--kurtosis-enclave-name <value>", "Name of the Kurtosis Enclave", "datahaven-ethereum")
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
   .option("--always-clean", "Always clean Kurtosis", false)

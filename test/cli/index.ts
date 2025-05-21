@@ -32,6 +32,7 @@ const program = new Command()
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
+  .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
   .option(
     "--datahaven-build-extra-args <value>",
     "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",
@@ -39,8 +40,6 @@ const program = new Command()
   )
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
-  .option("--always-clean", "Always clean Kurtosis", false)
-  .option("--skip-cleaning", "Skip cleaning Kurtosis")
   .option(
     "-i, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",

@@ -91,7 +91,7 @@ export const SolochainRelayConfigSchema = z.object({
       Gateway: z.string()
     }),
     ethereum: z.object({
-      endpoint: z.string(),
+      endpoint: z.string()
     })
   }),
   schedule: z.object({

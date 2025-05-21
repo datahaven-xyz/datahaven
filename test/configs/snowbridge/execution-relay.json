@@ -1,41 +1,44 @@
 {
-    "source": {
-        "ethereum": {
-            "endpoint": "ws://127.0.0.1:8546"
-        },
-        "contracts": {
-            "Gateway": ""
-        },
-        "channel-id": "",
-        "beacon": {
-            "endpoint": "http://127.0.0.1:9596",
-            "stateEndpoint": "http://127.0.0.1:9596",
-            "spec": {
-                "syncCommitteeSize": 512,
-                "slotsInEpoch": 32,
-                "epochsPerSyncCommitteePeriod": 256,
-                "forkVersions": {
-                    "deneb": 0,
-                    "electra": 0
-                }
-            },
-            "datastore": {
-                "location": "",
-                "maxEntries": 100
-            }
-        }
+  "source": {
+    "ethereum": {
+      "endpoint": "ws://127.0.0.1:59797"
     },
-    "sink": {
-        "parachain": {
-            "endpoint": "ws://127.0.0.1:9944",
-            "maxWatchedExtrinsics": 8,
-            "headerRedundancy": 20
-        }
+    "contracts": {
+      "Gateway": ""
     },
-    "instantVerification": false,
-    "schedule": {
-        "id": 1,
-        "totalRelayerCount": 1,
-        "sleepInterval": 1
+    "beacon": {
+      "endpoint": "http://127.0.0.1:59807",
+      "stateEndpoint": "http://127.0.0.1:59807",
+      "spec": {
+        "syncCommitteeSize": 512,
+        "slotsInEpoch": 32,
+        "epochsPerSyncCommitteePeriod": 256,
+        "forkVersions": {
+          "deneb": 0,
+          "electra": 0
+        }
+      },
+      "datastore": {
+        "location": "",
+        "maxEntries": 1000
+      }
     }
+  },
+  "sink": {
+    "parachain": {
+      "endpoint": "",
+      "maxWatchedExtrinsics": 8,
+      "headerRedundancy": 20
+    }
+  },
+  "instantVerification": false,
+  "schedule": {
+    "id": null,
+    "totalRelayerCount": 1,
+    "sleepInterval": 20
+  },
+  "ofac": {
+    "enabled": false,
+    "apiKey": ""
+  }
 }

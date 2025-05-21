@@ -139,7 +139,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       config: RELAYER_CONFIG_PATHS.EXECUTION,
       pk: {
         type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.GOLIATH.privateKey
+        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
       }
     }
   ];
@@ -184,12 +184,13 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       logger.success(`Updated beefy config written to ${outputFilePath}`);
     } else if (type === "execution") {
       const cfg = parseRelayConfig(json, type);
-      cfg.source.ethereum.endpoint = `ws://127.0.0.1:${ethWsPort}`;
-      cfg.source.beacon.endpoint = `http://127.0.0.1:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://127.0.0.1:${ethHttpPort}`;
-
+      cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethWsPort}`;
+      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethWsPort}`;
       cfg.source.beacon.datastore.location = datastorePath;
-      cfg.sink.parachain.endpoint = `ws://127.0.0.1:${substrateWsPort}`;
+      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+      cfg.source.contracts.Gateway = gatewayAddress;
+      cfg.source.beacon.datastore.location = datastorePath;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated execution config written to ${outputFilePath}`);
     }
@@ -197,7 +198,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
-  await initEthClientPallet(options, launchedNetwork);
+  await initEthClientPallet(options, launchedNetwork, datastorePath);
 
   for (const { config, name, type, pk } of relayersToStart) {
     try {
@@ -236,7 +237,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         type,
         "--config",
         config,
-        type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
+        type === "beacon" || type === "execution" ? "--substrate.private-key" : "--ethereum.private-key",
         pk.value
       ];
 
@@ -336,11 +337,13 @@ const waitBeefyReady = async (
  *
  * @param options - Launch options containing the relayer binary path.
  * @param launchedNetwork - An instance of LaunchedNetwork to interact with the running network.
+ * @param datastorePath - The path to the datastore directory.
  * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
  */
 export const initEthClientPallet = async (
   options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork
+  launchedNetwork: LaunchedNetwork,
+  datastorePath: string
 ) => {
   logger.debug("Initialising eth client pallet");
   // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
@@ -359,9 +362,11 @@ export const initEthClientPallet = async (
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
+  const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
+      -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint \
       --workdir /app \
       --add-host host.docker.internal:host-gateway \

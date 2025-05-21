@@ -64,7 +64,6 @@ export const ExecutionRelayConfigSchema = z.object({
     contracts: z.object({
       Gateway: z.string()
     }),
-    "channel-id": z.string(),
     beacon: z.object({
       endpoint: z.string(),
       stateEndpoint: z.string(),
@@ -92,9 +91,13 @@ export const ExecutionRelayConfigSchema = z.object({
   }),
   instantVerification: z.boolean(),
   schedule: z.object({
-    id: z.number(),
+    id: z.number().nullable(),
     totalRelayerCount: z.number(),
     sleepInterval: z.number()
+  }),
+  ofac: z.object({
+    enabled: z.boolean(),
+    apiKey: z.string()
   })
 });
 export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;

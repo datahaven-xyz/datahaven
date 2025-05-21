@@ -36,7 +36,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.0.0-beta.5",
     "@commander-js/extra-typings": "^13.1.0",
     "@dotenvx/dotenvx": "^1.44.1",
     "@inquirer/prompts": "^7.5.1",

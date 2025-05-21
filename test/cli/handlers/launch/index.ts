@@ -1,6 +1,5 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
-import invariant from "tiny-invariant";
 import { getPortFromKurtosis, logger } from "utils";
 import { checkDependencies } from "./checks";
 import { launchDataHavenSolochain } from "./datahaven";
@@ -59,7 +58,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   let blockscoutBackendUrl: string | undefined = undefined;
 
   if (options.blockscout === true) {
-    invariant(options.kurtosisEnclaveName, "❌ No kurtosisEnclaveName provided");
     const blockscoutPublicPort = await getPortFromKurtosis(
       "blockscout",
       "http",

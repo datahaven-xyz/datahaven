@@ -4,7 +4,7 @@ fullnameOverride: dh-validator
 
 image:
   repository: moonsonglabs/datahaven
-  tag: pr-78
+  tag: main
   pullPolicy: Always
 
 imagePullSecrets:
@@ -23,7 +23,7 @@ node:
   chainKeystore:
     storageClass: "gp2"
   keys:
-      # This is Alice seed. To generate new seed run: docker run --rm moonsonglabs/datahaven:latest key generate
+    # This is Alice seed. To generate new seed run: docker run --rm moonsonglabs/datahaven:latest key generate
     - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
       type: gran
       scheme: ed25519
@@ -42,11 +42,11 @@ node:
       scheme: ecdsa
       extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Alice" || echo "//Bob")'
   customNodeKey:
-   # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
-   # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
-   - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
-   # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
-   - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
+    # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
+    # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
+    - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
+    # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
+    - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
   flags:
     - "--bootnodes /dns/dh-bootnode-0/tcp/30333/p2p/12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk"
   enableOffchainIndexing: true
@@ -61,7 +61,7 @@ extraInitContainers:
     imagePullPolicy: "{{ .Values.image.pullPolicy }}"
     securityContext:
       runAsUser: 0
-    command: [ "/bin/bash" ]
+    command: ["/bin/bash"]
     args:
       - -c
       - |

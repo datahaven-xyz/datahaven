@@ -19,8 +19,7 @@ export interface LaunchOptions {
   blockscout?: boolean;
   relayer?: boolean;
   relayerImageTag?: string;
-  skipCleaning?: boolean;
-  alwaysClean?: boolean;
+  cleanNetwork?: boolean;
   datahaven?: boolean;
   buildDatahaven?: boolean;
   datahavenImageTag?: string;

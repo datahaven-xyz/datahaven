@@ -86,10 +86,11 @@ export const launchDataHavenSolochain = async (
   }
 
   if (await checkDataHavenRunning()) {
-    // If the user wants to launch the DataHaven network, we ask them if they want to clean the existing containers/network
-    // or just continue with the existing containers/network
+    // If the user wants to launch the DataHaven network, we ask them if they want
+    // to clean the existing containers/network or just continue with the existing
+    // containers/network.
     if (shouldLaunchDataHaven) {
-      let shouldRelaunch = options.alwaysClean;
+      let shouldRelaunch = options.cleanNetwork;
 
       if (shouldRelaunch === undefined) {
         shouldRelaunch = await confirmWithTimeout(

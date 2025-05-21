@@ -55,8 +55,9 @@ use frame_support::{
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureRootWithSuccess,
+    unique, EnsureRoot, EnsureRootWithSuccess,
 };
+use hex_literal::hex;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -84,7 +85,7 @@ use sp_consensus_beefy::{
     ecdsa_crypto::AuthorityId as BeefyId,
     mmr::{BeefyDataProvider, MmrLeafVersion},
 };
-use sp_core::{crypto::KeyTypeId, Get, Hasher, H160, H256, U256};
+use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
     traits::{
@@ -910,8 +911,10 @@ impl pallet_external_validators::Config for Runtime {
 }
 
 parameter_types! {
-    pub const UpdateRewardsMerkleRootSignature: &'static [u8] =
-        b"updateRewardsMerkleRoot(bytes32)";
+    // The Selector is the first 4 bytes of the keccak256 hash of the function signature("updateRewardsMerkleRoot(bytes32)")
+    pub RewardsUpdateSelector: Vec<u8> =  vec![0xdc, 0x3d, 0x04, 0xec];
+    // The Origin is the hash of the string "external_validators_rewards"
+    pub RewardsOrigin: H256 = H256::from_slice(&hex!("c505dfb2df107d106d08bd0f1a0acd10052ca9aa078629a4ccfd0c90c6e69b65"));
 }
 pub struct GetWhitelistedValidators;
 impl Get<Vec<AccountId>> for GetWhitelistedValidators {
@@ -928,8 +931,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let selector =
-            Keccak256::hash(UpdateRewardsMerkleRootSignature::get()).as_ref()[..4].to_vec();
+        let selector = RewardsUpdateSelector::get();
 
         let mut calldata = Vec::new();
         calldata.extend_from_slice(&selector);
@@ -938,12 +940,13 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         let command = Command::CallContract {
             target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
             calldata,
-            gas: 0, // TODO: Determine appropriate gas value
+            gas: 100_0000, // TODO: Determine appropriate gas value after testing
             value: 0,
         };
         let message = OutboundMessage {
-            origin: H256::zero(),
-            id: H256::zero(),
+            origin: RewardsOrigin::get(),
+            // TODO: Determine appropriate id value
+            id: unique(rewards_utils.rewards_merkle_root).into(),
             fee: 0,
             commands: match vec![command].try_into() {
                 Ok(cmds) => cmds,

@@ -54,23 +54,21 @@ program
     "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",
     "--features=fast-runtime"
   )
-  .option("--kurtosis-enclave-name <value>", "Name of the Kurtosis Enclave", "datahaven-ethereum")
+  .option("--e --kurtosis-enclave-name <value>", "Name of the Kurtosis Enclave", "datahaven-ethereum")
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
   .option("--always-clean", "Always clean Kurtosis", false)
   .option("--skip-cleaning", "Skip cleaning Kurtosis")
   .option(
-    "-i, --datahaven-image-tag <value>",
+    "--i, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
     "moonsonglabs/datahaven:local"
   )
   .option(
-    "-p, --relayer-image-tag <value>",
+    "--p, --relayer-image-tag <value>",
     "Tag of the relayer",
     "moonsonglabs/snowbridge-relayer:latest"
   )
-  //TODO:
-  // add option for specifying enclave name
   .hook("preAction", launchPreActionHook)
   .action(launch);
 

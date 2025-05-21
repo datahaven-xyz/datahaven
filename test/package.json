@@ -16,7 +16,7 @@
     "start:e2e:verified": "bun cli --verified --blockscout --deploy-contracts --setup-validators --update-validator-set --fund-validators",
     "start:e2e:verified:relayers": "bun cli --verified --blockscout --deploy-contracts --setup-validators --update-validator-set --fund-validators --slot-time 1 --relayer --datahaven",
     "start:e2e:local": "LOG_LEVEL=debug bun start:e2e:ci --bd",
-    "start:e2e:ci": "bun cli --datahaven --no-build-datahaven --launch-kurtosis --deploy-contracts --fund-validators --setup-validators --update-validator-set --relayer --always-clean",
+    "start:e2e:ci": "bun cli --datahaven --no-build-datahaven --launch-kurtosis --deploy-contracts --fund-validators --setup-validators --update-validator-set --relayer --clean-network",
     "start:e2e:minrelayer": "bun cli --relayer --deploy-contracts --no-setup-validators --no-update-validator-set --no-fund-validators --datahaven",
     "stop:docker:datahaven": "docker rm -f $(docker ps -aq --filter name='^datahaven-') 2>/dev/null || true",
     "stop:docker:relayer": "docker rm -f $(docker ps -aq --filter name='^snowbridge-relayer-') 2>/dev/null || true",

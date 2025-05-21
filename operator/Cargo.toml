@@ -212,25 +212,25 @@ fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stab
 fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 
 # StorageHub
-storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
-shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", branch = "all-in-one", default-features = false }
+storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
+shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
 
 pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2412", default-features = false }
 # TODO: Change sp-trie to the next stable version when it's released with the applied fix of this [PR](https://github.com/paritytech/polkadot-sdk/pull/6486)

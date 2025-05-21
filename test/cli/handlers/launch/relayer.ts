@@ -1,12 +1,14 @@
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { createClient, type PolkadotClient } from "polkadot-api";
+import { type PolkadotClient, createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  type RelayerType,
+  SUBSTRATE_FUNDED_ACCOUNTS,
   confirmWithTimeout,
   getEvmEcdsaSigner,
   getPortFromKurtosis,
@@ -16,9 +18,7 @@ import {
   parseRelayConfig,
   printDivider,
   printHeader,
-  type RelayerType,
   runShellCommandWithLogger,
-  SUBSTRATE_FUNDED_ACCOUNTS,
   waitForContainerToStart
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";

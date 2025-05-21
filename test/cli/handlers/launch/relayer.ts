@@ -1,14 +1,12 @@
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { type PolkadotClient, createClient } from "polkadot-api";
+import { createClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  type RelayerType,
-  SUBSTRATE_FUNDED_ACCOUNTS,
   confirmWithTimeout,
   getEvmEcdsaSigner,
   getPortFromKurtosis,
@@ -18,7 +16,9 @@ import {
   parseRelayConfig,
   printDivider,
   printHeader,
+  type RelayerType,
   runShellCommandWithLogger,
+  SUBSTRATE_FUNDED_ACCOUNTS,
   waitForContainerToStart
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
@@ -67,7 +67,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   if (!shouldLaunchRelayers) {
-    logger.info("Skipping Snowbridge relayers launch. Done!");
+    logger.info("👍  Snowbridge relayers launch. Done!");
     printDivider();
     return;
   }
@@ -347,6 +347,10 @@ export const initEthClientPallet = async (
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
+  invariant(
+    launchedNetwork.networkName,
+    "❌ Docker network name not found in LaunchedNetwork instance"
+  );
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \

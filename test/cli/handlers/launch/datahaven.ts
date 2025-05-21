@@ -124,7 +124,6 @@ export const launchDataHavenSolochain = async (
   await buildLocalImage(options);
   await checkTagExists(options.datahavenImageTag);
 
-  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
   logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
 
   for (const id of CLI_AUTHORITY_IDS) {
@@ -317,6 +316,9 @@ const checkTagExists = async (tag: string) => {
 };
 
 const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
+  // Registering DataHaven nodes Docker network.
+  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
+
   const targetContainerName = "datahaven-alice";
   const aliceHostWsPort = 9944; // Standard host port for Alice's WS, as set during launch.
 

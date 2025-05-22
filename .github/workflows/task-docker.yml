@@ -99,8 +99,6 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha,scope=datahaven-build
           cache-to: type=gha,mode=max,scope=datahaven-build
-          build-args: |
-            SCCACHE_GHA_ENABLED=true
           provenance: mode=max
           sbom: true
       - name: Log build cache statistics

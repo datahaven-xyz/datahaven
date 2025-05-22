@@ -18,7 +18,7 @@ import {
 } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
-import { DOCKER_NETWORK_NAME } from "../consts";
+import { DOCKER_NETWORK_NAME } from "../common/consts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
 

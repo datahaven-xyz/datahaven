@@ -11,7 +11,7 @@ import {
 } from "utils";
 import { z } from "zod";
 import { checkDependencies } from "../common/checks";
-import { COMPONENTS, DOCKER_NETWORK_NAME } from "../consts";
+import { COMPONENTS, DOCKER_NETWORK_NAME } from "../common/consts";
 
 export interface StopOptions {
   all?: boolean;

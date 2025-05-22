@@ -2,8 +2,6 @@ import fs from "node:fs";
 import invariant from "tiny-invariant";
 import { logger, type RelayerType } from "utils";
 
-type PipeOptions = number | "inherit" | "pipe" | "ignore";
-type BunProcess = Bun.Subprocess<PipeOptions, PipeOptions, PipeOptions>;
 type ContainerSpec = { name: string; publicPorts: Record<string, number> };
 
 /**
@@ -12,7 +10,6 @@ type ContainerSpec = { name: string; publicPorts: Record<string, number> };
  */
 export class LaunchedNetwork {
   protected runId: string;
-  protected processes: BunProcess[];
   protected _containers: ContainerSpec[];
   protected fileDescriptors: number[];
   protected _networkName: string;
@@ -24,7 +21,6 @@ export class LaunchedNetwork {
 
   constructor() {
     this.runId = crypto.randomUUID();
-    this.processes = [];
     this.fileDescriptors = [];
     this._containers = [];
     this._activeRelayers = [];
@@ -70,14 +66,6 @@ export class LaunchedNetwork {
    */
   addFileDescriptor(fd: number) {
     this.fileDescriptors.push(fd);
-  }
-
-  /**
-   * Adds a running process to be managed and cleaned up.
-   * @param process - The Bun subprocess object.
-   */
-  addProcess(process: BunProcess) {
-    this.processes.push(process);
   }
 
   addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
@@ -144,12 +132,6 @@ export class LaunchedNetwork {
   }
 
   async cleanup() {
-    logger.debug("Running cleanup");
-    for (const process of this.processes) {
-      logger.debug(`Process is still running: ${process.pid}`);
-      process.unref();
-    }
-
     for (const fd of this.fileDescriptors) {
       try {
         fs.closeSync(fd);

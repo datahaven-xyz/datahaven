@@ -9,26 +9,25 @@ import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 
-// Non-optional properties determined by having default values
+// Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {
-  verified?: boolean;
+  datahaven?: boolean;
+  buildDatahaven?: boolean;
+  datahavenBuildExtraArgs: string;
+  datahavenImageTag: string;
   launchKurtosis?: boolean;
+  kurtosisEnclaveName: string;
+  slotTime?: number;
+  kurtosisNetworkArgs?: string;
+  verified?: boolean;
+  blockscout?: boolean;
   deployContracts?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
   updateValidatorSet?: boolean;
-  kurtosisEnclaveName: string;
-  blockscout?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
   cleanNetwork?: boolean;
-  datahaven?: boolean;
-  buildDatahaven?: boolean;
-  datahavenImageTag: string;
-  datahavenBuildExtraArgs: string;
-  kurtosisNetworkArgs?: string;
-  // Kept as optional due to parse fn
-  slotTime?: number;
 }
 
 export const BASE_SERVICES = [

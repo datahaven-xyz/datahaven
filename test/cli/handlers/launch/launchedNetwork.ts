@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import invariant from "tiny-invariant";
 import { logger, type RelayerType } from "utils";
 

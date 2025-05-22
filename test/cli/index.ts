@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
-import { launch, launchPreActionHook } from "./handlers";
+import { launch, launchPreActionHook, stop, stopPreActionHook } from "./handlers";
 
 // Function to parse integer
 function parseIntValue(value: string): number {
@@ -21,9 +21,8 @@ const program = new Command()
 // ===== Launch ======
 program
   .command("launch")
-  .description("Launch a full E2E DataHaven & Ethereum network and more")
   .addHelpText(
-    "beforeAll",
+    "before",
     `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
   Complete with:
   - Solo-chain validators,
@@ -31,6 +30,7 @@ program
   - Snowbridge Relayers
   - Ethereum Private network`
   )
+  .description("Launch a full E2E DataHaven & Ethereum network and more")
   .option("--d, --datahaven", "(Re)Launch DataHaven network")
   .option("--nd, --no-datahaven", "Skip launching DataHaven network")
   .option("--bd, --build-datahaven", "Build DataHaven node local Docker image")
@@ -76,10 +76,19 @@ program
   .action(launch);
 
 // ===== Stop ======
-// add option for retain bd
-// add option for retain relayers
-// add option to kill engine too
-program.command("stop").description("Stop any launched running network components");
+program
+  .command("stop")
+  .description("Stop any launched running network components")
+  .option("--A --all", "Stop all components associated with project")
+  .option("--d, --datahaven", "Stop DataHaven network")
+  .option("--nd, --no-datahaven", "Skip stopping DataHaven network")
+  .option("--e, --enclave", "Stop Ethereum Kurtosis enclave")
+  .option("--ne, --no-enclave", "Skip stopping Ethereum Kurtosis enclave")
+  .option("--kurtosis-engine", "Stop Kurtosis engine", false)
+  .option("--r, --relayer", "Stop Snowbridge Relayers")
+  .option("--nr, --no-relayer", "Skip stopping Snowbridge Relayers")
+  .hook("preAction", stopPreActionHook)
+  .action(stop);
 
 // ===== Exec ======
 // template literal union of commands to run

@@ -1,24 +1,3 @@
-// Add lots of options for what things to no stop
-// e.g. retain-datahaven
-//
-// Make it go through and check if something needs cleaning before stopping it and removing it
-// needs to clean kurtosis
-// needs to clean dh
-// relayers
-// optionally remove kurtosis engine
-// rogram
-//   .command("stop")
-//   .description("Stop any launched running network components")
-//   .option("--A --all", "Stop all components associated with project")
-//   .option("--d, --datahaven", "Stop DataHaven network")
-//   .option("--nd, --no-datahaven", "Skip stopping DataHaven network")
-//   .option("--e, --enclave", "Stop Ethereum Kurtosis enclave")
-//   .option("--ne, --no-enclave", "Skip stopping Ethereum Kurtosis enclave")
-//   .option("--kurtosis-engine", "Stop Kurtosis engine", false)
-//   .option("--r, --relayer", "Stop Snowbridge Relayers")
-//   .option("--nr, --no-relayer", "Skip stopping Snowbridge Relayers")
-//   .action(stop)
-
 import type { Command } from "@commander-js/extra-typings";
 import invariant from "tiny-invariant";
 import {

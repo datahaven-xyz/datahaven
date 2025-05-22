@@ -85,9 +85,9 @@ const installCargoZigbuild = async (): Promise<void> => {
 };
 
 const addRustupTarget = async (target: string): Promise<void> => {
-  if (!(await $`rustup target list --installed`.text()).includes(target)) {
-    await $`rustup target add ${target}`.text();
-  }
+  // if (!(await $`rustup target list --installed`.text()).includes(target)) {
+    logger.debug(await $`rustup target add ${target}`.text())
+  // }
 };
 
 // Updated function to build and copy libpq.so

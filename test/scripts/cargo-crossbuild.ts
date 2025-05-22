@@ -37,7 +37,7 @@ export const cargoCrossbuild = async (options: { datahavenBuildExtraArgs?: strin
     // Get additional arguments from command line
     const additionalArgs = options.datahavenBuildExtraArgs ?? "";
 
-    const command = `cargo zigbuild --target ${target} --release ${additionalArgs}}`;
+    const command = `cargo zigbuild --target ${target} --release ${additionalArgs}`;
     logger.debug(`Running build command: ${command}`);
 
     if (LOG_LEVEL === "debug") {

@@ -27,7 +27,7 @@ export const performSummaryOperations = async (
 
     const serviceInfo = service.startsWith("datahaven-")
       ? undefined
-      : await getServiceFromKurtosis(service);
+      : await getServiceFromKurtosis(service, options.kurtosisEnclaveName);
     logger.trace("Service info", serviceInfo);
     switch (true) {
       case service.startsWith("cl-"): {

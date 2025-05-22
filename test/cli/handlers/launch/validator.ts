@@ -34,7 +34,7 @@ export const performValidatorOperations = async (
       rpcUrl: networkRpcUrl
     });
   } else {
-    logger.debug("Skipping validator funding");
+    logger.info("👍 Skipping validator funding");
     printDivider();
   }
 
@@ -88,11 +88,11 @@ export const performValidatorOperations = async (
         rpcUrl: networkRpcUrl
       });
     } else {
-      logger.debug("Skipping validator set update");
+      logger.info("👍 Skipping validator set update");
       printDivider();
     }
   } else {
-    logger.debug("Skipping validator setup");
+    logger.info("👍 Skipping validator setup");
     printDivider();
   }
 };

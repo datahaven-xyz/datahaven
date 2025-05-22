@@ -63,12 +63,12 @@ program
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
   .option(
-    "--i, --datahaven-image-tag <value>",
+    "--dit, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
     "moonsonglabs/datahaven:local"
   )
   .option(
-    "--p, --relayer-image-tag <value>",
+    "--rit, --relayer-image-tag <value>",
     "Tag of the relayer",
     "moonsonglabs/snowbridge-relayer:latest"
   )

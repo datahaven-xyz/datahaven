@@ -58,4 +58,4 @@ runs:
     - name: Install Protoc
       uses: arduino/setup-protoc@v3
       with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token: ${{ github.token }}

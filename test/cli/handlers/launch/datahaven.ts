@@ -172,6 +172,9 @@ export const launchDataHavenSolochain = async (
       logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
       await setupDataHavenValidatorConfig(launchedNetwork);
 
+      // Set the DataHaven RPC URL in the LaunchedNetwork instance
+      launchedNetwork.dhRpcUrl = `ws://127.0.0.1:${DEFAULT_PUBLIC_WS_PORT}`;
+
       printDivider();
       return;
     }
@@ -284,7 +287,9 @@ const buildLocalImage = async (options: LaunchOptions) => {
     return;
   }
 
-  await cargoCrossbuild({ datahavenBuildExtraArgs: options.datahavenBuildExtraArgs });
+  await cargoCrossbuild({
+    datahavenBuildExtraArgs: options.datahavenBuildExtraArgs
+  });
 
   logger.info("🐳 Building DataHaven node local Docker image...");
   if (LOG_LEVEL === "trace") {

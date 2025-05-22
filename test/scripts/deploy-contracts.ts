@@ -3,16 +3,19 @@ import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
   logger,
+  parseDeploymentsFile,
   printDivider,
   printHeader,
   runShellCommandWithLogger
 } from "utils";
+import type { ParameterCollection } from "utils/parameters";
 
 interface DeployContractsOptions {
   rpcUrl: string;
   verified?: boolean;
   blockscoutBackendUrl?: string;
   deployContracts?: boolean;
+  parameterCollection?: ParameterCollection;
 }
 
 /**
@@ -23,10 +26,17 @@ interface DeployContractsOptions {
  * @param options.verified - Whether to verify contracts (requires blockscoutBackendUrl)
  * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
  * @param options.deployContracts - Flag to control deployment (if undefined, will prompt)
+ * @param options.parameterCollection - Collection of parameters to update in the DataHaven runtime
  * @returns Promise resolving to true if contracts were deployed successfully, false if skipped
  */
 export const deployContracts = async (options: DeployContractsOptions): Promise<boolean> => {
-  const { rpcUrl, verified = false, blockscoutBackendUrl, deployContracts } = options;
+  const {
+    rpcUrl,
+    verified = false,
+    blockscoutBackendUrl,
+    deployContracts,
+    parameterCollection
+  } = options;
 
   // Check if deployContracts option was set via flags, or prompt if not
   let shouldDeployContracts = deployContracts;
@@ -82,6 +92,27 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
 
   // Using custom shell command to improve logging with forge's stdoutput
   await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
+
+  // After deployment, read the Gateway address and add it to parameters if collection is provided
+  if (parameterCollection) {
+    try {
+      const deployments = await parseDeploymentsFile();
+      const gatewayAddress = deployments.Gateway;
+
+      if (gatewayAddress) {
+        logger.info(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+
+        parameterCollection.addParameter({
+          name: "EthereumGatewayAddress",
+          value: gatewayAddress
+        });
+      } else {
+        logger.warn("⚠️ Gateway address not found in deployments file");
+      }
+    } catch (error) {
+      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+    }
+  }
 
   logger.success("Contracts deployed successfully");
   printDivider();

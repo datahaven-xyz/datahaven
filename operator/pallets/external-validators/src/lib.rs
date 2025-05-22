@@ -49,7 +49,7 @@ use {
 
 #[cfg(test)]
 mod mock;
-mod traits;
+pub mod traits;
 
 #[cfg(test)]
 mod tests;

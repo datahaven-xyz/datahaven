@@ -2337,6 +2337,7 @@ dependencies = [
  "frame-try-runtime",
  "hex",
  "hex-literal 0.3.4",
+ "log",
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
@@ -2346,6 +2347,8 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-external-validators",
+ "pallet-external-validators-rewards",
+ "pallet-external-validators-rewards-runtime-api",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2517,6 +2520,7 @@ dependencies = [
  "frame-try-runtime",
  "hex",
  "hex-literal 0.3.4",
+ "log",
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
@@ -2526,6 +2530,8 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-external-validators",
+ "pallet-external-validators-rewards",
+ "pallet-external-validators-rewards-runtime-api",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2605,6 +2611,7 @@ dependencies = [
  "frame-try-runtime",
  "hex",
  "hex-literal 0.3.4",
+ "log",
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
@@ -2614,6 +2621,8 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-external-validators",
+ "pallet-external-validators-rewards",
+ "pallet-external-validators-rewards-runtime-api",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -7645,6 +7654,43 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-external-validators-rewards"
+version = "0.1.0"
+dependencies = [
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-external-validators",
+ "pallet-session",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "snowbridge-core 0.2.0",
+ "snowbridge-merkle-tree",
+ "snowbridge-outbound-queue-primitives",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-external-validators-rewards-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "snowbridge-merkle-tree",
+ "sp-api",
+ "sp-core",
 ]
 
 [[package]]

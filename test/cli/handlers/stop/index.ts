@@ -10,8 +10,8 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import { z } from "zod";
+import { checkDependencies } from "../common/checks";
 import { COMPONENTS, DOCKER_NETWORK_NAME } from "../consts";
-import { checkDependencies } from "../launch/checks";
 
 export interface StopOptions {
   all?: boolean;

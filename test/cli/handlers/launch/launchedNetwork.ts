@@ -11,7 +11,6 @@ type ContainerSpec = { name: string; publicPorts: Record<string, number> };
 export class LaunchedNetwork {
   protected runId: string;
   protected _containers: ContainerSpec[];
-  protected fileDescriptors: number[];
   protected _networkName: string;
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
@@ -21,7 +20,6 @@ export class LaunchedNetwork {
 
   constructor() {
     this.runId = crypto.randomUUID();
-    this.fileDescriptors = [];
     this._containers = [];
     this._activeRelayers = [];
     this._networkName = "";
@@ -58,14 +56,6 @@ export class LaunchedNetwork {
     const container = this._containers.find((x) => x.name === id);
     invariant(container, `❌ Container ${id} not found`);
     return container.publicPorts.ws ?? -1;
-  }
-
-  /**
-   * Adds a file descriptor to be managed and cleaned up.
-   * @param fd - The file descriptor number.
-   */
-  addFileDescriptor(fd: number) {
-    this.fileDescriptors.push(fd);
   }
 
   addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
@@ -129,17 +119,5 @@ export class LaunchedNetwork {
 
   public get relayers(): RelayerType[] {
     return [...this._activeRelayers];
-  }
-
-  async cleanup() {
-    for (const fd of this.fileDescriptors) {
-      try {
-        fs.closeSync(fd);
-        this.fileDescriptors = this.fileDescriptors.filter((x) => x !== fd);
-        logger.debug(`Closed file descriptor ${fd}`);
-      } catch (error) {
-        logger.error(`Error closing file descriptor ${fd}: ${error}`);
-      }
-    }
   }
 }

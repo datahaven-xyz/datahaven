@@ -89,11 +89,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
 export const launch = async (options: LaunchOptions) => {
   const run = new LaunchedNetwork();
-  try {
-    await launchFunction(options, run);
-  } finally {
-    await run.cleanup();
-  }
+  await launchFunction(options, run);
 };
 
 export const launchPreActionHook = (

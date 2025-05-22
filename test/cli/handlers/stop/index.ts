@@ -10,6 +10,7 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import { z } from "zod";
+import { COMPONENTS, DOCKER_NETWORK_NAME } from "../consts";
 import { checkDependencies } from "../launch/checks";
 
 export interface StopOptions {
@@ -29,42 +30,30 @@ export const stopPreActionHook = (thisCmd: Command<[], StopOptions & { [key: str
 };
 
 export const stop = async (options: StopOptions) => {
-  logger.info("Stopping network components...");
+  logger.info("🛑 Stopping network components...");
   logger.debug(`Stop options: ${JSON.stringify(options)}`);
 
   await checkDependencies();
 
   printHeader("Snowbridge Relayers");
   await stopDockerComponents("snowbridge", options);
-  printHeader("Datahaven network");
+  printHeader("Datahaven Network");
   await stopDockerComponents("datahaven", options);
+  await removeDockerNetwork(DOCKER_NETWORK_NAME, options);
   printHeader("Ethereum Network");
   await stopAllEnclaves(options);
   printHeader("Kurtosis Engine");
   await stopKurtosisEngine(options);
 };
 
-const COMPONENTS = {
-  datahaven: {
-    imageName: "moonsonglabs/datahaven",
-    componentName: "Datahaven Network",
-    optionName: "datahaven"
-  },
-  snowbridge: {
-    imageName: "snowbridge-relayer",
-    componentName: "Snowbridge Relayers",
-    optionName: "relayer"
-  }
-} as const;
-
 export const stopDockerComponents = async (type: keyof typeof COMPONENTS, options: StopOptions) => {
   const name = COMPONENTS[type].componentName;
   const imageName = COMPONENTS[type].imageName;
   logger.debug(`Checking currently running ${name} ...`);
   const relayers = await getContainersMatchingImage(imageName);
-  logger.info(`Found ${relayers.length} containers(s) running`);
+  logger.info(`🔎 Found ${relayers.length} containers(s) running`);
   if (relayers.length === 0) {
-    logger.info(`No ${name} containers found running`);
+    logger.info(`🤷‍ No ${name} containers found running`);
     return;
   }
   let shouldStopComponent = options.all || options[COMPONENTS[type].optionName];
@@ -72,16 +61,16 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
     shouldStopComponent = await confirmWithTimeout(
       `Do you want to stop the ${imageName} relayers?`,
       true,
-      5
+      10
     );
   } else {
-    logger.debug(
+    logger.info(
       `🏳️ Using flag option: ${shouldStopComponent ? "will stop" : "will not stop"} ${name}`
     );
   }
 
   if (!shouldStopComponent) {
-    logger.info(`Skipping stopping ${name} due to flag option`);
+    logger.info(`👍 Skipping stopping ${name} due to flag option`);
     return;
   }
 
@@ -94,15 +83,54 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
   logger.info(`🪓 ${relayers.length} ${name} containers stopped successfully`);
 };
 
+const removeDockerNetwork = async (networkName: string, options: StopOptions) => {
+  logger.debug(`Checking if Docker network ${networkName} exists...`);
+  const networkOutput =
+    await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
+
+  // Check if networkOutput has any network names (not just whitespace or empty lines)
+  const networksExist =
+    networkOutput
+      .trim()
+      .split("\n")
+      .filter((line) => line.trim().length > 0).length > 0;
+  if (!networksExist) {
+    logger.info(`🤷‍ Docker network ${networkName} does not exist, skipping`);
+    return;
+  }
+
+  let shouldRemoveNetwork = options.all || options.datahaven;
+  if (shouldRemoveNetwork === undefined) {
+    shouldRemoveNetwork = await confirmWithTimeout(
+      `Do you want to remove the Docker network ${networkName}?`,
+      true,
+      10
+    );
+  }
+
+  if (!shouldRemoveNetwork) {
+    logger.info(`👍 Skipping removing Docker network ${networkName} due to flag option`);
+    return;
+  }
+
+  logger.info(`⛓️‍💥 Removing Docker network: ${networkName}`);
+  const { exitCode, stderr } = await $`docker network rm -f ${networkName}`.nothrow().quiet();
+  if (exitCode !== 0) {
+    logger.warn(`⚠️ Failed to remove Docker network: ${stderr}`);
+  } else {
+    logger.info(`🪓 Docker network ${networkName} removed successfully`);
+  }
+};
+
 const stopAllEnclaves = async (options: StopOptions) => {
-  logger.info("Checking for running Kurtosis enclaves...");
+  logger.info("🔎 Checking for running Kurtosis enclaves...");
 
   let shouldStopEnclave = options.all || options.enclave;
   if (shouldStopEnclave === undefined) {
     shouldStopEnclave = await confirmWithTimeout(
       "Do you want to stop the all the Kurtosis enclaves?",
       true,
-      5
+      10
     );
   } else {
     logger.debug(
@@ -111,7 +139,7 @@ const stopAllEnclaves = async (options: StopOptions) => {
   }
 
   if (!shouldStopEnclave) {
-    logger.info("Skipping stopping Kurtosis enclaves due to flag option");
+    logger.info("👍 Skipping stopping Kurtosis enclaves due to flag option");
     return;
   }
 
@@ -133,9 +161,9 @@ const stopAllEnclaves = async (options: StopOptions) => {
   const enclaves: KurtosisEnclaveInfo[] = [];
 
   if (enclaveCount > 0) {
-    logger.info(`Found ${enclaveCount} Kurtosis enclave(s) running.`);
-    // Regex to capture the columns: UUID, Name, Status, Creation Time
-    const enclaveRegex = /^(\S+)\s+(.+?)\s+(\S+)\s+([\w,: ]+)$/;
+    logger.info(`🔎 Found ${enclaveCount} Kurtosis enclave(s) running.`);
+    // Updated regex to match the actual format: "uuid name status creationTime"
+    const enclaveRegex = /^(\S+)\s+(\S+)\s+(\S+)\s+(.+)$/;
 
     for (const line of lines) {
       const match = line.match(enclaveRegex);
@@ -152,11 +180,11 @@ const stopAllEnclaves = async (options: StopOptions) => {
           enclaves.push(parseResult.data);
         } else {
           logger.warn(
-            `Could not parse enclave line: "${line}". Error: ${parseResult.error.message}`
+            `⚠️ Could not parse enclave line: "${line}". Error: ${parseResult.error.message}`
           );
         }
       } else {
-        logger.warn(`Could not parse enclave line (regex mismatch): "${line}"`);
+        logger.warn(`⚠️ Could not parse enclave line (regex mismatch): "${line}"`);
       }
     }
 
@@ -165,14 +193,14 @@ const stopAllEnclaves = async (options: StopOptions) => {
 
       for (const { creationTime, name, status, uuid } of enclaves) {
         logger.debug(`UUID: ${uuid}, Name: ${name}, Status: ${status}, Created: ${creationTime}`);
-        logger.info(`Removing enclave ${name}`);
+        logger.info(`🗑️ Removing enclave ${name}`);
         logger.debug(await $`kurtosis enclave rm ${uuid} -f`.text());
       }
     } else if (lines.length > 0 && enclaves.length === 0) {
       logger.warn("Found enclave lines in output, but failed to parse any of them.");
     }
   } else {
-    logger.info("No Kurtosis enclaves found running.");
+    logger.info("🤷‍ No Kurtosis enclaves found running.");
     return;
   }
   logger.info(`🪓 ${lines.length} enclaves cleaned`);
@@ -185,12 +213,12 @@ export const stopKurtosisEngine = async (options: StopOptions) => {
   logger.debug(`${matches.length} kurtosis engine(s) running`);
   logger.trace(JSON.stringify(matches));
   if (matches.length === 0) {
-    logger.info("No Kurtosis engine found running, skipping");
+    logger.info("🤷‍ No Kurtosis engine found running, skipping");
     return;
   }
 
   if (!options.kurtosisEngine) {
-    logger.info("Skipping stopping Kurtosis engine due to flag option");
+    logger.info("👍 Skipping stopping Kurtosis engine due to flag option");
     return;
   }
   await runShellCommandWithLogger("kurtosis engine stop", {

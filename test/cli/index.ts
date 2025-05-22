@@ -1,6 +1,14 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
-import { launch, launchPreActionHook, stop, stopPreActionHook } from "./handlers";
+import type { DeployEnvironment } from "utils";
+import {
+  deploy,
+  deployPreActionHook,
+  launch,
+  launchPreActionHook,
+  stop,
+  stopPreActionHook
+} from "./handlers";
 
 // Function to parse integer
 function parseIntValue(value: string): number {
@@ -11,12 +19,63 @@ function parseIntValue(value: string): number {
   return parsedValue;
 }
 
+// Function to parse and validate DeployEnvironment
+function parseDeployEnvironment(value: string): DeployEnvironment {
+  if (value === "staging" || value === "testnet" || value === "mainnet") {
+    return value;
+  }
+  throw new InvalidArgumentError(
+    "Invalid environment. Must be one of 'staging', 'testnet', or 'mainnet'."
+  );
+}
+
 // =====  Program  =====
 const program = new Command()
   .version("0.2.0")
   .name("bun cli")
   .summary("🫎  DataHaven CLI: Network Toolbox")
   .usage("[options]");
+
+// ===== Deploy ======
+program
+  .command("deploy")
+  .addHelpText(
+    "before",
+    `🫎  DataHaven: Network Deployer CLI for deploying a full DataHaven network stack to a Kubernetes cluster
+    It will deploy:
+    - DataHaven solochain validators (all envs),
+    - Storage providers (all envs) (TODO),
+    - Kurtosis Ethereum private network (staging env),
+    - Snowbridge Relayers (all envs)
+    `
+  )
+  .description("Deploy a full DataHaven network stack to a Kubernetes cluster")
+  .option(
+    "--e, --environment <value>",
+    "Environment to deploy to",
+    parseDeployEnvironment,
+    "staging"
+  )
+  .option(
+    "--d, --datahaven-image-tag <value>",
+    "Tag of the datahaven image to use",
+    "moonsonglabs/datahaven:main"
+  )
+  .option(
+    "--ke, --kurtosis-enclave-name <value>",
+    "Name of the Kurtosis enclave",
+    "datahaven-ethereum"
+  )
+  .option("--kn, --kurtosis-network-args <value>", "CustomKurtosis network args")
+  .option("--v, --verified", "Verify smart contracts with Blockscout")
+  .option("--b, --blockscout", "Enable Blockscout")
+  .option(
+    "--rit, --relayer-image-tag <value>",
+    "Tag of the relayer image to use",
+    "moonsonglabs/snowbridge-relayer:latest"
+  )
+  .hook("preAction", deployPreActionHook)
+  .action(deploy);
 
 // ===== Launch ======
 program
@@ -26,9 +85,10 @@ program
     `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
   Complete with:
   - Solo-chain validators,
-  - Storage providers,
+  - Storage providers (TODO),
+  - Ethereum Private network,
   - Snowbridge Relayers
-  - Ethereum Private network`
+  `
   )
   .description("Launch a full E2E DataHaven & Ethereum network and more")
   .option("--d, --datahaven", "(Re)Launch DataHaven network")

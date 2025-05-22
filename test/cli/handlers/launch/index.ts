@@ -1,7 +1,7 @@
 import type { Command } from "@commander-js/extra-typings";
 import { deployContracts } from "scripts/deploy-contracts";
 import { getPortFromKurtosis, logger } from "utils";
-import { checkDependencies } from "../common/checks";
+import { checkBaseDependencies } from "../common/checks";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
@@ -38,7 +38,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   const timeStart = performance.now();
 
-  await checkDependencies();
+  await checkBaseDependencies();
 
   await launchDataHavenSolochain(options, launchedNetwork);
 

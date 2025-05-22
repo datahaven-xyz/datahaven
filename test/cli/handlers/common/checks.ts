@@ -2,8 +2,8 @@ import { $ } from "bun";
 import { logger, printDivider, printHeader } from "utils";
 
 //  =====  Checks  =====
-export const checkDependencies = async (): Promise<void> => {
-  printHeader("Environment Checks");
+export const checkBaseDependencies = async (): Promise<void> => {
+  printHeader("Base Dependencies Checks");
 
   if (!(await checkKurtosisInstalled())) {
     logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
@@ -21,10 +21,24 @@ export const checkDependencies = async (): Promise<void> => {
 
   if (!(await checkForgeInstalled())) {
     logger.error("Is foundry installed? https://book.getfoundry.sh/getting-started/installation");
-    throw Error("❌ forge binary not found in PATH");
+    throw Error("❌ Forge binary not found in PATH");
   }
 
   logger.success("Forge is installed");
+
+  printDivider();
+};
+
+export const checkDeployDependencies = async (): Promise<void> => {
+  printHeader("Deploy Dependencies Checks");
+
+  if (!(await checkHelmInstalled())) {
+    logger.error("Is Helm installed? https://helm.sh/docs/intro/install/");
+    throw Error("❌ Helm binary not found in PATH");
+  }
+
+  logger.success("Helm is installed");
+
   printDivider();
 };
 
@@ -50,6 +64,16 @@ const checkDockerRunning = async (): Promise<boolean> => {
 
 const checkForgeInstalled = async (): Promise<boolean> => {
   const { exitCode, stderr, stdout } = await $`forge --version`.nothrow().quiet();
+  if (exitCode !== 0) {
+    logger.error(stderr.toString());
+    return false;
+  }
+  logger.debug(stdout.toString());
+  return true;
+};
+
+const checkHelmInstalled = async (): Promise<boolean> => {
+  const { exitCode, stderr, stdout } = await $`helm version`.nothrow().quiet();
   if (exitCode !== 0) {
     logger.error(stderr.toString());
     return false;

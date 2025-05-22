@@ -10,7 +10,7 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import { z } from "zod";
-import { checkDependencies } from "../common/checks";
+import { checkBaseDependencies } from "../common/checks";
 import { COMPONENTS, DOCKER_NETWORK_NAME } from "../common/consts";
 
 export interface StopOptions {
@@ -33,7 +33,7 @@ export const stop = async (options: StopOptions) => {
   logger.info("🛑 Stopping network components...");
   logger.debug(`Stop options: ${JSON.stringify(options)}`);
 
-  await checkDependencies();
+  await checkBaseDependencies();
 
   printHeader("Snowbridge Relayers");
   await stopDockerComponents("snowbridge", options);

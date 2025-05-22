@@ -3,7 +3,7 @@ import type { LaunchOptions } from "cli/handlers";
 import invariant from "tiny-invariant";
 import { confirmWithTimeout, getPortFromKurtosis, logger, printDivider, printHeader } from "utils";
 import { parse, stringify } from "yaml";
-import type { LaunchedNetwork } from "./launchedNetwork";
+import type { LaunchedNetwork } from "../common/launchedNetwork";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.

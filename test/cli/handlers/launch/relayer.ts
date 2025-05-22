@@ -23,8 +23,8 @@ import {
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
+import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
-import type { LaunchedNetwork } from "./launchedNetwork";
 
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 

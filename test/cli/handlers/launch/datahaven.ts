@@ -19,8 +19,8 @@ import {
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import { DOCKER_NETWORK_NAME } from "../common/consts";
+import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
-import type { LaunchedNetwork } from "./launchedNetwork";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 

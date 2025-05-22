@@ -30,14 +30,6 @@ export interface LaunchOptions {
   cleanNetwork?: boolean;
 }
 
-export const BASE_SERVICES = [
-  "cl-1-lighthouse-reth",
-  "cl-2-lighthouse-reth",
-  "el-1-reth-lighthouse",
-  "el-2-reth-lighthouse",
-  "dora"
-];
-
 // =====  Launch Handler Functions  =====
 
 const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedNetwork) => {

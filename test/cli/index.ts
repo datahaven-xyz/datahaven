@@ -91,9 +91,9 @@ program
   .action(stop);
 
 // ===== Exec ======
-// template literal union of commands to run
-program
-  .command("exec <action> [args]")
-  .description("Execute a standalone function against an running running network");
+// Disabled until need arises
+// program
+//   .command("exec <action> [args]")
+//   .description("Execute a standalone function against an running running network");
 
 program.parseAsync(Bun.argv);

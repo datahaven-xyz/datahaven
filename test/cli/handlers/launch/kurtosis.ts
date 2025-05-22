@@ -62,7 +62,7 @@ export const launchKurtosis = async (
 
       // Case: User wants to clean and relaunch the enclave
       logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
-      logger.debug(await $`kurtosis enclave stop datahaven-ethereum`.nothrow().text());
+      logger.debug(await $`kurtosis enclave stop ${options.kurtosisEnclaveName}`.nothrow().text());
       logger.debug(await $`kurtosis clean`.text());
       logger.debug(await $`kurtosis engine stop`.nothrow().text());
       logger.debug(await $`docker system prune -f`.nothrow().text());

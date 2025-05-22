@@ -21,15 +21,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN cargo install cargo-chef --version 0.1.71 --locked
 
+ARG SCCACHE_GHA_ENABLED
+ARG ACTIONS_CACHE_URL
+ARG ACTIONS_RUNTIME_TOKEN
+
 ENV RUSTC_WRAPPER=sccache \
     SCCACHE_DIR=/usr/local/sccache \
     SCCACHE_CACHE_SIZE=25G \
-    RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold"
+    RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold" \
+    SCCACHE_GHA_ENABLED=${SCCACHE_GHA_ENABLED} \
+    ACTIONS_CACHE_URL=${ACTIONS_CACHE_URL} \
+    ACTIONS_RUNTIME_TOKEN=${ACTIONS_RUNTIME_TOKEN}
 
 # --- Prepare build plan with cargo-chef ---
 FROM base AS planner
 WORKDIR /datahaven
-COPY ./operator/ .
+COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # --- Build dependencies using cargo-chef ---
@@ -40,7 +47,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/sccache,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
-COPY ./operator/ .
+COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/sccache,sharing=locked \

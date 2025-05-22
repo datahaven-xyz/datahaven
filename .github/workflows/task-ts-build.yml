@@ -31,8 +31,6 @@ jobs:
       - name: Generate Wagmi Bindings
         working-directory: test
         run: bun generate:wagmi
-      - run: bun fmt:fix
-        working-directory: test
       - name: Check no local changes
         run: |
           changes=$(git status --porcelain .)

@@ -24,10 +24,12 @@ jobs:
     uses: ./.github/workflows/task-ts-lint.yml
   unit-tests:
     uses: ./.github/workflows/task-rust-tests.yml
+    secrets: inherit
   contract-tests:
     uses: ./.github/workflows/task-foundry-tests.yml
   rust-lint:
     uses: ./.github/workflows/task-rust-lint.yml
+    secrets: inherit
   docker-build:
     uses: ./.github/workflows/task-docker.yml
     secrets: inherit

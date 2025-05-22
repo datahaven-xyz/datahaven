@@ -57,3 +57,5 @@ runs:
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     - name: Install Protoc
       uses: arduino/setup-protoc@v3
+      with:
+        repo-token: ${{ github.token }}

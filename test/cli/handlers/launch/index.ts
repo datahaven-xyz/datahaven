@@ -10,6 +10,7 @@ import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 
+// Non-optional properties determined by having default values
 export interface LaunchOptions {
   verified?: boolean;
   launchKurtosis?: boolean;
@@ -17,15 +18,17 @@ export interface LaunchOptions {
   fundValidators?: boolean;
   setupValidators?: boolean;
   updateValidatorSet?: boolean;
+  kurtosisEnclaveName: string;
   blockscout?: boolean;
   relayer?: boolean;
-  relayerImageTag?: string;
+  relayerImageTag: string;
   cleanNetwork?: boolean;
   datahaven?: boolean;
   buildDatahaven?: boolean;
-  datahavenImageTag?: string;
-  datahavenBuildExtraArgs?: string;
+  datahavenImageTag: string;
+  datahavenBuildExtraArgs: string;
   kurtosisNetworkArgs?: string;
+  // Kept as optional due to parse fn
   slotTime?: number;
   setParameters?: boolean;
 }
@@ -59,7 +62,11 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   let blockscoutBackendUrl: string | undefined;
 
   if (options.blockscout === true) {
-    const blockscoutPublicPort = await getPortFromKurtosis("blockscout", "http");
+    const blockscoutPublicPort = await getPortFromKurtosis(
+      "blockscout",
+      "http",
+      options.kurtosisEnclaveName
+    );
     blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
     logger.trace("Blockscout backend URL:", blockscoutBackendUrl);
   } else if (options.verified) {

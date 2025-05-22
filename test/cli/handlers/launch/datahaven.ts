@@ -18,10 +18,9 @@ import {
 } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
+import { DOCKER_NETWORK_NAME } from "../consts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
-
-const DOCKER_NETWORK_NAME = "datahaven-net";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 

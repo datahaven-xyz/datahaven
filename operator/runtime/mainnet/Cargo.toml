@@ -31,6 +31,7 @@ frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { workspace = true, optional = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
+log = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
 pallet-balances = { workspace = true }
@@ -40,6 +41,8 @@ pallet-ethereum = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-chain-id = { workspace = true }
 pallet-external-validators = { workspace = true }
+pallet-external-validators-rewards = { workspace = true }
+pallet-external-validators-rewards-runtime-api = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -123,6 +126,8 @@ std = [
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
     "pallet-external-validators/std",
+    "pallet-external-validators-rewards/std",
+    "pallet-external-validators-rewards-runtime-api/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
@@ -189,6 +194,7 @@ runtime-benchmarks = [
     "pallet-ethereum/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
+    "pallet-external-validators-rewards/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
@@ -228,6 +234,7 @@ try-runtime = [
     "pallet-ethereum/try-runtime",
     "pallet-evm/try-runtime",
     "pallet-external-validators/try-runtime",
+    "pallet-external-validators-rewards/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",

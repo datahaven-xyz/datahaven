@@ -21,6 +21,11 @@ jobs:
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
       RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+      SCCACHE_GHA_ENABLED: "true"
+      # Add these for faster builds
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: "sparse"
+      CARGO_BUILD_JOBS: "8"
     defaults:
       run:
         working-directory: ./operator
@@ -29,16 +34,50 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
+          
       - uses: ./.github/workflows/actions/setup-env
         with:
-          cache-key: CI
+          cache-key: BUILD-RELEASE
+          
+      # Pre-warm sccache with common dependencies
+      - name: Pre-build dependencies
+        run: |
+          # Build dependencies only (no final binary)
+          cargo build --release --locked --dependencies-only
+          
+      # Use cargo-chef for better layer caching (optional but recommended)
+      - name: Install cargo-chef
+        run: |
+          if ! command -v cargo-chef &> /dev/null; then
+            cargo install cargo-chef --locked
+          fi
+          
+      - name: Generate recipe.json
+        run: cargo chef prepare --recipe-path recipe.json
+        
+      - name: Build dependencies with chef
+        run: cargo chef cook --release --recipe-path recipe.json
+        
       - name: Build node binary
-        run: cargo build --release --locked
+        run: |
+          # Set additional optimization flags for release builds
+          export RUSTFLAGS="$RUSTFLAGS -C target-cpu=native -C opt-level=3 -C embed-bitcode=no"
+          cargo build --release --locked --features fast-runtime
+          
+      # Copy to a stable location to avoid hashing the full path
+      - name: Prepare binary
+        run: |
+          mkdir -p ./target/ci
+          mkdir -p ./target/x86_64-unknown-linux-gnu/release
+          cp ./target/release/datahaven-node ./target/ci/datahaven-node
+          cp ./target/release/datahaven-node ./target/x86_64-unknown-linux-gnu/release/datahaven-node
+          strip ./target/ci/datahaven-node  # Strip debug symbols for smaller binary
+          strip ./target/x86_64-unknown-linux-gnu/release/datahaven-node
+          
       - name: Hash binary
         id: hash-binary
         run: |
           TIMESTAMP=$(date +%s)
-
           BINARY_PATH=./target/ci/datahaven-node
           HASH=$(echo "$TIMESTAMP" | cat - $BINARY_PATH | sha256sum | awk '{ print $1 }')
           echo "datahaven-node-hash=$HASH" >> $GITHUB_OUTPUT
@@ -48,10 +87,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: datahaven-node-${{ steps.hash-binary.outputs.datahaven-node-hash }}
-          path: operator/target/ci/datahaven-node
+          path: operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
           retention-days: 1
+          compression-level: 0  # No compression for faster upload
 
       - name: Build Stats
         run: |
           sccache --show-stats
-        
+          echo "Binary size: $(du -h ./target/ci/datahaven-node | cut -f1)"

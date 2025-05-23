@@ -29,7 +29,8 @@
     "postinstall": "papi"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@typescript/native-preview": "^7.0.0-dev.20250523.1"
   },
   "peerDependencies": {
     "typescript": "^5.8.3"

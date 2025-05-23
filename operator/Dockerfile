@@ -3,7 +3,7 @@ FROM docker.io/paritytech/ci-unified:bullseye-1.85.0 AS base
 
 ARG MOLD_VERSION=2.39.0
 ARG SCCACHE_VERSION=0.10.0
-ARG FAST_RUNTIME=TRUE
+ARG FAST_RUNTIME=FALSE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     xz-utils \

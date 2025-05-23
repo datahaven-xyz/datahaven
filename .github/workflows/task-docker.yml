@@ -2,7 +2,17 @@ name: Docker Build & Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      binary-hash:
+        description: "The hash of the operator binary"
+        required: false
+        type: string
   workflow_call:
+    inputs:
+      binary-hash:
+        description: "The hash of the operator binary"
+        required: true
+        type: string
     outputs:
       image-tag:
         description: "The tag of the docker image"
@@ -17,15 +27,23 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
-    defaults:
-      run:
-        working-directory: operator
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - uses: ./.github/workflows/actions/cleanup-runner
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-node-${{ inputs.binary-hash }}
+          path: ./operator/target/x86_64-unknown-linux-gnu/release/
+
+      - name: Prepare binary
+        run: |
+          chmod +x ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
+          ls -la ./operator/target/x86_64-unknown-linux-gnu/release/
 
       - name: Docker meta
         id: meta
@@ -60,47 +78,27 @@ jobs:
           buildkitd-flags: |
             --allow-insecure-entitlement network.host
             --allow-insecure-entitlement security.insecure
+            
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Cache Mount blobs
-        uses: actions/cache@v4
-        id: cache
-        with:
-          path: |
-            **/cargo-registry
-            **/cargo-git
-            **/sccache
-          key: cache-mount-${{ hashFiles('./operator/Dockerfile') }}-${{ hashFiles('./operator/Cargo.lock') }}-${{hashFiles('./operator/runtime/**/*.rs','./operator/pallets/**/*.rs', './operator/node/**/*.rs')}}
-          restore-keys: |
-            cache-mount-${{ hashFiles('./operator/Dockerfile') }}-${{ hashFiles('./operator/Cargo.lock') }}
-            cache-mount-${{ hashFiles('./operator/Dockerfile') }}
-            cache-mount-
-      - name: Inject cache into docker
-        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
-        with:
-          cache-map: |
-            {
-              "cargo-registry": { "target": "/usr/local/cargo/registry" },
-              "cargo-git":      { "target": "/usr/local/cargo/git" },
-              "sccache":        { "target": "/usr/local/sccache" }
-            }
-          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
+
       - name: Build and push Docker image
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: ./operator
-          file: ./operator/Dockerfile
+          context: .
+          file: ./test/datahaven-node-local.dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
-          cache-from: type=gha,scope=datahaven-build
-          cache-to: type=gha,mode=max,scope=datahaven-build
+          cache-from: type=gha,scope=datahaven-local-build
+          cache-to: type=gha,mode=max,scope=datahaven-local-build
           provenance: mode=max
           sbom: true
+
       - name: Log build cache statistics
         run: |
           echo "Build cache statistics:"

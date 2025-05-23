@@ -16,6 +16,8 @@ export class LaunchedNetwork {
   protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
   protected _clEndpoint?: string;
+  /** The Kubernetes namespace for the network. Used only for deploy commands. */
+  protected _namespace?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -24,6 +26,7 @@ export class LaunchedNetwork {
     this._networkName = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
+    this._namespace = undefined;
   }
 
   public set networkName(name: string) {
@@ -118,5 +121,14 @@ export class LaunchedNetwork {
 
   public get relayers(): RelayerType[] {
     return [...this._activeRelayers];
+  }
+
+  public set namespace(namespace: string) {
+    this._namespace = namespace;
+  }
+
+  public get namespace(): string {
+    invariant(this._namespace, "❌ Kubernetes namespace not set in LaunchedNetwork");
+    return this._namespace;
   }
 }

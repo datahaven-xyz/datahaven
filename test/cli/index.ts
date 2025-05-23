@@ -57,6 +57,10 @@ program
     "staging"
   )
   .option(
+    "--k, --kube-namespace <value>",
+    "Kubernetes namespace to deploy to. In 'staging' this parameter is ignored and the Kurtosis namespace is used instead. Default will be `datahaven-<environment>`."
+  )
+  .option(
     "--d, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
     "moonsonglabs/datahaven:main"
@@ -64,7 +68,7 @@ program
   .option(
     "--ke, --kurtosis-enclave-name <value>",
     "Name of the Kurtosis enclave",
-    "datahaven-ethereum"
+    "datahaven-stagenet"
   )
   .option("--kn, --kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--v, --verified", "Verify smart contracts with Blockscout")

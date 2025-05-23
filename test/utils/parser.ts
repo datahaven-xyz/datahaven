@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const KurtosisEnclaveInfoSchema = z.object({
+  uuid: z.string().min(1),
+  name: z.string().min(1),
+  status: z.string().min(1),
+  creationTime: z.string().min(1)
+});
+export type KurtosisEnclaveInfo = z.infer<typeof KurtosisEnclaveInfoSchema>;
+
 export const BeaconRelayConfigSchema = z.object({
   source: z.object({
     beacon: z.object({

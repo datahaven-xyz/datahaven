@@ -342,7 +342,7 @@ export const setupDataHavenValidatorConfig = async (
   logger.info(`🔧 Preparing DataHaven authorities configuration for network: ${networkName}...`);
 
   let authorityPublicKeys: string[] = [];
-  const dhNodes = launchedNetwork.containers.filter((x) => x.name.startsWith("dh-validator-"));
+  const dhNodes = launchedNetwork.containers.filter((x) => x.name.startsWith("datahaven-"));
 
   invariant(dhNodes.length > 0, "No DataHaven nodes found in launchedNetwork");
 

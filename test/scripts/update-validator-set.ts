@@ -64,7 +64,6 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   }
 
   logger.success("Validator set sent to Snowbridge Gateway");
-  logger.info(`Gateway address: ${serviceManagerAddress}`);
 
   // Check if the validator set has been queued on the substrate side (placeholder)
   logger.debug("Checking validator set on substrate chain (not implemented)");

@@ -124,7 +124,6 @@ pub use block_times::*;
 pub const MINUTES: BlockNumber = 60_000 / (MILLI_SECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
-pub const DAY1: BlockNumber = 1 * 24;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 

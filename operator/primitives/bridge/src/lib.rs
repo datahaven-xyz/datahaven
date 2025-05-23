@@ -2,7 +2,6 @@
 
 use core::fmt::Debug;
 use frame_support::pallet_prelude::*;
-use log::info;
 use parity_scale_codec::DecodeAll;
 use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
 use sp_std::vec::Vec;

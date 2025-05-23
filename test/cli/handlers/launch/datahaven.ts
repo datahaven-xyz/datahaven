@@ -244,7 +244,7 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
  * @param port - The port number to check.
  * @returns True if the network is ready, false otherwise.
  */
-export const isNetworkReady = async (port: number): Promise<boolean> => {
+const isNetworkReady = async (port: number): Promise<boolean> => {
   const wsUrl = `ws://127.0.0.1:${port}`;
   let client: PolkadotClient | undefined;
   try {

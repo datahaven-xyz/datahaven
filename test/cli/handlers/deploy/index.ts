@@ -9,6 +9,7 @@ export interface DeployOptions {
   environment: DeployEnvironment;
   kubeNamespace?: string;
   kurtosisEnclaveName: string;
+  slotTime?: number;
   kurtosisNetworkArgs?: string;
   verified?: boolean;
   blockscout?: boolean;
@@ -53,19 +54,7 @@ export const deploy = async (options: DeployOptions) => {
 };
 
 export const deployPreActionHook = (
-  thisCmd: Command<
-    [],
-    {
-      environment: DeployEnvironment;
-      kubeNamespace?: string;
-      datahavenImageTag: string;
-      kurtosisEnclaveName: string;
-      kurtosisNetworkArgs?: string;
-      verified?: boolean;
-      blockscout?: boolean;
-      relayerImageTag: string;
-    }
-  >
+  thisCmd: Command<[], DeployOptions & { [key: string]: any }>
 ) => {
   const opts = thisCmd.opts();
   if (opts.verified && !opts.blockscout) {

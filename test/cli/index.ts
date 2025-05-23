@@ -61,18 +61,19 @@ program
     "Kubernetes namespace to deploy to. In 'staging' this parameter is ignored and the Kurtosis namespace is used instead. Default will be `datahaven-<environment>`."
   )
   .option(
-    "--d, --datahaven-image-tag <value>",
-    "Tag of the datahaven image to use",
-    "moonsonglabs/datahaven:main"
-  )
-  .option(
     "--ke, --kurtosis-enclave-name <value>",
     "Name of the Kurtosis enclave",
     "datahaven-stagenet"
   )
+  .option("--st, --slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--kn, --kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--v, --verified", "Verify smart contracts with Blockscout")
   .option("--b, --blockscout", "Enable Blockscout")
+  .option(
+    "--dit, --datahaven-image-tag <value>",
+    "Tag of the datahaven image to use",
+    "moonsonglabs/datahaven:main"
+  )
   .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer image to use",

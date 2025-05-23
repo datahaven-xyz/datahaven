@@ -185,8 +185,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     } else if (type === "execution") {
       const cfg = parseRelayConfig(json, type);
       cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethWsPort}`;
-      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethWsPort}`;
+      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.datastore.location = datastorePath;
       cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
       cfg.source.contracts.Gateway = gatewayAddress;

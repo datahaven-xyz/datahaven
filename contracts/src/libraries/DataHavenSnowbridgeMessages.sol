@@ -5,6 +5,14 @@ pragma solidity ^0.8.27;
 import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 
 library DataHavenSnowbridgeMessages {
+    enum Message {
+        V0
+    }
+
+    enum OutboundCommandV1 {
+        ReceiveValidators
+    }
+
     /**
      * @title New Validator Set Snowbridge Message
      * @notice A struct representing a new validator set to be sent as a message through Snowbridge.
@@ -25,13 +33,12 @@ library DataHavenSnowbridgeMessages {
     /**
      * @title New Validator Set Snowbridge Message Payload
      * @notice A struct representing the payload of a new validator set message.
-     * !IMPORTANT: The fields in this struct are placeholder until we have the actual message format
-     * !           defined in the DataHaven solochain.
+     *         This mimics the message format defined in the InboundQueueV2 pallet of the DataHaven
+     *         solochain.
      */
     struct NewValidatorSetPayload {
-        /// @notice The new validator set. This should be interpreted as the list of
-        ///         validator addresses in the DataHaven network.
-        bytes32[] newValidatorSet;
+        /// @notice The list of validators in the DataHaven network.
+        bytes32[] validators;
     }
 
     /**
@@ -57,13 +64,24 @@ library DataHavenSnowbridgeMessages {
     function scaleEncodeNewValidatorSetMessagePayload(
         NewValidatorSetPayload memory payload
     ) public pure returns (bytes memory) {
-        // Encode all fields into a buffer.
-        bytes memory accum = hex"";
-        for (uint256 i = 0; i < payload.newValidatorSet.length; i++) {
-            accum = bytes.concat(accum, payload.newValidatorSet[i]);
+        uint32 validatorsLen = uint32(payload.validators.length);
+        bytes32[] memory validatorSet = payload.validators;
+        uint48 epoch = 0;
+
+        bytes memory validatorsFlattened = new bytes(validatorsLen * 32);
+        for (uint32 i = 0; i < validatorsLen; i++) {
+            for (uint32 j = 0; j < 32; j++) {
+                validatorsFlattened[i * 32 + j] = validatorSet[i][j];
+            }
         }
-        // Encode number of validator addresses, followed by encoded validator addresses.
-        return
-            bytes.concat(ScaleCodec.checkedEncodeCompactU32(payload.newValidatorSet.length), accum);
+
+        return bytes.concat(
+            bytes4(0x70150038),
+            bytes1(uint8(Message.V0)),
+            bytes1(uint8(OutboundCommandV1.ReceiveValidators)),
+            ScaleCodec.encodeCompactU32(validatorsLen),
+            validatorsFlattened,
+            ScaleCodec.encodeU64(uint64(epoch))
+        );
     }
 }

@@ -42,7 +42,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchDataHavenSolochain(options, launchedNetwork);
 
-  await launchKurtosis(launchedNetwork, options);
+  await launchKurtosis(options, launchedNetwork);
 
   logger.trace("Deploy contracts using the extracted function");
   let blockscoutBackendUrl: string | undefined;

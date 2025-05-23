@@ -177,3 +177,42 @@ export const registerServices = async (launchedNetwork: LaunchedNetwork, enclave
     logger.warn(`⚠️ Kurtosis service endpoints could not be determined: ${error}`);
   }
 };
+
+/**
+ * Runs a Kurtosis Ethereum network enclave with the specified configuration.
+ *
+ * This function handles the complete process of starting a Kurtosis enclave:
+ * 1. Modifies the configuration file based on the provided options
+ * 2. Executes the kurtosis run command with the modified configuration
+ * 3. Handles error cases and logs appropriate debug information
+ *
+ * @param options - Configuration options containing kurtosisEnclaveName and other settings
+ * @param configFilePath - Path to the base YAML configuration file to use
+ * @throws Will throw an error if the Kurtosis network fails to start properly
+ */
+export const runKurtosisEnclave = async (
+  options: {
+    kurtosisEnclaveName: string;
+    blockscout?: boolean;
+    slotTime?: number;
+    kurtosisNetworkArgs?: string;
+  },
+  configFilePath: string
+): Promise<void> => {
+  logger.info("🚀 Starting Kurtosis enclave...");
+
+  const configFile = await modifyConfig(options, configFilePath);
+
+  logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
+
+  const { stderr, stdout, exitCode } =
+    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`
+      .nothrow()
+      .quiet();
+
+  if (exitCode !== 0) {
+    logger.error(stderr.toString());
+    throw Error("❌ Kurtosis network has failed to start properly.");
+  }
+  logger.debug(stdout.toString());
+};

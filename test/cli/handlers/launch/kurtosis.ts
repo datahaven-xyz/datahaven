@@ -1,7 +1,11 @@
 import { $ } from "bun";
 import type { LaunchOptions } from "cli/handlers";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
-import { checkKurtosisEnclaveRunning, modifyConfig, registerServices } from "../common/kurtosis";
+import {
+  checkKurtosisEnclaveRunning,
+  registerServices,
+  runKurtosisEnclave
+} from "../common/kurtosis";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 
 /**
@@ -11,8 +15,8 @@ import type { LaunchedNetwork } from "../common/launchedNetwork";
  * @param options - Configuration options
  */
 export const launchKurtosis = async (
-  launchedNetwork: LaunchedNetwork,
-  options: LaunchOptions
+  options: LaunchOptions,
+  launchedNetwork: LaunchedNetwork
 ): Promise<void> => {
   printHeader("Starting Kurtosis EthereumNetwork");
 
@@ -75,22 +79,7 @@ export const launchKurtosis = async (
     );
   }
 
-  logger.info("🚀 Starting Kurtosis enclave...");
-
-  const configFile = await modifyConfig(options, "configs/kurtosis/minimal.yaml");
-
-  logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
-
-  const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`
-      .nothrow()
-      .quiet();
-
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    throw Error("❌ Kurtosis network has failed to start properly.");
-  }
-  logger.debug(stdout.toString());
+  await runKurtosisEnclave(options, "configs/kurtosis/minimal.yaml");
 
   await registerServices(launchedNetwork, options.kurtosisEnclaveName);
   logger.success("Kurtosis network operations completed successfully.");

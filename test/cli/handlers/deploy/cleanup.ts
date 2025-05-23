@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
-import { checkKurtosisEnclaveRunning, getRunningKurtosisEnclaves } from "../common/kurtosis";
+import { checkKurtosisEnclaveRunning } from "../common/kurtosis";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 

@@ -3,6 +3,7 @@ import { type DeployEnvironment, logger } from "utils";
 import { checkBaseDependencies, checkDeployDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { cleanup } from "./cleanup";
+import { launchKurtosis } from "./kurtosis";
 
 // Non-optional properties determined by having default values
 export interface DeployOptions {
@@ -28,7 +29,7 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
 
   await cleanup(options, launchedNetwork);
 
-  // TODO: Deploy Kurtosis if we're in staging
+  await launchKurtosis(options, launchedNetwork);
 
   // TODO: Set kubernetes namespace to kurtosis namespace if we're in staging
   // TODO: Otherwise, set it to param or default to datahaven-<environment>

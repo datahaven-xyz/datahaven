@@ -225,10 +225,10 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       ];
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+      const hostDatastorePath = path.resolve(datastorePath);
+      const containerDatastorePath = "/data";
 
-      if (type === "beacon") {
-        const hostDatastorePath = path.resolve(datastorePath);
-        const containerDatastorePath = "/data";
+      if (type === "beacon" || type === "execution") {
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
       }
 

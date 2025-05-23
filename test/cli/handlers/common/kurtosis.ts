@@ -1,5 +1,24 @@
 import { $ } from "bun";
-import { type KurtosisEnclaveInfo, KurtosisEnclaveInfoSchema, logger } from "utils";
+import invariant from "tiny-invariant";
+import {
+  getPortFromKurtosis,
+  type KurtosisEnclaveInfo,
+  KurtosisEnclaveInfoSchema,
+  logger
+} from "utils";
+import { parse, stringify } from "yaml";
+import type { LaunchedNetwork } from "./launchedNetwork";
+
+/**
+ * Checks if a Kurtosis enclave with the specified name is currently running.
+ *
+ * @param enclaveName - The name of the Kurtosis enclave to check
+ * @returns True if the enclave is running, false otherwise
+ */
+export const checkKurtosisEnclaveRunning = async (enclaveName: string): Promise<boolean> => {
+  const enclaves = await getRunningKurtosisEnclaves();
+  return enclaves.some((enclave) => enclave.name === enclaveName);
+};
 
 /**
  * Gets a list of currently running Kurtosis enclaves
@@ -55,4 +74,106 @@ export const getRunningKurtosisEnclaves = async (): Promise<KurtosisEnclaveInfo[
   }
 
   return enclaves;
+};
+
+/**
+ * Modifies a Kurtosis configuration file based on deployment options.
+ *
+ * This function reads a YAML configuration file, applies modifications based on the provided
+ * deployment options, and writes the modified configuration to a new file in the tmp/configs directory.
+ *
+ * @param options.blockscout - If true, adds "blockscout" to the additional_services array
+ * @param options.slotTime - If provided, sets the network_params.seconds_per_slot value
+ * @param options.kurtosisNetworkArgs - Space-separated key=value pairs to add to network_params
+ * @param configFile - Path to the original YAML configuration file to modify
+ * @returns Promise<string> - Path to the modified configuration file in tmp/configs/
+ * @throws Will throw an error if the config file is not found
+ */
+export const modifyConfig = async (
+  options: {
+    blockscout?: boolean;
+    slotTime?: number;
+    kurtosisNetworkArgs?: string;
+  },
+  configFile: string
+) => {
+  const outputDir = "tmp/configs";
+  logger.debug(`Ensuring output directory exists: ${outputDir}`);
+  await $`mkdir -p ${outputDir}`.quiet();
+
+  const file = Bun.file(configFile);
+  invariant(file, `❌ Config file ${configFile} not found`);
+
+  const config = await file.text();
+  logger.debug(`Parsing config at ${configFile}`);
+  logger.trace(config);
+
+  const parsedConfig = parse(config);
+
+  if (options.blockscout) {
+    parsedConfig.additional_services.push("blockscout");
+  }
+
+  if (options.slotTime) {
+    parsedConfig.network_params.seconds_per_slot = options.slotTime;
+  }
+
+  if (options.kurtosisNetworkArgs) {
+    logger.debug(`Using custom Kurtosis network args: ${options.kurtosisNetworkArgs}`);
+    const args = options.kurtosisNetworkArgs.split(" ");
+    for (const arg of args) {
+      const [key, value] = arg.split("=");
+      parsedConfig.network_params[key] = value;
+    }
+  }
+
+  logger.trace(parsedConfig);
+  const outputFile = `${outputDir}/modified-config.yaml`;
+  logger.debug(`Modified config saving to ${outputFile}`);
+
+  await Bun.write(outputFile, stringify(parsedConfig));
+  return outputFile;
+};
+
+/**
+ * Registers the Execution Layer (EL) and Consensus Layer (CL) service endpoints with the LaunchedNetwork instance.
+ *
+ * This function retrieves the public ports for the Ethereum network services from Kurtosis and configures
+ * the LaunchedNetwork instance with the appropriate RPC URLs and endpoints for client communication.
+ *
+ * Services registered:
+ * - Execution Layer (EL): Reth RPC endpoint via "el-1-reth-lighthouse" service
+ * - Consensus Layer (CL): Lighthouse HTTP endpoint via "cl-1-lighthouse-reth" service
+ *
+ * @param launchedNetwork - The LaunchedNetwork instance to populate with service endpoints
+ * @param enclaveName - The name of the Kurtosis enclave containing the services
+ * @throws Will log warnings if services cannot be found or ports cannot be determined, but won't fail
+ */
+export const registerServices = async (launchedNetwork: LaunchedNetwork, enclaveName: string) => {
+  logger.info("📝 Registering Kurtosis service endpoints...");
+
+  // Configure EL RPC URL
+  try {
+    const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc", enclaveName);
+    invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
+    const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
+    launchedNetwork.elRpcUrl = elRpcUrl;
+    logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
+
+    // Configure CL Endpoint
+    const lighthousePublicPort = await getPortFromKurtosis(
+      "cl-1-lighthouse-reth",
+      "http",
+      enclaveName
+    );
+    const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
+    invariant(
+      clEndpoint,
+      "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
+    );
+    launchedNetwork.clEndpoint = clEndpoint;
+    logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
+  } catch (error) {
+    logger.warn(`⚠️ Kurtosis service endpoints could not be determined: ${error}`);
+  }
 };

@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
-import { getRunningKurtosisEnclaves } from "../common/kurtosis";
+import { checkKurtosisEnclaveRunning, getRunningKurtosisEnclaves } from "../common/kurtosis";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 
@@ -57,16 +57,12 @@ const checkAndCleanKurtosisDeployment = async (options: DeployOptions): Promise<
   logger.debug(`Kurtosis gateway process found running: ${stdout}`);
 
   // Check if Kurtosis enclave is running.
-  const enclaves = await getRunningKurtosisEnclaves();
-  if (enclaves.length === 0) {
-    logger.info("🤷‍ No Kurtosis enclaves found running.");
-    return;
-  }
-  if (!enclaves.some((enclave) => enclave.name === options.kurtosisEnclaveName)) {
+  if (await checkKurtosisEnclaveRunning(options.kurtosisEnclaveName)) {
+    logger.info(`🔎 Found Kurtosis enclave ${options.kurtosisEnclaveName} running.`);
+  } else {
     logger.info(`🤷‍ No Kurtosis enclave ${options.kurtosisEnclaveName} found running.`);
     return;
   }
-  logger.info(`🔎 Found Kurtosis enclave ${options.kurtosisEnclaveName} running.`);
 
   logger.info("🪓 Removing Kurtosis enclave...");
   logger.debug(await $`kurtosis enclave rm ${options.kurtosisEnclaveName} -f`.text());

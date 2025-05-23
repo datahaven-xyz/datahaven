@@ -10,7 +10,7 @@ mod common;
 
 use common::*;
 use datahaven_mainnet_runtime::{
-    Runtime, RuntimeEvent, SnowbridgeSystemV2, System,
+    Runtime, RuntimeEvent, SnowbridgeSystemV2,
 };
 use frame_support::assert_ok;
 use snowbridge_core::TokenIdOf;

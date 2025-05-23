@@ -1,6 +1,7 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
+import { waitFor } from "utils/waits";
 import { checkKurtosisEnclaveRunning } from "../common/kurtosis";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
@@ -66,6 +67,11 @@ const checkAndCleanKurtosisDeployment = async (options: DeployOptions): Promise<
 
   logger.info("🪓 Removing Kurtosis enclave...");
   logger.debug(await $`kurtosis enclave rm ${options.kurtosisEnclaveName} -f`.text());
+
+  // Wait for the underlying Kubernetes namespace to be fully deleted
+  const kubernetesNamespace = `kt-${options.kurtosisEnclaveName}`;
+  await waitForNamespaceDeletion(kubernetesNamespace);
+
   logger.success(`Kurtosis enclave ${options.kurtosisEnclaveName} removed successfully.`);
 };
 
@@ -123,4 +129,34 @@ const checkAndCleanHelmReleases = async (launchedNetwork: LaunchedNetwork): Prom
 
     throw error;
   }
+};
+
+/**
+ * Waits for a Kubernetes namespace to be fully deleted.
+ * This is necessary because namespace deletion in Kubernetes is asynchronous
+ * and Kurtosis may fail to create a new enclave if the namespace is still being deleted.
+ *
+ * @param namespaceName - The name of the Kubernetes namespace to wait for deletion
+ * @returns Promise<void> - Resolves when the namespace is fully deleted or doesn't exist
+ */
+const waitForNamespaceDeletion = async (namespaceName: string): Promise<void> => {
+  logger.info(`⌛️ Waiting for Kubernetes namespace ${namespaceName} to be fully deleted...`);
+
+  await waitFor({
+    lambda: async () => {
+      try {
+        const { exitCode } = await $`kubectl get namespace ${namespaceName}`.nothrow().quiet();
+        // If kubectl get namespace returns non-zero exit code, the namespace doesn't exist
+        return exitCode !== 0;
+      } catch (error) {
+        // If kubectl command fails, assume namespace is deleted or kubectl is not available
+        logger.debug(`kubectl command failed: ${error}. Assuming namespace is deleted.`);
+        return true;
+      }
+    },
+    iterations: 30, // Wait up to 5 minutes (30 * 10 seconds)
+    delay: 10000 // 10 seconds between checks
+  });
+
+  logger.success(`Kubernetes namespace ${namespaceName} fully deleted.`);
 };

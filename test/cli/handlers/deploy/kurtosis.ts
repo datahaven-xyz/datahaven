@@ -5,16 +5,16 @@ import { registerServices, runKurtosisEnclave } from "../common/kurtosis";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 
 /**
- * Launches a Kurtosis Ethereum network enclave for staging environment.
+ * Deploys a Kurtosis Ethereum network enclave for staging environment.
  *
- * @param launchedNetwork - The LaunchedNetwork instance to store network details
  * @param options - Configuration options
+ * @param launchedNetwork - The LaunchedNetwork instance to store network details
  */
-export const launchKurtosis = async (
+export const deployKurtosis = async (
   options: DeployOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> => {
-  printHeader("Starting Kurtosis EthereumNetwork");
+  printHeader("Deploying Kurtosis Ethereum Network");
 
   invariant(
     options.environment === "staging",

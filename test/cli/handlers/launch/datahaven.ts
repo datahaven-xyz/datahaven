@@ -159,7 +159,7 @@ export const launchDataHavenSolochain = async (
   }
 
   for (let i = 0; i < 30; i++) {
-    logger.info("⌛️ Waiting for datahaven to start...");
+    logger.info("⌛️ Waiting for DataHaven to start...");
     if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
       logger.success(
         `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`

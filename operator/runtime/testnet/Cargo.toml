@@ -103,6 +103,18 @@ xcm-executor = { workspace = true }
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
 
+[dev-dependencies]
+# Test utilities
+frame-support-test = { workspace = true }
+sp-io = { workspace = true }
+sp-tracing = { workspace = true }
+
+# Snowbridge testing
+snowbridge-core = { workspace = true }
+snowbridge-pallet-system = { workspace = true }
+snowbridge-pallet-system-v2 = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
+
 [features]
 default = ["std"]
 std = [

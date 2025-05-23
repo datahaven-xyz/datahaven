@@ -643,7 +643,7 @@ impl pallet_evm_chain_id::Config for Runtime {}
 parameter_types! {
     pub UniversalLocation: InteriorLocation = [
         GlobalConsensus(datahaven_runtime_common::datahaven_networks::DataHavenNetwork::Mainnet.into())
-    ];
+    ].into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
     pub RootLocation: Location = Location::here();
     pub Parameters: PricingParameters<u128> = PricingParameters {

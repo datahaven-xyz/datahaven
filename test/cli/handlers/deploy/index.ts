@@ -17,6 +17,12 @@ export interface DeployOptions {
   blockscout?: boolean;
   datahavenImageTag: string;
   relayerImageTag: string;
+  // TODO: This shouldn't be necessary once the repo is public
+  dockerUsername?: string;
+  // TODO: This shouldn't be necessary once the repo is public
+  dockerPassword?: string;
+  // TODO: This shouldn't be necessary once the repo is public
+  dockerEmail?: string;
 }
 
 const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedNetwork) => {

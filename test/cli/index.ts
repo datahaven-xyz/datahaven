@@ -79,6 +79,9 @@ program
     "Tag of the relayer image to use",
     "moonsonglabs/snowbridge-relayer:latest"
   )
+  .option("--docker-username <value>", "Docker Hub username")
+  .option("--docker-password <value>", "Docker Hub password")
+  .option("--docker-email <value>", "Docker Hub email")
   .hook("preAction", deployPreActionHook)
   .action(deploy);
 

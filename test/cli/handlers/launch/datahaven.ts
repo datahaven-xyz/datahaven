@@ -1,15 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { secp256k1 } from "@noble/curves/secp256k1";
-import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { createClient, type PolkadotClient } from "polkadot-api";
-import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
+  createPapiConnectors,
   killExistingContainers,
   logger,
   printDivider,
@@ -20,6 +17,7 @@ import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import { DOCKER_NETWORK_NAME } from "../common/consts";
+import { isNetworkReady } from "../common/datahaven";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
 
@@ -43,14 +41,6 @@ const DEFAULT_PUBLIC_WS_PORT = 9944;
 // 2 validators (Alice and Bob) are used for local & CI testing
 // <repo_root>/operator/runtime/stagenet/src/genesis_config_presets.rs#L98
 const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
-
-// 33-byte compressed public keys for DataHaven next validator set
-// These correspond to Alice & Bob
-// These are the fallback keys if we can't fetch the next authorities directly from the network
-const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
-  alice: "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
-  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27"
-} as const;
 
 /**
  * Launches a DataHaven solochain network for testing.
@@ -179,8 +169,6 @@ export const launchDataHavenSolochain = async (
 
   await registerNodes(launchedNetwork);
 
-  // Call setupDataHavenValidatorConfig now that nodes are up
-  logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
   await setupDataHavenValidatorConfig(launchedNetwork);
 
   printDivider();
@@ -243,31 +231,6 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
   );
 };
 
-/**
- * Checks if the DataHaven network is ready by sending a POST request to the system_chain method.
- *
- * @param port - The port number to check.
- * @returns True if the network is ready, false otherwise.
- */
-const isNetworkReady = async (port: number): Promise<boolean> => {
-  const wsUrl = `ws://127.0.0.1:${port}`;
-  let client: PolkadotClient | undefined;
-  try {
-    // Use withPolkadotSdkCompat for consistency, though _request might not strictly need it.
-    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-    const chainName = await client._request<string>("system_chain", []);
-    logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
-    client.destroy();
-    return !!chainName; // Ensure it's a boolean and chainName is truthy
-  } catch (error) {
-    logger.debug(`isNetworkReady PAPI check failed for port ${port}: ${error}`);
-    if (client) {
-      client.destroy();
-    }
-    return false;
-  }
-};
-
 const buildLocalImage = async (options: LaunchOptions) => {
   let shouldBuildDataHaven = options.buildDatahaven;
 
@@ -327,7 +290,7 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
   launchedNetwork.networkName = DOCKER_NETWORK_NAME;
 
   const targetContainerName = "datahaven-alice";
-  const aliceHostWsPort = 9944; // Standard host port for Alice's WS, as set during launch.
+  const aliceHostWsPort = DEFAULT_PUBLIC_WS_PORT; // Standard host port for Alice's WS, as set during launch.
 
   logger.debug(`Checking Docker status for container: ${targetContainerName}`);
   // Use ^ and $ for an exact name match in the filter.
@@ -372,64 +335,38 @@ export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): str
  * Prepares the configuration for DataHaven authorities by converting their
  * compressed public keys to Ethereum addresses and saving them to a JSON file.
  */
-export async function setupDataHavenValidatorConfig(
+export const setupDataHavenValidatorConfig = async (
   launchedNetwork: LaunchedNetwork
-): Promise<void> {
+): Promise<void> => {
   const networkName = process.env.NETWORK || "anvil";
   logger.info(`🔧 Preparing DataHaven authorities configuration for network: ${networkName}...`);
 
   let authorityPublicKeys: string[] = [];
-  const dhNodes = launchedNetwork.containers.filter((x) => x.name.startsWith("datahaven-"));
+  const dhNodes = launchedNetwork.containers.filter((x) => x.name.startsWith("dh-validator-"));
 
-  if (dhNodes.length === 0) {
-    logger.warn(
-      "⚠️ No DataHaven nodes found in launchedNetwork. Falling back to hardcoded authority set for validator config."
-    );
-    authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
-  } else {
-    const firstNode = dhNodes[0];
-    const wsUrl = `ws://127.0.0.1:${firstNode.publicPorts.ws}`;
-    let papiClient: PolkadotClient | undefined;
-    try {
-      logger.info(
-        `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.name} (port ${firstNode.publicPorts.ws})...`
-      );
-      papiClient = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-      const dhApi = papiClient.getTypedApi(datahaven);
+  invariant(dhNodes.length > 0, "No DataHaven nodes found in launchedNetwork");
 
-      // Fetch NextAuthorities
-      // Beefy.NextAuthorities returns a fixed-length array of bytes representing the authority public keys
-      const nextAuthoritiesRaw = await dhApi.query.Beefy.NextAuthorities.getValue({ at: "best" });
+  const firstNode = dhNodes[0];
+  const wsUrl = `ws://127.0.0.1:${firstNode.publicPorts.ws}`;
+  const { client: papiClient, typedApi: dhApi } = createPapiConnectors(wsUrl);
 
-      if (nextAuthoritiesRaw && nextAuthoritiesRaw.length > 0) {
-        authorityPublicKeys = nextAuthoritiesRaw.map((key) => key.asHex()); // .asHex() returns the hex string representation of the corresponding key
-        logger.success(
-          `Successfully fetched ${authorityPublicKeys.length} BEEFY next authorities directly.`
-        );
-      } else {
-        logger.warn(
-          "⚠️ Fetched BEEFY nextAuthorities is empty. Falling back to hardcoded authority set."
-        );
-        authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
-      }
-      papiClient.destroy();
-    } catch (error) {
-      logger.error(
-        `❌ Error fetching BEEFY next authorities from node ${firstNode.name}: ${error}. Falling back to hardcoded authority set.`
-      );
-      authorityPublicKeys = Object.values(FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS);
-      if (papiClient) {
-        papiClient.destroy();
-      }
-    }
-  }
+  logger.info(
+    `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.name} (port ${firstNode.publicPorts.ws})...`
+  );
 
-  if (authorityPublicKeys.length === 0) {
-    logger.error(
-      "❌ No authority public keys available (neither fetched nor hardcoded). Cannot prepare validator config."
-    );
-    throw new Error("No DataHaven authority keys available.");
-  }
+  // Fetch NextAuthorities
+  // Beefy.NextAuthorities returns a fixed-length array of bytes representing the authority public keys
+  const nextAuthoritiesRaw = await dhApi.query.Beefy.NextAuthorities.getValue({ at: "best" });
+
+  invariant(nextAuthoritiesRaw && nextAuthoritiesRaw.length > 0, "No BEEFY next authorities found");
+
+  authorityPublicKeys = nextAuthoritiesRaw.map((key) => key.asHex()); // .asHex() returns the hex string representation of the corresponding key
+  logger.success(
+    `Successfully fetched ${authorityPublicKeys.length} BEEFY next authorities directly.`
+  );
+
+  // Clean up PAPI client, otherwise it will hang around and prevent this process from exiting.
+  papiClient.destroy();
 
   const authorityHashes: string[] = [];
   for (const compressedKey of authorityPublicKeys) {
@@ -464,8 +401,8 @@ export async function setupDataHavenValidatorConfig(
     const configJson = JSON.parse(configFileContent);
 
     if (!configJson.snowbridge) {
+      logger.warn(`⚠️ "snowbridge" section not found in ${configFilePath}, creating it.`);
       configJson.snowbridge = {};
-      logger.warn(`"snowbridge" section not found in ${configFilePath}, created it.`);
     }
 
     configJson.snowbridge.initialValidators = authorityHashes;
@@ -477,4 +414,4 @@ export async function setupDataHavenValidatorConfig(
     logger.error(`❌ Failed to read or update ${configFilePath}: ${error}`);
     throw new Error(`Failed to update authority hashes in ${configFilePath}.`);
   }
-}
+};

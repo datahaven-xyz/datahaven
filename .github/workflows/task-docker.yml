@@ -31,9 +31,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - uses: ./.github/workflows/actions/cleanup-runner
-
       - name: Download binary artifact
         uses: actions/download-artifact@v4
         with:

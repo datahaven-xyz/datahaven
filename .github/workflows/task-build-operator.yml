@@ -22,9 +22,6 @@ jobs:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
       SCCACHE_GHA_ENABLED: "true"
-      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: "sparse"
-      CARGO_BUILD_JOBS: "8"
     defaults:
       run:
         working-directory: ./operator
@@ -37,13 +34,10 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: BUILD-RELEASE
-          
-      - name: Show sccache stats before build
-        run: sccache --show-stats
-        
+
       - name: Build node binary
         run: |
-          cargo build --release --locked --bin datahaven-node
+          cargo build --release --locked --features fast-runtime
           
       - name: Prepare binary
         run: |

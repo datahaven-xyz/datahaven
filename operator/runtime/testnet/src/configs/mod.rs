@@ -640,8 +640,10 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
+    // TODO: Update with real genesis hash once testnet is deployed
+    pub const TestnetGenesisHash: [u8; 32] = [2u8; 32];
     pub UniversalLocation: InteriorLocation = [
-        GlobalConsensus(datahaven_runtime_common::datahaven_networks::DataHavenNetwork::Testnet.into())
+        GlobalConsensus(ByGenesis(TestnetGenesisHash::get()))
     ].into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
     pub RootLocation: Location = Location::here();

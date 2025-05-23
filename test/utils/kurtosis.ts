@@ -71,7 +71,7 @@ const serviceSchema = z.object({
   files: z.record(z.string(), z.array(z.string())).optional(),
   entrypoint: z.array(z.string()).optional(),
   cmd: z.array(z.string()),
-  env_vars: z.record(z.string(), z.string()),
+  env_vars: z.record(z.string(), z.string()).optional(),
   labels: z.record(z.string(), z.string()).optional(),
   tini_enabled: z.boolean()
 });

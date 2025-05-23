@@ -154,8 +154,9 @@ const waitForNamespaceDeletion = async (namespaceName: string): Promise<void> =>
         return true;
       }
     },
-    iterations: 30, // Wait up to 5 minutes (30 * 10 seconds)
-    delay: 10000 // 10 seconds between checks
+    iterations: 120, // Wait up to 2 minutes
+    delay: 1000, // 1 second between checks
+    errorMessage: "Kubernetes namespace not deleted"
   });
 
   logger.success(`Kubernetes namespace ${namespaceName} fully deleted.`);

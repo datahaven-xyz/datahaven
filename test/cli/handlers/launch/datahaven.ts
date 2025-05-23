@@ -16,6 +16,7 @@ import {
   printHeader,
   waitForContainerToStart
 } from "utils";
+import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import { DOCKER_NETWORK_NAME } from "../common/consts";
@@ -158,27 +159,31 @@ export const launchDataHavenSolochain = async (
     // logger.debug(listeningLine);
   }
 
-  for (let i = 0; i < 30; i++) {
-    logger.info("⌛️ Waiting for DataHaven to start...");
-    if (await isNetworkReady(DEFAULT_PUBLIC_WS_PORT)) {
-      logger.success(
-        `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
-      );
+  logger.info("⌛️ Waiting for DataHaven to start...");
+  await waitFor({
+    lambda: async () => {
+      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT);
+      if (!isReady) {
+        logger.debug("Node not ready, waiting 1 second...");
+      }
+      return isReady;
+    },
+    iterations: 30,
+    delay: 1000,
+    errorMessage: "DataHaven network not ready"
+  });
 
-      await registerNodes(launchedNetwork);
+  logger.success(
+    `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
+  );
 
-      // Call setupDataHavenValidatorConfig now that nodes are up
-      logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
-      await setupDataHavenValidatorConfig(launchedNetwork);
+  await registerNodes(launchedNetwork);
 
-      printDivider();
-      return;
-    }
-    logger.debug("Node not ready, waiting 1 second...");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
+  // Call setupDataHavenValidatorConfig now that nodes are up
+  logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
+  await setupDataHavenValidatorConfig(launchedNetwork);
 
-  throw new Error("DataHaven network failed to start after 30 seconds");
+  printDivider();
 };
 
 /**

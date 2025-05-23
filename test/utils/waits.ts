@@ -1,4 +1,5 @@
 import { sleep } from "bun";
+import { logger } from "./logger";
 
 /**
  * Options for the `waitFor` function.
@@ -10,6 +11,7 @@ export interface WaitForOptions {
   lambda: () => Promise<boolean>;
   iterations?: number;
   delay?: number;
+  errorMessage?: string;
 }
 
 /**
@@ -17,21 +19,25 @@ export interface WaitForOptions {
  * a timeout is reached.
  */
 export const waitFor = async (options: WaitForOptions) => {
-  const { lambda, iterations = 100, delay = 100 } = options;
+  const { lambda, iterations = 100, delay = 100, errorMessage } = options;
 
   for (let i = 0; i < iterations; i++) {
     try {
-      await sleep(delay);
       const result = await lambda();
       if (result) {
         return;
       }
     } catch (e: unknown) {
-      if (i === iterations - 1) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        throw new Error(`Failed after ${(iterations * delay) / 1000}s: ${errorMessage}`);
-      }
+      logger.debug(`Try ${i + 1} of ${iterations} failed: ${e}`);
+    }
+
+    // Only sleep if there are more iterations remaining
+    if (i < iterations - 1) {
+      await sleep(delay);
     }
   }
-  throw new Error(`Failed after ${(iterations * delay) / 1000}s`);
+
+  throw new Error(
+    `Failed after ${(iterations * delay) / 1000}s: ${errorMessage || "No error message provided"}`
+  );
 };

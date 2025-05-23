@@ -139,7 +139,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       config: RELAYER_CONFIG_PATHS.EXECUTION,
       pk: {
         type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
+        value: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
       }
     }
   ];

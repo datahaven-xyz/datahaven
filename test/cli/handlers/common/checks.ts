@@ -1,5 +1,7 @@
 import { $ } from "bun";
 import { logger, printDivider, printHeader } from "utils";
+import type { DeployOptions } from "../deploy";
+import type { LaunchedNetwork } from "./launchedNetwork";
 
 //  =====  Checks  =====
 export const checkBaseDependencies = async (): Promise<void> => {
@@ -29,7 +31,10 @@ export const checkBaseDependencies = async (): Promise<void> => {
   printDivider();
 };
 
-export const checkDeployDependencies = async (): Promise<void> => {
+export const checkDeployDependencies = async (
+  options: DeployOptions,
+  launchedNetwork: LaunchedNetwork
+): Promise<void> => {
   printHeader("Deploy Dependencies Checks");
 
   if (!(await checkHelmInstalled())) {
@@ -38,6 +43,20 @@ export const checkDeployDependencies = async (): Promise<void> => {
   }
 
   logger.success("Helm is installed");
+
+  switch (options.environment) {
+    case "staging":
+      launchedNetwork.kubeNamespace = `kt-${options.kurtosisEnclaveName}`;
+      break;
+    case "testnet":
+      launchedNetwork.kubeNamespace = options.kubeNamespace ?? `datahaven-${options.environment}`;
+      break;
+    case "mainnet":
+      launchedNetwork.kubeNamespace = options.kubeNamespace ?? `datahaven-${options.environment}`;
+      break;
+  }
+
+  logger.info(`ℹ️ Deploying to Kubernetes namespace: ${launchedNetwork.kubeNamespace}`);
 
   printDivider();
 };

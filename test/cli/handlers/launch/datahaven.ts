@@ -1,12 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-import { secp256k1 } from "@noble/curves/secp256k1";
 import { $ } from "bun";
 import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
-  createPapiConnectors,
   killExistingContainers,
   logger,
   printDivider,
@@ -14,10 +10,8 @@ import {
   waitForContainerToStart
 } from "utils";
 import { waitFor } from "utils/waits";
-import { type Hex, keccak256, toHex } from "viem";
-import { publicKeyToAddress } from "viem/accounts";
 import { DOCKER_NETWORK_NAME } from "../common/consts";
-import { isNetworkReady } from "../common/datahaven";
+import { isNetworkReady, setupDataHavenValidatorConfig } from "../common/datahaven";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
 
@@ -169,7 +163,7 @@ export const launchDataHavenSolochain = async (
 
   await registerNodes(launchedNetwork);
 
-  await setupDataHavenValidatorConfig(launchedNetwork);
+  await setupDataHavenValidatorConfig(launchedNetwork, "datahaven-");
 
   printDivider();
 };
@@ -310,108 +304,4 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
   );
   launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
   logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
-};
-
-// Function to convert compressed public key to Ethereum address
-export const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {
-  // Ensure the input is a hex string and remove "0x" prefix
-  const compressedKeyHex = compressedPubKey.startsWith("0x")
-    ? compressedPubKey.substring(2)
-    : compressedPubKey;
-
-  // Decompress the public key
-  const point = secp256k1.ProjectivePoint.fromHex(compressedKeyHex);
-  // toRawBytes(false) returns the uncompressed key (64 bytes, x and y coordinates)
-  const uncompressedPubKeyBytes = point.toRawBytes(false);
-  const uncompressedPubKeyHex = toHex(uncompressedPubKeyBytes); // Prefixes with "0x"
-
-  // Compute the Ethereum address from the uncompressed public key
-  // publicKeyToAddress expects a 0x-prefixed hex string representing the 64-byte uncompressed public key
-  const address = publicKeyToAddress(uncompressedPubKeyHex);
-  return address;
-};
-
-/**
- * Prepares the configuration for DataHaven authorities by converting their
- * compressed public keys to Ethereum addresses and saving them to a JSON file.
- */
-export const setupDataHavenValidatorConfig = async (
-  launchedNetwork: LaunchedNetwork
-): Promise<void> => {
-  const networkName = process.env.NETWORK || "anvil";
-  logger.info(`🔧 Preparing DataHaven authorities configuration for network: ${networkName}...`);
-
-  let authorityPublicKeys: string[] = [];
-  const dhNodes = launchedNetwork.containers.filter((x) => x.name.startsWith("datahaven-"));
-
-  invariant(dhNodes.length > 0, "No DataHaven nodes found in launchedNetwork");
-
-  const firstNode = dhNodes[0];
-  const wsUrl = `ws://127.0.0.1:${firstNode.publicPorts.ws}`;
-  const { client: papiClient, typedApi: dhApi } = createPapiConnectors(wsUrl);
-
-  logger.info(
-    `📡 Attempting to fetch BEEFY next authorities from node ${firstNode.name} (port ${firstNode.publicPorts.ws})...`
-  );
-
-  // Fetch NextAuthorities
-  // Beefy.NextAuthorities returns a fixed-length array of bytes representing the authority public keys
-  const nextAuthoritiesRaw = await dhApi.query.Beefy.NextAuthorities.getValue({ at: "best" });
-
-  invariant(nextAuthoritiesRaw && nextAuthoritiesRaw.length > 0, "No BEEFY next authorities found");
-
-  authorityPublicKeys = nextAuthoritiesRaw.map((key) => key.asHex()); // .asHex() returns the hex string representation of the corresponding key
-  logger.success(
-    `Successfully fetched ${authorityPublicKeys.length} BEEFY next authorities directly.`
-  );
-
-  // Clean up PAPI client, otherwise it will hang around and prevent this process from exiting.
-  papiClient.destroy();
-
-  const authorityHashes: string[] = [];
-  for (const compressedKey of authorityPublicKeys) {
-    try {
-      const ethAddress = compressedPubKeyToEthereumAddress(compressedKey);
-      const authorityHash = keccak256(ethAddress as Hex);
-      authorityHashes.push(authorityHash);
-      logger.debug(
-        `Processed public key ${compressedKey} -> ETH address ${ethAddress} -> Authority hash ${authorityHash}`
-      );
-    } catch (error) {
-      logger.error(`❌ Failed to process public key ${compressedKey}: ${error}`);
-      throw new Error(`Failed to process public key ${compressedKey}`);
-    }
-  }
-
-  // process.cwd() is 'test/', so config is at '../contracts/config'
-  const configDir = path.join(process.cwd(), "../contracts/config");
-  const configFilePath = path.join(configDir, `${networkName}.json`);
-
-  try {
-    if (!fs.existsSync(configFilePath)) {
-      logger.warn(
-        `⚠️ Configuration file ${configFilePath} not found. Skipping update of validator sets.`
-      );
-      // Optionally, create a default structure if it makes sense, or simply return.
-      // For now, if the base network config doesn't exist, we can't update it.
-      return;
-    }
-
-    const configFileContent = fs.readFileSync(configFilePath, "utf-8");
-    const configJson = JSON.parse(configFileContent);
-
-    if (!configJson.snowbridge) {
-      logger.warn(`⚠️ "snowbridge" section not found in ${configFilePath}, creating it.`);
-      configJson.snowbridge = {};
-    }
-
-    configJson.snowbridge.initialValidators = authorityHashes;
-    configJson.snowbridge.nextValidators = authorityHashes;
-
-    fs.writeFileSync(configFilePath, JSON.stringify(configJson, null, 2));
-    logger.success(`DataHaven authority hashes updated in: ${configFilePath}`);
-  } catch (error) {
-    logger.error(`❌ Failed to read or update ${configFilePath}: ${error}`);
-    throw new Error(`Failed to update authority hashes in ${configFilePath}.`);
-  }
 };

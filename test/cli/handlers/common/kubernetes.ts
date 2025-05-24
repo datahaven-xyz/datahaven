@@ -47,7 +47,7 @@ export const forwardPort = async (
   }
 
   logger.success(
-    `✅ Port forward established: localhost:${localPort} -> svc/dh-validator-0:${kubePort}`
+    `Port forward established: localhost:${localPort} -> svc/dh-validator-0:${kubePort}`
   );
 
   // Return cleanup function

@@ -121,14 +121,10 @@ pub mod pallet {
         },
 
         /// Pallet paused
-        Paused {
-            by: T::AccountId,
-        },
+        Paused,
 
         /// Pallet unpaused
-        Unpaused {
-            by: T::AccountId,
-        },
+        Unpaused,
     }
 
     #[pallet::error]
@@ -143,8 +139,8 @@ pub mod pallet {
         InvalidEthereumAddress,
         /// Invalid amount
         InvalidAmount,
-        /// Pallet is paused
-        PalletPaused,
+        /// Transfers are currently disabled
+        TransfersDisabled,
     }
 
     #[pallet::call]
@@ -163,7 +159,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             // Check if pallet is paused
-            ensure!(!Paused::<T>::get(), Error::<T>::PalletPaused);
+            ensure!(!Paused::<T>::get(), Error::<T>::TransfersDisabled);
 
             ensure!(amount > Zero::zero(), Error::<T>::InvalidAmount);
             ensure!(
@@ -215,12 +211,11 @@ pub mod pallet {
         #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::pause())]
         pub fn pause(origin: OriginFor<T>) -> DispatchResult {
-            T::PauseOrigin::ensure_origin(origin.clone())?;
-            let who = ensure_signed(origin)?;
+            T::PauseOrigin::ensure_origin(origin)?;
 
             Paused::<T>::put(true);
 
-            Self::deposit_event(Event::Paused { by: who });
+            Self::deposit_event(Event::Paused);
 
             Ok(())
         }
@@ -229,12 +224,11 @@ pub mod pallet {
         #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::unpause())]
         pub fn unpause(origin: OriginFor<T>) -> DispatchResult {
-            T::PauseOrigin::ensure_origin(origin.clone())?;
-            let who = ensure_signed(origin)?;
+            T::PauseOrigin::ensure_origin(origin)?;
 
             Paused::<T>::put(false);
 
-            Self::deposit_event(Event::Unpaused { by: who });
+            Self::deposit_event(Event::Unpaused);
 
             Ok(())
         }
@@ -272,9 +266,6 @@ pub mod pallet {
                 amount,
                 Preservation::Preserve,
             )?;
-
-            // Note: We don't track individual unlocks as tokens might
-            // be unlocked to different accounts than those who locked
 
             Self::deposit_event(Event::TokensUnlocked {
                 account: who.clone(),

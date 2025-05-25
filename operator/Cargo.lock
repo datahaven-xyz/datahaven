@@ -7606,6 +7606,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-datahaven-native-transfer"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "snowbridge-core 0.2.0",
+ "snowbridge-outbound-queue-primitives",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "staging-xcm",
+ "staging-xcm-builder",
+]
+
+[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "38.2.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#aa89c59bbc09efca21b4cdd0323c49aa0af8bb3a"

@@ -1,0 +1,287 @@
+// This file is part of DataHaven.
+
+//! # DataHaven Native Transfer Pallet
+//!
+//! This pallet facilitates the transfer of DataHaven native tokens to and from Ethereum.
+//!
+//! ## Overview
+//!
+//! The DataHaven Native Transfer Pallet provides the following features:
+//! - Transfer DataHaven native tokens to Ethereum via Snowbridge
+//! - Lock tokens during outbound transfers
+//! - Unlock tokens when they return from Ethereum
+//! - Integration with Snowbridge outbound queue for message passing
+//!
+//! It uses a dedicated Ethereum sovereign account to hold locked tokens during transfers.
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
+use frame_support::{
+    pallet_prelude::*,
+    traits::{
+        fungible::{Inspect, Mutate},
+        tokens::Preservation,
+    },
+};
+use snowbridge_core::TokenId;
+use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage, SendMessage};
+use sp_core::{H160, H256};
+use sp_runtime::BoundedVec;
+use sp_std::vec;
+
+pub use pallet::*;
+
+type BalanceOf<T> =
+    <<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+/// Weight functions needed for this pallet.
+pub trait WeightInfo {
+    fn transfer_to_ethereum() -> Weight;
+    fn pause() -> Weight;
+    fn unpause() -> Weight;
+}
+
+impl WeightInfo for () {
+    fn transfer_to_ethereum() -> Weight {
+        // Base weight for transfer operation
+        Weight::from_parts(100_000_000, 0).saturating_add(Weight::from_parts(0, 10_000))
+    }
+    
+    fn pause() -> Weight {
+        // Simple storage write
+        Weight::from_parts(10_000, 0)
+    }
+    
+    fn unpause() -> Weight {
+        // Simple storage write
+        Weight::from_parts(10_000, 0)
+    }
+}
+
+#[frame_support::pallet]
+pub mod pallet {
+    use super::*;
+    use frame_system::pallet_prelude::*;
+    use sp_core::hashing;
+
+    #[pallet::pallet]
+    pub struct Pallet<T>(_);
+
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        /// The overarching event type
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+        /// The currency used for reserves
+        type Currency: Mutate<Self::AccountId>;
+
+        /// The sovereign account for Ethereum bridge reserves
+        /// This should be derived from the Ethereum location using
+        /// a location-to-account converter (e.g., HashedDescription)
+        type EthereumSovereignAccount: Get<Self::AccountId>;
+
+        /// The Snowbridge outbound queue for sending messages to Ethereum
+        type OutboundQueue: SendMessage;
+
+        /// The DataHaven native token ID on Ethereum
+        type NativeTokenId: Get<TokenId>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
+
+        /// Origin that can pause/unpause the pallet
+        type PauseOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+    }
+
+    #[pallet::storage]
+    #[pallet::getter(fn is_paused)]
+    /// Whether the pallet is paused
+    pub type Paused<T> = StorageValue<_, bool, ValueQuery>;
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        /// Tokens locked for transfer to Ethereum
+        TokensLocked {
+            account: T::AccountId,
+            amount: BalanceOf<T>,
+        },
+
+        /// Tokens unlocked from Ethereum vault
+        TokensUnlocked {
+            account: T::AccountId,
+            amount: BalanceOf<T>,
+        },
+
+        /// Tokens transferred to Ethereum
+        TokensTransferredToEthereum {
+            from: T::AccountId,
+            to: H160,
+            amount: BalanceOf<T>,
+        },
+
+        /// Pallet paused
+        Paused {
+            by: T::AccountId,
+        },
+
+        /// Pallet unpaused
+        Unpaused {
+            by: T::AccountId,
+        },
+    }
+
+    #[pallet::error]
+    pub enum Error<T> {
+        /// Insufficient balance to lock
+        InsufficientBalance,
+        /// Arithmetic overflow in calculation
+        Overflow,
+        /// Failed to send message to Ethereum
+        SendMessageFailed,
+        /// Invalid Ethereum address
+        InvalidEthereumAddress,
+        /// Invalid amount
+        InvalidAmount,
+        /// Pallet is paused
+        PalletPaused,
+    }
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        /// Transfer DataHaven native tokens to Ethereum
+        ///
+        /// Locks the tokens in the vault and sends a message through Snowbridge
+        /// to mint the equivalent tokens on Ethereum.
+        #[pallet::call_index(0)]
+        #[pallet::weight(T::WeightInfo::transfer_to_ethereum())]
+        pub fn transfer_to_ethereum(
+            origin: OriginFor<T>,
+            recipient: H160,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            // Check if pallet is paused
+            ensure!(!Paused::<T>::get(), Error::<T>::PalletPaused);
+
+            ensure!(amount > Zero::zero(), Error::<T>::InvalidAmount);
+            ensure!(
+                recipient != H160::zero(),
+                Error::<T>::InvalidEthereumAddress
+            );
+
+            // Lock the tokens
+            Self::lock_tokens(&who, amount)?;
+
+            // Create the mint command for Ethereum
+            let command = Command::MintForeignToken {
+                token_id: T::NativeTokenId::get(),
+                recipient,
+                amount: amount.try_into().map_err(|_| Error::<T>::Overflow)?,
+            };
+
+            // Create the outbound message
+            let commands =
+                BoundedVec::try_from(vec![command]).map_err(|_| Error::<T>::SendMessageFailed)?;
+
+            // The origin field is not validated by Gateway V2 for MintForeignToken,
+            // but we set it to a recognizable value for tracking purposes
+            let mut message = OutboundMessage {
+                origin: H256::zero(),
+                id: H256::zero(),
+                fee: 0u128, // Fee calculation should be handled by the runtime
+                commands,
+            };
+
+            let message_hash = hashing::blake2_256(&message.encode());
+            message.id = H256::from(message_hash);
+
+            // Send the message through Snowbridge
+            T::OutboundQueue::validate(&message)
+                .and_then(|ticket| T::OutboundQueue::deliver(ticket))
+                .map_err(|_| Error::<T>::SendMessageFailed)?;
+
+            Self::deposit_event(Event::TokensTransferredToEthereum {
+                from: who,
+                to: recipient,
+                amount,
+            });
+
+            Ok(())
+        }
+
+        /// Pause the pallet, preventing all transfers
+        #[pallet::call_index(1)]
+        #[pallet::weight(T::WeightInfo::pause())]
+        pub fn pause(origin: OriginFor<T>) -> DispatchResult {
+            T::PauseOrigin::ensure_origin(origin.clone())?;
+            let who = ensure_signed(origin)?;
+
+            Paused::<T>::put(true);
+
+            Self::deposit_event(Event::Paused { by: who });
+
+            Ok(())
+        }
+
+        /// Unpause the pallet, allowing transfers again
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::unpause())]
+        pub fn unpause(origin: OriginFor<T>) -> DispatchResult {
+            T::PauseOrigin::ensure_origin(origin.clone())?;
+            let who = ensure_signed(origin)?;
+
+            Paused::<T>::put(false);
+
+            Self::deposit_event(Event::Unpaused { by: who });
+
+            Ok(())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        /// Lock tokens for transfer to Ethereum
+        ///
+        /// Transfers tokens from a user to the Ethereum sovereign account and updates tracking
+        pub fn lock_tokens(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            // Transfer to Ethereum sovereign account
+            T::Currency::transfer(
+                who,
+                &T::EthereumSovereignAccount::get(),
+                amount,
+                Preservation::Preserve,
+            )?;
+
+            Self::deposit_event(Event::TokensLocked {
+                account: who.clone(),
+                amount,
+            });
+
+            Ok(())
+        }
+
+        /// Unlock tokens returning from Ethereum
+        ///
+        /// Transfers tokens from the Ethereum sovereign account back to user
+        pub fn unlock_tokens(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            // Transfer from the Ethereum sovereign account
+            T::Currency::transfer(
+                &T::EthereumSovereignAccount::get(),
+                who,
+                amount,
+                Preservation::Preserve,
+            )?;
+
+            // Note: We don't track individual unlocks as tokens might
+            // be unlocked to different accounts than those who locked
+
+            Self::deposit_event(Event::TokensUnlocked {
+                account: who.clone(),
+                amount,
+            });
+
+            Ok(())
+        }
+    }
+}

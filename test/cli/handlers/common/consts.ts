@@ -1,3 +1,5 @@
+export const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
 /**
  * The name of the Docker network that DataHaven nodes and
  * Snowbridge relayers will be connected to, in a local deployment.

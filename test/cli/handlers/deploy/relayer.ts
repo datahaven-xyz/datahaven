@@ -8,7 +8,6 @@ import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
   getEvmEcdsaSigner,
-  getPortFromKurtosis,
   logger,
   parseDeploymentsFile,
   parseRelayConfig,
@@ -22,10 +21,13 @@ import {
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
+import { ZERO_HASH } from "../common/consts";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 
-const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
+// Standard ports for the Ethereum network
+const ETH_EL_RPC_PORT = 8546;
+const ETH_CL_HTTP_PORT = 4000;
 
 type RelayerSpec = {
   name: string;
@@ -76,9 +78,11 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
 
+  // TODO: MAYBE REMOVE THIS
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
+  // TODO: MAYBE REMOVE THIS
   const datastorePath = "tmp/datastore";
   logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
   await $`mkdir -p ${datastorePath}`.quiet();
@@ -107,6 +111,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   for (const { config, type, name } of relayersToStart) {
     const configFileName = path.basename(config);
 
+    // TODO: CHANGE THIS SO THAT IT WRITE IN deployment/charts/bridges-common-relay/configs
     logger.debug(`Creating config for ${name}`);
     const templateFilePath = `configs/snowbridge/${configFileName}`;
     const outputFilePath = path.resolve(RELAYER_CONFIG_DIR, configFileName);
@@ -119,22 +124,14 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
     }
     const json = await file.json();
 
-    const ethWsPort = await getPortFromKurtosis(
-      "el-1-reth-lighthouse",
-      "ws",
-      options.kurtosisEnclaveName
-    );
-    const ethHttpPort = await getPortFromKurtosis(
-      "cl-1-lighthouse-reth",
-      "http",
-      options.kurtosisEnclaveName
-    );
+    // TODO: CHANGE THIS TO USE THE LAUNCHED NETWORK ENDPOINTS
     logger.debug(
-      `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
+      `Fetched ports: ETH WS=${ETH_EL_RPC_PORT}, ETH HTTP=${ETH_CL_HTTP_PORT}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );
 
     if (type === "beacon") {
       const cfg = parseRelayConfig(json, type);
+      // TODO: CHANGE THIS TO USE THE LAUNCHED NETWORK ENDPOINTS
       cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
       cfg.source.beacon.datastore.location = "/data";
@@ -144,8 +141,9 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       logger.success(`Updated beacon config written to ${outputFilePath}`);
     } else {
       const cfg = parseRelayConfig(json, type);
+      // TODO: CHANGE THIS TO USE THE LAUNCHED NETWORK ENDPOINTS
       cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${elWsPort}`;
       cfg.sink.contracts.BeefyClient = beefyClientAddress;
       cfg.sink.contracts.Gateway = gatewayAddress;
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
@@ -363,48 +361,48 @@ const waitBeaconChainReady = async (
   pollIntervalMs: number,
   timeoutMs: number
 ) => {
-  let initialBeaconBlock = ZERO_HASH;
-  let attempts = 0;
-  let keepPolling = true;
-  const maxAttempts = timeoutMs / pollIntervalMs;
+  const iterations = Math.floor(timeoutMs / pollIntervalMs);
 
   logger.trace("Waiting for beacon chain to be ready...");
 
-  while (keepPolling) {
-    try {
-      const response = await fetch(
-        `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+  await waitFor({
+    lambda: async () => {
+      try {
+        const response = await fetch(
+          `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = (await response.json()) as FinalityCheckpointsResponse;
+        logger.debug(`Beacon chain state: ${JSON.stringify(data)}`);
+
+        invariant(data.data, "❌ No data returned from beacon chain");
+        invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
+        invariant(
+          data.data.finalized.root,
+          "❌ No finalised block root returned from beacon chain"
+        );
+
+        const initialBeaconBlock = data.data.finalized.root;
+
+        if (initialBeaconBlock && initialBeaconBlock !== ZERO_HASH) {
+          logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
+          return true;
+        }
+
+        logger.info(`⌛️ Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
+        return false;
+      } catch (error) {
+        logger.error(`Failed to fetch beacon chain state: ${error}`);
+        return false;
       }
-
-      const data = (await response.json()) as FinalityCheckpointsResponse;
-      logger.debug(`Beacon chain state: ${JSON.stringify(data)}`);
-
-      invariant(data.data, "❌ No data returned from beacon chain");
-      invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
-      invariant(data.data.finalized.root, "❌ No finalised block root returned from beacon chain");
-      initialBeaconBlock = data.data.finalized.root;
-    } catch (error) {
-      logger.error(`Failed to fetch beacon chain state: ${error}`);
-    }
-
-    if (initialBeaconBlock === ZERO_HASH) {
-      attempts++;
-
-      if (attempts >= maxAttempts) {
-        throw new Error(`Beacon chain is not ready after ${maxAttempts} attempts`);
-      }
-
-      logger.info(`⌛️ Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    } else {
-      keepPolling = false;
-    }
-  }
-
-  logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
+    },
+    iterations,
+    delay: pollIntervalMs,
+    errorMessage: "Beacon chain is not ready. Relayers cannot be launched."
+  });
 };
 
 /**

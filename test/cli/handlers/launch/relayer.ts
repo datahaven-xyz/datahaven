@@ -24,10 +24,9 @@ import {
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
+import { ZERO_HASH } from "../common/consts";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
-
-const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 type RelayerSpec = {
   name: string;
@@ -402,48 +401,48 @@ const waitBeaconChainReady = async (
   pollIntervalMs: number,
   timeoutMs: number
 ) => {
-  let initialBeaconBlock = ZERO_HASH;
-  let attempts = 0;
-  let keepPolling = true;
-  const maxAttempts = timeoutMs / pollIntervalMs;
+  const iterations = Math.floor(timeoutMs / pollIntervalMs);
 
   logger.trace("Waiting for beacon chain to be ready...");
 
-  while (keepPolling) {
-    try {
-      const response = await fetch(
-        `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+  await waitFor({
+    lambda: async () => {
+      try {
+        const response = await fetch(
+          `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = (await response.json()) as FinalityCheckpointsResponse;
+        logger.debug(`Beacon chain state: ${JSON.stringify(data)}`);
+
+        invariant(data.data, "❌ No data returned from beacon chain");
+        invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
+        invariant(
+          data.data.finalized.root,
+          "❌ No finalised block root returned from beacon chain"
+        );
+
+        const initialBeaconBlock = data.data.finalized.root;
+
+        if (initialBeaconBlock && initialBeaconBlock !== ZERO_HASH) {
+          logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
+          return true;
+        }
+
+        logger.info(`⌛️ Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
+        return false;
+      } catch (error) {
+        logger.error(`Failed to fetch beacon chain state: ${error}`);
+        return false;
       }
-
-      const data = (await response.json()) as FinalityCheckpointsResponse;
-      logger.debug(`Beacon chain state: ${JSON.stringify(data)}`);
-
-      invariant(data.data, "❌ No data returned from beacon chain");
-      invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
-      invariant(data.data.finalized.root, "❌ No finalised block root returned from beacon chain");
-      initialBeaconBlock = data.data.finalized.root;
-    } catch (error) {
-      logger.error(`Failed to fetch beacon chain state: ${error}`);
-    }
-
-    if (initialBeaconBlock === ZERO_HASH) {
-      attempts++;
-
-      if (attempts >= maxAttempts) {
-        throw new Error(`Beacon chain is not ready after ${maxAttempts} attempts`);
-      }
-
-      logger.info(`⌛️ Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    } else {
-      keepPolling = false;
-    }
-  }
-
-  logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
+    },
+    iterations,
+    delay: pollIntervalMs,
+    errorMessage: "Beacon chain is not ready. Relayers cannot be launched."
+  });
 };
 
 /**

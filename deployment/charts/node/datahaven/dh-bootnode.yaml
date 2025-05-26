@@ -4,7 +4,7 @@ fullnameOverride: dh-bootnode
 
 image:
   repository: moonsonglabs/datahaven
-  tag: pr-78
+  tag: main
   pullPolicy: Always
 
 imagePullSecrets:
@@ -38,7 +38,7 @@ extraInitContainers:
     image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
     securityContext:
       runAsUser: 0
-    command: [ "/bin/bash" ]
+    command: ["/bin/bash"]
     args:
       - -c
       - |

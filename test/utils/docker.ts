@@ -65,6 +65,12 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   return services;
 };
 
+export const getContainersMatchingImage = async (imageName: string) => {
+  const containers = await docker.listContainers();
+  const matches = containers.filter((container) => container.Image.includes(imageName));
+  return matches;
+};
+
 export const getPublicPort = async (
   containerName: string,
   internalPort: number

@@ -68,7 +68,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   if (!shouldLaunchRelayers) {
-    logger.info("Skipping Snowbridge relayers launch. Done!");
+    logger.info("👍  Snowbridge relayers launch. Done!");
     printDivider();
     return;
   }
@@ -159,8 +159,16 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     }
     const json = await file.json();
 
-    const ethWsPort = await getPortFromKurtosis("el-1-reth-lighthouse", "ws");
-    const ethHttpPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+    const ethWsPort = await getPortFromKurtosis(
+      "el-1-reth-lighthouse",
+      "ws",
+      options.kurtosisEnclaveName
+    );
+    const ethHttpPort = await getPortFromKurtosis(
+      "cl-1-lighthouse-reth",
+      "http",
+      options.kurtosisEnclaveName
+    );
     logger.debug(
       `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );
@@ -364,6 +372,10 @@ export const initEthClientPallet = async (
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
+  invariant(
+    launchedNetwork.networkName,
+    "❌ Docker network name not found in LaunchedNetwork instance"
+  );
   const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \

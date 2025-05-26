@@ -14,7 +14,7 @@ import {
 } from "utils";
 import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
 
-// Re-add the interface
+// Interface for the options object of setDataHavenParameters
 interface SetDataHavenParametersOptions {
   rpcUrl: string;
   parametersFilePath: string;
@@ -134,7 +134,7 @@ export const setDataHavenParameters = async (
       }
     }
   } finally {
-    await client.destroy();
+    client.destroy();
     logger.trace("Substrate client destroyed");
   }
 

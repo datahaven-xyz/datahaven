@@ -115,7 +115,7 @@ const checkAndCleanHelmReleases = async (launchedNetwork: LaunchedNetwork): Prom
         `🔎 Found existing DataHaven Helm releases: ${releases.join(", ")}. Uninstalling...`
       );
       for (const release of releases) {
-        logger.info(`Uninstalling Helm release: ${release} in namespace datahaven...`);
+        logger.info(`🪓 Uninstalling Helm release: ${release} in namespace datahaven...`);
         await $`helm uninstall ${release} -n ${launchedNetwork.kubeNamespace}`.text();
         logger.success(`Helm release ${release} uninstalled successfully.`);
       }

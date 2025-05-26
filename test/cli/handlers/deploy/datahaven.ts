@@ -35,7 +35,8 @@ export const deployDataHavenSolochain = async (
       await $`kubectl create secret docker-registry datahaven-dockerhub \
         --docker-username=${options.dockerUsername} \
         --docker-password=${options.dockerPassword} \
-        --docker-email=${options.dockerEmail}`.text()
+        --docker-email=${options.dockerEmail} |
+        -n ${launchedNetwork.kubeNamespace}`.text()
     );
     logger.success("Docker Hub secret created successfully");
   }
@@ -140,6 +141,8 @@ const checkOrCreateKubernetesNamespace = async (namespace: string) => {
 
 const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
   // Register the validator node, using the standard host WS port that we just forwarded.
-  launchedNetwork.addContainer("dh-validator-0", { ws: DEFAULT_PUBLIC_WS_PORT });
+  launchedNetwork.addContainer("dh-validator-0", {
+    ws: DEFAULT_PUBLIC_WS_PORT
+  });
   logger.info("📝 Node dh-validator-0 successfully registered in launchedNetwork.");
 };

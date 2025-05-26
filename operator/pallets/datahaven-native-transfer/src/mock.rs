@@ -1,75 +1,185 @@
-// Example runtime configuration for the datahaven-native-transfer pallet
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2024 DataHaven <hello@datahaven.io>
 
-use frame_support::{parameter_types, traits::{ConstU32, Get}};
-use sp_core::H256;
-use sp_runtime::traits::{AccountIdConversion, BlakeTwo256};
-use xcm::prelude::*;
-use xcm_builder::HashedDescription;
+use {
+    crate::{self as pallet_datahaven_native_transfer},
+    frame_support::{
+        parameter_types,
+        traits::{ConstU32, Everything},
+    },
+    frame_system::EnsureRoot,
+    snowbridge_outbound_queue_primitives::v2::{Message as OutboundMessage, SendMessage},
+    sp_core::H256,
+    sp_runtime::{
+        traits::{BlakeTwo256, IdentityLookup},
+        BuildStorage,
+    },
+};
 
-// Example configuration in runtime
-parameter_types! {
-    // Define the Ethereum location in XCM terms
-    pub EthereumLocation: Location = Location::new(
-        2,  // Two consensus systems away
-        [GlobalConsensus(Ethereum { chain_id: 1 })]
-    );
-    
-    // Derive the sovereign account from the Ethereum location
-    // This uses HashedDescription to convert location to AccountId
-    pub EthereumSovereignAccount: AccountId = {
-        HashedDescription::<AccountId, DescribeLocation>::convert_location(&EthereumLocation::get())
-            .expect("Ethereum location should convert to account")
-    };
+type Block = frame_system::mocking::MockBlock<Test>;
+
+// Configure a mock runtime to test the pallet.
+frame_support::construct_runtime!(
+    pub enum Test
+    {
+        System: frame_system,
+        Balances: pallet_balances,
+        DataHavenNativeTransfer: pallet_datahaven_native_transfer,
+    }
+);
+
+impl frame_system::Config for Test {
+    type BaseCallFilter = Everything;
+    type BlockWeights = ();
+    type BlockLength = ();
+    type DbWeight = ();
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
+    type Nonce = u64;
+    type Hash = H256;
+    type Hashing = BlakeTwo256;
+    type AccountId = u64;
+    type Lookup = IdentityLookup<Self::AccountId>;
+    type Block = Block;
+    type RuntimeEvent = RuntimeEvent;
+    type BlockHashCount = BlockHashCount;
+    type Version = ();
+    type PalletInfo = PalletInfo;
+    type AccountData = pallet_balances::AccountData<u128>;
+    type OnNewAccount = ();
+    type OnKilledAccount = ();
+    type SystemWeightInfo = ();
+    type SS58Prefix = SS58Prefix;
+    type OnSetCode = ();
+    type MaxConsumers = ConstU32<16>;
+    type RuntimeTask = ();
+    type ExtensionsWeightInfo = ();
+    type SingleBlockMigrations = ();
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
-// Mock implementation of SendMessage for testing
-pub struct MockOutboundQueue;
-impl snowbridge_outbound_queue_primitives::v2::SendMessage for MockOutboundQueue {
-    type Ticket = snowbridge_outbound_queue_primitives::v2::Message;
+impl pallet_balances::Config for Test {
+    type Balance = u128;
+    type DustRemoval = ();
+    type RuntimeEvent = RuntimeEvent;
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
+    type MaxLocks = ();
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = [u8; 8];
+    type RuntimeHoldReason = ();
+    type FreezeIdentifier = ();
+    type MaxFreezes = ConstU32<0>;
+    type RuntimeFreezeReason = ();
+    type DoneSlashHandler = ();
+}
 
-    fn validate(message: &Self::Ticket) -> Result<Self::Ticket, snowbridge_outbound_queue_primitives::SendError> {
-        Ok(message.clone())
+use std::sync::Mutex;
+
+static MESSAGES: Mutex<Vec<OutboundMessage>> = Mutex::new(Vec::new());
+static SHOULD_FAIL: Mutex<bool> = Mutex::new(false);
+
+pub struct MockOkOutboundQueue;
+
+impl MockOkOutboundQueue {
+    pub fn messages_sent() -> Vec<OutboundMessage> {
+        MESSAGES.lock().unwrap().clone()
     }
 
-    fn deliver(ticket: Self::Ticket) -> Result<H256, snowbridge_outbound_queue_primitives::SendError> {
-        Ok(H256::random())
+    pub fn clear_messages() {
+        MESSAGES.lock().unwrap().clear();
+    }
+
+    pub fn set_should_fail(should_fail: bool) {
+        *SHOULD_FAIL.lock().unwrap() = should_fail;
     }
 }
 
-// DataHaven native token ID on Ethereum
+impl SendMessage for MockOkOutboundQueue {
+    type Ticket = OutboundMessage;
+
+    fn validate(
+        message: &OutboundMessage,
+    ) -> Result<Self::Ticket, snowbridge_outbound_queue_primitives::SendError> {
+        if *SHOULD_FAIL.lock().unwrap() {
+            Err(snowbridge_outbound_queue_primitives::SendError::MessageTooLarge)
+        } else {
+            Ok(message.clone())
+        }
+    }
+
+    fn deliver(
+        ticket: Self::Ticket,
+    ) -> Result<H256, snowbridge_outbound_queue_primitives::SendError> {
+        if *SHOULD_FAIL.lock().unwrap() {
+            Err(snowbridge_outbound_queue_primitives::SendError::MessageTooLarge)
+        } else {
+            MESSAGES.lock().unwrap().push(ticket);
+            Ok(H256::zero())
+        }
+    }
+}
+
 parameter_types! {
+    pub const BlockHashCount: u64 = 250;
+    pub const SS58Prefix: u8 = 42;
+}
+
+parameter_types! {
+    pub const ExistentialDeposit: u128 = 1;
+    pub const MaxReserves: u32 = 50;
+}
+
+parameter_types! {
+    pub const EthereumSovereignAccount: u64 = 999;
     pub const DataHavenTokenId: H256 = H256::repeat_byte(0x01);
 }
 
-// In your runtime implementation
-impl datahaven_native_transfer::Config for Runtime {
+impl crate::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
-    type OutboundQueue = MockOutboundQueue;
+    type OutboundQueue = MockOkOutboundQueue;
     type NativeTokenId = DataHavenTokenId;
     type WeightInfo = ();
-    type PauseOrigin = frame_system::EnsureRoot<AccountId>; // Or use EnsureSigned for testing
+    type PauseOrigin = EnsureRoot<u64>;
 }
 
-// Alternative: If you already have the sovereign account computation elsewhere
-pub struct EthereumSovereignAccountProvider;
-impl Get<AccountId> for EthereumSovereignAccountProvider {
-    fn get() -> AccountId {
-        // This would match however you compute sovereign accounts in your runtime
-        // For example, if using SnowbridgeSystemV2's configuration:
-        let ethereum_location = Location::new(
-            2,
-            [GlobalConsensus(Ethereum { chain_id: 1 })]
-        );
-        
-        // Using the same converter as your XCM config
-        LocationToAccountId::convert_location(&ethereum_location)
-            .expect("Ethereum should have sovereign account")
-    }
+pub const ALICE: u64 = 1;
+pub const BOB: u64 = 2;
+pub const CHARLIE: u64 = 3;
+pub const ETHEREUM_SOVEREIGN: u64 = 999;
+pub const INITIAL_BALANCE: u128 = 10_000;
+
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    // Clear mock state before creating new test environment
+    MockOkOutboundQueue::clear_messages();
+    MockOkOutboundQueue::set_should_fail(false);
+    
+    let mut t = frame_system::GenesisConfig::<Test>::default()
+        .build_storage()
+        .unwrap();
+
+    let balances = vec![
+        (ALICE, INITIAL_BALANCE),
+        (BOB, INITIAL_BALANCE),
+        (CHARLIE, INITIAL_BALANCE),
+    ];
+    pallet_balances::GenesisConfig::<Test> { balances }
+        .assimilate_storage(&mut t)
+        .unwrap();
+
+    let mut ext: sp_io::TestExternalities = t.into();
+    ext.execute_with(|| {
+        System::set_block_number(1);
+    });
+    ext
 }
 
-// Usage in bridge operations:
-// When user transfers to Ethereum, tokens go to Ethereum's sovereign account
-// When tokens come back from Ethereum, they're released from this account
-// This clearly shows the cross-chain custody relationship
+pub fn last_event() -> RuntimeEvent {
+    System::events().pop().expect("Event expected").event
+}

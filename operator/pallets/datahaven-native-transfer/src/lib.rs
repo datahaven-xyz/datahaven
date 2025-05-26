@@ -31,6 +31,11 @@ use sp_std::vec;
 
 pub use pallet::*;
 
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 type BalanceOf<T> =
     <<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -62,6 +67,7 @@ impl WeightInfo for () {
 pub mod pallet {
     use super::*;
     use frame_system::pallet_prelude::*;
+    use frame_system::unique;
     use sp_core::hashing;
 
     #[pallet::pallet]
@@ -149,12 +155,19 @@ pub mod pallet {
         ///
         /// Locks the tokens in the vault and sends a message through Snowbridge
         /// to mint the equivalent tokens on Ethereum.
+        ///
+        /// Parameters:
+        /// - `origin`: The account initiating the transfer
+        /// - `recipient`: The Ethereum address to receive the tokens
+        /// - `amount`: The amount of tokens to transfer
+        /// - `fee`: The fee to incentivize relayers (in native tokens)
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::transfer_to_ethereum())]
         pub fn transfer_to_ethereum(
             origin: OriginFor<T>,
             recipient: H160,
             amount: BalanceOf<T>,
+            fee: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
@@ -166,6 +179,9 @@ pub mod pallet {
                 recipient != H160::zero(),
                 Error::<T>::InvalidEthereumAddress
             );
+
+            // Convert fee to u128 for the message
+            let fee: u128 = fee.try_into().map_err(|_| Error::<T>::Overflow)?;
 
             // Lock the tokens
             Self::lock_tokens(&who, amount)?;
@@ -185,8 +201,8 @@ pub mod pallet {
             // but we set it to a recognizable value for tracking purposes
             let mut message = OutboundMessage {
                 origin: H256::zero(),
-                id: H256::zero(),
-                fee: 0u128, // Fee calculation should be handled by the runtime
+                id: unique(commands.encode()).into(),
+                fee,
                 commands,
             };
 
@@ -273,6 +289,17 @@ pub mod pallet {
             });
 
             Ok(())
+        }
+
+        /// Check if the Ethereum sovereign account has sufficient balance
+        pub fn reserve_balance() -> BalanceOf<T> {
+            <T::Currency as Inspect<T::AccountId>>::balance(&T::EthereumSovereignAccount::get())
+        }
+        
+        /// Get the Ethereum sovereign account address
+        /// Useful for monitoring and debugging
+        pub fn ethereum_sovereign_account() -> T::AccountId {
+            T::EthereumSovereignAccount::get()
         }
     }
 }

@@ -35,7 +35,7 @@ export const deployDataHavenSolochain = async (
       await $`kubectl create secret docker-registry datahaven-dockerhub \
         --docker-username=${options.dockerUsername} \
         --docker-password=${options.dockerPassword} \
-        --docker-email=${options.dockerEmail} |
+        --docker-email=${options.dockerEmail} \
         -n ${launchedNetwork.kubeNamespace}`.text()
     );
     logger.success("Docker Hub secret created successfully");

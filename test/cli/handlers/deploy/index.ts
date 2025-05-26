@@ -16,6 +16,8 @@ export interface DeployOptions {
   verified?: boolean;
   blockscout?: boolean;
   datahavenImageTag: string;
+  elRpcUrl?: string;
+  clEndpoint?: string;
   relayerImageTag: string;
   // TODO: This shouldn't be necessary once the repo is public
   dockerUsername?: string;
@@ -70,5 +72,9 @@ export const deployPreActionHook = (
     logger.warn(
       "⚠️ --kube-namespace is not allowed in staging environment. The Kurtosis namespace will be used instead."
     );
+  }
+
+  if (opts.environment !== "staging" && opts.elRpcUrl === undefined) {
+    thisCmd.error("--eth-rpc-url is required in non-staging environment");
   }
 };

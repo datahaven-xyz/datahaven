@@ -75,6 +75,14 @@ program
     "moonsonglabs/datahaven:main"
   )
   .option(
+    "--el-rpc-url <value>",
+    "URL of the Ethereum Execution Layer (EL) RPC endpoint to use. In stagenet environment, the Kurtosis Ethereum network will be used. In testnet and mainnet environment, this parameter is required."
+  )
+  .option(
+    "--cl-endpoint <value>",
+    "URL of the Ethereum Consensus Layer (CL) endpoint to use. In stagenet environment, the Kurtosis Ethereum network will be used. In testnet and mainnet environment, this parameter is required."
+  )
+  .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer image to use",
     "moonsonglabs/snowbridge-relayer:latest"

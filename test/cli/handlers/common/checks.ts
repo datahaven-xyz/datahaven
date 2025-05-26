@@ -1,4 +1,5 @@
 import { $ } from "bun";
+import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import type { DeployOptions } from "../deploy";
 import type { LaunchedNetwork } from "./launchedNetwork";
@@ -49,10 +50,20 @@ export const checkDeployDependencies = async (
       launchedNetwork.kubeNamespace = `kt-${options.kurtosisEnclaveName}`;
       break;
     case "testnet":
-      launchedNetwork.kubeNamespace = options.kubeNamespace ?? `datahaven-${options.environment}`;
-      break;
     case "mainnet":
       launchedNetwork.kubeNamespace = options.kubeNamespace ?? `datahaven-${options.environment}`;
+
+      invariant(
+        options.elRpcUrl !== undefined,
+        "❌ --el-rpc-url is required in testnet environment"
+      );
+      invariant(
+        options.clEndpoint !== undefined,
+        "❌ --cl-endpoint is required in testnet environment"
+      );
+      launchedNetwork.elRpcUrl = options.elRpcUrl;
+      launchedNetwork.clEndpoint = options.clEndpoint;
+
       break;
   }
 

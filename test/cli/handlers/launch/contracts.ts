@@ -26,6 +26,7 @@ interface DeployContractsOptions {
  * @returns Promise resolving to true if contracts were deployed successfully, false if skipped
  */
 export const deployContracts = async (options: DeployContractsOptions): Promise<boolean> => {
+  printHeader("Deploying Smart Contracts");
   const { rpcUrl, verified = false, blockscoutBackendUrl, deployContracts } = options;
 
   // Check if deployContracts option was set via flags, or prompt if not
@@ -54,8 +55,6 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   if (verified) {
     invariant(blockscoutBackendUrl, "❌ Blockscout backend URL is required for verification");
   }
-
-  printHeader("Deploying Smart Contracts");
 
   // Build contracts
   logger.info("🛳️ Building contracts...");
@@ -89,55 +88,3 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
 
   return true;
 };
-
-// Allow script to be run directly with CLI arguments
-if (import.meta.main) {
-  const args = process.argv.slice(2);
-  const options: {
-    rpcUrl?: string;
-    verified: boolean;
-    blockscoutBackendUrl?: string;
-    deployContracts?: boolean;
-  } = {
-    verified: args.includes("--verified"),
-    deployContracts: args.includes("--deploy-contracts")
-      ? true
-      : args.includes("--no-deploy-contracts")
-        ? false
-        : undefined
-  };
-
-  // Extract RPC URL
-  const rpcUrlIndex = args.indexOf("--rpc-url");
-  if (rpcUrlIndex !== -1 && rpcUrlIndex + 1 < args.length) {
-    options.rpcUrl = args[rpcUrlIndex + 1];
-  }
-
-  // Extract Blockscout URL if verification is enabled
-  if (options.verified) {
-    const blockscoutUrlIndex = args.indexOf("--blockscout-url");
-    if (blockscoutUrlIndex !== -1 && blockscoutUrlIndex + 1 < args.length) {
-      options.blockscoutBackendUrl = args[blockscoutUrlIndex + 1];
-    }
-  }
-
-  if (!options.rpcUrl) {
-    console.error("Error: --rpc-url parameter is required");
-    process.exit(1);
-  }
-
-  if (options.verified && !options.blockscoutBackendUrl) {
-    console.error("Error: --blockscout-url parameter is required when using --verified");
-    process.exit(1);
-  }
-
-  deployContracts({
-    rpcUrl: options.rpcUrl,
-    verified: options.verified,
-    blockscoutBackendUrl: options.blockscoutBackendUrl,
-    deployContracts: options.deployContracts
-  }).catch((error) => {
-    console.error("Deployment failed:", error);
-    process.exit(1);
-  });
-}

@@ -36,32 +36,14 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+pub mod weights;
+pub use weights::WeightInfo;
+
 type BalanceOf<T> =
     <<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-
-/// Weight functions needed for this pallet.
-pub trait WeightInfo {
-    fn transfer_to_ethereum() -> Weight;
-    fn pause() -> Weight;
-    fn unpause() -> Weight;
-}
-
-impl WeightInfo for () {
-    fn transfer_to_ethereum() -> Weight {
-        // Base weight for transfer operation
-        Weight::from_parts(100_000_000, 0).saturating_add(Weight::from_parts(0, 10_000))
-    }
-    
-    fn pause() -> Weight {
-        // Simple storage write
-        Weight::from_parts(10_000, 0)
-    }
-    
-    fn unpause() -> Weight {
-        // Simple storage write
-        Weight::from_parts(10_000, 0)
-    }
-}
 
 #[frame_support::pallet]
 pub mod pallet {

@@ -28,6 +28,8 @@ snowbridge-outbound-queue-primitives = { workspace = true }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 
+frame-benchmarking = { workspace = true, optional = true }
+
 [dev-dependencies]
 sp-core = { workspace = true }
 sp-io = { workspace = true }
@@ -36,6 +38,7 @@ pallet-balances = { workspace = true }
 [features]
 default = [ "std" ]
 std = [
+	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
 	"parity-scale-codec/std",
@@ -51,11 +54,13 @@ std = [
 	"pallet-balances/std",
 ]
 runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",

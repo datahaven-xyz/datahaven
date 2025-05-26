@@ -21,7 +21,7 @@ use {
     },
     frame_support::{
         assert_noop, assert_ok,
-        traits::fungible::{self, Inspect, Mutate},
+        traits::fungible::{Inspect, Mutate},
     },
     sp_core::H160,
     sp_runtime::DispatchError,

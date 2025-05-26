@@ -71,7 +71,7 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use runtime_params::RuntimeParameters;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
-use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards};
+use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId};
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
@@ -983,4 +983,22 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type HandleInflation = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+parameter_types! {
+    pub const DataHavenNativeTokenId: TokenId = H256([0u8; 32]); // TODO: Set actual token ID
+    // TODO: This should be derived from the Ethereum location using
+    // a location-to-account converter (e.g., HashedDescription)
+    pub EthereumSovereignAccount: AccountId = AccountId::from([1u8; 20]);
+}
+
+impl pallet_datahaven_native_transfer::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type EthereumSovereignAccount = EthereumSovereignAccount;
+    type OutboundQueue = OutboundQueueV2;
+    type NativeTokenId = DataHavenNativeTokenId;
+    type FeeRecipient = TreasuryAccountId;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
 }

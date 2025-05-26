@@ -51,6 +51,7 @@ pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
+pallet-datahaven-native-transfer = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -192,6 +193,7 @@ std = [
     "sp-version/std",
     "substrate-wasm-builder",
     "pallet-outbound-commitment-store/std",
+    "pallet-datahaven-native-transfer/std",
 ]
 
 runtime-benchmarks = [
@@ -230,6 +232,7 @@ runtime-benchmarks = [
     "sp-runtime/runtime-benchmarks",
     "snowbridge-pallet-system/runtime-benchmarks",
     "pallet-outbound-commitment-store/runtime-benchmarks",
+    "pallet-datahaven-native-transfer/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -270,6 +273,7 @@ try-runtime = [
     "sp-runtime/try-runtime",
     "snowbridge-pallet-system/try-runtime",
     "pallet-outbound-commitment-store/try-runtime",
+    "pallet-datahaven-native-transfer/try-runtime",
 ]
 
 fast-runtime = ["datahaven-runtime-common/fast-runtime"]

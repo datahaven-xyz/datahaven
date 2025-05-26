@@ -105,7 +105,7 @@ This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting 
 
 ```json
 {
-  "biome.lspBin": "/{path-to-datahaven}/test/node_modules/.bin/biome",
+  "biome.lspBin": "test/node_modules/.bin/biome",
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {

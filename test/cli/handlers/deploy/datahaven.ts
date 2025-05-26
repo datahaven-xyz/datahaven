@@ -8,8 +8,7 @@ import { forwardPort } from "../common/kubernetes";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 
-// This should be 9955, the default WS port in Substrate, not 9944, the default RPC port.
-const DEFAULT_PUBLIC_WS_PORT = 9955;
+const DEFAULT_PUBLIC_WS_PORT = 9944;
 
 /**
  * Deploys a DataHaven solochain network in a Kubernetes namespace.
@@ -69,16 +68,18 @@ export const deployDataHavenSolochain = async (
 
   // Wait for the network to start.
   logger.info("⌛️ Waiting for DataHaven to start...");
+  const timeoutMs = 2000; // 2 second timeout
+  const delayMs = 5000; // 5 second delay between iterations
   await waitFor({
     lambda: async () => {
-      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT);
+      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT, timeoutMs);
       if (!isReady) {
-        logger.debug("Node not ready, waiting 1 second...");
+        logger.info(`⌛️ Node not ready, waiting ${delayMs / 1000}s...`);
       }
       return isReady;
     },
-    iterations: 30,
-    delay: 1000,
+    iterations: 30, // 1 minute
+    delay: delayMs, // 2 second delay between iterations
     errorMessage: "DataHaven network not ready"
   });
 

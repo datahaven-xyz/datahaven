@@ -37,9 +37,6 @@ export const forwardPort = async (
     }
   );
 
-  // Wait a moment for the port forward to establish
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
   // Check if the process is still running (didn't exit due to error)
   if (portForwardProcess.exitCode !== null) {
     const stderr = await new Response(portForwardProcess.stderr).text();

@@ -14,15 +14,29 @@ import type { LaunchedNetwork } from "./launchedNetwork";
  * Checks if the DataHaven network is ready by sending a POST request to the system_chain method.
  *
  * @param port - The port number to check.
+ * @param timeoutMs - The timeout in milliseconds for the attempt to connect to the network.
  * @returns True if the network is ready, false otherwise.
  */
-export const isNetworkReady = async (port: number): Promise<boolean> => {
+export const isNetworkReady = async (port: number, timeoutMs: number): Promise<boolean> => {
   const wsUrl = `ws://127.0.0.1:${port}`;
   let client: PolkadotClient | undefined;
+
+  // Temporarily capture and suppress error logs during connection attempts.
+  // This is to avoid the "Unable to connect to ws:" error logs from the `client._request` call.
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
   try {
     // Use withPolkadotSdkCompat for consistency, though _request might not strictly need it.
     client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-    const chainName = await client._request<string>("system_chain", []);
+
+    // Add timeout to the RPC call to prevent hanging.
+    const chainNamePromise = client._request<string>("system_chain", []);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("RPC call timeout")), timeoutMs);
+    });
+
+    const chainName = await Promise.race([chainNamePromise, timeoutPromise]);
     logger.debug(`isNetworkReady PAPI check successful for port ${port}, chain: ${chainName}`);
     client.destroy();
     return !!chainName; // Ensure it's a boolean and chainName is truthy
@@ -32,6 +46,9 @@ export const isNetworkReady = async (port: number): Promise<boolean> => {
       client.destroy();
     }
     return false;
+  } finally {
+    // Restore original console methods.
+    console.error = originalConsoleError;
   }
 };
 

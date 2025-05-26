@@ -144,16 +144,17 @@ export const launchDataHavenSolochain = async (
   }
 
   logger.info("⌛️ Waiting for DataHaven to start...");
+  const timeoutMs = 2000; // 2 second timeout
   await waitFor({
     lambda: async () => {
-      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT);
+      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT, timeoutMs);
       if (!isReady) {
         logger.debug("Node not ready, waiting 1 second...");
       }
       return isReady;
     },
     iterations: 30,
-    delay: 1000,
+    delay: timeoutMs,
     errorMessage: "DataHaven network not ready"
   });
 

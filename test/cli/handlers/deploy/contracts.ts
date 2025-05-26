@@ -1,4 +1,4 @@
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import { printDivider, printHeader } from "utils";
 import {
   buildContracts,
   constructDeployCommand,
@@ -10,7 +10,6 @@ interface DeployContractsOptions {
   rpcUrl: string;
   verified?: boolean;
   blockscoutBackendUrl?: string;
-  deployContracts?: boolean;
 }
 
 /**
@@ -20,33 +19,10 @@ interface DeployContractsOptions {
  * @param options.rpcUrl - The RPC URL to deploy to
  * @param options.verified - Whether to verify contracts (requires blockscoutBackendUrl)
  * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
- * @param options.deployContracts - Flag to control deployment (if undefined, will prompt)
  * @returns Promise resolving to true if contracts were deployed successfully, false if skipped
  */
-export const deployContracts = async (options: DeployContractsOptions): Promise<boolean> => {
+export const deployContracts = async (options: DeployContractsOptions) => {
   printHeader("Deploying Smart Contracts");
-  const { deployContracts } = options;
-
-  // Check if deployContracts option was set via flags, or prompt if not
-  let shouldDeployContracts = deployContracts;
-  if (shouldDeployContracts === undefined) {
-    shouldDeployContracts = await confirmWithTimeout(
-      "Do you want to deploy the smart contracts?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `🏳️ Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
-    );
-  }
-
-  if (!shouldDeployContracts) {
-    logger.info("👍 Skipping contract deployment. Done!");
-    printDivider();
-
-    return false;
-  }
 
   // Check if required parameters are provided
   validateDeploymentParams(options);
@@ -57,7 +33,6 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(options);
   await executeDeployment(deployCommand);
-  printDivider();
 
-  return true;
+  printDivider();
 };

@@ -3,6 +3,7 @@ import { type DeployEnvironment, logger } from "utils";
 import { checkBaseDependencies, checkDeployDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { cleanup } from "./cleanup";
+import { deployContracts } from "./contracts";
 import { deployDataHavenSolochain } from "./datahaven";
 import { deployKurtosis } from "./kurtosis";
 
@@ -42,7 +43,14 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
 
   await deployDataHavenSolochain(options, launchedNetwork);
 
-  // TODO: Deploy smart contracts
+  // TODO: Handle Blockscout and verifier parameters to verify contracts if that is the intention.
+  const blockscoutBackendUrl = undefined;
+
+  await deployContracts({
+    rpcUrl: launchedNetwork.elRpcUrl,
+    verified: options.verified,
+    blockscoutBackendUrl
+  });
 
   // TODO: Setup validators
 

@@ -63,7 +63,7 @@ export const forwardPort = async (
       }
     }
 
-    logger.success(`✅ Port forward cleanup completed for localhost:${localPort}`);
+    logger.success(`Port forward cleanup completed for localhost:${localPort}`);
   };
 
   // Use unref() so this process doesn't keep the main process alive

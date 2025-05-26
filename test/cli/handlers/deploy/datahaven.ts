@@ -43,16 +43,24 @@ export const deployDataHavenSolochain = async (
 
   // Deploy DataHaven bootnode and validators with helm chart.
   logger.info("🚀 Deploying DataHaven bootnode with helm chart...");
+  const bootnodeTimeout = "2m"; // 2 minutes
   logger.debug(
-    await $`helm upgrade --install dh-bootnode . -f ./datahaven/dh-bootnode.yaml -n ${launchedNetwork.kubeNamespace}`
+    await $`helm upgrade --install dh-bootnode . -f ./datahaven/dh-bootnode.yaml \
+        -n ${launchedNetwork.kubeNamespace} \
+        --wait \
+        --timeout ${bootnodeTimeout}`
       .cwd(path.join(process.cwd(), "../deployment/charts/node"))
       .text()
   );
   logger.success("DataHaven bootnode deployed successfully");
 
   logger.info("🚀 Deploying DataHaven validators with helm chart...");
+  const validatorTimeout = "2m"; // 2 minutes
   logger.debug(
-    await $`helm upgrade --install dh-validator . -f ./datahaven/dh-validator.yaml -n ${launchedNetwork.kubeNamespace}`
+    await $`helm upgrade --install dh-validator . -f ./datahaven/dh-validator.yaml \
+        -n ${launchedNetwork.kubeNamespace} \
+        --wait \
+        --timeout ${validatorTimeout}`
       .cwd(path.join(process.cwd(), "../deployment/charts/node"))
       .text()
   );
@@ -68,18 +76,19 @@ export const deployDataHavenSolochain = async (
 
   // Wait for the network to start.
   logger.info("⌛️ Waiting for DataHaven to start...");
-  const timeoutMs = 2000; // 2 second timeout
+  const timeoutMs = 5000; // 5 second timeout
   const delayMs = 5000; // 5 second delay between iterations
   await waitFor({
     lambda: async () => {
+      logger.info(`📡 Checking if DataHaven is ready (timeout: ${timeoutMs / 1000}s)...`);
       const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT, timeoutMs);
       if (!isReady) {
-        logger.info(`⌛️ Node not ready, waiting ${delayMs / 1000}s...`);
+        logger.info(`⌛️ Node not ready, waiting ${delayMs / 1000}s to check again...`);
       }
       return isReady;
     },
-    iterations: 30, // 1 minute
-    delay: delayMs, // 2 second delay between iterations
+    iterations: 12, // 12 iterations of 5 + 5 = 2 minutes
+    delay: delayMs, // 5 second delay between iterations
     errorMessage: "DataHaven network not ready"
   });
 

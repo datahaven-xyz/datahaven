@@ -175,9 +175,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            // Check if pallet is paused
             ensure!(!Paused::<T>::get(), Error::<T>::TransfersDisabled);
-
             ensure!(amount > Zero::zero(), Error::<T>::InvalidAmount);
             ensure!(fee > Zero::zero(), Error::<T>::ZeroFee);
             ensure!(
@@ -185,9 +183,7 @@ pub mod pallet {
                 Error::<T>::InvalidEthereumAddress
             );
 
-            // Convert fee to u128 for the message
-            let fee_u128: u128 = fee.try_into().map_err(|_| Error::<T>::Overflow)?;
-            // Transfer fee to the fee recipient account
+            // Transfer fee to recipient
             T::Currency::transfer(
                 &who,
                 &T::FeeRecipient::get(),
@@ -195,30 +191,11 @@ pub mod pallet {
                 Preservation::Preserve,
             )?;
 
-            // Lock the tokens
+            // Lock tokens in the sovereign account
             Self::lock_tokens(&who, amount)?;
 
-            // Create the mint command for Ethereum
-            let command = Command::MintForeignToken {
-                token_id: T::NativeTokenId::get(),
-                recipient,
-                amount: amount.try_into().map_err(|_| Error::<T>::Overflow)?,
-            };
-
-            // Create the outbound message
-            let commands =
-                BoundedVec::try_from(vec![command]).map_err(|_| Error::<T>::SendMessageFailed)?;
-
-            // The origin field is not validated by Gateway V2 for MintForeignToken,
-            // but we set it to a recognizable value for tracking purposes
-            let message = OutboundMessage {
-                origin: H256::zero(),
-                id: unique(commands.encode()).into(),
-                fee: fee_u128,
-                commands,
-            };
-
-            // Send the message through Snowbridge
+            // Build and send the message
+            let message = Self::build_mint_message(recipient, amount, fee)?;
             T::OutboundQueue::validate(&message)
                 .and_then(|ticket| T::OutboundQueue::deliver(ticket))
                 .map_err(|_| Error::<T>::SendMessageFailed)?;
@@ -260,6 +237,36 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// Build outbound message for Snowbridge
+        fn build_mint_message(
+            recipient: H160,
+            amount: BalanceOf<T>,
+            fee: BalanceOf<T>,
+        ) -> Result<OutboundMessage, Error<T>> {
+            // Convert amounts to u128
+            let amount_u128: u128 = amount.try_into().map_err(|_| Error::<T>::Overflow)?;
+            let fee_u128: u128 = fee.try_into().map_err(|_| Error::<T>::Overflow)?;
+
+            // Create the mint command
+            let command = Command::MintForeignToken {
+                token_id: T::NativeTokenId::get(),
+                recipient,
+                amount: amount_u128,
+            };
+
+            // Create bounded vector of commands
+            let commands = BoundedVec::try_from(vec![command])
+                .map_err(|_| Error::<T>::SendMessageFailed)?;
+
+            // Build the outbound message
+            Ok(OutboundMessage {
+                origin: H256::zero(),
+                id: unique(commands.encode()).into(),
+                fee: fee_u128,
+                commands,
+            })
+        }
+
         /// Lock tokens for transfer to Ethereum
         ///
         /// Transfers tokens from a user to the Ethereum sovereign account and updates tracking
@@ -300,8 +307,9 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Check if the Ethereum sovereign account has sufficient balance
-        pub fn reserve_balance() -> BalanceOf<T> {
+        /// Get the balance of locked tokens in the Ethereum sovereign account
+        /// This represents the total amount of tokens locked for transfers to Ethereum
+        pub fn total_locked_balance() -> BalanceOf<T> {
             <T::Currency as Inspect<T::AccountId>>::balance(&T::EthereumSovereignAccount::get())
         }
         

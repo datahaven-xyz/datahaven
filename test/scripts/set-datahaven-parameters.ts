@@ -3,6 +3,7 @@ import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
+import { parseArgs } from "util";
 import {
   confirmWithTimeout,
   getEvmEcdsaSigner,
@@ -12,7 +13,6 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
-import { parseArgs } from "util";
 
 // Re-add the interface
 interface SetDataHavenParametersOptions {
@@ -45,7 +45,8 @@ export const setDataHavenParameters = async (
     );
   } else {
     logger.info(
-      `🏳️ Using flag option: ${shouldSetParameters ? "will set" : "will not set"
+      `🏳️ Using flag option: ${
+        shouldSetParameters ? "will set" : "will not set"
       } DataHaven parameters`
     );
   }
@@ -153,16 +154,16 @@ if (import.meta.main) {
     args: process.argv,
     options: {
       rpcUrl: {
-        type: 'string',
-        short: 'r'
+        type: "string",
+        short: "r"
       },
       parametersFile: {
-        type: 'string',
-        short: 'f'
+        type: "string",
+        short: "f"
       },
       setParameters: {
-        type: 'boolean',
-        short: 'p'
+        type: "boolean",
+        short: "p"
       }
     },
     strict: true

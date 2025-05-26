@@ -21,7 +21,7 @@ export const BeaconRelayConfigSchema = z.object({
     })
   }),
   sink: z.object({
-    parachain: z.object({
+    solochain: z.object({
       endpoint: z.string(),
       maxWatchedExtrinsics: z.number(),
       headerRedundancy: z.number()
@@ -33,7 +33,7 @@ export type BeaconRelayConfig = z.infer<typeof BeaconRelayConfigSchema>;
 
 export const BeefyRelayConfigSchema = z.object({
   source: z.object({
-    polkadot: z.object({
+    solochain: z.object({
       endpoint: z.string()
     })
   }),

@@ -33,7 +33,7 @@ config_relayer() {
         '
       .source.beacon.endpoint = $beacon_endpoint_http
     | .source.beacon.spec.denebForkedEpoch = $deneb_forked_epoch
-    | .sink.parachain.endpoint = $relay_chain_endpoint
+    | .sink.solochain.endpoint = $relay_chain_endpoint
     | .source.beacon.datastore.location = $data_store_dir
     ' \
         $assets_dir/beacon-relay.json >$output_dir/beacon-relay.json

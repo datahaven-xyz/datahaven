@@ -12,6 +12,7 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
+import { parseArgs } from "util";
 
 // Re-add the interface
 interface SetDataHavenParametersOptions {
@@ -44,8 +45,7 @@ export const setDataHavenParameters = async (
     );
   } else {
     logger.info(
-      `🏳️ Using flag option: ${
-        shouldSetParameters ? "will set" : "will not set"
+      `🏳️ Using flag option: ${shouldSetParameters ? "will set" : "will not set"
       } DataHaven parameters`
     );
   }
@@ -149,46 +149,39 @@ export const setDataHavenParameters = async (
 
 // Allow script to be run directly with CLI arguments
 if (import.meta.main) {
-  const args = process.argv.slice(2);
-  const options: {
-    rpcUrl?: string;
-    parametersFilePath?: string;
-    setParameters?: boolean;
-  } = {
-    setParameters: args.includes("--set-parameters")
-      ? true
-      : args.includes("--no-set-parameters")
-        ? false
-        : undefined
-  };
+  const { values } = parseArgs({
+    args: process.argv,
+    options: {
+      rpcUrl: {
+        type: 'string',
+        short: 'r'
+      },
+      parametersFile: {
+        type: 'string',
+        short: 'f'
+      },
+      setParameters: {
+        type: 'boolean',
+        short: 'p'
+      }
+    },
+    strict: true
+  });
 
-  // Extract RPC URL
-  const rpcUrlIndex = args.indexOf("--rpc-url");
-  if (rpcUrlIndex !== -1 && rpcUrlIndex + 1 < args.length) {
-    options.rpcUrl = args[rpcUrlIndex + 1];
-  } else {
+  if (!values.rpcUrl) {
     console.error("Error: --rpc-url parameter is required");
     process.exit(1);
   }
 
-  // Extract parameters file path
-  const parametersFileIndex = args.indexOf("--parameters-file");
-  if (parametersFileIndex !== -1 && parametersFileIndex + 1 < args.length) {
-    options.parametersFilePath = args[parametersFileIndex + 1];
-  } else {
+  if (!values.parametersFile) {
     console.error("Error: --parameters-file <path_to_json_file> parameter is required.");
     process.exit(1);
   }
 
-  if (!options.rpcUrl || !options.parametersFilePath) {
-    // Should be caught by individual checks, but as a safeguard
-    process.exit(1);
-  }
-
   setDataHavenParameters({
-    rpcUrl: options.rpcUrl,
-    parametersFilePath: options.parametersFilePath,
-    setParameters: options.setParameters
+    rpcUrl: values.rpcUrl,
+    parametersFilePath: values.parametersFile,
+    setParameters: values.setParameters
   }).catch((error: Error) => {
     console.error("Setting DataHaven parameters failed:", error.message || error);
     process.exit(1);

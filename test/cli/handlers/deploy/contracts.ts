@@ -1,10 +1,10 @@
-import { printDivider, printHeader } from "utils";
 import {
   buildContracts,
   constructDeployCommand,
   executeDeployment,
   validateDeploymentParams
-} from "../common/contracts";
+} from "scripts/deploy-contracts";
+import { printDivider, printHeader } from "utils";
 
 interface DeployContractsOptions {
   rpcUrl: string;

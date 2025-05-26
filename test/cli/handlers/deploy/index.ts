@@ -6,6 +6,7 @@ import { cleanup } from "./cleanup";
 import { deployContracts } from "./contracts";
 import { deployDataHavenSolochain } from "./datahaven";
 import { deployKurtosis } from "./kurtosis";
+import { performValidatorOperations } from "./validator";
 
 // Non-optional properties determined by having default values
 export interface DeployOptions {
@@ -52,7 +53,7 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
     blockscoutBackendUrl
   });
 
-  // TODO: Setup validators
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl);
 
   // TODO: Deploy Snowbridge relayers
 

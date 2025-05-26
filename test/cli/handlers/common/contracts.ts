@@ -66,3 +66,47 @@ export const executeDeployment = async (deployCommand: string) => {
 
   logger.success("Contracts deployed successfully");
 };
+
+// Allow script to be run directly with CLI arguments
+if (import.meta.main) {
+  const args = process.argv.slice(2);
+
+  // Extract RPC URL
+  const rpcUrlIndex = args.indexOf("--rpc-url");
+  invariant(rpcUrlIndex !== -1, "❌ --rpc-url flag is required");
+  invariant(rpcUrlIndex + 1 < args.length, "❌ --rpc-url flag requires an argument");
+
+  const options: {
+    rpcUrl: string;
+    verified: boolean;
+    blockscoutBackendUrl?: string;
+  } = {
+    rpcUrl: args[rpcUrlIndex + 1],
+    verified: args.includes("--verified")
+  };
+
+  // Extract Blockscout URL if verification is enabled
+  if (options.verified) {
+    const blockscoutUrlIndex = args.indexOf("--blockscout-url");
+    if (blockscoutUrlIndex !== -1 && blockscoutUrlIndex + 1 < args.length) {
+      options.blockscoutBackendUrl = args[blockscoutUrlIndex + 1];
+    }
+  }
+
+  if (!options.rpcUrl) {
+    console.error("Error: --rpc-url parameter is required");
+    process.exit(1);
+  }
+
+  if (options.verified && !options.blockscoutBackendUrl) {
+    console.error("Error: --blockscout-url parameter is required when using --verified");
+    process.exit(1);
+  }
+
+  validateDeploymentParams(options);
+
+  await buildContracts();
+
+  const deployCommand = constructDeployCommand(options);
+  await executeDeployment(deployCommand);
+}

@@ -23,6 +23,7 @@ import {
 } from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
+import { waitFor } from "utils/waits";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
 
@@ -276,44 +277,54 @@ const waitBeefyReady = async (
 ): Promise<void> => {
   const port = launchedNetwork.getPublicWsPort();
   const wsUrl = `ws://127.0.0.1:${port}`;
-  const maxAttempts = Math.floor(timeoutMs / pollIntervalMs);
+  const iterations = Math.floor(timeoutMs / pollIntervalMs);
 
   logger.info(`⌛️ Waiting for BEEFY to be ready on port ${port}...`);
 
   let client: PolkadotClient | undefined;
+  const clientTimeoutMs = pollIntervalMs / 2;
+  const delayMs = pollIntervalMs / 2;
   try {
     client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        logger.debug(`Attempt ${attempt}/${maxAttempts} to check beefy_getFinalizedHead`);
-        const finalizedHeadHex = await client._request<string>("beefy_getFinalizedHead", []);
+    await waitFor({
+      lambda: async () => {
+        try {
+          logger.debug("Attempting to to check beefy_getFinalizedHead");
 
-        if (finalizedHeadHex && finalizedHeadHex !== ZERO_HASH) {
-          logger.info(`🥩 BEEFY is ready. Finalized head: ${finalizedHeadHex}`);
-          client.destroy();
-          return;
+          // Add timeout to the RPC call to prevent hanging.
+          const finalisedHeadPromise = client?._request<string>("beefy_getFinalizedHead", []);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error("RPC call timeout")), clientTimeoutMs);
+          });
+
+          const finalisedHeadHex = await Promise.race([finalisedHeadPromise, timeoutPromise]);
+
+          if (finalisedHeadHex && finalisedHeadHex !== ZERO_HASH) {
+            logger.info(`🥩 BEEFY is ready. Finalised head: ${finalisedHeadHex}.`);
+            return true;
+          }
+
+          logger.debug(
+            `BEEFY not ready or finalised head is zero. Retrying in ${delayMs / 1000}s...`
+          );
+          return false;
+        } catch (rpcError) {
+          logger.warn(`RPC error checking BEEFY status: ${rpcError}. Retrying...`);
+          return false;
         }
-
-        logger.debug(
-          `BEEFY not ready or finalized head is zero. Retrying in ${pollIntervalMs / 1000}s...`
-        );
-      } catch (rpcError) {
-        logger.warn(`RPC error checking BEEFY status: ${rpcError}. Retrying...`);
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-
-    logger.error(`❌ BEEFY failed to become ready after ${timeoutMs / 1000} seconds`);
-    if (client) client.destroy();
-    throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
+      },
+      iterations,
+      delay: delayMs,
+      errorMessage: "BEEFY protocol not ready. Relayers cannot be launched."
+    });
   } catch (error) {
     logger.error(`❌ Failed to connect to DataHaven node for BEEFY check: ${error}`);
+    throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
+  } finally {
     if (client) {
       client.destroy();
     }
-    throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   }
 };
 

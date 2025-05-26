@@ -78,26 +78,8 @@ impl pallet_balances::Config for Test {
     type DoneSlashHandler = ();
 }
 
-use std::sync::Mutex;
-
-static MESSAGES: Mutex<Vec<OutboundMessage>> = Mutex::new(Vec::new());
-static SHOULD_FAIL: Mutex<bool> = Mutex::new(false);
-
+// Simple mock that always succeeds
 pub struct MockOkOutboundQueue;
-
-impl MockOkOutboundQueue {
-    pub fn messages_sent() -> Vec<OutboundMessage> {
-        MESSAGES.lock().unwrap().clone()
-    }
-
-    pub fn clear_messages() {
-        MESSAGES.lock().unwrap().clear();
-    }
-
-    pub fn set_should_fail(should_fail: bool) {
-        *SHOULD_FAIL.lock().unwrap() = should_fail;
-    }
-}
 
 impl SendMessage for MockOkOutboundQueue {
     type Ticket = OutboundMessage;
@@ -105,22 +87,13 @@ impl SendMessage for MockOkOutboundQueue {
     fn validate(
         message: &OutboundMessage,
     ) -> Result<Self::Ticket, snowbridge_outbound_queue_primitives::SendError> {
-        if *SHOULD_FAIL.lock().unwrap() {
-            Err(snowbridge_outbound_queue_primitives::SendError::MessageTooLarge)
-        } else {
-            Ok(message.clone())
-        }
+        Ok(message.clone())
     }
 
     fn deliver(
-        ticket: Self::Ticket,
+        _ticket: Self::Ticket,
     ) -> Result<H256, snowbridge_outbound_queue_primitives::SendError> {
-        if *SHOULD_FAIL.lock().unwrap() {
-            Err(snowbridge_outbound_queue_primitives::SendError::MessageTooLarge)
-        } else {
-            MESSAGES.lock().unwrap().push(ticket);
-            Ok(H256::zero())
-        }
+        Ok(H256::zero())
     }
 }
 
@@ -137,6 +110,7 @@ parameter_types! {
 parameter_types! {
     pub const EthereumSovereignAccount: u64 = 999;
     pub const DataHavenTokenId: H256 = H256::repeat_byte(0x01);
+    pub const FeeRecipientAccount: u64 = 1000;
 }
 
 impl crate::Config for Test {
@@ -145,6 +119,7 @@ impl crate::Config for Test {
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = MockOkOutboundQueue;
     type NativeTokenId = DataHavenTokenId;
+    type FeeRecipient = FeeRecipientAccount;
     type WeightInfo = ();
     type PauseOrigin = EnsureRoot<u64>;
 }
@@ -153,13 +128,10 @@ pub const ALICE: u64 = 1;
 pub const BOB: u64 = 2;
 pub const CHARLIE: u64 = 3;
 pub const ETHEREUM_SOVEREIGN: u64 = 999;
+pub const FEE_RECIPIENT: u64 = 1000;
 pub const INITIAL_BALANCE: u128 = 10_000;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    // Clear mock state before creating new test environment
-    MockOkOutboundQueue::clear_messages();
-    MockOkOutboundQueue::set_should_fail(false);
-    
     let mut t = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
         .unwrap();

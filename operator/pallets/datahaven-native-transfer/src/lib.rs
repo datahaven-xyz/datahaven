@@ -68,7 +68,6 @@ pub mod pallet {
     use super::*;
     use frame_system::pallet_prelude::*;
     use frame_system::unique;
-    use sp_core::hashing;
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
@@ -91,6 +90,9 @@ pub mod pallet {
 
         /// The DataHaven native token ID on Ethereum
         type NativeTokenId: Get<TokenId>;
+
+        /// Account to receive bridge fees
+        type FeeRecipient: Get<Self::AccountId>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -147,6 +149,8 @@ pub mod pallet {
         InvalidAmount,
         /// Transfers are currently disabled
         TransfersDisabled,
+        /// Fee cannot be zero
+        ZeroFee,
     }
 
     #[pallet::call]
@@ -175,13 +179,21 @@ pub mod pallet {
             ensure!(!Paused::<T>::get(), Error::<T>::TransfersDisabled);
 
             ensure!(amount > Zero::zero(), Error::<T>::InvalidAmount);
+            ensure!(fee > Zero::zero(), Error::<T>::ZeroFee);
             ensure!(
                 recipient != H160::zero(),
                 Error::<T>::InvalidEthereumAddress
             );
 
             // Convert fee to u128 for the message
-            let fee: u128 = fee.try_into().map_err(|_| Error::<T>::Overflow)?;
+            let fee_u128: u128 = fee.try_into().map_err(|_| Error::<T>::Overflow)?;
+            // Transfer fee to the fee recipient account
+            T::Currency::transfer(
+                &who,
+                &T::FeeRecipient::get(),
+                fee,
+                Preservation::Preserve,
+            )?;
 
             // Lock the tokens
             Self::lock_tokens(&who, amount)?;
@@ -199,15 +211,12 @@ pub mod pallet {
 
             // The origin field is not validated by Gateway V2 for MintForeignToken,
             // but we set it to a recognizable value for tracking purposes
-            let mut message = OutboundMessage {
+            let message = OutboundMessage {
                 origin: H256::zero(),
                 id: unique(commands.encode()).into(),
-                fee,
+                fee: fee_u128,
                 commands,
             };
-
-            let message_hash = hashing::blake2_256(&message.encode());
-            message.id = H256::from(message_hash);
 
             // Send the message through Snowbridge
             T::OutboundQueue::validate(&message)

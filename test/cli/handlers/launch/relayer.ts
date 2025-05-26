@@ -173,34 +173,41 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );
 
-    if (type === "beacon") {
-      const cfg = parseRelayConfig(json, type);
-      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.datastore.location = "/data";
-      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+    switch (type) {
+      case "beacon": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.datastore.location = "/data";
+        cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated beacon config written to ${outputFilePath}`);
-    } else if (type === "beefy") {
-      const cfg = parseRelayConfig(json, type);
-      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-      cfg.sink.contracts.BeefyClient = beefyClientAddress;
-      cfg.sink.contracts.Gateway = gatewayAddress;
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated beefy config written to ${outputFilePath}`);
-    } else if (type === "execution") {
-      const cfg = parseRelayConfig(json, type);
-      cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.datastore.location = datastorePath;
-      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-      cfg.source.contracts.Gateway = gatewayAddress;
-      cfg.source.beacon.datastore.location = datastorePath;
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated execution config written to ${outputFilePath}`);
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated beacon config written to ${outputFilePath}`);
+        break;
+      }
+      case "beefy": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+        cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.sink.contracts.BeefyClient = beefyClientAddress;
+        cfg.sink.contracts.Gateway = gatewayAddress;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated beefy config written to ${outputFilePath}`);
+        break;
+      }
+      case "execution": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.datastore.location = datastorePath;
+        cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+        cfg.source.contracts.Gateway = gatewayAddress;
+        cfg.source.beacon.datastore.location = datastorePath;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated execution config written to ${outputFilePath}`);
+        break;
+      }
     }
   }
 

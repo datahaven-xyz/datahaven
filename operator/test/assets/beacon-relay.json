@@ -16,7 +16,7 @@
         }
     },
     "sink": {
-        "solochain": {
+        "parachain": {
             "endpoint": "",
             "maxWatchedExtrinsics": 8,
             "headerRedundancy": 20

@@ -185,7 +185,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
           cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
           cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
           cfg.source.beacon.datastore.location = "/data";
-          cfg.sink.solochain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+          cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
           await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
           logger.success(`Updated beacon config written to ${outputFilePath}`);
@@ -194,7 +194,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       case "beefy":
         {
           const cfg = parseRelayConfig(json, type);
-          cfg.source.solochain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+          cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
           cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
           cfg.sink.contracts.BeefyClient = beefyClientAddress;
           cfg.sink.contracts.Gateway = gatewayAddress;

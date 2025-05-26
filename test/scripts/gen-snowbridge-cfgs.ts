@@ -19,7 +19,7 @@ const beefyRelaySchema = z
       })
     }),
     source: z.object({
-      solochain: z.object({
+      polkadot: z.object({
         endpoint: z.string()
       })
     })
@@ -42,7 +42,7 @@ const beaconRelaySchema = z
       })
     }),
     sink: z.object({
-      solochain: z.object({
+      parachain: z.object({
         endpoint: z.string()
       })
     })
@@ -66,7 +66,7 @@ const executionRelaySchema = z
       })
     }),
     sink: z.object({
-      solochain: z.object({
+      parachain: z.object({
         endpoint: z.string()
       })
     }),
@@ -253,7 +253,7 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.sink.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.sink.ethereum.endpoint = options.ethEndpointWs;
       obj.sink.ethereum["gas-limit"] = options.ethGasLimit;
-      obj.source.solochain.endpoint = options.solochainEndpoint;
+      obj.source.polkadot.endpoint = options.solochainEndpoint;
     },
     commonOptions
   );
@@ -268,7 +268,7 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.source.beacon.endpoint = options.beaconEndpointHttp;
       obj.source.beacon.spec.forkVersions.electra = options.beaconElectraForkVersion;
       obj.source.beacon.datastore.location = options.dataStoreDir;
-      obj.sink.solochain.endpoint = options.solochainEndpoint;
+      obj.sink.parachain.endpoint = options.solochainEndpoint;
     },
     commonOptions
   );
@@ -284,7 +284,7 @@ async function configRelayer(options: SnowbridgeConfigOptions): Promise<void> {
       obj.source.contracts.Gateway = await getSnowbridgeAddressFromEnv("GatewayProxy");
       obj.source["channel-id"] = options.primaryGovernanceChannelId;
       obj.source.beacon.datastore.location = options.dataStoreDir;
-      obj.sink.solochain.endpoint = options.solochainEndpoint;
+      obj.sink.parachain.endpoint = options.solochainEndpoint;
       obj.schedule.id = options.executionScheduleId;
     },
     commonOptions

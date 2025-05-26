@@ -1,6 +1,6 @@
 {
     "source": {
-        "solochain": {
+        "polkadot": {
             "endpoint": "ws://dh-validator-0:9944"
         }
     },

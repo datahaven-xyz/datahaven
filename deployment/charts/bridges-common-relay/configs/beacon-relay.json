@@ -19,7 +19,7 @@
         }
     },
     "sink": {
-        "solochain": {
+        "parachain": {
             "endpoint": "ws://dh-validator-0:9944",
             "maxWatchedExtrinsics": 8,
             "headerRedundancy": 20

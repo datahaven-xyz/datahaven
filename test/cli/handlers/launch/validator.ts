@@ -1,7 +1,7 @@
 import { fundValidators } from "scripts/fund-validators";
 import { setupValidators } from "scripts/setup-validators";
 import { updateValidatorSet } from "scripts/update-validator-set";
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import { confirmWithTimeout, logger, printDivider } from "utils";
 import type { LaunchOptions } from "..";
 
 export const performValidatorOperations = async (
@@ -19,7 +19,7 @@ export const performValidatorOperations = async (
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
+      `🏳️ Using flag option: ${shouldFundValidators ? "will fund" : "will not fund"} validators`
     );
   }
 
@@ -34,7 +34,7 @@ export const performValidatorOperations = async (
       rpcUrl: networkRpcUrl
     });
   } else {
-    logger.debug("Skipping validator funding");
+    logger.info("👍 Skipping validator funding");
     printDivider();
   }
 
@@ -48,7 +48,7 @@ export const performValidatorOperations = async (
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
+      `🏳️ Using flag option: ${shouldSetupValidators ? "will register" : "will not register"} validators`
     );
   }
 
@@ -73,7 +73,7 @@ export const performValidatorOperations = async (
       );
     } else {
       logger.info(
-        `Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
+        `🏳️ Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
       );
     }
 
@@ -88,11 +88,11 @@ export const performValidatorOperations = async (
         rpcUrl: networkRpcUrl
       });
     } else {
-      logger.debug("Skipping validator set update");
+      logger.info("👍 Skipping validator set update");
       printDivider();
     }
   } else {
-    logger.debug("Skipping validator setup");
+    logger.info("👍 Skipping validator setup");
     printDivider();
   }
 };

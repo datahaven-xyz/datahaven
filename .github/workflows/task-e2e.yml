@@ -84,14 +84,11 @@ jobs:
           chmod +x tmp/bin/snowbridge-relay
           docker rm temp
       - run: tmp/bin/snowbridge-relay --help
-      - name: Download datahaven binary
-        run: |
-          docker create --name temp ${{ inputs.image-tag }}
-          mkdir -p ../operator/target/release/
-          docker cp temp:/usr/local/bin/datahaven-node ../operator/target/release/
-          chmod +x ../operator/target/release/datahaven-node
-          docker rm temp
-      - run: ../operator/target/release/datahaven-node --help
+      - run: docker pull ${{ inputs.image-tag }}
       - run: bun install
-      - run: bun start:e2e:ci
+      - run: bun start:e2e:ci --datahaven-image-tag ${{ inputs.image-tag }}
+      - name: Check network
+        run: |
+          kurtosis enclave inspect datahaven-ethereum
+          docker container ls
       - run: bun test:e2e

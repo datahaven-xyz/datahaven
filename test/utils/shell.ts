@@ -6,7 +6,12 @@ export type LogLevel = "info" | "debug" | "error" | "warn";
 
 export const runShellCommandWithLogger = async (
   command: string,
-  options?: { cwd?: string; env?: object; logLevel?: LogLevel }
+  options?: {
+    cwd?: string;
+    env?: object;
+    logLevel?: LogLevel;
+    waitFor?: (...args: unknown[]) => Promise<void>;
+  }
 ) => {
   const { cwd = ".", env = {}, logLevel = "info" as LogLevel } = options || {};
 
@@ -41,7 +46,9 @@ export const runShellCommandWithLogger = async (
           const text = new TextDecoder().decode(value);
           const trimmedText = text.trim();
           if (trimmedText) {
-            logger[logLevel](trimmedText.includes("\n") ? `\n${trimmedText}` : trimmedText);
+            logger[logLevel](
+              trimmedText.includes("\n") ? `>_ \n${trimmedText}` : `>_ ${trimmedText}`
+            );
           }
         }
       } catch (err) {
@@ -51,10 +58,14 @@ export const runShellCommandWithLogger = async (
       }
     };
 
-    Promise.all([
+    await Promise.all([
       readStream(stdoutReader, "stdout", logLevel),
       readStream(stderrReader, "stderr", "error")
     ]);
+
+    if (options?.waitFor) {
+      await options.waitFor();
+    }
 
     await proc.exited;
   } catch (err) {

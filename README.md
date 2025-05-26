@@ -14,11 +14,26 @@ datahaven/
 └── README.md
 ```
 
+## E2E CLI
+
+This repo comes with a CLI for launching a local DataHaven network, packaged with:
+
+1. A full Ethereum network with:
+   - 2 x Execution Layer clients (e.g., reth)
+   - 2 x Consensus Layer clients (e.g., lighthouse)
+   - Blockscout Explorer services for EL (if enabled with --blockscout)
+   - Dora Explorer service for CL
+   - Contracts deployed and configured for the DataHaven network.
+2. A DataHaven solochain.
+3. Snowbridge relayers for cross-chain communication.
+
+To launch the network, follow the instructions in the [test README](./test/README.md).
+
 ## Docker
 
 This repo publishes images to [DockerHub](https://hub.docker.com/r/moonsonglabs/datahaven).
 
-> [!TIP]  
+> [!TIP]
 >
 > If you cannot see this repo you must be added to the permission list for the private repo.
 
@@ -34,6 +49,75 @@ To run a docker image locally (`moonsonglabs/datahaven:local`), from the `/test`
 ```sh
 bun build:docker:operator
 ```
+
+## Working with IDEs
+
+### VS Code (and its forks)
+
+IDE configurations are ignored from this repo's version control, to allow for personalisation. However, there are a few key configurations that we suggest for a better experience. Here are the key suggested configurations to add to your `.vscode/settings.json` file:
+
+#### Rust
+
+```json
+{
+  "rust-analyzer.linkedProjects": ["./operator/Cargo.toml"],
+  "rust-analyzer.cargo.allTargets": true,
+  "rust-analyzer.procMacro.enable": false,
+  "rust-analyzer.server.extraEnv": {
+    "CARGO_TARGET_DIR": "target/.rust-analyzer",
+    "SKIP_WASM_BUILD": 1
+  },
+  "rust-analyzer.diagnostics.disabled": ["unresolved-macro-call"],
+  "rust-analyzer.cargo.buildScripts.enable": false
+}
+```
+
+These settings optimise Rust Analyzer for the DataHaven codebase:
+
+- Marks the `operator/` folder as a linked project for analysis. The root of this repo is a workspace, and this is the rust project that should be analysed by `rust-analyzer`.
+- Disables proc macros and build scripts to improve performance. Otherwise, Substrate's proc macros will make iterative checks from `rust-analyzer` unbearably slow.
+- Sets a dedicated target directory for Rust Analyzer to avoid conflicts with other build targets like `release` builds.
+- Disables WASM builds during analysis for faster feedback.
+
+#### Solidity
+
+For [Juan Blanco's Solidity Extension](https://marketplace.visualstudio.com/items?itemName=JuanBlanco.solidity), add the following to your `.vscode/settings.json` file:
+
+```json
+{
+  "solidity.formatter": "forge",
+  "solidity.compileUsingRemoteVersion": "v0.8.28+commit.7893614a",
+  "[solidity]": {
+    "editor.defaultFormatter": "JuanBlanco.solidity"
+  }
+}
+```
+
+These settings configure Solidity support:
+
+- Uses Forge as the formatter for consistency with the project's tooling.
+- Sets a specific Solidity version for compilation. This one should match the version used in [foundry.toml](./contracts/foundry.toml).
+- Sets the Solidity extension as the default formatter.
+
+#### Typescript
+
+This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting and formatting. Bare in mind, that as of writing, it needs to be the pre-release version of the extension, that supports setting an inner folder as the project root. To make the extension work nicely with this repo, add the following to your `.vscode/settings.json` file:
+
+```json
+{
+  "biome.projects": [{ "path": "test/" }],
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.biome": "always"
+    }
+  }
+}
+```
+
+- Sets up Biome for JavaScript/TypeScript formatting in the test directory.
+- Sets Biome as the default formatter for TypeScript.
+- Sets Biome to always organise imports on save.
 
 ## CI
 

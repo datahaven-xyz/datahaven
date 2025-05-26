@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  type ViemClientInterface,
   createDefaultClient,
   generateRandomAccount,
-  logger
+  logger,
+  type ViemClientInterface
 } from "utils";
 import { parseEther } from "viem";
 

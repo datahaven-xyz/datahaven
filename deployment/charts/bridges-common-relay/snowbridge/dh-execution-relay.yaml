@@ -1,0 +1,25 @@
+name: dh-execution-relay
+description: Datahaven Execution Relay
+fullnameOverride: dh-execution-relay
+
+image:
+  repository: moonsonglabs/snowbridge-relayer
+  pullPolicy: Always
+  tag: latest
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+config:
+  name: "execution-relay"
+
+existingSecretName: "dh-execution-relay-sub-key"
+
+extraArgs: [
+  "run",
+  "execution",
+  "--config",
+  "/configs/execution-relay.json",
+  "--substrate.private-key-file",
+  "/secrets/dh-execution-relay-sub-key",
+]

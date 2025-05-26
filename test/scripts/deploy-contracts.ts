@@ -38,12 +38,12 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     );
   } else {
     logger.info(
-      `Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
+      `🏳️ Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
     );
   }
 
   if (!shouldDeployContracts) {
-    logger.info("Skipping contract deployment. Done!");
+    logger.info("👍 Skipping contract deployment. Done!");
     printDivider();
 
     return false;
@@ -78,7 +78,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     logger.info("🔍 Contract verification enabled");
   }
 
-  logger.info("⏳ Deploying contracts (this might take a few minutes)...");
+  logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
   await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });

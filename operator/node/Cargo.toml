@@ -29,6 +29,7 @@ futures = { features = ["thread-pool"], workspace = true }
 hex-literal = { workspace = true }
 jsonrpsee = { features = ["server"], workspace = true }
 log = { workspace = true }
+openssl-sys = { workspace = true }
 serde_json = { workspace = true, default-features = true }
 url = { workspace = true }
 

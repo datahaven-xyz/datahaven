@@ -1,0 +1,233 @@
+{{ $fullname :=  include "node.fullname" . }}
+{{ $selectorLabels :=  include "node.selectorLabels" .  }}
+{{ $serviceLabels :=  include "node.serviceLabels" .  }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}
+{{- with .Values.node.serviceAnnotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+{{- end }}
+  labels:
+    {{- $serviceLabels | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+  ports:
+    {{- if $.Values.node.substrateApiSidecar.enabled }}
+    - port: 8080
+      name: api-sidecar
+      targetPort: api-sidecar
+    {{- end }}
+    {{- if $.Values.node.legacyRpcFlags }}
+    - port: 9933
+      name: http-rpc
+      targetPort: http-rpc
+    - port: 9944
+      name: websocket-rpc
+      targetPort: websocket-rpc
+    {{- else }}
+    - port: {{ $.Values.node.perNodeServices.apiService.rpcPort | int }}
+      name: rpc
+      targetPort: rpc
+    {{- /* Legacy RPC port, to be removed in the next major chart version */}}
+    - port: {{ $.Values.node.perNodeServices.apiService.httpPort | int }}
+      name: http-rpc
+      targetPort: rpc
+    {{- /* Legacy RPC port, to be removed in the next major chart version */}}
+    - port: {{ $.Values.node.perNodeServices.apiService.wsPort | int }}
+      name: websocket-rpc
+      targetPort: rpc
+    {{- end }}
+    {{- if and $.Values.node.serviceMonitor.enabled (not $.Values.node.perNodeServices.apiService.enabled) }}
+    - port: {{ .Values.node.prometheus.port | int }}
+      name: prometheus
+      targetPort: prometheus
+    {{- end }}
+    {{- if and $.Values.node.collatorRelayChain.prometheus.enabled (not $.Values.node.perNodeServices.apiService.enabled) }}
+    - port: {{ $.Values.node.perNodeServices.apiService.relayChainPrometheusPort | int }}
+      name: prom-relaychain
+      targetPort: prom-relaychain
+    {{- end }}
+    {{- if or .Values.node.enableSidecarReadinessProbe .Values.node.enableSidecarLivenessProbe }}
+    - port: 8001
+      name: http-ws-he
+      targetPort: http-ws-he
+    {{- end }}
+    {{- with .Values.node.serviceExtraPorts }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+{{range $i := until (max .Values.autoscaling.maxReplicas .Values.node.replicas | int) }}
+{{- if $.Values.node.perNodeServices.apiService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}
+  labels:
+    {{- $serviceLabels | nindent 4 }}
+    node: {{ $fullname }}-{{ $i }}
+    instance: {{ $fullname }}-{{ $i }}
+  annotations:
+{{- if $.Values.node.perNodeServices.apiService.externalDns.enabled }}
+  {{- if $.Values.node.perNodeServices.apiService.externalDns.customPrefix }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $.Values.node.perNodeServices.apiService.externalDns.customPrefix }}-{{ $i }}.{{ $.Values.node.perNodeServices.apiService.externalDns.hostname }}
+  {{- else }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $fullname }}-{{ $i }}.{{ $.Values.node.perNodeServices.apiService.externalDns.hostname }}
+  {{- end }}
+    external-dns.alpha.kubernetes.io/ttl: {{ $.Values.node.perNodeServices.apiService.externalDns.ttl | squote }}
+{{- end }}
+{{- with $.Values.node.perNodeServices.apiService.annotations }}
+{{ toYaml . | indent 4}}
+{{- end }}
+spec:
+  {{- if eq $.Values.node.perNodeServices.apiService.type "ClusterIP" }}
+  type: ClusterIP
+  clusterIP: None
+  {{- else if eq $.Values.node.perNodeServices.apiService.type "NodePort" }}
+  externalTrafficPolicy: {{ $.Values.node.perNodeServices.apiService.externalTrafficPolicy }}
+  type: NodePort
+  {{- else if eq $.Values.node.perNodeServices.apiService.type "LoadBalancer" }}
+  externalTrafficPolicy: {{ $.Values.node.perNodeServices.apiService.externalTrafficPolicy }}
+  type: LoadBalancer
+  {{- end }}
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    {{- if $.Values.node.legacyRpcFlags }}
+    - port: 9933
+      name: http-rpc
+      targetPort: http-rpc
+    - port: 9944
+      name: websocket-rpc
+      targetPort: websocket-rpc
+    {{- else }}
+    - port: {{ $.Values.node.perNodeServices.apiService.rpcPort | int }}
+      name: rpc
+      targetPort: rpc
+    {{- /* Legacy RPC port, to be removed in the next major chart version */}}
+    - port: {{ $.Values.node.perNodeServices.apiService.httpPort | int }}
+      name: http-rpc
+      targetPort: rpc
+    {{- /* Legacy RPC port, to be removed in the next major chart version */}}
+    - port: {{ $.Values.node.perNodeServices.apiService.wsPort | int }}
+      name: websocket-rpc
+      targetPort: rpc
+    {{- end }}
+    - port: {{ $.Values.node.perNodeServices.apiService.prometheusPort | int }}
+      name: prometheus
+      targetPort: prometheus
+    {{- if $.Values.node.collatorRelayChain.prometheus.enabled }}
+    - port: {{ $.Values.node.perNodeServices.apiService.relayChainPrometheusPort | int }}
+      name: prom-relaychain
+      targetPort: prom-relaychain
+    {{- end }}
+    {{- if $.Values.substrateApiSidecar.metrics.enabled }}
+    - port: {{ $.Values.substrateApiSidecar.metrics.port | int }}
+      name: prom-sidecar
+      targetPort: prom-sidecar
+    {{- end }}
+    {{- with $.Values.node.perNodeServices.apiService.extraPorts }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+---
+{{- if and $.Values.node.perNodeServices.relayP2pService.enabled  (include "node.hasRelaychain" $) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}-relay-chain-p2p
+  labels:
+    {{- $serviceLabels | nindent 4 }}
+  annotations:
+{{- if $.Values.node.perNodeServices.relayP2pService.externalDns.enabled }}
+  {{- if $.Values.node.perNodeServices.relayP2pService.externalDns.customPrefix }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $.Values.node.perNodeServices.relayP2pService.externalDns.customPrefix }}-{{ $i }}.{{ $.Values.node.perNodeServices.relayP2pService.externalDns.hostname }}
+  {{- else }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $fullname }}-{{ $i }}.{{ $.Values.node.perNodeServices.relayP2pService.externalDns.hostname }}
+  {{- end }}
+    external-dns.alpha.kubernetes.io/ttl: {{ $.Values.node.perNodeServices.relayP2pService.externalDns.ttl | squote }}
+{{- end }}
+{{- with merge $.Values.node.perNodeServices.relayP2pService.annotations $.Values.node.perNodeServices.paraP2pService.annotations }}
+{{ toYaml . | indent 4}}
+{{- end }}
+spec:
+  {{- if eq $.Values.node.perNodeServices.relayP2pService.type "ClusterIP" }}
+  type: ClusterIP
+  {{- else if eq $.Values.node.perNodeServices.relayP2pService.type "NodePort" }}
+  externalTrafficPolicy: {{ $.Values.node.perNodeServices.relayP2pService.externalTrafficPolicy }}
+  type: NodePort
+  {{- else if eq $.Values.node.perNodeServices.relayP2pService.type "LoadBalancer" }}
+  externalTrafficPolicy: {{ $.Values.node.perNodeServices.relayP2pService.externalTrafficPolicy }}
+  type: LoadBalancer
+  {{- end }}
+  publishNotReadyAddresses: {{ $.Values.node.perNodeServices.relayP2pService.publishUnreadyAddresses }}
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - name: p2p
+      port: {{ $.Values.node.perNodeServices.relayP2pService.port | int }}
+      targetPort: p2p
+    {{- if $.Values.node.perNodeServices.relayP2pService.ws.enabled }}
+    - name: ws
+      port: {{ $.Values.node.perNodeServices.relayP2pService.ws.port | int }}
+      targetPort: p2p-ws
+    {{- end }}
+    {{- with $.Values.node.perNodeServices.relayP2pService.extraPorts }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+---
+{{- if and $.Values.node.isParachain $.Values.node.perNodeServices.paraP2pService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $i }}-para-chain-p2p
+  labels:
+    {{- $serviceLabels | nindent 4 }}
+  annotations:
+{{- if $.Values.node.perNodeServices.paraP2pService.externalDns.enabled }}
+  {{- if $.Values.node.perNodeServices.paraP2pService.externalDns.customPrefix }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $.Values.node.perNodeServices.paraP2pService.externalDns.customPrefix }}-{{ $i }}.{{ $.Values.node.perNodeServices.paraP2pService.externalDns.hostname }}
+  {{- else }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $fullname }}-{{ $i }}.{{ $.Values.node.perNodeServices.paraP2pService.externalDns.hostname }}
+  {{- end }}
+    external-dns.alpha.kubernetes.io/ttl: {{ $.Values.node.perNodeServices.paraP2pService.externalDns.ttl | squote }}
+{{- end }}
+{{- with merge $.Values.node.perNodeServices.relayP2pService.annotations $.Values.node.perNodeServices.paraP2pService.annotations }}
+{{ toYaml . | indent 4}}
+{{- end }}
+spec:
+  {{- if eq $.Values.node.perNodeServices.paraP2pService.type "ClusterIP" }}
+  type: ClusterIP
+  {{- else if eq $.Values.node.perNodeServices.paraP2pService.type "NodePort" }}
+  externalTrafficPolicy: {{ $.Values.node.perNodeServices.paraP2pService.externalTrafficPolicy }}
+  type: NodePort
+  {{- else if eq $.Values.node.perNodeServices.paraP2pService.type "LoadBalancer" }}
+  externalTrafficPolicy: {{ $.Values.node.perNodeServices.paraP2pService.externalTrafficPolicy }}
+  type: LoadBalancer
+  {{- end }}
+  publishNotReadyAddresses: {{ $.Values.node.perNodeServices.paraP2pService.publishUnreadyAddresses }}
+  selector:
+    {{- $selectorLabels | nindent 4 }}
+    statefulset.kubernetes.io/pod-name: {{ $fullname }}-{{ $i }}
+  ports:
+    - name: p2p
+      port: {{ $.Values.node.perNodeServices.paraP2pService.port | int }}
+      targetPort: para-p2p
+    {{- if $.Values.node.perNodeServices.paraP2pService.ws.enabled }}
+    - name: ws
+      port: {{ $.Values.node.perNodeServices.paraP2pService.ws.port | int }}
+      targetPort: para-p2p-ws
+    {{- end }}
+    {{- with $.Values.node.perNodeServices.paraP2pService.extraPorts }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+---
+{{ end }}

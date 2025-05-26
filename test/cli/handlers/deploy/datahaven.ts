@@ -8,7 +8,8 @@ import { forwardPort } from "../common/kubernetes";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 
-const DEFAULT_PUBLIC_WS_PORT = 9944;
+// This should be 9955, the default WS port in Substrate, not 9944, the default RPC port.
+const DEFAULT_PUBLIC_WS_PORT = 9955;
 
 /**
  * Deploys a DataHaven solochain network in a Kubernetes namespace.

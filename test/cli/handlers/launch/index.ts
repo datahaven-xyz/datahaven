@@ -1,9 +1,9 @@
 import type { Command } from "@commander-js/extra-typings";
-import { deployContracts } from "scripts/deploy-contracts";
 import { getPortFromKurtosis, logger } from "utils";
 import { checkBaseDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { launchDataHavenSolochain } from "./datahaven";
+import { deployContracts } from "./deploy-contracts";
 import { launchKurtosis } from "./kurtosis";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
@@ -44,7 +44,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchKurtosis(options, launchedNetwork);
 
-  logger.trace("Deploy contracts using the extracted function");
+  logger.trace("Checking if Blockscout is enabled...");
   let blockscoutBackendUrl: string | undefined;
 
   if (options.blockscout === true) {

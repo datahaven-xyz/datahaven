@@ -74,6 +74,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 
   if (verified && blockscoutBackendUrl) {
+    // TODO: Allow for other verifiers like Etherscan.
     deployCommand += ` --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --delay 0`;
     logger.info("🔍 Contract verification enabled");
   }

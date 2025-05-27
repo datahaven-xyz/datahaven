@@ -160,11 +160,14 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       const containerName = `snowbridge-${type}-relay`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
+      // TODO: ADD SECRET TO KUBERNETES
+
       const hostConfigFilePath = path.resolve(config);
       const containerConfigFilePath = `/${config}`;
       const networkName = launchedNetwork.networkName;
       invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
 
+      // TODO: CHANGE THIS TO LAUNCH WITH HELM CHARTS
       const commandBase: string[] = [
         "docker",
         "run",
@@ -206,11 +209,13 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       logger.debug(`Running command: ${command.join(" ")}`);
       await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
 
+      // TODO: MAYBE REMOVE THIS
       launchedNetwork.addContainer(containerName);
 
+      // TODO: MAYBE REMOVE THIS
       await waitForContainerToStart(containerName);
 
-      logger.debug(`Started relayer ${name} with process ${process.pid}`);
+      logger.success(`Started relayer ${name}`);
     } catch (e) {
       logger.error(`Error starting relayer ${name}`);
       logger.error(e);

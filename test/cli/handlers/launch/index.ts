@@ -78,8 +78,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
+  const dhRpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await setParametersFromCollection({
-    rpcUrl: launchedNetwork.dhRpcUrl,
+    rpcUrl: dhRpcUrl,
     collection: parameterCollection,
     setParameters: options.setParameters
   });

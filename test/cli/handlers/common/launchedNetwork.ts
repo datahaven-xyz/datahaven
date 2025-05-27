@@ -109,12 +109,6 @@ export class LaunchedNetwork {
     return this._clEndpoint;
   }
 
-  registerRelayerType(type: RelayerType): void {
-    if (!this._activeRelayers.includes(type)) {
-      this._activeRelayers.push(type);
-    }
-  }
-
   public get containers(): ContainerSpec[] {
     return this._containers;
   }

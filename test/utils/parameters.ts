@@ -71,7 +71,7 @@ export class ParameterCollection {
 /**
  * Creates a new ParameterCollection, pre-loaded with template parameters if available
  */
-export async function createParameterCollection(): Promise<ParameterCollection> {
+export const createParameterCollection = async (): Promise<ParameterCollection> => {
   const collection = new ParameterCollection();
   const templateFile = Bun.file(PARAMETERS_TEMPLATE_PATH);
 
@@ -83,7 +83,7 @@ export async function createParameterCollection(): Promise<ParameterCollection> 
   }
 
   return collection;
-}
+};
 
 /**
  * A helper function to set DataHaven parameters from a ParameterCollection
@@ -94,7 +94,7 @@ export async function createParameterCollection(): Promise<ParameterCollection> 
  * @param options.setParameters Flag to control execution
  * @returns Promise resolving to true if parameters were set successfully
  */
-export async function setParametersFromCollection({
+export const setParametersFromCollection = async ({
   rpcUrl,
   collection,
   setParameters
@@ -102,7 +102,7 @@ export async function setParametersFromCollection({
   rpcUrl: string;
   collection: ParameterCollection;
   setParameters?: boolean;
-}): Promise<boolean> {
+}): Promise<boolean> => {
   const parametersFilePath = await collection.generateParametersFile();
 
   try {
@@ -119,4 +119,4 @@ export async function setParametersFromCollection({
     printDivider();
     return false;
   }
-}
+};

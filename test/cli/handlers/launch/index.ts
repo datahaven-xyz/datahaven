@@ -1,11 +1,12 @@
 import type { Command } from "@commander-js/extra-typings";
 import { getPortFromKurtosis, logger } from "utils";
-import { createParameterCollection, setParametersFromCollection } from "utils/parameters";
+import { createParameterCollection } from "utils/parameters";
 import { checkBaseDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
+import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";

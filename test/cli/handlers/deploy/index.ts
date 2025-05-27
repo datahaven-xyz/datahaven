@@ -1,12 +1,13 @@
 import type { Command } from "node_modules/@commander-js/extra-typings";
 import { type DeployEnvironment, logger } from "utils";
-import { createParameterCollection, setParametersFromCollection } from "utils/parameters";
+import { createParameterCollection } from "utils/parameters";
 import { checkBaseDependencies, checkDeployDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { cleanup } from "./cleanup";
 import { deployContracts } from "./contracts";
 import { deployDataHavenSolochain } from "./datahaven";
 import { deployKurtosis } from "./kurtosis";
+import { setParametersFromCollection } from "./parameters";
 import { performValidatorOperations } from "./validator";
 
 // Non-optional properties determined by having default values
@@ -63,8 +64,7 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
   const dhRpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await setParametersFromCollection({
     rpcUrl: dhRpcUrl,
-    collection: parameterCollection,
-    setParameters: true
+    collection: parameterCollection
   });
 
   // TODO: Deploy Snowbridge relayers

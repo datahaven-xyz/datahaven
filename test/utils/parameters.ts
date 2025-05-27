@@ -1,6 +1,6 @@
 import path from "node:path";
 import { $ } from "bun";
-import { logger, printDivider } from "utils";
+import { logger } from "utils";
 import type { ParsedDataHavenParameter } from "utils/types";
 
 // Constants for paths
@@ -83,40 +83,4 @@ export const createParameterCollection = async (): Promise<ParameterCollection> 
   }
 
   return collection;
-};
-
-/**
- * A helper function to set DataHaven parameters from a ParameterCollection
- *
- * @param options Options for setting parameters
- * @param options.rpcUrl The RPC URL of the DataHaven node
- * @param options.collection The parameter collection
- * @param options.setParameters Flag to control execution
- * @returns Promise resolving to true if parameters were set successfully
- */
-export const setParametersFromCollection = async ({
-  rpcUrl,
-  collection,
-  setParameters
-}: {
-  rpcUrl: string;
-  collection: ParameterCollection;
-  setParameters?: boolean;
-}): Promise<boolean> => {
-  const parametersFilePath = await collection.generateParametersFile();
-
-  try {
-    // Import the setDataHavenParameters function dynamically
-    const { setDataHavenParameters } = await import("../scripts/set-datahaven-parameters");
-
-    return await setDataHavenParameters({
-      rpcUrl,
-      parametersFilePath,
-      setParameters
-    });
-  } catch (error) {
-    logger.error(`Failed to set DataHaven parameters: ${error}`);
-    printDivider();
-    return false;
-  }
 };

@@ -24,9 +24,10 @@
     "stop:sb": "bun cli stop --relayer --no-datahaven --no-enclave",
     "stop:eth": "bun cli stop --enclave --no-datahaven --no-relayer",
     "stop:engine": "bun cli stop --kurtosisEngine --no-datahaven --no-relayer --no-enclave",
+    "test:int": "bun test suites/integration",
     "test:e2e": "bun test suites/e2e --timeout 60000",
     "typecheck": "tsc --noEmit",
-    "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
+    "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck .",
     "postinstall": "papi"
   },
   "devDependencies": {

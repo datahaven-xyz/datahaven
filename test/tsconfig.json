@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
     // Enable latest features
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -33,19 +31,16 @@
     "tsBuildInfoFile": "tmp/tsconfig.tsbuildinfo",
     "assumeChangesOnlyAffectDirectDependencies": true,
     "paths": {
-      "utils": [
-        "./utils/index.ts"
-      ],
-      "utils/types": [
-        "./utils/types.ts"
-      ]
-    }
+      "cli-launch": ["./cli/handlers/launch/index.ts"],
+      "utils": ["./utils/index.ts"],
+      "utils/types": ["./utils/types.ts"]    }
   },
   "include": [
     "utils/*.ts",
     "scripts/*.ts",
     "suites/**/*.ts",
     "cli/**/*.ts",
+    "cli/*.ts",
     "wagmi.config.ts",
     "contract-bindings/*.ts"
   ]

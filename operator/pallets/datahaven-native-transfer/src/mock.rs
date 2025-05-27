@@ -5,7 +5,7 @@ use {
     crate::{self as pallet_datahaven_native_transfer},
     frame_support::{
         parameter_types,
-        traits::{ConstU32, Everything},
+        traits::{ConstU32, Everything, Get},
     },
     frame_system::EnsureRoot,
     snowbridge_outbound_queue_primitives::v2::{Message as OutboundMessage, SendMessage},
@@ -111,10 +111,18 @@ parameter_types! {
     pub const EthereumSovereignAccount: u64 = 999;
     pub const DataHavenTokenId: H256 = H256::repeat_byte(0x01);
     pub const FeeRecipientAccount: u64 = 1000;
+    pub storage IsTokenRegistered: bool = true; // Default to registered for most tests
 }
 
-parameter_types! {
-    pub const MockNativeTokenId: Option<H256> = Some(H256::repeat_byte(0x01));
+pub struct MockNativeTokenId;
+impl Get<Option<H256>> for MockNativeTokenId {
+    fn get() -> Option<H256> {
+        if IsTokenRegistered::get() {
+            Some(DataHavenTokenId::get())
+        } else {
+            None
+        }
+    }
 }
 
 impl crate::Config for Test {

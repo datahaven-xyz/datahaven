@@ -177,6 +177,27 @@ fn transfer_with_zero_fee_fails() {
     });
 }
 
+#[test]
+fn transfer_fails_when_token_not_registered() {
+    new_test_ext().execute_with(|| {
+        // Unregister the token
+        IsTokenRegistered::set(&false);
+        
+        assert_noop!(
+            DataHavenNativeTransfer::<Test>::transfer_to_ethereum(
+                RuntimeOrigin::signed(ALICE),
+                ethereum_address(),
+                1000,
+                100
+            ),
+            Error::<Test>::TokenNotRegistered
+        );
+        
+        // Re-register for other tests
+        IsTokenRegistered::set(&true);
+    });
+}
+
 // ===========================
 // Lock/Unlock Tests
 // ===========================

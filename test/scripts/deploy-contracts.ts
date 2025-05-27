@@ -100,7 +100,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
       const gatewayAddress = deployments.Gateway;
 
       if (gatewayAddress) {
-        logger.info(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+        logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
 
         parameterCollection.addParameter({
           name: "EthereumGatewayAddress",

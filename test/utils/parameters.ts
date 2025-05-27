@@ -109,13 +109,11 @@ export async function setParametersFromCollection({
     // Import the setDataHavenParameters function dynamically
     const { setDataHavenParameters } = await import("../scripts/set-datahaven-parameters");
 
-    const result = await setDataHavenParameters({
+    return await setDataHavenParameters({
       rpcUrl,
       parametersFilePath,
       setParameters
     });
-
-    return result;
   } catch (error) {
     logger.error(`Failed to set DataHaven parameters: ${error}`);
     printDivider();

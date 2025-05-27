@@ -1,9 +1,9 @@
+import { parseArgs } from "node:util";
 import { datahaven } from "@polkadot-api/descriptors";
 import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-import { parseArgs } from "util";
 import {
   confirmWithTimeout,
   getEvmEcdsaSigner,

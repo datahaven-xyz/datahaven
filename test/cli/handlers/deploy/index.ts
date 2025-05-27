@@ -1,5 +1,6 @@
 import type { Command } from "node_modules/@commander-js/extra-typings";
 import { type DeployEnvironment, logger } from "utils";
+import { createParameterCollection, setParametersFromCollection } from "utils/parameters";
 import { checkBaseDependencies, checkDeployDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { cleanup } from "./cleanup";
@@ -40,6 +41,9 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
 
   await cleanup(options, launchedNetwork);
 
+  // Create parameter collection to be used throughout the launch process
+  const parameterCollection = await createParameterCollection();
+
   await deployKurtosis(options, launchedNetwork);
 
   await deployDataHavenSolochain(options, launchedNetwork);
@@ -50,10 +54,18 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
   await deployContracts({
     rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
-    blockscoutBackendUrl
+    blockscoutBackendUrl,
+    parameterCollection
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);
+
+  const dhRpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
+  await setParametersFromCollection({
+    rpcUrl: dhRpcUrl,
+    collection: parameterCollection,
+    setParameters: true
+  });
 
   // TODO: Deploy Snowbridge relayers
 

@@ -23,10 +23,10 @@ export interface LaunchOptions {
   verified?: boolean;
   blockscout?: boolean;
   deployContracts?: boolean;
-  setParameters?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
   updateValidatorSet?: boolean;
+  setParameters?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
   cleanNetwork?: boolean;
@@ -76,14 +76,14 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
-  await launchRelayers(options, launchedNetwork);
-
   const dhRpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await setParametersFromCollection({
     rpcUrl: dhRpcUrl,
     collection: parameterCollection,
     setParameters: options.setParameters
   });
+
+  await launchRelayers(options, launchedNetwork);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

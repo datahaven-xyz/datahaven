@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     // Enable latest features
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "target": "ESNext",
-    "module": "ESNext",
+    "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": false,
@@ -21,15 +23,23 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "baseUrl": "./",
     "preserveConstEnums": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-
     // Speed
     "tsBuildInfoFile": "tmp/tsconfig.tsbuildinfo",
-    "assumeChangesOnlyAffectDirectDependencies": true
+    "assumeChangesOnlyAffectDirectDependencies": true,
+    "paths": {
+      "utils": [
+        "./utils/index.ts"
+      ],
+      "utils/types": [
+        "./utils/types.ts"
+      ]
+    }
   },
   "include": [
     "utils/*.ts",
@@ -38,6 +48,5 @@
     "cli/**/*.ts",
     "wagmi.config.ts",
     "contract-bindings/*.ts"
-  ],
-  "exclude": ["node_modules"]
+  ]
 }

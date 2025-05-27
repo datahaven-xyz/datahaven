@@ -34,6 +34,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
+          install-deps: true
       - uses: ./.github/workflows/actions/cleanup-runner
       - name: Install nextest
         uses: taiki-e/install-action@nextest

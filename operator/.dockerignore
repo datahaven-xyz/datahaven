@@ -50,3 +50,4 @@ examples/
 Cargo.lock.old
 *.toml.old
 *.lock.old
+**/target/

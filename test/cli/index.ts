@@ -21,11 +21,11 @@ function parseIntValue(value: string): number {
 
 // Function to parse and validate DeployEnvironment
 function parseDeployEnvironment(value: string): DeployEnvironment {
-  if (value === "staging" || value === "testnet" || value === "mainnet") {
+  if (value === "stagenet" || value === "testnet" || value === "mainnet") {
     return value;
   }
   throw new InvalidArgumentError(
-    "Invalid environment. Must be one of 'staging', 'testnet', or 'mainnet'."
+    "Invalid environment. Must be one of 'stagenet', 'testnet', or 'mainnet'."
   );
 }
 
@@ -45,7 +45,7 @@ program
     It will deploy:
     - DataHaven solochain validators (all envs),
     - Storage providers (all envs) (TODO),
-    - Kurtosis Ethereum private network (staging env),
+    - Kurtosis Ethereum private network (stagenet env),
     - Snowbridge Relayers (all envs)
     `
   )
@@ -54,11 +54,11 @@ program
     "--e, --environment <value>",
     "Environment to deploy to",
     parseDeployEnvironment,
-    "staging"
+    "stagenet"
   )
   .option(
     "--k, --kube-namespace <value>",
-    "Kubernetes namespace to deploy to. In 'staging' this parameter is ignored and the Kurtosis namespace is used instead. Default will be `datahaven-<environment>`."
+    "Kubernetes namespace to deploy to. In 'stagenet' this parameter is ignored and the Kurtosis namespace is used instead. Default will be `datahaven-<environment>`."
   )
   .option(
     "--ke, --kurtosis-enclave-name <value>",

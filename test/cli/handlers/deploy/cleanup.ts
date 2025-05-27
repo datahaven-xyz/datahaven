@@ -12,7 +12,7 @@ export const cleanup = async (
 ): Promise<void> => {
   printHeader("Cleaning up");
 
-  if (options.environment === "staging") {
+  if (options.environment === "stagenet") {
     await checkAndCleanKurtosisDeployment(options);
   }
 

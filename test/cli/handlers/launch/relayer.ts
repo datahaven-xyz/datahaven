@@ -138,7 +138,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     const configFileName = path.basename(config);
 
     logger.debug(`Creating config for ${name}`);
-    const templateFilePath = `configs/snowbridge/${configFileName}`;
+    const templateFilePath = `configs/snowbridge/local/${configFileName}`;
     const outputFilePath = path.resolve(RELAYER_CONFIG_DIR, configFileName);
     logger.debug(`Reading config file ${templateFilePath}`);
     const file = Bun.file(templateFilePath);

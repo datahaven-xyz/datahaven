@@ -89,13 +89,13 @@ export const deployPreActionHook = (
     thisCmd.error("--verified requires --blockscout to be set");
   }
 
-  if (opts.environment === "staging" && opts.kubeNamespace !== undefined) {
+  if (opts.environment === "stagenet" && opts.kubeNamespace !== undefined) {
     logger.warn(
-      "⚠️ --kube-namespace is not allowed in staging environment. The Kurtosis namespace will be used instead."
+      "⚠️ --kube-namespace is not allowed in stagenet environment. The Kurtosis namespace will be used instead."
     );
   }
 
-  if (opts.environment !== "staging" && opts.elRpcUrl === undefined) {
-    thisCmd.error("--eth-rpc-url is required in non-staging environment");
+  if (opts.environment !== "stagenet" && opts.elRpcUrl === undefined) {
+    thisCmd.error("--eth-rpc-url is required in non-stagenet environment");
   }
 };

@@ -6,7 +6,7 @@ import type { DeployOptions } from "..";
 
 export const performValidatorOperations = async (options: DeployOptions, networkRpcUrl: string) => {
   // If not specified, prompt for funding
-  const shouldFundValidators = options.environment === "staging";
+  const shouldFundValidators = options.environment === "stagenet";
 
   if (shouldFundValidators) {
     await fundValidators({

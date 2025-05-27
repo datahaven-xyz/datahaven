@@ -36,7 +36,7 @@ type RelayerSpec = {
   pk: { type: "ethereum" | "substrate"; value: string };
 };
 
-const RELAYER_CONFIG_DIR = "tmp/configs";
+const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
@@ -78,14 +78,8 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
 
-  // TODO: MAYBE REMOVE THIS
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
-
-  // TODO: MAYBE REMOVE THIS
-  const datastorePath = "tmp/datastore";
-  logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
-  await $`mkdir -p ${datastorePath}`.quiet();
 
   const relayersToStart: RelayerSpec[] = [
     {

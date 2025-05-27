@@ -110,4 +110,4 @@ export function parseRelayConfig(
   return type === "beacon" ? parseBeaconConfig(config) : parseBeefyConfig(config);
 }
 
-export type DeployEnvironment = "staging" | "testnet" | "mainnet";
+export type DeployEnvironment = "stagenet" | "testnet" | "mainnet";

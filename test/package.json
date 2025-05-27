@@ -26,6 +26,7 @@
     "stop:engine": "bun cli stop --kurtosisEngine --no-datahaven --no-relayer --no-enclave",
     "test:e2e": "bun test suites/e2e --timeout 60000",
     "typecheck": "tsc --noEmit",
+    "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
     "postinstall": "papi"
   },
   "devDependencies": {

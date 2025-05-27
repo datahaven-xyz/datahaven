@@ -986,10 +986,20 @@ impl pallet_external_validators_rewards::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DataHavenNativeTokenId: TokenId = H256([0u8; 32]); // TODO: Set actual token ID
     // TODO: This should be derived from the Ethereum location using
     // a location-to-account converter (e.g., HashedDescription)
     pub EthereumSovereignAccount: AccountId = AccountId::from([1u8; 20]);
+}
+
+/// Implementation of Get<Option<TokenId>> for DataHaven native transfer pallet
+pub struct DataHavenTokenId;
+impl Get<Option<TokenId>> for DataHavenTokenId {
+    fn get() -> Option<TokenId> {
+        let native_location = Location::here();
+
+        let reanchored = crate::SnowbridgeSystemV2::reanchor(native_location).ok()?;
+        <crate::SnowbridgeSystemV2 as sp_runtime::traits::MaybeEquivalence<TokenId, Location>>::convert_back(&reanchored)
+    }
 }
 
 impl pallet_datahaven_native_transfer::Config for Runtime {
@@ -997,7 +1007,7 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = OutboundQueueV2;
-    type NativeTokenId = DataHavenNativeTokenId;
+    type NativeTokenId = DataHavenTokenId;
     type FeeRecipient = TreasuryAccountId;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;

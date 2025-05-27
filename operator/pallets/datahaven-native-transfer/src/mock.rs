@@ -113,12 +113,16 @@ parameter_types! {
     pub const FeeRecipientAccount: u64 = 1000;
 }
 
+parameter_types! {
+    pub const MockNativeTokenId: Option<H256> = Some(H256::repeat_byte(0x01));
+}
+
 impl crate::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = MockOkOutboundQueue;
-    type NativeTokenId = DataHavenTokenId;
+    type NativeTokenId = MockNativeTokenId;
     type FeeRecipient = FeeRecipientAccount;
     type WeightInfo = ();
     type PauseOrigin = EnsureRoot<u64>;

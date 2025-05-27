@@ -70,9 +70,6 @@ pub mod pallet {
         /// The Snowbridge outbound queue for sending messages to Ethereum
         type OutboundQueue: SendMessage;
 
-        /// The DataHaven native token ID on Ethereum
-        type NativeTokenId: Get<TokenId>;
-
         /// Account to receive bridge fees
         type FeeRecipient: Get<Self::AccountId>;
 
@@ -81,6 +78,9 @@ pub mod pallet {
 
         /// Origin that can pause/unpause the pallet
         type PauseOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
+        /// Provides the native token ID if registered, None if not registered
+        type NativeTokenId: Get<Option<TokenId>>;
     }
 
     #[pallet::storage]
@@ -133,6 +133,8 @@ pub mod pallet {
         TransfersDisabled,
         /// Fee cannot be zero
         ZeroFee,
+        /// Native token has not been registered on Ethereum yet
+        TokenNotRegistered,
     }
 
     #[pallet::call]
@@ -158,6 +160,11 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(!Paused::<T>::get(), Error::<T>::TransfersDisabled);
+            
+            // Get the token ID - fails if not registered
+            let token_id = T::NativeTokenId::get()
+                .ok_or(Error::<T>::TokenNotRegistered)?;
+            
             ensure!(amount > Zero::zero(), Error::<T>::InvalidAmount);
             ensure!(fee > Zero::zero(), Error::<T>::ZeroFee);
             ensure!(
@@ -177,7 +184,7 @@ pub mod pallet {
             Self::lock_tokens(&who, amount)?;
 
             // Build and send the message
-            let message = Self::build_mint_message(recipient, amount, fee)?;
+            let message = Self::build_mint_message(token_id, recipient, amount, fee)?;
             T::OutboundQueue::validate(&message)
                 .and_then(|ticket| T::OutboundQueue::deliver(ticket))
                 .map_err(|_| Error::<T>::SendMessageFailed)?;
@@ -221,6 +228,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Build outbound message for Snowbridge
         fn build_mint_message(
+            token_id: TokenId,
             recipient: H160,
             amount: BalanceOf<T>,
             fee: BalanceOf<T>,
@@ -231,7 +239,7 @@ pub mod pallet {
 
             // Create the mint command
             let command = Command::MintForeignToken {
-                token_id: T::NativeTokenId::get(),
+                token_id,
                 recipient,
                 amount: amount_u128,
             };

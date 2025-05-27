@@ -246,7 +246,9 @@ const buildLocalImage = async (options: LaunchOptions) => {
     return;
   }
 
-  await cargoCrossbuild({ datahavenBuildExtraArgs: options.datahavenBuildExtraArgs });
+  await cargoCrossbuild({
+    datahavenBuildExtraArgs: options.datahavenBuildExtraArgs
+  });
 
   logger.info("🐳 Building DataHaven node local Docker image...");
   if (LOG_LEVEL === "trace") {

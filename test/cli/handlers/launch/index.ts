@@ -1,5 +1,6 @@
 import type { Command } from "@commander-js/extra-typings";
 import { getPortFromKurtosis, logger } from "utils";
+import { createParameterCollection, setParametersFromCollection } from "utils/parameters";
 import { checkBaseDependencies } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { deployContracts } from "./contracts";
@@ -22,6 +23,7 @@ export interface LaunchOptions {
   verified?: boolean;
   blockscout?: boolean;
   deployContracts?: boolean;
+  setParameters?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
   updateValidatorSet?: boolean;
@@ -39,6 +41,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   const timeStart = performance.now();
 
   await checkBaseDependencies();
+
+  // Create parameter collection to be used throughout the launch process
+  const parameterCollection = await createParameterCollection();
 
   await launchDataHavenSolochain(options, launchedNetwork);
 
@@ -65,12 +70,19 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
-    deployContracts: options.deployContracts
+    deployContracts: options.deployContracts,
+    parameterCollection
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
+
+  await setParametersFromCollection({
+    rpcUrl: launchedNetwork.dhRpcUrl,
+    collection: parameterCollection,
+    setParameters: options.setParameters
+  });
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

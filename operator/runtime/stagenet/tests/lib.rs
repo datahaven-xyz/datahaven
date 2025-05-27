@@ -7,9 +7,7 @@ pub mod common;
 mod native_token_transfer;
 
 use common::*;
-use datahaven_stagenet_runtime::{
-    Balances, System, UNIT, VERSION,
-};
+use datahaven_stagenet_runtime::{Balances, System, UNIT, VERSION};
 
 // Runtime Tests
 #[test]

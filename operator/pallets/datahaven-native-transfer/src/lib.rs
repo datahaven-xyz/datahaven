@@ -160,11 +160,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(!Paused::<T>::get(), Error::<T>::TransfersDisabled);
-            
+
             // Get the token ID - fails if not registered
-            let token_id = T::NativeTokenId::get()
-                .ok_or(Error::<T>::TokenNotRegistered)?;
-            
+            let token_id = T::NativeTokenId::get().ok_or(Error::<T>::TokenNotRegistered)?;
+
             ensure!(amount > Zero::zero(), Error::<T>::InvalidAmount);
             ensure!(fee > Zero::zero(), Error::<T>::ZeroFee);
             ensure!(
@@ -173,12 +172,7 @@ pub mod pallet {
             );
 
             // Transfer fee to recipient
-            T::Currency::transfer(
-                &who,
-                &T::FeeRecipient::get(),
-                fee,
-                Preservation::Preserve,
-            )?;
+            T::Currency::transfer(&who, &T::FeeRecipient::get(), fee, Preservation::Preserve)?;
 
             // Lock tokens in the sovereign account
             Self::lock_tokens(&who, amount)?;
@@ -245,8 +239,8 @@ pub mod pallet {
             };
 
             // Create bounded vector of commands
-            let commands = BoundedVec::try_from(vec![command])
-                .map_err(|_| Error::<T>::SendMessageFailed)?;
+            let commands =
+                BoundedVec::try_from(vec![command]).map_err(|_| Error::<T>::SendMessageFailed)?;
 
             // Build the outbound message
             Ok(OutboundMessage {
@@ -302,7 +296,7 @@ pub mod pallet {
         pub fn total_locked_balance() -> BalanceOf<T> {
             <T::Currency as Inspect<T::AccountId>>::balance(&T::EthereumSovereignAccount::get())
         }
-        
+
         /// Get the Ethereum sovereign account address
         /// Useful for monitoring and debugging
         pub fn ethereum_sovereign_account() -> T::AccountId {

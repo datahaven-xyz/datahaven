@@ -15,10 +15,7 @@
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>
 
 use {
-    crate::{
-        mock::*,
-        Error, Pallet as DataHavenNativeTransfer, Paused,
-    },
+    crate::{mock::*, Error, Pallet as DataHavenNativeTransfer, Paused},
     frame_support::{
         assert_noop, assert_ok,
         traits::fungible::{Inspect, Mutate},
@@ -156,7 +153,10 @@ fn multiple_transfers_work() {
         ));
 
         // Check balances (account for fees: 50 + 50 = 100 total)
-        assert_eq!(Balances::balance(&ALICE), INITIAL_BALANCE - amount1 - amount2 - 100);
+        assert_eq!(
+            Balances::balance(&ALICE),
+            INITIAL_BALANCE - amount1 - amount2 - 100
+        );
         assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), amount1 + amount2);
         assert_eq!(Balances::balance(&FEE_RECIPIENT), 100);
     });
@@ -182,7 +182,7 @@ fn transfer_fails_when_token_not_registered() {
     new_test_ext().execute_with(|| {
         // Unregister the token
         IsTokenRegistered::set(&false);
-        
+
         assert_noop!(
             DataHavenNativeTransfer::<Test>::transfer_to_ethereum(
                 RuntimeOrigin::signed(ALICE),
@@ -192,7 +192,7 @@ fn transfer_fails_when_token_not_registered() {
             ),
             Error::<Test>::TokenNotRegistered
         );
-        
+
         // Re-register for other tests
         IsTokenRegistered::set(&true);
     });
@@ -230,20 +230,23 @@ fn unlock_tokens_works() {
 
         // First lock some tokens
         assert_ok!(DataHavenNativeTransfer::<Test>::lock_tokens(&ALICE, amount));
-        
+
         // Give sovereign account some balance first to ensure it has enough
         // The lock_tokens call should have done this, verify it
         assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), amount);
 
         // Unlock less than full amount to keep existential deposit in sovereign
         let unlock_amount = amount - 1; // Keep 1 for existential deposit
-        assert_ok!(DataHavenNativeTransfer::<Test>::unlock_tokens(&BOB, unlock_amount));
+        assert_ok!(DataHavenNativeTransfer::<Test>::unlock_tokens(
+            &BOB,
+            unlock_amount
+        ));
 
         assert_eq!(Balances::balance(&BOB), INITIAL_BALANCE + unlock_amount);
         assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), 1); // Existential deposit remains
 
         // Check event
-assert_eq!(
+        assert_eq!(
             last_event(),
             RuntimeEvent::DataHavenNativeTransfer(crate::Event::TokensUnlocked {
                 account: BOB,
@@ -270,13 +273,15 @@ fn lock_unlock_different_amounts() {
         // Lock 5000
         assert_ok!(DataHavenNativeTransfer::<Test>::lock_tokens(&ALICE, 5000));
         assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), 5000);
-        
+
         // Unlock 2000 to Bob
         assert_ok!(DataHavenNativeTransfer::<Test>::unlock_tokens(&BOB, 2000));
         assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), 3000);
-        
+
         // Unlock 2999 to Charlie (keep 1 for existential deposit)
-        assert_ok!(DataHavenNativeTransfer::<Test>::unlock_tokens(&CHARLIE, 2999));
+        assert_ok!(DataHavenNativeTransfer::<Test>::unlock_tokens(
+            &CHARLIE, 2999
+        ));
 
         assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), 1); // Existential deposit remains
         assert_eq!(Balances::balance(&BOB), INITIAL_BALANCE + 2000);
@@ -292,9 +297,9 @@ fn lock_unlock_different_amounts() {
 fn pause_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(DataHavenNativeTransfer::<Test>::pause(RuntimeOrigin::root()));
-        
+
         assert!(Paused::<Test>::get());
-        
+
         assert_eq!(
             last_event(),
             RuntimeEvent::DataHavenNativeTransfer(crate::Event::Paused)
@@ -317,12 +322,14 @@ fn unpause_works() {
     new_test_ext().execute_with(|| {
         // First pause
         assert_ok!(DataHavenNativeTransfer::<Test>::pause(RuntimeOrigin::root()));
-        
+
         // Then unpause
-        assert_ok!(DataHavenNativeTransfer::<Test>::unpause(RuntimeOrigin::root()));
-        
+        assert_ok!(DataHavenNativeTransfer::<Test>::unpause(
+            RuntimeOrigin::root()
+        ));
+
         assert!(!Paused::<Test>::get());
-        
+
         assert_eq!(
             last_event(),
             RuntimeEvent::DataHavenNativeTransfer(crate::Event::Unpaused)
@@ -369,7 +376,9 @@ fn pause_unpause_cycle_works() {
         );
 
         // Unpause
-        assert_ok!(DataHavenNativeTransfer::<Test>::unpause(RuntimeOrigin::root()));
+        assert_ok!(DataHavenNativeTransfer::<Test>::unpause(
+            RuntimeOrigin::root()
+        ));
 
         // Transfer works again
         assert_ok!(DataHavenNativeTransfer::<Test>::transfer_to_ethereum(
@@ -395,7 +404,7 @@ fn transfer_preserves_existential_deposit() {
         // Try to transfer almost all, keeping 1 for existential deposit
         let transfer_amount = 9u128;
         let fee = 10u128;
-        
+
         assert_ok!(DataHavenNativeTransfer::<Test>::transfer_to_ethereum(
             RuntimeOrigin::signed(ALICE),
             ethereum_address(),

@@ -2,16 +2,14 @@
 // This file is part of DataHaven.
 
 //! Native token transfer integration tests for DataHaven testnet runtime
-//! 
+//!
 //! Tests for native token transfers between DataHaven and Ethereum via Snowbridge
 
 #[path = "common.rs"]
 mod common;
 
 use common::*;
-use datahaven_testnet_runtime::{
-    Runtime, RuntimeEvent, SnowbridgeSystemV2,
-};
+use datahaven_testnet_runtime::{Runtime, RuntimeEvent, SnowbridgeSystemV2};
 use frame_support::assert_ok;
 use snowbridge_core::TokenIdOf;
 use snowbridge_pallet_system::NativeToForeignId;
@@ -31,7 +29,11 @@ fn test_datahaven_native_token_registration_succeeds() {
         // Step 1: Verify preconditions - token not yet registered
         let initial_reanchored = SnowbridgeSystemV2::reanchor(asset_location.clone()).unwrap();
         assert!(NativeToForeignId::<Runtime>::get(&initial_reanchored).is_none());
-        assert!(snowbridge_pallet_system::ForeignToNativeId::<Runtime>::iter().next().is_none());
+        assert!(
+            snowbridge_pallet_system::ForeignToNativeId::<Runtime>::iter()
+                .next()
+                .is_none()
+        );
 
         // Step 2: Register the token
         assert_ok!(SnowbridgeSystemV2::register_token(
@@ -68,6 +70,5 @@ fn test_datahaven_native_token_registration_succeeds() {
             foreign_token_id: token_id,
         });
         assert_eq!(last_event(), expected_event);
-
     });
 }

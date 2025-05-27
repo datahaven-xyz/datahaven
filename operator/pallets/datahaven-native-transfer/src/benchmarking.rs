@@ -18,9 +18,7 @@
 
 use super::*;
 use frame_benchmarking::v2::*;
-use frame_support::{
-    traits::{fungible::Mutate, EnsureOrigin},
-};
+use frame_support::traits::{fungible::Mutate, EnsureOrigin};
 use frame_system::RawOrigin;
 use sp_core::H160;
 
@@ -51,10 +49,10 @@ mod benchmarks {
         let amount: BalanceOf<T> = 1_000_000u128.into();
         let fee: BalanceOf<T> = 10_000u128.into();
         let total_needed = amount + fee + fee; // Extra fee for existential deposit
-        
+
         let sender = create_funded_account::<T>(1, total_needed);
         let recipient = ethereum_address(42);
-        
+
         // Ensure pallet is not paused
         Paused::<T>::put(false);
 
@@ -66,10 +64,7 @@ mod benchmarks {
             T::Currency::balance(&T::EthereumSovereignAccount::get()),
             amount
         );
-        assert_eq!(
-            T::Currency::balance(&T::FeeRecipient::get()),
-            fee
-        );
+        assert_eq!(T::Currency::balance(&T::FeeRecipient::get()), fee);
 
         Ok(())
     }
@@ -77,8 +72,8 @@ mod benchmarks {
     #[benchmark]
     fn pause() -> Result<(), BenchmarkError> {
         // Setup
-        let pause_origin = T::PauseOrigin::try_successful_origin()
-            .map_err(|_| BenchmarkError::Weightless)?;
+        let pause_origin =
+            T::PauseOrigin::try_successful_origin().map_err(|_| BenchmarkError::Weightless)?;
 
         // Ensure pallet is not paused initially
         Paused::<T>::put(false);
@@ -95,8 +90,8 @@ mod benchmarks {
     #[benchmark]
     fn unpause() -> Result<(), BenchmarkError> {
         // Setup
-        let pause_origin = T::PauseOrigin::try_successful_origin()
-            .map_err(|_| BenchmarkError::Weightless)?;
+        let pause_origin =
+            T::PauseOrigin::try_successful_origin().map_err(|_| BenchmarkError::Weightless)?;
 
         // Ensure pallet is paused initially
         Paused::<T>::put(true);

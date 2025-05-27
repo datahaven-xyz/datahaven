@@ -45,7 +45,7 @@ impl ExtBuilder {
 
     pub fn build(self) -> sp_io::TestExternalities {
         let mut balances = self.balances;
-        
+
         if self.with_default_balances {
             balances.extend_from_slice(&[
                 (account_id(ALICE), DEFAULT_BALANCE),

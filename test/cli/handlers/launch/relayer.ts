@@ -200,10 +200,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
         cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
         cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-        cfg.source.beacon.datastore.location = datastorePath;
+        cfg.source.beacon.datastore.location = "/data";
         cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
         cfg.source.contracts.Gateway = gatewayAddress;
-        cfg.source.beacon.datastore.location = datastorePath;
         await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
         logger.success(`Updated execution config written to ${outputFilePath}`);
         break;

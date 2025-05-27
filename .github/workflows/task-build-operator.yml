@@ -30,7 +30,9 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
-      - uses: ./.github/workflows/actions/cleanup-runner
+          
+      # Re-enable if you get GH issues with the runner being full
+      # - uses: ./.github/workflows/actions/cleanup-runner
           
       - uses: ./.github/workflows/actions/setup-env
         with:

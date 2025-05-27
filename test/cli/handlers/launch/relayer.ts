@@ -251,9 +251,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         type,
         "--config",
         config,
-        type === "beacon" || type === "execution"
-          ? "--substrate.private-key"
-          : "--ethereum.private-key",
+        `--${pk.type}.private-key`,
         pk.value
       ];
 

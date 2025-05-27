@@ -21,6 +21,8 @@ export class LaunchedNetwork {
   protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
   protected _clEndpoint?: string;
+  /** The RPC URL for the DataHaven node. */
+  protected _dhRpcUrl?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -31,6 +33,7 @@ export class LaunchedNetwork {
     this._networkName = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
+    this._dhRpcUrl = undefined;
   }
 
   public set networkName(name: string) {
@@ -91,6 +94,38 @@ export class LaunchedNetwork {
     const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
     invariant(port !== undefined, "❌ No public port found in containers");
     return port;
+  }
+
+  /**
+   * Updates the DataHaven RPC URL based on the current container public port
+   * This should be called after DataHaven containers are added to the network
+   */
+  public updateDhRpcUrl(): void {
+    const port = this.getPublicWsPort();
+    this._dhRpcUrl = `ws://127.0.0.1:${port}`;
+    logger.debug(`DataHaven RPC URL set to ${this._dhRpcUrl}`);
+  }
+
+  /**
+   * Sets the RPC URL for the DataHaven node.
+   * @param url - The DataHaven RPC URL string.
+   */
+  public set dhRpcUrl(url: string) {
+    this._dhRpcUrl = url;
+  }
+
+  /**
+   * Gets the RPC URL for the DataHaven node.
+   * @returns The DataHaven RPC URL string.
+   * @throws If the DataHaven RPC URL has not been set.
+   */
+  public get dhRpcUrl(): string {
+    if (!this._dhRpcUrl) {
+      // Try to generate the URL if not set
+      this.updateDhRpcUrl();
+    }
+    invariant(this._dhRpcUrl, "❌ DataHaven RPC URL not set in LaunchedNetwork");
+    return this._dhRpcUrl;
   }
 
   /**

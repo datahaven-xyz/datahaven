@@ -62,7 +62,7 @@ export const deployDataHavenSolochain = async (
 
   // Deploy DataHaven bootnode and validators with helm chart.
   logger.info("🚀 Deploying DataHaven bootnode with helm chart...");
-  const bootnodeTimeout = "2m"; // 2 minutes
+  const bootnodeTimeout = "5m"; // 5 minutes
   logger.debug(
     await $`helm upgrade --install dh-bootnode . -f ./datahaven/dh-bootnode.yaml \
         -n ${launchedNetwork.kubeNamespace} \
@@ -74,7 +74,7 @@ export const deployDataHavenSolochain = async (
   logger.success("DataHaven bootnode deployed successfully");
 
   logger.info("🚀 Deploying DataHaven validators with helm chart...");
-  const validatorTimeout = "2m"; // 2 minutes
+  const validatorTimeout = "5m"; // 5 minutes
   logger.debug(
     await $`helm upgrade --install dh-validator . -f ./datahaven/dh-validator.yaml \
         -n ${launchedNetwork.kubeNamespace} \

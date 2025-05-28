@@ -116,7 +116,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
     templateFilePath: "configs/snowbridge/local/beacon-relay.json",
     config: {
       type: "beacon",
-      ethClEndpoint: launchedNetwork.clEndpoint,
+      ethClEndpoint: launchedNetwork.clEndpoint.replace("127.0.0.1", "host.docker.internal"),
       substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
     },
     pk: {
@@ -134,7 +134,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
 
   for (const { name, config, pk } of relayersToStart) {
     try {
-      const containerName = `snowbridge-${config.type}-relay`;
+      const containerName = `dh-${config.type}-relay`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
       // Adding secret key as Kubernetes secret

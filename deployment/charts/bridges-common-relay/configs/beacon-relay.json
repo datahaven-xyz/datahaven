@@ -13,7 +13,7 @@
                 }
             },
             "datastore": {
-                "location": "tmp/datastore",
+                "location": "/data",
                 "maxEntries": 100
             }
         }

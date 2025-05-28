@@ -1,5 +1,4 @@
 import path from "node:path";
-import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
 import { createClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
@@ -7,35 +6,31 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  getEvmEcdsaSigner,
   logger,
   parseDeploymentsFile,
   printDivider,
   printHeader,
-  runShellCommandWithLogger,
-  SUBSTRATE_FUNDED_ACCOUNTS,
-  waitForContainerToStart
+  SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
-import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
-import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
 import { ZERO_HASH } from "../common/consts";
+import { forwardPort } from "../common/kubernetes";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
-import { generateRelayerConfig, type RelayerSpec } from "../common/relayer";
+import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
 import type { DeployOptions } from ".";
 
 // Standard ports for the Ethereum network
 const ETH_EL_RPC_PORT = 8546;
 const ETH_CL_HTTP_PORT = 4000;
 
+// Standard ports for the substrate network
+const DEFAULT_SUBSTRATE_WS_PORT = 9944;
+
 const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
 };
-const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
-const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
-const INITIAL_CHECKPOINT_PATH = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
 
 /**
  * Deploys Snowbridge relayers for the DataHaven network in a Kubernetes namespace.
@@ -79,7 +74,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       configFilePath: RELAYER_CONFIG_PATHS.BEEFY,
       config: {
         type: "beefy",
-        ethWsEndpoint: `ws://host.docker.internal:${ETH_EL_RPC_PORT}`,
+        ethElRpcEndpoint: `ws://el-1-reth-lighthouse:${ETH_EL_RPC_PORT}`,
         substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
         beefyClientAddress,
         gatewayAddress
@@ -94,7 +89,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       configFilePath: RELAYER_CONFIG_PATHS.BEACON,
       config: {
         type: "beacon",
-        ethHttpEndpoint: `http://host.docker.internal:${ETH_CL_HTTP_PORT}`,
+        ethClEndpoint: `http://cl-1-lighthouse-reth:${ETH_CL_HTTP_PORT}`,
         substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
       },
       pk: {
@@ -110,74 +105,105 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
-  await initEthClientPallet(options, launchedNetwork);
-
-  for (const { configFilePath, name, config, pk } of relayersToStart) {
-    try {
-      const containerName = `snowbridge-${config.type}-relay`;
-      logger.info(`🚀 Starting relayer ${containerName} ...`);
-
-      // TODO: ADD SECRET TO KUBERNETES
-
-      const hostConfigFilePath = path.resolve(configFilePath);
-      const containerConfigFilePath = `/${configFilePath}`;
-      const networkName = launchedNetwork.networkName;
-      invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
-
-      // TODO: CHANGE THIS TO LAUNCH WITH HELM CHARTS
-      const commandBase: string[] = [
-        "docker",
-        "run",
-        "-d",
-        "--platform",
-        "linux/amd64",
-        "--add-host",
-        "host.docker.internal:host-gateway",
-        "--name",
-        containerName,
-        "--network",
-        networkName
-      ];
-
-      const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
-
-      if (config.type === "beacon") {
-        const hostDatastorePath = path.resolve(INITIAL_CHECKPOINT_DIR);
-        const containerDatastorePath = "/data";
-        volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
-      }
-
-      const relayerCommandArgs: string[] = [
-        "run",
-        config.type,
-        "--config",
-        configFilePath,
-        config.type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
-        pk.value
-      ];
-
-      const command: string[] = [
-        ...commandBase,
-        ...volumeMounts,
-        options.relayerImageTag,
-        ...relayerCommandArgs
-      ];
-
-      logger.debug(`Running command: ${command.join(" ")}`);
-      await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
-
-      // TODO: MAYBE REMOVE THIS
-      launchedNetwork.addContainer(containerName);
-
-      // TODO: MAYBE REMOVE THIS
-      await waitForContainerToStart(containerName);
-
-      logger.success(`Started relayer ${name}`);
-    } catch (e) {
-      logger.error(`Error starting relayer ${name}`);
-      logger.error(e);
+  // Generating the relayer config file for running the beacon relayer locally, to generate the first checkpoint
+  const localBeaconConfigFilePath = path.join("tmp/configs", "beacon-relay-checkpoint.json");
+  const localBeaconConfig: RelayerSpec = {
+    name: "relayer-🥓-local",
+    configFilePath: localBeaconConfigFilePath,
+    config: {
+      type: "beacon",
+      ethClEndpoint: launchedNetwork.clEndpoint,
+      substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
+    },
+    pk: {
+      type: "substrate",
+      value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
     }
-  }
+  };
+  await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigFilePath);
+
+  // Forwarding the DataHaven RPC port to the local machine
+  const { cleanup: validatorPortForwardCleanup } = await forwardPort(
+    "dh-validator-0",
+    DEFAULT_SUBSTRATE_WS_PORT,
+    DEFAULT_SUBSTRATE_WS_PORT,
+    launchedNetwork
+  );
+
+  await initEthClientPallet(
+    path.resolve(localBeaconConfigFilePath),
+    options.relayerImageTag,
+    launchedNetwork
+  );
+
+  // for (const { configFilePath, name, config, pk } of relayersToStart) {
+  //   try {
+  //     const containerName = `snowbridge-${config.type}-relay`;
+  //     logger.info(`🚀 Starting relayer ${containerName} ...`);
+
+  //     // TODO: ADD SECRET TO KUBERNETES
+
+  //     const hostConfigFilePath = path.resolve(configFilePath);
+  //     const containerConfigFilePath = `/${configFilePath}`;
+  //     const networkName = launchedNetwork.networkName;
+  //     invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
+
+  //     // TODO: CHANGE THIS TO LAUNCH WITH HELM CHARTS
+  //     const commandBase: string[] = [
+  //       "docker",
+  //       "run",
+  //       "-d",
+  //       "--platform",
+  //       "linux/amd64",
+  //       "--add-host",
+  //       "host.docker.internal:host-gateway",
+  //       "--name",
+  //       containerName,
+  //       "--network",
+  //       networkName
+  //     ];
+
+  //     const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+
+  //     if (config.type === "beacon") {
+  //       const hostDatastorePath = path.resolve(datastorePath);
+  //       const containerDatastorePath = "/data";
+  //       volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
+  //     }
+
+  //     const relayerCommandArgs: string[] = [
+  //       "run",
+  //       config.type,
+  //       "--config",
+  //       configFilePath,
+  //       config.type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
+  //       pk.value
+  //     ];
+
+  //     const command: string[] = [
+  //       ...commandBase,
+  //       ...volumeMounts,
+  //       options.relayerImageTag,
+  //       ...relayerCommandArgs
+  //     ];
+
+  //     logger.debug(`Running command: ${command.join(" ")}`);
+  //     await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
+
+  //     // TODO: MAYBE REMOVE THIS
+  //     launchedNetwork.addContainer(containerName);
+
+  //     // TODO: MAYBE REMOVE THIS
+  //     await waitForContainerToStart(containerName);
+
+  //     logger.success(`Started relayer ${name}`);
+  //   } catch (e) {
+  //     logger.error(`Error starting relayer ${name}`);
+  //     logger.error(e);
+  //   }
+  // }
+
+  await validatorPortForwardCleanup();
 
   logger.success("Snowbridge relayers started");
   printDivider();
@@ -246,174 +272,5 @@ const waitBeefyReady = async (
     if (client) {
       client.destroy();
     }
-  }
-};
-
-/**
- * Initialises the Ethereum Beacon Client pallet on the Substrate chain.
- * It waits for the beacon chain to be ready, generates an initial checkpoint,
- * and submits this checkpoint to the Substrate runtime via a sudo call.
- *
- * @param options - Launch options containing the relayer binary path.
- * @param launchedNetwork - An instance of LaunchedNetwork to interact with the running network.
- * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
- */
-export const initEthClientPallet = async (
-  options: DeployOptions,
-  launchedNetwork: LaunchedNetwork
-) => {
-  logger.debug("Initialising eth client pallet");
-  // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
-  await waitBeaconChainReady(launchedNetwork, 10000, 300000);
-
-  const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
-  const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
-  const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
-  const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
-
-  logger.debug("Generating beacon checkpoint");
-  // Pre-create the checkpoint file so that Docker doesn't interpret it as a directory
-  await Bun.write(INITIAL_CHECKPOINT_PATH, "");
-
-  logger.debug("Removing 'generate-beacon-checkpoint' container if it exists");
-  logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
-
-  logger.debug("Generating beacon checkpoint");
-  invariant(
-    launchedNetwork.networkName,
-    "❌ Docker network name not found in LaunchedNetwork instance"
-  );
-  const command = `docker run \
-      -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
-      -v ${checkpointHostPath}:${checkpointContainerPath} \
-      --name generate-beacon-checkpoint \
-      --workdir /app \
-      --add-host host.docker.internal:host-gateway \
-      --network ${launchedNetwork.networkName} \
-      ${options.relayerImageTag} \
-      generate-beacon-checkpoint --config ${RELAYER_CONFIG_PATHS.BEACON} --export-json`;
-  logger.debug(`Running command: ${command}`);
-  logger.debug(await $`sh -c "${command}"`.text());
-
-  // Load the checkpoint into a JSON object and clean it up
-  const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
-  const initialCheckpointRaw = await initialCheckpointFile.text();
-  const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
-  await initialCheckpointFile.delete();
-
-  logger.trace("Initial checkpoint:");
-  logger.trace(initialCheckpoint.toJSON());
-
-  // Send the checkpoint to the Substrate runtime
-  const substrateRpcUrl = `http://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
-  await sendCheckpointToSubstrate(substrateRpcUrl, initialCheckpoint);
-  logger.success("Ethereum Beacon Client pallet initialised");
-};
-
-/**
- * Waits for the beacon chain to be ready by polling its finality checkpoints.
- *
- * @param launchedNetwork - An instance of LaunchedNetwork to get the CL endpoint.
- * @param pollIntervalMs - The interval in milliseconds to poll the beacon chain.
- * @param timeoutMs - The total time in milliseconds to wait before timing out.
- * @throws Error if the beacon chain is not ready within the timeout.
- */
-const waitBeaconChainReady = async (
-  launchedNetwork: LaunchedNetwork,
-  pollIntervalMs: number,
-  timeoutMs: number
-) => {
-  const iterations = Math.floor(timeoutMs / pollIntervalMs);
-
-  logger.trace("Waiting for beacon chain to be ready...");
-
-  await waitFor({
-    lambda: async () => {
-      try {
-        const response = await fetch(
-          `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = (await response.json()) as FinalityCheckpointsResponse;
-        logger.debug(`Beacon chain state: ${JSON.stringify(data)}`);
-
-        invariant(data.data, "❌ No data returned from beacon chain");
-        invariant(data.data.finalized, "❌ No finalised block returned from beacon chain");
-        invariant(
-          data.data.finalized.root,
-          "❌ No finalised block root returned from beacon chain"
-        );
-
-        const initialBeaconBlock = data.data.finalized.root;
-
-        if (initialBeaconBlock && initialBeaconBlock !== ZERO_HASH) {
-          logger.info(`⏲️ Beacon chain is ready with finalised block: ${initialBeaconBlock}`);
-          return true;
-        }
-
-        logger.info(`⌛️ Retrying beacon chain state fetch in ${pollIntervalMs / 1000}s...`);
-        return false;
-      } catch (error) {
-        logger.error(`Failed to fetch beacon chain state: ${error}`);
-        return false;
-      }
-    },
-    iterations,
-    delay: pollIntervalMs,
-    errorMessage: "Beacon chain is not ready. Relayers cannot be launched."
-  });
-};
-
-/**
- * Sends the beacon checkpoint to the Substrate runtime, waiting for the transaction to be finalised and successful.
- *
- * @param networkRpcUrl - The RPC URL of the Substrate network.
- * @param checkpoint - The beacon checkpoint to send.
- * @throws If the transaction signing fails, it becomes an invalid transaction, or the transaction is included but fails.
- */
-const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: BeaconCheckpoint) => {
-  logger.trace("Sending checkpoint to Substrate...");
-
-  const client = createClient(withPolkadotSdkCompat(getWsProvider(networkRpcUrl)));
-  const dhApi = client.getTypedApi(datahaven);
-
-  logger.trace("Client created");
-
-  const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
-  logger.trace("Signer created");
-
-  const forceCheckpointCall = dhApi.tx.EthereumBeaconClient.force_checkpoint({
-    update: checkpoint
-  });
-
-  logger.debug("Force checkpoint call:");
-  logger.debug(forceCheckpointCall.decodedCall);
-
-  const tx = dhApi.tx.Sudo.sudo({
-    call: forceCheckpointCall.decodedCall
-  });
-
-  logger.debug("Sudo call:");
-  logger.debug(tx.decodedCall);
-
-  try {
-    const txFinalisedPayload = await tx.signAndSubmit(signer);
-
-    if (!txFinalisedPayload.ok) {
-      throw new Error("❌ Beacon checkpoint transaction failed");
-    }
-
-    logger.info(
-      `📪 "force_checkpoint" transaction with hash ${txFinalisedPayload.txHash} submitted successfully and finalised in block ${txFinalisedPayload.block.hash}`
-    );
-  } catch (error) {
-    logger.error(`Failed to submit checkpoint transaction: ${error}`);
-    throw new Error(`Failed to submit checkpoint: ${error}`);
-  } finally {
-    client.destroy();
-    logger.debug("Destroyed client");
   }
 };

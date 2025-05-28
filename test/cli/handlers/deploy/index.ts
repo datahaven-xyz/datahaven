@@ -8,6 +8,7 @@ import { deployContracts } from "./contracts";
 import { deployDataHavenSolochain } from "./datahaven";
 import { deployKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
+import { deployRelayers } from "./relayer";
 import { performValidatorOperations } from "./validator";
 
 // Non-optional properties determined by having default values
@@ -61,13 +62,12 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);
 
-  const dhRpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await setParametersFromCollection({
-    rpcUrl: dhRpcUrl,
+    launchedNetwork,
     collection: parameterCollection
   });
 
-  // TODO: Deploy Snowbridge relayers
+  await deployRelayers(options, launchedNetwork);
 
   // TODO: Add summary to suggest the user to forward ports and show commands to do so.
 

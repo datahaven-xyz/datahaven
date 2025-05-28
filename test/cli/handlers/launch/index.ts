@@ -77,9 +77,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
-  const dhRpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
   await setParametersFromCollection({
-    rpcUrl: dhRpcUrl,
+    launchedNetwork,
     collection: parameterCollection,
     setParameters: options.setParameters
   });

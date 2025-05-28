@@ -15,7 +15,7 @@ export const performValidatorOperations = async (
     shouldFundValidators = await confirmWithTimeout(
       "Do you want to fund validators with tokens and ETH?",
       true,
-      options.noWait ? 0 : 10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(
@@ -44,7 +44,7 @@ export const performValidatorOperations = async (
     shouldSetupValidators = await confirmWithTimeout(
       "Do you want to register validators in EigenLayer?",
       true,
-      options.noWait ? 0 : 10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(
@@ -86,7 +86,7 @@ export const performValidatorSetUpdate = async (
     shouldUpdateValidatorSet = await confirmWithTimeout(
       "Do you want to update the validator set on the substrate chain?",
       true,
-      options.noWait ? 0 : 10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(

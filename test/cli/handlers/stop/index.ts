@@ -19,6 +19,7 @@ export interface StopOptions {
   enclave?: boolean;
   kurtosisEngine: boolean;
   relayer?: boolean;
+  wait?: boolean;
 }
 
 export const stopPreActionHook = (thisCmd: Command<[], StopOptions & { [key: string]: any }>) => {
@@ -61,7 +62,7 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
     shouldStopComponent = await confirmWithTimeout(
       `Do you want to stop the ${imageName} relayers?`,
       true,
-      10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(
@@ -104,7 +105,7 @@ const removeDockerNetwork = async (networkName: string, options: StopOptions) =>
     shouldRemoveNetwork = await confirmWithTimeout(
       `Do you want to remove the Docker network ${networkName}?`,
       true,
-      10
+      options.wait ? 10 : 0
     );
   }
 
@@ -130,7 +131,7 @@ const stopAllEnclaves = async (options: StopOptions) => {
     shouldStopEnclave = await confirmWithTimeout(
       "Do you want to stop the all the Kurtosis enclaves?",
       true,
-      10
+      options.wait ? 10 : 0
     );
   } else {
     logger.debug(

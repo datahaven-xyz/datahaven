@@ -44,7 +44,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     shouldDeployContracts = await confirmWithTimeout(
       "Do you want to deploy the smart contracts?",
       true,
-      10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(

@@ -32,6 +32,7 @@ export interface LaunchOptions {
   // Kept as optional due to parse fn
   slotTime?: number;
   setParameters?: boolean;
+  wait?: boolean;
 }
 
 export const BASE_SERVICES = [

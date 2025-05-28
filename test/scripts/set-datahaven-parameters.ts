@@ -16,6 +16,7 @@ import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/type
 
 // Interface for the options object of setDataHavenParameters
 interface SetDataHavenParametersOptions {
+  wait: boolean;
   rpcUrl: string;
   parametersFilePath: string;
   setParameters?: boolean;
@@ -41,7 +42,7 @@ export const setDataHavenParameters = async (
     shouldSetParameters = await confirmWithTimeout(
       "Do you want to set the DataHaven runtime parameters?",
       true,
-      10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(

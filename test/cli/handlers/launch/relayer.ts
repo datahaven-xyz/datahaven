@@ -59,7 +59,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     shouldLaunchRelayers = await confirmWithTimeout(
       "Do you want to launch the Snowbridge relayers?",
       true,
-      10
+      options.wait ? 10 : 0
     );
   } else {
     logger.info(

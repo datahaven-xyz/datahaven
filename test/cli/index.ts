@@ -48,7 +48,7 @@ program
   .option("--r, --relayer", "Launch Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
   .option(
-    "--additional-prefunded [addressess...]",
+    "--additional-prefunded <addressess...>",
     "Additional accounts to pre-fund on Ethereum Network"
   )
   .option("--b, --blockscout", "Enable Blockscout")

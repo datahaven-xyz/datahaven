@@ -10,7 +10,33 @@ import {
   printHeader
 } from "utils";
 import { parse, stringify } from "yaml";
+import { z } from "zod";
 import type { LaunchedNetwork } from "./launchedNetwork";
+
+const preDeployedContractsSchema = z.record(
+  z.string(),
+  z.object({
+    address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
+    code: z.string().regex(/^0x[a-fA-F0-9]*$/, "Invalid hex code"),
+    storage: z.record(z.string(), z.string()),
+    nonce: z.string()
+  })
+);
+
+const transformToKurtosisFormat = (contracts: z.infer<typeof preDeployedContractsSchema>) => {
+  const transformed: Record<string, any> = {};
+
+  for (const [_name, contract] of Object.entries(contracts)) {
+    transformed[contract.address] = {
+      balance: "0ETH",
+      code: contract.code,
+      storage: contract.storage,
+      nonce: contract.nonce
+    };
+  }
+
+  return transformed;
+};
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
@@ -151,6 +177,39 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
       parsedConfig.network_params[key] = value;
     }
   }
+
+  // Load and validate pre-deployed contracts
+  // TODO: Replace with CLI option
+  // if (true) {
+  try {
+    const preDeployedFile = Bun.file("configs/pre-deployed-contracts.json");
+    if (await preDeployedFile.exists()) {
+      const preDeployedRaw = await preDeployedFile.text();
+      logger.debug(`Raw pre-deployed contracts data: ${preDeployedRaw}`);
+
+      const preDeployedData = JSON.parse(preDeployedRaw);
+      const validatedContracts = preDeployedContractsSchema.parse(preDeployedData);
+      logger.debug(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
+
+      const kurtosisFormattedContracts = transformToKurtosisFormat(validatedContracts);
+      logger.debug(
+        `Kurtosis formatted contracts: ${JSON.stringify(kurtosisFormattedContracts, null, 2)}`
+      );
+
+      parsedConfig.network_params.additional_preloaded_contracts = JSON.stringify(
+        kurtosisFormattedContracts,
+        null,
+        0
+      );
+      logger.debug("Pre-deployed contracts loaded and validated successfully");
+    } else {
+      logger.warn("Pre-deployed contracts file not found, skipping");
+    }
+  } catch (error) {
+    logger.error(`Failed to load pre-deployed contracts: ${error}`);
+    throw new Error("❌ Invalid pre-deployed contracts configuration");
+  }
+  // }
 
   logger.trace(parsedConfig);
   const outputFile = `${outputDir}/modified-config.yaml`;

@@ -91,17 +91,16 @@ mod tests {
     use std::io::Read;
     use std::path::Path;
 
-    // These constants should match the mock data used in the Solidity test to generate the .bin file
+    // These constants should match the mock data used in contracts/test/MessageEncoding.t.sol
+    // Follow the instructions in contracts/test/MessageEncoding.t.sol to generate the .bin file.
+
     const MOCK_NONCE: u64 = 12345u64;
     const MOCK_TOPIC_HEX: &str = "123456789012345678901234567890123456789012345678901234567890abcd";
     const MOCK_VALIDATORS_HEX: [&str; 2] = [
         "0000000000000000000000000000000000000000000000000000000000000001",
         "0000000000000000000000000000000000000000000000000000000000000002",
     ];
-    const MOCK_EXTERNAL_INDEX: u64 = 0u64; // Corresponds to 'epoch' in Solidity, which was 0
-
-    // Expected fields from the encoded payload part
-    // EL_MESSAGE_ID is already defined in the parent module: pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56]; // 0x70150038
+    const MOCK_EXTERNAL_INDEX: u64 = 0u64; // Matchs with epoch in Solidity
     const EXPECTED_MESSAGE_VERSION: u8 = 0; // Message.V0 in Solidity
     const EXPECTED_COMMAND: u8 = 0; // OutboundCommandV1.ReceiveValidators in Solidity
 
@@ -113,9 +112,6 @@ mod tests {
 
     #[test]
     fn decode_receive_validators_message_from_file_correctly() {
-        // Construct the path relative to the Cargo.toml of the dhp-bridge crate.
-        // This assumes your operator/primitives/bridge/Cargo.toml is the crate root.
-        // And test_data is operator/primitives/bridge/test_data/
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("test_data")
             .join("receive_validators_message.bin");
@@ -132,7 +128,6 @@ mod tests {
         let decoded_message = NewValidatorSet::decode_all(&mut buffer.as_slice())
             .expect("Failed to decode NewValidatorSet message from file");
 
-        // Assert top-level fields
         assert_eq!(decoded_message.nonce, MOCK_NONCE, "Nonce mismatch");
         assert_eq!(
             decoded_message.topic,

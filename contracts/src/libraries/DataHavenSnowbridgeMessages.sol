@@ -68,11 +68,10 @@ library DataHavenSnowbridgeMessages {
         bytes32[] memory validatorSet = payload.validators;
         uint48 epoch = 0;
 
-        bytes memory validatorsFlattened = new bytes(validatorsLen * 32);
-        for (uint32 i = 0; i < validatorsLen; i++) {
-            for (uint32 j = 0; j < 32; j++) {
-                validatorsFlattened[i * 32 + j] = validatorSet[i][j];
-            }
+        bytes memory validatorsFlattened;
+        for (uint32 i = 0; i < validatorSet.length; i++) {
+            validatorsFlattened =
+                bytes.concat(validatorsFlattened, abi.encodePacked(validatorSet[i]));
         }
 
         return bytes.concat(

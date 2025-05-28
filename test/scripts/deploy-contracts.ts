@@ -16,6 +16,7 @@ interface DeployContractsOptions {
   blockscoutBackendUrl?: string;
   deployContracts?: boolean;
   parameterCollection?: ParameterCollection;
+  wait?: boolean;
 }
 
 /**

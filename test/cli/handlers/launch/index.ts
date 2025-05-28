@@ -24,6 +24,7 @@ export interface LaunchOptions {
   relayerImageTag: string;
   cleanNetwork?: boolean;
   datahaven?: boolean;
+  additionalPrefunded?: string[];
   buildDatahaven?: boolean;
   datahavenImageTag: string;
   datahavenBuildExtraArgs: string;

@@ -47,6 +47,10 @@ program
   .option("--nuv, --no-update-validator-set", "Skip update validator set")
   .option("--r, --relayer", "Launch Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
+  .option(
+    "--additional-prefunded [addressess...]",
+    "Additional accounts to pre-fund on Ethereum Network"
+  )
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
@@ -81,7 +85,7 @@ program
 program
   .command("stop")
   .description("Stop any launched running network components")
-  .option("--A --all", "Stop all components associated with project")
+  .option("-A --all", "Stop all components associated with project")
   .option("--d, --datahaven", "Stop DataHaven network")
   .option("--nd, --no-datahaven", "Skip stopping DataHaven network")
   .option("--e, --enclave", "Stop Ethereum Kurtosis enclave")

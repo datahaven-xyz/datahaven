@@ -10,12 +10,6 @@ network_params:
   preset: mainnet
   seconds_per_slot: 1
   num_validator_keys_per_node: 256
-  prefunded_accounts: '{
-    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": {"balance": "10ETH"},
-    "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc": {"balance": "10ETH"},
-    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8": {"balance": "10ETH"},
-    "0x976ea74026e726554db657fa54763abd0c3a0aa9": {"balance": "10ETH"}
-    }'
   # Preloaded with DataHavenTest contract
   additional_preloaded_contracts: |
     {

@@ -1,7 +1,14 @@
 import { $ } from "bun";
 import type { LaunchOptions } from "cli/handlers";
 import invariant from "tiny-invariant";
-import { confirmWithTimeout, getPortFromKurtosis, logger, printDivider, printHeader } from "utils";
+import {
+  ANVIL_FUNDED_ACCOUNTS,
+  confirmWithTimeout,
+  getPortFromKurtosis,
+  logger,
+  printDivider,
+  printHeader
+} from "utils";
 import { parse, stringify } from "yaml";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
@@ -124,7 +131,7 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
   logger.debug(`Parsing config at ${configFile}`);
   logger.trace(config);
 
-  const parsedConfig = parse(config);
+  let parsedConfig = parse(config);
 
   if (options.blockscout) {
     parsedConfig.additional_services.push("blockscout");
@@ -133,6 +140,8 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
   if (options.slotTime) {
     parsedConfig.network_params.seconds_per_slot = options.slotTime;
   }
+
+  parsedConfig = prefundAccounts(parsedConfig, options);
 
   if (options.kurtosisNetworkArgs) {
     logger.debug(`Using custom Kurtosis network args: ${options.kurtosisNetworkArgs}`);
@@ -183,4 +192,25 @@ const registerServices = async (launchedNetwork: LaunchedNetwork, enclaveName: s
   } catch (error) {
     logger.warn(`⚠️ Kurtosis service endpoints could not be determined: ${error}`);
   }
+};
+
+const prefundAccounts = (config: any, options: LaunchOptions) => {
+  const additionalAccs = options.additionalPrefunded ? options.additionalPrefunded : [];
+  const anvilAccounts = Object.values(ANVIL_FUNDED_ACCOUNTS)
+    .filter((val) => typeof val === "object" && "publicKey" in val)
+    .map(({ publicKey }) => publicKey);
+  const accountsToFund = [...anvilAccounts, ...additionalAccs];
+  logger.debug(`Funding accounts: ${accountsToFund.join(", ")}`);
+  const blob = accountsToFund
+    .map((acc) => ({ [acc]: { balance: "10ETH" } }))
+    .reduce((acc, currentItem) => {
+      return {
+        ...acc,
+        ...currentItem
+      };
+    }, {});
+  const json = JSON.stringify(blob, null, 0);
+  logger.trace(json);
+  config.network_params.prefunded_accounts = json;
+  return config;
 };

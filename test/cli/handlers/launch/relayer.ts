@@ -149,8 +149,16 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     }
     const json = await file.json();
 
-    const ethWsPort = await getPortFromKurtosis("el-1-reth-lighthouse", "ws");
-    const ethHttpPort = await getPortFromKurtosis("cl-1-lighthouse-reth", "http");
+    const ethWsPort = await getPortFromKurtosis(
+      "el-1-reth-lighthouse",
+      "ws",
+      options.kurtosisEnclaveName
+    );
+    const ethHttpPort = await getPortFromKurtosis(
+      "cl-1-lighthouse-reth",
+      "http",
+      options.kurtosisEnclaveName
+    );
     logger.debug(
       `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
     );

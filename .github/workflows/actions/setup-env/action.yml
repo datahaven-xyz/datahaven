@@ -6,13 +6,11 @@ inputs:
     description: "Cache key used to retrieve built data. Usually matches the profile of the build"
     required: false
     default: "cache"
-
-  cache-targets:
-    description: "Whether to cache targets"
+  
+  install-deps:
+    description: "Whether to install system dependencies (libpq-dev, libclang-dev)"
     required: false
     default: "true"
-
-
 
 runs:
   using: "composite"
@@ -24,14 +22,11 @@ runs:
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
     
-    - name: Set Rust caching env vars
-      if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
+    - name: Show sccache stats
       shell: bash
-      run: |
-        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-        sccache --show-stats
-
-    - name: Cache cargo + target + sccache2
+      run: sccache --show-stats
+    
+    - name: Cache cargo + target + sccache
       uses: Swatinem/rust-cache@v2
       with:
         cache-targets: true
@@ -42,18 +37,23 @@ runs:
         cache-on-failure: true
         cache-bin: true
         cache-directories: |
-          ~/.cache/sccache         
-          ~/.cargo/registry
-          ~/.cargo/git
+          **/sccache         
+          **/.cargo/registry
+          **/.cargo/git
     
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt, clippy
-
+    
     - uses: rui314/setup-mold@v1
-    - name: Install libpq-dev
+    
+    - name: Install system dependencies
+      if: inputs.install-deps == 'true'
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     - name: Install Protoc
+      if: inputs.install-deps == 'true'
       uses: arduino/setup-protoc@v3
+      with:
+        repo-token: ${{ github.token }}

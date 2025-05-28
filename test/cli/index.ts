@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
-import { launch, launchPreActionHook } from "./handlers";
+import { launch, launchPreActionHook, stop, stopPreActionHook } from "./handlers";
 
 // Function to parse integer
 function parseIntValue(value: string): number {
@@ -11,9 +11,26 @@ function parseIntValue(value: string): number {
   return parsedValue;
 }
 
-// So far we only have the launch command
-// we can expand this to more commands in the future
+// =====  Program  =====
 const program = new Command()
+  .version("0.2.0")
+  .name("bun cli")
+  .summary("🫎  DataHaven CLI: Network Toolbox")
+  .usage("[options]");
+
+// ===== Launch ======
+program
+  .command("launch")
+  .addHelpText(
+    "before",
+    `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
+  Complete with:
+  - Solo-chain validators,
+  - Storage providers,
+  - Snowbridge Relayers
+  - Ethereum Private network`
+  )
+  .description("Launch a full E2E DataHaven & Ethereum network and more")
   .option("--d, --datahaven", "(Re)Launch DataHaven network")
   .option("--nd, --no-datahaven", "Skip launching DataHaven network")
   .option("--bd, --build-datahaven", "Build DataHaven node local Docker image")
@@ -33,37 +50,52 @@ const program = new Command()
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
+  .option("--sp, --set-parameters", "Set DataHaven runtime parameters")
+  .option("--nsp, --no-set-parameters", "Skip setting DataHaven runtime parameters")
   .option(
     "--datahaven-build-extra-args <value>",
     "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",
     "--features=fast-runtime"
   )
+  .option(
+    "--e --kurtosis-enclave-name <value>",
+    "Name of the Kurtosis Enclave",
+    "datahaven-ethereum"
+  )
   .option("--kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--verified", "Verify smart contracts with Blockscout")
   .option(
-    "-i, --datahaven-image-tag <value>",
+    "--dit, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
     "moonsonglabs/datahaven:local"
   )
   .option(
-    "-p, --relayer-image-tag <value>",
+    "--rit, --relayer-image-tag <value>",
     "Tag of the relayer",
     "moonsonglabs/snowbridge-relayer:latest"
   )
   .hook("preAction", launchPreActionHook)
   .action(launch);
 
-// =====  Program  =====
+// ===== Stop ======
 program
-  .version("0.2.0")
-  .name("bun cli")
-  .summary("🫎  DataHaven: Network Launcher CLI")
-  .usage("[options]")
-  .description(`🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
-    Complete with:
-    - Solo-chain validators,
-    - Storage providers,
-    - Snowbridge Relayers
-    - Ethereum Private network`);
+  .command("stop")
+  .description("Stop any launched running network components")
+  .option("--A --all", "Stop all components associated with project")
+  .option("--d, --datahaven", "Stop DataHaven network")
+  .option("--nd, --no-datahaven", "Skip stopping DataHaven network")
+  .option("--e, --enclave", "Stop Ethereum Kurtosis enclave")
+  .option("--ne, --no-enclave", "Skip stopping Ethereum Kurtosis enclave")
+  .option("--kurtosis-engine", "Stop Kurtosis engine", false)
+  .option("--r, --relayer", "Stop Snowbridge Relayers")
+  .option("--nr, --no-relayer", "Skip stopping Snowbridge Relayers")
+  .hook("preAction", stopPreActionHook)
+  .action(stop);
+
+// ===== Exec ======
+// Disabled until need arises
+// program
+//   .command("exec <action> [args]")
+//   .description("Execute a standalone function against an running running network");
 
 program.parseAsync(Bun.argv);

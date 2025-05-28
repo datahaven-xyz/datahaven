@@ -1,5 +1,4 @@
 import type { Command } from "@commander-js/extra-typings";
-import * as readline from "readline";
 import { deployContracts } from "scripts/deploy-contracts";
 import { getPortFromKurtosis, logger } from "utils";
 import { createParameterCollection, setParametersFromCollection } from "utils/parameters";
@@ -93,43 +92,15 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   await setParametersFromCollection({
     rpcUrl: launchedNetwork.dhRpcUrl,
     collection: parameterCollection,
-    setParameters: options.setParameters,
-    wait: options.wait
+    setParameters: options.setParameters
   });
 
-  // After relayers are set up, update the validator set so the execution relayer can pick up the message
   await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
   logger.success(`Launch function completed successfully in ${fullMinutes} minutes`);
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  // After relayers are set up, keep prompting for validator set updates until user chooses to stop
-  while (true) {
-    const answer = await new Promise<string>((resolve) => {
-      rl.question(
-        "Do you want to update the validator set on the substrate chain? (Y/N) ",
-        resolve
-      );
-    });
-
-    if (answer.toUpperCase() === "Y") {
-      await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
-      logger.info("✅ Validator set update completed");
-    } else if (answer.toUpperCase() === "N") {
-      logger.info("👍 Stopping validator set updates");
-      break;
-    } else {
-      logger.warn("Invalid input. Please type Y or N.");
-    }
-  }
-  rl.close();
 };
 
 export const launch = async (options: LaunchOptions) => {

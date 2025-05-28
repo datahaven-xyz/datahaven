@@ -11,6 +11,11 @@ on:
         description: 'Branch to checkout and build'
         required: true
         type: string
+      fast_runtime:
+        description: 'Enable fast runtime features'
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -118,6 +123,8 @@ jobs:
           tags: ${{ github.event_name == 'workflow_dispatch' && steps.meta-dispatch.outputs.tags || steps.meta-main.outputs.tags }}
           labels: ${{ github.event_name == 'workflow_dispatch' && steps.meta-dispatch.outputs.labels || steps.meta-main.outputs.labels }}
           platforms: linux/amd64
+          build-args: |
+            FAST_RUNTIME=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.fast_runtime == 'true' && 'TRUE' || 'FALSE' }}
           cache-from: type=gha,scope=datahaven-build
           cache-to: type=gha,mode=max,scope=datahaven-build
           provenance: mode=max

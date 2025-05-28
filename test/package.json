@@ -27,7 +27,7 @@
     "test:int": "bun test suites/integration",
     "test:e2e": "bun test suites/e2e --timeout 60000",
     "typecheck": "tsc --noEmit",
-    "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck .",
+    "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
     "postinstall": "papi"
   },
   "devDependencies": {

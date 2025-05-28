@@ -985,7 +985,6 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type BenchmarkHelper = ();
 }
 
-
 parameter_types! {
     /// The Ethereum sovereign account derived from its XCM location
     /// This is a hardcoded value for performance, computed from:
@@ -1027,8 +1026,10 @@ mod tests {
     #[test]
     fn test_ethereum_sovereign_account_computation() {
         // Verify that the hardcoded Ethereum sovereign account matches the computed value
-        let computed_account = GlobalConsensusConvertsFor::<UniversalLocation, AccountId>
-            ::convert_location(&EthereumLocation::get())
+        let computed_account =
+            GlobalConsensusConvertsFor::<UniversalLocation, AccountId>::convert_location(
+                &EthereumLocation::get(),
+            )
             .expect("Ethereum location conversion should succeed");
 
         assert_eq!(
@@ -1041,16 +1042,18 @@ mod tests {
     #[test]
     fn test_ethereum_sovereign_account_uniqueness() {
         // Verify different chain IDs produce different sovereign accounts
-        let mainnet_location = Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })]);
-        let mainnet_account = GlobalConsensusConvertsFor::<UniversalLocation, AccountId>
-            ::convert_location(&mainnet_location)
+        let mainnet_location =
+            Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })]);
+        let mainnet_account =
+            GlobalConsensusConvertsFor::<UniversalLocation, AccountId>::convert_location(
+                &mainnet_location,
+            )
             .expect("Mainnet location conversion should succeed");
-        
+
         assert_ne!(
             mainnet_account,
             EthereumSovereignAccount::get(),
             "Different chain IDs must produce different sovereign accounts"
         );
     }
-
 }

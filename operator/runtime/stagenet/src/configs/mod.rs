@@ -945,7 +945,6 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type BenchmarkHelper = ();
 }
 
-
 parameter_types! {
     /// The Ethereum sovereign account derived from its XCM location
     /// This is a hardcoded value for performance, computed from:
@@ -987,8 +986,10 @@ mod tests {
     #[test]
     fn test_ethereum_sovereign_account_computation() {
         // Verify that the hardcoded Ethereum sovereign account matches the computed value
-        let computed_account = GlobalConsensusConvertsFor::<UniversalLocation, AccountId>
-            ::convert_location(&EthereumLocation::get())
+        let computed_account =
+            GlobalConsensusConvertsFor::<UniversalLocation, AccountId>::convert_location(
+                &EthereumLocation::get(),
+            )
             .expect("Ethereum location conversion should succeed");
 
         assert_eq!(

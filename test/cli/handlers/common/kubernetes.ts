@@ -66,9 +66,6 @@ export const forwardPort = async (
     logger.success(`Port forward cleanup completed for localhost:${localPort}`);
   };
 
-  // Use unref() so this process doesn't keep the main process alive
-  portForwardProcess.unref();
-
   // Add a cleanup handler that doesn't interfere with exit codes
   const exitHandler = () => {
     if (!portForwardProcess.killed) {

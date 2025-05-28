@@ -102,7 +102,8 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
   // Generating the relayer config file for running the beacon relayer locally, to generate the first checkpoint
-  const localBeaconConfigFilePath = path.join("tmp/configs", "beacon-relay-checkpoint.json");
+  const localBeaconConfigDir = "tmp/configs";
+  const localBeaconConfigFilePath = path.join(localBeaconConfigDir, "beacon-relay-checkpoint.json");
   const localBeaconConfig: RelayerSpec = {
     name: "relayer-🥓-local",
     configFilePath: localBeaconConfigFilePath,
@@ -117,7 +118,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
     }
   };
-  await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigFilePath);
+  await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigDir);
 
   await initEthClientPallet(
     path.resolve(localBeaconConfigFilePath),

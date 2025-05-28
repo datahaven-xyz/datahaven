@@ -145,6 +145,10 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   }
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
+  invariant(
+    launchedNetwork.networkName,
+    "❌ Docker network name not found in LaunchedNetwork instance"
+  );
 
   await initEthClientPallet(
     path.resolve(RELAYER_CONFIG_PATHS.BEACON),

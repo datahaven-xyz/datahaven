@@ -15,11 +15,12 @@ const DEFAULT_PUBLIC_WS_PORT = 9944;
  *
  * @param options - Configuration options for launching the network.
  * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
+ * @returns A promise that resolves to a cleanup function for the validator port forwarding.
  */
 export const deployDataHavenSolochain = async (
   options: DeployOptions,
   launchedNetwork: LaunchedNetwork
-) => {
+): Promise<() => Promise<void>> => {
   printHeader("Deploying DataHaven Network");
 
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
@@ -103,6 +104,7 @@ export const deployDataHavenSolochain = async (
   await validatorPortForwardCleanup();
 
   printDivider();
+  return validatorPortForwardCleanup;
 };
 
 /**

@@ -48,7 +48,10 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
 
   await deployKurtosis(options, launchedNetwork);
 
-  await deployDataHavenSolochain(options, launchedNetwork);
+  // Inside the deployDataHavenSolochain function, it will forward the port from the validator to the local machine.
+  // This is to allow the rest of the script to interact with the network.
+  // The cleanup function is returned to allow the script to clean up the port forwarding.
+  const validatorPortForwardCleanup = await deployDataHavenSolochain(options, launchedNetwork);
 
   // TODO: Handle Blockscout and verifier parameters to verify contracts if that is the intention.
   const blockscoutBackendUrl = undefined;
@@ -63,13 +66,15 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);
 
   await setParametersFromCollection({
-    launchedNetwork,
     collection: parameterCollection
   });
 
   await deployRelayers(options, launchedNetwork);
 
   // TODO: Add summary to suggest the user to forward ports and show commands to do so.
+
+  // Cleaning up the port forwarding for the validator.
+  await validatorPortForwardCleanup();
 
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);

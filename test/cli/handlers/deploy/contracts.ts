@@ -4,7 +4,7 @@ import {
   executeDeployment,
   validateDeploymentParams
 } from "scripts/deploy-contracts";
-import { printDivider, printHeader } from "utils";
+import { logger, printDivider, printHeader } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
 interface DeployContractsOptions {
@@ -12,6 +12,7 @@ interface DeployContractsOptions {
   verified?: boolean;
   blockscoutBackendUrl?: string;
   parameterCollection?: ParameterCollection;
+  skipContracts: boolean;
 }
 
 /**
@@ -26,6 +27,12 @@ interface DeployContractsOptions {
  */
 export const deployContracts = async (options: DeployContractsOptions) => {
   printHeader("Deploying Smart Contracts");
+
+  if (options.skipContracts) {
+    logger.info("🏳️ Skipping contract deployment");
+    printDivider();
+    return;
+  }
 
   // Check if required parameters are provided
   validateDeploymentParams(options);

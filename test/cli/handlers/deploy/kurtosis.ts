@@ -14,6 +14,14 @@ export const deployKurtosis = async (
   options: DeployOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> => {
+  if (options.skipKurtosis) {
+    logger.info("🏳️ Skipping Kurtosis deployment");
+
+    await registerServices(launchedNetwork, options.kurtosisEnclaveName);
+    printDivider();
+    return;
+  }
+
   printHeader("Deploying Kurtosis Ethereum Network");
 
   invariant(

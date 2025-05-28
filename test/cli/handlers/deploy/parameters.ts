@@ -1,5 +1,5 @@
 import { setDataHavenParameters } from "scripts/set-datahaven-parameters";
-import { printDivider, printHeader } from "utils";
+import { logger, printDivider, printHeader } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
 // Standard ports for the substrate network
@@ -14,11 +14,19 @@ const DEFAULT_SUBSTRATE_WS_PORT = 9944;
  * @returns Promise resolving to true if parameters were set successfully
  */
 export const setParametersFromCollection = async ({
-  collection
+  collection,
+  skipSetParameters
 }: {
   collection: ParameterCollection;
+  skipSetParameters: boolean;
 }): Promise<boolean> => {
   printHeader("Setting DataHaven Runtime Parameters");
+
+  if (skipSetParameters) {
+    logger.info("🏳️ Skipping parameter setting");
+    printDivider();
+    return false;
+  }
 
   const parametersFilePath = await collection.generateParametersFile();
 

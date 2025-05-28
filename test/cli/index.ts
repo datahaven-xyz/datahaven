@@ -90,6 +90,13 @@ program
   .option("--docker-username <value>", "Docker Hub username")
   .option("--docker-password <value>", "Docker Hub password")
   .option("--docker-email <value>", "Docker Hub email")
+  .option("--skip-cleanup", "Skip cleaning up the network", false)
+  .option("--skip-kurtosis", "Skip deploying Kurtosis Ethereum private network", false)
+  .option("--skip-datahaven-solochain", "Skip deploying DataHaven solochain validators", false)
+  .option("--skip-contracts", "Skip deploying smart contracts", false)
+  .option("--skip-validator-operations", "Skip performing validator operations", false)
+  .option("--skip-set-parameters", "Skip setting DataHaven runtime parameters", false)
+  .option("--skip-relayers", "Skip deploying Snowbridge Relayers", false)
   .hook("preAction", deployPreActionHook)
   .action(deploy);
 

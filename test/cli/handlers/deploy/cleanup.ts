@@ -12,6 +12,12 @@ export const cleanup = async (
 ): Promise<void> => {
   printHeader("Cleaning up");
 
+  if (options.skipCleanup) {
+    logger.info("🏳️ Skipping cleanup");
+    printDivider();
+    return;
+  }
+
   if (options.environment === "stagenet") {
     await checkAndCleanKurtosisDeployment(options);
   }

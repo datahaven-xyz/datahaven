@@ -37,6 +37,12 @@ const RELAYER_CONFIG_PATHS = {
 export const deployRelayers = async (options: DeployOptions, launchedNetwork: LaunchedNetwork) => {
   printHeader("Starting Snowbridge Relayers");
 
+  if (options.skipRelayers) {
+    logger.info("🏳️ Skipping relayer deployment");
+    printDivider();
+    return;
+  }
+
   // Get DataHaven node port
   const dhNodes = launchedNetwork.containers.filter((container) =>
     container.name.includes("dh-validator")

@@ -21,6 +21,24 @@ export const deployDataHavenSolochain = async (
   options: DeployOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<() => Promise<void>> => {
+  if (options.skipDatahavenSolochain) {
+    logger.info("🏳️ Skipping DataHaven deployment");
+
+    // Forward port from validator to localhost, to interact with the network.
+    const { cleanup: validatorPortForwardCleanup } = await forwardPort(
+      "dh-validator-0",
+      DEFAULT_PUBLIC_WS_PORT,
+      DEFAULT_PUBLIC_WS_PORT,
+      launchedNetwork
+    );
+
+    await registerNodes(launchedNetwork);
+    await setupDataHavenValidatorConfig(launchedNetwork, "dh-validator-");
+
+    printDivider();
+    return validatorPortForwardCleanup;
+  }
+
   printHeader("Deploying DataHaven Network");
 
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
@@ -98,7 +116,6 @@ export const deployDataHavenSolochain = async (
   );
 
   await registerNodes(launchedNetwork);
-
   await setupDataHavenValidatorConfig(launchedNetwork, "dh-validator-");
 
   printDivider();

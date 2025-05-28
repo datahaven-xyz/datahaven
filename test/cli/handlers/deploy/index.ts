@@ -30,6 +30,13 @@ export interface DeployOptions {
   dockerPassword?: string;
   // TODO: This shouldn't be necessary once the repo is public
   dockerEmail?: string;
+  skipCleanup: boolean;
+  skipKurtosis: boolean;
+  skipDatahavenSolochain: boolean;
+  skipContracts: boolean;
+  skipValidatorOperations: boolean;
+  skipSetParameters: boolean;
+  skipRelayers: boolean;
 }
 
 const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedNetwork) => {
@@ -60,13 +67,15 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
     rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
-    parameterCollection
+    parameterCollection,
+    skipContracts: options.skipContracts
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);
 
   await setParametersFromCollection({
-    collection: parameterCollection
+    collection: parameterCollection,
+    skipSetParameters: options.skipSetParameters
   });
 
   await deployRelayers(options, launchedNetwork);

@@ -8,7 +8,6 @@
     "fmt": "biome check .",
     "fmt:fix": "biome check --write .",
     "build:docker:operator": "docker build -t moonsonglabs/datahaven:local -f ./docker/datahaven-node-local.dockerfile ../.",
-    "build:docker:operator:timbo": "docker build -t moonsonglabs/datahaven:local -f ./docker/Local.Dockerfile ../.",
     "build:docker:relayer": "bun -e \"import build  from './scripts/snowbridge-relayer.ts'; build()\"",
     "generate:wagmi": "wagmi generate",
     "generate:snowbridge-cfgs": "bun -e \"import {generateSnowbridgeConfigs} from './scripts/gen-snowbridge-cfgs.ts'; await generateSnowbridgeConfigs()\"",
@@ -27,10 +26,12 @@
     "stop:engine": "bun cli stop --kurtosisEngine --no-datahaven --no-relayer --no-enclave",
     "test:e2e": "bun test suites/e2e --timeout 60000",
     "typecheck": "tsc --noEmit",
+    "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
     "postinstall": "papi"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@typescript/native-preview": "^7.0.0-dev.20250523.1"
   },
   "peerDependencies": {
     "typescript": "^5.8.3"

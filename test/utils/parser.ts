@@ -137,15 +137,6 @@ function parseExecutionConfig(config: unknown): ExecutionRelayConfig {
   throw new Error(`Failed to parse config as ExecutionRelayConfig: ${result.error.message}`);
 }
 
-/**
- * Type Guard to check if a config object is a BeaconRelayConfig
- */
-export function isBeaconConfig(
-  config: BeaconRelayConfig | BeefyRelayConfig | ExecutionRelayConfig
-): config is BeaconRelayConfig {
-  return "beacon" in config.source;
-}
-
 export function parseRelayConfig(config: unknown, type: "beacon"): BeaconRelayConfig;
 export function parseRelayConfig(config: unknown, type: "beefy"): BeefyRelayConfig;
 export function parseRelayConfig(config: unknown, type: "execution"): ExecutionRelayConfig;

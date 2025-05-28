@@ -8,8 +8,7 @@ import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
-import { performValidatorOperations } from "./validator";
-import { performValidatorSetUpdate } from "./validator";
+import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
 // Non-optional properties determined by having default values
 export interface LaunchOptions {

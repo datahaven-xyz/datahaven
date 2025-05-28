@@ -24,8 +24,8 @@ export class LaunchedNetwork {
   /** The RPC URL for the DataHaven node. */
   protected _dhRpcUrl?: string;
 
-  constructor() {
-    this.runId = crypto.randomUUID();
+  constructor(runId: `${string}-${string}-${string}-${string}-${string}` = crypto.randomUUID()) {
+    this.runId = runId;
     this.processes = [];
     this.fileDescriptors = [];
     this._containers = [];

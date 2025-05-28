@@ -38,6 +38,7 @@
       "utils": ["./utils/index.ts"],
       "utils/types": ["./utils/types.ts"],
       "utils/*": ["./utils/*"],
+      "mock/eth": ["./mocks/mock-eth.ts"],
       "scripts/*": ["./scripts/*"],
       "cli/*": ["./cli/*"],
       "contract-bindings": ["./contract-bindings/index.ts"],
@@ -46,6 +47,7 @@
   },
   "include": [
     "utils/*.ts",
+    "mock/*.ts",
     "scripts/*.ts",
     "suites/**/*.ts",
     "cli/**/*.ts",

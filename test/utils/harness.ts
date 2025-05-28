@@ -256,17 +256,19 @@ export class TestHarness {
     ethereum?: boolean;
     relayers?: boolean;
   }) {
-    this.launchedNetwork = new LaunchedNetwork();
+    const runId = crypto.randomUUID();
+    this.launchedNetwork = new LaunchedNetwork(runId);
     this.datahaven = new DatahavenComponent(this.launchedNetwork, {
-      datahaven: options?.datahaven ?? false
+      datahaven: options?.datahaven ?? false,
+      kurtosisEnclaveName: runId
     });
-    this.ethereum = new EthereumComponent(
-      this.launchedNetwork,
-
-      { launchKurtosis: options?.ethereum ?? false }
-    );
+    this.ethereum = new EthereumComponent(this.launchedNetwork, {
+      launchKurtosis: options?.ethereum ?? false,
+      kurtosisEnclaveName: runId
+    });
     this.relayers = new RelayersComponent(this.launchedNetwork, {
-      relayer: options?.relayers ?? false
+      relayer: options?.relayers ?? false,
+      kurtosisEnclaveName: runId
     });
   }
 

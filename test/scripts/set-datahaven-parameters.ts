@@ -55,7 +55,9 @@ export const setDataHavenParameters = async (
 
   try {
     for (const param of parameters) {
-      logger.info(`Attempting to set parameter: ${String(param.name)} = ${String(param.value)}`);
+      logger.info(
+        `🔧 Attempting to set parameter: ${param.name.toString()} = ${param.value.toString()}`
+      );
 
       const setParameterArgs: any = {
         key_value: {

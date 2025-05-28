@@ -41,6 +41,7 @@ export type RelayerConfigType = BeaconConfig | BeefyConfig | ExecutionConfig | S
 export type RelayerSpec = {
   name: string;
   configFilePath: string;
+  templateFilePath?: string;
   config: RelayerConfigType;
   pk: { type: "ethereum" | "substrate"; value: string };
 };
@@ -61,12 +62,13 @@ export const generateRelayerConfig = async (
   environment: string,
   configDir: string
 ) => {
-  const { name, configFilePath, config } = relayerSpec;
+  const { name, configFilePath, templateFilePath: _templateFilePath, config } = relayerSpec;
   const { type } = config;
   const configFileName = path.basename(configFilePath);
 
   logger.debug(`Creating config for ${name}`);
-  const templateFilePath = `configs/snowbridge/${environment}/${configFileName}`;
+  const templateFilePath =
+    _templateFilePath ?? `configs/snowbridge/${environment}/${configFileName}`;
   const outputFilePath = path.resolve(configDir, configFileName);
   logger.debug(`Reading config file ${templateFilePath}`);
   const file = Bun.file(templateFilePath);

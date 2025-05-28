@@ -101,8 +101,6 @@ export const deployDataHavenSolochain = async (
 
   await setupDataHavenValidatorConfig(launchedNetwork, "dh-validator-");
 
-  await validatorPortForwardCleanup();
-
   printDivider();
   return validatorPortForwardCleanup;
 };

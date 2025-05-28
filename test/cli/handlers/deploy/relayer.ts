@@ -14,7 +14,6 @@ import {
 } from "utils";
 import { waitFor } from "utils/waits";
 import { ZERO_HASH } from "../common/consts";
-import { forwardPort } from "../common/kubernetes";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
 import type { DeployOptions } from ".";
@@ -22,9 +21,6 @@ import type { DeployOptions } from ".";
 // Standard ports for the Ethereum network
 const ETH_EL_RPC_PORT = 8546;
 const ETH_CL_HTTP_PORT = 4000;
-
-// Standard ports for the substrate network
-const DEFAULT_SUBSTRATE_WS_PORT = 9944;
 
 const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
 const RELAYER_CONFIG_PATHS = {
@@ -43,7 +39,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
 
   // Get DataHaven node port
   const dhNodes = launchedNetwork.containers.filter((container) =>
-    container.name.includes("datahaven")
+    container.name.includes("dh-validator")
   );
 
   invariant(dhNodes.length > 0, "❌ No DataHaven nodes found in launchedNetwork");
@@ -110,6 +106,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   const localBeaconConfig: RelayerSpec = {
     name: "relayer-🥓-local",
     configFilePath: localBeaconConfigFilePath,
+    templateFilePath: "configs/snowbridge/local/beacon-relay.json",
     config: {
       type: "beacon",
       ethClEndpoint: launchedNetwork.clEndpoint,
@@ -122,88 +119,43 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   };
   await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigFilePath);
 
-  // Forwarding the DataHaven RPC port to the local machine
-  const { cleanup: validatorPortForwardCleanup } = await forwardPort(
-    "dh-validator-0",
-    DEFAULT_SUBSTRATE_WS_PORT,
-    DEFAULT_SUBSTRATE_WS_PORT,
-    launchedNetwork
-  );
-
   await initEthClientPallet(
     path.resolve(localBeaconConfigFilePath),
     options.relayerImageTag,
     launchedNetwork
   );
 
-  // for (const { configFilePath, name, config, pk } of relayersToStart) {
-  //   try {
-  //     const containerName = `snowbridge-${config.type}-relay`;
-  //     logger.info(`🚀 Starting relayer ${containerName} ...`);
+  for (const { name, config, pk } of relayersToStart) {
+    try {
+      const containerName = `snowbridge-${config.type}-relay`;
+      logger.info(`🚀 Starting relayer ${containerName} ...`);
 
-  //     // TODO: ADD SECRET TO KUBERNETES
+      // Adding secret key as Kubernetes secret
+      const secretName = `dh-${config.type}-relay-${pk.type}-key`;
+      logger.debug(
+        await $`kubectl create secret generic ${secretName} \
+        --from-literal=pvk="${pk.value}" \
+        -n ${launchedNetwork.kubeNamespace}`.text()
+      );
+      logger.success("Secret key added to Kubernetes");
 
-  //     const hostConfigFilePath = path.resolve(configFilePath);
-  //     const containerConfigFilePath = `/${configFilePath}`;
-  //     const networkName = launchedNetwork.networkName;
-  //     invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
+      // Deploying relayer with helm chart
+      const relayerTimeout = "2m"; // 2 minutes
+      logger.debug(
+        await $`helm upgrade --install ${containerName} . -f ./snowbridge/${containerName}.yaml \
+        -n ${launchedNetwork.kubeNamespace} \
+        --wait \
+        --timeout ${relayerTimeout}`
+          .cwd(path.join(process.cwd(), "../deployment/charts/bridges-common-relay"))
+          .text()
+      );
 
-  //     // TODO: CHANGE THIS TO LAUNCH WITH HELM CHARTS
-  //     const commandBase: string[] = [
-  //       "docker",
-  //       "run",
-  //       "-d",
-  //       "--platform",
-  //       "linux/amd64",
-  //       "--add-host",
-  //       "host.docker.internal:host-gateway",
-  //       "--name",
-  //       containerName,
-  //       "--network",
-  //       networkName
-  //     ];
-
-  //     const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
-
-  //     if (config.type === "beacon") {
-  //       const hostDatastorePath = path.resolve(datastorePath);
-  //       const containerDatastorePath = "/data";
-  //       volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
-  //     }
-
-  //     const relayerCommandArgs: string[] = [
-  //       "run",
-  //       config.type,
-  //       "--config",
-  //       configFilePath,
-  //       config.type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
-  //       pk.value
-  //     ];
-
-  //     const command: string[] = [
-  //       ...commandBase,
-  //       ...volumeMounts,
-  //       options.relayerImageTag,
-  //       ...relayerCommandArgs
-  //     ];
-
-  //     logger.debug(`Running command: ${command.join(" ")}`);
-  //     await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
-
-  //     // TODO: MAYBE REMOVE THIS
-  //     launchedNetwork.addContainer(containerName);
-
-  //     // TODO: MAYBE REMOVE THIS
-  //     await waitForContainerToStart(containerName);
-
-  //     logger.success(`Started relayer ${name}`);
-  //   } catch (e) {
-  //     logger.error(`Error starting relayer ${name}`);
-  //     logger.error(e);
-  //   }
-  // }
-
-  await validatorPortForwardCleanup();
+      logger.success(`Started relayer ${name}`);
+    } catch (e) {
+      logger.error(`Error starting relayer ${name}`);
+      logger.error(e);
+    }
+  }
 
   logger.success("Snowbridge relayers started");
   printDivider();
@@ -236,6 +188,11 @@ const waitBeefyReady = async (
 
     await waitFor({
       lambda: async () => {
+        // Temporarily capture and suppress error logs during connection attempts.
+        // This is to avoid the "Unable to connect to ws:" error logs from the `client._request` call.
+        const originalConsoleError = console.error;
+        console.error = () => {};
+
         try {
           logger.debug("Attempting to to check beefy_getFinalizedHead");
 
@@ -259,6 +216,9 @@ const waitBeefyReady = async (
         } catch (rpcError) {
           logger.warn(`RPC error checking BEEFY status: ${rpcError}. Retrying...`);
           return false;
+        } finally {
+          // Restore original console methods.
+          console.error = originalConsoleError;
         }
       },
       iterations,

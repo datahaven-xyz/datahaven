@@ -6,7 +6,7 @@ use parity_scale_codec::DecodeAll;
 use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
 use sp_std::vec::Vec;
 
-pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56];
+pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56]; // 0x70150038
 
 #[derive(Encode, Decode, Debug)]
 pub struct NewValidatorSet {

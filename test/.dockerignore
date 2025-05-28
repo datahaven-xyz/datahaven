@@ -1,0 +1,57 @@
+# Editor/IDE specific
+**/.idea/
+**/.vscode/
+**/.DS_Store
+**/*.swp
+**/*.swo
+**/*.bak
+**/*~
+
+# Temporary/cache files
+**/*.tmp
+**/*.log
+**/*.profraw
+**/*.profdata
+**/.rustc_info.json
+**/__pycache__/
+**/*.py[cod]
+**/*.o
+**/*.a
+
+# CI/CD
+.travis.yml
+.circleci/
+.gitlab-ci.yml
+.github/
+
+# Documentation
+docs/
+**/doc/
+**/*.md
+!README.md
+!LICENSE
+
+# Tests
+**/tests/
+**/test/
+**/*.test
+**/*.spec.js
+
+# Other project directories and files not needed for build
+.ropeproject/
+resources/
+contracts/
+docker/
+examples/
+node_modules/
+resources/
+suites/
+timbo.log
+tmp/
+.editorconfig
+.prettierrc
+.eslintrc
+Cargo.lock.old
+*.toml.old
+*.lock.old
+**/target/

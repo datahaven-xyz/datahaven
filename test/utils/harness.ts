@@ -10,18 +10,14 @@ export interface HarnessComponent extends AsyncDisposable {
 // Containers methods to spin up parts of a network and connect up providers which connect to them
 
 import { $ } from "bun";
-import type { LaunchOptions } from "cli-launch";
-import {
-  stopAllEnclaves,
-  stopDockerComponents,
-  type StopOptions,
-} from "cli/handlers";
+import { type StopOptions, stopAllEnclaves, stopDockerComponents } from "cli/handlers";
 import { launchDataHavenSolochain } from "cli/handlers/launch/datahaven";
 import { launchKurtosis } from "cli/handlers/launch/kurtosis";
 import { LaunchedNetwork } from "cli/handlers/launch/launchedNetwork";
 import { launchRelayers } from "cli/handlers/launch/relayer";
+import type { LaunchOptions } from "cli-launch";
 import invariant from "tiny-invariant";
-import { logger, getContainersMatchingImage, getPortFromKurtosis } from "utils";
+import { getContainersMatchingImage, logger } from "utils";
 
 /**
  * DataHaven network component wrapper
@@ -30,10 +26,7 @@ class DatahavenComponent implements HarnessComponent {
   private options: Partial<LaunchOptions>;
   private launchedNetwork: LaunchedNetwork;
 
-  constructor(
-    options: Partial<LaunchOptions> = {},
-    launchedNetwork: LaunchedNetwork,
-  ) {
+  constructor(launchedNetwork: LaunchedNetwork, options: Partial<LaunchOptions> = {}) {
     this.options = {
       datahaven: true,
       buildDatahaven: true,
@@ -41,17 +34,14 @@ class DatahavenComponent implements HarnessComponent {
       datahavenBuildExtraArgs: "--features=fast-runtime",
       cleanNetwork: false,
       setParameters: true,
-      ...options,
+      ...options
     };
     this.launchedNetwork = launchedNetwork;
   }
 
   async launch(): Promise<void> {
     logger.info("🚀 Launching DataHaven network...");
-    await launchDataHavenSolochain(
-      this.options as LaunchOptions,
-      this.launchedNetwork,
-    );
+    await launchDataHavenSolochain(this.options as LaunchOptions, this.launchedNetwork);
   }
 
   async stop(): Promise<void> {
@@ -61,9 +51,7 @@ class DatahavenComponent implements HarnessComponent {
   }
 
   async isRunning(): Promise<boolean> {
-    const containers = await getContainersMatchingImage(
-      "moonsonglabs/datahaven",
-    );
+    const containers = await getContainersMatchingImage("moonsonglabs/datahaven");
     return containers.length > 0;
   }
 
@@ -80,9 +68,7 @@ class DatahavenComponent implements HarnessComponent {
   }
 
   async getLogs(): Promise<string[]> {
-    const containers = await getContainersMatchingImage(
-      "moonsonglabs/datahaven",
-    );
+    const containers = await getContainersMatchingImage("moonsonglabs/datahaven");
     const logs: string[] = [];
 
     for (const container of containers) {
@@ -101,9 +87,7 @@ class DatahavenComponent implements HarnessComponent {
     return {
       ...this.options,
       rpcUrl: this.launchedNetwork.dhRpcUrl,
-      containers: this.launchedNetwork.containers.filter((c) =>
-        c.name.includes("datahaven"),
-      ),
+      containers: this.launchedNetwork.containers.filter((c) => c.name.includes("datahaven"))
     };
   }
 
@@ -119,10 +103,7 @@ class EthereumComponent implements HarnessComponent {
   private options: Partial<LaunchOptions>;
   private launchedNetwork: LaunchedNetwork;
 
-  constructor(
-    options: Partial<LaunchOptions> = {},
-    launchedNetwork: LaunchedNetwork,
-  ) {
+  constructor(launchedNetwork: LaunchedNetwork, options: Partial<LaunchOptions> = {}) {
     this.options = {
       launchKurtosis: true,
       kurtosisEnclaveName: "datahaven-ethereum",
@@ -133,7 +114,7 @@ class EthereumComponent implements HarnessComponent {
       blockscout: false,
       verified: false,
       cleanNetwork: false,
-      ...options,
+      ...options
     };
     this.launchedNetwork = launchedNetwork;
   }
@@ -151,9 +132,9 @@ class EthereumComponent implements HarnessComponent {
 
   async isRunning(): Promise<boolean> {
     try {
-      const lines = (
-        await Array.fromAsync($`kurtosis enclave ls`.lines())
-      ).filter((line) => line.length > 0 && !line.includes("UUID"));
+      const lines = (await Array.fromAsync($`kurtosis enclave ls`.lines())).filter(
+        (line) => line.length > 0 && !line.includes("UUID")
+      );
       return lines.length > 0;
     } catch {
       return false;
@@ -173,8 +154,7 @@ class EthereumComponent implements HarnessComponent {
 
   async getLogs(): Promise<string[]> {
     try {
-      const output =
-        await $`kurtosis enclave inspect ${this.options.kurtosisEnclaveName}`.text();
+      const output = await $`kurtosis enclave inspect ${this.options.kurtosisEnclaveName}`.text();
       return [output];
     } catch (error) {
       return [`Error getting Kurtosis logs: ${error}`];
@@ -186,7 +166,7 @@ class EthereumComponent implements HarnessComponent {
       ...this.options,
       elRpcUrl: this.launchedNetwork.elRpcUrl,
       clEndpoint: this.launchedNetwork.clEndpoint,
-      enclaveName: this.options.kurtosisEnclaveName,
+      enclaveName: this.options.kurtosisEnclaveName
     };
   }
 
@@ -202,14 +182,11 @@ class RelayersComponent implements HarnessComponent {
   private options: Partial<LaunchOptions>;
   private launchedNetwork: LaunchedNetwork;
 
-  constructor(
-    options: Partial<LaunchOptions> = {},
-    launchedNetwork: LaunchedNetwork,
-  ) {
+  constructor(launchedNetwork: LaunchedNetwork, options: Partial<LaunchOptions> = {}) {
     this.options = {
       relayer: true,
       relayerImageTag: "moonsonglabs/snowbridge-relayer:latest",
-      ...options,
+      ...options
     };
     this.launchedNetwork = launchedNetwork;
   }
@@ -226,16 +203,12 @@ class RelayersComponent implements HarnessComponent {
   }
 
   async isRunning(): Promise<boolean> {
-    const containers = await getContainersMatchingImage(
-      "moonsonglabs/snowbridge-relayer",
-    );
+    const containers = await getContainersMatchingImage("moonsonglabs/snowbridge-relayer");
     return containers.length > 0;
   }
 
   async getStatus(): Promise<string> {
-    const containers = await getContainersMatchingImage(
-      "moonsonglabs/snowbridge-relayer",
-    );
+    const containers = await getContainersMatchingImage("moonsonglabs/snowbridge-relayer");
     const activeRelayers = this.launchedNetwork.relayers;
     return containers.length > 0
       ? `${containers.length} relayer(s) running: ${activeRelayers.join(", ")}`
@@ -243,9 +216,7 @@ class RelayersComponent implements HarnessComponent {
   }
 
   async getLogs(): Promise<string[]> {
-    const containers = await getContainersMatchingImage(
-      "moonsonglabs/snowbridge-relayer",
-    );
+    const containers = await getContainersMatchingImage("moonsonglabs/snowbridge-relayer");
     const logs: string[] = [];
 
     for (const container of containers) {
@@ -265,7 +236,7 @@ class RelayersComponent implements HarnessComponent {
       ...this.options,
       activeRelayers: this.launchedNetwork.relayers,
       dhRpcUrl: this.launchedNetwork.dhRpcUrl,
-      elRpcUrl: this.launchedNetwork.elRpcUrl,
+      elRpcUrl: this.launchedNetwork.elRpcUrl
     };
   }
 
@@ -286,25 +257,24 @@ export class TestHarness {
     relayers?: boolean;
   }) {
     this.launchedNetwork = new LaunchedNetwork();
-    this.datahaven = new DatahavenComponent(
-      { datahaven: options?.datahaven ?? false },
-      this.launchedNetwork,
-    );
+    this.datahaven = new DatahavenComponent(this.launchedNetwork, {
+      datahaven: options?.datahaven ?? false
+    });
     this.ethereum = new EthereumComponent(
-      { launchKurtosis: options?.ethereum  ?? false},
       this.launchedNetwork,
+
+      { launchKurtosis: options?.ethereum ?? false }
     );
-    this.relayers = new RelayersComponent(
-      { relayer: options?.relayers  ?? false },
-      this.launchedNetwork,
-    );
+    this.relayers = new RelayersComponent(this.launchedNetwork, {
+      relayer: options?.relayers ?? false
+    });
   }
 
   /**
    * Get the DataHaven component for launching/managing DataHaven solo-chain
    */
   getDatahaven(): HarnessComponent {
-    invariant(this.datahaven,"❌ No datahaven found, has this been launched correctly?")
+    invariant(this.datahaven, "❌ No datahaven found, has this been launched correctly?");
     return this.datahaven;
   }
 
@@ -312,7 +282,7 @@ export class TestHarness {
    * Get the Relayers component for launching/managing Snowbridge relayers
    */
   getRelayers(): HarnessComponent {
-    invariant(this.relayers,"❌ No relayers found, has this been launched correctly?")
+    invariant(this.relayers, "❌ No relayers found, has this been launched correctly?");
     return this.relayers;
   }
 
@@ -320,7 +290,7 @@ export class TestHarness {
    * Get the Ethereum component for launching/managing Ethereum network via Kurtosis
    */
   getEthereum(): HarnessComponent {
-    invariant(this.ethereum,"❌ No ethereum found, has this been launched correctly?")
+    invariant(this.ethereum, "❌ No ethereum found, has this been launched correctly?");
     return this.ethereum;
   }
 
@@ -359,9 +329,9 @@ export class TestHarness {
    */
   async getOverallStatus(): Promise<Record<string, string>> {
     return {
-      datahaven: await this.datahaven?.getStatus() ?? "DataHaven not initialized",
-      ethereum: await this.ethereum?.getStatus() ?? "Ethereum not initialized",
-      relayers: await this.relayers?.getStatus() ?? "Relayers not initialized",
+      datahaven: (await this.datahaven?.getStatus()) ?? "DataHaven not initialized",
+      ethereum: (await this.ethereum?.getStatus()) ?? "Ethereum not initialized",
+      relayers: (await this.relayers?.getStatus()) ?? "Relayers not initialized"
     };
   }
 
@@ -369,12 +339,11 @@ export class TestHarness {
    * Check if all components are running
    */
   async isFullStackRunning(): Promise<boolean> {
-    const [datahavenRunning, ethereumRunning, relayersRunning] =
-      await Promise.all([
-        this.datahaven ? this.datahaven.isRunning() : true,
-        this.ethereum? this.ethereum.isRunning(): true,
-        this.relayers? this.relayers.isRunning(): true,
-      ]);
+    const [datahavenRunning, ethereumRunning, relayersRunning] = await Promise.all([
+      this.datahaven ? this.datahaven.isRunning() : true,
+      this.ethereum ? this.ethereum.isRunning() : true,
+      this.relayers ? this.relayers.isRunning() : true
+    ]);
 
     return datahavenRunning && ethereumRunning && relayersRunning;
   }
@@ -397,7 +366,7 @@ export class TestHarness {
     return {
       datahavenWs: this.launchedNetwork.dhRpcUrl,
       ethereumRpc: this.launchedNetwork.elRpcUrl,
-      consensusLayerHttp: this.launchedNetwork.clEndpoint,
+      consensusLayerHttp: this.launchedNetwork.clEndpoint
     };
   }
 }

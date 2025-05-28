@@ -2,6 +2,7 @@ export * from "./blockscout";
 export * from "./constants";
 export * from "./contracts";
 export * from "./docker";
+export * from "./harness";
 export * from "./input";
 export * from "./kurtosis";
 export * from "./logger";
@@ -10,4 +11,3 @@ export * from "./parser";
 export * from "./rpc";
 export * from "./shell";
 export * from "./viem";
-export * from "./harness"

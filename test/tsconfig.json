@@ -16,6 +16,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    "pretty": true,
     // Best practices
     "strict": true,
     "skipLibCheck": true,
@@ -35,7 +36,13 @@
     "paths": {
       "cli-launch": ["./cli/handlers/launch/index.ts"],
       "utils": ["./utils/index.ts"],
-      "utils/types": ["./utils/types.ts"]    }
+      "utils/types": ["./utils/types.ts"],
+      "utils/*": ["./utils/*"],
+      "scripts/*": ["./scripts/*"],
+      "cli/*": ["./cli/*"],
+      "contract-bindings": ["./contract-bindings/index.ts"],
+      "contract-bindings/*": ["./contract-bindings/*"]
+    }
   },
   "include": [
     "utils/*.ts",

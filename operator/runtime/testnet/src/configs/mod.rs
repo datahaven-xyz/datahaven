@@ -985,10 +985,15 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type BenchmarkHelper = ();
 }
 
+
 parameter_types! {
-    // TODO: This should be derived from the Ethereum location using
-    // a location-to-account converter (e.g., HashedDescription)
-    pub EthereumSovereignAccount: AccountId = AccountId::from([1u8; 20]);
+    /// The Ethereum sovereign account derived from its XCM location
+    /// This is a hardcoded value for performance, computed from:
+    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 11155111 })])
+    /// using GlobalConsensusConvertsFor<UniversalLocation, AccountId>
+    pub EthereumSovereignAccount: AccountId = AccountId::from(
+        hex_literal::hex!("23e598fa2f50bba6885988e5077200c6d0c5f5cf")
+    );
 }
 
 /// Implementation of Get<Option<TokenId>> for DataHaven native transfer pallet
@@ -1011,4 +1016,41 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type FeeRecipient = TreasuryAccountId;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use xcm_builder::GlobalConsensusConvertsFor;
+    use xcm_executor::traits::ConvertLocation;
+
+    #[test]
+    fn test_ethereum_sovereign_account_computation() {
+        // Verify that the hardcoded Ethereum sovereign account matches the computed value
+        let computed_account = GlobalConsensusConvertsFor::<UniversalLocation, AccountId>
+            ::convert_location(&EthereumLocation::get())
+            .expect("Ethereum location conversion should succeed");
+
+        assert_eq!(
+            computed_account,
+            EthereumSovereignAccount::get(),
+            "Computed account must match hardcoded value"
+        );
+    }
+
+    #[test]
+    fn test_ethereum_sovereign_account_uniqueness() {
+        // Verify different chain IDs produce different sovereign accounts
+        let mainnet_location = Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })]);
+        let mainnet_account = GlobalConsensusConvertsFor::<UniversalLocation, AccountId>
+            ::convert_location(&mainnet_location)
+            .expect("Mainnet location conversion should succeed");
+        
+        assert_ne!(
+            mainnet_account,
+            EthereumSovereignAccount::get(),
+            "Different chain IDs must produce different sovereign accounts"
+        );
+    }
+
 }

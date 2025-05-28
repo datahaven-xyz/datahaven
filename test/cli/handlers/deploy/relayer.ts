@@ -10,10 +10,8 @@ import {
   getEvmEcdsaSigner,
   logger,
   parseDeploymentsFile,
-  parseRelayConfig,
   printDivider,
   printHeader,
-  type RelayerType,
   runShellCommandWithLogger,
   SUBSTRATE_FUNDED_ACCOUNTS,
   waitForContainerToStart
@@ -23,18 +21,12 @@ import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
 import { ZERO_HASH } from "../common/consts";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
+import { generateRelayerConfig, type RelayerSpec } from "../common/relayer";
 import type { DeployOptions } from ".";
 
 // Standard ports for the Ethereum network
 const ETH_EL_RPC_PORT = 8546;
 const ETH_CL_HTTP_PORT = 4000;
-
-type RelayerSpec = {
-  name: string;
-  type: RelayerType;
-  config: string;
-  pk: { type: "ethereum" | "substrate"; value: string };
-};
 
 const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
 const RELAYER_CONFIG_PATHS = {
@@ -84,8 +76,14 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   const relayersToStart: RelayerSpec[] = [
     {
       name: "relayer-🥩",
-      type: "beefy",
-      config: RELAYER_CONFIG_PATHS.BEEFY,
+      configFilePath: RELAYER_CONFIG_PATHS.BEEFY,
+      config: {
+        type: "beefy",
+        ethWsEndpoint: `ws://host.docker.internal:${ETH_EL_RPC_PORT}`,
+        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
+        beefyClientAddress,
+        gatewayAddress
+      },
       pk: {
         type: "ethereum",
         value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
@@ -93,8 +91,12 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
     },
     {
       name: "relayer-🥓",
-      type: "beacon",
-      config: RELAYER_CONFIG_PATHS.BEACON,
+      configFilePath: RELAYER_CONFIG_PATHS.BEACON,
+      config: {
+        type: "beacon",
+        ethHttpEndpoint: `http://host.docker.internal:${ETH_CL_HTTP_PORT}`,
+        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
+      },
       pk: {
         type: "substrate",
         value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
@@ -102,62 +104,23 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
     }
   ];
 
-  for (const { config, type, name } of relayersToStart) {
-    const configFileName = path.basename(config);
-
-    // TODO: CHANGE THIS SO THAT IT WRITE IN deployment/charts/bridges-common-relay/configs
-    logger.debug(`Creating config for ${name}`);
-    const templateFilePath = `configs/snowbridge/${configFileName}`;
-    const outputFilePath = path.resolve(RELAYER_CONFIG_DIR, configFileName);
-    logger.debug(`Reading config file ${templateFilePath}`);
-    const file = Bun.file(templateFilePath);
-
-    if (!(await file.exists())) {
-      logger.error(`File ${templateFilePath} does not exist`);
-      throw new Error("Error reading snowbridge config file");
-    }
-    const json = await file.json();
-
-    // TODO: CHANGE THIS TO USE THE LAUNCHED NETWORK ENDPOINTS
-    logger.debug(
-      `Fetched ports: ETH WS=${ETH_EL_RPC_PORT}, ETH HTTP=${ETH_CL_HTTP_PORT}, Substrate WS=${substrateWsPort} (from DataHaven node)`
-    );
-
-    if (type === "beacon") {
-      const cfg = parseRelayConfig(json, type);
-      // TODO: CHANGE THIS TO USE THE LAUNCHED NETWORK ENDPOINTS
-      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.datastore.location = "/data";
-      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated beacon config written to ${outputFilePath}`);
-    } else {
-      const cfg = parseRelayConfig(json, type);
-      // TODO: CHANGE THIS TO USE THE LAUNCHED NETWORK ENDPOINTS
-      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${elWsPort}`;
-      cfg.sink.contracts.BeefyClient = beefyClientAddress;
-      cfg.sink.contracts.Gateway = gatewayAddress;
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated beefy config written to ${outputFilePath}`);
-    }
+  for (const relayerSpec of relayersToStart) {
+    await generateRelayerConfig(relayerSpec, options.environment, RELAYER_CONFIG_DIR);
   }
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
   await initEthClientPallet(options, launchedNetwork);
 
-  for (const { config, name, type, pk } of relayersToStart) {
+  for (const { configFilePath, name, config, pk } of relayersToStart) {
     try {
-      const containerName = `snowbridge-${type}-relay`;
+      const containerName = `snowbridge-${config.type}-relay`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
       // TODO: ADD SECRET TO KUBERNETES
 
-      const hostConfigFilePath = path.resolve(config);
-      const containerConfigFilePath = `/${config}`;
+      const hostConfigFilePath = path.resolve(configFilePath);
+      const containerConfigFilePath = `/${configFilePath}`;
       const networkName = launchedNetwork.networkName;
       invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
 
@@ -178,18 +141,18 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
 
-      if (type === "beacon") {
-        const hostDatastorePath = path.resolve(datastorePath);
+      if (config.type === "beacon") {
+        const hostDatastorePath = path.resolve(INITIAL_CHECKPOINT_DIR);
         const containerDatastorePath = "/data";
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
       }
 
       const relayerCommandArgs: string[] = [
         "run",
-        type,
+        config.type,
         "--config",
-        config,
-        type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
+        configFilePath,
+        config.type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
         pk.value
       ];
 

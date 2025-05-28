@@ -13,10 +13,8 @@ import {
   killExistingContainers,
   logger,
   parseDeploymentsFile,
-  parseRelayConfig,
   printDivider,
   printHeader,
-  type RelayerType,
   runShellCommandWithLogger,
   SUBSTRATE_FUNDED_ACCOUNTS,
   waitForContainerToStart
@@ -26,14 +24,8 @@ import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
 import { ZERO_HASH } from "../common/consts";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
+import { generateRelayerConfig, type RelayerSpec } from "../common/relayer";
 import type { LaunchOptions } from ".";
-
-type RelayerSpec = {
-  name: string;
-  type: RelayerType;
-  config: string;
-  pk: { type: "ethereum" | "substrate"; value: string };
-};
 
 const RELAYER_CONFIG_DIR = "tmp/configs";
 const RELAYER_CONFIG_PATHS = {
@@ -113,11 +105,28 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
   await $`mkdir -p ${datastorePath}`.quiet();
 
+  const ethWsPort = await getPortFromKurtosis(
+    "el-1-reth-lighthouse",
+    "ws",
+    options.kurtosisEnclaveName
+  );
+  const ethHttpPort = await getPortFromKurtosis(
+    "cl-1-lighthouse-reth",
+    "http",
+    options.kurtosisEnclaveName
+  );
+
   const relayersToStart: RelayerSpec[] = [
     {
       name: "relayer-🥩",
-      type: "beefy",
-      config: RELAYER_CONFIG_PATHS.BEEFY,
+      configFilePath: RELAYER_CONFIG_PATHS.BEEFY,
+      config: {
+        type: "beefy",
+        ethWsEndpoint: `ws://host.docker.internal:${ethWsPort}`,
+        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
+        beefyClientAddress,
+        gatewayAddress
+      },
       pk: {
         type: "ethereum",
         value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
@@ -125,8 +134,12 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     },
     {
       name: "relayer-🥓",
-      type: "beacon",
-      config: RELAYER_CONFIG_PATHS.BEACON,
+      configFilePath: RELAYER_CONFIG_PATHS.BEACON,
+      config: {
+        type: "beacon",
+        ethHttpEndpoint: `http://host.docker.internal:${ethHttpPort}`,
+        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
+      },
       pk: {
         type: "substrate",
         value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
@@ -134,66 +147,21 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     }
   ];
 
-  for (const { config, type, name } of relayersToStart) {
-    const configFileName = path.basename(config);
-
-    logger.debug(`Creating config for ${name}`);
-    const templateFilePath = `configs/snowbridge/local/${configFileName}`;
-    const outputFilePath = path.resolve(RELAYER_CONFIG_DIR, configFileName);
-    logger.debug(`Reading config file ${templateFilePath}`);
-    const file = Bun.file(templateFilePath);
-
-    if (!(await file.exists())) {
-      logger.error(`File ${templateFilePath} does not exist`);
-      throw new Error("Error reading snowbridge config file");
-    }
-    const json = await file.json();
-
-    const ethWsPort = await getPortFromKurtosis(
-      "el-1-reth-lighthouse",
-      "ws",
-      options.kurtosisEnclaveName
-    );
-    const ethHttpPort = await getPortFromKurtosis(
-      "cl-1-lighthouse-reth",
-      "http",
-      options.kurtosisEnclaveName
-    );
-    logger.debug(
-      `Fetched ports: ETH WS=${ethWsPort}, ETH HTTP=${ethHttpPort}, Substrate WS=${substrateWsPort} (from DataHaven node)`
-    );
-
-    if (type === "beacon") {
-      const cfg = parseRelayConfig(json, type);
-      cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-      cfg.source.beacon.datastore.location = "/data";
-      cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated beacon config written to ${outputFilePath}`);
-    } else {
-      const cfg = parseRelayConfig(json, type);
-      cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-      cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-      cfg.sink.contracts.BeefyClient = beefyClientAddress;
-      cfg.sink.contracts.Gateway = gatewayAddress;
-      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-      logger.success(`Updated beefy config written to ${outputFilePath}`);
-    }
+  for (const relayerSpec of relayersToStart) {
+    await generateRelayerConfig(relayerSpec, "local", RELAYER_CONFIG_DIR);
   }
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
   await initEthClientPallet(options, launchedNetwork);
 
-  for (const { config, name, type, pk } of relayersToStart) {
+  for (const { configFilePath, name, config, pk } of relayersToStart) {
     try {
-      const containerName = `snowbridge-${type}-relay`;
+      const containerName = `snowbridge-${config.type}-relay`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
-      const hostConfigFilePath = path.resolve(config);
-      const containerConfigFilePath = `/${config}`;
+      const hostConfigFilePath = path.resolve(configFilePath);
+      const containerConfigFilePath = `/${configFilePath}`;
       const networkName = launchedNetwork.networkName;
       invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
 
@@ -213,7 +181,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
 
-      if (type === "beacon") {
+      if (config.type === "beacon") {
         const hostDatastorePath = path.resolve(datastorePath);
         const containerDatastorePath = "/data";
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
@@ -221,10 +189,10 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
       const relayerCommandArgs: string[] = [
         "run",
-        type,
+        config.type,
         "--config",
-        config,
-        type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
+        configFilePath,
+        config.type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
         pk.value
       ];
 

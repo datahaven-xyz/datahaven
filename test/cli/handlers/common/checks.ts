@@ -32,7 +32,7 @@ export const checkBaseDependencies = async (): Promise<void> => {
   printDivider();
 };
 
-export const checkDeployDependencies = async (
+export const deploymentChecks = async (
   options: DeployOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> => {

@@ -64,7 +64,27 @@ export const BeefyRelayConfigSchema = z.object({
 });
 export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 
-export type RelayerType = "beefy" | "beacon";
+// TODO: Add execution relay config schema
+export const ExecutionRelayConfigSchema = z.object({
+  source: z.object({
+    execution: z.object({
+      endpoint: z.string()
+    })
+  })
+});
+export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;
+
+// TODO: Add solochain relay config schema
+export const SolochainRelayConfigSchema = z.object({
+  source: z.object({
+    solochain: z.object({
+      endpoint: z.string()
+    })
+  })
+});
+export type SolochainRelayConfig = z.infer<typeof SolochainRelayConfigSchema>;
+
+export type RelayerType = "beefy" | "beacon" | "execution" | "solochain";
 
 /**
  * Parse beacon relay configuration
@@ -88,6 +108,26 @@ function parseBeefyConfig(config: unknown): BeefyRelayConfig {
   throw new Error(`Failed to parse config as BeefyRelayConfig: ${result.error.message}`);
 }
 
+/** */
+function parseExecutionConfig(config: unknown): ExecutionRelayConfig {
+  const result = ExecutionRelayConfigSchema.safeParse(config);
+  if (result.success) {
+    return result.data;
+  }
+  throw new Error(`Failed to parse config as ExecutionRelayConfig: ${result.error.message}`);
+}
+
+/**
+ * Parse solochain relay configuration
+ */
+function parseSolochainConfig(config: unknown): SolochainRelayConfig {
+  const result = SolochainRelayConfigSchema.safeParse(config);
+  if (result.success) {
+    return result.data;
+  }
+  throw new Error(`Failed to parse config as SolochainRelayConfig: ${result.error.message}`);
+}
+
 /**
  * Type Guard to check if a config object is a BeaconRelayConfig
  */
@@ -99,15 +139,28 @@ export function isBeaconConfig(
 
 export function parseRelayConfig(config: unknown, type: "beacon"): BeaconRelayConfig;
 export function parseRelayConfig(config: unknown, type: "beefy"): BeefyRelayConfig;
+export function parseRelayConfig(config: unknown, type: "execution"): ExecutionRelayConfig;
+export function parseRelayConfig(config: unknown, type: "solochain"): SolochainRelayConfig;
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType
-): BeaconRelayConfig | BeefyRelayConfig;
+): BeaconRelayConfig | BeefyRelayConfig | ExecutionRelayConfig | SolochainRelayConfig;
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType
-): BeaconRelayConfig | BeefyRelayConfig {
-  return type === "beacon" ? parseBeaconConfig(config) : parseBeefyConfig(config);
+): BeaconRelayConfig | BeefyRelayConfig | ExecutionRelayConfig | SolochainRelayConfig {
+  switch (type) {
+    case "beacon":
+      return parseBeaconConfig(config);
+    case "beefy":
+      return parseBeefyConfig(config);
+    case "execution":
+      return parseExecutionConfig(config);
+    case "solochain":
+      return parseSolochainConfig(config);
+    default:
+      throw new Error(`Unsupported relayer type with config: \n${JSON.stringify(config)}`);
+  }
 }
 
 export type DeployEnvironment = "stagenet" | "testnet" | "mainnet";

@@ -1,7 +1,7 @@
 import type { Command } from "node_modules/@commander-js/extra-typings";
 import { type DeployEnvironment, logger } from "utils";
 import { createParameterCollection } from "utils/parameters";
-import { checkBaseDependencies, checkDeployDependencies } from "../common/checks";
+import { checkBaseDependencies, deploymentChecks } from "../common/checks";
 import { LaunchedNetwork } from "../common/launchedNetwork";
 import { cleanup } from "./cleanup";
 import { deployContracts } from "./contracts";
@@ -38,7 +38,7 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
   const timeStart = performance.now();
 
   await checkBaseDependencies();
-  await checkDeployDependencies(options, launchedNetwork);
+  await deploymentChecks(options, launchedNetwork);
 
   await cleanup(options, launchedNetwork);
 

@@ -50,6 +50,8 @@ impl ExtBuilder {
             balances.extend_from_slice(&[
                 (account_id(ALICE), DEFAULT_BALANCE),
                 (account_id(BOB), DEFAULT_BALANCE),
+                // Fund the treasury account (fee recipient) with initial balance
+                (datahaven_testnet_runtime::configs::TreasuryAccountId::get(), DEFAULT_BALANCE),
             ]);
         }
 

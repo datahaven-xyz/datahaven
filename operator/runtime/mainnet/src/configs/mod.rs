@@ -655,8 +655,12 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
-    // TODO: Change to the actual treasury account
-    pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
+    // TODO: Update this account once the treasury pallet is added
+    // For now, using a hardcoded account that can properly receive and hold fees
+    // This prevents fees from being burned and allows for proper accounting
+    pub TreasuryAccountId: AccountId = AccountId::from(
+        hex_literal::hex!("1234567890123456789012345678901234567890")
+    );
 }
 
 pub struct DoNothingOutboundQueue;

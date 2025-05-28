@@ -10,8 +10,8 @@ mod common;
 
 use common::*;
 use datahaven_testnet_runtime::{
-    configs::EthereumSovereignAccount, Balances, DataHavenNativeTransfer, Runtime, RuntimeEvent,
-    RuntimeOrigin, SnowbridgeSystemV2, System, UNIT,
+    configs::EthereumSovereignAccount, AccountId, Balances, DataHavenNativeTransfer, Runtime,
+    RuntimeEvent, RuntimeOrigin, SnowbridgeSystemV2, System, UNIT,
 };
 use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};
 use pallet_datahaven_native_transfer::Event as NativeTransferEvent;
@@ -93,6 +93,8 @@ fn test_native_token_transfer_to_ethereum_succeeds() {
         // Record initial balances
         let alice_initial = Balances::balance(&alice);
         let sovereign_initial = Balances::balance(&EthereumSovereignAccount::get());
+        let treasury_initial =
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get());
 
         // Execute transfer
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
@@ -111,8 +113,11 @@ fn test_native_token_transfer_to_ethereum_succeeds() {
             Balances::balance(&EthereumSovereignAccount::get()),
             sovereign_initial + transfer_amount
         );
-        // Note: Treasury account is zero address, so it cannot hold balance in Substrate
-        // The fee is "burned" to treasury, which in this case means it's effectively removed from circulation
+        // Verify treasury received the fee
+        assert_eq!(
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get()),
+            treasury_initial + fee
+        );
 
         // Verify events in correct order
         let events = System::events();
@@ -211,6 +216,8 @@ fn test_multiple_concurrent_transfers_maintain_consistency() {
         let transfer1 = 500 * UNIT;
         let transfer2 = 300 * UNIT;
         let fee = 5 * UNIT;
+        let treasury_initial =
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get());
 
         // Execute multiple transfers
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
@@ -233,7 +240,11 @@ fn test_multiple_concurrent_transfers_maintain_consistency() {
             transfer1 + transfer2
         );
 
-        // Note: Fee recipient is treasury (zero address), so fees are effectively burned
+        // Verify treasury received all fees (2 transfers * fee)
+        assert_eq!(
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get()),
+            treasury_initial + (fee * 2)
+        );
 
         // Verify outbound queue has both transfer messages (excluding registration)
         let events = System::events();
@@ -333,6 +344,66 @@ fn test_pause_functionality_blocks_transfers() {
             100 * UNIT,
             1 * UNIT
         ));
+    });
+}
+
+#[test]
+fn test_treasury_fee_collection() {
+    ExtBuilder::default().build().execute_with(|| {
+        register_native_token();
+
+        let alice = account_id(ALICE);
+        let bob = account_id(BOB);
+        let treasury_account = datahaven_testnet_runtime::configs::TreasuryAccountId::get();
+        let initial_treasury_balance = Balances::balance(&treasury_account);
+
+        // Test case 1: Single transfer with fee
+        let fee1 = 5 * UNIT;
+        assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
+            RuntimeOrigin::signed(alice.clone()),
+            H160::from_low_u64_be(0x1111),
+            100 * UNIT,
+            fee1
+        ));
+
+        // Verify treasury received the fee
+        assert_eq!(
+            Balances::balance(&treasury_account),
+            initial_treasury_balance + fee1
+        );
+
+        // Test case 2: Multiple transfers with different fees
+        let fee2 = 10 * UNIT;
+        let fee3 = 15 * UNIT;
+
+        assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
+            RuntimeOrigin::signed(bob.clone()),
+            H160::from_low_u64_be(0x2222),
+            200 * UNIT,
+            fee2
+        ));
+
+        assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
+            RuntimeOrigin::signed(alice.clone()),
+            H160::from_low_u64_be(0x3333),
+            300 * UNIT,
+            fee3
+        ));
+
+        // Verify treasury received all accumulated fees
+        let total_fees = fee1 + fee2 + fee3;
+        assert_eq!(
+            Balances::balance(&treasury_account),
+            initial_treasury_balance + total_fees,
+            "Treasury should accumulate all fees from transfers"
+        );
+
+        // Verify treasury account is not the zero address
+        assert_ne!(
+            treasury_account,
+            AccountId::from([0u8; 20]),
+            "Treasury account should not be the zero address"
+        );
     });
 }
 

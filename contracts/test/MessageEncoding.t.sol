@@ -6,10 +6,10 @@ import {console} from "forge-std/console.sol";
 import {DataHavenSnowbridgeMessages} from "../src/libraries/DataHavenSnowbridgeMessages.sol";
 
 // This test is used to encode the receive validators message and log the hex string.
-// The hex string is then used to generate the .bin file for the Rust test. 
+// The hex string is then used to generate the .bin file for the Rust test.
 // To generate the .bin file, run:
 // forge test --match-test testEncodeReceiveValidatorsMessageAndLog -vvvvv --fork-url https://rpc.ankr.com/eth_sepolia
-// Then, copy the hex string and paste it into the Rust test file. 
+// Then, copy the hex string and paste it into the Rust test file.
 // Then, run:
 // cargo test --test decode_receive_validators_message_from_file_correctly
 // The test should pass.

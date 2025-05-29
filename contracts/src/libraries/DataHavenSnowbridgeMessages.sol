@@ -5,6 +5,10 @@ pragma solidity ^0.8.27;
 import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 
 library DataHavenSnowbridgeMessages {
+    // Message ID. This is not expected to change and comes from the runtime.
+    // See EigenLayerMessageProcessor in primitives/bridge/src/lib.rs.
+    bytes4 constant EL_MESSAGE_ID = 0x70150038;
+
     enum Message {
         V0
     }
@@ -75,7 +79,7 @@ library DataHavenSnowbridgeMessages {
         }
 
         return bytes.concat(
-            bytes4(0x70150038),
+            EL_MESSAGE_ID,
             bytes1(uint8(Message.V0)),
             bytes1(uint8(OutboundCommandV1.ReceiveValidators)),
             ScaleCodec.encodeCompactU32(validatorsLen),

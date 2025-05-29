@@ -33,7 +33,11 @@ export type ExecutionConfig = {
 
 export type SolochainConfig = {
   type: "solochain";
-  // TODO: Add solochain config
+  ethElRpcEndpoint: string;
+  substrateWsEndpoint: string;
+  beefyClientAddress: string;
+  gatewayAddress: string;
+  ethClEndpoint: string;
 };
 
 export type RelayerConfigType = BeaconConfig | BeefyConfig | ExecutionConfig | SolochainConfig;
@@ -43,7 +47,7 @@ export type RelayerSpec = {
   configFilePath: string;
   templateFilePath?: string;
   config: RelayerConfigType;
-  pk: { type: "ethereum" | "substrate"; value: string };
+  pk: { ethereum?: string; substrate?: string };
 };
 
 export const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
@@ -108,7 +112,20 @@ export const generateRelayerConfig = async (
       throw new Error("Execution relayers are not supported yet");
     }
     case "solochain": {
-      throw new Error("Solochain relayers are not supported yet");
+      const cfg = parseRelayConfig(json, type);
+      cfg.source.ethereum.endpoint = config.ethElRpcEndpoint;
+      cfg.source.solochain.endpoint = config.substrateWsEndpoint;
+      cfg.source.contracts.BeefyClient = config.beefyClientAddress;
+      cfg.source.contracts.Gateway = config.gatewayAddress;
+      cfg.source.beacon.endpoint = config.ethClEndpoint;
+      cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
+      cfg.source.beacon.datastore.location = "/data";
+      cfg.sink.ethereum.endpoint = config.ethElRpcEndpoint;
+      cfg.sink.contracts.Gateway = config.gatewayAddress;
+
+      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+      logger.success(`Updated solochain config written to ${outputFilePath}`);
+      break;
     }
     default:
       throw new Error(`Unsupported relayer type with config: \n${JSON.stringify(config)}`);

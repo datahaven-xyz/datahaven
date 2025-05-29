@@ -1,0 +1,6 @@
+[profile.release]
+lto = "thin"
+opt-level = 2
+
+[registries.crates-io]
+protocol = "sparse" 

@@ -74,12 +74,53 @@ export const ExecutionRelayConfigSchema = z.object({
 });
 export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;
 
-// TODO: Add solochain relay config schema
 export const SolochainRelayConfigSchema = z.object({
   source: z.object({
+    ethereum: z.object({
+      endpoint: z.string()
+    }),
     solochain: z.object({
       endpoint: z.string()
+    }),
+    contracts: z.object({
+      BeefyClient: z.string(),
+      Gateway: z.string()
+    }),
+    beacon: z.object({
+      endpoint: z.string(),
+      stateEndpoint: z.string(),
+      spec: z.object({
+        syncCommitteeSize: z.number(),
+        slotsInEpoch: z.number(),
+        epochsPerSyncCommitteePeriod: z.number(),
+        forkVersions: z.object({
+          deneb: z.number(),
+          electra: z.number()
+        })
+      }),
+      datastore: z.object({
+        location: z.string(),
+        maxEntries: z.number()
+      })
     })
+  }),
+  sink: z.object({
+    contracts: z.object({
+      Gateway: z.string()
+    }),
+    ethereum: z.object({
+      endpoint: z.string()
+    })
+  }),
+  schedule: z.object({
+    id: z.number(),
+    totalRelayerCount: z.number(),
+    sleepInterval: z.number()
+  }),
+  "reward-address": z.string(),
+  ofac: z.object({
+    enabled: z.boolean(),
+    apiKey: z.string()
   })
 });
 export type SolochainRelayConfig = z.infer<typeof SolochainRelayConfigSchema>;

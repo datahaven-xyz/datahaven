@@ -26,7 +26,8 @@ import type { LaunchOptions } from ".";
 const RELAYER_CONFIG_DIR = "tmp/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
-  BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
+  BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
+  SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 
 /**
@@ -109,20 +110,23 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     options.kurtosisEnclaveName
   );
 
+  const ethElRpcEndpoint = `ws://host.docker.internal:${ethWsPort}`;
+  const ethClEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+
   const relayersToStart: RelayerSpec[] = [
     {
       name: "relayer-🥩",
       configFilePath: RELAYER_CONFIG_PATHS.BEEFY,
       config: {
         type: "beefy",
-        ethElRpcEndpoint: `ws://host.docker.internal:${ethWsPort}`,
-        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
         beefyClientAddress,
         gatewayAddress
       },
       pk: {
-        type: "ethereum",
-        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey
       }
     },
     {
@@ -130,12 +134,27 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       configFilePath: RELAYER_CONFIG_PATHS.BEACON,
       config: {
         type: "beacon",
-        ethClEndpoint: `http://host.docker.internal:${ethHttpPort}`,
-        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
+        ethClEndpoint,
+        substrateWsEndpoint
       },
       pk: {
-        type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+      }
+    },
+    {
+      name: "relayer-⛓️",
+      configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+      config: {
+        type: "solochain",
+        ethElRpcEndpoint: `ws://host.docker.internal:${ethWsPort}`,
+        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
+        beefyClientAddress,
+        gatewayAddress,
+        ethClEndpoint
+      },
+      pk: {
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
       }
     }
   ];
@@ -188,14 +207,31 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
       }
 
-      const relayerCommandArgs: string[] = [
-        "run",
-        config.type,
-        "--config",
-        configFilePath,
-        config.type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
-        pk.value
-      ];
+      const relayerCommandArgs: string[] = ["run", config.type, "--config", configFilePath];
+
+      if (config.type === "beacon") {
+        if (!pk.substrate) {
+          throw new Error("Substrate private key is required for beacon relayer");
+        }
+        relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+      } else if (config.type === "beefy") {
+        if (!pk.ethereum) {
+          throw new Error("Ethereum private key is required for beefy relayer");
+        }
+        relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+      } else if (config.type === "solochain") {
+        if (!pk.ethereum) {
+          throw new Error("Ethereum private key is required for solochain relayer");
+        }
+        relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+        if (pk.substrate) {
+          relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+        } else {
+          logger.warn(
+            "⚠️ No substrate private key provided for solochain relayer. This might be an issue depending on the configuration."
+          );
+        }
+      }
 
       const command: string[] = [
         ...commandBase,

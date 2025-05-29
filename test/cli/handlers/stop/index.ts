@@ -50,16 +50,16 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
   const name = COMPONENTS[type].componentName;
   const imageName = COMPONENTS[type].imageName;
   logger.debug(`Checking currently running ${name} ...`);
-  const relayers = await getContainersMatchingImage(imageName);
-  logger.info(`🔎 Found ${relayers.length} containers(s) running`);
-  if (relayers.length === 0) {
+  const components = await getContainersMatchingImage(imageName);
+  logger.info(`🔎 Found ${components.length} containers(s) running the ${name}`);
+  if (components.length === 0) {
     logger.info(`🤷‍ No ${name} containers found running`);
     return;
   }
   let shouldStopComponent = options.all || options[COMPONENTS[type].optionName];
   if (shouldStopComponent === undefined) {
     shouldStopComponent = await confirmWithTimeout(
-      `Do you want to stop the ${imageName} relayers?`,
+      `Do you want to stop the ${imageName} containers?`,
       true,
       10
     );
@@ -80,7 +80,7 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
     remaining.length === 0,
     `❌ ${remaining.length} containers are still running and have not been stopped.`
   );
-  logger.info(`🪓 ${relayers.length} ${name} containers stopped successfully`);
+  logger.info(`🪓 ${components.length} ${name} containers stopped successfully`);
 };
 
 const removeDockerNetwork = async (networkName: string, options: StopOptions) => {

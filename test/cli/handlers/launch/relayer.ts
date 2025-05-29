@@ -366,7 +366,6 @@ const waitBeefyReady = async (
  *
  * @param options - Launch options containing the relayer binary path.
  * @param launchedNetwork - An instance of LaunchedNetwork to interact with the running network.
- * @param datastorePath - The path to the datastore directory.
  * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
  */
 export const initEthClientPallet = async (

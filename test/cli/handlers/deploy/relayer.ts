@@ -25,7 +25,8 @@ const ETH_CL_HTTP_PORT = 4000;
 const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
-  BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json")
+  BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
+  SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 
 /**
@@ -70,20 +71,23 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
+  const ethElRpcEndpoint = `ws://el-1-reth-lighthouse:${ETH_EL_RPC_PORT}`;
+  const ethClEndpoint = `http://cl-1-lighthouse-reth:${ETH_CL_HTTP_PORT}`;
+  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+
   const relayersToStart: RelayerSpec[] = [
     {
       name: "relayer-🥩",
       configFilePath: RELAYER_CONFIG_PATHS.BEEFY,
       config: {
         type: "beefy",
-        ethElRpcEndpoint: `ws://el-1-reth-lighthouse:${ETH_EL_RPC_PORT}`,
-        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
         beefyClientAddress,
         gatewayAddress
       },
       pk: {
-        type: "ethereum",
-        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey
       }
     },
     {
@@ -91,12 +95,27 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       configFilePath: RELAYER_CONFIG_PATHS.BEACON,
       config: {
         type: "beacon",
-        ethClEndpoint: `http://cl-1-lighthouse-reth:${ETH_CL_HTTP_PORT}`,
-        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
+        ethClEndpoint,
+        substrateWsEndpoint
       },
       pk: {
-        type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+      }
+    },
+    {
+      name: "relayer-⛓️",
+      configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+      config: {
+        type: "solochain",
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
+        beefyClientAddress,
+        gatewayAddress,
+        ethClEndpoint
+      },
+      pk: {
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
       }
     }
   ];
@@ -120,8 +139,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
     },
     pk: {
-      type: "substrate",
-      value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
+      substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
     }
   };
   await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigDir);
@@ -138,10 +156,11 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
       // Adding secret key as Kubernetes secret
-      const secretName = `dh-${config.type}-relay-${pk.type}-key`;
+      invariant(pk.substrate, "❌ Substrate private key is required for relayer");
+      const secretName = `dh-${config.type}-relay-substrate-key`;
       logger.debug(
         await $`kubectl create secret generic ${secretName} \
-        --from-literal=pvk="${pk.value}" \
+        --from-literal=pvk="${pk.substrate}" \
         -n ${launchedNetwork.kubeNamespace}`.text()
       );
       logger.success("Secret key added to Kubernetes");

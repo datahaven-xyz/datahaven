@@ -146,8 +146,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
       config: {
         type: "solochain",
-        ethElRpcEndpoint: `ws://host.docker.internal:${ethWsPort}`,
-        substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`,
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
         beefyClientAddress,
         gatewayAddress,
         ethClEndpoint

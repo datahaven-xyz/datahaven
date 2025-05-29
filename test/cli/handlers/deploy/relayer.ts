@@ -214,11 +214,6 @@ const waitBeefyReady = async (
 
     await waitFor({
       lambda: async () => {
-        // Temporarily capture and suppress error logs during connection attempts.
-        // This is to avoid the "Unable to connect to ws:" error logs from the `client._request` call.
-        const originalConsoleError = console.error;
-        console.error = () => {};
-
         try {
           logger.debug("Attempting to to check beefy_getFinalizedHead");
 
@@ -242,9 +237,6 @@ const waitBeefyReady = async (
         } catch (rpcError) {
           logger.warn(`RPC error checking BEEFY status: ${rpcError}. Retrying...`);
           return false;
-        } finally {
-          // Restore original console methods.
-          console.error = originalConsoleError;
         }
       },
       iterations,

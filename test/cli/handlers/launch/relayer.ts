@@ -189,6 +189,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         "docker",
         "run",
         "-d",
+        "--pull",
+        "always",
         "--platform",
         "linux/amd64",
         "--add-host",

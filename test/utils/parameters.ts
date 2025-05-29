@@ -97,7 +97,8 @@ export async function createParameterCollection(): Promise<ParameterCollection> 
 export async function setParametersFromCollection({
   rpcUrl,
   collection,
-  setParameters
+  setParameters,
+  wait
 }: {
   rpcUrl: string;
   collection: ParameterCollection;
@@ -112,7 +113,8 @@ export async function setParametersFromCollection({
     return await setDataHavenParameters({
       rpcUrl,
       parametersFilePath,
-      setParameters
+      setParameters,
+      wait
     });
   } catch (error) {
     logger.error(`Failed to set DataHaven parameters: ${error}`);

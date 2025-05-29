@@ -17,10 +17,10 @@ import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/type
 
 // Interface for the options object of setDataHavenParameters
 interface SetDataHavenParametersOptions {
-  wait: boolean;
   rpcUrl: string;
   parametersFilePath: string;
   setParameters?: boolean;
+  wait?: boolean;
 }
 
 /**

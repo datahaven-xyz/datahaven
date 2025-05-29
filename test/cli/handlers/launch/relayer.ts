@@ -33,13 +33,15 @@ type RelayerSpec = {
   type: RelayerType;
   config: string;
   pk: { type: "ethereum" | "substrate"; value: string };
+  secondaryPk?: { type: "ethereum" | "substrate"; value: string };
 };
 
 const RELAYER_CONFIG_DIR = "tmp/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
-  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json")
+  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json"),
+  SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
 const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
@@ -130,7 +132,20 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       config: RELAYER_CONFIG_PATHS.BEACON,
       pk: {
         type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey
+        value: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+      }
+    },
+    {
+      name: "relayer-⛓️",
+      type: "solochain",
+      config: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+      pk: {
+        type: "ethereum",
+        value: ANVIL_FUNDED_ACCOUNTS[1].privateKey
+      },
+      secondaryPk: {
+        type: "substrate",
+        value: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
       }
     },
     {
@@ -207,6 +222,21 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         logger.success(`Updated execution config written to ${outputFilePath}`);
         break;
       }
+      case "solochain": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.source.solochain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+        cfg.source.contracts.BeefyClient = beefyClientAddress;
+        cfg.source.contracts.Gateway = gatewayAddress;
+        cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.datastore.location = datastorePath;
+        cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.sink.contracts.Gateway = gatewayAddress;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated solochain config written to ${outputFilePath}`);
+        break;
+      }
     }
   }
 
@@ -214,7 +244,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   await initEthClientPallet(options, launchedNetwork, datastorePath);
 
-  for (const { config, name, type, pk } of relayersToStart) {
+  for (const { config, name, type, pk, secondaryPk } of relayersToStart) {
     try {
       const containerName = `snowbridge-${type}-relay`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
@@ -254,6 +284,10 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         `--${pk.type}.private-key`,
         pk.value
       ];
+
+      if (type === "solochain" && secondaryPk) {
+        relayerCommandArgs.push("--substrate.private-key", secondaryPk.value);
+      }
 
       const command: string[] = [
         ...commandBase,

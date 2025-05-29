@@ -4,7 +4,6 @@ import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-
 import {
   confirmWithTimeout,
   getEvmEcdsaSigner,
@@ -95,7 +94,8 @@ export const setDataHavenParameters = async (
 
   try {
     for (const param of parameters) {
-      logger.info(`Attempting to set parameter: ${String(param.name)} = ${String(param.value)}`);
+      // TODO: Add a graceful way to print the value of the parameter, since it won't always be representable as a hex string
+      logger.info(`Attempting to set parameter: ${String(param.name)} = ${param.value.asHex()}`);
 
       const setParameterArgs: any = {
         key_value: {

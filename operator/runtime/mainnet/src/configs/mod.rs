@@ -821,10 +821,10 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 
 parameter_types! {
     /// Network and location for the Ethereum chain.
-    /// Using the Sepolia Ethereum testnet, with chain ID 11155111.
-    /// <https://chainlist.org/chain/11155111>
+    /// Using the Ethereum mainnet, with chain ID 1.
+    /// <https://chainlist.org/chain/1>
     /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
-    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
+    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
 }
 
 pub struct CommitmentHandler;
@@ -993,10 +993,10 @@ impl pallet_external_validators_rewards::Config for Runtime {
 parameter_types! {
     /// The Ethereum sovereign account derived from its XCM location
     /// This is a hardcoded value for performance, computed from:
-    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 11155111 })])
+    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 1 })])
     /// using GlobalConsensusConvertsFor<UniversalLocation, AccountId>
     pub EthereumSovereignAccount: AccountId = AccountId::from(
-        hex_literal::hex!("23e598fa2f50bba6885988e5077200c6d0c5f5cf")
+        hex_literal::hex!("96b408b1afc686e3dd90cbe39725d2ce9ef4edd3")
     );
 }
 

@@ -1096,10 +1096,10 @@ impl_runtime_apis! {
 mod tests {
     use super::*;
     use codec::Encode;
+    use dhp_bridge::InboundCommand;
     use dhp_bridge::{Message, Payload, EL_MESSAGE_ID};
     use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
     use sp_core::H256;
-    use dhp_bridge::InboundCommand;
 
     const MOCK_NONCE: u64 = 12345u64;
     const MOCK_VALIDATORS_HEX: [&str; 2] = [
@@ -1161,9 +1161,8 @@ mod tests {
             _ => panic!("Invalid Message"),
         };
 
-        let decoded_result = dhp_bridge::EigenLayerMessageProcessor::<Runtime>::decode_message(
-            payload.as_slice()
-        );
+        let decoded_result =
+            dhp_bridge::EigenLayerMessageProcessor::<Runtime>::decode_message(payload.as_slice());
 
         let message = if let Ok(payload) = decoded_result {
             payload.message

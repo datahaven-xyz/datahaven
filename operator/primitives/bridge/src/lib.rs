@@ -27,7 +27,7 @@ where
 #[derive(Encode, Decode)]
 pub enum InboundCommand<T>
 where
-     T: pallet_external_validators::Config,
+    T: pallet_external_validators::Config,
 {
     ReceiveValidators {
         validators: Vec<<T as pallet_external_validators::Config>::ValidatorId>,

@@ -19,7 +19,6 @@ interface SetDataHavenParametersOptions {
   rpcUrl: string;
   parametersFilePath: string;
   setParameters?: boolean;
-  wait?: boolean;
 }
 
 /**
@@ -42,7 +41,7 @@ export const setDataHavenParameters = async (
     shouldSetParameters = await confirmWithTimeout(
       "Do you want to set the DataHaven runtime parameters?",
       true,
-      options.wait ? 10 : 0
+      10
     );
   } else {
     logger.info(

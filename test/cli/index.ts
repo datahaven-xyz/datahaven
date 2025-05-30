@@ -74,8 +74,6 @@ program
     "Tag of the relayer",
     "moonsonglabs/snowbridge-relayer:latest"
   )
-  .option("--w, --wait", "Wait for user confirmation on each step", true)
-  .option("--nw, --no-wait", "Skip waiting for user confirmation on each step")
   .hook("preAction", launchPreActionHook)
   .action(launch);
 
@@ -91,8 +89,6 @@ program
   .option("--kurtosis-engine", "Stop Kurtosis engine", false)
   .option("--r, --relayer", "Stop Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip stopping Snowbridge Relayers")
-  .option("--w, --wait", "Wait for user confirmation on each step", true)
-  .option("--nw, --no-wait", "Skip waiting for user confirmation on each step")
   .hook("preAction", stopPreActionHook)
   .action(stop);
 

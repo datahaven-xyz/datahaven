@@ -31,7 +31,6 @@ export interface LaunchOptions {
   // Kept as optional due to parse fn
   slotTime?: number;
   setParameters?: boolean;
-  wait?: boolean;
 }
 
 export const BASE_SERVICES = [
@@ -81,8 +80,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts,
-    parameterCollection,
-    wait: options.wait
+    parameterCollection
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);

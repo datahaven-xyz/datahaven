@@ -69,7 +69,7 @@ export const launchDataHavenSolochain = async (
     shouldLaunchDataHaven = await confirmWithTimeout(
       "Do you want to launch the DataHaven network?",
       true,
-      options.wait ? 10 : 0
+      10
     );
   } else {
     logger.info(
@@ -96,7 +96,7 @@ export const launchDataHavenSolochain = async (
         shouldRelaunch = await confirmWithTimeout(
           "Do you want to clean and relaunch the DataHaven containers?",
           true,
-          options.wait ? 10 : 0
+          10
         );
       }
 
@@ -273,7 +273,7 @@ const buildLocalImage = async (options: LaunchOptions) => {
     shouldBuildDataHaven = await confirmWithTimeout(
       "Do you want to build the DataHaven node local Docker image?",
       true,
-      options.wait ? 10 : 0
+      10
     );
   } else {
     logger.info(

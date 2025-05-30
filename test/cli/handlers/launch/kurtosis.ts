@@ -23,7 +23,7 @@ export const launchKurtosis = async (
     shouldLaunchKurtosis = await confirmWithTimeout(
       "Do you want to launch the Kurtosis network?",
       true,
-      options.wait ? 10 : 0
+      10
     );
   }
 
@@ -47,7 +47,7 @@ export const launchKurtosis = async (
         shouldRelaunch = await confirmWithTimeout(
           "Do you want to clean and relaunch the Kurtosis enclave?",
           true,
-          options.wait ? 10 : 0
+          10
         );
       }
 

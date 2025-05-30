@@ -16,7 +16,6 @@ interface DeployContractsOptions {
   blockscoutBackendUrl?: string;
   deployContracts?: boolean;
   parameterCollection?: ParameterCollection;
-  wait?: boolean;
 }
 
 /**
@@ -45,7 +44,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     shouldDeployContracts = await confirmWithTimeout(
       "Do you want to deploy the smart contracts?",
       true,
-      options.wait ? 10 : 0
+      10
     );
   } else {
     logger.info(

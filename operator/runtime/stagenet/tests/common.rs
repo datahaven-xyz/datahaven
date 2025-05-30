@@ -79,8 +79,8 @@ pub fn last_event() -> RuntimeEvent {
 
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
     snowbridge_core::AssetMetadata {
-        name: b"DataHaven Stagenet".to_vec().try_into().unwrap(),
-        symbol: b"sDH".to_vec().try_into().unwrap(),
+        name: b"HAVE".to_vec().try_into().unwrap(),
+        symbol: b"wHAVE".to_vec().try_into().unwrap(),
         decimals: 18,
     }
 }

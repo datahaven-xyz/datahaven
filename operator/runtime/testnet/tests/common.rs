@@ -84,8 +84,8 @@ pub fn last_event() -> RuntimeEvent {
 
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
     snowbridge_core::AssetMetadata {
-        name: b"DataHaven Testnet".to_vec().try_into().unwrap(),
-        symbol: b"tDH".to_vec().try_into().unwrap(),
+        name: b"HAVE".to_vec().try_into().unwrap(),
+        symbol: b"wHAVE".to_vec().try_into().unwrap(),
         decimals: 18,
     }
 }

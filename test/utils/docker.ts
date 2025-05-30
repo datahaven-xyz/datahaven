@@ -66,7 +66,7 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
 };
 
 export const getContainersMatchingImage = async (imageName: string) => {
-  const containers = await docker.listContainers();
+  const containers = await docker.listContainers({ all: true });
   const matches = containers.filter((container) => container.Image.includes(imageName));
   return matches;
 };

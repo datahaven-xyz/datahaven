@@ -14,7 +14,7 @@ import {DataHavenSnowbridgeMessages} from "../src/libraries/DataHavenSnowbridgeM
 // cargo test --test decode_receive_validators_message_from_file_correctly
 // The test should pass.
 contract MessageEncodingTest is Test {
-    function testEncodeReceiveValidatorsMessageAndLog() public {
+    function testEncodeReceiveValidatorsMessageAndLog() public pure {
         // Mock Data -
         uint64 mockNonce = 12345;
         bytes32 mockTopic = 0x123456789012345678901234567890123456789012345678901234567890abcd;

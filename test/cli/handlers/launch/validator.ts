@@ -104,7 +104,7 @@ export const performValidatorSetUpdate = async (
       rpcUrl: networkRpcUrl
     });
   } else {
-    logger.debug("Skipping validator set update");
+    logger.info("👍 Skipping validator set update");
     printDivider();
   }
 };

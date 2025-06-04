@@ -5,6 +5,8 @@ use parity_scale_codec::DecodeAll;
 use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
 use sp_std::vec::Vec;
 
+// Message ID. This is not expected to change and its arbitrary bytes defined here.
+// It should match the EL_MESSAGE_ID in DataHavenSnowbridgeMessages.sol
 pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56]; // 0x70150038
 
 #[derive(Encode, Decode)]

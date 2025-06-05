@@ -147,11 +147,14 @@ export const ExecutionRelayConfigSchema = z.object({
     totalRelayerCount: z.number(),
     sleepInterval: z.number()
   }),
-  ofac: z.object({
-    enabled: z.boolean(),
-    apiKey: z.string()
-  })
+  ofac: z
+    .object({
+      enabled: z.boolean(),
+      apiKey: z.string()
+    })
+    .optional()
 });
+
 export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;
 
 export type RelayerType = "beefy" | "beacon" | "solochain" | "execution";

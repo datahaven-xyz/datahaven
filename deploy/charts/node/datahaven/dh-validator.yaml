@@ -11,7 +11,6 @@ imagePullSecrets:
   - name: datahaven-dockerhub
 
 node:
-  chain: stagenet-local
   command: datahaven-node
   # customChainspecUrl: http://dh-bootnode:8080/chainspec.json
   # forceDownloadChainspec: true
@@ -78,4 +77,4 @@ extraInitContainers:
         fi
     volumeMounts:
       - mountPath: /chain-data
-        name: chain-data
+        name: chain-data 

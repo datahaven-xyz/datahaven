@@ -101,23 +101,23 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       pk: {
         substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
       }
-    },
-    {
-      name: "relayer-⛓️",
-      configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
-      config: {
-        type: "solochain",
-        ethElRpcEndpoint,
-        substrateWsEndpoint,
-        beefyClientAddress,
-        gatewayAddress,
-        ethClEndpoint
-      },
-      pk: {
-        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
-        substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
-      }
     }
+    // {
+    //   name: "relayer-⛓️",
+    //   configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+    //   config: {
+    //     type: "solochain",
+    //     ethElRpcEndpoint,
+    //     substrateWsEndpoint,
+    //     beefyClientAddress,
+    //     gatewayAddress,
+    //     ethClEndpoint
+    //   },
+    //   pk: {
+    //     ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+    //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
+    //   }
+    // }
   ];
 
   for (const relayerSpec of relayersToStart) {
@@ -156,14 +156,34 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
       // Adding secret key as Kubernetes secret
-      invariant(pk.substrate, "❌ Substrate private key is required for relayer");
-      const secretName = `dh-${config.type}-relay-substrate-key`;
-      logger.debug(
-        await $`kubectl create secret generic ${secretName} \
-        --from-literal=pvk="${pk.substrate}" \
+      const secrets: { pk: string; name: string }[] = [];
+      switch (config.type) {
+        case "beacon":
+          invariant(pk.substrate, "❌ Substrate private key is required for beacon relayer");
+          secrets.push({ pk: pk.substrate, name: `dh-${config.type}-relay-substrate-key` });
+          break;
+        case "beefy":
+          invariant(pk.ethereum, "❌ Ethereum private key is required for beefy relayer");
+          secrets.push({ pk: pk.ethereum, name: `dh-${config.type}-relay-ethereum-key` });
+          break;
+        case "solochain":
+          invariant(pk.substrate, "❌ Substrate private key is required for solochain relayer");
+          invariant(pk.ethereum, "❌ Ethereum private key is required for solochain relayer");
+          secrets.push({ pk: pk.substrate, name: `dh-${config.type}-relay-substrate-key` });
+          secrets.push({ pk: pk.ethereum, name: `dh-${config.type}-relay-ethereum-key` });
+          break;
+        case "execution":
+          throw new Error("Execution relayer not supported yet");
+      }
+
+      for (const secret of secrets) {
+        logger.debug(
+          await $`kubectl create secret generic ${secret.name} \
+        --from-literal=pvk="${secret.pk}" \
         -n ${launchedNetwork.kubeNamespace}`.text()
-      );
-      logger.success("Secret key added to Kubernetes");
+        );
+        logger.success(`Secret key ${secret.name} added to Kubernetes`);
+      }
 
       // Deploying relayer with helm chart
       const relayerTimeout = "2m"; // 2 minutes

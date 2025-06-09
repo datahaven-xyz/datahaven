@@ -211,28 +211,34 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
       const relayerCommandArgs: string[] = ["run", config.type, "--config", configFilePath];
 
-      if (config.type === "beacon") {
-        if (!pk.substrate) {
-          throw new Error("Substrate private key is required for beacon relayer");
-        }
-        relayerCommandArgs.push("--substrate.private-key", pk.substrate);
-      } else if (config.type === "beefy") {
-        if (!pk.ethereum) {
-          throw new Error("Ethereum private key is required for beefy relayer");
-        }
-        relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
-      } else if (config.type === "solochain") {
-        if (!pk.ethereum) {
-          throw new Error("Ethereum private key is required for solochain relayer");
-        }
-        relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
-        if (pk.substrate) {
+      switch (config.type) {
+        case "beacon":
+          if (!pk.substrate) {
+            throw new Error("Substrate private key is required for beacon relayer");
+          }
           relayerCommandArgs.push("--substrate.private-key", pk.substrate);
-        } else {
-          logger.warn(
-            "⚠️ No substrate private key provided for solochain relayer. This might be an issue depending on the configuration."
-          );
-        }
+          break;
+        case "beefy":
+          if (!pk.ethereum) {
+            throw new Error("Ethereum private key is required for beefy relayer");
+          }
+          relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+          break;
+        case "solochain":
+          if (!pk.ethereum) {
+            throw new Error("Ethereum private key is required for solochain relayer");
+          }
+          relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+          if (pk.substrate) {
+            relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          } else {
+            logger.warn(
+              "⚠️ No substrate private key provided for solochain relayer. This might be an issue depending on the configuration."
+            );
+          }
+          break;
+        case "execution":
+          throw new Error("Execution relayer not supported yet");
       }
 
       const command: string[] = [

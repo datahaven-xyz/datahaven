@@ -394,8 +394,8 @@ export const initEthClientPallet = async (
   datastorePath: string
 ) => {
   logger.debug("Initialising eth client pallet");
-  // Poll the beacon chain until it's ready every 10 seconds for 20 minutes
-  await waitBeaconChainReady(launchedNetwork, 10000, 1200000);
+  // Poll the beacon chain until it's ready every 10 seconds for 10 minutes
+  await waitBeaconChainReady(launchedNetwork, 10000, 600000);
 
   const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
   const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;

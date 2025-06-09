@@ -6,7 +6,7 @@
     },
     "sink": {
         "ethereum": {
-            "endpoint": "ws://el-1-reth-lighthouse:8546",
+            "endpoint": "ws://el-1-geth-lighthouse:8546",
             "gas-limit": ""
         },
         "descendants-until-final": 3,

@@ -150,12 +150,12 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     const json = await file.json();
 
     const ethWsPort = await getPortFromKurtosis(
-      "el-1-reth-lighthouse",
+      "el-1-geth-lighthouse",
       "ws",
       options.kurtosisEnclaveName
     );
     const ethHttpPort = await getPortFromKurtosis(
-      "cl-1-lighthouse-reth",
+      "cl-1-lighthouse-geth",
       "http",
       options.kurtosisEnclaveName
     );

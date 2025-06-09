@@ -6,9 +6,11 @@ import {
   parseDeploymentsFile,
   printDivider,
   printHeader,
-  runShellCommandWithLogger
+  runShellCommandWithLogger,
+  waitForNodeToSync
 } from "utils";
 import type { ParameterCollection } from "utils/parameters";
+
 
 interface DeployContractsOptions {
   rpcUrl: string;
@@ -80,6 +82,11 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     throw Error("❌ Contracts have failed to build properly.");
   }
   logger.debug(buildStdout.toString());
+  
+  
+  // Check if the node is syncing before deploying
+  logger.info("🔄 Checking if node is syncing...");
+  await waitForNodeToSync(rpcUrl);
 
   let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 

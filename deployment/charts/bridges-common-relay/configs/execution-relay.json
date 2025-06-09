@@ -1,15 +1,15 @@
 {
     "source": {
         "ethereum": {
-            "endpoint": "ws://el-1-reth-lighthouse:8546"
+            "endpoint": "ws://el-1-geth-lighthouse:8546"
         },
         "contracts": {
             "Gateway": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf"
         },
         "channel-id": "",
         "beacon": {
-            "endpoint": "http://cl-1-lighthouse-reth:4000",
-            "stateEndpoint": "http://cl-1-lighthouse-reth:4000",
+            "endpoint": "http://cl-1-lighthouse-geth:4000",
+            "stateEndpoint": "http://cl-1-lighthouse-geth:4000",
             "spec": {
                 "syncCommitteeSize": 512,
                 "slotsInEpoch": 32,

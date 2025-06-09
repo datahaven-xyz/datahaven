@@ -35,10 +35,10 @@ export interface LaunchOptions {
 }
 
 export const BASE_SERVICES = [
-  "cl-1-lighthouse-reth",
-  "cl-2-lighthouse-reth",
-  "el-1-reth-lighthouse",
-  "el-2-reth-lighthouse",
+  "cl-1-lighthouse-geth",
+  "cl-2-lighthouse-geth",
+  "el-1-geth-lighthouse",
+  "el-2-geth-lighthouse",
   "dora"
 ];
 

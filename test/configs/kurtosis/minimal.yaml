@@ -1,5 +1,5 @@
 participants:
-  - el_type: reth
+  - el_type: geth
     cl_type: lighthouse
     count: 2
 

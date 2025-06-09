@@ -46,8 +46,8 @@ export const ANVIL_FUNDED_ACCOUNTS = {
 export const CHAIN_ID = 3151908;
 
 export const CONTAINER_NAMES = {
-  EL1: "el-1-reth-lighthouse",
-  EL2: "el-2-reth-lighthouse",
+  EL1: "el-1-geth-lighthouse",
+  EL2: "el-2-geth-lighthouse",
   "blockscout-be": "blockscout--",
   "blockscout-fe": "blockscout-frontend--"
 } as const;

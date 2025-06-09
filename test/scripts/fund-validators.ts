@@ -1,9 +1,9 @@
+// Script to fund validators with tokens and ETH for local testing
 import fs from "node:fs";
 import path from "node:path";
-// Script to fund validators with tokens and ETH for local testing
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "../utils/index";
+import { logger, printDivider, printHeader, waitForNodeToSync } from "../utils/index";
 
 interface FundValidatorsOptions {
   rpcUrl: string;
@@ -56,6 +56,10 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
   // Validate RPC URL
   invariant(rpcUrl, "❌ RPC URL is required");
+
+  // Check if the node is syncing before proceeding
+  logger.info("🔄 Checking if node is syncing...");
+  await waitForNodeToSync(rpcUrl);
 
   // Load validator configuration - use default path if not specified
   const configPath = validatorsConfig || path.resolve(__dirname, "../configs/validator-set.json");
@@ -128,7 +132,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
   // We need to ensure all operators to be registered have the necessary tokens
   logger.info("💸 Funding validators with tokens...");
-
+  
   // Iterate through the strategies, using the embedded token information to fund validators
   for (const strategy of deployments.DeployedStrategies) {
     const strategyAddress = strategy.address;
@@ -152,7 +156,9 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
     // Get the ERC20 balance of the token creator and its ETH balance as well
     const getErc20BalanceCmd = `${castExecutable} balance --erc20 ${underlyingTokenAddress} ${tokenCreator} --rpc-url ${rpcUrl}`;
+    logger.debug(`Balance command call: ${getErc20BalanceCmd}`)
     const getEthBalanceCmd = `${castExecutable} balance ${tokenCreator} --rpc-url ${rpcUrl}`;
+    logger.debug(`ETH balance command call: ${getEthBalanceCmd}`);
     const { stdout: erc20BalanceOutput } = await $`sh -c ${getErc20BalanceCmd}`.quiet();
     const { stdout: ethBalanceOutput } = await $`sh -c ${getEthBalanceCmd}`.quiet();
     const creatorErc20Balance = erc20BalanceOutput.toString().trim().split(" ")[0];

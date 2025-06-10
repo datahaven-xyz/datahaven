@@ -16,7 +16,7 @@ export interface DeployOptions {
   environment: DeployEnvironment;
   kubeNamespace?: string;
   kurtosisEnclaveName: string;
-  slotTime?: number;
+  slotTime: number;
   kurtosisNetworkArgs?: string;
   verified?: boolean;
   blockscout?: boolean;

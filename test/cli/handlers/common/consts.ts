@@ -26,7 +26,7 @@ export const COMPONENTS = {
     optionName: "datahaven"
   },
   snowbridge: {
-    imageName: "snowbridge-relayer",
+    imageName: "snowbridge-relay",
     componentName: "Snowbridge Relayers",
     optionName: "relayer"
   }

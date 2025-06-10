@@ -177,21 +177,36 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       switch (config.type) {
         case "beacon":
           invariant(pk.substrate, "❌ Substrate private key is required for beacon relayer");
-          secrets.push({ pk: pk.substrate, name: `dh-${config.type}-relay-substrate-key` });
+          secrets.push({
+            pk: pk.substrate,
+            name: `dh-${config.type}-relay-substrate-key`
+          });
           break;
         case "beefy":
           invariant(pk.ethereum, "❌ Ethereum private key is required for beefy relayer");
-          secrets.push({ pk: pk.ethereum, name: `dh-${config.type}-relay-ethereum-key` });
+          secrets.push({
+            pk: pk.ethereum,
+            name: `dh-${config.type}-relay-ethereum-key`
+          });
           break;
         case "solochain":
           invariant(pk.substrate, "❌ Substrate private key is required for solochain relayer");
           invariant(pk.ethereum, "❌ Ethereum private key is required for solochain relayer");
-          secrets.push({ pk: pk.substrate, name: `dh-${config.type}-relay-substrate-key` });
-          secrets.push({ pk: pk.ethereum, name: `dh-${config.type}-relay-ethereum-key` });
+          secrets.push({
+            pk: pk.substrate,
+            name: `dh-${config.type}-relay-substrate-key`
+          });
+          secrets.push({
+            pk: pk.ethereum,
+            name: `dh-${config.type}-relay-ethereum-key`
+          });
           break;
         case "execution":
           invariant(pk.substrate, "❌ Substrate private key is required for execution relayer");
-          secrets.push({ pk: pk.substrate, name: `dh-${config.type}-relay-substrate-key` });
+          secrets.push({
+            pk: pk.substrate,
+            name: `dh-${config.type}-relay-substrate-key`
+          });
           break;
       }
 

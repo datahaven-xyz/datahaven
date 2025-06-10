@@ -155,7 +155,7 @@ program
   .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer",
-    "moonsonglabs/snowbridge-relayer:latest"
+    "moonsonglabs/snowbridge-relay:latest"
   )
   .hook("preAction", launchPreActionHook)
   .action(launch);

@@ -71,8 +71,8 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
-  const ethElRpcEndpoint = `ws://el-1-reth-lighthouse:${ETH_EL_RPC_PORT}`;
-  const ethClEndpoint = `http://cl-1-lighthouse-reth:${ETH_CL_HTTP_PORT}`;
+  const ethElRpcEndpoint = `ws://el-1-reth-lodestar:${ETH_EL_RPC_PORT}`;
+  const ethClEndpoint = `http://cl-1-lodestar-reth:${ETH_CL_HTTP_PORT}`;
   const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
   const relayersToStart: RelayerSpec[] = [
@@ -147,6 +147,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   await initEthClientPallet(
     path.resolve(localBeaconConfigFilePath),
     options.relayerImageTag,
+    "tmp/datastore",
     launchedNetwork
   );
 

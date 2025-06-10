@@ -142,8 +142,8 @@ export const modifyConfig = async (
  * the LaunchedNetwork instance with the appropriate RPC URLs and endpoints for client communication.
  *
  * Services registered:
- * - Execution Layer (EL): Reth RPC endpoint via "el-1-reth-lighthouse" service
- * - Consensus Layer (CL): Lighthouse HTTP endpoint via "cl-1-lighthouse-reth" service
+ * - Execution Layer (EL): Reth RPC endpoint via "el-1-reth-lodestar" service
+ * - Consensus Layer (CL): lodestar HTTP endpoint via "cl-1-lodestar-reth" service
  *
  * @param launchedNetwork - The LaunchedNetwork instance to populate with service endpoints
  * @param enclaveName - The name of the Kurtosis enclave containing the services
@@ -154,22 +154,18 @@ export const registerServices = async (launchedNetwork: LaunchedNetwork, enclave
 
   // Configure EL RPC URL
   try {
-    const rethPublicPort = await getPortFromKurtosis("el-1-reth-lighthouse", "rpc", enclaveName);
+    const rethPublicPort = await getPortFromKurtosis("el-1-reth-lodestar", "rpc", enclaveName);
     invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
     const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
     launchedNetwork.elRpcUrl = elRpcUrl;
     logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
 
     // Configure CL Endpoint
-    const lighthousePublicPort = await getPortFromKurtosis(
-      "cl-1-lighthouse-reth",
-      "http",
-      enclaveName
-    );
-    const clEndpoint = `http://127.0.0.1:${lighthousePublicPort}`;
+    const lodestarPublicPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", enclaveName);
+    const clEndpoint = `http://127.0.0.1:${lodestarPublicPort}`;
     invariant(
       clEndpoint,
-      "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lighthouse-reth"
+      "❌ CL Endpoint could not be determined from Kurtosis service cl-1-lodestar-reth"
     );
     launchedNetwork.clEndpoint = clEndpoint;
     logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);

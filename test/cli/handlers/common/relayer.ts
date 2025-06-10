@@ -28,7 +28,10 @@ export type BeefyConfig = {
 
 export type ExecutionConfig = {
   type: "execution";
-  // TODO: Add execution config
+  ethElRpcEndpoint: string;
+  ethClEndpoint: string;
+  substrateWsEndpoint: string;
+  gatewayAddress: string;
 };
 
 export type SolochainConfig = {
@@ -109,7 +112,17 @@ export const generateRelayerConfig = async (
       break;
     }
     case "execution": {
-      throw new Error("Execution relayers are not supported yet");
+      const cfg = parseRelayConfig(json, type);
+      cfg.source.ethereum.endpoint = config.ethElRpcEndpoint;
+      cfg.source.beacon.endpoint = config.ethClEndpoint;
+      cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
+      cfg.source.beacon.datastore.location = "/data";
+      cfg.sink.parachain.endpoint = config.substrateWsEndpoint;
+      cfg.source.contracts.Gateway = config.gatewayAddress;
+
+      await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+      logger.success(`Updated execution config written to ${outputFilePath}`);
+      break;
     }
     case "solochain": {
       const cfg = parseRelayConfig(json, type);
@@ -196,17 +209,19 @@ export const waitBeaconChainReady = async (
  *
  * @param beaconConfigHostPath - The host path to the beacon configuration file.
  * @param relayerImageTag - The Docker image tag for the relayer.
+ * @param datastorePath - The path to the datastore directory.
  * @param launchedNetwork - An instance of LaunchedNetwork to interact with the running network.
  * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
  */
 export const initEthClientPallet = async (
   beaconConfigHostPath: string,
   relayerImageTag: string,
+  datastorePath: string,
   launchedNetwork: LaunchedNetwork
 ) => {
   logger.debug("Initialising eth client pallet");
-  // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
-  await waitBeaconChainReady(launchedNetwork, 10000, 300000);
+  // Poll the beacon chain until it's ready every 10 seconds for 10 minutes
+  await waitBeaconChainReady(launchedNetwork, 10000, 600000);
 
   const beaconConfigContainerPath = "/app/beacon-relay.json";
   const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
@@ -220,9 +235,11 @@ export const initEthClientPallet = async (
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
   logger.debug("Generating beacon checkpoint");
+  const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
+      -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint \
       --workdir /app \
       ${launchedNetwork.networkName ? `--network ${launchedNetwork.networkName}` : ""} \

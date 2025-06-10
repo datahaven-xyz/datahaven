@@ -101,12 +101,12 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   await $`mkdir -p ${datastorePath}`.quiet();
 
   const ethWsPort = await getPortFromKurtosis(
-    "el-1-reth-lighthouse",
+    "el-1-reth-lodestar",
     "ws",
     options.kurtosisEnclaveName
   );
   const ethHttpPort = await getPortFromKurtosis(
-    "cl-1-lighthouse-reth",
+    "cl-1-lodestar-reth",
     "http",
     options.kurtosisEnclaveName
   );
@@ -160,11 +160,16 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     },
     {
       name: "relayer-⚙️",
-      type: "execution",
-      config: RELAYER_CONFIG_PATHS.EXECUTION,
+      configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
+      config: {
+        type: "execution",
+        ethElRpcEndpoint,
+        ethClEndpoint,
+        substrateWsEndpoint,
+        gatewayAddress
+      },
       pk: {
-        type: "substrate",
-        value: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
       }
     }
   ];
@@ -182,6 +187,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   await initEthClientPallet(
     path.resolve(RELAYER_CONFIG_PATHS.BEACON),
     options.relayerImageTag,
+    datastorePath,
     launchedNetwork
   );
 
@@ -212,8 +218,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       ];
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
-      const hostDatastorePath = path.resolve(datastorePath);
-      const containerDatastorePath = "/data";
 
       if (config.type === "beacon" || config.type === "execution") {
         const hostDatastorePath = path.resolve(datastorePath);

@@ -113,7 +113,6 @@ export const SolochainRelayConfigSchema = z.object({
     apiKey: z.string()
   })
 });
-
 export type SolochainRelayConfig = z.infer<typeof SolochainRelayConfigSchema>;
 
 export const ExecutionRelayConfigSchema = z.object({

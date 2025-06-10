@@ -102,6 +102,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
         substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
       }
     }
+    // TODO: Add solochain relayer
     // {
     //   name: "relayer-⛓️",
     //   configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
@@ -116,6 +117,21 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
     //   pk: {
     //     ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
     //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
+    //   }
+    // },
+    // TODO: Add execution relayer
+    // {
+    //   name: "relayer-⚙️",
+    //   configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
+    //   config: {
+    //     type: "execution",
+    //     ethElRpcEndpoint,
+    //     ethClEndpoint,
+    //     substrateWsEndpoint,
+    //     gatewayAddress
+    //   },
+    //   pk: {
+    //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
     //   }
     // }
   ];
@@ -174,7 +190,9 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
           secrets.push({ pk: pk.ethereum, name: `dh-${config.type}-relay-ethereum-key` });
           break;
         case "execution":
-          throw new Error("Execution relayer not supported yet");
+          invariant(pk.substrate, "❌ Substrate private key is required for execution relayer");
+          secrets.push({ pk: pk.substrate, name: `dh-${config.type}-relay-substrate-key` });
+          break;
       }
 
       for (const secret of secrets) {

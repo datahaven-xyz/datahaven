@@ -229,21 +229,15 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
       switch (config.type) {
         case "beacon":
-          if (!pk.substrate) {
-            throw new Error("Substrate private key is required for beacon relayer");
-          }
+          invariant(pk.substrate, "❌ Substrate private key is required for beacon relayer");
           relayerCommandArgs.push("--substrate.private-key", pk.substrate);
           break;
         case "beefy":
-          if (!pk.ethereum) {
-            throw new Error("Ethereum private key is required for beefy relayer");
-          }
+          invariant(pk.ethereum, "❌ Ethereum private key is required for beefy relayer");
           relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
           break;
         case "solochain":
-          if (!pk.ethereum) {
-            throw new Error("Ethereum private key is required for solochain relayer");
-          }
+          invariant(pk.ethereum, "❌ Ethereum private key is required for solochain relayer");
           relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
           if (pk.substrate) {
             relayerCommandArgs.push("--substrate.private-key", pk.substrate);
@@ -254,7 +248,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
           }
           break;
         case "execution":
-          throw new Error("Execution relayer not supported yet");
+          invariant(pk.substrate, "❌ Substrate private key is required for execution relayer");
+          relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          break;
       }
 
       const command: string[] = [

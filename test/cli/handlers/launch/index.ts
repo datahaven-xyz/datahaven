@@ -9,7 +9,7 @@ import { launchKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
-import { performValidatorOperations } from "./validator";
+import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
 // Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {
@@ -84,6 +84,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   });
 
   await launchRelayers(options, launchedNetwork);
+
+  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

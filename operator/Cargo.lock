@@ -2821,6 +2821,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "hex",
  "pallet-external-validators",
  "parity-scale-codec",
  "snowbridge-core 0.2.0",

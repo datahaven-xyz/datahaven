@@ -322,10 +322,10 @@ mod runtime {
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
     #[runtime::pallet_index(61)]
-    pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+    pub type EthereumInboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
 
     #[runtime::pallet_index(62)]
-    pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+    pub type EthereumOutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
 
     #[runtime::pallet_index(63)]
     pub type SnowbridgeSystem = snowbridge_pallet_system;

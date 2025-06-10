@@ -27,6 +27,7 @@ const RELAYER_CONFIG_DIR = "tmp/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
+  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json"),
   SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 
@@ -156,6 +157,15 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
         substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
       }
+    },
+    {
+      name: "relayer-⚙️",
+      type: "execution",
+      config: RELAYER_CONFIG_PATHS.EXECUTION,
+      pk: {
+        type: "substrate",
+        value: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+      }
     }
   ];
 
@@ -202,8 +212,10 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       ];
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+      const hostDatastorePath = path.resolve(datastorePath);
+      const containerDatastorePath = "/data";
 
-      if (config.type === "beacon") {
+      if (config.type === "beacon" || config.type === "execution") {
         const hostDatastorePath = path.resolve(datastorePath);
         const containerDatastorePath = "/data";
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
@@ -337,5 +349,7 @@ const waitBeefyReady = async (
     if (client) {
       client.destroy();
     }
+
+    // throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   }
 };

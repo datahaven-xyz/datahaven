@@ -1,23 +1,23 @@
 {
-    "source": {
-        "polkadot": {
-            "endpoint": "ws://dh-validator-0:9944"
-        }
-    },
-    "sink": {
-        "ethereum": {
-            "endpoint": "ws://el-1-reth-lighthouse:8546",
-            "gas-limit": ""
-        },
-        "descendants-until-final": 3,
-        "contracts": {
-            "BeefyClient": "0x4826533B4897376654Bb4d4AD88B7faFD0C98528",
-            "Gateway": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf"
-        }
-    },
-    "on-demand-sync": {
-        "max-tokens": 5,
-        "refill-amount": 1,
-        "refill-period": 3600
+  "source": {
+    "polkadot": {
+      "endpoint": "ws://dh-validator-0:9944"
     }
+  },
+  "sink": {
+    "ethereum": {
+      "endpoint": "ws://el-1-reth-lodestar:8546",
+      "gas-limit": ""
+    },
+    "descendants-until-final": 3,
+    "contracts": {
+      "BeefyClient": "0x4826533B4897376654Bb4d4AD88B7faFD0C98528",
+      "Gateway": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf"
+    }
+  },
+  "on-demand-sync": {
+    "max-tokens": 5,
+    "refill-amount": 1,
+    "refill-period": 3600
+  }
 }

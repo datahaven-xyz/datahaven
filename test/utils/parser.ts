@@ -64,16 +64,6 @@ export const BeefyRelayConfigSchema = z.object({
 });
 export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 
-// TODO: Add execution relay config schema
-export const ExecutionRelayConfigSchema = z.object({
-  source: z.object({
-    execution: z.object({
-      endpoint: z.string()
-    })
-  })
-});
-export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;
-
 export const SolochainRelayConfigSchema = z.object({
   source: z.object({
     ethereum: z.object({
@@ -123,9 +113,59 @@ export const SolochainRelayConfigSchema = z.object({
     apiKey: z.string()
   })
 });
+
 export type SolochainRelayConfig = z.infer<typeof SolochainRelayConfigSchema>;
 
-export type RelayerType = "beefy" | "beacon" | "execution" | "solochain";
+export const ExecutionRelayConfigSchema = z.object({
+  source: z.object({
+    ethereum: z.object({
+      endpoint: z.string()
+    }),
+    contracts: z.object({
+      Gateway: z.string()
+    }),
+    beacon: z.object({
+      endpoint: z.string(),
+      stateEndpoint: z.string(),
+      spec: z.object({
+        syncCommitteeSize: z.number(),
+        slotsInEpoch: z.number(),
+        epochsPerSyncCommitteePeriod: z.number(),
+        forkVersions: z.object({
+          deneb: z.number(),
+          electra: z.number()
+        })
+      }),
+      datastore: z.object({
+        location: z.string(),
+        maxEntries: z.number()
+      })
+    })
+  }),
+  sink: z.object({
+    parachain: z.object({
+      endpoint: z.string(),
+      maxWatchedExtrinsics: z.number(),
+      headerRedundancy: z.number()
+    })
+  }),
+  instantVerification: z.boolean(),
+  schedule: z.object({
+    id: z.number().nullable(),
+    totalRelayerCount: z.number(),
+    sleepInterval: z.number()
+  }),
+  ofac: z
+    .object({
+      enabled: z.boolean(),
+      apiKey: z.string()
+    })
+    .optional()
+});
+
+export type ExecutionRelayConfig = z.infer<typeof ExecutionRelayConfigSchema>;
+
+export type RelayerType = "beefy" | "beacon" | "solochain" | "execution";
 
 /**
  * Parse beacon relay configuration
@@ -149,15 +189,6 @@ function parseBeefyConfig(config: unknown): BeefyRelayConfig {
   throw new Error(`Failed to parse config as BeefyRelayConfig: ${result.error.message}`);
 }
 
-/** */
-function parseExecutionConfig(config: unknown): ExecutionRelayConfig {
-  const result = ExecutionRelayConfigSchema.safeParse(config);
-  if (result.success) {
-    return result.data;
-  }
-  throw new Error(`Failed to parse config as ExecutionRelayConfig: ${result.error.message}`);
-}
-
 /**
  * Parse solochain relay configuration
  */
@@ -170,12 +201,14 @@ function parseSolochainConfig(config: unknown): SolochainRelayConfig {
 }
 
 /**
- * Type Guard to check if a config object is a BeaconRelayConfig
+ * Parse execution relay configuration
  */
-export function isBeaconConfig(
-  config: BeaconRelayConfig | BeefyRelayConfig
-): config is BeaconRelayConfig {
-  return "beacon" in config.source;
+function parseExecutionConfig(config: unknown): ExecutionRelayConfig {
+  const result = ExecutionRelayConfigSchema.safeParse(config);
+  if (result.success) {
+    return result.data;
+  }
+  throw new Error(`Failed to parse config as ExecutionRelayConfig: ${result.error.message}`);
 }
 
 export function parseRelayConfig(config: unknown, type: "beacon"): BeaconRelayConfig;
@@ -186,6 +219,7 @@ export function parseRelayConfig(
   config: unknown,
   type: RelayerType
 ): BeaconRelayConfig | BeefyRelayConfig | ExecutionRelayConfig | SolochainRelayConfig;
+
 export function parseRelayConfig(
   config: unknown,
   type: RelayerType

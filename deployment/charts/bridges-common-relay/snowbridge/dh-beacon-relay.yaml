@@ -3,7 +3,7 @@ description: Datahaven Beacon Relay
 fullnameOverride: dh-beacon-relay
 
 image:
-  repository: moonsonglabs/snowbridge-relayer
+  repository: moonsonglabs/snowbridge-relay
   pullPolicy: Always
   tag: latest
 

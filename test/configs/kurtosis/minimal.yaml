@@ -1,6 +1,6 @@
 participants:
-  - el_type: geth
-    cl_type: lighthouse
+  - el_type: reth
+    cl_type: lodestar
     count: 2
 
 additional_services:

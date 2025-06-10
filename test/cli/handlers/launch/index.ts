@@ -8,7 +8,7 @@ import { launchKurtosis } from "./kurtosis";
 import { LaunchedNetwork } from "./launchedNetwork";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
-import { performValidatorOperations } from "./validator";
+import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
 // Non-optional properties determined by having default values
 export interface LaunchOptions {
@@ -35,10 +35,10 @@ export interface LaunchOptions {
 }
 
 export const BASE_SERVICES = [
-  "cl-1-lighthouse-geth",
-  "cl-2-lighthouse-geth",
-  "el-1-geth-lighthouse",
-  "el-2-geth-lighthouse",
+  "cl-1-lodestar-reth",
+  "cl-2-lodestar-reth",
+  "el-1-reth-lodestar",
+  "el-2-reth-lodestar",
   "dora"
 ];
 
@@ -93,6 +93,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     collection: parameterCollection,
     setParameters: options.setParameters
   });
+
+  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

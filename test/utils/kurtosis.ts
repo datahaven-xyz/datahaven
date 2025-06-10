@@ -22,23 +22,23 @@ export type KurtosisServiceInfo = {
 };
 
 export const standardKurtosisServices = [
-  "el-1-geth-lighthouse",
-  "el-2-geth-lighthouse",
-  "vc-1-geth-lighthouse",
-  "vc-2-geth-lighthouse",
+  "el-1-reth-lodestar",
+  "el-2-reth-lodestar",
+  "vc-1-reth-lodestar",
+  "vc-2-reth-lodestar",
   "dora"
 ];
 
 export const StandardServiceMappings: ServiceMapping[] = [
   {
-    service: "geth-1-rpc",
-    containerPattern: "el-1-geth-lighthouse",
+    service: "reth-1-rpc",
+    containerPattern: "el-1-reth-lodestar",
     internalPort: 8545,
     protocol: "tcp"
   },
   {
-    service: "geth-2-rpc",
-    containerPattern: "el-2-geth-lighthouse",
+    service: "reth-2-rpc",
+    containerPattern: "el-2-reth-lodestar",
     internalPort: 8545,
     protocol: "tcp"
   },

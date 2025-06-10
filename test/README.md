@@ -44,8 +44,8 @@ Follow these steps to set up and interact with your test environment:
    1. Check for required dependencies.
    2. Launch a DataHaven solochain.
    3. Start a Kurtosis network which includes:
-      - 2 Ethereum Execution Layer clients (geth)
-      - 2 Ethereum Consensus Layer clients (lighthouse)
+      - 2 Ethereum Execution Layer clients (reth)
+      - 2 Ethereum Consensus Layer clients (lodestar)
       - Blockscout Explorer services for EL (if enabled with --blockscout)
       - Dora Explorer service for CL
    4. Deploy DataHaven smart contracts to the Ethereum network. This can optionally include verification on Blockscout if the `--verified` flag is used (requires Blockscout to be enabled).

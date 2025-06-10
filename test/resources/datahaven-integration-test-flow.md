@@ -18,8 +18,8 @@ The first step involves setting up the testing infrastructure using Kurtosis, a 
 ### Components Launched
 
 - **Ethereum Network**
-  - Execution Layer (EL) clients: geth nodes
-  - Consensus Layer (CL) clients: lighthouse nodes
+  - Execution Layer (EL) clients: reth nodes
+  - Consensus Layer (CL) clients: lodestar nodes
   - Block explorer (Blockscout) for monitoring
 - **DataHaven Solochain**
   - Multiple validator nodes to form a test network

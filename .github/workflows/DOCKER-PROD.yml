@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       label:
-        description: 'Label for the Docker image'
+        description: "Label for the Docker image"
         required: true
         type: string
       branch:
-        description: 'Branch to checkout and build'
+        description: "Branch to checkout and build"
         required: true
         type: string
       fast_runtime:
-        description: 'Enable fast runtime features'
+        description: "Enable fast runtime features"
         required: false
         type: boolean
         default: false
@@ -116,6 +116,7 @@ jobs:
       - name: Build and push Docker image
         id: build
         uses: docker/build-push-action@v5
+        timeout-minutes: 240 # 4 hours
         with:
           context: ./operator
           file: ./operator/Dockerfile

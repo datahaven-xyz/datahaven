@@ -19,8 +19,8 @@ datahaven/
 This repo comes with a CLI for launching a local DataHaven network, packaged with:
 
 1. A full Ethereum network with:
-   - 2 x Execution Layer clients (e.g., geth)
-   - 2 x Consensus Layer clients (e.g., lighthouse)
+   - 2 x Execution Layer clients (e.g., reth)
+   - 2 x Consensus Layer clients (e.g., lodestar)
    - Blockscout Explorer services for EL (if enabled with --blockscout)
    - Dora Explorer service for CL
    - Contracts deployed and configured for the DataHaven network.

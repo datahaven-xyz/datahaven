@@ -6,7 +6,6 @@
         "contracts": {
             "Gateway": ""
         },
-        "channel-id": "",
         "beacon": {
             "endpoint": "http://127.0.0.1:9596",
             "stateEndpoint": "http://127.0.0.1:9596",

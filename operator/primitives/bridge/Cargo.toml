@@ -15,6 +15,7 @@ parity-scale-codec = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
 sp-std = { workspace = true }
+hex = { workspace = true }
 
 [features]
 default = ["std"]
@@ -25,4 +26,5 @@ std = [
     "parity-scale-codec/std",
     "pallet-external-validators/std",
     "sp-std/std",
+    "snowbridge-inbound-queue-primitives/std",
 ]

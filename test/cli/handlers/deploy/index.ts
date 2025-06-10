@@ -80,8 +80,6 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
 
   await deployRelayers(options, launchedNetwork);
 
-  // TODO: Add summary to suggest the user to forward ports and show commands to do so.
-
   // Cleaning up the port forwarding for the validator.
   await validatorPortForwardCleanup();
 

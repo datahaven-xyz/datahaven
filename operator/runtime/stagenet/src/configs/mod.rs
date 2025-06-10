@@ -640,7 +640,9 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    pub UniversalLocation: InteriorLocation = Here;
+    // TODO: Change this to the actual network ID of DataHaven
+    pub const ThisNetwork: NetworkId = NetworkId::Polkadot;
+    pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetwork::get())].into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
     pub RootLocation: Location = Location::here();
     pub Parameters: PricingParameters<u128> = PricingParameters {

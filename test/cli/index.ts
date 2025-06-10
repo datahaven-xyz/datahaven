@@ -85,7 +85,7 @@ program
   .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer image to use",
-    "moonsonglabs/snowbridge-relayer:latest"
+    "moonsonglabs/snowbridge-relay:latest"
   )
   .option("--docker-username <value>", "Docker Hub username")
   .option("--docker-password <value>", "Docker Hub password")

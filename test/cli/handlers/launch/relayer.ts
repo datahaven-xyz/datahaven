@@ -349,7 +349,5 @@ const waitBeefyReady = async (
     if (client) {
       client.destroy();
     }
-
-    // throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
   }
 };

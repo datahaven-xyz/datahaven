@@ -241,6 +241,8 @@ export const initEthClientPallet = async (
       -v ${checkpointHostPath}:${checkpointContainerPath} \
       -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint \
+      --platform linux/amd64 \
+      --pull always \
       --workdir /app \
       ${launchedNetwork.networkName ? `--network ${launchedNetwork.networkName}` : ""} \
       ${relayerImageTag} \

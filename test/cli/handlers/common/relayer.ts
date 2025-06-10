@@ -225,7 +225,6 @@ export const initEthClientPallet = async (
       -v ${checkpointHostPath}:${checkpointContainerPath} \
       --name generate-beacon-checkpoint \
       --workdir /app \
-      --add-host host.docker.internal:host-gateway \
       ${launchedNetwork.networkName ? `--network ${launchedNetwork.networkName}` : ""} \
       ${relayerImageTag} \
       generate-beacon-checkpoint --config beacon-relay.json --export-json`;

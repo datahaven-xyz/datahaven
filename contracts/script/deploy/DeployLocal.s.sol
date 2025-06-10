@@ -5,6 +5,7 @@ pragma solidity ^0.8.27;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {DeployParams} from "./DeployParams.s.sol";
+import {TrackedState} from "./TrackedState.s.sol";
 import {Logging} from "../utils/Logging.sol";
 import {Accounts} from "../utils/Accounts.sol";
 // Snowbridge imports
@@ -74,7 +75,7 @@ struct StrategyInfo {
     address tokenCreator;
 }
 
-contract Deploy is Script, DeployParams, Accounts {
+contract Deploy is Script, DeployParams, Accounts, TrackedState {
     // Progress indicator
     uint16 public deploymentStep = 0;
     uint16 public totalSteps = 4; // Total major deployment steps
@@ -109,7 +110,7 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logProgress(deploymentStep, totalSteps);
     }
 
-    function run() public {
+    function run() public withStateDiff {
         Logging.logHeader("DATAHAVEN DEPLOYMENT SCRIPT");
         console.log("|  Network: %s", vm.envOr("NETWORK", string("anvil")));
         console.log("|  Timestamp: %s", vm.toString(block.timestamp));

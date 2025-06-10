@@ -39,6 +39,7 @@ program
   .option("--nlk, --no-launch-kurtosis", "Skip launching Kurtosis Ethereum network")
   .option("--dc, --deploy-contracts", "Deploy smart contracts")
   .option("--ndc, --no-deploy-contracts", "Skip deploying smart contracts")
+  .option("--ic, --inject-contracts", "Inject smart contracts from saved state diff")
   .option("--fv, --fund-validators", "Fund validators")
   .option("--nfv, --no-fund-validators", "Skip funding validators")
   .option("--sv, --setup-validators", "Setup validators")

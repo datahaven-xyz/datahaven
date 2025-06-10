@@ -28,6 +28,7 @@ export interface LaunchOptions {
   buildDatahaven?: boolean;
   datahavenImageTag: string;
   datahavenBuildExtraArgs: string;
+  injectContracts?: boolean;
   kurtosisNetworkArgs?: string;
   // Kept as optional due to parse fn
   slotTime?: number;
@@ -77,10 +78,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
+    options,
     rpcUrl: launchedNetwork.elRpcUrl,
-    verified: options.verified,
     blockscoutBackendUrl,
-    deployContracts: options.deployContracts,
     parameterCollection
   });
 
@@ -114,7 +114,7 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
+  const { blockscout, verified, fundValidators, setupValidators, deployContracts, injectContracts } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
   }
@@ -123,5 +123,8 @@ export const launchPreActionHook = (
   }
   if (deployContracts === false && fundValidators) {
     thisCmd.error("--fundValidators requires --deployContracts to be set");
+  }
+  if (injectContracts && !deployContracts) {
+    thisCmd.error("--inject-contracts requires --deploy-contracts to be set");
   }
 };

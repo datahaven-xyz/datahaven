@@ -7,17 +7,16 @@ import {
   printDivider,
   printHeader,
   runShellCommandWithLogger,
-  waitForNodeToSync
+  waitForNodeToSync,
 } from "utils";
 import type { ParameterCollection } from "utils/parameters";
-
+import type { LaunchOptions } from "cli/handlers";
 
 interface DeployContractsOptions {
   rpcUrl: string;
-  verified?: boolean;
   blockscoutBackendUrl?: string;
-  deployContracts?: boolean;
   parameterCollection?: ParameterCollection;
+  options: LaunchOptions;
 }
 
 /**
@@ -25,23 +24,17 @@ interface DeployContractsOptions {
  *
  * @param options - Configuration options for deployment
  * @param options.rpcUrl - The RPC URL to deploy to
- * @param options.verified - Whether to verify contracts (requires blockscoutBackendUrl)
  * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
- * @param options.deployContracts - Flag to control deployment (if undefined, will prompt)
  * @param options.parameterCollection - Collection of parameters to update in the DataHaven runtime
  * @returns Promise resolving to true if contracts were deployed successfully, false if skipped
  */
-export const deployContracts = async (options: DeployContractsOptions): Promise<boolean> => {
-  const {
-    rpcUrl,
-    verified = false,
-    blockscoutBackendUrl,
-    deployContracts,
-    parameterCollection
-  } = options;
+export const deployContracts = async (
+  opt: DeployContractsOptions
+): Promise<boolean> => {
+  const { rpcUrl, blockscoutBackendUrl, parameterCollection, options } = opt;
 
   // Check if deployContracts option was set via flags, or prompt if not
-  let shouldDeployContracts = deployContracts;
+  let shouldDeployContracts = options.deployContracts ? options.deployContracts && options.injectContracts !== true : options.deployContracts ;
   if (shouldDeployContracts === undefined) {
     shouldDeployContracts = await confirmWithTimeout(
       "Do you want to deploy the smart contracts?",
@@ -63,8 +56,11 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
 
   // Check if required parameters are provided
   invariant(rpcUrl, "❌ RPC URL is required");
-  if (verified) {
-    invariant(blockscoutBackendUrl, "❌ Blockscout backend URL is required for verification");
+  if (options.verified) {
+    invariant(
+      blockscoutBackendUrl,
+      "❌ Blockscout backend URL is required for verification"
+    );
   }
 
   printHeader("Deploying Smart Contracts");
@@ -74,7 +70,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   const {
     exitCode: buildExitCode,
     stderr: buildStderr,
-    stdout: buildStdout
+    stdout: buildStdout,
   } = await $`forge build`.cwd("../contracts").nothrow().quiet();
 
   if (buildExitCode !== 0) {
@@ -82,15 +78,14 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     throw Error("❌ Contracts have failed to build properly.");
   }
   logger.debug(buildStdout.toString());
-  
-  
+
   // Check if the node is syncing before deploying
   logger.info("🔄 Checking if node is syncing...");
   await waitForNodeToSync(rpcUrl);
 
   let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 
-  if (verified && blockscoutBackendUrl) {
+  if (options.verified && blockscoutBackendUrl) {
     deployCommand += ` --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --delay 0`;
     logger.info("🔍 Contract verification enabled");
   }
@@ -107,11 +102,13 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
       const gatewayAddress = deployments.Gateway;
 
       if (gatewayAddress) {
-        logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+        logger.debug(
+          `📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`
+        );
 
         parameterCollection.addParameter({
           name: "EthereumGatewayAddress",
-          value: gatewayAddress
+          value: gatewayAddress,
         });
       } else {
         logger.warn("⚠️ Gateway address not found in deployments file");
@@ -141,7 +138,7 @@ if (import.meta.main) {
       ? true
       : args.includes("--no-deploy-contracts")
         ? false
-        : undefined
+        : undefined,
   };
 
   // Extract RPC URL
@@ -164,15 +161,21 @@ if (import.meta.main) {
   }
 
   if (options.verified && !options.blockscoutBackendUrl) {
-    console.error("Error: --blockscout-url parameter is required when using --verified");
+    console.error(
+      "Error: --blockscout-url parameter is required when using --verified"
+    );
     process.exit(1);
   }
 
   deployContracts({
     rpcUrl: options.rpcUrl,
-    verified: options.verified,
     blockscoutBackendUrl: options.blockscoutBackendUrl,
-    deployContracts: options.deployContracts
+    options: {
+      kurtosisEnclaveName: "",
+      relayerImageTag: "",
+      datahavenImageTag: "",
+      datahavenBuildExtraArgs: "",
+    },
   }).catch((error) => {
     console.error("Deployment failed:", error);
     process.exit(1);

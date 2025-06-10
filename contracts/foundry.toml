@@ -32,7 +32,7 @@
     # If enabled, treats Solidity compiler warnings as errors, preventing artifact generation if warnings are present.
     deny_warnings = false
     # If set to true, changes compilation pipeline to go through the new IR optimizer.
-    via_ir = false
+    via_ir = true
     # Whether or not to enable the Solidity optimizer.
     optimizer = true
     # The number of runs specifies roughly how often each opcode of the deployed code will be executed
@@ -60,7 +60,11 @@
 
     gas_limit = 5000000000
     no-match-contract = "FFI"
-    fs_permissions = [{ access = "read-write", path = "./" }]
+    fs_permissions = [
+        { access = "read-write", path = "./" },
+        { access = "read", path = "./out" },
+        { access = "read", path = "./broadcast" }
+    ]
 
 [profile.default.fmt]
     # Single-line vs multi-line statement blocks

@@ -18,8 +18,10 @@ const preDeployedContractsSchema = z.record(
   z.object({
     address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
     code: z.string().regex(/^0x[a-fA-F0-9]*$/, "Invalid hex code"),
-    storage: z.record(z.string(), z.string()),
-    nonce: z.string()
+    storage: z.union([
+      z.record(z.string(), z.string()),
+      z.string() // Allow empty string for contracts with no storage
+    ])
   })
 );
 
@@ -27,11 +29,16 @@ const transformToKurtosisFormat = (contracts: z.infer<typeof preDeployedContract
   const transformed: Record<string, any> = {};
 
   for (const [_name, contract] of Object.entries(contracts)) {
+    // Handle storage - convert empty string to empty object
+    const storage = typeof contract.storage === 'string' && contract.storage === '' 
+      ? {} 
+      : contract.storage;
+
     transformed[contract.address] = {
       balance: "0ETH",
       code: contract.code,
-      storage: contract.storage,
-      nonce: contract.nonce
+      storage: storage,
+      nonce: "0x0" // Default nonce to 0
     };
   }
 
@@ -180,16 +187,17 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
 
   // Load and validate pre-deployed contracts
   // TODO: Replace with CLI option
-  // if (true) {
+  if (options.injectContracts) {
   try {
-    const preDeployedFile = Bun.file("configs/pre-deployed-contracts.json");
+    const preDeployedFile = Bun.file("../contracts/deployments/state-diff.json");
     if (await preDeployedFile.exists()) {
+      logger.debug(`Pre-deployed contracts file: ${preDeployedFile.name}`);
       const preDeployedRaw = await preDeployedFile.text();
-      logger.debug(`Raw pre-deployed contracts data: ${preDeployedRaw}`);
+      logger.trace(`Raw pre-deployed contracts data: ${preDeployedRaw}`);
 
       const preDeployedData = JSON.parse(preDeployedRaw);
       const validatedContracts = preDeployedContractsSchema.parse(preDeployedData);
-      logger.debug(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
+      logger.trace(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
 
       const kurtosisFormattedContracts = transformToKurtosisFormat(validatedContracts);
       logger.debug(
@@ -209,7 +217,7 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
     logger.error(`Failed to load pre-deployed contracts: ${error}`);
     throw new Error("❌ Invalid pre-deployed contracts configuration");
   }
-  // }
+  }
 
   logger.trace(parsedConfig);
   const outputFile = `${outputDir}/modified-config.yaml`;

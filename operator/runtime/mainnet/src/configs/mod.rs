@@ -1016,7 +1016,7 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
-    type OutboundQueue = OutboundQueueV2;
+    type OutboundQueue = EthereumOutboundQueueV2;
     type NativeTokenId = DataHavenTokenId;
     type FeeRecipient = TreasuryAccountId;
     type PauseOrigin = EnsureRoot<AccountId>;

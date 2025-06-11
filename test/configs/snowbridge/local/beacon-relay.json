@@ -13,7 +13,7 @@
         }
       },
       "datastore": {
-        "location": "/Users/facundofarall/Desktop/Moonsong/datahaven/test/tmp/facu-test",
+        "location": "/path/to/datastore",
         "maxEntries": 100
       }
     }

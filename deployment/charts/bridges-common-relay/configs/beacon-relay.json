@@ -1,29 +1,29 @@
 {
-    "source": {
-        "beacon": {
-            "endpoint": "http://cl-1-lighthouse-reth:4000",
-            "stateEndpoint": "http://cl-1-lighthouse-reth:4000",
-            "spec": {
-                "syncCommitteeSize": 512,
-                "slotsInEpoch": 32,
-                "epochsPerSyncCommitteePeriod": 256,
-                "forkVersions": {
-                    "deneb": 0,
-                    "electra": 0
-                }
-            },
-            "datastore": {
-                "location": "tmp/datastore",
-                "maxEntries": 100
-            }
+  "source": {
+    "beacon": {
+      "endpoint": "http://cl-1-lodestar-reth:4000",
+      "stateEndpoint": "http://cl-1-lodestar-reth:4000",
+      "spec": {
+        "syncCommitteeSize": 512,
+        "slotsInEpoch": 32,
+        "epochsPerSyncCommitteePeriod": 256,
+        "forkVersions": {
+          "deneb": 0,
+          "electra": 0
         }
-    },
-    "sink": {
-        "parachain": {
-            "endpoint": "ws://dh-validator-0:9944",
-            "maxWatchedExtrinsics": 8,
-            "headerRedundancy": 20
-        },
-        "updateSlotInterval": 30
+      },
+      "datastore": {
+        "location": "tmp/datastore",
+        "maxEntries": 100
+      }
     }
+  },
+  "sink": {
+    "parachain": {
+      "endpoint": "ws://dh-validator-0:9944",
+      "maxWatchedExtrinsics": 8,
+      "headerRedundancy": 20
+    },
+    "updateSlotInterval": 30
+  }
 }

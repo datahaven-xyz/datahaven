@@ -40,6 +40,7 @@ const RELAYER_CONFIG_DIR = "tmp/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
+  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json"),
   SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
@@ -146,6 +147,15 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         type: "substrate",
         value: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
       }
+    },
+    {
+      name: "relayer-⚙️",
+      type: "execution",
+      config: RELAYER_CONFIG_PATHS.EXECUTION,
+      pk: {
+        type: "substrate",
+        value: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+      }
     }
   ];
 
@@ -165,12 +175,12 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     const json = await file.json();
 
     const ethWsPort = await getPortFromKurtosis(
-      "el-1-reth-lighthouse",
+      "el-1-reth-lodestar",
       "ws",
       options.kurtosisEnclaveName
     );
     const ethHttpPort = await getPortFromKurtosis(
-      "cl-1-lighthouse-reth",
+      "cl-1-lodestar-reth",
       "http",
       options.kurtosisEnclaveName
     );
@@ -179,51 +189,60 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     );
 
     switch (type) {
-      case "beacon":
-        {
-          const cfg = parseRelayConfig(json, type);
-          cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
-          cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-          cfg.source.beacon.datastore.location = "/data";
-          cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+      case "beacon": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.datastore.location = "/data";
+        cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
-          await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-          logger.success(`Updated beacon config written to ${outputFilePath}`);
-        }
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated beacon config written to ${outputFilePath}`);
         break;
-      case "beefy":
-        {
-          const cfg = parseRelayConfig(json, type);
-          cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-          cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-          cfg.sink.contracts.BeefyClient = beefyClientAddress;
-          cfg.sink.contracts.Gateway = gatewayAddress;
-          await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-          logger.success(`Updated beefy config written to ${outputFilePath}`);
-        }
+      }
+      case "beefy": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.polkadot.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+        cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.sink.contracts.BeefyClient = beefyClientAddress;
+        cfg.sink.contracts.Gateway = gatewayAddress;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated beefy config written to ${outputFilePath}`);
         break;
-      case "solochain":
-        {
-          const cfg = parseRelayConfig(json, type);
-          cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-          cfg.source.solochain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
-          cfg.source.contracts.BeefyClient = beefyClientAddress;
-          cfg.source.contracts.Gateway = gatewayAddress;
-          cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
-          cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-          cfg.source.beacon.datastore.location = datastorePath;
-          cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
-          cfg.sink.contracts.Gateway = gatewayAddress;
-          await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
-          logger.success(`Updated solochain config written to ${outputFilePath}`);
-        }
+      }
+      case "execution": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.datastore.location = "/data";
+        cfg.sink.parachain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+        cfg.source.contracts.Gateway = gatewayAddress;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated execution config written to ${outputFilePath}`);
         break;
+      }
+      case "solochain": {
+        const cfg = parseRelayConfig(json, type);
+        cfg.source.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.source.solochain.endpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+        cfg.source.contracts.BeefyClient = beefyClientAddress;
+        cfg.source.contracts.Gateway = gatewayAddress;
+        cfg.source.beacon.endpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.stateEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+        cfg.source.beacon.datastore.location = datastorePath;
+        cfg.sink.ethereum.endpoint = `ws://host.docker.internal:${ethWsPort}`;
+        cfg.sink.contracts.Gateway = gatewayAddress;
+        await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
+        logger.success(`Updated solochain config written to ${outputFilePath}`);
+        break;
+      }
     }
   }
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
 
-  await initEthClientPallet(options, launchedNetwork);
+  await initEthClientPallet(options, launchedNetwork, datastorePath);
 
   for (const { config, name, type, pk, secondaryPk } of relayersToStart) {
     try {
@@ -250,10 +269,10 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       ];
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+      const hostDatastorePath = path.resolve(datastorePath);
+      const containerDatastorePath = "/data";
 
-      if (type === "beacon") {
-        const hostDatastorePath = path.resolve(datastorePath);
-        const containerDatastorePath = "/data";
+      if (type === "beacon" || type === "execution") {
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
       }
 
@@ -262,7 +281,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         type,
         "--config",
         config,
-        type === "beacon" ? "--substrate.private-key" : "--ethereum.private-key",
+        `--${pk.type}.private-key`,
         pk.value
       ];
 
@@ -366,15 +385,17 @@ const waitBeefyReady = async (
  *
  * @param options - Launch options containing the relayer binary path.
  * @param launchedNetwork - An instance of LaunchedNetwork to interact with the running network.
+ * @param datastorePath - The path to the datastore directory.
  * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
  */
 export const initEthClientPallet = async (
   options: LaunchOptions,
-  launchedNetwork: LaunchedNetwork
+  launchedNetwork: LaunchedNetwork,
+  datastorePath: string
 ) => {
   logger.debug("Initialising eth client pallet");
-  // Poll the beacon chain until it's ready every 10 seconds for 5 minutes
-  await waitBeaconChainReady(launchedNetwork, 10000, 300000);
+  // Poll the beacon chain until it's ready every 10 seconds for 10 minutes
+  await waitBeaconChainReady(launchedNetwork, 10000, 600000);
 
   const beaconConfigHostPath = path.resolve(RELAYER_CONFIG_PATHS.BEACON);
   const beaconConfigContainerPath = `/app/${RELAYER_CONFIG_PATHS.BEACON}`;
@@ -393,9 +414,11 @@ export const initEthClientPallet = async (
     launchedNetwork.networkName,
     "❌ Docker network name not found in LaunchedNetwork instance"
   );
+  const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
+      -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint \
       --workdir /app \
       --add-host host.docker.internal:host-gateway \
@@ -409,7 +432,9 @@ export const initEthClientPallet = async (
   const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
   const initialCheckpointRaw = await initialCheckpointFile.text();
   const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
-  await initialCheckpointFile.delete();
+  if (initialCheckpointFile.delete) {
+    await initialCheckpointFile.delete();
+  }
 
   logger.trace("Initial checkpoint:");
   logger.trace(initialCheckpoint.toJSON());

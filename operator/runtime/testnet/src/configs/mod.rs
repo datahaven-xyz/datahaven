@@ -27,11 +27,12 @@ mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, ExternalValidators, ExternalValidatorsRewards, Hash,
-    Historical, ImOnline, MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore,
-    OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
-    Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
+    SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -531,7 +532,7 @@ parameter_types! {
 impl pallet_message_queue::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type MessageProcessor = OutboundQueueV2;
+    type MessageProcessor = EthereumOutboundQueueV2;
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor =
         pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
@@ -705,7 +706,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 // Implement the Snowbridge System v2 config trait
 impl snowbridge_pallet_system_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OutboundQueue = OutboundQueueV2;
+    type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type WeightInfo = ();
@@ -963,10 +964,10 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        OutboundQueueV2::validate(&message)
+        EthereumOutboundQueueV2::validate(&message)
     }
     fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        OutboundQueueV2::deliver(message)
+        EthereumOutboundQueueV2::deliver(message)
     }
 }
 

@@ -7,21 +7,28 @@ version = "0.1.0"
 [dependencies]
 fp-account = { workspace = true }
 frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-authorship = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-treasury = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 sp-core = { workspace = true, features = ["serde"] }
 sp-runtime = { workspace = true, features = ["serde"] }
+sp-std = { workspace = true }
 xcm = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
     "frame-support/std",
+    "pallet-authorship/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "xcm/std",
     "sp-core/std",
     "sp-runtime/std",
+    "sp-std/std",
 ]
 
 runtime-benchmarks = [

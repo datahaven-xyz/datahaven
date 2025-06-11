@@ -2493,10 +2493,15 @@ version = "0.1.0"
 dependencies = [
  "fp-account",
  "frame-support",
+ "frame-system",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-treasury",
  "polkadot-primitives",
  "polkadot-runtime-common",
  "sp-core",
  "sp-runtime",
+ "sp-std",
  "staging-xcm",
 ]
 

@@ -36,6 +36,9 @@ use super::{
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
+    deal_with_fees::{
+        DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
+    },
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -334,7 +337,13 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = FungibleAdapter<Balances, ()>;
+    type OnChargeTransaction = FungibleAdapter<
+        Balances,
+        DealWithSubstrateFeesAndTip<
+            Runtime,
+            runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
+        >,
+    >;
     type OperationalFeeMultiplier = ConstU8<5>;
     type WeightToFee = IdentityFee<Balance>;
     type LengthToFee = IdentityFee<Balance>;
@@ -656,7 +665,13 @@ impl pallet_evm::Config for Runtime {
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
-    type OnChargeTransaction = OnChargeEVMTransaction<()>;
+    type OnChargeTransaction = OnChargeEVMTransaction<
+        DealWithEthereumBaseFees<
+            Runtime,
+            runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
+        >,
+        DealWithEthereumPriorityFees<Runtime>,
+    >;
     type OnCreate = ();
     type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;

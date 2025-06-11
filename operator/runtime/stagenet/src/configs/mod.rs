@@ -77,7 +77,7 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use runtime_params::RuntimeParameters;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
-use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards};
+use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId};
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
@@ -686,9 +686,11 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    // TODO: Change this to the actual network ID of DataHaven
-    pub const ThisNetwork: NetworkId = NetworkId::Polkadot;
-    pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetwork::get())].into();
+    // TODO: Update with real genesis hash once stagenet is deployed
+    pub const StagenetGenesisHash: [u8; 32] = [3u8; 32];
+    pub UniversalLocation: InteriorLocation = [
+        GlobalConsensus(ByGenesis(StagenetGenesisHash::get()))
+    ].into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
     pub RootLocation: Location = Location::here();
     pub Parameters: PricingParameters<u128> = PricingParameters {
@@ -698,6 +700,12 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
+    // TODO: Update this account once the treasury pallet is added
+    // For now, using a hardcoded account that can properly receive and hold fees
+    // This prevents fees from being burned and allows for proper accounting
+    pub TreasuryAccountId: AccountId = AccountId::from(
+        hex_literal::hex!("1234567890123456789012345678901234567890")
+    );
 }
 
 pub struct DoNothingOutboundQueue;
@@ -730,7 +738,7 @@ impl snowbridge_pallet_system::Config for Runtime {
     type SiblingOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type AgentIdOf = AgentIdOf;
     type Token = Balances;
-    type TreasuryAccount = TreasuryAccount;
+    type TreasuryAccount = TreasuryAccountId;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
     type WeightInfo = ();
@@ -818,10 +826,10 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 
 parameter_types! {
     /// Network and location for the Ethereum chain.
-    /// Using the Sepolia Ethereum testnet, with chain ID 11155111.
-    /// <https://chainlist.org/chain/11155111>
+    /// Using the local test network, with chain ID 3151908.
+    /// This matches the chain ID used in the local test environment.
     /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
-    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
+    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 3151908 };
 }
 
 pub struct CommitmentHandler;
@@ -979,10 +987,65 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type Hashing = Keccak256;
     type Currency = Balances;
-    type RewardsEthereumSovereignAccount = TreasuryAccount;
+    type RewardsEthereumSovereignAccount = TreasuryAccountId;
     type WeightInfo = ();
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+parameter_types! {
+    /// The Ethereum sovereign account derived from its XCM location
+    /// This is a hardcoded value for performance, computed from:
+    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 3151908 })])
+    /// using GlobalConsensusConvertsFor<UniversalLocation, AccountId>
+    pub EthereumSovereignAccount: AccountId = AccountId::from(
+        hex_literal::hex!("d8030fb68aa5b447caec066f3c0bde23e6db0a05")
+    );
+}
+
+/// Implementation of Get<Option<TokenId>> for DataHaven native transfer pallet
+pub struct DataHavenTokenId;
+impl Get<Option<TokenId>> for DataHavenTokenId {
+    fn get() -> Option<TokenId> {
+        let native_location = Location::here();
+
+        let reanchored = crate::SnowbridgeSystemV2::reanchor(native_location).ok()?;
+        <crate::SnowbridgeSystemV2 as sp_runtime::traits::MaybeEquivalence<TokenId, Location>>::convert_back(&reanchored)
+    }
+}
+
+impl pallet_datahaven_native_transfer::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type EthereumSovereignAccount = EthereumSovereignAccount;
+    type OutboundQueue = EthereumOutboundQueueV2;
+    type NativeTokenId = DataHavenTokenId;
+    type FeeRecipient = TreasuryAccountId;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use xcm_builder::GlobalConsensusConvertsFor;
+    use xcm_executor::traits::ConvertLocation;
+
+    #[test]
+    fn test_ethereum_sovereign_account_computation() {
+        // Verify that the hardcoded Ethereum sovereign account matches the computed value
+        let computed_account =
+            GlobalConsensusConvertsFor::<UniversalLocation, AccountId>::convert_location(
+                &EthereumLocation::get(),
+            )
+            .expect("Ethereum location conversion should succeed");
+
+        assert_eq!(
+            computed_account,
+            EthereumSovereignAccount::get(),
+            "Computed account must match hardcoded value"
+        );
+    }
 }

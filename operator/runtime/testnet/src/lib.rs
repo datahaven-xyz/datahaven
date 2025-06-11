@@ -356,6 +356,9 @@ mod runtime {
     #[runtime::pallet_index(101)]
     pub type ExternalValidatorsRewards = pallet_external_validators_rewards;
 
+    #[runtime::pallet_index(102)]
+    pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
+
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
 

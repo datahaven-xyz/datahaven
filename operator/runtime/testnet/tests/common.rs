@@ -52,7 +52,7 @@ impl ExtBuilder {
                 (account_id(BOB), DEFAULT_BALANCE),
                 // Fund the treasury account (fee recipient) with initial balance
                 (
-                    datahaven_testnet_runtime::configs::TreasuryAccountId::get(),
+                    datahaven_testnet_runtime::configs::TreasuryAccount::get(),
                     DEFAULT_BALANCE,
                 ),
             ]);

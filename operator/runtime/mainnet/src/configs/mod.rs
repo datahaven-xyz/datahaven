@@ -701,12 +701,6 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
-    // TODO: Update this account once the treasury pallet is added
-    // For now, using a hardcoded account that can properly receive and hold fees
-    // This prevents fees from being burned and allows for proper accounting
-    pub TreasuryAccountId: AccountId = AccountId::from(
-        hex_literal::hex!("1234567890123456789012345678901234567890")
-    );
 }
 
 pub struct DoNothingOutboundQueue;
@@ -739,7 +733,7 @@ impl snowbridge_pallet_system::Config for Runtime {
     type SiblingOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type AgentIdOf = AgentIdOf;
     type Token = Balances;
-    type TreasuryAccount = TreasuryAccountId;
+    type TreasuryAccount = TreasuryAccount;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
     type WeightInfo = ();
@@ -1028,7 +1022,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type Hashing = Keccak256;
     type Currency = Balances;
-    type RewardsEthereumSovereignAccount = TreasuryAccountId;
+    type RewardsEthereumSovereignAccount = TreasuryAccount;
     type WeightInfo = ();
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ();
@@ -1063,7 +1057,7 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = EthereumOutboundQueueV2;
     type NativeTokenId = DataHavenTokenId;
-    type FeeRecipient = TreasuryAccountId;
+    type FeeRecipient = TreasuryAccount;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
 }

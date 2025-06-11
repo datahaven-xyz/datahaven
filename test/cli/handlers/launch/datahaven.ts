@@ -3,7 +3,7 @@ import path from "node:path";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { type PolkadotClient, createClient } from "polkadot-api";
+import { createClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { cargoCrossbuild } from "scripts/cargo-crossbuild";
@@ -18,10 +18,9 @@ import {
 } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
+import { DOCKER_NETWORK_NAME } from "../consts";
 import type { LaunchOptions } from ".";
 import type { LaunchedNetwork } from "./launchedNetwork";
-
-const DOCKER_NETWORK_NAME = "datahaven-net";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 
@@ -40,20 +39,16 @@ const COMMON_LAUNCH_ARGS = [
 
 const DEFAULT_PUBLIC_WS_PORT = 9944;
 
-// We need 5 since the (2/3 + 1) of 6 authority set is 5
-// <repo_root>/operator/runtime/src/genesis_config_presets.rs#L94
-const CLI_AUTHORITY_IDS = ["alice", "bob", "charlie", "dave", "eve"] as const;
+// 2 validators (Alice and Bob) are used for local & CI testing
+// <repo_root>/operator/runtime/stagenet/src/genesis_config_presets.rs#L98
+const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
 
 // 33-byte compressed public keys for DataHaven next validator set
-// These correspond to Alice, Bob, Charlie, Dave, Eve, Ferdie
+// These correspond to Alice & Bob
 // These are the fallback keys if we can't fetch the next authorities directly from the network
 const FALLBACK_DATAHAVEN_AUTHORITY_PUBLIC_KEYS: Record<string, string> = {
   alice: "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
-  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
-  charlie: "0x031d10105e323c4afce225208f71a6441ee327a65b9e646e772500c74d31f669aa",
-  dave: "0x0291f1217d5a04cb83312ee3d88a6e6b33284e053e6ccfc3a90339a0299d12967c",
-  eve: "0x0389411795514af1627765eceffcbd002719f031604fadd7d188e2dc585b4e1afb",
-  ferdie: "0x03bc9d0ca094bd5b8b3225d7651eac5d18c1c04bf8ae8f8b263eebca4e1410ed0c"
+  bob: "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27"
 } as const;
 
 /**
@@ -70,38 +65,6 @@ export const launchDataHavenSolochain = async (
 
   let shouldLaunchDataHaven = options.datahaven;
 
-  if ((await checkDataHavenRunning()) && !options.alwaysClean) {
-    logger.info("ℹ️  DataHaven network (Docker containers) is already running.");
-
-    logger.trace("Checking if datahaven option was set via flags");
-    if (options.datahaven === false) {
-      logger.info("Keeping existing DataHaven containers.");
-
-      await registerNodes(launchedNetwork);
-      printDivider();
-      return;
-    }
-
-    if (options.datahaven === true) {
-      await cleanDataHavenContainers(options);
-    } else {
-      const shouldRelaunch = await confirmWithTimeout(
-        "Do you want to clean and relaunch the DataHaven containers?",
-        true,
-        10
-      );
-
-      if (!shouldRelaunch) {
-        logger.info("Keeping existing DataHaven containers.");
-
-        await registerNodes(launchedNetwork);
-        printDivider();
-        return;
-      }
-      await cleanDataHavenContainers(options);
-    }
-  }
-
   if (shouldLaunchDataHaven === undefined) {
     shouldLaunchDataHaven = await confirmWithTimeout(
       "Do you want to launch the DataHaven network?",
@@ -115,9 +78,40 @@ export const launchDataHavenSolochain = async (
   }
 
   if (!shouldLaunchDataHaven) {
-    logger.info("Skipping DataHaven network launch. Done!");
+    logger.info("👍 Skipping DataHaven network launch. Done!");
+
+    await registerNodes(launchedNetwork);
     printDivider();
     return;
+  }
+
+  if (await checkDataHavenRunning()) {
+    // If the user wants to launch the DataHaven network, we ask them if they want
+    // to clean the existing containers/network or just continue with the existing
+    // containers/network.
+    if (shouldLaunchDataHaven) {
+      let shouldRelaunch = options.cleanNetwork;
+
+      if (shouldRelaunch === undefined) {
+        shouldRelaunch = await confirmWithTimeout(
+          "Do you want to clean and relaunch the DataHaven containers?",
+          true,
+          10
+        );
+      }
+
+      // Case: User wants to keep existing containers/network
+      if (!shouldRelaunch) {
+        logger.info("👍 Keeping existing DataHaven containers/network.");
+
+        await registerNodes(launchedNetwork);
+        printDivider();
+        return;
+      }
+
+      // Case: User wants to clean and relaunch the DataHaven containers
+      await cleanDataHavenContainers(options);
+    }
   }
 
   logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
@@ -129,7 +123,6 @@ export const launchDataHavenSolochain = async (
   await buildLocalImage(options);
   await checkTagExists(options.datahavenImageTag);
 
-  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
   logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
 
   for (const id of CLI_AUTHORITY_IDS) {
@@ -178,6 +171,9 @@ export const launchDataHavenSolochain = async (
       logger.info("🔧 Proceeding with DataHaven validator configuration setup...");
       await setupDataHavenValidatorConfig(launchedNetwork);
 
+      // Set the DataHaven RPC URL in the LaunchedNetwork instance
+      launchedNetwork.dhRpcUrl = `ws://127.0.0.1:${DEFAULT_PUBLIC_WS_PORT}`;
+
       printDivider();
       return;
     }
@@ -195,18 +191,25 @@ export const launchDataHavenSolochain = async (
  */
 const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-"
-  const containerIds = await $`docker ps -q --filter "name=^datahaven-"`.text();
+  const containerIds = await $`docker ps --format "{{.Names}}" --filter "name=^datahaven-"`.text();
   const networkOutput =
     await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
 
   // Check if containerIds has any actual IDs (not just whitespace)
   const containersExist = containerIds.trim().length > 0;
+  if (containersExist) {
+    logger.info(`ℹ️ DataHaven containers already running: \n${containerIds}`);
+  }
+
   // Check if networkOutput has any network names (not just whitespace or empty lines)
   const networksExist =
     networkOutput
       .trim()
       .split("\n")
       .filter((line) => line.trim().length > 0).length > 0;
+  if (networksExist) {
+    logger.info(`ℹ️ DataHaven network already running: ${networkOutput}`);
+  }
 
   return containersExist || networksExist;
 };
@@ -231,6 +234,11 @@ const cleanDataHavenContainers = async (options: LaunchOptions): Promise<void> =
 
   logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
   logger.info("✅ DataHaven Docker network removed.");
+
+  invariant(
+    (await checkDataHavenRunning()) === false,
+    "❌ DataHaven containers were not stopped and removed"
+  );
 };
 
 /**
@@ -278,7 +286,9 @@ const buildLocalImage = async (options: LaunchOptions) => {
     return;
   }
 
-  await cargoCrossbuild({ datahavenBuildExtraArgs: options.datahavenBuildExtraArgs });
+  await cargoCrossbuild({
+    datahavenBuildExtraArgs: options.datahavenBuildExtraArgs
+  });
 
   logger.info("🐳 Building DataHaven node local Docker image...");
   if (LOG_LEVEL === "trace") {
@@ -313,6 +323,9 @@ const checkTagExists = async (tag: string) => {
 };
 
 const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
+  // Registering DataHaven nodes Docker network.
+  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
+
   const targetContainerName = "datahaven-alice";
   const aliceHostWsPort = 9944; // Standard host port for Alice's WS, as set during launch.
 
@@ -323,9 +336,8 @@ const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
 
   if (!isContainerRunning) {
     // If the target Docker container is not running, we cannot register it.
-    throw new Error(
-      `❌ Docker container ${targetContainerName} is not running. Cannot register node.`
-    );
+    logger.warn(`⚠️ Docker container ${targetContainerName} is not running. Cannot register node.`);
+    return;
   }
 
   // If the Docker container is running, proceed to register it in launchedNetwork.

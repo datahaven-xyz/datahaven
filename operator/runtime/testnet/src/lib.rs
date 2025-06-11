@@ -23,9 +23,11 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
+use pallet_external_validators::traits::EraIndex;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 pub use pallet_timestamp::Call as TimestampCall;
 use snowbridge_core::AgentId;
+use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
 use sp_consensus_beefy::{
     ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -320,10 +322,10 @@ mod runtime {
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
     #[runtime::pallet_index(61)]
-    pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+    pub type EthereumInboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
 
     #[runtime::pallet_index(62)]
-    pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+    pub type EthereumOutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
 
     #[runtime::pallet_index(63)]
     pub type SnowbridgeSystem = snowbridge_pallet_system;
@@ -340,6 +342,9 @@ mod runtime {
     // Start with index 100
     #[runtime::pallet_index(100)]
     pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
+
+    #[runtime::pallet_index(101)]
+    pub type ExternalValidatorsRewards = pallet_external_validators_rewards;
 
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
@@ -778,6 +783,19 @@ impl_runtime_apis! {
         }
     }
 
+    impl pallet_external_validators_rewards_runtime_api::ExternalValidatorsRewardsApi<Block, AccountId, EraIndex> for Runtime
+        where
+        EraIndex: codec::Codec,
+    {
+        fn generate_rewards_merkle_proof(account_id: AccountId, era_index: EraIndex) -> Option<MerkleProof> {
+            ExternalValidatorsRewards::generate_rewards_merkle_proof(account_id, era_index)
+        }
+
+        fn verify_rewards_merkle_proof(merkle_proof: MerkleProof) -> bool {
+            ExternalValidatorsRewards::verify_rewards_merkle_proof(merkle_proof)
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (
@@ -1070,6 +1088,96 @@ impl_runtime_apis! {
             UncheckedExtrinsic::new_bare(
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use codec::Encode;
+    use dhp_bridge::InboundCommand;
+    use dhp_bridge::{Message, Payload, EL_MESSAGE_ID};
+    use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
+    use sp_core::H256;
+
+    const MOCK_NONCE: u64 = 12345u64;
+    const MOCK_VALIDATORS_HEX: [&str; 2] = [
+        "0000000000000000000000000000000000000000000000000000000000000001",
+        "0000000000000000000000000000000000000000000000000000000000000002",
+    ];
+    const MOCK_EXTERNAL_INDEX: u64 = 0u64;
+
+    fn hex_to_bytes32(hex_str: &str) -> [u8; 32] {
+        let mut arr = [0u8; 32];
+        hex::decode_to_slice(hex_str, &mut arr).expect("Failed to decode hex string to bytes32");
+        arr
+    }
+
+    #[test]
+    fn test_eigenlayer_message_processor() {
+        // Create mock validators
+        let validators: Vec<AccountId> = MOCK_VALIDATORS_HEX
+            .iter()
+            .map(|s| hex_to_bytes32(s).into())
+            .collect();
+
+        // Create a mock message payload
+        let message = Message::V1(dhp_bridge::InboundCommand::ReceiveValidators {
+            validators: validators.clone(),
+            external_index: MOCK_EXTERNAL_INDEX,
+        });
+
+        let payload = Payload::<Runtime> {
+            message,
+            message_id: EL_MESSAGE_ID,
+        };
+
+        // Create a mock Snowbridge message
+        let snowbridge_message = SnowbridgeMessage {
+            xcm: snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload.encode()),
+            gateway: H160::default(),
+            nonce: MOCK_NONCE,
+            origin: H160::default(),
+            assets: vec![],
+            claimer: None,
+            value: 0u128,
+            execution_fee: 0u128,
+            relayer_fee: 0u128,
+        };
+
+        // Test can_process_message
+        let mock_account = H256::from_slice(&[1u8; 32]);
+        assert!(
+            dhp_bridge::EigenLayerMessageProcessor::<Runtime>::can_process_message(
+                &mock_account,
+                &snowbridge_message
+            ),
+            "Message should be processable"
+        );
+
+        let payload = match &snowbridge_message.xcm {
+            snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,
+            _ => panic!("Invalid Message"),
+        };
+
+        let decoded_result =
+            dhp_bridge::EigenLayerMessageProcessor::<Runtime>::decode_message(payload.as_slice());
+
+        let message = if let Ok(payload) = decoded_result {
+            payload.message
+        } else {
+            panic!("unable to parse the message payload");
+        };
+
+        match message {
+            Message::V1(InboundCommand::ReceiveValidators {
+                validators,
+                external_index,
+            }) => {
+                assert_eq!(validators, validators);
+                assert_eq!(external_index, MOCK_EXTERNAL_INDEX);
+            }
         }
     }
 }

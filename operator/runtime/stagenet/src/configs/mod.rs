@@ -30,11 +30,12 @@ mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, ExternalValidators, Hash, Historical, ImOnline, MessageQueue,
-    Nonce, Offences, OriginCaller, OutboundCommitmentStore, OutboundQueueV2, PalletInfo, Preimage,
-    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT,
-    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
+    SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -58,7 +59,7 @@ use frame_support::{
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureRootWithSuccess,
+    unique, EnsureRoot, EnsureRootWithSuccess,
 };
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
@@ -78,7 +79,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards};
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::ConstantGasMeter,
+    v2::{Command, ConstantGasMeter, Message as OutboundMessage, SendMessage as SendMessageV2},
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -130,6 +131,7 @@ parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
     pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
+    pub const AuthorRewardPoints: u32 = 20;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -239,9 +241,22 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
+pub struct RewardsPoints;
+
+impl pallet_authorship::EventHandler<AccountId, BlockNumber> for RewardsPoints {
+    fn note_author(author: AccountId) {
+        let whitelisted_validators =
+            pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get();
+        // Do not reward whitelisted validators
+        if !whitelisted_validators.contains(&author) {
+            ExternalValidatorsRewards::reward_by_ids(vec![(author, AuthorRewardPoints::get())])
+        }
+    }
+}
+
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-    type EventHandler = ImOnline;
+    type EventHandler = (RewardsPoints, ImOnline);
 }
 
 impl pallet_offences::Config for Runtime {
@@ -520,7 +535,7 @@ parameter_types! {
 impl pallet_message_queue::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type MessageProcessor = OutboundQueueV2;
+    type MessageProcessor = EthereumOutboundQueueV2;
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor =
         pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
@@ -629,7 +644,9 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    pub UniversalLocation: InteriorLocation = Here;
+    // TODO: Change this to the actual network ID of DataHaven
+    pub const ThisNetwork: NetworkId = NetworkId::Polkadot;
+    pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetwork::get())].into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
     pub RootLocation: Location = Location::here();
     pub Parameters: PricingParameters<u128> = PricingParameters {
@@ -639,6 +656,7 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
+    // TODO: Change to the actual treasury account
     pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
 }
 
@@ -685,7 +703,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 // Implement the Snowbridge System v2 config trait
 impl snowbridge_pallet_system_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OutboundQueue = OutboundQueueV2;
+    type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type WeightInfo = ();
@@ -697,12 +715,6 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 // The version numbers are taken from looking at the Dora explorer when launching the
 // kurtosis Ethereum network. Hovering over the fork names, shows the version numbers.
 // These version numbers need to match, otherwise the aggregated signature verification will fail.
-#[cfg(any(
-    feature = "std",
-    feature = "fast-runtime",
-    feature = "runtime-benchmarks",
-    test
-))]
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
@@ -728,43 +740,6 @@ parameter_types! {
         electra: Fork {
             version: [96, 0, 0, 56], // 0x60000038
             epoch: 0,
-        },
-    };
-}
-
-// Holesky: https://github.com/eth-clients/holesky
-// Fork versions: https://github.com/eth-clients/holesky/blob/main/metadata/config.yaml
-#[cfg(not(any(
-    feature = "std",
-    feature = "fast-runtime",
-    feature = "runtime-benchmarks",
-    test
-)))]
-parameter_types! {
-    pub const ChainForkVersions: ForkVersions = ForkVersions {
-        genesis: Fork {
-            version: hex_literal::hex!("01017000"), // 0x01017000
-            epoch: 0,
-        },
-        altair: Fork {
-            version: hex_literal::hex!("02017000"), // 0x02017000
-            epoch: 0,
-        },
-        bellatrix: Fork {
-            version: hex_literal::hex!("03017000"), // 0x03017000
-            epoch: 0,
-        },
-        capella: Fork {
-            version: hex_literal::hex!("04017000"), // 0x04017000
-            epoch: 256,
-        },
-        deneb: Fork {
-            version: hex_literal::hex!("05017000"), // 0x05017000
-            epoch: 29696,
-        },
-        electra: Fork {
-            version: hex_literal::hex!("06017000"), // 0x06017000
-            epoch: 115968,
         },
     };
 }
@@ -892,10 +867,82 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    // TODO: Implement OnEraStart and OnEraEnd when ExternalValidatorsRewards is added
-    type OnEraStart = ();
-    type OnEraEnd = ();
+    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;
+}
+
+pub struct GetWhitelistedValidators;
+impl Get<Vec<AccountId>> for GetWhitelistedValidators {
+    fn get() -> Vec<AccountId> {
+        pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get().into()
+    }
+}
+
+// Stub SendMessage implementation for rewards pallet
+pub struct RewardsSendAdapter;
+impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(
+        rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
+    ) -> Option<Self::Message> {
+        let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
+
+        let mut calldata = Vec::new();
+        calldata.extend_from_slice(&selector);
+        calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
+
+        let command = Command::CallContract {
+            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
+            calldata,
+            gas: 100_0000, // TODO: Determine appropriate gas value after testing
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: runtime_params::dynamic_params::runtime_config::RewardsOrigin::get(),
+            // TODO: Determine appropriate id value
+            id: unique(rewards_utils.rewards_merkle_root).into(),
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => {
+                    log::error!(
+                        target: "rewards_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        EthereumOutboundQueueV2::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        EthereumOutboundQueueV2::deliver(message)
+    }
+}
+
+impl pallet_external_validators_rewards::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type EraIndexProvider = ExternalValidators;
+    type HistoryDepth = ConstU32<64>;
+    type BackingPoints = ConstU32<20>;
+    type DisputeStatementPoints = ConstU32<20>;
+    type EraInflationProvider = ConstU128<0>;
+    type ExternalIndexProvider = ExternalValidators;
+    type GetWhitelistedValidators = GetWhitelistedValidators;
+    type Hashing = Keccak256;
+    type Currency = Balances;
+    type RewardsEthereumSovereignAccount = TreasuryAccountId;
+    type WeightInfo = ();
+    type SendMessage = RewardsSendAdapter;
+    type HandleInflation = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }

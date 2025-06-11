@@ -1,7 +1,7 @@
 import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { type ServiceInfo, StandardServiceMappings, logger } from "utils";
+import { logger, type ServiceInfo, StandardServiceMappings } from "utils";
 
 const docker = new Docker({});
 
@@ -63,6 +63,12 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   }
 
   return services;
+};
+
+export const getContainersMatchingImage = async (imageName: string) => {
+  const containers = await docker.listContainers({ all: true });
+  const matches = containers.filter((container) => container.Image.includes(imageName));
+  return matches;
 };
 
 export const getPublicPort = async (

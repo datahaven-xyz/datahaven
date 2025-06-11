@@ -1,0 +1,25 @@
+name: dh-beacon-relay
+description: Datahaven Beacon Relay
+fullnameOverride: dh-beacon-relay
+
+image:
+  repository: moonsonglabs/snowbridge-relay
+  pullPolicy: Always
+  tag: latest
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+config:
+  name: "beacon-relay"
+
+existingSecretName: "dh-beacon-relay-sub-key"
+
+extraArgs: [
+  "run",
+  "beacon",
+  "--config",
+  "/configs/beacon-relay.json",
+  "--substrate.private-key-file",
+  "/secrets/dh-beacon-relay-sub-key",
+]

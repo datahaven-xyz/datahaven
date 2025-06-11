@@ -22,23 +22,23 @@ export type KurtosisServiceInfo = {
 };
 
 export const standardKurtosisServices = [
-  "el-1-reth-lighthouse",
-  "el-2-reth-lighthouse",
-  "vc-1-reth-lighthouse",
-  "vc-2-reth-lighthouse",
+  "el-1-reth-lodestar",
+  "el-2-reth-lodestar",
+  "vc-1-reth-lodestar",
+  "vc-2-reth-lodestar",
   "dora"
 ];
 
 export const StandardServiceMappings: ServiceMapping[] = [
   {
     service: "reth-1-rpc",
-    containerPattern: "el-1-reth-lighthouse",
+    containerPattern: "el-1-reth-lodestar",
     internalPort: 8545,
     protocol: "tcp"
   },
   {
     service: "reth-2-rpc",
-    containerPattern: "el-2-reth-lighthouse",
+    containerPattern: "el-2-reth-lodestar",
     internalPort: 8545,
     protocol: "tcp"
   },
@@ -78,10 +78,13 @@ const serviceSchema = z.object({
 
 export type KurtosisService = z.infer<typeof serviceSchema>;
 
-export const getServiceFromKurtosis = async (service: string): Promise<KurtosisService> => {
+export const getServiceFromKurtosis = async (
+  service: string,
+  enclave: string
+): Promise<KurtosisService> => {
   logger.debug("Getting service from kurtosis", service);
 
-  const command = `kurtosis service inspect datahaven-ethereum ${service} -o json`;
+  const command = `kurtosis service inspect ${enclave} ${service} -o json`;
   logger.debug(`Running command: ${command}`);
 
   const { stdout, stderr, exitCode } = await $`sh -c ${command}`.nothrow().quiet();
@@ -95,10 +98,14 @@ export const getServiceFromKurtosis = async (service: string): Promise<KurtosisS
   return serviceSchema.parse(JSON.parse(output));
 };
 
-export const getPortFromKurtosis = async (service: string, portName: string): Promise<number> => {
+export const getPortFromKurtosis = async (
+  service: string,
+  portName: string,
+  enclave: string
+): Promise<number> => {
   logger.debug("Getting port for service", service, portName);
 
-  const command = `kurtosis service inspect datahaven-ethereum ${service} -o json`;
+  const command = `kurtosis service inspect ${enclave} ${service} -o json`;
   logger.debug(`Running command: ${command}`);
 
   const { stdout, stderr, exitCode } = await $`sh -c ${command}`.nothrow().quiet();
@@ -114,9 +121,11 @@ export const getPortFromKurtosis = async (service: string, portName: string): Pr
   return parsed.public_ports[portName].number;
 };
 
-export const getServicesFromKurtosis = async (): Promise<Record<string, KurtosisService>> => {
+export const getServicesFromKurtosis = async (
+  enclaveName: string
+): Promise<Record<string, KurtosisService>> => {
   const promises = standardKurtosisServices.map(async (serviceName) => {
-    const serviceData = await getServiceFromKurtosis(serviceName);
+    const serviceData = await getServiceFromKurtosis(serviceName, enclaveName);
     return { [serviceName]: serviceData };
   });
 

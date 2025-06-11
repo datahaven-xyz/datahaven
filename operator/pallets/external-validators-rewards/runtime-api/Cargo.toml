@@ -1,0 +1,28 @@
+[package]
+name = "pallet-external-validators-rewards-runtime-api"
+authors = { workspace = true }
+description = "Runtime API definition of pallet-external-validators-rewards"
+edition = "2021"
+license = "GPL-3.0-only"
+version = "0.1.0"
+
+[package.metadata.docs.rs]
+targets = [ "x86_64-unknown-linux-gnu" ]
+
+[lints]
+workspace = true
+
+[dependencies]
+parity-scale-codec = { workspace = true }
+snowbridge-merkle-tree = { workspace = true }
+sp-api = { workspace = true }
+sp-core = { workspace = true }
+
+[features]
+default = [ "std" ]
+std = [
+	"parity-scale-codec/std",
+	"snowbridge-merkle-tree/std",
+	"sp-api/std",
+	"sp-core/std",
+]

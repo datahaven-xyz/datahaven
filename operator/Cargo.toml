@@ -25,6 +25,8 @@ datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = f
 datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
 pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
+pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
+pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 
 # Crates.io (wasm)
@@ -57,7 +59,7 @@ parity-bytes = { version = "0.1.2", default-features = false }
 parity-scale-codec = { version = "3.0.0", default-features = false, features = [
     "derive",
 ] }
-rand = { version = "0.8.5", default-features = false }
+rand = { version = "0.8.5", default-features = false, features = [ "std_rng" ] }
 rlp = { version = "0.6.1", default-features = false }
 scale-info = { version = "2.11.6", default-features = false }
 serde = { version = "1.0.197", default-features = false, features = ["derive"] }
@@ -110,6 +112,7 @@ pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sta
 polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
+runtime-parachains = { package = "polkadot-runtime-parachains", git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }

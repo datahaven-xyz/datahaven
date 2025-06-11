@@ -1,0 +1,25 @@
+name: dh-beefy-relay
+description: Datahaven Beefy Relay
+fullnameOverride: dh-beefy-relay
+
+image:
+  repository: moonsonglabs/snowbridge-relay
+  pullPolicy: Always
+  tag: latest
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+config:
+  name: "beefy-relay"
+
+existingSecretName: "dh-beefy-relay-eth-key"
+
+extraArgs: [
+  "run",
+  "beefy",
+  "--config",
+  "/configs/beefy-relay.json",
+  "--ethereum.private-key-file",
+  "/secrets/dh-beefy-relay-eth-key",
+]

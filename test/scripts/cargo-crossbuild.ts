@@ -5,14 +5,10 @@ import { $ } from "bun";
 import { logger } from "utils";
 
 const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const RUNTIME_FEATURES = ["fast-runtime"];
 
-export const cargoCrossbuild = async (options: {
-  datahavenBuildExtraArgs?: string;
-}) => {
+export const cargoCrossbuild = async (options: { datahavenBuildExtraArgs?: string }) => {
   logger.info("🔀 Cross-building DataHaven node for Linux AMD64");
 
   const ARCH = (await $`uname -m`.text()).trim();
@@ -30,10 +26,10 @@ export const cargoCrossbuild = async (options: {
       throw new Error("Zig is not installed");
     }
 
-    installCargoZigbuild();
+    await installCargoZigbuild();
 
     const target = "x86_64-unknown-linux-gnu";
-    addRustupTarget(target);
+    await addRustupTarget(target);
 
     // Build and copy libpq.so before cargo zigbuild
     await buildAndCopyLibpq(target);
@@ -41,7 +37,7 @@ export const cargoCrossbuild = async (options: {
     // Get additional arguments from command line
     const additionalArgs = options.datahavenBuildExtraArgs ?? "";
 
-    const command = `cargo zigbuild --target ${target} --release ${additionalArgs} --features ${RUNTIME_FEATURES.join(",")}`;
+    const command = `cargo zigbuild --target ${target} --release ${additionalArgs}`;
     logger.debug(`Running build command: ${command}`);
 
     if (LOG_LEVEL === "debug") {
@@ -55,8 +51,12 @@ export const cargoCrossbuild = async (options: {
     logger.info("🖥️ Linux AMD64 detected. Proceeding with cross-building...");
 
     const target = "x86_64-unknown-linux-gnu";
-    addRustupTarget(target);
-    const command = `cargo build --target ${target} --release --features ${RUNTIME_FEATURES.join(",")}`;
+    await addRustupTarget(target);
+
+    // Get additional arguments from command line
+    const additionalArgs = options.datahavenBuildExtraArgs ?? "";
+
+    const command = `cargo build --target ${target} --release ${additionalArgs}`;
     logger.debug(`Running build command: ${command}`);
 
     if (LOG_LEVEL === "debug") {
@@ -90,7 +90,7 @@ const installCargoZigbuild = async (): Promise<void> => {
 
 const addRustupTarget = async (target: string): Promise<void> => {
   if (!(await $`rustup target list --installed`.text()).includes(target)) {
-    await $`rustup target add ${target}`.text();
+    logger.debug(await $`rustup target add ${target}`.text());
   }
 };
 

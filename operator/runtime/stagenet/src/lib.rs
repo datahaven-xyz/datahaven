@@ -48,8 +48,11 @@ use sp_version::RuntimeVersion;
 use xcm::VersionedLocation;
 
 // Need by storage hub
+use frame_support::weights::{
+    constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+    WeightToFeePolynomial,
+};
 use smallvec::smallvec;
-use frame_support::weights::{WeightToFeePolynomial, WeightToFeeCoefficient, WeightToFeeCoefficients, constants::ExtrinsicBaseWeight};
 use sp_runtime::Perbill;
 
 pub use datahaven_runtime_common::{
@@ -219,7 +222,6 @@ where
         UncheckedExtrinsic::new_bare(call)
     }
 }
-
 
 /// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
 /// node's balance type.

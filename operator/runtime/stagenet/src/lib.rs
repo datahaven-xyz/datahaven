@@ -301,9 +301,6 @@ mod runtime {
 
     #[runtime::pallet_index(36)]
     pub type Sudo = pallet_sudo;
-
-    #[runtime::pallet_index(37)]
-    pub type MessageQueue = pallet_message_queue;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
@@ -334,8 +331,18 @@ mod runtime {
     pub type SnowbridgeSystemV2 = snowbridge_pallet_system_v2;
     // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
 
+    // ╔════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╗
+    // The Message Queue pallet has to be after the Snowbridge Outbound
+    // Queue V2 pallet since the former processes messages in its
+    // `on_initialize` hook and the latter clears up messages in
+    // its `on_initialize` hook, so otherwise messages will be cleared
+    // up before they are processed.
+    #[runtime::pallet_index(70)]
+    pub type MessageQueue = pallet_message_queue;
+    // ╚════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╝
+
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
-    // Start with index 70
+    // Start with index 80
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗

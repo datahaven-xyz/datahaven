@@ -234,6 +234,12 @@ export const initEthClientPallet = async (
   logger.debug("Removing 'generate-beacon-checkpoint' container if it exists");
   logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
 
+  // When running in Linux, `host.docker.internal` is not pre-defined when running in a container.
+  // So we need to add the parameter `--add-host host.docker.internal:host-gateway` to the command.
+  // In Mac this is not needed and could cause issues.
+  const addHostParam =
+    process.platform === "linux" ? "--add-host host.docker.internal:host-gateway" : "";
+
   logger.debug("Generating beacon checkpoint");
   const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
@@ -244,6 +250,7 @@ export const initEthClientPallet = async (
       --platform linux/amd64 \
       --pull always \
       --workdir /app \
+      ${addHostParam} \
       ${launchedNetwork.networkName ? `--network ${launchedNetwork.networkName}` : ""} \
       ${relayerImageTag} \
       generate-beacon-checkpoint --config beacon-relay.json --export-json`;

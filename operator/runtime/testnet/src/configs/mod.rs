@@ -31,7 +31,7 @@ use super::{
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
     OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
     RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
     STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
@@ -46,6 +46,7 @@ use frame_support::{
     parameter_types,
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
+        tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
@@ -53,6 +54,7 @@ use frame_support::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
         IdentityFee, RuntimeDbWeight, Weight,
     },
+    PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -544,6 +546,36 @@ impl pallet_message_queue::Config for Runtime {
     type ServiceWeight = MessageQueueServiceWeight;
     type IdleMaxServiceWeight = MessageQueueServiceWeight;
     type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const TreasuryId: PalletId = PalletId(*b"pc/trsry");
+    pub TreasuryAccount: AccountId = Treasury::account_id();
+    pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
+}
+
+impl pallet_treasury::Config for Runtime {
+    type PalletId = TreasuryId;
+    type Currency = Balances;
+    type RejectOrigin = EnsureRoot<AccountId>;
+    type RuntimeEvent = RuntimeEvent;
+    type SpendPeriod = ConstU32<{ 6 * DAYS }>;
+    type Burn = ();
+    type BurnDestination = ();
+    type MaxApprovals = ConstU32<100>;
+    type WeightInfo = ();
+    type SpendFunds = ();
+    type SpendOrigin =
+        frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;
+    type AssetKind = ();
+    type Beneficiary = AccountId;
+    type BeneficiaryLookup = IdentityLookup<AccountId>;
+    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+    type BalanceConverter = UnityAssetBalanceConversion;
+    type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = BenchmarkHelper;
+    type BlockNumberProvider = System;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

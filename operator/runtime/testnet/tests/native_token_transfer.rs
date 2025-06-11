@@ -136,7 +136,7 @@ fn test_native_token_transfer_to_ethereum_succeeds() {
                     assert_eq!(amount, &transfer_amount);
                     found_transfer_event = true;
                 }
-                RuntimeEvent::OutboundQueueV2(OutboundQueueEvent::MessageQueued {
+                RuntimeEvent::EthereumOutboundQueueV2(OutboundQueueEvent::MessageQueued {
                     message,
                     ..
                 }) => {
@@ -251,7 +251,7 @@ fn test_multiple_concurrent_transfers_maintain_consistency() {
         let transfer_message_count = events
             .iter()
             .filter(|e| {
-                if let RuntimeEvent::OutboundQueueV2(OutboundQueueEvent::MessageQueued {
+                if let RuntimeEvent::EthereumOutboundQueueV2(OutboundQueueEvent::MessageQueued {
                     message,
                     ..
                 }) = &e.event
@@ -294,7 +294,7 @@ fn test_transfer_generates_unique_message_ids() {
             // Extract message ID from last event
             let events = System::events();
             for event in events.iter().rev() {
-                if let RuntimeEvent::OutboundQueueV2(OutboundQueueEvent::MessageQueued {
+                if let RuntimeEvent::EthereumOutboundQueueV2(OutboundQueueEvent::MessageQueued {
                     message,
                     ..
                 }) = &event.event

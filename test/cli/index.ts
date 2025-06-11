@@ -65,7 +65,7 @@ program
     "Name of the Kurtosis enclave",
     "datahaven-stagenet"
   )
-  .option("--st, --slot-time <number>", "Set slot time in seconds", parseIntValue, 6)
+  .option("--st, --slot-time <number>", "Set slot time in seconds", parseIntValue, 12)
   .option("--kn, --kurtosis-network-args <value>", "CustomKurtosis network args")
   .option("--v, --verified", "Verify smart contracts with Blockscout")
   .option("--b, --blockscout", "Enable Blockscout")

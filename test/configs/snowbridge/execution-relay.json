@@ -33,7 +33,7 @@
     },
     "instantVerification": false,
     "schedule": {
-        "id": 0,
+        "id": null,
         "totalRelayerCount": 1,
         "sleepInterval": 1
     }

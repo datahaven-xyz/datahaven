@@ -53,10 +53,6 @@ pub mod dynamic_params {
 impl Default for RuntimeParameters {
     fn default() -> Self {
         RuntimeParameters::RuntimeConfig(
-            dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
-                dynamic_params::runtime_config::EthereumGatewayAddress,
-                Some(H160::repeat_byte(0x0)),
-            ),
             dynamic_params::runtime_config::Parameters::FeesTreasuryProportion(
                 dynamic_params::runtime_config::FeesTreasuryProportion,
                 Some(Perbill::from_percent(20)),

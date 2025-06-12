@@ -18,6 +18,8 @@
 
 pub mod constants;
 pub use constants::*;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 pub mod deal_with_fees;
 pub mod impl_on_charge_evm_transaction;
 

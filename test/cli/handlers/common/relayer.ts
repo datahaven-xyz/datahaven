@@ -240,6 +240,9 @@ export const initEthClientPallet = async (
   const addHostParam =
     process.platform === "linux" ? "--add-host host.docker.internal:host-gateway" : "";
 
+  // Opportunistic pull - pull the image from Docker Hub only if it's not a local image
+  const isLocal = relayerImageTag.endsWith(":local");
+
   logger.debug("Generating beacon checkpoint");
   const datastoreHostPath = path.resolve(datastorePath);
   const command = `docker run \
@@ -248,10 +251,10 @@ export const initEthClientPallet = async (
       -v ${datastoreHostPath}:/data \
       --name generate-beacon-checkpoint \
       --platform linux/amd64 \
-      --pull always \
       --workdir /app \
       ${addHostParam} \
       ${launchedNetwork.networkName ? `--network ${launchedNetwork.networkName}` : ""} \
+      ${isLocal ? "" : "--pull always"} \
       ${relayerImageTag} \
       generate-beacon-checkpoint --config beacon-relay.json --export-json`;
   logger.debug(`Running command: ${command}`);

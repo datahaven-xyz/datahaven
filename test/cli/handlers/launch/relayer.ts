@@ -191,6 +191,9 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
     launchedNetwork
   );
 
+  // Opportunistic pull - pull the image from Docker Hub only if it's not a local image
+  const isLocal = options.relayerImageTag.endsWith(":local");
+
   for (const { configFilePath, name, config, pk } of relayersToStart) {
     try {
       const containerName = `snowbridge-${config.type}-relay`;
@@ -205,8 +208,6 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         "docker",
         "run",
         "-d",
-        "--pull",
-        "always",
         "--platform",
         "linux/amd64",
         "--add-host",
@@ -214,7 +215,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         "--name",
         containerName,
         "--network",
-        networkName
+        networkName,
+        ...(isLocal ? [] : ["--pull", "always"])
       ];
 
       const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];

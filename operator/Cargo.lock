@@ -2836,10 +2836,12 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex",
+ "pallet-datahaven-native-transfer",
  "pallet-external-validators",
  "parity-scale-codec",
  "snowbridge-core 0.2.0",
  "snowbridge-inbound-queue-primitives",
+ "sp-core",
  "sp-std",
 ]
 

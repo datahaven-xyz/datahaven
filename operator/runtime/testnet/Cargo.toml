@@ -51,6 +51,7 @@ pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
+pallet-datahaven-native-transfer = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -102,6 +103,18 @@ xcm-executor = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
+
+[dev-dependencies]
+# Test utilities
+frame-support-test = { workspace = true }
+sp-io = { workspace = true }
+sp-tracing = { workspace = true }
+
+# Snowbridge testing
+snowbridge-core = { workspace = true }
+snowbridge-pallet-system = { workspace = true }
+snowbridge-pallet-system-v2 = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 
 [features]
 default = ["std"]
@@ -180,6 +193,7 @@ std = [
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
+    "pallet-datahaven-native-transfer/std",
 ]
 
 runtime-benchmarks = [
@@ -218,6 +232,7 @@ runtime-benchmarks = [
     "pallet-outbound-commitment-store/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
     "pallet-external-validators-rewards/runtime-benchmarks",
+    "pallet-datahaven-native-transfer/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -258,6 +273,7 @@ try-runtime = [
     "pallet-outbound-commitment-store/try-runtime",
     "pallet-external-validators/try-runtime",
     "pallet-external-validators-rewards/try-runtime",
+    "pallet-datahaven-native-transfer/try-runtime",
 ]
 
 fast-runtime = ["datahaven-runtime-common/fast-runtime"]

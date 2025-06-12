@@ -139,6 +139,6 @@ if (import.meta.main) {
 
   await buildContracts();
 
-  const deployCommand = constructDeployCommand(options);
+  const deployCommand = await constructDeployCommand(options);
   await executeDeployment(deployCommand);
 }

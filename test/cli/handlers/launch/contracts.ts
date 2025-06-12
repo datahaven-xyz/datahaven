@@ -58,7 +58,7 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
   await buildContracts();
 
   // Construct and execute deployment
-  const deployCommand = constructDeployCommand(options);
+  const deployCommand = await constructDeployCommand(options);
   await executeDeployment(deployCommand, options.parameterCollection);
   printDivider();
 

@@ -3,6 +3,7 @@ import { datahaven } from "@polkadot-api/descriptors";
 import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
+import invariant from "tiny-invariant";
 import { getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
 import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
 

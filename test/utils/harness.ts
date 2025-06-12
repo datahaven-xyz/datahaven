@@ -11,9 +11,9 @@ export interface HarnessComponent extends AsyncDisposable {
 
 import { $ } from "bun";
 import { type StopOptions, stopAllEnclaves, stopDockerComponents } from "cli/handlers";
+import { LaunchedNetwork } from "cli/handlers/common/launchedNetwork";
 import { launchDataHavenSolochain } from "cli/handlers/launch/datahaven";
 import { launchKurtosis } from "cli/handlers/launch/kurtosis";
-import { LaunchedNetwork } from "cli/handlers/launch/launchedNetwork";
 import { launchRelayers } from "cli/handlers/launch/relayer";
 import type { LaunchOptions } from "cli-launch";
 import invariant from "tiny-invariant";
@@ -121,7 +121,7 @@ class EthereumComponent implements HarnessComponent {
 
   async launch(): Promise<void> {
     logger.info("🚀 Launching Ethereum network via Kurtosis...");
-    await launchKurtosis(this.launchedNetwork, this.options as LaunchOptions);
+    await launchKurtosis(this.options as LaunchOptions, this.launchedNetwork);
   }
 
   async stop(): Promise<void> {

@@ -12,6 +12,8 @@ export class LaunchedNetwork {
   protected _containers: ContainerSpec[];
   protected _networkName: string;
   protected _activeRelayers: RelayerType[];
+  /** The WebSocket RPC URL for the DataHaven node. */
+  protected _dhRpcUrl?: string;
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
@@ -26,6 +28,7 @@ export class LaunchedNetwork {
     this._networkName = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
+    this._dhRpcUrl = undefined;
     this._kubeNamespace = undefined;
   }
 
@@ -71,6 +74,29 @@ export class LaunchedNetwork {
     const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
     invariant(port !== undefined, "❌ No public port found in containers");
     return port;
+  }
+
+  /**
+   * Sets the WebSocket RPC URL for the DataHaven node. If this value is not set explicitly, the
+   * `dhRpcUrl` getter will attempt to derive it from the registered container ports.
+   */
+  public set dhRpcUrl(url: string) {
+    this._dhRpcUrl = url;
+  }
+
+  /**
+   * Gets the WebSocket RPC URL for the DataHaven node. When the URL has not been explicitly
+   * provided, a best-effort value is constructed using the first container that exposes a `ws`
+   * port.
+   */
+  public get dhRpcUrl(): string {
+    if (this._dhRpcUrl) {
+      return this._dhRpcUrl;
+    }
+
+    const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
+    invariant(port !== undefined, "❌ DataHaven RPC URL not set in LaunchedNetwork");
+    return `ws://127.0.0.1:${port}`;
   }
 
   /**
@@ -124,5 +150,14 @@ export class LaunchedNetwork {
   public get kubeNamespace(): string {
     invariant(this._kubeNamespace, "❌ Kubernetes namespace not set in LaunchedNetwork");
     return this._kubeNamespace;
+  }
+
+  /**
+   * Clean-up hook for consumers that need to release resources associated with the launched
+   * network. Currently this is a no-op placeholder to satisfy the interface used by the test
+   * harness.
+   */
+  async cleanup(): Promise<void> {
+    /* no-op – concrete handlers perform their own cleanup */
   }
 }

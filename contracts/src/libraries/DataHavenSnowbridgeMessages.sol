@@ -22,8 +22,6 @@ library DataHavenSnowbridgeMessages {
      * @notice A struct representing a new validator set to be sent as a message through Snowbridge.
      *         This mimics the message format defined in the Snowbridge inbound pallet of the DataHaven
      *         solochain.
-     * !IMPORTANT: The fields in this struct are placeholder until we have the actual message format
-     * !           defined in the DataHaven solochain.
      */
     struct NewValidatorSet {
         /// @notice The nonce of the message
@@ -70,8 +68,10 @@ library DataHavenSnowbridgeMessages {
     ) public pure returns (bytes memory) {
         uint32 validatorsLen = uint32(payload.validators.length);
         bytes32[] memory validatorSet = payload.validators;
-        // TODO: This shouldn't be hardcoded, but set to the corresponding epoch of this validator set.
-        uint48 epoch = 0;
+
+        // Note: this represents the external index of the validator set.
+        uint64 timestamp = uint64(block.timestamp);
+
         bytes memory validatorsFlattened;
         for (uint32 i = 0; i < validatorSet.length; i++) {
             validatorsFlattened =
@@ -84,7 +84,7 @@ library DataHavenSnowbridgeMessages {
             bytes1(uint8(OutboundCommandV1.ReceiveValidators)),
             ScaleCodec.encodeCompactU32(validatorsLen),
             validatorsFlattened,
-            ScaleCodec.encodeU64(uint64(epoch))
+            ScaleCodec.encodeU64(timestamp)
         );
     }
 }

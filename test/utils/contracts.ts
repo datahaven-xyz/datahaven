@@ -11,6 +11,8 @@ const ethAddressCustom = z.custom<`0x${string}`>(
   (val) => typeof val === "string" && ethAddressRegex.test(val),
   { message: "Invalid Ethereum address" }
 );
+const ethBytes32Regex = /^0x[a-fA-F0-9]{64}$/;
+const ethBytes32 = z.string().regex(ethBytes32Regex, "Invalid Ethereum bytes32");
 
 const DeployedStrategySchema = z.object({
   address: ethAddress,
@@ -26,7 +28,8 @@ const AnvilDeploymentsSchema = z.object({
   ServiceManager: ethAddressCustom,
   VetoableSlasher: ethAddressCustom,
   RewardsRegistry: ethAddressCustom,
-  Agent: ethAddressCustom,
+  RewardsAgent: ethAddressCustom,
+  RewardsAgentOrigin: ethBytes32,
   DelegationManager: ethAddressCustom,
   StrategyManager: ethAddressCustom,
   AVSDirectory: ethAddressCustom,
@@ -68,7 +71,7 @@ const abiMap = {
   ServiceManager: generated.dataHavenServiceManagerAbi,
   VetoableSlasher: generated.vetoableSlasherAbi,
   RewardsRegistry: generated.rewardsRegistryAbi,
-  Agent: generated.agentAbi,
+  RewardsAgent: generated.agentAbi,
   DelegationManager: generated.delegationManagerAbi,
   StrategyManager: generated.strategyManagerAbi,
   AVSDirectory: generated.avsDirectoryAbi,
@@ -80,7 +83,7 @@ const abiMap = {
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
   DeployedStrategies: erc20Abi
-} as const satisfies Record<keyof Omit<AnvilDeployments, "network">, Abi>;
+} as const satisfies Record<keyof Omit<AnvilDeployments, "network" | "RewardsAgentOrigin">, Abi>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];

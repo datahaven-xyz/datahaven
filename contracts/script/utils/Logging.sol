@@ -32,6 +32,10 @@ library Logging {
         console.log("|  [+] %s: %s", name, contractAddress);
     }
 
+    function logAgentOrigin(string memory name, string memory agentOrigin) internal pure {
+        console.log("|  [+] %s: %s", name, agentOrigin);
+    }
+
     function logStep(
         string memory message
     ) internal pure {

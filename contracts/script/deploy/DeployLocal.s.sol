@@ -216,7 +216,7 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logFooter();
         _logProgress();
 
-        // Output all deployed contract addresses
+        // Output all deployed contract addresses and the rewards agent origin
         _outputDeployedAddresses(
             beefyClient,
             agentExecutor,
@@ -224,7 +224,8 @@ contract Deploy is Script, DeployParams, Accounts {
             serviceManager,
             vetoableSlasher,
             rewardsRegistry,
-            rewardsAgentAddress
+            rewardsAgentAddress,
+            snowbridgeConfig.rewardsMessageOrigin
         );
     }
 
@@ -622,15 +623,17 @@ contract Deploy is Script, DeployParams, Accounts {
         DataHavenServiceManager serviceManager,
         VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
-        address agent
+        address rewardsAgent,
+        bytes32 rewardsAgentOrigin
     ) internal {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
-        Logging.logSection("Snowbridge Contracts");
+        Logging.logSection("Snowbridge Contracts + Rewards Agent");
         Logging.logContractDeployed("BeefyClient", address(beefyClient));
         Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
         Logging.logContractDeployed("Gateway", address(gateway));
-        Logging.logContractDeployed("Agent", agent);
+        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
+        Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
@@ -682,7 +685,8 @@ contract Deploy is Script, DeployParams, Accounts {
             string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
         json =
             string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
-        json = string.concat(json, '"Agent": "', vm.toString(agent), '",');
+        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
+        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '",');
 
         // EigenLayer contracts
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');

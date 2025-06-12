@@ -182,10 +182,13 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
 
 /**
  * The key of the DataHaven runtime parameter.
- * This is an union type with all the possible parameter keys. For now, our only parameter is
- * the EthereumGatewayAddress.
+ * This is an union type with all the possible parameter keys.
  */
-export type DataHavenRuntimeParameterKey = "EthereumGatewayAddress";
+export type DataHavenRuntimeParameterKey =
+  | "EthereumGatewayAddress"
+  | "RewardsRegistryAddress"
+  | "RewardsUpdateSelector"
+  | "RewardsAgentOrigin";
 
 /**
  * Interface for raw JSON parameters before conversion
@@ -204,10 +207,37 @@ const rawEthereumGatewayAddressSchema = z.object({
 });
 
 /**
+ * Schema for raw RewardsRegistryAddress parameter
+ */
+const rawRewardsRegistryAddressSchema = z.object({
+  name: z.literal("RewardsRegistryAddress"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
+ * Schema for raw RewardsUpdateSelector parameter
+ */
+const rawRewardsUpdateSelectorSchema = z.object({
+  name: z.literal("RewardsUpdateSelector"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
+ * Schema for raw RewardsOrigin parameter
+ */
+const rawRewardsAgentOriginSchema = z.object({
+  name: z.literal("RewardsAgentOrigin"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
  * Union schema for raw DataHaven parameters (for parsing JSON)
  */
 export const rawDataHavenParameterSchema = z.discriminatedUnion("name", [
-  rawEthereumGatewayAddressSchema
+  rawEthereumGatewayAddressSchema,
+  rawRewardsRegistryAddressSchema,
+  rawRewardsUpdateSelectorSchema,
+  rawRewardsAgentOriginSchema
 ]);
 
 /**
@@ -231,6 +261,21 @@ function convertParameter(rawParam: any): ParsedDataHavenParameter {
     return {
       name: rawParam.name,
       value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
+    };
+  } else if (rawParam.name === "RewardsRegistryAddress" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
+    };
+  } else if (rawParam.name === "RewardsUpdateSelector" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<4>(hexToUint8Array(rawParam.value))
+    };
+  } else if (rawParam.name === "RewardsAgentOrigin" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<32>(hexToUint8Array(rawParam.value))
     };
   }
 

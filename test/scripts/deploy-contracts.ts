@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, parseDeploymentsFile, runShellCommandWithLogger } from "utils";
+import { logger, parseDeploymentsFile, parseRewardsInfoFile, runShellCommandWithLogger } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
@@ -77,9 +77,11 @@ export const executeDeployment = async (
   if (parameterCollection) {
     try {
       const deployments = await parseDeploymentsFile();
+      const rewardsInfo = await parseRewardsInfoFile();
       const gatewayAddress = deployments.Gateway;
       const rewardsRegistryAddress = deployments.RewardsRegistry;
-      const rewardsAgentOrigin = deployments.RewardsAgentOrigin;
+      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
 
       if (gatewayAddress) {
         logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
@@ -102,6 +104,16 @@ export const executeDeployment = async (
         logger.warn("⚠️ RewardsRegistry address not found in deployments file");
       }
 
+      if (updateRewardsMerkleRootSelector) {
+        logger.debug(`📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`);
+        parameterCollection.addParameter({
+          name: "RewardsUpdateSelector",
+          value: updateRewardsMerkleRootSelector
+        });
+      } else {
+        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+      }
+
       if (rewardsAgentOrigin) {
         logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
         parameterCollection.addParameter({
@@ -112,7 +124,7 @@ export const executeDeployment = async (
         logger.warn("⚠️ RewardsAgentOrigin not found in deployments file")
       }
     } catch (error) {
-      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+      logger.error(`Failed to read parameters from deployment: ${error}`);
     }
   }
 

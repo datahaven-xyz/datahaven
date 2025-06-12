@@ -13,6 +13,8 @@ const ethAddressCustom = z.custom<`0x${string}`>(
 );
 const ethBytes32Regex = /^0x[a-fA-F0-9]{64}$/;
 const ethBytes32 = z.string().regex(ethBytes32Regex, "Invalid Ethereum bytes32");
+const ethBytes4Regex = /^0x[a-fA-F0-9]{8}$/;
+const ethBytes4 = z.string().regex(ethBytes4Regex, "Invalid Ethereum bytes4");
 
 const DeployedStrategySchema = z.object({
   address: ethAddress,
@@ -29,7 +31,6 @@ const AnvilDeploymentsSchema = z.object({
   VetoableSlasher: ethAddressCustom,
   RewardsRegistry: ethAddressCustom,
   RewardsAgent: ethAddressCustom,
-  RewardsAgentOrigin: ethBytes32,
   DelegationManager: ethAddressCustom,
   StrategyManager: ethAddressCustom,
   AVSDirectory: ethAddressCustom,
@@ -44,6 +45,14 @@ const AnvilDeploymentsSchema = z.object({
 });
 
 export type AnvilDeployments = z.infer<typeof AnvilDeploymentsSchema>;
+
+const RewardsInfoSchema = z.object({
+  RewardsAgent: ethAddressCustom,
+  RewardsAgentOrigin: ethBytes32,
+  updateRewardsMerkleRootSelector: ethBytes4
+});
+
+export type RewardsInfo = z.infer<typeof RewardsInfoSchema>;
 
 export const parseDeploymentsFile = async (): Promise<AnvilDeployments> => {
   const anvilDeploymentsPath = "../contracts/deployments/anvil.json";
@@ -60,6 +69,24 @@ export const parseDeploymentsFile = async (): Promise<AnvilDeployments> => {
   } catch (error) {
     logger.error("Failed to parse anvil deployments file:", error);
     throw new Error("Invalid anvil deployments file format");
+  }
+};
+
+export const parseRewardsInfoFile = async (): Promise<RewardsInfo> => {
+  const rewardsInfoPath = "../contracts/deployments/anvil-rewards-info.json";
+  const rewardsInfoFile = Bun.file(rewardsInfoPath);
+  if (!(await rewardsInfoFile.exists())) {
+    logger.error(`File ${rewardsInfoPath} does not exist`);
+    throw new Error("Error reading rewards info file");
+  }
+  const rewardsInfoJson = await rewardsInfoFile.json();
+  try {
+    const parsedRewardsInfo = RewardsInfoSchema.parse(rewardsInfoJson);
+    logger.debug("Successfully parsed rewards info file.");
+    return parsedRewardsInfo;
+  } catch (error) {
+    logger.error("Failed to parse rewards info file:", error);
+    throw new Error("Invalid rewards info file format");
   }
 };
 

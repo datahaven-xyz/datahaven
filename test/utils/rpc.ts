@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { CONTAINER_NAMES, getPublicPort, logger } from "utils";
+import { z } from "zod";
 
 export const getRPCUrl = async (): Promise<string> => {
   const publicPort = await getPublicPort(CONTAINER_NAMES.EL1, 8545);
@@ -15,7 +15,7 @@ export const getWSUrl = async (): Promise<string> => {
 const RPCErrorSchema = z.object({
   code: z.number(),
   message: z.string(),
-  data: z.unknown().optional(),
+  data: z.unknown().optional()
 });
 
 const SyncInfoSchema = z.object({
@@ -23,18 +23,17 @@ const SyncInfoSchema = z.object({
   currentBlock: z.string().optional(),
   highestBlock: z.string().optional(),
   pulledStates: z.string().optional(),
-  knownStates: z.string().optional(),
+  knownStates: z.string().optional()
 });
 
 const EthSyncingResponseSchema = z.object({
   jsonrpc: z.literal("2.0"),
   id: z.union([z.string(), z.number()]),
   result: z.union([z.literal(false), SyncInfoSchema]).optional(),
-  error: RPCErrorSchema.optional(),
+  error: RPCErrorSchema.optional()
 });
 
-type SyncInfo = z.infer<typeof SyncInfoSchema>;
-
+export type SyncInfo = z.infer<typeof SyncInfoSchema>;
 
 /**
  * Checks if the Ethereum node is syncing and waits until it's ready
@@ -49,14 +48,14 @@ export const waitForNodeToSync = async (rpcUrl: string): Promise<void> => {
       const response = await fetch(rpcUrl, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           jsonrpc: "2.0",
           method: "eth_syncing",
           params: [],
-          id: 1,
-        }),
+          id: 1
+        })
       });
 
       if (!response.ok) {
@@ -64,7 +63,7 @@ export const waitForNodeToSync = async (rpcUrl: string): Promise<void> => {
       }
 
       const rawResult = await response.json();
-      
+
       // Validate the RPC response structure
       const result = EthSyncingResponseSchema.parse(rawResult);
 
@@ -83,16 +82,18 @@ export const waitForNodeToSync = async (rpcUrl: string): Promise<void> => {
 
       retries++;
       if (retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
       }
     } catch (error) {
       logger.warn(`⚠️ Failed to check sync status: ${error}. Retrying in 1 second...`);
       retries++;
       if (retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
   }
 
-  logger.warn("⚠️ Node sync check timed out. Proceeding with deployment (this may fail if node is not ready)");
+  logger.warn(
+    "⚠️ Node sync check timed out. Proceeding with deployment (this may fail if node is not ready)"
+  );
 };

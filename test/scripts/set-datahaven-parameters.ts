@@ -64,8 +64,15 @@ export const setDataHavenParameters = async (
   // Load parameters from the JSON file
   let parameters: ParsedDataHavenParameter[];
   try {
+    logger.info(`📂 Reading parameters from file: ${parametersFilePath}`);
     const parametersFile = Bun.file(parametersFilePath);
+    invariant(
+      await parametersFile.exists(),
+      `❌ Parameters file does not exist at '${parametersFilePath}'`
+    );
+
     const parametersJson = await parametersFile.text();
+
     // Parse and convert the parameters using our utility
     parameters = parseJsonToParameters(JSON.parse(parametersJson));
 

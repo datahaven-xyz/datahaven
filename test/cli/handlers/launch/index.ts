@@ -84,6 +84,27 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     parameterCollection
   });
 
+  // If we're injecting contracts instead of deploying, still read the Gateway address
+  if (options.injectContracts && !contractsDeployed) {
+    try {
+      const { parseDeploymentsFile } = await import("utils/contracts");
+      const deployments = await parseDeploymentsFile();
+      const gatewayAddress = deployments.Gateway;
+
+      if (gatewayAddress) {
+        logger.debug(
+          `📝 Reading EthereumGatewayAddress from existing deployment: ${gatewayAddress}`
+        );
+        parameterCollection.addParameter({
+          name: "EthereumGatewayAddress",
+          value: gatewayAddress
+        });
+      }
+    } catch (error) {
+      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+    }
+  }
+
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await launchRelayers(options, launchedNetwork);
@@ -114,7 +135,14 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const { blockscout, verified, fundValidators, setupValidators, deployContracts, injectContracts } = thisCmd.opts();
+  const {
+    blockscout,
+    verified,
+    fundValidators,
+    setupValidators,
+    deployContracts,
+    injectContracts
+  } = thisCmd.opts();
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
   }

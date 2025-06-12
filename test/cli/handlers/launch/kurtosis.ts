@@ -30,9 +30,8 @@ const transformToKurtosisFormat = (contracts: z.infer<typeof preDeployedContract
 
   for (const [_name, contract] of Object.entries(contracts)) {
     // Handle storage - convert empty string to empty object
-    const storage = typeof contract.storage === 'string' && contract.storage === '' 
-      ? {} 
-      : contract.storage;
+    const storage =
+      typeof contract.storage === "string" && contract.storage === "" ? {} : contract.storage;
 
     transformed[contract.address] = {
       balance: "0ETH",
@@ -188,35 +187,35 @@ const modifyConfig = async (options: LaunchOptions, configFile: string) => {
   // Load and validate pre-deployed contracts
   // TODO: Replace with CLI option
   if (options.injectContracts) {
-  try {
-    const preDeployedFile = Bun.file("../contracts/deployments/state-diff.json");
-    if (await preDeployedFile.exists()) {
-      logger.debug(`Pre-deployed contracts file: ${preDeployedFile.name}`);
-      const preDeployedRaw = await preDeployedFile.text();
-      logger.trace(`Raw pre-deployed contracts data: ${preDeployedRaw}`);
+    try {
+      const preDeployedFile = Bun.file("../contracts/deployments/state-diff.json");
+      if (await preDeployedFile.exists()) {
+        logger.debug(`Pre-deployed contracts file: ${preDeployedFile.name}`);
+        const preDeployedRaw = await preDeployedFile.text();
+        logger.trace(`Raw pre-deployed contracts data: ${preDeployedRaw}`);
 
-      const preDeployedData = JSON.parse(preDeployedRaw);
-      const validatedContracts = preDeployedContractsSchema.parse(preDeployedData);
-      logger.trace(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
+        const preDeployedData = JSON.parse(preDeployedRaw);
+        const validatedContracts = preDeployedContractsSchema.parse(preDeployedData);
+        logger.trace(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
 
-      const kurtosisFormattedContracts = transformToKurtosisFormat(validatedContracts);
-      logger.debug(
-        `Kurtosis formatted contracts: ${JSON.stringify(kurtosisFormattedContracts, null, 2)}`
-      );
+        const kurtosisFormattedContracts = transformToKurtosisFormat(validatedContracts);
+        logger.debug(
+          `Kurtosis formatted contracts: ${JSON.stringify(kurtosisFormattedContracts, null, 2)}`
+        );
 
-      parsedConfig.network_params.additional_preloaded_contracts = JSON.stringify(
-        kurtosisFormattedContracts,
-        null,
-        0
-      );
-      logger.debug("Pre-deployed contracts loaded and validated successfully");
-    } else {
-      logger.warn("Pre-deployed contracts file not found, skipping");
+        parsedConfig.network_params.additional_preloaded_contracts = JSON.stringify(
+          kurtosisFormattedContracts,
+          null,
+          0
+        );
+        logger.debug("Pre-deployed contracts loaded and validated successfully");
+      } else {
+        logger.warn("Pre-deployed contracts file not found, skipping");
+      }
+    } catch (error) {
+      logger.error(`Failed to load pre-deployed contracts: ${error}`);
+      throw new Error("❌ Invalid pre-deployed contracts configuration");
     }
-  } catch (error) {
-    logger.error(`Failed to load pre-deployed contracts: ${error}`);
-    throw new Error("❌ Invalid pre-deployed contracts configuration");
-  }
   }
 
   logger.trace(parsedConfig);

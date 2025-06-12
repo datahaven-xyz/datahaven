@@ -1,9 +1,9 @@
 // Script to fund validators with tokens and ETH for local testing
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader, waitForNodeToSync } from "../utils/index";
+import { logger, printDivider, printHeader, runShellCommandWithLogger, waitForNodeToSync } from "../utils/index";
+import { spawn } from "bun";
 
 interface FundValidatorsOptions {
   rpcUrl: string;
@@ -39,6 +39,60 @@ interface StrategyInfo {
 interface DeploymentInfo {
   network: string;
   DeployedStrategies: StrategyInfo[];
+}
+
+/**
+ * Helper function to run cast commands with output capture
+ */
+async function runCastCommand(command: string, logOutput = true): Promise<string> {
+  const proc = spawn(["sh", "-c", command], {
+    cwd: "../contracts",
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env
+  });
+
+  let output = "";
+  let errorOutput = "";
+
+  // Capture stdout
+  const stdoutReader = proc.stdout.getReader();
+  const readStdout = async () => {
+    while (true) {
+      const { done, value } = await stdoutReader.read();
+      if (done) break;
+      const text = new TextDecoder().decode(value);
+      output += text;
+      if (logOutput && text.trim()) {
+        logger.debug(`>_ ${text.trim()}`);
+      }
+    }
+    stdoutReader.releaseLock();
+  };
+
+  // Capture stderr
+  const stderrReader = proc.stderr.getReader();
+  const readStderr = async () => {
+    while (true) {
+      const { done, value } = await stderrReader.read();
+      if (done) break;
+      const text = new TextDecoder().decode(value);
+      errorOutput += text;
+      if (text.trim()) {
+        logger.error(`>_ ${text.trim()}`);
+      }
+    }
+    stderrReader.releaseLock();
+  };
+
+  await Promise.all([readStdout(), readStderr()]);
+  
+  const exitCode = await proc.exited;
+  if (exitCode !== 0) {
+    throw new Error(`Command failed with exit code ${exitCode}: ${errorOutput}`);
+  }
+
+  return output.trim();
 }
 
 /**
@@ -107,10 +161,6 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   const validators = config.validators;
   logger.info(`🔎 Found ${validators.length} validators to fund`);
 
-  // Get cast path for transactions
-  const { stdout: castPath } = await $`which cast`.quiet();
-  const castExecutable = castPath.toString().trim();
-
   // Get the deployment information to find the strategies
   const defaultDeploymentPath = path.resolve(`../contracts/deployments/${networkName}.json`);
   const finalDeploymentPath = deploymentPath || defaultDeploymentPath;
@@ -155,14 +205,19 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     logger.debug(`Found token creator's private key for address ${tokenCreator}`);
 
     // Get the ERC20 balance of the token creator and its ETH balance as well
-    const getErc20BalanceCmd = `${castExecutable} balance --erc20 ${underlyingTokenAddress} ${tokenCreator} --rpc-url ${rpcUrl}`;
-    logger.debug(`Balance command call: ${getErc20BalanceCmd}`)
-    const getEthBalanceCmd = `${castExecutable} balance ${tokenCreator} --rpc-url ${rpcUrl}`;
+    const getErc20BalanceCmd = `cast balance --erc20 ${underlyingTokenAddress} ${tokenCreator} --rpc-url ${rpcUrl}`;
+    logger.debug(`Balance command call: ${getErc20BalanceCmd}`);
+    
+    const erc20BalanceOutput = await runCastCommand(getErc20BalanceCmd, false);
+    const creatorErc20Balance = erc20BalanceOutput.split(" ")[0] || "0";
+    
+    // Get ETH balance
+    const getEthBalanceCmd = `cast balance ${tokenCreator} --rpc-url ${rpcUrl}`;
     logger.debug(`ETH balance command call: ${getEthBalanceCmd}`);
-    const { stdout: erc20BalanceOutput } = await $`sh -c ${getErc20BalanceCmd}`.quiet();
-    const { stdout: ethBalanceOutput } = await $`sh -c ${getEthBalanceCmd}`.quiet();
-    const creatorErc20Balance = erc20BalanceOutput.toString().trim().split(" ")[0];
-    const creatorEthBalance = ethBalanceOutput.toString().trim();
+    
+    const ethBalanceOutput = await runCastCommand(getEthBalanceCmd, false);
+    const creatorEthBalance = ethBalanceOutput || "0";
+    
     logger.debug(`Token creator has ${creatorErc20Balance} tokens and ${creatorEthBalance} ETH`);
 
     // Transfer 5% of the creator's tokens to each validator + 1% of the creator's ETH. ETH is transferred only if the receiving validator does not have any
@@ -172,21 +227,20 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
     for (const validator of validators) {
       if (validator.publicKey !== tokenCreator) {
-        const transferCmd = `${castExecutable} send --private-key ${creatorPrivateKey} ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
-        const { exitCode: transferExitCode, stderr: transferStderr } = await $`sh -c ${transferCmd}`
-          .nothrow()
-          .quiet();
-        if (transferExitCode !== 0) {
-          logger.error(
-            `Failed to transfer tokens to validator ${validator.publicKey}: ${transferStderr.toString()}`
-          );
+        const transferCmd = `cast send --private-key ${creatorPrivateKey} ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
+        
+        logger.info(`Transferring tokens to validator ${validator.publicKey}...`);
+        try {
+          await runShellCommandWithLogger(transferCmd, { cwd: "../contracts", logLevel: "debug" });
+        } catch (error) {
+          logger.error(`Failed to transfer tokens to validator ${validator.publicKey}: ${error}`);
           continue;
         }
 
         // Verify the transfer was successful
-        const validatorBalanceCmd = `${castExecutable} call ${underlyingTokenAddress} "balanceOf(address)(uint256)" ${validator.publicKey} --rpc-url ${rpcUrl}`;
-        const { stdout: validatorBalanceOutput } = await $`sh -c ${validatorBalanceCmd}`.quiet();
-        const validatorBalance = validatorBalanceOutput.toString().trim().split(" ")[0];
+        const validatorBalanceCmd = `cast call ${underlyingTokenAddress} "balanceOf(address)(uint256)" ${validator.publicKey} --rpc-url ${rpcUrl}`;
+        const validatorBalanceOutput = await runCastCommand(validatorBalanceCmd, false);
+        const validatorBalance = validatorBalanceOutput.split(" ")[0] || "0";
 
         // Note: We shouldn't use strict equality here as other transactions might affect balances
         if (BigInt(validatorBalance) < erc20TransferAmount) {
@@ -198,29 +252,28 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
         }
 
         // Check this validator's ETH balance
-        const validatorEthBalanceCmd = `${castExecutable} balance ${validator.publicKey} --rpc-url ${rpcUrl}`;
-        const { stdout: validatorEthBalanceOutput } =
-          await $`sh -c ${validatorEthBalanceCmd}`.quiet();
-        const validatorEthBalance = validatorEthBalanceOutput.toString().trim();
+        const validatorEthBalanceCmd = `cast balance ${validator.publicKey} --rpc-url ${rpcUrl}`;
+        const validatorEthBalanceOutput = await runCastCommand(validatorEthBalanceCmd, false);
+        const validatorEthBalance = validatorEthBalanceOutput || "0";
         logger.debug(`Validator ${validator.publicKey} has ${validatorEthBalance} ETH`);
 
         // Transfer ETH only if the validator has no ETH
         if (BigInt(validatorEthBalance) === BigInt(0)) {
-          const ethTransferCmd = `${castExecutable} send --private-key ${creatorPrivateKey} ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
-          const { exitCode: ethTransferExitCode, stderr: ethTransferStderr } =
-            await $`sh -c ${ethTransferCmd}`.nothrow().quiet();
-          if (ethTransferExitCode !== 0) {
-            logger.error(
-              `Failed to transfer ETH to validator ${validator.publicKey}: ${ethTransferStderr.toString()}`
-            );
+          const ethTransferCmd = `cast send --private-key ${creatorPrivateKey} ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
+          
+          logger.info(`Transferring ETH to validator ${validator.publicKey}...`);
+          try {
+            await runShellCommandWithLogger(ethTransferCmd, { cwd: "../contracts", logLevel: "debug" });
+          } catch (error) {
+            logger.error(`Failed to transfer ETH to validator ${validator.publicKey}: ${error}`);
             continue;
           }
 
           // Verify the ETH transfer was successful
-          const validatorEthBalanceAfterCmd = `${castExecutable} balance ${validator.publicKey} --rpc-url ${rpcUrl}`;
-          const { stdout: validatorEthBalanceAfterOutput } =
-            await $`sh -c ${validatorEthBalanceAfterCmd}`.quiet();
-          const validatorEthBalanceAfter = validatorEthBalanceAfterOutput.toString().trim();
+          const validatorEthBalanceAfterCmd = `cast balance ${validator.publicKey} --rpc-url ${rpcUrl}`;
+          const validatorEthBalanceAfterOutput = await runCastCommand(validatorEthBalanceAfterCmd, false);
+          const validatorEthBalanceAfter = validatorEthBalanceAfterOutput || "0";
+          
           if (BigInt(validatorEthBalanceAfter) < ethTransferAmount) {
             logger.warn(
               `Validator ${validator.publicKey} has less than expected ETH balance (${validatorEthBalanceAfter} < ${ethTransferAmount})`

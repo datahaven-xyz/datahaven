@@ -262,17 +262,20 @@ function convertParameter(rawParam: any): ParsedDataHavenParameter {
       name: rawParam.name,
       value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
     };
-  } else if (rawParam.name === "RewardsRegistryAddress" && rawParam.value) {
+  }
+  if (rawParam.name === "RewardsRegistryAddress" && rawParam.value) {
     return {
       name: rawParam.name,
       value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
     };
-  } else if (rawParam.name === "RewardsUpdateSelector" && rawParam.value) {
+  }
+  if (rawParam.name === "RewardsUpdateSelector" && rawParam.value) {
     return {
       name: rawParam.name,
       value: new FixedSizeBinary<4>(hexToUint8Array(rawParam.value))
     };
-  } else if (rawParam.name === "RewardsAgentOrigin" && rawParam.value) {
+  }
+  if (rawParam.name === "RewardsAgentOrigin" && rawParam.value) {
     return {
       name: rawParam.name,
       value: new FixedSizeBinary<32>(hexToUint8Array(rawParam.value))

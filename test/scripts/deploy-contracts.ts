@@ -1,6 +1,11 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, parseDeploymentsFile, parseRewardsInfoFile, runShellCommandWithLogger } from "utils";
+import {
+  logger,
+  parseDeploymentsFile,
+  parseRewardsInfoFile,
+  runShellCommandWithLogger
+} from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
@@ -105,7 +110,9 @@ export const executeDeployment = async (
       }
 
       if (updateRewardsMerkleRootSelector) {
-        logger.debug(`📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`);
+        logger.debug(
+          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
+        );
         parameterCollection.addParameter({
           name: "RewardsUpdateSelector",
           value: updateRewardsMerkleRootSelector
@@ -121,7 +128,7 @@ export const executeDeployment = async (
           value: rewardsAgentOrigin
         });
       } else {
-        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file")
+        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
       }
     } catch (error) {
       logger.error(`Failed to read parameters from deployment: ${error}`);

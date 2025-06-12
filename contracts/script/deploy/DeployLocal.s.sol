@@ -7,6 +7,7 @@ import {console} from "forge-std/console.sol";
 import {DeployParams} from "./DeployParams.s.sol";
 import {Logging} from "../utils/Logging.sol";
 import {Accounts} from "../utils/Accounts.sol";
+import {StateDiffRecorder} from "../utils/StateDiffRecorder.sol";
 // Snowbridge imports
 import {Gateway} from "snowbridge/src/Gateway.sol";
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
@@ -57,7 +58,6 @@ import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-import {Vm} from "forge-std/Vm.sol";
 
 struct ServiceManagerInitParams {
     address avsOwner;
@@ -75,17 +75,10 @@ struct StrategyInfo {
     address tokenCreator;
 }
 
-contract Deploy is Script, DeployParams, Accounts {
+contract Deploy is StateDiffRecorder, DeployParams, Accounts {
     // Progress indicator
     uint16 public deploymentStep = 0;
     uint16 public totalSteps = 4; // Total major deployment steps
-
-    // State diff recording configuration
-    bool public recordStateDiff = true;
-    string public stateDiffFilename = "./deployments/state-diff.json";
-
-    // Array to store all state diff records
-    Vm.AccountAccess[] private allStateDiffs;
 
     // EigenLayer Contract declarations
     EmptyContract public emptyContract;
@@ -117,390 +110,8 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logProgress(deploymentStep, totalSteps);
     }
 
-    function _recordBroadcast() private {
-        if (recordStateDiff) {
-            vm.startStateDiffRecording();
-            // The broadcast happens here
-            vm.stopAndReturnStateDiff();
-            Vm.AccountAccess[] memory newDiffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(newDiffs);
-        }
-    }
 
-    function _appendStateDiffs(Vm.AccountAccess[] memory newDiffs) private {
-        uint256 currentLength = allStateDiffs.length;
-        uint256 newLength = currentLength + newDiffs.length;
-        
-        // Create a new array with the combined size
-        Vm.AccountAccess[] memory combinedDiffs = new Vm.AccountAccess[](newLength);
-        
-        // Copy existing diffs
-        for (uint256 i = 0; i < currentLength; i++) {
-            combinedDiffs[i] = allStateDiffs[i];
-        }
-        
-        // Append new diffs and track storage changes
-        for (uint256 i = 0; i < newDiffs.length; i++) {
-            combinedDiffs[currentLength + i] = newDiffs[i];
-            
-            // Track storage writes
-            for (uint256 j = 0; j < newDiffs[i].storageAccesses.length; j++) {
-                Vm.StorageAccess memory access = newDiffs[i].storageAccesses[j];
-                if (access.isWrite && !access.reverted) {
-                    string memory slotInfo = getSlotName(access.slot);
-                    if (bytes(slotInfo).length == 0) {
-                        slotInfo = string.concat("Slot ", vm.toString(uint256(access.slot)));
-                    }
-                    console.log("  [STORAGE] %s: %s = %s", access.account, slotInfo, vm.toString(access.newValue));
-                }
-            }
-        }
-        
-        // Update the storage
-        allStateDiffs = combinedDiffs;
-    }
 
-    // Control functions for state diff recording
-    function disableStateDiff() public {
-        recordStateDiff = false;
-    }
-
-    function enableStateDiff() public {
-        recordStateDiff = true;
-    }
-
-    function setStateDiffFilename(string memory filename) public {
-        stateDiffFilename = filename;
-    }
-
-    // State diff processing functions
-    function processAndDisplayStateDiff(Vm.AccountAccess[] memory records) internal view {
-        console.log("\n================================================================================");
-        console.log("                           STATE DIFF SUMMARY                                   ");
-        console.log("================================================================================\n");
-
-        // Collect deployments
-        (DeploymentInfo[] memory deployments, uint256 deploymentCount) = collectDeployments(records);
-        
-        // Collect storage changes
-        (StorageChange[] memory storageChanges, uint256 storageChangeCount) = collectStorageChanges(records);
-
-        // Display deployments
-        if (deploymentCount > 0) {
-            console.log("DEPLOYED CONTRACTS:");
-            console.log("-------------------");
-            for (uint256 i = 0; i < deploymentCount; i++) {
-                console.log("  [%s] %s", i + 1, deployments[i].addr);
-                console.log("       Code size: %s bytes", deployments[i].code.length);
-                if (bytes(deployments[i].name).length > 0) {
-                    console.log("       Contract: %s", deployments[i].name);
-                }
-            }
-            console.log("");
-        }
-
-        // Display storage changes grouped by contract
-        if (storageChangeCount > 0) {
-            console.log("STORAGE CHANGES:");
-            console.log("----------------");
-            
-            address currentContract = address(0);
-            for (uint256 i = 0; i < storageChangeCount; i++) {
-                StorageChange memory change = storageChanges[i];
-                
-                if (change.account != currentContract) {
-                    if (currentContract != address(0)) console.log("");
-                    currentContract = change.account;
-                    console.log("  Contract: %s", currentContract);
-                }
-                
-                // Simple one-line display
-                string memory slotName = bytes(change.slotName).length > 0 ? change.slotName : string.concat("Slot ", vm.toString(uint256(change.slot)));
-                console.log("    %s = %s", slotName, vm.toString(change.value));
-                if (change.isDelegateCall) {
-                    console.log("      (via delegatecall from %s)", change.implementation);
-                }
-            }
-            console.log("");
-        }
-
-        // Summary
-        console.log("SUMMARY:");
-        console.log("--------");
-        console.log("  Total state changes: %s", records.length);
-        console.log("  Contracts deployed: %s", deploymentCount);
-        console.log("  Storage slots modified: %s", storageChangeCount);
-        
-        // Count delegate call state changes
-        uint256 delegateCallChanges = 0;
-        for (uint256 i = 0; i < storageChangeCount; i++) {
-            if (storageChanges[i].isDelegateCall) {
-                delegateCallChanges++;
-            }
-        }
-        if (delegateCallChanges > 0) {
-            console.log("  Delegate call state changes: %s", delegateCallChanges);
-        }
-        
-        console.log("  State diff exported to: %s", stateDiffFilename);
-        console.log("\n================================================================================\n");
-    }
-
-    function exportStateDiff(Vm vm_, Vm.AccountAccess[] memory records, string memory filename) internal {
-        string memory json = buildSimplifiedJson(vm_, records);
-        vm_.writeJson(json, filename);
-    }
-
-    // Helper structs for state diff processing
-    struct DeploymentInfo {
-        address addr;
-        bytes code;
-        string name;
-    }
-
-    struct StorageChange {
-        address account;
-        bytes32 slot;
-        bytes32 value;
-        string slotName;
-        bool isDelegateCall;
-        address implementation;
-    }
-
-    struct StorageSlot {
-        bytes32 slot;
-        bytes32 value;
-    }
-
-    // EIP-1967 storage slots
-    bytes32 constant ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-    bytes32 constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
-    bytes32 constant BEACON_SLOT = 0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50;
-
-    function getSlotName(bytes32 slot) internal pure returns (string memory) {
-        if (slot == bytes32(uint256(0))) return "Owner (slot 0)";
-        if (slot == ADMIN_SLOT) return "Proxy Admin (EIP-1967)";
-        if (slot == IMPLEMENTATION_SLOT) return "Implementation (EIP-1967)";
-        if (slot == BEACON_SLOT) return "Beacon (EIP-1967)";
-        return "";
-    }
-
-    function collectDeployments(Vm.AccountAccess[] memory records) internal pure returns (DeploymentInfo[] memory, uint256) {
-        uint256 deploymentCount;
-        for (uint256 i = 0; i < records.length; i++) {
-            if (uint256(records[i].kind) == 4) deploymentCount++; // Create = 4
-        }
-
-        if (deploymentCount == 0) {
-            return (new DeploymentInfo[](0), 0);
-        }
-
-        DeploymentInfo[] memory deployments = new DeploymentInfo[](deploymentCount);
-        uint256 n;
-
-        for (uint256 i = 0; i < records.length; i++) {
-            if (uint256(records[i].kind) != 4) continue; // Create = 4
-            
-            address addr = records[i].account;
-            bool seen = false;
-            
-            for (uint256 j = 0; j < n; j++) {
-                if (deployments[j].addr == addr) {
-                    seen = true;
-                    break;
-                }
-            }
-            
-            if (!seen) {
-                deployments[n].addr = addr;
-                deployments[n].code = records[i].deployedCode;
-                deployments[n].name = ""; // Could be enhanced to detect contract type
-                n++;
-            }
-        }
-
-        return (deployments, n);
-    }
-
-    function collectStorageChanges(Vm.AccountAccess[] memory records) internal pure returns (StorageChange[] memory, uint256) {
-        uint256 maxChanges = 1000;
-        StorageChange[] memory changes = new StorageChange[](maxChanges);
-        uint256 changeCount;
-
-        // Process all records to get only the final storage states
-        for (uint256 i = 0; i < records.length; i++) {
-            Vm.AccountAccess memory record = records[i];
-            
-            for (uint256 j = 0; j < record.storageAccesses.length; j++) {
-                Vm.StorageAccess memory access = record.storageAccesses[j];
-                
-                // Determine which account actually owns this storage
-                address stateAccount = access.account;
-                
-                // Check if this storage access is from a delegate call
-                bool isDelegateCall = (uint256(record.kind) == 1 && record.accessor != record.account);
-                address implementation = isDelegateCall ? record.account : address(0);
-                
-                // Skip reads and reverted writes
-                if (!access.isWrite || access.reverted) continue;
-                
-                if (changeCount < maxChanges) {
-                    // Check if we already have this slot for this account
-                    bool found = false;
-                    for (uint256 k = 0; k < changeCount; k++) {
-                        if (changes[k].account == stateAccount && changes[k].slot == access.slot) {
-                            // Update to the latest value
-                            changes[k].value = access.newValue;
-                            // Update delegate call info if this is now from a delegate call
-                            if (isDelegateCall && !changes[k].isDelegateCall) {
-                                changes[k].isDelegateCall = true;
-                                changes[k].implementation = implementation;
-                            }
-                            found = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!found) {
-                        changes[changeCount] = StorageChange({
-                            account: stateAccount,
-                            slot: access.slot,
-                            value: access.newValue,
-                            slotName: getSlotName(access.slot),
-                            isDelegateCall: isDelegateCall,
-                            implementation: implementation
-                        });
-                        changeCount++;
-                    }
-                }
-            }
-        }
-
-        // Create properly sized array with only final states
-        StorageChange[] memory result = new StorageChange[](changeCount);
-        for (uint256 i = 0; i < changeCount; i++) {
-            result[i] = changes[i];
-        }
-
-        return (result, changeCount);
-    }
-
-    function processStorageForContract(
-        Vm vm_,
-        address contractAddr,
-        Vm.AccountAccess[] memory records,
-        string memory storageKey
-    ) internal returns (string memory) {
-        uint256 maxSlots = 200;
-        StorageSlot[] memory finalStorage = new StorageSlot[](maxSlots);
-        uint256 uniqueSlotCount;
-        string memory storageJson = "";
-        
-        // Debug for specific contracts
-        bool isDebugContract = (contractAddr == 0x36C02dA8a0983159322a80FFE9F24b1acfF8B570);
-        if (isDebugContract) {
-            console.log("[processStorageForContract] Processing %s", contractAddr);
-        }
-
-        // Process all records chronologically to get the final state
-        for (uint256 j = 0; j < records.length; j++) {
-            // Check if this record has any storage accesses for our contract
-            bool hasStorageForContract = false;
-            for (uint256 k = 0; k < records[j].storageAccesses.length; k++) {
-                if (records[j].storageAccesses[k].account == contractAddr) {
-                    hasStorageForContract = true;
-                    break;
-                }
-            }
-            
-            if (!hasStorageForContract) continue;
-            
-            if (isDebugContract && records[j].storageAccesses.length > 0) {
-                console.log("  [processStorage] Found record %s with %s storage accesses", j, records[j].storageAccesses.length);
-            }
-
-            for (uint256 s = 0; s < records[j].storageAccesses.length; s++) {
-                Vm.StorageAccess memory access = records[j].storageAccesses[s];
-                
-                // Only process storage accesses for our contract
-                if (access.account != contractAddr) continue;
-                
-                // Skip reads and reverted writes
-                if (!access.isWrite || access.reverted) continue;
-
-                // Find or add slot - always update to latest value
-                bool found = false;
-                for (uint256 d = 0; d < uniqueSlotCount; d++) {
-                    if (finalStorage[d].slot == access.slot) {
-                        // Always update to the most recent value
-                        finalStorage[d].value = access.newValue;
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found && uniqueSlotCount < maxSlots) {
-                    finalStorage[uniqueSlotCount] = StorageSlot({
-                        slot: access.slot,
-                        value: access.newValue
-                    });
-                    uniqueSlotCount++;
-                    
-                    if (isDebugContract) {
-                        console.log("  [processStorage] Added slot %s = %s", vm.toString(access.slot), vm.toString(access.newValue));
-                    }
-                }
-            }
-        }
-
-        // Serialize only the final storage values
-        if (isDebugContract) {
-            console.log("  [processStorage] Total slots to serialize: %s", uniqueSlotCount);
-        }
-        for (uint256 i = 0; i < uniqueSlotCount; i++) {
-            storageJson = vm_.serializeBytes32(storageKey, vm_.toString(finalStorage[i].slot), finalStorage[i].value);
-            if (isDebugContract) {
-                console.log("  [processStorage] Serialized slot %s", vm_.toString(finalStorage[i].slot));
-            }
-        }
-
-        return storageJson;
-    }
-
-    function buildSimplifiedJson(Vm vm_, Vm.AccountAccess[] memory records) internal returns (string memory) {
-        if (records.length == 0) {
-            return vm_.serializeString("contracts", "empty", "[]");
-        }
-
-        (DeploymentInfo[] memory deployments, uint256 deploymentCount) = collectDeployments(records);
-
-        if (deploymentCount == 0) {
-            return vm_.serializeString("contracts", "empty", "[]");
-        }
-
-        string memory jsonKey = "contracts";
-        string memory finalJson = "";
-
-        for (uint256 i = 0; i < deploymentCount; i++) {
-            string memory contractKey = string.concat("contract_", vm_.toString(i));
-
-            vm_.serializeAddress(contractKey, "address", deployments[i].addr);
-            vm_.serializeBytes(contractKey, "code", deployments[i].code);
-
-            string memory storageKey = string.concat(contractKey, "_storage");
-            string memory storageJson = processStorageForContract(vm_, deployments[i].addr, records, storageKey);
-
-            string memory contractJson = vm_.serializeString(contractKey, "storage", storageJson);
-
-            if (i == deploymentCount - 1) {
-                finalJson = vm_.serializeString(jsonKey, vm_.toString(i), contractJson);
-            } else {
-                vm_.serializeString(jsonKey, vm_.toString(i), contractJson);
-            }
-        }
-
-        return finalJson;
-    }
 
     function run() public {
         Logging.logHeader("DATAHAVEN DEPLOYMENT SCRIPT");
@@ -518,13 +129,7 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logInfo("Deploying core infrastructure contracts");
 
         // Deploy proxy admin for ability to upgrade proxy contracts
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        ProxyAdmin proxyAdmin = new ProxyAdmin();
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        ProxyAdmin proxyAdmin = _deployProxyAdmin();
         Logging.logContractDeployed("ProxyAdmin", address(proxyAdmin));
 
         // Deploy pauser registry
@@ -532,13 +137,7 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logContractDeployed("PauserRegistry", address(pauserRegistry));
 
         // Deploy empty contract to use as initial implementation for proxies
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        emptyContract = new EmptyContract();
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        emptyContract = _deployEmptyContract();
         Logging.logContractDeployed("EmptyContract", address(emptyContract));
 
         // Deploy proxies that will point to implementations
@@ -551,24 +150,10 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
 
         // Deploy EigenPod implementation and beacon
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        eigenPodImplementation = new EigenPod(
-            ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp, SEMVER
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
-
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        eigenPodBeacon = new UpgradeableBeacon(address(eigenPodImplementation));
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        eigenPodImplementation = _deployEigenPodImplementation(ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp);
         Logging.logContractDeployed("EigenPod Implementation", address(eigenPodImplementation));
+        
+        eigenPodBeacon = _deployEigenPodBeacon(eigenPodImplementation);
         Logging.logContractDeployed("EigenPod Beacon", address(eigenPodBeacon));
 
         // Deploy implementation contracts
@@ -587,23 +172,8 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logStep("Strategy contracts deployed successfully");
 
         // Transfer ownership of core contracts
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.transferOwnership(eigenLayerConfig.executorMultisig);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-            console.log("  [STATE DIFF] Recorded ProxyAdmin ownership transfer with %s state changes", diffs.length);
-        }
-
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        eigenPodBeacon.transferOwnership(eigenLayerConfig.executorMultisig);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-            console.log("  [STATE DIFF] Recorded EigenPodBeacon ownership transfer with %s state changes", diffs.length);
-        }
+        _transferProxyAdminOwnership(proxyAdmin, eigenLayerConfig.executorMultisig);
+        _transferEigenPodBeaconOwnership(eigenPodBeacon, eigenLayerConfig.executorMultisig);
         Logging.logStep("Ownership transferred to multisig");
 
         Logging.logFooter();
@@ -635,13 +205,7 @@ contract Deploy is Script, DeployParams, Accounts {
         // Set the Agent in the RewardsRegistry
         Logging.logHeader("FINAL CONFIGURATION");
         // This needs to be executed by the AVS owner
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _setRewardsAgent(serviceManager, 0, rewardsAgentAddress);
         Logging.logStep("Agent set in RewardsRegistry");
         Logging.logContractDeployed("Agent Address", rewardsAgentAddress);
 
@@ -660,10 +224,7 @@ contract Deploy is Script, DeployParams, Accounts {
         );
 
         // Process and export final state diff
-        if (recordStateDiff && allStateDiffs.length > 0) {
-            processAndDisplayStateDiff(allStateDiffs);
-            exportStateDiff(vm, allStateDiffs, stateDiffFilename);
-        }
+        finalizeStateDiff();
     }
 
     function _deploySnowbridge(
@@ -674,22 +235,10 @@ contract Deploy is Script, DeployParams, Accounts {
         BeefyClient beefyClient = _deployBeefyClient(config);
         Logging.logContractDeployed("BeefyClient", address(beefyClient));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        AgentExecutor agentExecutor = new AgentExecutor();
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        AgentExecutor agentExecutor = _deployAgentExecutor();
         Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        Gateway gatewayImplementation = new Gateway(address(beefyClient), address(agentExecutor));
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        Gateway gatewayImplementation = _deployGatewayImplementation(beefyClient, agentExecutor);
         Logging.logContractDeployed("Gateway Implementation", address(gatewayImplementation));
 
         // Configure and deploy Gateway proxy
@@ -706,26 +255,12 @@ contract Deploy is Script, DeployParams, Accounts {
             maxDestinationFee: 1
         });
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        IGatewayV2 gateway = IGatewayV2(
-            address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig)))
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        IGatewayV2 gateway = _deployGatewayProxy(gatewayImplementation, gatewayConfig);
         Logging.logContractDeployed("Gateway Proxy", address(gateway));
 
         // Create Agent
         Logging.logSection("Creating Snowbridge Agent");
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        gateway.v2_createAgent(config.rewardsMessageOrigin);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _createSnowbridgeAgent(gateway, config.rewardsMessageOrigin);
         address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
         Logging.logContractDeployed("Rewards Agent", rewardsAgentAddress);
 
@@ -736,95 +271,25 @@ contract Deploy is Script, DeployParams, Accounts {
         ProxyAdmin proxyAdmin
     ) internal {
         // Deploy proxies with empty implementation initially
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        delegation = DelegationManager(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        delegation = DelegationManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("DelegationManager Proxy", address(delegation));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        strategyManager = StrategyManager(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        strategyManager = StrategyManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("StrategyManager Proxy", address(strategyManager));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        avsDirectory = AVSDirectory(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        avsDirectory = AVSDirectory(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("AVSDirectory Proxy", address(avsDirectory));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        eigenPodManager = EigenPodManager(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        eigenPodManager = EigenPodManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("EigenPodManager Proxy", address(eigenPodManager));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        rewardsCoordinator = RewardsCoordinator(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        rewardsCoordinator = RewardsCoordinator(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("RewardsCoordinator Proxy", address(rewardsCoordinator));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        allocationManager = AllocationManager(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        allocationManager = AllocationManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("AllocationManager Proxy", address(allocationManager));
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        permissionController = PermissionController(
-            address(
-                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
-            )
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        permissionController = PermissionController(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("PermissionController Proxy", address(permissionController));
     }
 
@@ -833,62 +298,36 @@ contract Deploy is Script, DeployParams, Accounts {
         PauserRegistry pauserRegistry
     ) internal {
         // Deploy implementation contracts
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        delegationImplementation = new DelegationManager(
+        delegationImplementation = _deployDelegationImplementation(
             strategyManager,
             eigenPodManager,
             allocationManager,
             pauserRegistry,
             permissionController,
-            config.minWithdrawalDelayBlocks,
-            SEMVER
+            config.minWithdrawalDelayBlocks
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logContractDeployed(
             "DelegationManager Implementation", address(delegationImplementation)
         );
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        strategyManagerImplementation = new StrategyManager(delegation, pauserRegistry, SEMVER);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        strategyManagerImplementation = _deployStrategyManagerImplementation(delegation, pauserRegistry);
         Logging.logContractDeployed(
             "StrategyManager Implementation", address(strategyManagerImplementation)
         );
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        avsDirectoryImplementation = new AVSDirectory(delegation, pauserRegistry, SEMVER);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        avsDirectoryImplementation = _deployAVSDirectoryImplementation(delegation, pauserRegistry);
         Logging.logContractDeployed(
             "AVSDirectory Implementation", address(avsDirectoryImplementation)
         );
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        eigenPodManagerImplementation =
-            new EigenPodManager(ethPOSDeposit, eigenPodBeacon, delegation, pauserRegistry, SEMVER);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        eigenPodManagerImplementation = _deployEigenPodManagerImplementation(
+            ethPOSDeposit, eigenPodBeacon, delegation, pauserRegistry
+        );
         Logging.logContractDeployed(
             "EigenPodManager Implementation", address(eigenPodManagerImplementation)
         );
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        rewardsCoordinatorImplementation = new RewardsCoordinator(
+        rewardsCoordinatorImplementation = _deployRewardsCoordinatorImplementation(
             IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams(
                 delegation,
                 strategyManager,
@@ -903,39 +342,22 @@ contract Deploy is Script, DeployParams, Accounts {
                 SEMVER
             )
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logContractDeployed(
             "RewardsCoordinator Implementation", address(rewardsCoordinatorImplementation)
         );
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        allocationManagerImplementation = new AllocationManager(
+        allocationManagerImplementation = _deployAllocationManagerImplementation(
             delegation,
             pauserRegistry,
             permissionController,
             config.deallocationDelay,
-            config.allocationConfigurationDelay,
-            SEMVER
+            config.allocationConfigurationDelay
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logContractDeployed(
             "AllocationManager Implementation", address(allocationManagerImplementation)
         );
 
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        permissionControllerImplementation = new PermissionController(SEMVER);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        permissionControllerImplementation = _deployPermissionControllerImplementation();
         Logging.logContractDeployed(
             "PermissionController Implementation", address(permissionControllerImplementation)
         );
@@ -950,182 +372,84 @@ contract Deploy is Script, DeployParams, Accounts {
             IStrategy[] memory strategies;
             uint256[] memory withdrawalDelayBlocks;
 
-            if (recordStateDiff) vm.startStateDiffRecording();
-            vm.broadcast(_deployerPrivateKey);
-            proxyAdmin.upgradeAndCall(
-                ITransparentUpgradeableProxy(payable(address(delegation))),
-                address(delegationImplementation),
-                abi.encodeWithSelector(
-                    DelegationManager.initialize.selector,
-                    config.executorMultisig,
-                    config.delegationInitPausedStatus,
-                    config.delegationWithdrawalDelayBlocks,
-                    strategies,
-                    withdrawalDelayBlocks
-                )
+            _upgradeAndInitializeDelegationManager(
+                proxyAdmin,
+                config.executorMultisig,
+                config.delegationInitPausedStatus,
+                config.delegationWithdrawalDelayBlocks,
+                strategies,
+                withdrawalDelayBlocks
             );
-            if (recordStateDiff) {
-                Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-                _appendStateDiffs(diffs);
-            }
             Logging.logStep("DelegationManager initialized");
         }
 
         // Initialize StrategyManager
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(address(strategyManager))),
-            address(strategyManagerImplementation),
-            abi.encodeWithSelector(
-                StrategyManager.initialize.selector,
-                config.executorMultisig,
-                config.operationsMultisig,
-                config.strategyManagerInitPausedStatus
-            )
+        _upgradeAndInitializeStrategyManager(
+            proxyAdmin,
+            config.executorMultisig,
+            config.operationsMultisig,
+            config.strategyManagerInitPausedStatus
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logStep("StrategyManager initialized");
 
         // Initialize AVSDirectory
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(address(avsDirectory))),
-            address(avsDirectoryImplementation),
-            abi.encodeWithSelector(
-                AVSDirectory.initialize.selector,
-                config.executorMultisig,
-                0 // Initial paused status
-            )
+        _upgradeAndInitializeAVSDirectory(
+            proxyAdmin,
+            config.executorMultisig,
+            0 // Initial paused status
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logStep("AVSDirectory initialized");
 
         // Initialize EigenPodManager
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(address(eigenPodManager))),
-            address(eigenPodManagerImplementation),
-            abi.encodeWithSelector(
-                EigenPodManager.initialize.selector,
-                config.executorMultisig,
-                config.eigenPodManagerInitPausedStatus
-            )
+        _upgradeAndInitializeEigenPodManager(
+            proxyAdmin,
+            config.executorMultisig,
+            config.eigenPodManagerInitPausedStatus
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logStep("EigenPodManager initialized");
 
         // Initialize RewardsCoordinator
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(address(rewardsCoordinator))),
-            address(rewardsCoordinatorImplementation),
-            abi.encodeWithSelector(
-                RewardsCoordinator.initialize.selector,
-                config.executorMultisig,
-                config.rewardsCoordinatorInitPausedStatus,
-                config.rewardsUpdater,
-                config.activationDelay,
-                config.globalCommissionBips
-            )
+        _upgradeAndInitializeRewardsCoordinator(
+            proxyAdmin,
+            config.executorMultisig,
+            config.rewardsCoordinatorInitPausedStatus,
+            config.rewardsUpdater,
+            config.activationDelay,
+            config.globalCommissionBips
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logStep("RewardsCoordinator initialized");
 
         // Initialize AllocationManager
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(address(allocationManager))),
-            address(allocationManagerImplementation),
-            abi.encodeWithSelector(
-                AllocationManager.initialize.selector,
-                config.executorMultisig,
-                config.allocationManagerInitPausedStatus
-            )
+        _upgradeAndInitializeAllocationManager(
+            proxyAdmin,
+            config.executorMultisig,
+            config.allocationManagerInitPausedStatus
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logStep("AllocationManager initialized");
 
         // Initialize PermissionController (no initialization function)
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        proxyAdmin.upgrade(
-            ITransparentUpgradeableProxy(payable(address(permissionController))),
-            address(permissionControllerImplementation)
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _upgradePermissionController(proxyAdmin);
         Logging.logStep("PermissionController upgraded");
     }
 
     function _deployStrategies(PauserRegistry pauserRegistry, ProxyAdmin proxyAdmin) internal {
         // Deploy base strategy implementation
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        baseStrategyImplementation =
-            new StrategyBaseTVLLimits(strategyManager, pauserRegistry, SEMVER);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        baseStrategyImplementation = _deployStrategyImplementation(pauserRegistry);
         Logging.logContractDeployed("Strategy Implementation", address(baseStrategyImplementation));
 
         // Create default test token and strategy if needed
         // In a production environment, this would be replaced with actual token addresses.
         if (block.chainid != 1) {
             // We mint tokens to the operator account so that it then has a balance to deposit as stake.
-            if (recordStateDiff) vm.startStateDiffRecording();
-            vm.broadcast(_deployerPrivateKey);
-            address testToken =
-                address(new ERC20PresetFixedSupply("TestToken", "TEST", 1000000 ether, _operator));
-            if (recordStateDiff) {
-                Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-                _appendStateDiffs(diffs);
-            }
+            address testToken = _deployTestToken();
             Logging.logContractDeployed("TestToken", testToken);
 
             // Create strategy for test token
-            if (recordStateDiff) vm.startStateDiffRecording();
-            vm.broadcast(_deployerPrivateKey);
-            StrategyBaseTVLLimits strategy = StrategyBaseTVLLimits(
-                address(
-                    new TransparentUpgradeableProxy(
-                        address(baseStrategyImplementation),
-                        address(proxyAdmin),
-                        abi.encodeWithSelector(
-                            StrategyBaseTVLLimits.initialize.selector,
-                            1000000 ether, // maxPerDeposit
-                            10000000 ether, // maxDeposits
-                            IERC20(testToken)
-                        )
-                    )
-                )
+            StrategyBaseTVLLimits strategy = _deployTestStrategy(
+                baseStrategyImplementation,
+                proxyAdmin,
+                testToken
             );
-            if (recordStateDiff) {
-                Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-                _appendStateDiffs(diffs);
-            }
 
             // Store the strategy with its token information
             deployedStrategies.push(
@@ -1143,37 +467,381 @@ contract Deploy is Script, DeployParams, Accounts {
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             strategies[i] = IStrategy(deployedStrategies[i].address_);
         }
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_operationsMultisigPrivateKey);
-        strategyManager.addStrategiesToDepositWhitelist(strategies);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _whitelistStrategies(strategies);
     }
 
-    function _deployProxyAdmin() internal returns (ProxyAdmin) {
-        if (recordStateDiff) vm.startStateDiffRecording();
-        ProxyAdmin proxyAdmin = new ProxyAdmin();
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
-        return proxyAdmin;
+    function _deployProxyAdmin() internal trackStateDiff returns (ProxyAdmin) {
+        vm.broadcast(_deployerPrivateKey);
+        return new ProxyAdmin();
+    }
+    
+    function _deployEmptyContract() internal trackStateDiff returns (EmptyContract) {
+        vm.broadcast(_deployerPrivateKey);
+        return new EmptyContract();
+    }
+    
+    function _deployEigenPodImplementation(
+        IETHPOSDeposit ethPOSDeposit_,
+        EigenPodManager eigenPodManager_,
+        uint64 beaconChainGenesisTimestamp
+    ) internal trackStateDiff returns (EigenPod) {
+        vm.broadcast(_deployerPrivateKey);
+        return new EigenPod(ethPOSDeposit_, eigenPodManager_, beaconChainGenesisTimestamp, SEMVER);
+    }
+    
+    function _deployEigenPodBeacon(EigenPod implementation) internal trackStateDiff returns (UpgradeableBeacon) {
+        vm.broadcast(_deployerPrivateKey);
+        return new UpgradeableBeacon(address(implementation));
+    }
+    
+    function _transferProxyAdminOwnership(ProxyAdmin proxyAdmin, address newOwner) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.transferOwnership(newOwner);
+    }
+    
+    function _transferEigenPodBeaconOwnership(UpgradeableBeacon beacon, address newOwner) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        beacon.transferOwnership(newOwner);
+    }
+    
+    function _setRewardsAgent(DataHavenServiceManager serviceManager, uint32 operatorSetId, address rewardsAgent) internal trackStateDiff {
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.setRewardsAgent(operatorSetId, rewardsAgent);
+    }
+    
+    function _deployAgentExecutor() internal trackStateDiff returns (AgentExecutor) {
+        vm.broadcast(_deployerPrivateKey);
+        return new AgentExecutor();
+    }
+    
+    function _deployGatewayImplementation(BeefyClient beefyClient, AgentExecutor agentExecutor) internal trackStateDiff returns (Gateway) {
+        vm.broadcast(_deployerPrivateKey);
+        return new Gateway(address(beefyClient), address(agentExecutor));
+    }
+    
+    function _deployGatewayProxy(Gateway implementation, Initializer.Config memory config) internal trackStateDiff returns (IGatewayV2) {
+        vm.broadcast(_deployerPrivateKey);
+        return IGatewayV2(address(new GatewayProxy(address(implementation), abi.encode(config))));
+    }
+    
+    function _createSnowbridgeAgent(IGatewayV2 gateway, bytes32 origin) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        gateway.v2_createAgent(origin);
+    }
+    
+    function _deployProxy(address implementation, address admin, bytes memory data) internal trackStateDiff returns (address) {
+        vm.broadcast(_deployerPrivateKey);
+        return address(new TransparentUpgradeableProxy(implementation, admin, data));
+    }
+    
+    function _deployBeefyClientContract(
+        uint256 randaoCommitDelay,
+        uint256 randaoCommitExpiration,
+        uint256 minNumRequiredSignatures,
+        uint256 startBlock,
+        BeefyClient.ValidatorSet memory validatorSet,
+        BeefyClient.ValidatorSet memory nextValidatorSet
+    ) internal trackStateDiff returns (BeefyClient) {
+        vm.broadcast(_deployerPrivateKey);
+        return new BeefyClient(
+            randaoCommitDelay,
+            randaoCommitExpiration,
+            minNumRequiredSignatures,
+            uint64(startBlock),
+            validatorSet,
+            nextValidatorSet
+        );
+    }
+    
+    function _deployDelegationImplementation(
+        StrategyManager strategyManager_,
+        EigenPodManager eigenPodManager_,
+        AllocationManager allocationManager_,
+        PauserRegistry pauserRegistry_,
+        PermissionController permissionController_,
+        uint32 minWithdrawalDelayBlocks
+    ) internal trackStateDiff returns (DelegationManager) {
+        vm.broadcast(_deployerPrivateKey);
+        return new DelegationManager(
+            strategyManager_,
+            eigenPodManager_,
+            allocationManager_,
+            pauserRegistry_,
+            permissionController_,
+            minWithdrawalDelayBlocks,
+            SEMVER
+        );
+    }
+    
+    function _deployStrategyManagerImplementation(
+        DelegationManager delegation_,
+        PauserRegistry pauserRegistry_
+    ) internal trackStateDiff returns (StrategyManager) {
+        vm.broadcast(_deployerPrivateKey);
+        return new StrategyManager(delegation_, pauserRegistry_, SEMVER);
+    }
+    
+    function _deployAVSDirectoryImplementation(
+        DelegationManager delegation_,
+        PauserRegistry pauserRegistry_
+    ) internal trackStateDiff returns (AVSDirectory) {
+        vm.broadcast(_deployerPrivateKey);
+        return new AVSDirectory(delegation_, pauserRegistry_, SEMVER);
+    }
+    
+    function _deployEigenPodManagerImplementation(
+        IETHPOSDeposit ethPOSDeposit_,
+        UpgradeableBeacon eigenPodBeacon_,
+        DelegationManager delegation_,
+        PauserRegistry pauserRegistry_
+    ) internal trackStateDiff returns (EigenPodManager) {
+        vm.broadcast(_deployerPrivateKey);
+        return new EigenPodManager(ethPOSDeposit_, eigenPodBeacon_, delegation_, pauserRegistry_, SEMVER);
+    }
+    
+    function _deployRewardsCoordinatorImplementation(
+        IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams memory params
+    ) internal trackStateDiff returns (RewardsCoordinator) {
+        vm.broadcast(_deployerPrivateKey);
+        return new RewardsCoordinator(params);
+    }
+    
+    function _deployAllocationManagerImplementation(
+        DelegationManager delegation_,
+        PauserRegistry pauserRegistry_,
+        PermissionController permissionController_,
+        uint32 deallocationDelay,
+        uint32 allocationConfigurationDelay
+    ) internal trackStateDiff returns (AllocationManager) {
+        vm.broadcast(_deployerPrivateKey);
+        return new AllocationManager(
+            delegation_,
+            pauserRegistry_,
+            permissionController_,
+            deallocationDelay,
+            allocationConfigurationDelay,
+            SEMVER
+        );
+    }
+    
+    function _deployPermissionControllerImplementation() internal trackStateDiff returns (PermissionController) {
+        vm.broadcast(_deployerPrivateKey);
+        return new PermissionController(SEMVER);
+    }
+    
+    function _upgradeAndInitializeDelegationManager(
+        ProxyAdmin proxyAdmin,
+        address executorMultisig,
+        uint256 delegationInitPausedStatus,
+        uint32 delegationWithdrawalDelayBlocks,
+        IStrategy[] memory strategies,
+        uint256[] memory withdrawalDelayBlocks
+    ) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(delegation))),
+            address(delegationImplementation),
+            abi.encodeWithSelector(
+                DelegationManager.initialize.selector,
+                executorMultisig,
+                delegationInitPausedStatus,
+                delegationWithdrawalDelayBlocks,
+                strategies,
+                withdrawalDelayBlocks
+            )
+        );
+    }
+    
+    function _upgradeAndInitializeStrategyManager(
+        ProxyAdmin proxyAdmin,
+        address executorMultisig,
+        address operationsMultisig,
+        uint256 strategyManagerInitPausedStatus
+    ) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(strategyManager))),
+            address(strategyManagerImplementation),
+            abi.encodeWithSelector(
+                StrategyManager.initialize.selector,
+                executorMultisig,
+                operationsMultisig,
+                strategyManagerInitPausedStatus
+            )
+        );
+    }
+    
+    function _upgradeAndInitializeAVSDirectory(
+        ProxyAdmin proxyAdmin,
+        address executorMultisig,
+        uint256 pausedStatus
+    ) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(avsDirectory))),
+            address(avsDirectoryImplementation),
+            abi.encodeWithSelector(
+                AVSDirectory.initialize.selector,
+                executorMultisig,
+                pausedStatus
+            )
+        );
+    }
+    
+    function _upgradeAndInitializeEigenPodManager(
+        ProxyAdmin proxyAdmin,
+        address executorMultisig,
+        uint256 eigenPodManagerInitPausedStatus
+    ) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(eigenPodManager))),
+            address(eigenPodManagerImplementation),
+            abi.encodeWithSelector(
+                EigenPodManager.initialize.selector,
+                executorMultisig,
+                eigenPodManagerInitPausedStatus
+            )
+        );
+    }
+    
+    function _upgradeAndInitializeRewardsCoordinator(
+        ProxyAdmin proxyAdmin,
+        address executorMultisig,
+        uint256 rewardsCoordinatorInitPausedStatus,
+        address rewardsUpdater,
+        uint32 activationDelay,
+        uint16 globalCommissionBips
+    ) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(rewardsCoordinator))),
+            address(rewardsCoordinatorImplementation),
+            abi.encodeWithSelector(
+                RewardsCoordinator.initialize.selector,
+                executorMultisig,
+                rewardsCoordinatorInitPausedStatus,
+                rewardsUpdater,
+                activationDelay,
+                globalCommissionBips
+            )
+        );
+    }
+    
+    function _upgradeAndInitializeAllocationManager(
+        ProxyAdmin proxyAdmin,
+        address executorMultisig,
+        uint256 allocationManagerInitPausedStatus
+    ) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(allocationManager))),
+            address(allocationManagerImplementation),
+            abi.encodeWithSelector(
+                AllocationManager.initialize.selector,
+                executorMultisig,
+                allocationManagerInitPausedStatus
+            )
+        );
+    }
+    
+    function _upgradePermissionController(ProxyAdmin proxyAdmin) internal trackStateDiff {
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgrade(
+            ITransparentUpgradeableProxy(payable(address(permissionController))),
+            address(permissionControllerImplementation)
+        );
+    }
+    
+    function _deployStrategyImplementation(PauserRegistry pauserRegistry) internal trackStateDiff returns (StrategyBaseTVLLimits) {
+        vm.broadcast(_deployerPrivateKey);
+        return new StrategyBaseTVLLimits(strategyManager, pauserRegistry, SEMVER);
+    }
+    
+    function _deployTestToken() internal trackStateDiff returns (address) {
+        vm.broadcast(_deployerPrivateKey);
+        return address(new ERC20PresetFixedSupply("TestToken", "TEST", 1000000 ether, _operator));
+    }
+    
+    function _deployTestStrategy(
+        StrategyBaseTVLLimits implementation,
+        ProxyAdmin proxyAdmin,
+        address testToken
+    ) internal trackStateDiff returns (StrategyBaseTVLLimits) {
+        vm.broadcast(_deployerPrivateKey);
+        return StrategyBaseTVLLimits(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(implementation),
+                    address(proxyAdmin),
+                    abi.encodeWithSelector(
+                        StrategyBaseTVLLimits.initialize.selector,
+                        1000000 ether, // maxPerDeposit
+                        10000000 ether, // maxDeposits
+                        IERC20(testToken)
+                    )
+                )
+            )
+        );
+    }
+    
+    function _whitelistStrategies(IStrategy[] memory strategies) internal trackStateDiff {
+        vm.broadcast(_operationsMultisigPrivateKey);
+        strategyManager.addStrategiesToDepositWhitelist(strategies);
+    }
+    
+    function _deployServiceManagerImplementation() internal trackStateDiff returns (DataHavenServiceManager) {
+        vm.broadcast(_deployerPrivateKey);
+        return new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
+    }
+    
+    function _deployVetoableSlasher(
+        DataHavenServiceManager serviceManager,
+        address vetoCommitteeMember,
+        uint256 vetoWindowBlocks
+    ) internal trackStateDiff returns (VetoableSlasher) {
+        vm.broadcast(_deployerPrivateKey);
+        return new VetoableSlasher(
+            allocationManager,
+            serviceManager,
+            vetoCommitteeMember,
+            uint32(vetoWindowBlocks)
+        );
+    }
+    
+    function _deployRewardsRegistry(DataHavenServiceManager serviceManager) internal trackStateDiff returns (RewardsRegistry) {
+        vm.broadcast(_deployerPrivateKey);
+        return new RewardsRegistry(
+            address(serviceManager),
+            address(0) // Will be set to the Agent address after creation
+        );
+    }
+    
+    function _updateAVSMetadata(DataHavenServiceManager serviceManager, string memory metadataURI) internal trackStateDiff {
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.updateAVSMetadataURI(metadataURI);
+    }
+    
+    function _setSlasher(DataHavenServiceManager serviceManager, VetoableSlasher slasher) internal trackStateDiff {
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.setSlasher(slasher);
+    }
+    
+    function _setRewardsRegistry(
+        DataHavenServiceManager serviceManager,
+        uint32 operatorSetId,
+        RewardsRegistry rewardsRegistry
+    ) internal trackStateDiff {
+        vm.broadcast(_avsOwnerPrivateKey);
+        serviceManager.setRewardsRegistry(operatorSetId, rewardsRegistry);
     }
 
     function _deployPauserRegistry(
         EigenLayerConfig memory config
-    ) internal returns (PauserRegistry) {
+    ) internal trackStateDiff returns (PauserRegistry) {
         // Use the array of pauser addresses directly from the config
-        if (recordStateDiff) vm.startStateDiffRecording();
         vm.broadcast(_deployerPrivateKey);
-        PauserRegistry registry = new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
-        return registry;
+        return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
     }
 
     function _buildValidatorSet(
@@ -1198,9 +866,7 @@ contract Deploy is Script, DeployParams, Accounts {
             _buildValidatorSet(1, config.nextValidators);
 
         // Deploy BeefyClient
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        BeefyClient client = new BeefyClient(
+        return _deployBeefyClientContract(
             config.randaoCommitDelay,
             config.randaoCommitExpiration,
             config.minNumRequiredSignatures,
@@ -1208,11 +874,6 @@ contract Deploy is Script, DeployParams, Accounts {
             validatorSet,
             nextValidatorSet
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
-        return client;
     }
 
     function _outputDeployedAddresses(
@@ -1355,14 +1016,7 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation =
-            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        DataHavenServiceManager serviceManagerImplementation = _deployServiceManagerImplementation();
         Logging.logContractDeployed(
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
@@ -1386,64 +1040,30 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
         // Deploy VetoableSlasher
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager,
+        VetoableSlasher vetoableSlasher = _deployVetoableSlasher(
             serviceManager,
             avsConfig.vetoCommitteeMember,
             avsConfig.vetoWindowBlocks
         );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 
         // Deploy RewardsRegistry
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_deployerPrivateKey);
-        RewardsRegistry rewardsRegistry = new RewardsRegistry(
-            address(serviceManager),
-            address(0) // Will be set to the Agent address after creation
-        );
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        RewardsRegistry rewardsRegistry = _deployRewardsRegistry(serviceManager);
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection("Configuring Service Manager");
 
         // Register the DataHaven service in the AllocationManager
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.updateAVSMetadataURI("");
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _updateAVSMetadata(serviceManager, "");
         Logging.logStep("DataHaven service registered in AllocationManager");
 
         // Set the slasher in the ServiceManager
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setSlasher(vetoableSlasher);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _setSlasher(serviceManager, vetoableSlasher);
         Logging.logStep("Slasher set in ServiceManager");
 
         // Set the RewardsRegistry in the ServiceManager
         uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();
-        if (recordStateDiff) vm.startStateDiffRecording();
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
+        _setRewardsRegistry(serviceManager, validatorsSetId, rewardsRegistry);
         Logging.logStep("RewardsRegistry set in ServiceManager");
 
         return (serviceManager, vetoableSlasher, rewardsRegistry);
@@ -1453,8 +1073,7 @@ contract Deploy is Script, DeployParams, Accounts {
         DataHavenServiceManager implementation,
         ProxyAdmin proxyAdmin,
         ServiceManagerInitParams memory params
-    ) internal returns (DataHavenServiceManager) {
-        if (recordStateDiff) vm.startStateDiffRecording();
+    ) internal trackStateDiff returns (DataHavenServiceManager) {
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
             DataHavenServiceManager.initialise.selector,
@@ -1468,11 +1087,6 @@ contract Deploy is Script, DeployParams, Accounts {
 
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy(address(implementation), address(proxyAdmin), initData);
-        
-        if (recordStateDiff) {
-            Vm.AccountAccess[] memory diffs = vm.stopAndReturnStateDiff();
-            _appendStateDiffs(diffs);
-        }
 
         return DataHavenServiceManager(address(proxy));
     }

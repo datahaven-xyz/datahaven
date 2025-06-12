@@ -114,7 +114,7 @@ export const getPortFromKurtosis = async (
   }
 
   const output = stdout.toString();
-  logger.debug(output);
+  logger.trace(output);
 
   const parsed = serviceSchema.parse(JSON.parse(output));
 

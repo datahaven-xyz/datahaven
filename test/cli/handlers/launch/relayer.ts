@@ -524,15 +524,15 @@ const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: Beac
     update: checkpoint
   });
 
-  logger.debug("Force checkpoint call:");
-  logger.debug(forceCheckpointCall.decodedCall);
+  logger.trace("Force checkpoint call:");
+  logger.trace(forceCheckpointCall.decodedCall);
 
   const tx = dhApi.tx.Sudo.sudo({
     call: forceCheckpointCall.decodedCall
   });
 
-  logger.debug("Sudo call:");
-  logger.debug(tx.decodedCall);
+  logger.trace("Sudo call:");
+  logger.trace(tx.decodedCall);
 
   try {
     const txFinalisedPayload = await tx.signAndSubmit(signer);

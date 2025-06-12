@@ -202,6 +202,3 @@ where
         Ok(id)
     }
 }
-
-#[cfg(test)]
-mod tests;

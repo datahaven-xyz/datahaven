@@ -13,13 +13,14 @@ imagePullSecrets:
 config:
   name: "beefy-relay"
 
-existingSecretName: "dh-beefy-relay-eth-key"
+existingSecretName: "dh-beefy-relay-ethereum-key"
 
-extraArgs: [
-  "run",
-  "beefy",
-  "--config",
-  "/configs/beefy-relay.json",
-  "--ethereum.private-key-file",
-  "/secrets/dh-beefy-relay-eth-key",
-]
+extraArgs:
+  [
+    "run",
+    "beefy",
+    "--config",
+    "/configs/beefy-relay.json",
+    "--ethereum.private-key-file",
+    "/secrets/dh-beefy-relay-ethereum-key",
+  ]

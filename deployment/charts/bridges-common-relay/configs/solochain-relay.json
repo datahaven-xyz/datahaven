@@ -3,10 +3,13 @@
     "ethereum": {
       "endpoint": "ws://el-1-reth-lodestar:8546"
     },
+    "solochain": {
+      "endpoint": "ws://dh-validator-0:9944"
+    },
     "contracts": {
+      "BeefyClient": "0x4826533B4897376654Bb4d4AD88B7faFD0C98528",
       "Gateway": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf"
     },
-    "channel-id": "",
     "beacon": {
       "endpoint": "http://cl-1-lodestar-reth:4000",
       "stateEndpoint": "http://cl-1-lodestar-reth:4000",
@@ -20,22 +23,27 @@
         }
       },
       "datastore": {
-        "location": "",
+        "location": "/data",
         "maxEntries": 100
       }
     }
   },
   "sink": {
-    "parachain": {
-      "endpoint": "ws://dh-validator-0:9944",
-      "maxWatchedExtrinsics": 8,
-      "headerRedundancy": 20
+    "contracts": {
+      "Gateway": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf"
+    },
+    "ethereum": {
+      "endpoint": "ws://el-1-reth-lodestar:8546"
     }
   },
-  "instantVerification": false,
   "schedule": {
-    "id": null,
+    "id": 0,
     "totalRelayerCount": 1,
-    "sleepInterval": 1
+    "sleepInterval": 10
+  },
+  "reward-address": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+  "ofac": {
+    "enabled": false,
+    "apiKey": ""
   }
 }

@@ -139,18 +139,25 @@ contract Deploy is Script, DeployParams, Accounts {
             combinedDiffs[i] = allStateDiffs[i];
         }
         
-        // Append new diffs
+        // Append new diffs and track storage changes
         for (uint256 i = 0; i < newDiffs.length; i++) {
             combinedDiffs[currentLength + i] = newDiffs[i];
+            
+            // Track storage writes
+            for (uint256 j = 0; j < newDiffs[i].storageAccesses.length; j++) {
+                Vm.StorageAccess memory access = newDiffs[i].storageAccesses[j];
+                if (access.isWrite && !access.reverted) {
+                    string memory slotInfo = getSlotName(access.slot);
+                    if (bytes(slotInfo).length == 0) {
+                        slotInfo = string.concat("Slot ", vm.toString(uint256(access.slot)));
+                    }
+                    console.log("  [STORAGE] %s: %s = %s", access.account, slotInfo, vm.toString(access.newValue));
+                }
+            }
         }
         
         // Update the storage
         allStateDiffs = combinedDiffs;
-        
-        // Log cumulative state diff count
-        if (newDiffs.length > 0) {
-            console.log("  [STATE DIFF] Total accumulated state changes: %s", allStateDiffs.length);
-        }
     }
 
     // Control functions for state diff recording
@@ -207,7 +214,12 @@ contract Deploy is Script, DeployParams, Accounts {
                     console.log("  Contract: %s", currentContract);
                 }
                 
-                displayStorageChange(change);
+                // Simple one-line display
+                string memory slotName = bytes(change.slotName).length > 0 ? change.slotName : string.concat("Slot ", vm.toString(uint256(change.slot)));
+                console.log("    %s = %s", slotName, vm.toString(change.value));
+                if (change.isDelegateCall) {
+                    console.log("      (via delegatecall from %s)", change.implementation);
+                }
             }
             console.log("");
         }
@@ -218,6 +230,18 @@ contract Deploy is Script, DeployParams, Accounts {
         console.log("  Total state changes: %s", records.length);
         console.log("  Contracts deployed: %s", deploymentCount);
         console.log("  Storage slots modified: %s", storageChangeCount);
+        
+        // Count delegate call state changes
+        uint256 delegateCallChanges = 0;
+        for (uint256 i = 0; i < storageChangeCount; i++) {
+            if (storageChanges[i].isDelegateCall) {
+                delegateCallChanges++;
+            }
+        }
+        if (delegateCallChanges > 0) {
+            console.log("  Delegate call state changes: %s", delegateCallChanges);
+        }
+        
         console.log("  State diff exported to: %s", stateDiffFilename);
         console.log("\n================================================================================\n");
     }
@@ -239,6 +263,8 @@ contract Deploy is Script, DeployParams, Accounts {
         bytes32 slot;
         bytes32 value;
         string slotName;
+        bool isDelegateCall;
+        address implementation;
     }
 
     struct StorageSlot {
@@ -250,52 +276,6 @@ contract Deploy is Script, DeployParams, Accounts {
     bytes32 constant ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
     bytes32 constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     bytes32 constant BEACON_SLOT = 0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50;
-
-    function displayStorageChange(StorageChange memory change) internal view {
-        string memory slotInfo = change.slotName;
-        
-        if (bytes(slotInfo).length == 0) {
-            slotInfo = string.concat("Slot ", vm.toString(uint256(change.slot)));
-        }
-        
-        console.log("    %s", slotInfo);
-        console.log("         Value: %s", formatStorageValue(change.value, change.slotName));
-        
-        // Special logging for ownership changes
-        if (keccak256(bytes(change.slotName)) == keccak256(bytes("Owner (slot 0)"))) {
-            console.log("         [OWNERSHIP CHANGE DETECTED]");
-        }
-    }
-
-    function formatStorageValue(bytes32 value, string memory slotName) internal pure returns (string memory) {
-        // For known address slots, format as address
-        if (keccak256(bytes(slotName)) == keccak256(bytes("Owner (slot 0)")) ||
-            keccak256(bytes(slotName)) == keccak256(bytes("Proxy Admin (EIP-1967)")) ||
-            keccak256(bytes(slotName)) == keccak256(bytes("Implementation (EIP-1967)")) ||
-            keccak256(bytes(slotName)) == keccak256(bytes("Beacon (EIP-1967)"))) {
-            address addr = address(uint160(uint256(value)));
-            if (addr == address(0)) return "0x0 (empty)";
-            return vm.toString(addr);
-        }
-        
-        // Try to detect if it's likely an address (non-zero in lower 20 bytes, zero in upper 12)
-        uint256 uintValue = uint256(value);
-        if (uintValue != 0 && uintValue <= type(uint160).max) {
-            address addr = address(uint160(uintValue));
-            // Additional heuristic: if it looks like a deployed contract address
-            if (uint160(addr) > 0xFF) {
-                return string.concat(vm.toString(addr), " (likely address)");
-            }
-        }
-        
-        // For small numbers, show as decimal
-        if (uintValue <= 1e6) {
-            return string.concat(vm.toString(uintValue), " (uint256)");
-        }
-        
-        // For everything else, show as hex
-        return vm.toString(value);
-    }
 
     function getSlotName(bytes32 slot) internal pure returns (string memory) {
         if (slot == bytes32(uint256(0))) return "Owner (slot 0)";
@@ -354,6 +334,13 @@ contract Deploy is Script, DeployParams, Accounts {
             for (uint256 j = 0; j < record.storageAccesses.length; j++) {
                 Vm.StorageAccess memory access = record.storageAccesses[j];
                 
+                // Determine which account actually owns this storage
+                address stateAccount = access.account;
+                
+                // Check if this storage access is from a delegate call
+                bool isDelegateCall = (uint256(record.kind) == 1 && record.accessor != record.account);
+                address implementation = isDelegateCall ? record.account : address(0);
+                
                 // Skip reads and reverted writes
                 if (!access.isWrite || access.reverted) continue;
                 
@@ -361,9 +348,14 @@ contract Deploy is Script, DeployParams, Accounts {
                     // Check if we already have this slot for this account
                     bool found = false;
                     for (uint256 k = 0; k < changeCount; k++) {
-                        if (changes[k].account == record.account && changes[k].slot == access.slot) {
+                        if (changes[k].account == stateAccount && changes[k].slot == access.slot) {
                             // Update to the latest value
                             changes[k].value = access.newValue;
+                            // Update delegate call info if this is now from a delegate call
+                            if (isDelegateCall && !changes[k].isDelegateCall) {
+                                changes[k].isDelegateCall = true;
+                                changes[k].implementation = implementation;
+                            }
                             found = true;
                             break;
                         }
@@ -371,10 +363,12 @@ contract Deploy is Script, DeployParams, Accounts {
                     
                     if (!found) {
                         changes[changeCount] = StorageChange({
-                            account: record.account,
+                            account: stateAccount,
                             slot: access.slot,
                             value: access.newValue,
-                            slotName: getSlotName(access.slot)
+                            slotName: getSlotName(access.slot),
+                            isDelegateCall: isDelegateCall,
+                            implementation: implementation
                         });
                         changeCount++;
                     }
@@ -401,13 +395,35 @@ contract Deploy is Script, DeployParams, Accounts {
         StorageSlot[] memory finalStorage = new StorageSlot[](maxSlots);
         uint256 uniqueSlotCount;
         string memory storageJson = "";
+        
+        // Debug for specific contracts
+        bool isDebugContract = (contractAddr == 0x36C02dA8a0983159322a80FFE9F24b1acfF8B570);
+        if (isDebugContract) {
+            console.log("[processStorageForContract] Processing %s", contractAddr);
+        }
 
         // Process all records chronologically to get the final state
         for (uint256 j = 0; j < records.length; j++) {
-            if (records[j].account != contractAddr) continue;
+            // Check if this record has any storage accesses for our contract
+            bool hasStorageForContract = false;
+            for (uint256 k = 0; k < records[j].storageAccesses.length; k++) {
+                if (records[j].storageAccesses[k].account == contractAddr) {
+                    hasStorageForContract = true;
+                    break;
+                }
+            }
+            
+            if (!hasStorageForContract) continue;
+            
+            if (isDebugContract && records[j].storageAccesses.length > 0) {
+                console.log("  [processStorage] Found record %s with %s storage accesses", j, records[j].storageAccesses.length);
+            }
 
             for (uint256 s = 0; s < records[j].storageAccesses.length; s++) {
                 Vm.StorageAccess memory access = records[j].storageAccesses[s];
+                
+                // Only process storage accesses for our contract
+                if (access.account != contractAddr) continue;
                 
                 // Skip reads and reverted writes
                 if (!access.isWrite || access.reverted) continue;
@@ -429,13 +445,23 @@ contract Deploy is Script, DeployParams, Accounts {
                         value: access.newValue
                     });
                     uniqueSlotCount++;
+                    
+                    if (isDebugContract) {
+                        console.log("  [processStorage] Added slot %s = %s", vm.toString(access.slot), vm.toString(access.newValue));
+                    }
                 }
             }
         }
 
         // Serialize only the final storage values
+        if (isDebugContract) {
+            console.log("  [processStorage] Total slots to serialize: %s", uniqueSlotCount);
+        }
         for (uint256 i = 0; i < uniqueSlotCount; i++) {
             storageJson = vm_.serializeBytes32(storageKey, vm_.toString(finalStorage[i].slot), finalStorage[i].value);
+            if (isDebugContract) {
+                console.log("  [processStorage] Serialized slot %s", vm_.toString(finalStorage[i].slot));
+            }
         }
 
         return storageJson;

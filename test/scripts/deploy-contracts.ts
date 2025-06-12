@@ -1,68 +1,30 @@
 import { $ } from "bun";
-import type { LaunchOptions } from "cli/handlers";
 import invariant from "tiny-invariant";
-import {
-  confirmWithTimeout,
-  logger,
-  parseDeploymentsFile,
-  printDivider,
-  printHeader,
-  runShellCommandWithLogger,
-  waitForNodeToSync
-} from "utils";
+import { logger, parseDeploymentsFile, runShellCommandWithLogger, waitForNodeToSync } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
-interface DeployContractsOptions {
+interface ContractDeploymentOptions {
   rpcUrl: string;
+  verified?: boolean;
   blockscoutBackendUrl?: string;
-  parameterCollection?: ParameterCollection;
-  options: LaunchOptions;
 }
 
 /**
- * Deploys smart contracts to the specified RPC URL
- *
- * @param options - Configuration options for deployment
- * @param options.rpcUrl - The RPC URL to deploy to
- * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
- * @param options.parameterCollection - Collection of parameters to update in the DataHaven runtime
- * @returns Promise resolving to true if contracts were deployed successfully, false if skipped
+ * Validates deployment parameters
  */
-export const deployContracts = async (opt: DeployContractsOptions): Promise<boolean> => {
-  const { rpcUrl, blockscoutBackendUrl, parameterCollection, options } = opt;
+export const validateDeploymentParams = (options: ContractDeploymentOptions) => {
+  const { rpcUrl, verified, blockscoutBackendUrl } = options;
 
-  // Check if deployContracts option was set via flags, or prompt if not
-  let shouldDeployContracts = options.deployContracts
-    ? options.deployContracts && options.injectContracts !== true
-    : options.deployContracts;
-  if (shouldDeployContracts === undefined) {
-    shouldDeployContracts = await confirmWithTimeout(
-      "Do you want to deploy the smart contracts?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `🏳️ Using flag option: ${shouldDeployContracts ? "will deploy" : "will not deploy"} smart contracts`
-    );
-  }
-
-  if (!shouldDeployContracts) {
-    logger.info("👍 Skipping contract deployment. Done!");
-    printDivider();
-
-    return false;
-  }
-
-  // Check if required parameters are provided
   invariant(rpcUrl, "❌ RPC URL is required");
-  if (options.verified) {
+  if (verified) {
     invariant(blockscoutBackendUrl, "❌ Blockscout backend URL is required for verification");
   }
+};
 
-  printHeader("Deploying Smart Contracts");
-
-  // Build contracts
+/**
+ * Builds smart contracts using forge
+ */
+export const buildContracts = async () => {
   logger.info("🛳️ Building contracts...");
   const {
     exitCode: buildExitCode,
@@ -75,6 +37,15 @@ export const deployContracts = async (opt: DeployContractsOptions): Promise<bool
     throw Error("❌ Contracts have failed to build properly.");
   }
   logger.debug(buildStdout.toString());
+};
+
+/**
+ * Constructs the deployment command
+ */
+export const constructDeployCommand = async (
+  options: ContractDeploymentOptions
+): Promise<string> => {
+  const { rpcUrl, verified, blockscoutBackendUrl } = options;
 
   // Check if the node is syncing before deploying
   logger.info("🔄 Checking if node is syncing...");
@@ -82,11 +53,21 @@ export const deployContracts = async (opt: DeployContractsOptions): Promise<bool
 
   let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 
-  if (options.verified && blockscoutBackendUrl) {
+  if (verified && blockscoutBackendUrl) {
     deployCommand += ` --verify --verifier blockscout --verifier-url ${blockscoutBackendUrl}/api/ --delay 0`;
     logger.info("🔍 Contract verification enabled");
   }
 
+  return deployCommand;
+};
+
+/**
+ * Executes contract deployment
+ */
+export const executeDeployment = async (
+  deployCommand: string,
+  parameterCollection?: ParameterCollection
+) => {
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
@@ -116,33 +97,25 @@ export const deployContracts = async (opt: DeployContractsOptions): Promise<bool
   }
 
   logger.success("Contracts deployed successfully");
-  printDivider();
-
-  return true;
 };
 
 // Allow script to be run directly with CLI arguments
 if (import.meta.main) {
   const args = process.argv.slice(2);
-  const options: {
-    rpcUrl?: string;
-    verified: boolean;
-    blockscoutBackendUrl?: string;
-    deployContracts?: boolean;
-  } = {
-    verified: args.includes("--verified"),
-    deployContracts: args.includes("--deploy-contracts")
-      ? true
-      : args.includes("--no-deploy-contracts")
-        ? false
-        : undefined
-  };
 
   // Extract RPC URL
   const rpcUrlIndex = args.indexOf("--rpc-url");
-  if (rpcUrlIndex !== -1 && rpcUrlIndex + 1 < args.length) {
-    options.rpcUrl = args[rpcUrlIndex + 1];
-  }
+  invariant(rpcUrlIndex !== -1, "❌ --rpc-url flag is required");
+  invariant(rpcUrlIndex + 1 < args.length, "❌ --rpc-url flag requires an argument");
+
+  const options: {
+    rpcUrl: string;
+    verified: boolean;
+    blockscoutBackendUrl?: string;
+  } = {
+    rpcUrl: args[rpcUrlIndex + 1],
+    verified: args.includes("--verified")
+  };
 
   // Extract Blockscout URL if verification is enabled
   if (options.verified) {
@@ -162,17 +135,10 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  deployContracts({
-    rpcUrl: options.rpcUrl,
-    blockscoutBackendUrl: options.blockscoutBackendUrl,
-    options: {
-      kurtosisEnclaveName: "",
-      relayerImageTag: "",
-      datahavenImageTag: "",
-      datahavenBuildExtraArgs: ""
-    }
-  }).catch((error) => {
-    console.error("Deployment failed:", error);
-    process.exit(1);
-  });
+  validateDeploymentParams(options);
+
+  await buildContracts();
+
+  const deployCommand = constructDeployCommand(options);
+  await executeDeployment(deployCommand);
 }

@@ -36,9 +36,9 @@ kubectl delete pvc -l app.kubernetes.io/instance=dh-validator -n kt-datahaven-st
 ### Create secrets
 
 ```sh
-kubectl create secret generic dh-beefy-relay-eth-key --from-literal=pvk="<PRIVATE_KEY>" -n kt-datahaven-stagenet
-kubectl create secret generic dh-beacon-relay-sub-key --from-literal=pvk="<PRIVATE_KEY>" -n kt-datahaven-stagenet
-kubectl create secret generic dh-execution-relay-sub-key --from-literal=pvk="<PRIVATE_KEY>" -n kt-datahaven-stagenet
+kubectl create secret generic dh-beefy-relay-ethereum-key --from-literal=pvk="<PRIVATE_KEY>" -n kt-datahaven-stagenet
+kubectl create secret generic dh-beacon-relay-substrate-key --from-literal=pvk="<PRIVATE_KEY>" -n kt-datahaven-stagenet
+kubectl create secret generic dh-execution-relay-substrate-key --from-literal=pvk="<PRIVATE_KEY>" -n kt-datahaven-stagenet
 ```
 
 ### Deploy
@@ -57,7 +57,7 @@ helm uninstall dh-beefy-relay -n kt-datahaven-stagenet
 helm uninstall dh-execution-relay -n kt-datahaven-stagenet
 ```
 
-###  Delete secrets
+### Delete secrets
 
 ```sh
 kubectl delete secret <secret_name> -n kt-datahaven-stagenet

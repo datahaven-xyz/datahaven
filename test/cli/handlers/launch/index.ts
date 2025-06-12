@@ -1,47 +1,38 @@
 import type { Command } from "@commander-js/extra-typings";
-import { deployContracts } from "scripts/deploy-contracts";
 import { getPortFromKurtosis, logger } from "utils";
-import { createParameterCollection, setParametersFromCollection } from "utils/parameters";
-import { checkDependencies } from "./checks";
+import { createParameterCollection } from "utils/parameters";
+import { checkBaseDependencies } from "../common/checks";
+import { LaunchedNetwork } from "../common/launchedNetwork";
+import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
-import { LaunchedNetwork } from "./launchedNetwork";
+import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
-// Non-optional properties determined by having default values
+// Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {
-  verified?: boolean;
+  datahaven?: boolean;
+  buildDatahaven?: boolean;
+  datahavenBuildExtraArgs: string;
+  datahavenImageTag: string;
   launchKurtosis?: boolean;
+  kurtosisEnclaveName: string;
+  slotTime?: number;
+  kurtosisNetworkArgs?: string;
+  verified?: boolean;
+  blockscout?: boolean;
   deployContracts?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
   updateValidatorSet?: boolean;
-  kurtosisEnclaveName: string;
-  blockscout?: boolean;
+  setParameters?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
   cleanNetwork?: boolean;
-  datahaven?: boolean;
-  additionalPrefunded?: string[];
-  buildDatahaven?: boolean;
-  datahavenImageTag: string;
-  datahavenBuildExtraArgs: string;
   injectContracts?: boolean;
-  kurtosisNetworkArgs?: string;
-  // Kept as optional due to parse fn
-  slotTime?: number;
-  setParameters?: boolean;
 }
-
-export const BASE_SERVICES = [
-  "cl-1-lodestar-reth",
-  "cl-2-lodestar-reth",
-  "el-1-reth-lodestar",
-  "el-2-reth-lodestar",
-  "dora"
-];
 
 // =====  Launch Handler Functions  =====
 
@@ -51,16 +42,16 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   const timeStart = performance.now();
 
-  await checkDependencies();
+  await checkBaseDependencies();
 
   // Create parameter collection to be used throughout the launch process
   const parameterCollection = await createParameterCollection();
 
   await launchDataHavenSolochain(options, launchedNetwork);
 
-  await launchKurtosis(launchedNetwork, options);
+  await launchKurtosis(options, launchedNetwork);
 
-  logger.trace("Deploy contracts using the extracted function");
+  logger.trace("Checking if Blockscout is enabled...");
   let blockscoutBackendUrl: string | undefined;
 
   if (options.blockscout === true) {
@@ -78,7 +69,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    options,
     rpcUrl: launchedNetwork.elRpcUrl,
     blockscoutBackendUrl,
     parameterCollection
@@ -107,13 +97,13 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
-  await launchRelayers(options, launchedNetwork);
-
   await setParametersFromCollection({
-    rpcUrl: launchedNetwork.dhRpcUrl,
+    launchedNetwork,
     collection: parameterCollection,
     setParameters: options.setParameters
   });
+
+  await launchRelayers(options, launchedNetwork);
 
   await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
@@ -125,11 +115,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
 export const launch = async (options: LaunchOptions) => {
   const run = new LaunchedNetwork();
-  try {
-    await launchFunction(options, run);
-  } finally {
-    await run.cleanup();
-  }
+  await launchFunction(options, run);
 };
 
 export const launchPreActionHook = (

@@ -39,7 +39,7 @@ use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
-use dhp_bridge::EigenLayerMessageProcessor;
+use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
     pallet_prelude::TransactionPriority,
@@ -770,7 +770,10 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
-    type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
+    type MessageProcessor = (
+        EigenLayerMessageProcessor<Runtime>,
+        NativeTokenTransferMessageProcessor<Runtime>,
+    );
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
     type RewardPayment = DummyRewardPayment;

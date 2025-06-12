@@ -37,7 +37,7 @@ pub mod dynamic_params {
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
         /// The RewardsAgentOrigin is the hash of the string "external_validators_rewards"
-        /// TODO: Check if this is correct
+        /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
         pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
             "c505dfb2df107d106d08bd0f1a0acd10052ca9aa078629a4ccfd0c90c6e69b65"
         ));

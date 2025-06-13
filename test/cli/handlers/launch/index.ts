@@ -73,7 +73,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     rpcUrl: launchedNetwork.elRpcUrl,
     blockscoutBackendUrl,
     parameterCollection,
-    deployContracts: options.deployContracts
+    deployContracts: options.deployContracts,
+    injectContracts: options.injectContracts
   });
 
   // If we're injecting contracts instead of deploying, still read the Gateway address

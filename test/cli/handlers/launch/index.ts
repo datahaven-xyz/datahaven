@@ -98,7 +98,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     }
   }
 
-  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  const isDeployed = options.injectContracts || contractsDeployed
+
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl, isDeployed);
 
   await setParametersFromCollection({
     launchedNetwork,
@@ -108,7 +110,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, isDeployed);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

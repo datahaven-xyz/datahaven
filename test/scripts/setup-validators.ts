@@ -112,6 +112,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
       OPERATOR_SOLOCHAIN_ADDRESS: validator.solochainAddress || ""
     };
 
+    // TODO: Use trackedState to inject this into genesis
     // Prepare command to register validator
     const signupCommand = `forge script script/transact/SignUpValidator.s.sol --rpc-url ${rpcUrl} --broadcast --no-rpc-rate-limit --non-interactive`;
     logger.debug(`Running command: ${signupCommand}`);

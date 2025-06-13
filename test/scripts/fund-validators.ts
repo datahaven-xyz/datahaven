@@ -245,6 +245,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
         // Verify the transfer was successful
         const validatorBalanceCmd = `cast call ${underlyingTokenAddress} "balanceOf(address)(uint256)" ${validator.publicKey} --rpc-url ${rpcUrl}`;
+        logger.debug(`Validator balance command call: ${validatorBalanceCmd}`);
         const validatorBalanceOutput = await runCastCommand(validatorBalanceCmd, false);
         const validatorBalance = validatorBalanceOutput.split(" ")[0] || "0";
 

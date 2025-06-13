@@ -22,6 +22,7 @@ export interface LaunchOptions {
   slotTime?: number;
   kurtosisNetworkArgs?: string;
   verified?: boolean;
+  additionalPrefunded?: string[];
   blockscout?: boolean;
   deployContracts?: boolean;
   fundValidators?: boolean;
@@ -71,7 +72,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   const contractsDeployed = await deployContracts({
     rpcUrl: launchedNetwork.elRpcUrl,
     blockscoutBackendUrl,
-    parameterCollection
+    parameterCollection,
+    deployContracts: options.deployContracts
   });
 
   // If we're injecting contracts instead of deploying, still read the Gateway address

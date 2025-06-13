@@ -1,6 +1,8 @@
 import { $ } from "bun";
+import type { LaunchOptions } from "cli-launch";
 import invariant from "tiny-invariant";
 import {
+  ANVIL_FUNDED_ACCOUNTS,
   getPortFromKurtosis,
   type KurtosisEnclaveInfo,
   KurtosisEnclaveInfoSchema,
@@ -95,6 +97,7 @@ export const modifyConfig = async (
     blockscout?: boolean;
     slotTime?: number;
     injectContracts?: boolean;
+    additionalPrefunded?: string[];
     kurtosisNetworkArgs?: string;
   },
   configFile: string
@@ -110,7 +113,7 @@ export const modifyConfig = async (
   logger.debug(`Parsing config at ${configFile}`);
   logger.trace(config);
 
-  const parsedConfig = parse(config);
+  let parsedConfig = parse(config);
 
   if (options.blockscout) {
     parsedConfig.additional_services.push("blockscout");
@@ -119,6 +122,8 @@ export const modifyConfig = async (
   if (options.slotTime) {
     parsedConfig.network_params.seconds_per_slot = options.slotTime;
   }
+
+  parsedConfig = prefundAccounts(parsedConfig, options);
 
   if (options.kurtosisNetworkArgs) {
     logger.debug(`Using custom Kurtosis network args: ${options.kurtosisNetworkArgs}`);
@@ -278,4 +283,25 @@ const transformToKurtosisFormat = (contracts: z.infer<typeof preDeployedContract
   }
 
   return transformed;
+};
+
+const prefundAccounts = (config: any, options: Partial<LaunchOptions>) => {
+  const additionalAccs = options.additionalPrefunded ? options.additionalPrefunded : [];
+  const anvilAccounts = Object.values(ANVIL_FUNDED_ACCOUNTS)
+    .filter((val) => typeof val === "object" && "publicKey" in val)
+    .map(({ publicKey }) => publicKey);
+  const accountsToFund = [...anvilAccounts, ...additionalAccs];
+  logger.debug(`Funding accounts: ${accountsToFund.join(", ")}`);
+  const blob = accountsToFund
+    .map((acc) => ({ [acc]: { balance: "10ETH" } }))
+    .reduce((acc, currentItem) => {
+      return {
+        ...acc,
+        ...currentItem
+      };
+    }, {});
+  const json = JSON.stringify(blob, null, 0);
+  logger.trace(json);
+  config.network_params.prefunded_accounts = json;
+  return config;
 };

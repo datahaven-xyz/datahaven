@@ -70,15 +70,7 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
 
         // Get the deployed strategies and deposit some of the operator's balance into them.
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            IERC20 linkedToken = deployedStrategies[i].strategy.underlyingToken();
-
-            // Skip strategies that don't have a valid underlying token (e.g., due to initialization issues)
-            if (address(linkedToken) == address(0)) {
-                Logging.logInfo(
-                    string.concat("Strategy ", vm.toString(i), " has no underlying token, skipping")
-                );
-                continue;
-            }
+            IERC20 linkedToken = StrategyBase(deployedStrategies[i].strategy).underlyingToken();
 
             // Check that the operator has a balance of the linked token.
             uint256 balance = linkedToken.balanceOf(_operator);

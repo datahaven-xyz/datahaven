@@ -96,7 +96,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: state-diff
-          path: ../contracts/deployments/state-diff.json
+          path: contracts/deployments/state-diff.json
           retention-days: 1
 
   verify-state-diff:

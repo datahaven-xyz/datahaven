@@ -1,9 +1,6 @@
-import fs from "node:fs";
 import invariant from "tiny-invariant";
 import { logger, type RelayerType } from "utils";
 
-type PipeOptions = number | "inherit" | "pipe" | "ignore";
-type BunProcess = Bun.Subprocess<PipeOptions, PipeOptions, PipeOptions>;
 type ContainerSpec = { name: string; publicPorts: Record<string, number> };
 
 /**
@@ -12,28 +9,24 @@ type ContainerSpec = { name: string; publicPorts: Record<string, number> };
  */
 export class LaunchedNetwork {
   protected runId: string;
-  protected processes: BunProcess[];
   protected _containers: ContainerSpec[];
-  protected fileDescriptors: number[];
   protected _networkName: string;
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected _elRpcUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
   protected _clEndpoint?: string;
-  /** The RPC URL for the DataHaven node. */
-  protected _dhRpcUrl?: string;
+  /** The Kubernetes namespace for the network. Used only for deploy commands. */
+  protected _kubeNamespace?: string;
 
   constructor() {
     this.runId = crypto.randomUUID();
-    this.processes = [];
-    this.fileDescriptors = [];
     this._containers = [];
     this._activeRelayers = [];
     this._networkName = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
-    this._dhRpcUrl = undefined;
+    this._kubeNamespace = undefined;
   }
 
   public set networkName(name: string) {
@@ -67,22 +60,6 @@ export class LaunchedNetwork {
     return container.publicPorts.ws ?? -1;
   }
 
-  /**
-   * Adds a file descriptor to be managed and cleaned up.
-   * @param fd - The file descriptor number.
-   */
-  addFileDescriptor(fd: number) {
-    this.fileDescriptors.push(fd);
-  }
-
-  /**
-   * Adds a running process to be managed and cleaned up.
-   * @param process - The Bun subprocess object.
-   */
-  addProcess(process: BunProcess) {
-    this.processes.push(process);
-  }
-
   addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
     this._containers.push({ name: containerName, publicPorts });
   }
@@ -94,38 +71,6 @@ export class LaunchedNetwork {
     const port = this.containers.map((x) => x.publicPorts.ws).find((x) => x !== -1);
     invariant(port !== undefined, "❌ No public port found in containers");
     return port;
-  }
-
-  /**
-   * Updates the DataHaven RPC URL based on the current container public port
-   * This should be called after DataHaven containers are added to the network
-   */
-  public updateDhRpcUrl(): void {
-    const port = this.getPublicWsPort();
-    this._dhRpcUrl = `ws://127.0.0.1:${port}`;
-    logger.debug(`DataHaven RPC URL set to ${this._dhRpcUrl}`);
-  }
-
-  /**
-   * Sets the RPC URL for the DataHaven node.
-   * @param url - The DataHaven RPC URL string.
-   */
-  public set dhRpcUrl(url: string) {
-    this._dhRpcUrl = url;
-  }
-
-  /**
-   * Gets the RPC URL for the DataHaven node.
-   * @returns The DataHaven RPC URL string.
-   * @throws If the DataHaven RPC URL has not been set.
-   */
-  public get dhRpcUrl(): string {
-    if (!this._dhRpcUrl) {
-      // Try to generate the URL if not set
-      this.updateDhRpcUrl();
-    }
-    invariant(this._dhRpcUrl, "❌ DataHaven RPC URL not set in LaunchedNetwork");
-    return this._dhRpcUrl;
   }
 
   /**
@@ -164,12 +109,6 @@ export class LaunchedNetwork {
     return this._clEndpoint;
   }
 
-  registerRelayerType(type: RelayerType): void {
-    if (!this._activeRelayers.includes(type)) {
-      this._activeRelayers.push(type);
-    }
-  }
-
   public get containers(): ContainerSpec[] {
     return this._containers;
   }
@@ -178,21 +117,12 @@ export class LaunchedNetwork {
     return [...this._activeRelayers];
   }
 
-  async cleanup() {
-    logger.debug("Running cleanup");
-    for (const process of this.processes) {
-      logger.debug(`Process is still running: ${process.pid}`);
-      process.unref();
-    }
+  public set kubeNamespace(namespace: string) {
+    this._kubeNamespace = namespace;
+  }
 
-    for (const fd of this.fileDescriptors) {
-      try {
-        fs.closeSync(fd);
-        this.fileDescriptors = this.fileDescriptors.filter((x) => x !== fd);
-        logger.debug(`Closed file descriptor ${fd}`);
-      } catch (error) {
-        logger.error(`Error closing file descriptor ${fd}: ${error}`);
-      }
-    }
+  public get kubeNamespace(): string {
+    invariant(this._kubeNamespace, "❌ Kubernetes namespace not set in LaunchedNetwork");
+    return this._kubeNamespace;
   }
 }

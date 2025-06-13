@@ -6,83 +6,58 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  confirmWithTimeout,
-  getPortFromKurtosis,
-  killExistingContainers,
   logger,
   parseDeploymentsFile,
   printDivider,
   printHeader,
-  runShellCommandWithLogger,
-  SUBSTRATE_FUNDED_ACCOUNTS,
-  waitForContainerToStart
+  SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { waitFor } from "utils/waits";
 import { ZERO_HASH } from "../common/consts";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
-import type { LaunchOptions } from ".";
+import type { DeployOptions } from ".";
 
-const RELAYER_CONFIG_DIR = "tmp/configs";
+// Standard ports for the Ethereum network
+const ETH_EL_RPC_PORT = 8546;
+const ETH_CL_HTTP_PORT = 4000;
+
+const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
-  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json"),
   SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 
 /**
- * Launches Snowbridge relayers for the DataHaven network.
+ * Deploys Snowbridge relayers for the DataHaven network in a Kubernetes namespace.
  *
  * @param options - Configuration options for launching the relayers.
  * @param launchedNetwork - An instance of LaunchedNetwork to track the network's state.
  */
-export const launchRelayers = async (options: LaunchOptions, launchedNetwork: LaunchedNetwork) => {
+export const deployRelayers = async (options: DeployOptions, launchedNetwork: LaunchedNetwork) => {
   printHeader("Starting Snowbridge Relayers");
 
-  let shouldLaunchRelayers = options.relayer;
-  if (shouldLaunchRelayers === undefined) {
-    shouldLaunchRelayers = await confirmWithTimeout(
-      "Do you want to launch the Snowbridge relayers?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `🏳️ Using flag option: ${shouldLaunchRelayers ? "will launch" : "will not launch"} Snowbridge relayers`
-    );
-  }
-
-  if (!shouldLaunchRelayers) {
-    logger.info("👍  Snowbridge relayers launch. Done!");
+  if (options.skipRelayers) {
+    logger.info("🏳️ Skipping relayer deployment");
     printDivider();
     return;
   }
 
   // Get DataHaven node port
   const dhNodes = launchedNetwork.containers.filter((container) =>
-    container.name.includes("datahaven")
+    container.name.includes("dh-validator")
   );
-  let substrateWsPort: number;
-  let substrateNodeId: string;
 
-  if (dhNodes.length === 0) {
-    logger.warn(
-      "⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to port 9944 for relayers."
-    );
-    substrateWsPort = 9944;
-    substrateNodeId = "default (assumed)";
-  } else {
-    const firstDhNode = dhNodes[0];
-    substrateWsPort = firstDhNode.publicPorts.ws;
-    substrateNodeId = firstDhNode.name;
-    logger.info(
-      `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
-    );
-  }
+  invariant(dhNodes.length > 0, "❌ No DataHaven nodes found in launchedNetwork");
+  const firstDhNode = dhNodes[0];
+  const substrateWsPort = firstDhNode.publicPorts.ws;
+  const substrateNodeId = firstDhNode.name;
+  logger.info(
+    `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
+  );
 
   invariant(options.relayerImageTag, "❌ relayerImageTag is required");
-  await killExistingContainers(options.relayerImageTag);
 
   // Check if BEEFY is ready before proceeding
   await waitBeefyReady(launchedNetwork, 2000, 60000);
@@ -96,23 +71,8 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
-  const datastorePath = "tmp/datastore";
-  logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
-  await $`mkdir -p ${datastorePath}`.quiet();
-
-  const ethWsPort = await getPortFromKurtosis(
-    "el-1-reth-lodestar",
-    "ws",
-    options.kurtosisEnclaveName
-  );
-  const ethHttpPort = await getPortFromKurtosis(
-    "cl-1-lodestar-reth",
-    "http",
-    options.kurtosisEnclaveName
-  );
-
-  const ethElRpcEndpoint = `ws://host.docker.internal:${ethWsPort}`;
-  const ethClEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+  const ethElRpcEndpoint = `ws://el-1-reth-lodestar:${ETH_EL_RPC_PORT}`;
+  const ethClEndpoint = `http://cl-1-lodestar-reth:${ETH_CL_HTTP_PORT}`;
   const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
 
   const relayersToStart: RelayerSpec[] = [
@@ -141,143 +101,136 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       pk: {
         substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
       }
-    },
-    {
-      name: "relayer-⛓️",
-      configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
-      config: {
-        type: "solochain",
-        ethElRpcEndpoint,
-        substrateWsEndpoint,
-        beefyClientAddress,
-        gatewayAddress,
-        ethClEndpoint
-      },
-      pk: {
-        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
-        substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
-      }
-    },
-    {
-      name: "relayer-⚙️",
-      configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
-      config: {
-        type: "execution",
-        ethElRpcEndpoint,
-        ethClEndpoint,
-        substrateWsEndpoint,
-        gatewayAddress
-      },
-      pk: {
-        substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
-      }
     }
+    // TODO: Add solochain relayer
+    // {
+    //   name: "relayer-⛓️",
+    //   configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+    //   config: {
+    //     type: "solochain",
+    //     ethElRpcEndpoint,
+    //     substrateWsEndpoint,
+    //     beefyClientAddress,
+    //     gatewayAddress,
+    //     ethClEndpoint
+    //   },
+    //   pk: {
+    //     ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+    //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
+    //   }
+    // },
+    // TODO: Add execution relayer
+    // {
+    //   name: "relayer-⚙️",
+    //   configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
+    //   config: {
+    //     type: "execution",
+    //     ethElRpcEndpoint,
+    //     ethClEndpoint,
+    //     substrateWsEndpoint,
+    //     gatewayAddress
+    //   },
+    //   pk: {
+    //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
+    //   }
+    // }
   ];
 
   for (const relayerSpec of relayersToStart) {
-    await generateRelayerConfig(relayerSpec, "local", RELAYER_CONFIG_DIR);
+    await generateRelayerConfig(relayerSpec, options.environment, RELAYER_CONFIG_DIR);
   }
 
   invariant(options.relayerImageTag, "❌ Relayer image tag not defined");
-  invariant(
-    launchedNetwork.networkName,
-    "❌ Docker network name not found in LaunchedNetwork instance"
-  );
+
+  // Generating the relayer config file for running the beacon relayer locally, to generate the first checkpoint
+  const localBeaconConfigDir = "tmp/configs";
+  const localBeaconConfigFilePath = path.join(localBeaconConfigDir, "beacon-relay-checkpoint.json");
+  const localBeaconConfig: RelayerSpec = {
+    name: "relayer-🥓-local",
+    configFilePath: localBeaconConfigFilePath,
+    templateFilePath: "configs/snowbridge/local/beacon-relay.json",
+    config: {
+      type: "beacon",
+      ethClEndpoint: launchedNetwork.clEndpoint.replace("127.0.0.1", "host.docker.internal"),
+      substrateWsEndpoint: `ws://${substrateNodeId}:${substrateWsPort}`
+    },
+    pk: {
+      substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+    }
+  };
+  await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigDir);
 
   await initEthClientPallet(
-    path.resolve(RELAYER_CONFIG_PATHS.BEACON),
+    path.resolve(localBeaconConfigFilePath),
     options.relayerImageTag,
-    datastorePath,
+    "tmp/datastore",
     launchedNetwork
   );
 
-  // Opportunistic pull - pull the image from Docker Hub only if it's not a local image
-  const isLocal = options.relayerImageTag.endsWith(":local");
-
-  for (const { configFilePath, name, config, pk } of relayersToStart) {
+  for (const { name, config, pk } of relayersToStart) {
     try {
-      const containerName = `snowbridge-${config.type}-relay`;
+      const containerName = `dh-${config.type}-relay`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
-      const hostConfigFilePath = path.resolve(configFilePath);
-      const containerConfigFilePath = `/${configFilePath}`;
-      const networkName = launchedNetwork.networkName;
-      invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
-
-      const commandBase: string[] = [
-        "docker",
-        "run",
-        "-d",
-        "--platform",
-        "linux/amd64",
-        "--add-host",
-        "host.docker.internal:host-gateway",
-        "--name",
-        containerName,
-        "--network",
-        networkName,
-        ...(isLocal ? [] : ["--pull", "always"])
-      ];
-
-      const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
-
-      if (config.type === "beacon" || config.type === "execution") {
-        const hostDatastorePath = path.resolve(datastorePath);
-        const containerDatastorePath = "/data";
-        volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
-      }
-
-      const relayerCommandArgs: string[] = ["run", config.type, "--config", configFilePath];
-
+      // Adding secret key as Kubernetes secret
+      const secrets: { pk: string; name: string }[] = [];
       switch (config.type) {
         case "beacon":
           invariant(pk.substrate, "❌ Substrate private key is required for beacon relayer");
-          relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          secrets.push({
+            pk: pk.substrate,
+            name: `dh-${config.type}-relay-substrate-key`
+          });
           break;
         case "beefy":
           invariant(pk.ethereum, "❌ Ethereum private key is required for beefy relayer");
-          relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+          secrets.push({
+            pk: pk.ethereum,
+            name: `dh-${config.type}-relay-ethereum-key`
+          });
           break;
         case "solochain":
+          invariant(pk.substrate, "❌ Substrate private key is required for solochain relayer");
           invariant(pk.ethereum, "❌ Ethereum private key is required for solochain relayer");
-          relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
-          if (pk.substrate) {
-            relayerCommandArgs.push("--substrate.private-key", pk.substrate);
-          } else {
-            logger.warn(
-              "⚠️ No substrate private key provided for solochain relayer. This might be an issue depending on the configuration."
-            );
-          }
+          secrets.push({
+            pk: pk.substrate,
+            name: `dh-${config.type}-relay-substrate-key`
+          });
+          secrets.push({
+            pk: pk.ethereum,
+            name: `dh-${config.type}-relay-ethereum-key`
+          });
           break;
         case "execution":
           invariant(pk.substrate, "❌ Substrate private key is required for execution relayer");
-          relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          secrets.push({
+            pk: pk.substrate,
+            name: `dh-${config.type}-relay-substrate-key`
+          });
           break;
       }
 
-      const command: string[] = [
-        ...commandBase,
-        ...volumeMounts,
-        options.relayerImageTag,
-        ...relayerCommandArgs
-      ];
+      for (const secret of secrets) {
+        logger.debug(
+          await $`kubectl create secret generic ${secret.name} \
+        --from-literal=pvk="${secret.pk}" \
+        -n ${launchedNetwork.kubeNamespace}`.text()
+        );
+        logger.success(`Secret key ${secret.name} added to Kubernetes`);
+      }
 
-      logger.debug(`Running command: ${command.join(" ")}`);
-      await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
+      // Deploying relayer with helm chart
+      const relayerTimeout = "2m"; // 2 minutes
+      logger.debug(
+        await $`helm upgrade --install ${containerName} . -f ./snowbridge/${containerName}.yaml \
+        -n ${launchedNetwork.kubeNamespace} \
+        --wait \
+        --timeout ${relayerTimeout}`
+          .cwd(path.join(process.cwd(), "../deployment/charts/bridges-common-relay"))
+          .text()
+      );
 
-      launchedNetwork.addContainer(containerName);
-
-      await waitForContainerToStart(containerName);
-
-      // TODO: Re-enable when we know what we want to tail for
-      // await waitForLog({
-      //   searchString: "<LOG LINE TO WAIT FOR>",
-      //   containerName,
-      //   timeoutSeconds: 30,
-      //   tail: 1
-      // });
-
-      logger.success(`Started relayer ${name} with process ${process.pid}`);
+      logger.success(`Started relayer ${name}`);
     } catch (e) {
       logger.error(`Error starting relayer ${name}`);
       logger.error(e);

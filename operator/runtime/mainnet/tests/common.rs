@@ -3,9 +3,7 @@
 
 //! Common test utilities for DataHaven mainnet runtime tests
 
-use datahaven_mainnet_runtime::{
-    AccountId, Balance, Runtime, RuntimeOrigin, System, UNIT,
-};
+use datahaven_mainnet_runtime::{AccountId, Balance, Runtime, RuntimeOrigin, System, UNIT};
 use sp_core::H160;
 use sp_runtime::BuildStorage;
 

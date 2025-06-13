@@ -200,7 +200,10 @@ fn treasury_collects_fees_from_multiple_transfers() {
         ));
 
         let expected_treasury_balance = initial_treasury_balance + fee1 + fee2;
-        assert_eq!(Balances::balance(&treasury_account), expected_treasury_balance);
+        assert_eq!(
+            Balances::balance(&treasury_account),
+            expected_treasury_balance
+        );
     });
 }
 

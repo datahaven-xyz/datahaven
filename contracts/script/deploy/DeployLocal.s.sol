@@ -110,9 +110,6 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         Logging.logProgress(deploymentStep, totalSteps);
     }
 
-
-
-
     function run() public {
         Logging.logHeader("DATAHAVEN DEPLOYMENT SCRIPT");
         console.log("|  Network: %s", vm.envOr("NETWORK", string("anvil")));
@@ -150,9 +147,11 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
 
         // Deploy EigenPod implementation and beacon
-        eigenPodImplementation = _deployEigenPodImplementation(ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp);
+        eigenPodImplementation = _deployEigenPodImplementation(
+            ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp
+        );
         Logging.logContractDeployed("EigenPod Implementation", address(eigenPodImplementation));
-        
+
         eigenPodBeacon = _deployEigenPodBeacon(eigenPodImplementation);
         Logging.logContractDeployed("EigenPod Beacon", address(eigenPodBeacon));
 
@@ -271,25 +270,31 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         ProxyAdmin proxyAdmin
     ) internal {
         // Deploy proxies with empty implementation initially
-        delegation = DelegationManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
+        delegation =
+            DelegationManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("DelegationManager Proxy", address(delegation));
 
-        strategyManager = StrategyManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
+        strategyManager =
+            StrategyManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("StrategyManager Proxy", address(strategyManager));
 
         avsDirectory = AVSDirectory(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("AVSDirectory Proxy", address(avsDirectory));
 
-        eigenPodManager = EigenPodManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
+        eigenPodManager =
+            EigenPodManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("EigenPodManager Proxy", address(eigenPodManager));
 
-        rewardsCoordinator = RewardsCoordinator(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
+        rewardsCoordinator =
+            RewardsCoordinator(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("RewardsCoordinator Proxy", address(rewardsCoordinator));
 
-        allocationManager = AllocationManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
+        allocationManager =
+            AllocationManager(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("AllocationManager Proxy", address(allocationManager));
 
-        permissionController = PermissionController(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
+        permissionController =
+            PermissionController(_deployProxy(address(emptyContract), address(proxyAdmin), ""));
         Logging.logContractDeployed("PermissionController Proxy", address(permissionController));
     }
 
@@ -310,7 +315,8 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             "DelegationManager Implementation", address(delegationImplementation)
         );
 
-        strategyManagerImplementation = _deployStrategyManagerImplementation(delegation, pauserRegistry);
+        strategyManagerImplementation =
+            _deployStrategyManagerImplementation(delegation, pauserRegistry);
         Logging.logContractDeployed(
             "StrategyManager Implementation", address(strategyManagerImplementation)
         );
@@ -402,9 +408,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
 
         // Initialize EigenPodManager
         _upgradeAndInitializeEigenPodManager(
-            proxyAdmin,
-            config.executorMultisig,
-            config.eigenPodManagerInitPausedStatus
+            proxyAdmin, config.executorMultisig, config.eigenPodManagerInitPausedStatus
         );
         Logging.logStep("EigenPodManager initialized");
 
@@ -421,9 +425,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
 
         // Initialize AllocationManager
         _upgradeAndInitializeAllocationManager(
-            proxyAdmin,
-            config.executorMultisig,
-            config.allocationManagerInitPausedStatus
+            proxyAdmin, config.executorMultisig, config.allocationManagerInitPausedStatus
         );
         Logging.logStep("AllocationManager initialized");
 
@@ -445,11 +447,8 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             Logging.logContractDeployed("TestToken", testToken);
 
             // Create strategy for test token
-            StrategyBaseTVLLimits strategy = _deployTestStrategy(
-                baseStrategyImplementation,
-                proxyAdmin,
-                testToken
-            );
+            StrategyBaseTVLLimits strategy =
+                _deployTestStrategy(baseStrategyImplementation, proxyAdmin, testToken);
 
             // Store the strategy with its token information
             deployedStrategies.push(
@@ -474,12 +473,12 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         vm.broadcast(_deployerPrivateKey);
         return new ProxyAdmin();
     }
-    
+
     function _deployEmptyContract() internal trackStateDiff returns (EmptyContract) {
         vm.broadcast(_deployerPrivateKey);
         return new EmptyContract();
     }
-    
+
     function _deployEigenPodImplementation(
         IETHPOSDeposit ethPOSDeposit_,
         EigenPodManager eigenPodManager_,
@@ -488,52 +487,74 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         vm.broadcast(_deployerPrivateKey);
         return new EigenPod(ethPOSDeposit_, eigenPodManager_, beaconChainGenesisTimestamp, SEMVER);
     }
-    
-    function _deployEigenPodBeacon(EigenPod implementation) internal trackStateDiff returns (UpgradeableBeacon) {
+
+    function _deployEigenPodBeacon(
+        EigenPod implementation
+    ) internal trackStateDiff returns (UpgradeableBeacon) {
         vm.broadcast(_deployerPrivateKey);
         return new UpgradeableBeacon(address(implementation));
     }
-    
-    function _transferProxyAdminOwnership(ProxyAdmin proxyAdmin, address newOwner) internal trackStateDiff {
+
+    function _transferProxyAdminOwnership(
+        ProxyAdmin proxyAdmin,
+        address newOwner
+    ) internal trackStateDiff {
         vm.broadcast(_deployerPrivateKey);
         proxyAdmin.transferOwnership(newOwner);
     }
-    
-    function _transferEigenPodBeaconOwnership(UpgradeableBeacon beacon, address newOwner) internal trackStateDiff {
+
+    function _transferEigenPodBeaconOwnership(
+        UpgradeableBeacon beacon,
+        address newOwner
+    ) internal trackStateDiff {
         vm.broadcast(_deployerPrivateKey);
         beacon.transferOwnership(newOwner);
     }
-    
-    function _setRewardsAgent(DataHavenServiceManager serviceManager, uint32 operatorSetId, address rewardsAgent) internal trackStateDiff {
+
+    function _setRewardsAgent(
+        DataHavenServiceManager serviceManager,
+        uint32 operatorSetId,
+        address rewardsAgent
+    ) internal trackStateDiff {
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.setRewardsAgent(operatorSetId, rewardsAgent);
     }
-    
+
     function _deployAgentExecutor() internal trackStateDiff returns (AgentExecutor) {
         vm.broadcast(_deployerPrivateKey);
         return new AgentExecutor();
     }
-    
-    function _deployGatewayImplementation(BeefyClient beefyClient, AgentExecutor agentExecutor) internal trackStateDiff returns (Gateway) {
+
+    function _deployGatewayImplementation(
+        BeefyClient beefyClient,
+        AgentExecutor agentExecutor
+    ) internal trackStateDiff returns (Gateway) {
         vm.broadcast(_deployerPrivateKey);
         return new Gateway(address(beefyClient), address(agentExecutor));
     }
-    
-    function _deployGatewayProxy(Gateway implementation, Initializer.Config memory config) internal trackStateDiff returns (IGatewayV2) {
+
+    function _deployGatewayProxy(
+        Gateway implementation,
+        Initializer.Config memory config
+    ) internal trackStateDiff returns (IGatewayV2) {
         vm.broadcast(_deployerPrivateKey);
         return IGatewayV2(address(new GatewayProxy(address(implementation), abi.encode(config))));
     }
-    
+
     function _createSnowbridgeAgent(IGatewayV2 gateway, bytes32 origin) internal trackStateDiff {
         vm.broadcast(_deployerPrivateKey);
         gateway.v2_createAgent(origin);
     }
-    
-    function _deployProxy(address implementation, address admin, bytes memory data) internal trackStateDiff returns (address) {
+
+    function _deployProxy(
+        address implementation,
+        address admin,
+        bytes memory data
+    ) internal trackStateDiff returns (address) {
         vm.broadcast(_deployerPrivateKey);
         return address(new TransparentUpgradeableProxy(implementation, admin, data));
     }
-    
+
     function _deployBeefyClientContract(
         uint256 randaoCommitDelay,
         uint256 randaoCommitExpiration,
@@ -552,7 +573,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             nextValidatorSet
         );
     }
-    
+
     function _deployDelegationImplementation(
         StrategyManager strategyManager_,
         EigenPodManager eigenPodManager_,
@@ -572,7 +593,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             SEMVER
         );
     }
-    
+
     function _deployStrategyManagerImplementation(
         DelegationManager delegation_,
         PauserRegistry pauserRegistry_
@@ -580,7 +601,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         vm.broadcast(_deployerPrivateKey);
         return new StrategyManager(delegation_, pauserRegistry_, SEMVER);
     }
-    
+
     function _deployAVSDirectoryImplementation(
         DelegationManager delegation_,
         PauserRegistry pauserRegistry_
@@ -588,7 +609,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         vm.broadcast(_deployerPrivateKey);
         return new AVSDirectory(delegation_, pauserRegistry_, SEMVER);
     }
-    
+
     function _deployEigenPodManagerImplementation(
         IETHPOSDeposit ethPOSDeposit_,
         UpgradeableBeacon eigenPodBeacon_,
@@ -596,16 +617,18 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         PauserRegistry pauserRegistry_
     ) internal trackStateDiff returns (EigenPodManager) {
         vm.broadcast(_deployerPrivateKey);
-        return new EigenPodManager(ethPOSDeposit_, eigenPodBeacon_, delegation_, pauserRegistry_, SEMVER);
+        return new EigenPodManager(
+            ethPOSDeposit_, eigenPodBeacon_, delegation_, pauserRegistry_, SEMVER
+        );
     }
-    
+
     function _deployRewardsCoordinatorImplementation(
         IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams memory params
     ) internal trackStateDiff returns (RewardsCoordinator) {
         vm.broadcast(_deployerPrivateKey);
         return new RewardsCoordinator(params);
     }
-    
+
     function _deployAllocationManagerImplementation(
         DelegationManager delegation_,
         PauserRegistry pauserRegistry_,
@@ -623,12 +646,16 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             SEMVER
         );
     }
-    
-    function _deployPermissionControllerImplementation() internal trackStateDiff returns (PermissionController) {
+
+    function _deployPermissionControllerImplementation()
+        internal
+        trackStateDiff
+        returns (PermissionController)
+    {
         vm.broadcast(_deployerPrivateKey);
         return new PermissionController(SEMVER);
     }
-    
+
     function _upgradeAndInitializeDelegationManager(
         ProxyAdmin proxyAdmin,
         address executorMultisig,
@@ -651,7 +678,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             )
         );
     }
-    
+
     function _upgradeAndInitializeStrategyManager(
         ProxyAdmin proxyAdmin,
         address executorMultisig,
@@ -670,7 +697,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             )
         );
     }
-    
+
     function _upgradeAndInitializeAVSDirectory(
         ProxyAdmin proxyAdmin,
         address executorMultisig,
@@ -680,14 +707,10 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         proxyAdmin.upgradeAndCall(
             ITransparentUpgradeableProxy(payable(address(avsDirectory))),
             address(avsDirectoryImplementation),
-            abi.encodeWithSelector(
-                AVSDirectory.initialize.selector,
-                executorMultisig,
-                pausedStatus
-            )
+            abi.encodeWithSelector(AVSDirectory.initialize.selector, executorMultisig, pausedStatus)
         );
     }
-    
+
     function _upgradeAndInitializeEigenPodManager(
         ProxyAdmin proxyAdmin,
         address executorMultisig,
@@ -704,7 +727,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             )
         );
     }
-    
+
     function _upgradeAndInitializeRewardsCoordinator(
         ProxyAdmin proxyAdmin,
         address executorMultisig,
@@ -727,7 +750,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             )
         );
     }
-    
+
     function _upgradeAndInitializeAllocationManager(
         ProxyAdmin proxyAdmin,
         address executorMultisig,
@@ -744,25 +767,29 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             )
         );
     }
-    
-    function _upgradePermissionController(ProxyAdmin proxyAdmin) internal trackStateDiff {
+
+    function _upgradePermissionController(
+        ProxyAdmin proxyAdmin
+    ) internal trackStateDiff {
         vm.broadcast(_deployerPrivateKey);
         proxyAdmin.upgrade(
             ITransparentUpgradeableProxy(payable(address(permissionController))),
             address(permissionControllerImplementation)
         );
     }
-    
-    function _deployStrategyImplementation(PauserRegistry pauserRegistry) internal trackStateDiff returns (StrategyBaseTVLLimits) {
+
+    function _deployStrategyImplementation(
+        PauserRegistry pauserRegistry
+    ) internal trackStateDiff returns (StrategyBaseTVLLimits) {
         vm.broadcast(_deployerPrivateKey);
         return new StrategyBaseTVLLimits(strategyManager, pauserRegistry, SEMVER);
     }
-    
+
     function _deployTestToken() internal trackStateDiff returns (address) {
         vm.broadcast(_deployerPrivateKey);
         return address(new ERC20PresetFixedSupply("TestToken", "TEST", 1000000 ether, _operator));
     }
-    
+
     function _deployTestStrategy(
         StrategyBaseTVLLimits implementation,
         ProxyAdmin proxyAdmin,
@@ -784,17 +811,24 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             )
         );
     }
-    
-    function _whitelistStrategies(IStrategy[] memory strategies) internal trackStateDiff {
+
+    function _whitelistStrategies(
+        IStrategy[] memory strategies
+    ) internal trackStateDiff {
         vm.broadcast(_operationsMultisigPrivateKey);
         strategyManager.addStrategiesToDepositWhitelist(strategies);
     }
-    
-    function _deployServiceManagerImplementation() internal trackStateDiff returns (DataHavenServiceManager) {
+
+    function _deployServiceManagerImplementation()
+        internal
+        trackStateDiff
+        returns (DataHavenServiceManager)
+    {
         vm.broadcast(_deployerPrivateKey);
-        return new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
+        return
+            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
     }
-    
+
     function _deployVetoableSlasher(
         DataHavenServiceManager serviceManager,
         address vetoCommitteeMember,
@@ -802,31 +836,36 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
     ) internal trackStateDiff returns (VetoableSlasher) {
         vm.broadcast(_deployerPrivateKey);
         return new VetoableSlasher(
-            allocationManager,
-            serviceManager,
-            vetoCommitteeMember,
-            uint32(vetoWindowBlocks)
+            allocationManager, serviceManager, vetoCommitteeMember, uint32(vetoWindowBlocks)
         );
     }
-    
-    function _deployRewardsRegistry(DataHavenServiceManager serviceManager) internal trackStateDiff returns (RewardsRegistry) {
+
+    function _deployRewardsRegistry(
+        DataHavenServiceManager serviceManager
+    ) internal trackStateDiff returns (RewardsRegistry) {
         vm.broadcast(_deployerPrivateKey);
         return new RewardsRegistry(
             address(serviceManager),
             address(0) // Will be set to the Agent address after creation
         );
     }
-    
-    function _updateAVSMetadata(DataHavenServiceManager serviceManager, string memory metadataURI) internal trackStateDiff {
+
+    function _updateAVSMetadata(
+        DataHavenServiceManager serviceManager,
+        string memory metadataURI
+    ) internal trackStateDiff {
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.updateAVSMetadataURI(metadataURI);
     }
-    
-    function _setSlasher(DataHavenServiceManager serviceManager, VetoableSlasher slasher) internal trackStateDiff {
+
+    function _setSlasher(
+        DataHavenServiceManager serviceManager,
+        VetoableSlasher slasher
+    ) internal trackStateDiff {
         vm.broadcast(_avsOwnerPrivateKey);
         serviceManager.setSlasher(slasher);
     }
-    
+
     function _setRewardsRegistry(
         DataHavenServiceManager serviceManager,
         uint32 operatorSetId,
@@ -1041,9 +1080,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
 
         // Deploy VetoableSlasher
         VetoableSlasher vetoableSlasher = _deployVetoableSlasher(
-            serviceManager,
-            avsConfig.vetoCommitteeMember,
-            avsConfig.vetoWindowBlocks
+            serviceManager, avsConfig.vetoCommitteeMember, avsConfig.vetoWindowBlocks
         );
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 

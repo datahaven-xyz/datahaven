@@ -117,6 +117,19 @@ abstract contract StateDiffRecorder is Script {
         return "";
     }
 
+    function padNumber(uint256 num) internal pure returns (string memory) {
+        string memory numStr = vm.toString(num);
+        
+        // Pad to 3 digits
+        if (num < 10) {
+            return string.concat("00", numStr);
+        } else if (num < 100) {
+            return string.concat("0", numStr);
+        } else {
+            return numStr;
+        }
+    }
+
     function processAndDisplayStateDiff(
         Vm.AccountAccess[] memory records
     ) internal view {
@@ -437,10 +450,13 @@ abstract contract StateDiffRecorder is Script {
 
             string memory contractJson = vm_.serializeString(contractKey, "storage", storageJson);
 
+            // Use zero-padded keys for proper ordering
+            string memory paddedKey = padNumber(i);
+            
             if (i == deploymentCount - 1) {
-                finalJson = vm_.serializeString(jsonKey, vm_.toString(i), contractJson);
+                finalJson = vm_.serializeString(jsonKey, paddedKey, contractJson);
             } else {
-                vm_.serializeString(jsonKey, vm_.toString(i), contractJson);
+                vm_.serializeString(jsonKey, paddedKey, contractJson);
             }
         }
 

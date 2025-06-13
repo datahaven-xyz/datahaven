@@ -92,3 +92,34 @@ jobs:
           kurtosis enclave inspect datahaven-ethereum
           docker container ls
       - run: bun test:e2e
+      - name: Upload state-diff.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: state-diff
+          path: ../contracts/deployments/state-diff.json
+          retention-days: 1
+
+  verify-state-diff:
+    runs-on: ubuntu-latest
+    name: Verify state-diff.json
+    needs: kurtosis
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download state-diff artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: state-diff
+          path: ./generated
+      - name: Verify state-diff.json matches repository
+        run: |
+          echo "Comparing generated state-diff.json with the one in git..."
+          if ! diff generated/state-diff.json contracts/deployments/state-diff.json; then
+            echo "ERROR: state-diff.json has changed but was not updated in the repository!"
+            echo "The e2e tests generated a different state-diff.json than what's committed."
+            echo "Please run 'bun start:e2e:ci' locally and commit the updated contracts/deployments/state-diff.json file."
+            echo ""
+            echo "Differences found:"
+            diff -u contracts/deployments/state-diff.json generated/state-diff.json || true
+            exit 1
+          fi
+          echo "✅ state-diff.json is up to date!"

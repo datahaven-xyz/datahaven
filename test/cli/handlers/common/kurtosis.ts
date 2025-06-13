@@ -149,7 +149,7 @@ export const modifyConfig = async (
         logger.trace(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
 
         const kurtosisFormattedContracts = transformToKurtosisFormat(validatedContracts);
-        logger.debug(
+        logger.trace(
           `Kurtosis formatted contracts: ${JSON.stringify(kurtosisFormattedContracts, null, 2)}`
         );
 

@@ -3,7 +3,7 @@ import path from "node:path";
 // Update validator set on DataHaven substrate chain
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "../utils/index";
+import { ANVIL_FUNDED_ACCOUNTS, logger, printDivider, printHeader } from "../utils/index";
 
 interface UpdateValidatorSetOptions {
   rpcUrl: string;
@@ -31,7 +31,7 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   // Get the owner's private key for transaction signing from the .env
   const ownerPrivateKey =
     process.env.AVS_OWNER_PRIVATE_KEY ||
-    "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e"; // Sixth pre-funded account from Anvil
+    ANVIL_FUNDED_ACCOUNTS[6].privateKey; 
 
   // Get deployed contract addresses from the deployments file
   const deploymentPath = path.resolve("../contracts/deployments/anvil.json");

@@ -29,9 +29,7 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
   const castExecutable = castPath.toString().trim();
 
   // Get the owner's private key for transaction signing from the .env
-  const ownerPrivateKey =
-    process.env.AVS_OWNER_PRIVATE_KEY ||
-    ANVIL_FUNDED_ACCOUNTS[6].privateKey; 
+  const ownerPrivateKey = process.env.AVS_OWNER_PRIVATE_KEY || ANVIL_FUNDED_ACCOUNTS[6].privateKey;
 
   // Get deployed contract addresses from the deployments file
   const deploymentPath = path.resolve("../contracts/deployments/anvil.json");

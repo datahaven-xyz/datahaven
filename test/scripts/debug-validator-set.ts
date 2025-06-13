@@ -33,7 +33,8 @@ export const debugValidatorSet = async (options: DebugOptions) => {
   logger.info(`AllocationManager: ${allocationManagerAddress}`);
 
   // Check if contract has code
-  const { stdout: codeCheck } = await $`${castExecutable} code ${serviceManagerAddress} --rpc-url ${rpcUrl}`.quiet();
+  const { stdout: codeCheck } =
+    await $`${castExecutable} code ${serviceManagerAddress} --rpc-url ${rpcUrl}`.quiet();
   if (codeCheck.toString().trim() === "0x") {
     logger.error("❌ ServiceManager contract has no code deployed!");
     return;
@@ -41,12 +42,14 @@ export const debugValidatorSet = async (options: DebugOptions) => {
 
   // Get validators from AllocationManager
   logger.info("\n📋 Checking validator set members...");
-  
+
   // Call getMembers(OperatorSet) where OperatorSet = {avs: ServiceManager, id: 0}
   const getMembersCalldata = `${castExecutable} call ${allocationManagerAddress} "getMembers((address,uint32))" "(${serviceManagerAddress},0)" --rpc-url ${rpcUrl}`;
-  
-  const { stdout: membersOutput, exitCode } = await $`sh -c ${getMembersCalldata}`.nothrow().quiet();
-  
+
+  const { stdout: membersOutput, exitCode } = await $`sh -c ${getMembersCalldata}`
+    .nothrow()
+    .quiet();
+
   if (exitCode !== 0) {
     logger.error("Failed to get validator set members");
   } else {
@@ -57,29 +60,38 @@ export const debugValidatorSet = async (options: DebugOptions) => {
   const validatorAddresses = [
     "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // First anvil account
     "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Second anvil account
-    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"  // Third anvil account
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" // Third anvil account
   ];
 
   logger.info("\n🔗 Checking Solochain address mappings...");
   for (const validator of validatorAddresses) {
-    const { stdout: solochainAddress } = await $`${castExecutable} call ${serviceManagerAddress} "validatorEthAddressToSolochainAddress(address)" ${validator} --rpc-url ${rpcUrl}`.quiet();
+    const { stdout: solochainAddress } =
+      await $`${castExecutable} call ${serviceManagerAddress} "validatorEthAddressToSolochainAddress(address)" ${validator} --rpc-url ${rpcUrl}`.quiet();
     const addressHex = solochainAddress.toString().trim();
-    logger.info(`${validator}: ${addressHex === "0x0000000000000000000000000000000000000000000000000000000000000000" ? "Not set" : addressHex}`);
+    logger.info(
+      `${validator}: ${addressHex === "0x0000000000000000000000000000000000000000000000000000000000000000" ? "Not set" : addressHex}`
+    );
   }
 
   // Try to simulate the buildNewValidatorSetMessage call
   logger.info("\n🔧 Testing buildNewValidatorSetMessage...");
-  const { stdout: messageOutput, exitCode: messageExitCode } = await $`${castExecutable} call ${serviceManagerAddress} "buildNewValidatorSetMessage()" --rpc-url ${rpcUrl}`.nothrow().quiet();
-  
+  const { stdout: messageOutput, exitCode: messageExitCode } =
+    await $`${castExecutable} call ${serviceManagerAddress} "buildNewValidatorSetMessage()" --rpc-url ${rpcUrl}`
+      .nothrow()
+      .quiet();
+
   if (messageExitCode !== 0) {
     logger.error("❌ buildNewValidatorSetMessage() call failed");
   } else {
-    logger.info(`✅ buildNewValidatorSetMessage() returned: ${messageOutput.toString().trim().substring(0, 100)}...`);
+    logger.info(
+      `✅ buildNewValidatorSetMessage() returned: ${messageOutput.toString().trim().substring(0, 100)}...`
+    );
   }
 
   // Check contract owner
   logger.info("\n👤 Checking contract owner...");
-  const { stdout: ownerOutput } = await $`${castExecutable} call ${serviceManagerAddress} "owner()" --rpc-url ${rpcUrl}`.quiet();
+  const { stdout: ownerOutput } =
+    await $`${castExecutable} call ${serviceManagerAddress} "owner()" --rpc-url ${rpcUrl}`.quiet();
   logger.info(`Contract owner: ${ownerOutput.toString().trim()}`);
 };
 
@@ -87,7 +99,8 @@ export const debugValidatorSet = async (options: DebugOptions) => {
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const rpcUrlIndex = args.indexOf("--rpc-url");
-  const rpcUrl = rpcUrlIndex !== -1 && rpcUrlIndex + 1 < args.length ? args[rpcUrlIndex + 1] : undefined;
+  const rpcUrl =
+    rpcUrlIndex !== -1 && rpcUrlIndex + 1 < args.length ? args[rpcUrlIndex + 1] : undefined;
 
   if (!rpcUrl) {
     console.error("Error: --rpc-url parameter is required");

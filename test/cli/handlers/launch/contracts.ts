@@ -12,7 +12,7 @@ interface DeployContractsOptions {
   verified?: boolean;
   blockscoutBackendUrl?: string;
   deployContracts?: boolean;
-  injectContracts?: boolean; 
+  injectContracts?: boolean;
   parameterCollection?: ParameterCollection;
 }
 

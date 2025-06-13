@@ -98,7 +98,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     }
   }
 
-  const isDeployed = options.injectContracts || contractsDeployed
+  const isDeployed = options.injectContracts || contractsDeployed;
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl, isDeployed);
 

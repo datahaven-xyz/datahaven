@@ -117,9 +117,11 @@ abstract contract StateDiffRecorder is Script {
         return "";
     }
 
-    function padNumber(uint256 num) internal pure returns (string memory) {
+    function padNumber(
+        uint256 num
+    ) internal pure returns (string memory) {
         string memory numStr = vm.toString(num);
-        
+
         // Pad to 3 digits
         if (num < 10) {
             return string.concat("00", numStr);
@@ -452,7 +454,7 @@ abstract contract StateDiffRecorder is Script {
 
             // Use zero-padded keys for proper ordering
             string memory paddedKey = padNumber(i);
-            
+
             if (i == deploymentCount - 1) {
                 finalJson = vm_.serializeString(jsonKey, paddedKey, contractJson);
             } else {

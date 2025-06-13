@@ -1,0 +1,57 @@
+# Better approach 1: Use git status --porcelain for more robust checking
+      - name: Verify state-diff.json matches repository
+        run: |
+          # Check if there are any changes using git status --porcelain
+          echo "Checking for differences..."
+          if [ -n "$(git status --porcelain contracts/deployments/state-diff.json)" ]; then
+            echo "ERROR: state-diff.json has changed!"
+            echo "Please run 'bun start:e2e:ci' locally and commit the updated file."
+            echo ""
+            echo "Changes detected:"
+            git diff contracts/deployments/state-diff.json
+            exit 1
+          fi
+          echo "✅ state-diff.json is up to date!"
+
+# Better approach 2: Use a hash comparison
+      - name: Verify state-diff.json matches repository
+        run: |
+          # Compare file hashes
+          COMMITTED_HASH=$(git show HEAD:contracts/deployments/state-diff.json | sha256sum | cut -d' ' -f1)
+          GENERATED_HASH=$(sha256sum contracts/deployments/state-diff.json | cut -d' ' -f1)
+          
+          if [ "$COMMITTED_HASH" != "$GENERATED_HASH" ]; then
+            echo "ERROR: state-diff.json has changed!"
+            echo "Committed hash: $COMMITTED_HASH"
+            echo "Generated hash: $GENERATED_HASH"
+            echo ""
+            echo "Please run 'bun start:e2e:ci' locally and commit the updated file."
+            git diff contracts/deployments/state-diff.json
+            exit 1
+          fi
+          echo "✅ state-diff.json is up to date!"
+
+# Better approach 3: Separate job that doesn't modify working directory
+  verify-state-diff:
+    runs-on: ubuntu-latest
+    name: Verify state-diff.json
+    needs: kurtosis
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and compare state-diff
+        uses: actions/download-artifact@v4
+        with:
+          name: state-diff
+          path: ./artifact
+      - name: Compare files
+        run: |
+          # Use cmp for byte-by-byte comparison (faster than diff)
+          if ! cmp -s artifact/state-diff.json contracts/deployments/state-diff.json; then
+            echo "ERROR: state-diff.json has changed!"
+            echo "Please run 'bun start:e2e:ci' locally and commit the updated file."
+            echo ""
+            # Show differences for debugging
+            diff -u contracts/deployments/state-diff.json artifact/state-diff.json || true
+            exit 1
+          fi
+          echo "✅ state-diff.json is up to date!"

@@ -4,7 +4,7 @@
 //! Common test utilities for DataHaven mainnet runtime tests
 
 use datahaven_mainnet_runtime::{
-    AccountId, Balance, Runtime, RuntimeEvent, RuntimeOrigin, System, UNIT,
+    AccountId, Balance, Runtime, RuntimeOrigin, System, UNIT,
 };
 use sp_core::H160;
 use sp_runtime::BuildStorage;
@@ -50,6 +50,11 @@ impl ExtBuilder {
             balances.extend_from_slice(&[
                 (account_id(ALICE), DEFAULT_BALANCE),
                 (account_id(BOB), DEFAULT_BALANCE),
+                // Fund the treasury account (fee recipient) with initial balance
+                (
+                    datahaven_mainnet_runtime::configs::TreasuryAccountId::get(),
+                    DEFAULT_BALANCE,
+                ),
             ]);
         }
 
@@ -71,10 +76,6 @@ impl ExtBuilder {
 
 pub fn root_origin() -> RuntimeOrigin {
     RuntimeOrigin::root()
-}
-
-pub fn last_event() -> RuntimeEvent {
-    System::events().pop().expect("Event expected").event
 }
 
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {

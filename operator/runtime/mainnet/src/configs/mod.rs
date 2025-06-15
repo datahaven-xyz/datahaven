@@ -23,7 +23,7 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-mod runtime_params;
+pub mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,

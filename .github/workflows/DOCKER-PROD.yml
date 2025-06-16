@@ -20,10 +20,6 @@ on:
     branches:
       - main
 
-concurrency:
-  group: docker-build-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build-test-push:
     runs-on: ubuntu-latest

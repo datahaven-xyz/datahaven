@@ -1,7 +1,8 @@
 import invariant from "tiny-invariant";
 import { getServiceFromKurtosis, logger, printHeader } from "utils";
-import { BASE_SERVICES, type LaunchOptions } from ".";
-import type { LaunchedNetwork } from "./launchedNetwork";
+import { BASE_SERVICES } from "../common/consts";
+import type { LaunchedNetwork } from "../common/launchedNetwork";
+import type { LaunchOptions } from ".";
 
 export const performSummaryOperations = async (
   options: LaunchOptions,
@@ -21,7 +22,11 @@ export const performSummaryOperations = async (
 
   logger.trace("Services to display", servicesToDisplay);
 
-  const displayData: { service: string; ports: Record<string, number>; url: string }[] = [];
+  const displayData: {
+    service: string;
+    ports: Record<string, number>;
+    url: string;
+  }[] = [];
   for (const service of servicesToDisplay) {
     logger.debug(`Checking service: ${service}`);
 

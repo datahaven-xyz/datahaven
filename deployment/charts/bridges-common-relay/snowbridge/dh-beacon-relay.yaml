@@ -13,13 +13,14 @@ imagePullSecrets:
 config:
   name: "beacon-relay"
 
-existingSecretName: "dh-beacon-relay-sub-key"
+existingSecretName: "dh-beacon-relay-substrate-key"
 
-extraArgs: [
-  "run",
-  "beacon",
-  "--config",
-  "/configs/beacon-relay.json",
-  "--substrate.private-key-file",
-  "/secrets/dh-beacon-relay-sub-key",
-]
+extraArgs:
+  [
+    "run",
+    "beacon",
+    "--config",
+    "/configs/beacon-relay.json",
+    "--substrate.private-key-file",
+    "/secrets/dh-beacon-relay-substrate-key",
+  ]

@@ -15,6 +15,13 @@ export const checkBaseDependencies = async (): Promise<void> => {
 
   logger.success("Kurtosis CLI found");
 
+  if (!(await checkBunVersion())) {
+    logger.error("Bun CLI version must be 1.2 or higher. Please upgrade to v1.2 or later.");
+    throw Error("❌ Bun CLI version is too old.");
+  }
+
+  logger.success("Bun CLI found");
+
   if (!(await checkDockerRunning())) {
     logger.error("Is Docker Running? Unable to make connection to docker daemon");
     throw Error("❌ Error connecting to Docker");
@@ -70,6 +77,28 @@ export const deploymentChecks = async (
   logger.info(`ℹ️ Deploying to Kubernetes namespace: ${launchedNetwork.kubeNamespace}`);
 
   printDivider();
+};
+
+const checkBunVersion = async (): Promise<boolean> => {
+  const { exitCode, stderr, stdout } = await $`bun --version`.nothrow().quiet();
+  if (exitCode !== 0) {
+    logger.error(stderr.toString());
+    return false;
+  }
+
+  const bunVersion = stdout.toString().trim();
+  const [major, minor] = bunVersion.split(".").map(Number);
+
+  // Check if version meets minimum requirements (1.2+)
+  const isVersionValid = major > 1 || (major === 1 && minor >= 2);
+
+  if (!isVersionValid) {
+    logger.debug(`Bun version: ${bunVersion} (too old)`);
+    return false;
+  }
+
+  logger.debug(`Bun version: ${bunVersion}`);
+  return true;
 };
 
 const checkKurtosisInstalled = async (): Promise<boolean> => {

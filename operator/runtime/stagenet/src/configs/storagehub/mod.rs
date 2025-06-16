@@ -1,5 +1,3 @@
-use self::runtime_params::dynamic_params::runtime_config;
-use self::runtime_params::RuntimeParameters;
 use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, UNIT,
 };
@@ -7,6 +5,7 @@ use crate::{
     BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature, WeightToFee,
     HOURS,
 };
+use crate::configs::runtime_params::dynamic_params::runtime_config;
 use core::marker::PhantomData;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
 use datahaven_runtime_common::Hashing;
@@ -42,8 +41,6 @@ use sp_runtime::{traits::BlakeTwo256, Perbill};
 use sp_std::convert::{From, Into};
 use sp_std::vec;
 use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
-
-mod runtime_params;
 
 /// Type representing the storage data units in StorageHub.
 pub type StorageDataUnit = u64;
@@ -97,15 +94,6 @@ impl pallet_nfts::Config for Runtime {
     type OffchainPublic = <Signature as Verify>::Signer;
     type WeightInfo = pallet_nfts::weights::SubstrateWeight<Runtime>;
     type Locker = ();
-}
-/****** ****** ****** ******/
-
-/****** Parameters pallet ******/
-impl pallet_parameters::Config for Runtime {
-    type AdminOrigin = EnsureRoot<AccountId>;
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeParameters = RuntimeParameters;
-    type WeightInfo = ();
 }
 /****** ****** ****** ******/
 

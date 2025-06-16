@@ -382,6 +382,26 @@ mod runtime {
 
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
     // Start with index 80
+    // #[runtime::pallet_index(80)]
+    // pub type Providers = pallet_storage_providers;
+
+    // #[runtime::pallet_index(81)]
+    // pub type FileSystem = pallet_file_system;
+
+    // #[runtime::pallet_index(82)]
+    // pub type ProofsDealer = pallet_proofs_dealer;
+
+    // #[runtime::pallet_index(83)]
+    // pub type Randomness = pallet_randomness;
+
+    // #[runtime::pallet_index(84)]
+    // pub type PaymentStreams = pallet_payment_streams;
+
+    // #[runtime::pallet_index(85)]
+    // pub type BucketNfts = pallet_bucket_nfts;
+
+    // #[runtime::pallet_index(90)]
+    // pub type Nfts = pallet_nfts;
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
@@ -487,9 +507,6 @@ mod runtime {
 
     #[runtime::pallet_index(36)]
     pub type Sudo = pallet_sudo;
-
-    #[runtime::pallet_index(37)]
-    pub type MessageQueue = pallet_message_queue;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
@@ -508,10 +525,10 @@ mod runtime {
     pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
 
     #[runtime::pallet_index(61)]
-    pub type InboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+    pub type EthereumInboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
 
     #[runtime::pallet_index(62)]
-    pub type OutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+    pub type EthereumOutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
 
     #[runtime::pallet_index(63)]
     pub type SnowbridgeSystem = snowbridge_pallet_system;
@@ -520,26 +537,37 @@ mod runtime {
     pub type SnowbridgeSystemV2 = snowbridge_pallet_system_v2;
     // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
 
-    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
+    // ╔════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╗
+    // The Message Queue pallet has to be after the Snowbridge Outbound
+    // Queue V2 pallet since the former processes messages in its
+    // `on_initialize` hook and the latter clears up messages in
+    // its `on_initialize` hook, so otherwise messages will be cleared
+    // up before they are processed.
     #[runtime::pallet_index(70)]
+    pub type MessageQueue = pallet_message_queue;
+    // ╚════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╝
+
+    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
+    // Start with index 80
+    #[runtime::pallet_index(80)]
     pub type Providers = pallet_storage_providers;
 
-    #[runtime::pallet_index(71)]
+    #[runtime::pallet_index(81)]
     pub type FileSystem = pallet_file_system;
 
-    #[runtime::pallet_index(72)]
+    #[runtime::pallet_index(82)]
     pub type ProofsDealer = pallet_proofs_dealer;
 
-    #[runtime::pallet_index(73)]
+    #[runtime::pallet_index(83)]
     pub type Randomness = pallet_randomness;
 
-    #[runtime::pallet_index(74)]
+    #[runtime::pallet_index(84)]
     pub type PaymentStreams = pallet_payment_streams;
 
-    #[runtime::pallet_index(75)]
+    #[runtime::pallet_index(85)]
     pub type BucketNfts = pallet_bucket_nfts;
 
-    #[runtime::pallet_index(80)]
+    #[runtime::pallet_index(90)]
     pub type Nfts = pallet_nfts;
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
@@ -547,6 +575,12 @@ mod runtime {
     // Start with index 100
     #[runtime::pallet_index(100)]
     pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
+
+    #[runtime::pallet_index(101)]
+    pub type ExternalValidatorsRewards = pallet_external_validators_rewards;
+
+    #[runtime::pallet_index(102)]
+    pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
 

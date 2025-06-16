@@ -1,6 +1,12 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, parseDeploymentsFile, runShellCommandWithLogger, waitForNodeToSync } from "utils";
+import {
+  logger,
+  parseDeploymentsFile,
+  parseRewardsInfoFile,
+  runShellCommandWithLogger,
+  waitForNodeToSync
+} from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
@@ -75,13 +81,22 @@ export const executeDeployment = async (
   // Using custom shell command to improve logging with forge's stdoutput
   await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
 
-  // After deployment, read the Gateway address and add it to parameters if collection is provided
+  // After deployment, read the:
+  // - Gateway address
+  // - RewardsRegistry address
+  // - RewardsAgent address
+  // - RewardsAgentOrigin (bytes32)
+  // and add it to parameters if collection is provided
   if (parameterCollection) {
     try {
       const deployments = await parseDeploymentsFile();
       logger.debug("📂 Reading deployments file for Gateway address");
       logger.debug(`📂 Deployments file content: ${JSON.stringify(deployments, null, 2)}`);
+      const rewardsInfo = await parseRewardsInfoFile();
       const gatewayAddress = deployments.Gateway;
+      const rewardsRegistryAddress = deployments.RewardsRegistry;
+      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
 
       if (gatewayAddress) {
         logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
@@ -93,8 +108,40 @@ export const executeDeployment = async (
       } else {
         logger.warn("⚠️ Gateway address not found in deployments file");
       }
+
+      if (rewardsRegistryAddress) {
+        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+        parameterCollection.addParameter({
+          name: "RewardsRegistryAddress",
+          value: rewardsRegistryAddress
+        });
+      } else {
+        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+      }
+
+      if (updateRewardsMerkleRootSelector) {
+        logger.debug(
+          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
+        );
+        parameterCollection.addParameter({
+          name: "RewardsUpdateSelector",
+          value: updateRewardsMerkleRootSelector
+        });
+      } else {
+        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+      }
+
+      if (rewardsAgentOrigin) {
+        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+        parameterCollection.addParameter({
+          name: "RewardsAgentOrigin",
+          value: rewardsAgentOrigin
+        });
+      } else {
+        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+      }
     } catch (error) {
-      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+      logger.error(`Failed to read parameters from deployment: ${error}`);
     }
   }
 

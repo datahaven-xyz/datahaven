@@ -58,6 +58,7 @@ import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
+import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
 struct ServiceManagerInitParams {
     address avsOwner;
@@ -200,7 +201,8 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         (
             DataHavenServiceManager serviceManager,
             VetoableSlasher vetoableSlasher,
-            RewardsRegistry rewardsRegistry
+            RewardsRegistry rewardsRegistry,
+            bytes4 updateRewardsMerkleRootSelector
         ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
 
         Logging.logFooter();
@@ -230,6 +232,12 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
 
         // Process and export final state diff
         finalizeStateDiff();
+        // Output rewards info (Rewards agent address and origin, updateRewardsMerkleRoot function selector)
+        _outputRewardsInfo(
+            rewardsAgentAddress,
+            snowbridgeConfig.rewardsMessageOrigin,
+            updateRewardsMerkleRootSelector
+        );
     }
 
     function _deploySnowbridge(
@@ -629,15 +637,15 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         DataHavenServiceManager serviceManager,
         VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
-        address agent
+        address rewardsAgent
     ) internal {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
-        Logging.logSection("Snowbridge Contracts");
+        Logging.logSection("Snowbridge Contracts + Rewards Agent");
         Logging.logContractDeployed("BeefyClient", address(beefyClient));
         Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
         Logging.logContractDeployed("Gateway", address(gateway));
-        Logging.logContractDeployed("Agent", agent);
+        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
@@ -689,7 +697,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
         json =
             string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
-        json = string.concat(json, '"Agent": "', vm.toString(agent), '",');
+        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
@@ -754,11 +762,49 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         Logging.logInfo(string.concat("Deployment info saved to: ", deploymentPath));
     }
 
+    function _outputRewardsInfo(
+        address rewardsAgent,
+        bytes32 rewardsAgentOrigin,
+        bytes4 updateRewardsMerkleRootSelector
+    ) internal {
+        Logging.logHeader("REWARDS AGENT INFO");
+        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
+        Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
+        Logging.logFunctionSelector(
+            "updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector)
+        );
+        Logging.logFooter();
+
+        // Write to deployment file for future reference
+        string memory network = vm.envOr("NETWORK", string("anvil"));
+        string memory rewardsInfoPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
+
+        // Create directory if it doesn't exist
+        vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
+
+        // Create JSON with rewards info
+        string memory json = "{";
+        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
+        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '",');
+        json = string.concat(
+            json,
+            '"updateRewardsMerkleRootSelector": "',
+            _trimToBytes4(vm.toString(updateRewardsMerkleRootSelector)),
+            '"'
+        );
+        json = string.concat(json, "}");
+
+        // Write to file
+        vm.writeFile(rewardsInfoPath, json);
+        Logging.logInfo(string.concat("Rewards info saved to: ", rewardsInfoPath));
+    }
+
     function _deployDataHavenContracts(
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway
-    ) internal trackStateDiff returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry) {
+    ) internal trackStateDiff returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
@@ -804,6 +850,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
             address(0) // Will be set to the Agent address after creation
         );
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
+        bytes4 updateRewardsMerkleRootSelector = IRewardsRegistry.updateRewardsMerkleRoot.selector;
 
         Logging.logSection("Configuring Service Manager");
 
@@ -823,7 +870,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
         Logging.logStep("RewardsRegistry set in ServiceManager");
 
-        return (serviceManager, vetoableSlasher, rewardsRegistry);
+        return (serviceManager, vetoableSlasher, rewardsRegistry, updateRewardsMerkleRootSelector);
     }
 
     function _createServiceManagerProxy(
@@ -862,5 +909,23 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
                 config.mspsStrategies[i] = strategies[i].address_;
             }
         }
+    }
+
+    /**
+     * @dev Helper function to trim a padded hex string to only the first 4 bytes (10 characters: 0x + 8 hex digits)
+     * @param paddedHex The padded hex string from vm.toString()
+     * @return A hex string with only the first 4 bytes (e.g., "0x12345678")
+     */
+    function _trimToBytes4(
+        string memory paddedHex
+    ) internal pure returns (string memory) {
+        bytes memory data = bytes(paddedHex);
+        bytes memory trimmed = new bytes(10); // 0x + 8 hex chars = 10 total chars
+
+        for (uint256 i = 0; i < 10; i++) {
+            trimmed[i] = data[i];
+        }
+
+        return string(trimmed);
     }
 }

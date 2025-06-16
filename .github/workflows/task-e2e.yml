@@ -112,18 +112,13 @@ jobs:
           path: ./generated
       - name: Verify state-diff.json matches repository
         run: |
-          echo "Comparing state-diff.json files..."
-          
-          # Use cmp for binary comparison (faster and more reliable than diff)
-          if ! cmp -s generated/state-diff.json contracts/deployments/state-diff.json; then
-            echo "::error::state-diff.json has changed but was not updated in the repository!"
-            echo "The e2e tests generated a different state-diff.json than what's committed."
-            echo "Please run 'bun start:e2e:ci' locally and commit the updated contracts/deployments/state-diff.json file."
+          echo "Checking for differences..."
+          if [ -n "$(git status --porcelain contracts/deployments/state-diff.json)" ]; then
+            echo "ERROR: state-diff.json has changed!"
+            echo "Please run 'bun start:e2e:ci' locally and commit the updated file."
             echo ""
-            echo "Differences found:"
-            # Show diff for debugging purposes
-            diff -u contracts/deployments/state-diff.json generated/state-diff.json || true
+            echo "Changes detected:"
+            git diff contracts/deployments/state-diff.json
             exit 1
           fi
-          
           echo "✅ state-diff.json is up to date!"

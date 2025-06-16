@@ -31,6 +31,8 @@ export const buildContracts = async () => {
     stderr: buildStderr,
     stdout: buildStdout
   } = await $`forge build`.cwd("../contracts").nothrow().quiet();
+  
+  await $`bun run biome format --write ../contracts/deployments/state-diff.json`;
 
   if (buildExitCode !== 0) {
     logger.error(buildStderr.toString());

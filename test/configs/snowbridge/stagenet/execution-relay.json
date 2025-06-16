@@ -1,8 +1,15 @@
 {
   "source": {
+    "ethereum": {
+      "endpoint": "ws://127.0.0.1:8546"
+    },
+    "contracts": {
+      "Gateway": ""
+    },
+    "channel-id": "",
     "beacon": {
-      "endpoint": "http://127.0.0.1:33030",
-      "stateEndpoint": "http://127.0.0.1:33030",
+      "endpoint": "http://127.0.0.1:9596",
+      "stateEndpoint": "http://127.0.0.1:9596",
       "spec": {
         "syncCommitteeSize": 512,
         "slotsInEpoch": 32,
@@ -13,17 +20,22 @@
         }
       },
       "datastore": {
-        "location": "/Users/facundofarall/Desktop/Moonsong/datahaven/test/tmp/facu-test",
+        "location": "",
         "maxEntries": 100
       }
     }
   },
   "sink": {
     "parachain": {
-      "endpoint": "ws://127.0.0.1:9944",
+      "endpoint": "",
       "maxWatchedExtrinsics": 8,
       "headerRedundancy": 20
-    },
-    "updateSlotInterval": 30
+    }
+  },
+  "instantVerification": false,
+  "schedule": {
+    "id": null,
+    "totalRelayerCount": 1,
+    "sleepInterval": 1
   }
 }

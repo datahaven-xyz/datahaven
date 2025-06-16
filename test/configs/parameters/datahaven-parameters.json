@@ -2,5 +2,17 @@
     {
         "name": "EthereumGatewayAddress",
         "value": null
+    },
+    {
+        "name": "RewardsRegistryAddress",
+        "value": null
+    },
+    {
+        "name": "RewardsUpdateSelector",
+        "value": null
+    },
+    {
+        "name": "RewardsAgentOrigin",
+        "value": null
     }
 ]

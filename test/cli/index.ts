@@ -1,6 +1,14 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
-import { launch, launchPreActionHook, stop, stopPreActionHook } from "./handlers";
+import type { DeployEnvironment } from "utils";
+import {
+  deploy,
+  deployPreActionHook,
+  launch,
+  launchPreActionHook,
+  stop,
+  stopPreActionHook
+} from "./handlers";
 
 // Function to parse integer
 function parseIntValue(value: string): number {
@@ -11,12 +19,86 @@ function parseIntValue(value: string): number {
   return parsedValue;
 }
 
+// Function to parse and validate DeployEnvironment
+function parseDeployEnvironment(value: string): DeployEnvironment {
+  if (value === "stagenet" || value === "testnet" || value === "mainnet") {
+    return value;
+  }
+  throw new InvalidArgumentError(
+    "Invalid environment. Must be one of 'stagenet', 'testnet', or 'mainnet'."
+  );
+}
+
 // =====  Program  =====
 const program = new Command()
   .version("0.2.0")
   .name("bun cli")
   .summary("🫎  DataHaven CLI: Network Toolbox")
   .usage("[options]");
+
+// ===== Deploy ======
+program
+  .command("deploy")
+  .addHelpText(
+    "before",
+    `🫎  DataHaven: Network Deployer CLI for deploying a full DataHaven network stack to a Kubernetes cluster
+    It will deploy:
+    - DataHaven solochain validators (all envs),
+    - Storage providers (all envs) (TODO),
+    - Kurtosis Ethereum private network (stagenet env),
+    - Snowbridge Relayers (all envs)
+    `
+  )
+  .description("Deploy a full DataHaven network stack to a Kubernetes cluster")
+  .option(
+    "--e, --environment <value>",
+    "Environment to deploy to",
+    parseDeployEnvironment,
+    "stagenet"
+  )
+  .option(
+    "--k, --kube-namespace <value>",
+    "Kubernetes namespace to deploy to. In 'stagenet' this parameter is ignored and the Kurtosis namespace is used instead. Default will be `datahaven-<environment>`."
+  )
+  .option(
+    "--ke, --kurtosis-enclave-name <value>",
+    "Name of the Kurtosis enclave",
+    "datahaven-stagenet"
+  )
+  .option("--st, --slot-time <number>", "Set slot time in seconds", parseIntValue, 12)
+  .option("--kn, --kurtosis-network-args <value>", "CustomKurtosis network args")
+  .option("--v, --verified", "Verify smart contracts with Blockscout")
+  .option("--b, --blockscout", "Enable Blockscout")
+  .option(
+    "--dit, --datahaven-image-tag <value>",
+    "Tag of the datahaven image to use",
+    "moonsonglabs/datahaven:main"
+  )
+  .option(
+    "--el-rpc-url <value>",
+    "URL of the Ethereum Execution Layer (EL) RPC endpoint to use. In stagenet environment, the Kurtosis Ethereum network will be used. In testnet and mainnet environment, this parameter is required."
+  )
+  .option(
+    "--cl-endpoint <value>",
+    "URL of the Ethereum Consensus Layer (CL) endpoint to use. In stagenet environment, the Kurtosis Ethereum network will be used. In testnet and mainnet environment, this parameter is required."
+  )
+  .option(
+    "--rit, --relayer-image-tag <value>",
+    "Tag of the relayer image to use",
+    "moonsonglabs/snowbridge-relay:latest"
+  )
+  .option("--docker-username <value>", "Docker Hub username")
+  .option("--docker-password <value>", "Docker Hub password")
+  .option("--docker-email <value>", "Docker Hub email")
+  .option("--skip-cleanup", "Skip cleaning up the network", false)
+  .option("--skip-kurtosis", "Skip deploying Kurtosis Ethereum private network", false)
+  .option("--skip-datahaven-solochain", "Skip deploying DataHaven solochain validators", false)
+  .option("--skip-contracts", "Skip deploying smart contracts", false)
+  .option("--skip-validator-operations", "Skip performing validator operations", false)
+  .option("--skip-set-parameters", "Skip setting DataHaven runtime parameters", false)
+  .option("--skip-relayers", "Skip deploying Snowbridge Relayers", false)
+  .hook("preAction", deployPreActionHook)
+  .action(deploy);
 
 // ===== Launch ======
 program
@@ -26,9 +108,10 @@ program
     `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
   Complete with:
   - Solo-chain validators,
-  - Storage providers,
+  - Storage providers (TODO),
+  - Ethereum Private network,
   - Snowbridge Relayers
-  - Ethereum Private network`
+  `
   )
   .description("Launch a full E2E DataHaven & Ethereum network and more")
   .option("--d, --datahaven", "(Re)Launch DataHaven network")
@@ -45,13 +128,13 @@ program
   .option("--nsv, --no-setup-validators", "Skip setup validators")
   .option("--uv, --update-validator-set", "Update validator set")
   .option("--nuv, --no-update-validator-set", "Skip update validator set")
+  .option("--sp, --set-parameters", "Set DataHaven runtime parameters")
+  .option("--nsp, --no-set-parameters", "Skip setting DataHaven runtime parameters")
   .option("--r, --relayer", "Launch Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
-  .option("--sp, --set-parameters", "Set DataHaven runtime parameters")
-  .option("--nsp, --no-set-parameters", "Skip setting DataHaven runtime parameters")
   .option(
     "--datahaven-build-extra-args <value>",
     "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",
@@ -72,7 +155,7 @@ program
   .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer",
-    "moonsonglabs/snowbridge-relayer:latest"
+    "moonsonglabs/snowbridge-relay:latest"
   )
   .hook("preAction", launchPreActionHook)
   .action(launch);

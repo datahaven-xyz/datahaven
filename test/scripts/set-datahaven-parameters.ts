@@ -3,22 +3,13 @@ import { datahaven } from "@polkadot-api/descriptors";
 import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
-import invariant from "tiny-invariant";
-import {
-  confirmWithTimeout,
-  getEvmEcdsaSigner,
-  logger,
-  printDivider,
-  printHeader,
-  SUBSTRATE_FUNDED_ACCOUNTS
-} from "utils";
+import { getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
 import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
 
 // Interface for the options object of setDataHavenParameters
 interface SetDataHavenParametersOptions {
   rpcUrl: string;
   parametersFilePath: string;
-  setParameters?: boolean;
 }
 
 /**
@@ -27,39 +18,12 @@ interface SetDataHavenParametersOptions {
  * @param options - Configuration options for setting parameters
  * @param options.rpcUrl - The RPC URL of the DataHaven node
  * @param options.parametersFilePath - Path to the JSON file containing an array of parameters to set
- * @param options.setParameters - Flag to control execution (if undefined, will prompt)
  * @returns Promise resolving to true if parameters were set successfully, false if skipped
  */
 export const setDataHavenParameters = async (
   options: SetDataHavenParametersOptions
 ): Promise<boolean> => {
-  const { rpcUrl, parametersFilePath, setParameters } = options;
-
-  // Check if setParameters option was set via flags, or prompt if not
-  let shouldSetParameters = setParameters;
-  if (shouldSetParameters === undefined) {
-    shouldSetParameters = await confirmWithTimeout(
-      "Do you want to set the DataHaven runtime parameters?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `🏳️ Using flag option: ${
-        shouldSetParameters ? "will set" : "will not set"
-      } DataHaven parameters`
-    );
-  }
-
-  if (!shouldSetParameters) {
-    logger.info("👍 Skipping DataHaven parameter setting. Done!");
-    printDivider();
-    return false;
-  }
-
-  // Check if required parameters are provided
-  invariant(rpcUrl, "❌ RPC URL is required");
-  invariant(parametersFilePath, "❌ Parameters file path is required");
+  const { rpcUrl, parametersFilePath } = options;
 
   // Load parameters from the JSON file
   let parameters: ParsedDataHavenParameter[];
@@ -71,7 +35,6 @@ export const setDataHavenParameters = async (
 
     if (parameters.length === 0) {
       logger.warn("⚠️ The parameters file is empty. No parameters to set.");
-      printDivider();
       return false;
     }
   } catch (error: any) {
@@ -80,8 +43,6 @@ export const setDataHavenParameters = async (
     );
     throw error;
   }
-
-  printHeader("Setting DataHaven Runtime Parameters");
 
   const client = createClient(withPolkadotSdkCompat(getWsProvider(rpcUrl)));
   const dhApi = client.getTypedApi(datahaven);
@@ -95,7 +56,9 @@ export const setDataHavenParameters = async (
   try {
     for (const param of parameters) {
       // TODO: Add a graceful way to print the value of the parameter, since it won't always be representable as a hex string
-      logger.info(`Attempting to set parameter: ${String(param.name)} = ${param.value.asHex()}`);
+      logger.info(
+        `🔧 Attempting to set parameter: ${param.name.toString()} = ${param.value.asHex()}`
+      );
 
       const setParameterArgs: any = {
         key_value: {
@@ -144,7 +107,6 @@ export const setDataHavenParameters = async (
   } else {
     logger.warn("Some DataHaven parameters could not be set. Please check logs.");
   }
-  printDivider();
 
   return allSuccessful;
 };
@@ -161,10 +123,6 @@ if (import.meta.main) {
       parametersFile: {
         type: "string",
         short: "f"
-      },
-      setParameters: {
-        type: "boolean",
-        short: "p"
       }
     },
     strict: true
@@ -182,8 +140,7 @@ if (import.meta.main) {
 
   setDataHavenParameters({
     rpcUrl: values.rpcUrl,
-    parametersFilePath: values.parametersFile,
-    setParameters: values.setParameters
+    parametersFilePath: values.parametersFile
   }).catch((error: Error) => {
     console.error("Setting DataHaven parameters failed:", error.message || error);
     process.exit(1);

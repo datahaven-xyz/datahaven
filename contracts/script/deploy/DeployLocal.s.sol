@@ -804,7 +804,11 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway
-    ) internal trackStateDiff returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4) {
+    )
+        internal
+        trackStateDiff
+        returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4)
+    {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager

@@ -16,11 +16,11 @@ export const checkBaseDependencies = async (): Promise<void> => {
   logger.success("Kurtosis CLI found");
 
   if (!(await checkBunVersion())) {
-    logger.error("Bun CLI version must be 1.2 or higher. Please upgrade to v1.2 or later.");
-    throw Error("❌ Bun CLI version is too old.");
+    logger.error("Bun version must be 1.2 or higher. Run `bun upgrade` to upgrade.");
+    throw Error("❌ Bun version is too old.");
   }
 
-  logger.success("Bun CLI found");
+  logger.success("Bun is installed and up to date");
 
   if (!(await checkDockerRunning())) {
     logger.error("Is Docker Running? Unable to make connection to docker daemon");
@@ -80,13 +80,7 @@ export const deploymentChecks = async (
 };
 
 const checkBunVersion = async (): Promise<boolean> => {
-  const { exitCode, stderr, stdout } = await $`bun --version`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    return false;
-  }
-
-  const bunVersion = stdout.toString().trim();
+  const bunVersion = Bun.version;
   const [major, minor] = bunVersion.split(".").map(Number);
 
   // Check if version meets minimum requirements (1.2+)

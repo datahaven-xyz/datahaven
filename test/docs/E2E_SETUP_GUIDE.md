@@ -7,9 +7,7 @@ This guide walks through setting up and using the DataHaven E2E testing framewor
 ### Required Software
 
 1. **Bun** (v1.0+)
-   ```bash
-   curl -fsSL https://bun.sh/install | bash
-   ```
+   - See installation instructions at [https://bun.sh/docs/installation](https://bun.sh/docs/installation)
 
 2. **Docker** (v20.10+)
    - Install Docker Desktop or Docker Engine

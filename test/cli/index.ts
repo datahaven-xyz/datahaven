@@ -21,7 +21,7 @@ function parseIntValue(value: string): number {
 
 // Function to parse and validate DeployEnvironment
 function parseDeployEnvironment(value: string): DeployEnvironment {
-  if (value == "local" || value === "stagenet" || value === "testnet" || value === "mainnet") {
+  if (value === "local" || value === "stagenet" || value === "testnet" || value === "mainnet") {
     return value;
   }
   throw new InvalidArgumentError(
@@ -50,12 +50,7 @@ program
     `
   )
   .description("Deploy a full DataHaven network stack to a Kubernetes cluster")
-  .option(
-    "--e, --environment <value>",
-    "Environment to deploy to",
-    parseDeployEnvironment,
-    "local"
-  )
+  .option("--e, --environment <value>", "Environment to deploy to", parseDeployEnvironment, "local")
   .option(
     "--k, --kube-namespace <value>",
     "Kubernetes namespace to deploy to. In 'stagenet' this parameter is ignored and the Kurtosis namespace is used instead. Default will be `datahaven-<environment>`."

@@ -37,7 +37,7 @@ export interface DeployOptions {
   skipContracts: boolean;
   skipValidatorOperations: boolean;
   skipSetParameters: boolean;
-  skipRelayers: boolean; 
+  skipRelayers: boolean;
 }
 
 const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedNetwork) => {

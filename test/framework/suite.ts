@@ -118,10 +118,20 @@ export abstract class BaseTestSuite {
   /**
    * Get test connectors - throws if not initialized
    */
-  protected getTestConnectors(): TestConnectors {
+  public getTestConnectors(): TestConnectors {
     if (!this.testConnectors) {
       throw new Error("Test connectors not initialized. Did you call setupHooks()?");
     }
     return this.testConnectors;
+  }
+
+  /**
+   * Get connector factory - throws if not initialized
+   */
+  public getConnectorFactory(): ConnectorFactory {
+    if (!this.connectorFactory) {
+      throw new Error("Connector factory not initialized. Did you call setupHooks()?");
+    }
+    return this.connectorFactory;
   }
 }

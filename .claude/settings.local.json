@@ -3,7 +3,14 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(bun install:*)",
+      "Bash(kurtosis engine:*)",
+      "Bash(bun:*)",
+      "Bash(ls:*)",
+      "Bash(LOG_LEVEL=info bun test test/suites/simple-ethereum.test.ts --timeout 300000)",
+      "Bash(LOG_LEVEL=info bun test ./suites/simple-ethereum.test.ts --timeout 300000)",
+      "Bash(docker logs:*)"
     ],
     "deny": []
   }

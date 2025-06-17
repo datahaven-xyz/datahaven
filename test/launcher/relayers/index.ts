@@ -255,7 +255,7 @@ export class RelayersLauncher {
 
     await waitFor({
       lambda: async () => {
-        const latestBeefyBlockHash = await client.runtimeCall("BeefyApi", "validator_set");
+        const latestBeefyBlockHash = await client.getUnsafeApi().apis.BeefyApi.validator_set();
         return latestBeefyBlockHash !== ZERO_HASH;
       },
       iterations: Math.floor(timeoutMs / intervalMs),

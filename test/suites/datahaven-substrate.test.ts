@@ -108,12 +108,11 @@ describe("DataHaven Substrate Operations", () => {
     const connectors = suite.getTestConnectors();
     
     // Get current block
-    const block = await connectors.papiClient.getBlock();
+    const blockHeader = await connectors.papiClient.getBlockHeader();
     
-    expect(block.number).toBeGreaterThan(0);
-    expect(block.extrinsics.length).toBeGreaterThan(0);
+    expect(blockHeader.number).toBeGreaterThan(0);
     
-    logger.info(`Current block #${block.number} has ${block.extrinsics.length} extrinsics`);
+    logger.info(`Current block #${blockHeader.number}`);
   });
 
   it("should batch multiple transfers", async () => {

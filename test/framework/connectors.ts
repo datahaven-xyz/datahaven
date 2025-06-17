@@ -1,10 +1,11 @@
-import { createClient as createViemClient, http, type PublicClient, type WalletClient } from "viem";
+import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
 import { createClient as createPapiClient, type PolkadotClient } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { logger, ANVIL_FUNDED_ACCOUNTS, type DataHavenApi, getDescriptor } from "utils";
+import { datahaven } from "@polkadot-api/descriptors";
+import { logger, ANVIL_FUNDED_ACCOUNTS, type DataHavenApi } from "utils";
 import type { NetworkConnectors } from "../launcher";
 
 export interface TestConnectors {
@@ -35,25 +36,24 @@ export class ConnectorFactory {
     logger.debug("Creating test connectors...");
 
     // Create Ethereum clients
-    const publicClient = createViemClient({
+    const publicClient = createPublicClient({
       chain: anvil,
       transport: http(this.connectors.elRpcUrl)
-    }) as PublicClient;
+    });
 
     const account = privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[0].privateKey);
-    const walletClient = createViemClient({
+    const walletClient = createWalletClient({
       account,
       chain: anvil,
       transport: http(this.connectors.elRpcUrl)
-    }) as WalletClient;
+    });
 
     // Create DataHaven/Substrate clients
     const wsProvider = getWsProvider(this.connectors.dhWsUrl);
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
     
     // Get typed API
-    const descriptor = await getDescriptor();
-    const dhApi = papiClient.getTypedApi(descriptor);
+    const dhApi = papiClient.getTypedApi(datahaven);
 
     logger.debug("Test connectors created successfully");
 
@@ -72,11 +72,11 @@ export class ConnectorFactory {
    */
   createWalletClient(privateKey: `0x${string}`): WalletClient {
     const account = privateKeyToAccount(privateKey);
-    return createViemClient({
+    return createWalletClient({
       account,
       chain: anvil,
       transport: http(this.connectors.elRpcUrl)
-    }) as WalletClient;
+    });
   }
 
   /**

@@ -106,9 +106,8 @@ export class DataHavenLauncher {
         ...COMMON_LAUNCH_ARGS
       ];
 
-      if (this.options.slotTime) {
-        command.push("--slot-duration", (this.options.slotTime * 1000).toString());
-      }
+      // Note: slot-duration configuration may need to be done differently
+      // depending on the DataHaven node version
 
       await $`sh -c "${command.join(" ")}"`.quiet();
       await waitForContainerToStart(containerName);

@@ -25,7 +25,7 @@ export class NetworkLauncher {
     this.options = {
       ...options,
       // Set defaults
-      environment: options.environment || "local",
+      environment: options.environment,
       slotTime: options.slotTime || 12,
       datahavenImageTag: options.datahavenImageTag || "moonsonglabs/datahaven:local",
       relayerImageTag: options.relayerImageTag || "moonsonglabs/snowbridge-relay:latest",

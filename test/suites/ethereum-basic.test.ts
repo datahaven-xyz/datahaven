@@ -71,7 +71,7 @@ describe("Ethereum Basic Operations", () => {
 
   it("should interact with multiple accounts", async () => {
     const connectors = suite.getTestConnectors();
-    const factory = suite["connectorFactory"]; // Access private property
+    const factory = suite.getConnectorFactory();
     
     // Create wallet clients for multiple accounts
     const wallet1 = factory.createWalletClient(ANVIL_FUNDED_ACCOUNTS[1].privateKey);

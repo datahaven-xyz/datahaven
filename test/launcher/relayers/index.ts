@@ -1,10 +1,12 @@
 import path from "node:path";
 import { $ } from "bun";
+import { createClient, type PolkadotClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
   getPortFromKurtosis,
-  killExistingContainers,
   logger,
   parseDeploymentsFile,
   runShellCommandWithLogger,
@@ -13,12 +15,13 @@ import {
 } from "utils";
 import { waitFor } from "utils/waits";
 import { ZERO_HASH } from "../../cli/handlers/common/consts";
-import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../../cli/handlers/common/relayer";
 import type { LaunchedNetwork } from "../../cli/handlers/common/launchedNetwork";
+import {
+  generateRelayerConfig,
+  initEthClientPallet,
+  type RelayerSpec
+} from "../../cli/handlers/common/relayer";
 import type { NetworkLaunchOptions, RelayersLaunchResult } from "../types";
-import { createClient, type PolkadotClient } from "polkadot-api";
-import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
 
 const RELAYER_CONFIG_DIR = "tmp/configs";
 
@@ -30,7 +33,7 @@ export class RelayersLauncher {
   constructor(options: NetworkLaunchOptions) {
     this.options = options;
     this.containerPrefix = `snowbridge-${options.networkId}`;
-    
+
     // Create unique config paths for this network
     const configDir = path.join(RELAYER_CONFIG_DIR, options.networkId);
     this.configPaths = {
@@ -49,7 +52,7 @@ export class RelayersLauncher {
       const dhNodes = launchedNetwork.containers.filter((container) =>
         container.name.includes("datahaven")
       );
-      
+
       let substrateWsPort: number;
       let substrateNodeId: string;
 
@@ -64,7 +67,7 @@ export class RelayersLauncher {
       }
 
       invariant(this.options.relayerImageTag, "❌ relayerImageTag is required");
-      
+
       // Clean up existing containers
       await this.cleanup();
 
@@ -118,13 +121,17 @@ export class RelayersLauncher {
       );
 
       // Launch relayers
-      const activeRelayers = await this.launchRelayerContainers(relayers, datastorePath, launchedNetwork);
+      const activeRelayers = await this.launchRelayerContainers(
+        relayers,
+        datastorePath,
+        launchedNetwork
+      );
 
       logger.success("Snowbridge relayers launched successfully");
 
       return {
         success: true,
-        activeRelayers: activeRelayers.map(r => r.config.type),
+        activeRelayers: activeRelayers.map((r) => r.config.type),
         cleanup: () => this.cleanup()
       };
     } catch (error) {
@@ -210,25 +217,39 @@ export class RelayersLauncher {
     datastorePath: string,
     launchedNetwork: LaunchedNetwork
   ): Promise<RelayerSpec[]> {
-    const isLocal = this.options.relayerImageTag!.endsWith(":local");
-    
+    if (!this.options.relayerImageTag) {
+      throw new Error("Relayer image tag not specified");
+    }
+
+    const isLocal = this.options.relayerImageTag.endsWith(":local");
+
     for (const relayer of relayers) {
       const containerName = `${this.containerPrefix}-${relayer.config.type}-relay`;
-      
+
       if (!isLocal) {
         await $`docker pull ${this.options.relayerImageTag}`.quiet();
       }
 
       const configAbsPath = path.resolve(relayer.configFilePath);
       const command = [
-        "docker", "run", "-d",
-        "--name", containerName,
-        "--network", launchedNetwork.networkName,
-        "--add-host", "host.docker.internal:host-gateway",
-        "-v", `${configAbsPath}:/config/config.json`,
-        "-v", `${path.resolve(datastorePath)}:/data/`,
-        this.options.relayerImageTag!,
-        "run", "--", "--config", "/config/config.json"
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        containerName,
+        "--network",
+        launchedNetwork.networkName,
+        "--add-host",
+        "host.docker.internal:host-gateway",
+        "-v",
+        `${configAbsPath}:/config/config.json`,
+        "-v",
+        `${path.resolve(datastorePath)}:/data/`,
+        this.options.relayerImageTag,
+        "run",
+        "--",
+        "--config",
+        "/config/config.json"
       ];
 
       if (relayer.pk?.ethereum) {
@@ -245,9 +266,13 @@ export class RelayersLauncher {
     return relayers;
   }
 
-  private async waitBeefyReady(launchedNetwork: LaunchedNetwork, intervalMs: number, timeoutMs: number): Promise<void> {
+  private async waitBeefyReady(
+    launchedNetwork: LaunchedNetwork,
+    intervalMs: number,
+    timeoutMs: number
+  ): Promise<void> {
     logger.info("⏳ Waiting for BEEFY to be ready...");
-    
+
     const dhWsPort = launchedNetwork.getPublicWsPort();
     const client: PolkadotClient = createClient(
       withPolkadotSdkCompat(getWsProvider(`ws://127.0.0.1:${dhWsPort}`))
@@ -273,7 +298,7 @@ export class RelayersLauncher {
     // Stop and remove containers
     const containerIds = await $`docker ps -aq --filter "name=^${this.containerPrefix}-"`.text();
     if (containerIds.trim()) {
-      await $`docker rm -f ${containerIds.trim().split('\n').join(' ')}`.quiet();
+      await $`docker rm -f ${containerIds.trim().split("\n").join(" ")}`.quiet();
     }
 
     logger.success("Relayers cleanup completed");

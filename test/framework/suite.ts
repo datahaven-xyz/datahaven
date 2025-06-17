@@ -1,6 +1,6 @@
-import { beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll } from "bun:test";
 import { logger } from "utils";
-import { NetworkLauncher, type NetworkConnectors } from "../launcher";
+import { type NetworkConnectors, NetworkLauncher } from "../launcher";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
 
@@ -27,7 +27,7 @@ export abstract class BaseTestSuite {
   constructor(options: TestSuiteOptions) {
     this.options = options;
     // Generate unique network ID using suite name and timestamp
-    this.networkId = `${options.suiteName}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    this.networkId = `${options.suiteName}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
     this.manager = TestSuiteManager.getInstance();
   }
 
@@ -35,26 +35,26 @@ export abstract class BaseTestSuite {
     beforeAll(async () => {
       logger.info(`🧪 Setting up test suite: ${this.options.suiteName}`);
       logger.info(`📝 Network ID: ${this.networkId}`);
-      
+
       try {
         // Register suite with manager
         this.manager.registerSuite(this.options.suiteName, this.networkId);
-        
+
         // Launch the network
         this.networkLauncher = new NetworkLauncher({
           networkId: this.networkId,
           ...this.options.networkOptions
         });
-        
+
         this.connectors = await this.networkLauncher.launch();
-        
+
         // Create test connectors
         this.connectorFactory = new ConnectorFactory(this.connectors);
         this.testConnectors = await this.connectorFactory.createTestConnectors();
-        
+
         // Allow derived classes to perform additional setup
         await this.onSetup();
-        
+
         logger.success(`✅ Test suite setup complete: ${this.options.suiteName}`);
       } catch (error) {
         logger.error(`Failed to setup test suite: ${this.options.suiteName}`, error);
@@ -65,24 +65,24 @@ export abstract class BaseTestSuite {
 
     afterAll(async () => {
       logger.info(`🧹 Tearing down test suite: ${this.options.suiteName}`);
-      
+
       try {
         // Allow derived classes to perform cleanup
         await this.onTeardown();
-        
+
         // Cleanup test connectors
         if (this.testConnectors && this.connectorFactory) {
           await this.connectorFactory.cleanup(this.testConnectors);
         }
-        
+
         // Cleanup the network
         if (this.connectors?.cleanup) {
           await this.connectors.cleanup();
         }
-        
+
         // Mark suite as completed
         this.manager.completeSuite(this.options.suiteName);
-        
+
         logger.success(`✅ Test suite teardown complete: ${this.options.suiteName}`);
       } catch (error) {
         logger.error(`Error during test suite teardown: ${this.options.suiteName}`, error);

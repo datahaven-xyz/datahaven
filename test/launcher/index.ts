@@ -1,7 +1,7 @@
-export * from "./types";
-export * from "./network";
+export { ContractsLauncher } from "./contracts";
 export { DataHavenLauncher } from "./datahaven";
 export { EthereumLauncher } from "./ethereum";
-export { ContractsLauncher } from "./contracts";
-export { ValidatorsLauncher } from "./validators";
+export * from "./network";
 export { RelayersLauncher } from "./relayers";
+export * from "./types";
+export { ValidatorsLauncher } from "./validators";

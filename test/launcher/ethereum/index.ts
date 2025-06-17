@@ -1,10 +1,9 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { getPortFromKurtosis, logger } from "utils";
-import { 
-  checkKurtosisEnclaveRunning, 
-  modifyConfig, 
-  runKurtosisEnclave 
+import {
+  checkKurtosisEnclaveRunning,
+  runKurtosisEnclave
 } from "../../cli/handlers/common/kurtosis";
 import type { LaunchedNetwork } from "../../cli/handlers/common/launchedNetwork";
 import type { EthereumLaunchResult, NetworkLaunchOptions } from "../types";
@@ -64,22 +63,28 @@ export class EthereumLauncher {
     }
   }
 
-  private async registerServices(launchedNetwork: LaunchedNetwork): Promise<{ elRpcUrl: string; clEndpoint: string }> {
+  private async registerServices(
+    launchedNetwork: LaunchedNetwork
+  ): Promise<{ elRpcUrl: string; clEndpoint: string }> {
     logger.info("📝 Registering Kurtosis service endpoints...");
 
     // Configure EL RPC URL
     const rethPublicPort = await getPortFromKurtosis("el-1-reth-lodestar", "rpc", this.enclaveName);
     invariant(rethPublicPort && rethPublicPort > 0, "❌ Could not find EL RPC port");
-    
+
     const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
     launchedNetwork.elRpcUrl = elRpcUrl;
     logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
 
     // Configure CL Endpoint
-    const lodestarPublicPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", this.enclaveName);
+    const lodestarPublicPort = await getPortFromKurtosis(
+      "cl-1-lodestar-reth",
+      "http",
+      this.enclaveName
+    );
     const clEndpoint = `http://127.0.0.1:${lodestarPublicPort}`;
     invariant(clEndpoint, "❌ CL Endpoint could not be determined from Kurtosis service");
-    
+
     launchedNetwork.clEndpoint = clEndpoint;
     logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
 

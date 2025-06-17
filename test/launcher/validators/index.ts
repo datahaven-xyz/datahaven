@@ -14,9 +14,9 @@ export class ValidatorsLauncher {
   async fundValidators(rpcUrl: string): Promise<LaunchResult> {
     try {
       logger.info("💰 Funding validators with tokens and ETH...");
-      
+
       await fundValidators({ rpcUrl });
-      
+
       logger.success("Validators funded successfully");
       return { success: true };
     } catch (error) {
@@ -31,9 +31,9 @@ export class ValidatorsLauncher {
   async setupValidators(rpcUrl: string): Promise<LaunchResult> {
     try {
       logger.info("📝 Registering validators in EigenLayer...");
-      
+
       await setupValidators({ rpcUrl });
-      
+
       logger.success("Validators registered successfully");
       return { success: true };
     } catch (error) {
@@ -48,9 +48,9 @@ export class ValidatorsLauncher {
   async updateValidatorSet(rpcUrl: string): Promise<LaunchResult> {
     try {
       logger.info("🔄 Updating validator set...");
-      
+
       await updateValidatorSet({ rpcUrl });
-      
+
       logger.success("Validator set updated successfully");
       return { success: true };
     } catch (error) {

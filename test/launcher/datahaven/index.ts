@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { killExistingContainers, logger, waitForContainerToStart } from "utils";
+import { logger, waitForContainerToStart } from "utils";
 import { waitFor } from "utils/waits";
 import { isNetworkReady, setupDataHavenValidatorConfig } from "../../cli/handlers/common/datahaven";
 import type { LaunchedNetwork } from "../../cli/handlers/common/launchedNetwork";
@@ -21,7 +21,7 @@ const COMMON_LAUNCH_ARGS = [
   "--enable-offchain-indexing=true"
 ];
 
-const DEFAULT_PUBLIC_WS_PORT = 9944;
+const _DEFAULT_PUBLIC_WS_PORT = 9944;
 const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
 
 export class DataHavenLauncher {
@@ -92,6 +92,10 @@ export class DataHavenLauncher {
       logger.info(`🚀 Starting ${id}...`);
       const containerName = `${this.containerPrefix}-${id}`;
 
+      if (!this.options.datahavenImageTag) {
+        throw new Error("DataHaven image tag not specified");
+      }
+
       const command: string[] = [
         "docker",
         "run",
@@ -101,7 +105,7 @@ export class DataHavenLauncher {
         "--network",
         this.dockerNetworkName,
         ...(id === "alice" ? ["-p", `${wsPort}:9944`] : []),
-        this.options.datahavenImageTag!,
+        this.options.datahavenImageTag,
         `--${id}`,
         ...COMMON_LAUNCH_ARGS
       ];
@@ -117,7 +121,7 @@ export class DataHavenLauncher {
   private async waitForNetworkReady(wsPort: number): Promise<void> {
     logger.info("⌛️ Waiting for DataHaven to start...");
     const timeoutMs = 2000;
-    
+
     await waitFor({
       lambda: async () => {
         const isReady = await isNetworkReady(wsPort, timeoutMs);
@@ -134,19 +138,19 @@ export class DataHavenLauncher {
 
   private async registerNodes(launchedNetwork: LaunchedNetwork, wsPort: number): Promise<void> {
     launchedNetwork.networkName = this.dockerNetworkName;
-    
+
     const targetContainerName = `${this.containerPrefix}-alice`;
     launchedNetwork.addContainer(targetContainerName, { ws: wsPort });
-    
+
     logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
   }
 
   private async buildLocalImage(): Promise<void> {
     logger.info("🐳 Building DataHaven node local Docker image...");
-    
+
     // Import here to avoid circular dependencies
     const { cargoCrossbuild } = await import("scripts/cargo-crossbuild");
-    
+
     await cargoCrossbuild({
       datahavenBuildExtraArgs: this.options.datahavenBuildExtraArgs
     });
@@ -156,14 +160,14 @@ export class DataHavenLauncher {
     } else {
       await $`bun build:docker:operator`.quiet();
     }
-    
+
     logger.success("DataHaven node local Docker image build completed successfully");
   }
 
   private async checkTagExists(tag: string): Promise<void> {
     const cleaned = tag.trim();
     logger.debug(`Checking if image ${cleaned} is available locally`);
-    
+
     const { exitCode: localExists } = await $`docker image inspect ${cleaned}`.nothrow().quiet();
 
     if (localExists !== 0) {
@@ -184,7 +188,7 @@ export class DataHavenLauncher {
     // Stop and remove containers
     const containerIds = await $`docker ps -aq --filter "name=^${this.containerPrefix}-"`.text();
     if (containerIds.trim()) {
-      await $`docker rm -f ${containerIds.trim().split('\n').join(' ')}`.quiet();
+      await $`docker rm -f ${containerIds.trim().split("\n").join(" ")}`.quiet();
     }
 
     // Remove network
@@ -198,7 +202,7 @@ export class DataHavenLauncher {
     // Start from a base port and increment until we find an available one
     const basePort = 9944;
     let port = basePort;
-    
+
     while (port < basePort + 100) {
       const result = await $`lsof -i :${port}`.quiet().nothrow();
       if (result.exitCode !== 0) {
@@ -207,7 +211,7 @@ export class DataHavenLauncher {
       }
       port++;
     }
-    
+
     throw new Error("No available ports found in range 9944-10044");
   }
 }

@@ -1,5 +1,4 @@
 import type { DeployEnvironment, RelayerType } from "utils";
-import type { LaunchedNetwork } from "../cli/handlers/common/launchedNetwork";
 
 export interface NetworkLaunchOptions {
   environment?: DeployEnvironment;

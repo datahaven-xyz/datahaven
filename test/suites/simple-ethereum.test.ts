@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseEther } from "viem";
-import { ANVIL_FUNDED_ACCOUNTS, generateRandomAccount, logger } from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, logger } from "utils";
 import { BaseTestSuite } from "../framework";
 
 class SimpleEthereumTestSuite extends BaseTestSuite {
@@ -13,7 +12,7 @@ class SimpleEthereumTestSuite extends BaseTestSuite {
         buildDatahaven: false
       }
     });
-    
+
     // Set up hooks in constructor
     this.setupHooks();
   }
@@ -26,7 +25,7 @@ describe("Simple Ethereum Test", () => {
   it("should connect and query block number", async () => {
     const connectors = suite.getTestConnectors();
     const blockNumber = await connectors.publicClient.getBlockNumber();
-    
+
     expect(blockNumber).toBeGreaterThan(0n);
     logger.info(`Current block number: ${blockNumber}`);
   });
@@ -36,7 +35,7 @@ describe("Simple Ethereum Test", () => {
     const balance = await connectors.publicClient.getBalance({
       address: ANVIL_FUNDED_ACCOUNTS[0].publicKey
     });
-    
+
     expect(balance).toBeGreaterThan(0n);
     logger.info(`Account balance: ${balance} wei`);
   });

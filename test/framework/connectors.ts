@@ -1,22 +1,29 @@
-import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from "viem";
+import { datahaven } from "@polkadot-api/descriptors";
+import { createClient as createPapiClient, type PolkadotClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { ANVIL_FUNDED_ACCOUNTS, type DataHavenApi, logger } from "utils";
+import {
+  type Account,
+  createPublicClient,
+  createWalletClient,
+  http,
+  type PublicClient,
+  type WalletClient
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
-import { createClient as createPapiClient, type PolkadotClient } from "polkadot-api";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
-import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { datahaven } from "@polkadot-api/descriptors";
-import { logger, ANVIL_FUNDED_ACCOUNTS, type DataHavenApi } from "utils";
 import type { NetworkConnectors } from "../launcher";
 
 export interface TestConnectors {
   // Ethereum connectors
   publicClient: PublicClient;
-  walletClient: WalletClient;
-  
+  walletClient: WalletClient<any, any, Account>;
+
   // DataHaven connectors
   papiClient: PolkadotClient;
   dhApi: DataHavenApi;
-  
+
   // Raw URLs
   elRpcUrl: string;
   dhWsUrl: string;
@@ -51,7 +58,7 @@ export class ConnectorFactory {
     // Create DataHaven/Substrate clients
     const wsProvider = getWsProvider(this.connectors.dhWsUrl);
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
-    
+
     // Get typed API
     const dhApi = papiClient.getTypedApi(datahaven);
 
@@ -70,7 +77,7 @@ export class ConnectorFactory {
   /**
    * Create a wallet client with a specific account
    */
-  createWalletClient(privateKey: `0x${string}`): WalletClient {
+  createWalletClient(privateKey: `0x${string}`): WalletClient<any, any, Account> {
     const account = privateKeyToAccount(privateKey);
     return createWalletClient({
       account,
@@ -84,12 +91,12 @@ export class ConnectorFactory {
    */
   async cleanup(connectors: TestConnectors): Promise<void> {
     logger.debug("Cleaning up test connectors...");
-    
+
     // Destroy PAPI client
     if (connectors.papiClient) {
       connectors.papiClient.destroy();
     }
-    
+
     logger.debug("Test connectors cleaned up");
   }
 }

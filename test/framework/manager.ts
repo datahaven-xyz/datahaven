@@ -61,21 +61,21 @@ export class TestSuiteManager {
   }
 
   getRunningCount(): number {
-    return Array.from(this.suites.values()).filter(s => s.status === "running").length;
+    return Array.from(this.suites.values()).filter((s) => s.status === "running").length;
   }
 
   getRunningNetworkIds(): string[] {
     return Array.from(this.suites.values())
-      .filter(s => s.status === "running")
-      .map(s => s.networkId);
+      .filter((s) => s.status === "running")
+      .map((s) => s.networkId);
   }
 
   private cleanupAll(): void {
-    const runningSuites = Array.from(this.suites.values()).filter(s => s.status === "running");
-    
+    const runningSuites = Array.from(this.suites.values()).filter((s) => s.status === "running");
+
     if (runningSuites.length > 0) {
       logger.warn(`⚠️ Process exiting with ${runningSuites.length} test suite(s) still running`);
-      runningSuites.forEach(suite => {
+      runningSuites.forEach((suite) => {
         logger.warn(`  - ${suite.suiteId} (network: ${suite.networkId})`);
       });
     }

@@ -1,10 +1,5 @@
 import { $ } from "bun";
-import {
-  confirmWithTimeout,
-  logger,
-  printDivider,
-  printHeader
-} from "utils";
+import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { DataHavenLauncher } from "../../../launcher";
 import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { LaunchOptions } from ".";
@@ -49,7 +44,7 @@ export const launchDataHavenSolochain = async (
       true,
       10
     );
-    
+
     if (!shouldCleanNetwork) {
       logger.info("👍 Keeping existing DataHaven containers/network.");
       printDivider();
@@ -81,7 +76,7 @@ export const launchDataHavenSolochain = async (
   });
 
   const result = await launcher.launch(launchedNetwork);
-  
+
   if (!result.success) {
     logger.error("Failed to launch DataHaven network", result.error);
     throw result.error;
@@ -97,8 +92,9 @@ export const launchDataHavenSolochain = async (
  */
 const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-cli-launch"
-  const containerIds = await $`docker ps --format "{{.Names}}" --filter "name=^datahaven-cli-launch"`.text();
-  
+  const containerIds =
+    await $`docker ps --format "{{.Names}}" --filter "name=^datahaven-cli-launch"`.text();
+
   // Check if containerIds has any actual IDs (not just whitespace)
   const containersExist = containerIds.trim().length > 0;
   if (containersExist) {

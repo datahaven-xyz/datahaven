@@ -5,7 +5,6 @@ global:
 
 # Common image settings
 image:
-  repository: moonsonglabs/datahaven
   tag: local
   pullPolicy: IfNotPresent
 

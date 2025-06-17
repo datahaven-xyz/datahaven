@@ -18,7 +18,7 @@ export const cleanup = async (
     return;
   }
 
-  if (options.environment === "stagenet") {
+  if (options.isPrivateNetwork) {
     await checkAndCleanKurtosisDeployment(options);
   }
 

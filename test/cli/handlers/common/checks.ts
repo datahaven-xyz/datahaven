@@ -46,6 +46,7 @@ export const deploymentChecks = async (
   logger.success("Helm is installed");
 
   switch (options.environment) {
+    case "local":
     case "stagenet":
       launchedNetwork.kubeNamespace = `kt-${options.kurtosisEnclaveName}`;
       break;

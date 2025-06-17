@@ -13,7 +13,6 @@ export interface NetworkLaunchOptions {
   kurtosisNetworkArgs?: string;
   elRpcUrl?: string;
   clEndpoint?: string;
-  kubeNamespace?: string;
 }
 
 export interface LaunchResult {

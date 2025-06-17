@@ -137,7 +137,7 @@ super({
   suiteName: "my-tests",
   networkOptions: {
     // Chain Configuration
-    slotTime: 6,                  // Block time in seconds (default: 12)
+    slotTime: 6,                  // Block time in seconds (default: 1)
     
     // Services
     blockscout: false,            // Enable block explorer (default: false)
@@ -157,7 +157,6 @@ super({
     // External Networks (for non-local)
     elRpcUrl: "http://...",       // External Ethereum RPC
     clEndpoint: "http://...",     // External CL endpoint
-    kubeNamespace: "...",         // K8s namespace
   }
 });
 ```

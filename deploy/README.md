@@ -58,7 +58,7 @@ Available environments:
 ### Local
 - Single replica
 - Minimal resources (256Mi memory, 100m CPU)
-- Latest image tags
+- Local image tags
 - Small persistence size
 
 ### Stagenet
@@ -143,4 +143,66 @@ Common issues and solutions:
 4. Preview deployment changes:
    ```bash
    ./scripts/deploy.sh <env> true
-   ``` 
+   ```
+
+## Manual Deployment (Advanced)
+
+For advanced users who want to deploy components individually or need more control:
+
+### DataHaven Bootnode & Validators
+
+#### Deploy individual components
+```bash
+cd deploy
+helm upgrade --install dh-bootnode charts/node -f charts/node/datahaven/dh-bootnode.yaml -f ../environments/<env>/values.yaml -n kt-datahaven-<env>
+helm upgrade --install dh-validator charts/node -f charts/node/datahaven/dh-validator.yaml -f ../environments/<env>/values.yaml -n kt-datahaven-<env>
+```
+
+#### Access validator node with Polkadot.js apps
+```bash
+kubectl port-forward svc/dh-validator-0 -n kt-datahaven-<env> 9955:9955
+# Then visit: https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9955#/explorer
+```
+
+#### Remove DataHaven components
+```bash
+helm uninstall dh-bootnode -n kt-datahaven-<env>
+helm uninstall dh-validator -n kt-datahaven-<env>
+```
+
+#### Cleanup volumes
+```bash
+kubectl delete pvc -l app.kubernetes.io/instance=dh-bootnode -n kt-datahaven-<env>
+kubectl delete pvc -l app.kubernetes.io/instance=dh-validator -n kt-datahaven-<env>
+```
+
+### Snowbridge Relayers
+
+#### Create required secrets
+```bash
+kubectl create secret generic dh-beefy-relay-ethereum-key --from-literal=pvk="<ETHEREUM_PRIVATE_KEY>" -n kt-datahaven-<env>
+kubectl create secret generic dh-beacon-relay-substrate-key --from-literal=pvk="<SUBSTRATE_PRIVATE_KEY>" -n kt-datahaven-<env>
+kubectl create secret generic dh-execution-relay-substrate-key --from-literal=pvk="<SUBSTRATE_PRIVATE_KEY>" -n kt-datahaven-<env>
+```
+
+#### Deploy individual relay components
+```bash
+cd deploy
+helm upgrade --install dh-beacon-relay charts/relay -f charts/relay/snowbridge/dh-beacon-relay.yaml -f ../environments/<env>/values.yaml -n kt-datahaven-<env>
+helm upgrade --install dh-beefy-relay charts/relay -f charts/relay/snowbridge/dh-beefy-relay.yaml -f ../environments/<env>/values.yaml -n kt-datahaven-<env>
+helm upgrade --install dh-execution-relay charts/relay -f charts/relay/snowbridge/dh-execution-relay.yaml -f ../environments/<env>/values.yaml -n kt-datahaven-<env>
+```
+
+#### Remove relay components
+```bash
+helm uninstall dh-beacon-relay -n kt-datahaven-<env>
+helm uninstall dh-beefy-relay -n kt-datahaven-<env>
+helm uninstall dh-execution-relay -n kt-datahaven-<env>
+```
+
+#### Delete relay secrets
+```bash
+kubectl delete secret dh-beefy-relay-ethereum-key -n kt-datahaven-<env>
+kubectl delete secret dh-beacon-relay-substrate-key -n kt-datahaven-<env>
+kubectl delete secret dh-execution-relay-substrate-key -n kt-datahaven-<env>
+```

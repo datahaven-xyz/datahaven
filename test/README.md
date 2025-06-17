@@ -6,8 +6,25 @@
 .
 ├── README.md
 ├── configs                 # Configurations for test networks
-└── scripts                 # Helper scripts for interacting with the network
+├── scripts                 # Helper scripts for interacting with the network
+├── launcher                # Shared network launching infrastructure
+├── framework               # E2E testing framework core
+├── suites                  # E2E test suites
+└── docs                    # Documentation
+    ├── E2E_TESTING.md                  # Testing framework overview
+    ├── E2E_FRAMEWORK_ARCHITECTURE.md   # Detailed architecture guide
+    ├── E2E_SETUP_GUIDE.md             # Setup and troubleshooting
+    └── E2E_QUICK_REFERENCE.md         # Quick reference guide
 ```
+
+## E2E Testing Framework
+
+This project includes a comprehensive E2E testing framework that allows running isolated test suites with complete network stacks. For details, see:
+
+- **[E2E Testing Overview](./E2E_TESTING.md)** - Introduction to the testing framework
+- **[Setup Guide](./docs/E2E_SETUP_GUIDE.md)** - Detailed setup instructions
+- **[Architecture](./docs/E2E_FRAMEWORK_ARCHITECTURE.md)** - Framework design and implementation
+- **[Quick Reference](./docs/E2E_QUICK_REFERENCE.md)** - Common patterns and commands
 
 ## Pre-requisites
 

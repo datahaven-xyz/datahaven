@@ -7,9 +7,9 @@ set -e
 ENVIRONMENT=${1:-local}
 DRY_RUN=${2:-false}
 NAMESPACE="kt-datahaven-${ENVIRONMENT}"
-VALUES_FILE="../environments/${ENVIRONMENT}/values.yaml"
-NODE_CHART="../charts/node"
-RELAY_CHART="../charts/relay"
+VALUES_FILE="$(dirname "$0")/../environments/${ENVIRONMENT}/values.yaml"
+NODE_CHART="$(dirname "$0")/../charts/node"
+RELAY_CHART="$(dirname "$0")/../charts/relay"
 
 # Validate environment
 if [[ ! -f "${VALUES_FILE}" ]]; then

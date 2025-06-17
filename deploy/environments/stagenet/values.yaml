@@ -34,12 +34,12 @@ dh-bootnode:
 # Override settings for validator
 dh-validator:
   node:
-  customNodeKey:
-    # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
-    # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
-    - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
-    # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
-    - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
+    customNodeKey:
+      # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
+      # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
+      - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
+      # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
+      - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
 
 # Common relay settings
 relay:

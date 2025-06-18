@@ -42,3 +42,8 @@ export const BASE_SERVICES = [
   "el-2-reth-lodestar",
   "dora"
 ];
+
+/**
+ * Minimum required Bun version
+ */
+export const MIN_BUN_VERSION = { major: 1, minor: 2 };

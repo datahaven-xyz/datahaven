@@ -2,6 +2,7 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import type { DeployOptions } from "../deploy";
+import { MIN_BUN_VERSION } from "./consts";
 import type { LaunchedNetwork } from "./launchedNetwork";
 
 //  =====  Checks  =====
@@ -17,7 +18,7 @@ export const checkBaseDependencies = async (): Promise<void> => {
 
   if (!(await checkBunVersion())) {
     logger.error(
-      "Bun version must be 1.2 or higher. Please upgrade Bun by following the instructions at https://bun.sh/docs/installation#upgrading"
+      `Bun version must be ${MIN_BUN_VERSION.major}.${MIN_BUN_VERSION.minor} or higher: https://bun.sh/docs/installation#upgrading`
     );
     throw Error("❌ Bun version is too old.");
   }
@@ -85,8 +86,10 @@ const checkBunVersion = async (): Promise<boolean> => {
   const bunVersion = Bun.version;
   const [major, minor] = bunVersion.split(".").map(Number);
 
-  // Check if version meets minimum requirements (1.2+)
-  const isVersionValid = major > 1 || (major === 1 && minor >= 2);
+  // Check if version meets minimum requirements
+  const isVersionValid =
+    major > MIN_BUN_VERSION.major ||
+    (major === MIN_BUN_VERSION.major && minor >= MIN_BUN_VERSION.minor);
 
   if (!isVersionValid) {
     logger.debug(`Bun version: ${bunVersion} (too old)`);

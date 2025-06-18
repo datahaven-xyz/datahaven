@@ -6,10 +6,7 @@ import { BaseTestSuite } from "../framework";
 class EthereumBasicTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "ethereum-basic",
-      networkOptions: {
-        // Use default options
-      }
+      suiteName: "ethereum-basic"
     });
 
     // Set up hooks in constructor

@@ -104,17 +104,32 @@ You can also access the backend via REST API, documented here: [http://127.0.0.1
 
 ### E2E Tests
 
-> [!TIP]
->
-> Remember to run the network with `bun cli` before running the tests.
+The test suite in the `suites` folder includes both unit tests and full E2E integration tests.
+
+**Run all tests:**
 
 ```bash
-bun test:e2e
+bun test:e2e  # Runs all tests with 15-minute timeout
+```
+
+**Run specific test:**
+
+```bash
+bun test suites/ethereum-basic.test.ts --timeout 900000
 ```
 
 > [!NOTE]
 >
-> You can increase the logging level by setting `LOG_LEVEL=debug` before running the tests.
+> - E2E tests launch their own isolated network stacks including:
+>   - DataHaven nodes (Alice and Bob validators)
+>   - Ethereum network via Kurtosis
+>   - Smart contract deployments
+>   - Validator setup in EigenLayer
+>   - Cross-chain relayers (if needed)
+> - First run may take 10-15 minutes due to full network setup
+> - Each test suite gets its own isolated network to ensure test independence
+> - You can increase the logging level by setting `LOG_LEVEL=debug`
+> - No need to run `bun cli` first - tests manage their own networks
 
 ### Wagmi Bindings Generation
 

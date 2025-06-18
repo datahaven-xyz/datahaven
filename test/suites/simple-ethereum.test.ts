@@ -5,12 +5,7 @@ import { BaseTestSuite } from "../framework";
 class SimpleEthereumTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "simple-ethereum",
-      networkOptions: {
-        // Use minimal options for faster startup
-        blockscout: false,
-        buildDatahaven: false
-      }
+      suiteName: "simple-ethereum"
     });
 
     // Set up hooks in constructor

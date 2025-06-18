@@ -83,7 +83,7 @@ export abstract class BaseTestSuite {
         // Mark suite as completed
         this.manager.completeSuite(this.options.suiteName);
 
-        logger.success(`✅ Test suite teardown complete: ${this.options.suiteName}`);
+        logger.success(`Test suite teardown complete: ${this.options.suiteName}`);
       } catch (error) {
         logger.error(`Error during test suite teardown: ${this.options.suiteName}`, error);
         this.manager.failSuite(this.options.suiteName);

@@ -7,10 +7,7 @@ import { BaseTestSuite } from "../framework";
 class DataHavenSubstrateTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "datahaven-substrate",
-      networkOptions: {
-        slotTime: 6 // Faster blocks for testing
-      }
+      suiteName: "datahaven-substrate"
     });
 
     this.setupHooks();

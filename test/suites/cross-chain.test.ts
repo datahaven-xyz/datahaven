@@ -6,10 +6,7 @@ import { BaseTestSuite } from "../framework";
 class CrossChainTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "cross-chain",
-      networkOptions: {
-        // Default options - relayers are included
-      }
+      suiteName: "cross-chain"
     });
 
     this.setupHooks();

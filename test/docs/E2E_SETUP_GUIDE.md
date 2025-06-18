@@ -7,13 +7,16 @@ This guide walks through setting up and using the DataHaven E2E testing framewor
 ### Required Software
 
 1. **Bun** (v1.0+)
+
    - See installation instructions at [https://bun.sh/docs/installation](https://bun.sh/docs/installation)
 
 2. **Docker** (v20.10+)
+
    - Install Docker Desktop or Docker Engine
    - Ensure Docker daemon is running
 
 3. **Kurtosis** (v1.0+)
+
    ```bash
    brew install kurtosis-tech/tap/kurtosis-cli
    # or
@@ -46,6 +49,7 @@ bun install
 ```
 
 This will:
+
 - Install all npm dependencies
 - Generate Polkadot-API types
 - Set up contract bindings
@@ -55,12 +59,14 @@ This will:
 #### DataHaven Node Image
 
 Option A: Use pre-built image
+
 ```bash
 docker pull moonsonglabs/datahaven:latest
 docker tag moonsonglabs/datahaven:latest moonsonglabs/datahaven:local
 ```
 
 Option B: Build locally
+
 ```bash
 bun build:docker:operator
 ```
@@ -68,6 +74,7 @@ bun build:docker:operator
 #### Smart Contracts (Optional)
 
 If you plan to test contract interactions:
+
 ```bash
 cd ../contracts
 forge build
@@ -81,6 +88,7 @@ kurtosis engine start
 ```
 
 Verify it's running:
+
 ```bash
 kurtosis engine status
 ```
@@ -90,21 +98,27 @@ kurtosis engine status
 ### Basic Commands
 
 Run all E2E tests:
+
 ```bash
 bun test:e2e
 ```
 
+E2E tests will automatically launch their own isolated network stacks.
+
 Run specific test suite:
+
 ```bash
 bun test test/suites/ethereum-basic.test.ts
 ```
 
 Run tests in watch mode:
+
 ```bash
 bun test --watch test/suites/
 ```
 
 Run with debug output:
+
 ```bash
 LOG_LEVEL=debug bun test test/suites/ethereum-basic.test.ts
 ```
@@ -112,18 +126,21 @@ LOG_LEVEL=debug bun test test/suites/ethereum-basic.test.ts
 ### Test Execution Options
 
 #### Timeout Configuration
+
 ```bash
 # Increase timeout for slower systems
 bun test test/suites/contracts.test.ts --timeout 600000  # 10 minutes
 ```
 
 #### Parallel Execution
+
 ```bash
 # Run multiple suites in parallel
 bun test test/suites/*.test.ts --parallel
 ```
 
 #### Specific Test Selection
+
 ```bash
 # Run tests matching pattern
 bun test test/suites/ -t "should send ETH"
@@ -148,22 +165,22 @@ class MyFeatureTestSuite extends BaseTestSuite {
       suiteName: "my-feature",
       networkOptions: {
         // Optional configuration
-        slotTime: 6,           // Block time in seconds
-        blockscout: true,      // Enable block explorer
-        buildDatahaven: false  // Use existing image
-      }
+        slotTime: 6, // Block time in seconds
+        blockscout: true, // Enable block explorer
+        buildDatahaven: false, // Use existing image
+      },
     });
-    
+
     // IMPORTANT: Must call setupHooks
     this.setupHooks();
   }
-  
+
   // Optional: Additional setup after network launch
   override async onSetup(): Promise<void> {
     logger.info("Performing custom setup...");
     // Custom initialization
   }
-  
+
   // Optional: Cleanup before network teardown
   override async onTeardown(): Promise<void> {
     logger.info("Performing custom cleanup...");
@@ -177,15 +194,15 @@ const suite = new MyFeatureTestSuite();
 describe("My Feature Tests", () => {
   it("should interact with Ethereum", async () => {
     const { publicClient, walletClient } = suite.getTestConnectors();
-    
+
     // Your test logic here
     const blockNumber = await publicClient.getBlockNumber();
     expect(blockNumber).toBeGreaterThan(0n);
   });
-  
+
   it("should interact with DataHaven", async () => {
     const { dhApi } = suite.getTestConnectors();
-    
+
     // Your test logic here
     const account = await dhApi.query.System.Account.getValue("0x...");
     expect(account.data.free).toBeGreaterThan(0n);
@@ -201,14 +218,14 @@ The framework provides pre-configured connectors:
 const connectors = suite.getTestConnectors();
 
 // Ethereum - Read operations
-const balance = await connectors.publicClient.getBalance({ 
-  address: "0x..." 
+const balance = await connectors.publicClient.getBalance({
+  address: "0x...",
 });
 
 // Ethereum - Write operations
 const hash = await connectors.walletClient.sendTransaction({
   to: "0x...",
-  value: parseEther("1")
+  value: parseEther("1"),
 });
 
 // DataHaven - Query storage
@@ -217,7 +234,7 @@ const systemInfo = await connectors.dhApi.query.System.Number.getValue();
 // DataHaven - Submit extrinsic
 const tx = connectors.dhApi.tx.Balances.transfer_allow_death({
   dest: "0x...",
-  value: parseEther("1")
+  value: parseEther("1"),
 });
 await tx.signAndSubmit(signer);
 ```
@@ -233,7 +250,7 @@ const wallet2 = factory.createWalletClient(ANVIL_FUNDED_ACCOUNTS[1].privateKey);
 // Use multiple accounts
 await wallet2.sendTransaction({
   to: recipient,
-  value: amount
+  value: amount,
 });
 ```
 
@@ -242,9 +259,11 @@ await wallet2.sendTransaction({
 ### Common Issues
 
 #### 1. "Network connectors not initialized"
+
 **Cause**: `setupHooks()` not called in constructor
 
 **Solution**:
+
 ```typescript
 constructor() {
   super({ suiteName: "my-test" });
@@ -253,9 +272,11 @@ constructor() {
 ```
 
 #### 2. "No available ports found"
+
 **Cause**: Too many test suites running or ports in use
 
 **Solution**:
+
 ```bash
 # Check for running containers
 docker ps | grep datahaven
@@ -265,18 +286,22 @@ docker rm -f $(docker ps -aq --filter "name=datahaven-")
 ```
 
 #### 3. "Kurtosis engine is not running"
+
 **Cause**: Kurtosis not started
 
 **Solution**:
+
 ```bash
 kurtosis engine start
 kurtosis engine status
 ```
 
 #### 4. "Image moonsonglabs/datahaven:local not found"
+
 **Cause**: DataHaven image not built/pulled
 
 **Solution**:
+
 ```bash
 # Build locally
 bun build:docker:operator
@@ -287,9 +312,11 @@ docker tag moonsonglabs/datahaven:latest moonsonglabs/datahaven:local
 ```
 
 #### 5. Test Timeouts
+
 **Cause**: Network takes too long to start
 
 **Solution**:
+
 ```bash
 # Increase timeout
 bun test test/suites/my-test.ts --timeout 600000
@@ -301,11 +328,13 @@ docker logs datahaven-<test-id>-alice
 ### Debugging Techniques
 
 #### 1. Enable Debug Logging
+
 ```bash
 LOG_LEVEL=debug bun test test/suites/my-test.ts
 ```
 
 #### 2. Check Container Logs
+
 ```bash
 # Find containers for your test
 docker ps -a | grep <your-test-name>
@@ -315,6 +344,7 @@ docker logs <container-name>
 ```
 
 #### 3. Inspect Network State
+
 ```bash
 # List Kurtosis enclaves
 kurtosis enclave ls
@@ -324,11 +354,12 @@ kurtosis enclave inspect <enclave-name>
 ```
 
 #### 4. Keep Network Running
+
 ```typescript
 override async onTeardown(): Promise<void> {
   // Comment out cleanup for debugging
   // await super.onTeardown();
-  
+
   logger.info("Network kept running for debugging");
   logger.info(`DataHaven WS: ${this.getTestConnectors().dhWsUrl}`);
   logger.info(`Ethereum RPC: ${this.getTestConnectors().elRpcUrl}`);
@@ -338,6 +369,7 @@ override async onTeardown(): Promise<void> {
 ### Resource Cleanup
 
 #### Manual Cleanup
+
 ```bash
 # Stop all DataHaven containers
 docker rm -f $(docker ps -aq --filter "name=datahaven-")
@@ -353,6 +385,7 @@ docker system prune -a
 ```
 
 #### Automatic Cleanup Script
+
 ```bash
 #!/bin/bash
 # cleanup-tests.sh
@@ -375,14 +408,16 @@ echo "Cleanup complete!"
 ## Performance Optimization
 
 ### 1. Reuse Built Images
+
 ```typescript
 // Always use pre-built images in tests
 networkOptions: {
-  buildDatahaven: false
+  buildDatahaven: false;
 }
 ```
 
 ### 2. Minimize Network Components
+
 ```typescript
 // Skip unnecessary components
 networkOptions: {
@@ -392,15 +427,17 @@ networkOptions: {
 ```
 
 ### 3. Parallel Test Execution
+
 ```bash
 # Run independent test suites in parallel
 bun test test/suites/*.test.ts --parallel
 ```
 
 ### 4. Use Faster Block Times
+
 ```typescript
 networkOptions: {
-  slotTime: 3  // Faster for testing
+  slotTime: 3; // Faster for testing
 }
 ```
 
@@ -416,49 +453,55 @@ on: [push, pull_request]
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    
-    - uses: oven-sh/setup-bun@v1
-      with:
-        bun-version: latest
-    
-    - name: Start Docker
-      run: |
-        sudo systemctl start docker
-        docker version
-    
-    - name: Install Kurtosis
-      run: |
-        curl -fsSL https://get.kurtosis.com | bash
-        kurtosis engine start
-    
-    - name: Install Dependencies
-      working-directory: ./test
-      run: bun install
-    
-    - name: Pull DataHaven Image
-      run: |
-        docker pull moonsonglabs/datahaven:latest
-        docker tag moonsonglabs/datahaven:latest moonsonglabs/datahaven:local
-    
-    - name: Run E2E Tests
-      working-directory: ./test
-      run: |
-        LOG_LEVEL=info bun test:e2e
-      timeout-minutes: 30
-    
-    - name: Upload Logs on Failure
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-logs
-        path: |
-          test/tmp/
-          /tmp/kurtosis-*
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Start Docker
+        run: |
+          sudo systemctl start docker
+          docker version
+
+      - name: Install Kurtosis
+        run: |
+          curl -fsSL https://get.kurtosis.com | bash
+          kurtosis engine start
+
+      - name: Install Dependencies
+        working-directory: ./test
+        run: bun install
+
+      - name: Pull DataHaven Image
+        run: |
+          docker pull moonsonglabs/datahaven:latest
+          docker tag moonsonglabs/datahaven:latest moonsonglabs/datahaven:local
+
+      - name: Run E2E Tests
+        working-directory: ./test
+        run: |
+          LOG_LEVEL=info bun test:e2e
+        timeout-minutes: 30
+
+      - name: Run Unit Tests Only (Faster)
+        working-directory: ./test
+        run: |
+          bun test suites/unit-example.test.ts suites/minimal.test.ts
+        timeout-minutes: 5
+
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs
+          path: |
+            test/tmp/
+            /tmp/kurtosis-*
 ```
 
 ### Resource Limits
@@ -476,7 +519,7 @@ class CITestSuite extends BaseTestSuite {
         blockscout: false,
         buildDatahaven: false,
         // Use lighter configurations
-      }
+      },
     });
     this.setupHooks();
   }

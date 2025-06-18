@@ -5,10 +5,7 @@ import { BaseTestSuite } from "../framework";
 class ContractsTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "contracts",
-      networkOptions: {
-        // Default options
-      }
+      suiteName: "contracts"
     });
 
     this.setupHooks();

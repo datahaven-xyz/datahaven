@@ -327,6 +327,58 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
+     * @notice Claim rewards for an operator from a specific merkle root index
+     * @param operatorSetId The ID of the operator set
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     */
+    function claimOperatorRewardsByIndex(
+        uint32 operatorSetId,
+        uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external virtual override {
+        // Get the rewards registry for this operator set
+        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
+        if (address(rewardsRegistry) == address(0)) {
+            revert NoRewardsRegistryForOperatorSet();
+        }
+
+        // Ensure the operator is part of the operator set
+        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
+
+        // Forward the claim to the rewards registry
+        rewardsRegistry.claimRewardsByIndex(msg.sender, rootIndex, operatorPoints, proof);
+    }
+
+    /**
+     * @notice Claim rewards for an operator from multiple merkle root indices
+     * @param operatorSetId The ID of the operator set
+     * @param rootIndices Array of merkle root indices to claim from
+     * @param operatorPoints Array of points earned by the operator for each root
+     * @param proofs Array of merkle proofs to validate the operator's rewards
+     */
+    function claimOperatorRewardsBatch(
+        uint32 operatorSetId,
+        uint256[] calldata rootIndices,
+        uint256[] calldata operatorPoints,
+        bytes32[][] calldata proofs
+    ) external virtual override {
+        // Get the rewards registry for this operator set
+        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
+        if (address(rewardsRegistry) == address(0)) {
+            revert NoRewardsRegistryForOperatorSet();
+        }
+
+        // Ensure the operator is part of the operator set
+        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
+
+        // Forward the claim to the rewards registry
+        rewardsRegistry.claimRewardsBatch(msg.sender, rootIndices, operatorPoints, proofs);
+    }
+
+    /**
      * @notice Sets the rewards agent address in the RewardsRegistry contract
      * @param operatorSetId The ID of the operator set
      * @param rewardsAgent New rewards agent address

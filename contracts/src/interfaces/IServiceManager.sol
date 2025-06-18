@@ -146,6 +146,34 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
     ) external;
 
     /**
+     * @notice Claim rewards for an operator from a specific merkle root index
+     * @param operatorSetId The ID of the operator set
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     */
+    function claimOperatorRewardsByIndex(
+        uint32 operatorSetId,
+        uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external;
+
+    /**
+     * @notice Claim rewards for an operator from multiple merkle root indices
+     * @param operatorSetId The ID of the operator set
+     * @param rootIndices Array of merkle root indices to claim from
+     * @param operatorPoints Array of points earned by the operator for each root
+     * @param proofs Array of merkle proofs to validate the operator's rewards
+     */
+    function claimOperatorRewardsBatch(
+        uint32 operatorSetId,
+        uint256[] calldata rootIndices,
+        uint256[] calldata operatorPoints,
+        bytes32[][] calldata proofs
+    ) external;
+
+    /**
      * @notice Sets the rewards agent address in the RewardsRegistry contract
      * @param rewardsAgent New rewards agent address
      * @dev Only callable by the owner

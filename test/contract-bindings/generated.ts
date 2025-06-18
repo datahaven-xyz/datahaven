@@ -2116,6 +2116,30 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
+      { name: 'rootIndices', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'operatorPoints', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
+    ],
+    name: 'claimOperatorRewardsBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
+      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
+      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'claimOperatorRewardsByIndex',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       {
         name: 'rewardsSubmissions',
         internalType: 'struct IRewardsCoordinatorTypes.RewardsSubmission[]',
@@ -11398,6 +11422,24 @@ export const writeDataHavenServiceManagerClaimOperatorRewards =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsBatch"`
+ */
+export const writeDataHavenServiceManagerClaimOperatorRewardsBatch =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimOperatorRewardsBatch',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsByIndex"`
+ */
+export const writeDataHavenServiceManagerClaimOperatorRewardsByIndex =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimOperatorRewardsByIndex',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createAVSRewardsSubmission"`
  */
 export const writeDataHavenServiceManagerCreateAvsRewardsSubmission =
@@ -11779,6 +11821,24 @@ export const simulateDataHavenServiceManagerClaimOperatorRewards =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'claimOperatorRewards',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsBatch"`
+ */
+export const simulateDataHavenServiceManagerClaimOperatorRewardsBatch =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimOperatorRewardsBatch',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsByIndex"`
+ */
+export const simulateDataHavenServiceManagerClaimOperatorRewardsByIndex =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimOperatorRewardsByIndex',
   })
 
 /**

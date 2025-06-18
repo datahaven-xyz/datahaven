@@ -27,7 +27,12 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
     // Events
     event RewardsRegistrySet(uint32 indexed operatorSetId, address indexed rewardsRegistry);
-    event RewardsClaimed(address indexed operatorAddress, uint256 points, uint256 rewardsAmount);
+    event RewardsClaimedForIndex(
+        address indexed operatorAddress,
+        uint256 indexed rootIndex,
+        uint256 points,
+        uint256 rewardsAmount
+    );
 
     function setUp() public {
         _deployMockEigenLayerAndAVS();
@@ -105,7 +110,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         vm.prank(operatorAddress);
         vm.expectEmit(true, true, true, true);
-        emit RewardsClaimed(operatorAddress, operatorPoints, operatorPoints);
+        emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
         serviceManager.claimOperatorRewards(operatorSetId, operatorPoints, validProof);
 
@@ -141,7 +146,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         // Second claim should fail
         vm.prank(operatorAddress);
         vm.expectRevert(
-            abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimed.selector)
+            abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
 
         serviceManager.claimOperatorRewards(operatorSetId, operatorPoints, validProof);

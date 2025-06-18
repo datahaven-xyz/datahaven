@@ -22,8 +22,19 @@ contract RewardsRegistryTest is AVSDeployer {
     bytes32[] public invalidProof;
 
     // Events
-    event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 newRoot);
-    event RewardsClaimed(address indexed operatorAddress, uint256 points, uint256 rewardsAmount);
+    event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 newRoot, uint256 newRootIndex);
+    event RewardsClaimedForIndex(
+        address indexed operatorAddress,
+        uint256 indexed rootIndex,
+        uint256 points,
+        uint256 rewardsAmount
+    );
+    event RewardsBatchClaimedForIndices(
+        address indexed operatorAddress,
+        uint256[] rootIndices,
+        uint256[] points,
+        uint256 totalRewardsAmount
+    );
 
     function setUp() public {
         _deployMockEigenLayerAndAVS();
@@ -97,13 +108,11 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.prank(mockRewardsAgent);
 
         vm.expectEmit(true, true, true, true);
-        emit RewardsMerkleRootUpdated(bytes32(0), merkleRoot);
+        emit RewardsMerkleRootUpdated(bytes32(0), merkleRoot, 0);
 
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
 
-        assertEq(
-            rewardsRegistry.lastRewardsMerkleRoot(), merkleRoot, "Merkle root should be updated"
-        );
+        assertEq(rewardsRegistry.getLatestMerkleRoot(), merkleRoot, "Merkle root should be updated");
     }
 
     function test_updateRewardsMerkleRoot_NotRewardsAgent() public {
@@ -123,7 +132,7 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.prank(mockRewardsAgent);
 
         vm.expectEmit(true, true, true, true);
-        emit RewardsMerkleRootUpdated(merkleRoot, newMerkleRoot);
+        emit RewardsMerkleRootUpdated(merkleRoot, newMerkleRoot, 1);
 
         rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
     }
@@ -168,15 +177,14 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.prank(address(serviceManager));
 
         vm.expectEmit(true, true, true, true);
-        emit RewardsClaimed(operatorAddress, operatorPoints, operatorPoints);
+        emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
         rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
 
         // Verify state changes
-        assertEq(
-            rewardsRegistry.operatorToLastClaimedRoot(operatorAddress),
-            merkleRoot,
-            "Operator's last claimed root should be updated"
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 0),
+            "Operator should have claimed from the latest root index"
         );
         assertEq(
             operatorAddress.balance,
@@ -211,7 +219,7 @@ contract RewardsRegistryTest is AVSDeployer {
         // Second claim fails
         vm.prank(address(serviceManager));
         vm.expectRevert(
-            abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimed.selector)
+            abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
         rewardsRegistry.claimRewards(operatorAddress, operatorPoints, validProof);
     }
@@ -226,7 +234,7 @@ contract RewardsRegistryTest is AVSDeployer {
     }
 
     function test_claimRewards_NoMerkleRoot() public {
-        // lastRewardsMerkleRoot is not set
+        // No merkle roots exist yet
         vm.prank(address(serviceManager));
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsMerkleRootNotSet.selector)
@@ -259,10 +267,14 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.prank(address(serviceManager));
         rewardsRegistry.claimRewards(operatorAddress, operatorPoints, newProof);
 
-        assertEq(
-            rewardsRegistry.operatorToLastClaimedRoot(operatorAddress),
-            newMerkleRoot,
-            "Operator's last claimed root should be updated to new root"
+        // Verify both indices are now claimed
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 0),
+            "Operator should have claimed from first root index"
+        );
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 1),
+            "Operator should have claimed from second root index"
         );
     }
 
@@ -289,5 +301,304 @@ contract RewardsRegistryTest is AVSDeployer {
         (bool success,) = address(rewardsRegistry).call{value: amount}("");
         assertTrue(success, "Contract should be able to receive ETH");
         assertEq(address(rewardsRegistry).balance, amount, "Contract balance should increase");
+    }
+
+    /**
+     *
+     *    Merkle Root History Tests *
+     *
+     */
+    function test_getMerkleRootByIndex() public {
+        // Add first root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        // Add second root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+
+        // Test accessing by index
+        assertEq(
+            rewardsRegistry.getMerkleRootByIndex(0),
+            merkleRoot,
+            "First root should be accessible by index 0"
+        );
+        assertEq(
+            rewardsRegistry.getMerkleRootByIndex(1),
+            newMerkleRoot,
+            "Second root should be accessible by index 1"
+        );
+    }
+
+    function test_getMerkleRootByIndex_InvalidIndex() public {
+        // Add one root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        // Try to access invalid index
+        vm.expectRevert(
+            abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleRootIndex.selector)
+        );
+        rewardsRegistry.getMerkleRootByIndex(1);
+    }
+
+    function test_getLatestMerkleRootIndex() public {
+        // Initially should return 0 when no roots exist
+        assertEq(
+            rewardsRegistry.getLatestMerkleRootIndex(), 0, "Should return 0 when no roots exist"
+        );
+
+        // Add first root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+        assertEq(rewardsRegistry.getLatestMerkleRootIndex(), 0, "Should return 0 for first root");
+
+        // Add second root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+        assertEq(rewardsRegistry.getLatestMerkleRootIndex(), 1, "Should return 1 for second root");
+    }
+
+    function test_getMerkleRootHistoryLength() public {
+        // Initially should be 0
+        assertEq(rewardsRegistry.getMerkleRootHistoryLength(), 0, "Should be 0 initially");
+
+        // Add first root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+        assertEq(rewardsRegistry.getMerkleRootHistoryLength(), 1, "Should be 1 after first root");
+
+        // Add second root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+        assertEq(rewardsRegistry.getMerkleRootHistoryLength(), 2, "Should be 2 after second root");
+    }
+
+    function test_historyPreservesQuickAccess() public {
+        // Add multiple roots
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+
+        // Latest root should be accessible directly without index
+        assertEq(
+            rewardsRegistry.getLatestMerkleRoot(),
+            newMerkleRoot,
+            "getLatestMerkleRoot should return latest root"
+        );
+
+        // But we should also be able to access by index
+        assertEq(
+            rewardsRegistry.getMerkleRootByIndex(1),
+            newMerkleRoot,
+            "Latest root should also be accessible by index"
+        );
+        assertEq(
+            rewardsRegistry.getMerkleRootByIndex(0),
+            merkleRoot,
+            "Previous root should be accessible by index"
+        );
+    }
+
+    /**
+     *
+     *  Index-based Claim Tests   *
+     *
+     */
+    function test_claimRewardsByIndex() public {
+        // Add multiple roots
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+
+        // Add ETH to contract for rewards
+        vm.deal(address(rewardsRegistry), 1000 ether);
+
+        uint256 initialBalance = operatorAddress.balance;
+
+        // Claim from first root (index 0)
+        vm.prank(address(serviceManager));
+
+        vm.expectEmit(true, true, true, true);
+        emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
+
+        rewardsRegistry.claimRewardsByIndex(operatorAddress, 0, operatorPoints, validProof);
+
+        // Verify state changes
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 0),
+            "Operator should have claimed from index 0"
+        );
+        assertEq(
+            operatorAddress.balance,
+            initialBalance + operatorPoints,
+            "Operator should receive correct rewards"
+        );
+    }
+
+    function test_claimRewardsByIndex_InvalidIndex() public {
+        vm.deal(address(rewardsRegistry), 1000 ether);
+
+        vm.prank(address(serviceManager));
+        vm.expectRevert(
+            abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleRootIndex.selector)
+        );
+        rewardsRegistry.claimRewardsByIndex(operatorAddress, 0, operatorPoints, validProof);
+    }
+
+    function test_claimRewardsByIndex_AlreadyClaimed() public {
+        // Add root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        vm.deal(address(rewardsRegistry), 1000 ether);
+
+        // First claim succeeds
+        vm.prank(address(serviceManager));
+        rewardsRegistry.claimRewardsByIndex(operatorAddress, 0, operatorPoints, validProof);
+
+        // Second claim fails
+        vm.prank(address(serviceManager));
+        vm.expectRevert(
+            abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
+        );
+        rewardsRegistry.claimRewardsByIndex(operatorAddress, 0, operatorPoints, validProof);
+    }
+
+    function test_hasClaimedByIndex() public {
+        // Add root
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        vm.deal(address(rewardsRegistry), 1000 ether);
+
+        // Initially not claimed
+        assertFalse(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 0),
+            "Should not have claimed initially"
+        );
+
+        // Claim
+        vm.prank(address(serviceManager));
+        rewardsRegistry.claimRewardsByIndex(operatorAddress, 0, operatorPoints, validProof);
+
+        // Now claimed
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 0), "Should have claimed after claim"
+        );
+    }
+
+    /**
+     *
+     *   Batch Claim Tests        *
+     *
+     */
+    function test_claimRewardsBatch() public {
+        // Add multiple roots
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+
+        vm.deal(address(rewardsRegistry), 1000 ether);
+
+        // Prepare batch claim data
+        uint256[] memory rootIndices = new uint256[](2);
+        rootIndices[0] = 0;
+        rootIndices[1] = 1;
+
+        uint256[] memory points = new uint256[](2);
+        points[0] = operatorPoints;
+        points[1] = operatorPoints;
+
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = validProof;
+
+        // Create proof for second root
+        bytes32[] memory newProof = new bytes32[](1);
+        bytes32 newSiblingLeaf = keccak256(abi.encodePacked("new sibling"));
+        newProof[0] = newSiblingLeaf;
+        proofs[1] = newProof;
+
+        uint256 initialBalance = operatorAddress.balance;
+
+        // Batch claim
+        vm.prank(address(serviceManager));
+
+        vm.expectEmit(true, true, true, true);
+        emit RewardsBatchClaimedForIndices(operatorAddress, rootIndices, points, operatorPoints * 2);
+
+        rewardsRegistry.claimRewardsBatch(operatorAddress, rootIndices, points, proofs);
+
+        // Verify both indices are claimed
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 0),
+            "Should have claimed from index 0"
+        );
+        assertTrue(
+            rewardsRegistry.hasClaimedByIndex(operatorAddress, 1),
+            "Should have claimed from index 1"
+        );
+
+        // Verify total rewards received
+        assertEq(
+            operatorAddress.balance,
+            initialBalance + (operatorPoints * 2),
+            "Should receive rewards from both claims"
+        );
+    }
+
+    function test_claimRewardsBatch_ArrayLengthMismatch() public {
+        uint256[] memory rootIndices = new uint256[](2);
+        uint256[] memory points = new uint256[](1); // Wrong length
+        bytes32[][] memory proofs = new bytes32[][](2);
+
+        vm.prank(address(serviceManager));
+        vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.ArrayLengthMismatch.selector));
+        rewardsRegistry.claimRewardsBatch(operatorAddress, rootIndices, points, proofs);
+    }
+
+    function test_claimRewardsBatch_PartialClaimFailure() public {
+        // Add roots
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
+
+        vm.prank(mockRewardsAgent);
+        rewardsRegistry.updateRewardsMerkleRoot(newMerkleRoot);
+
+        vm.deal(address(rewardsRegistry), 1000 ether);
+
+        // Claim from index 0 first
+        vm.prank(address(serviceManager));
+        rewardsRegistry.claimRewardsByIndex(operatorAddress, 0, operatorPoints, validProof);
+
+        // Now try batch claim that includes already claimed index 0
+        uint256[] memory rootIndices = new uint256[](2);
+        rootIndices[0] = 0; // Already claimed
+        rootIndices[1] = 1;
+
+        uint256[] memory points = new uint256[](2);
+        points[0] = operatorPoints;
+        points[1] = operatorPoints;
+
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = validProof;
+
+        bytes32[] memory newProof = new bytes32[](1);
+        bytes32 newSiblingLeaf = keccak256(abi.encodePacked("new sibling"));
+        newProof[0] = newSiblingLeaf;
+        proofs[1] = newProof;
+
+        // Should fail because index 0 is already claimed
+        vm.prank(address(serviceManager));
+        vm.expectRevert(
+            abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
+        );
+        rewardsRegistry.claimRewardsBatch(operatorAddress, rootIndices, points, proofs);
     }
 }

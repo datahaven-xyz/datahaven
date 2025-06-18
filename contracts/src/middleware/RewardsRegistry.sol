@@ -44,9 +44,17 @@ contract RewardsRegistry is RewardsRegistryStorage {
     function updateRewardsMerkleRoot(
         bytes32 newMerkleRoot
     ) external override onlyRewardsAgent {
-        bytes32 oldRoot = lastRewardsMerkleRoot;
-        lastRewardsMerkleRoot = newMerkleRoot;
-        emit RewardsMerkleRootUpdated(oldRoot, newMerkleRoot);
+        // Get the old root (bytes32(0) if no roots exist)
+        bytes32 oldRoot = merkleRootHistory.length > 0
+            ? merkleRootHistory[merkleRootHistory.length - 1]
+            : bytes32(0);
+
+        // Add the new root to the history
+        uint256 newRootIndex = merkleRootHistory.length;
+        merkleRootHistory.push(newMerkleRoot);
+
+        // Emit the corresponding event
+        emit RewardsMerkleRootUpdated(oldRoot, newMerkleRoot, newRootIndex);
     }
 
     /**
@@ -61,7 +69,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
     }
 
     /**
-     * @notice Claim rewards for an operator
+     * @notice Claim rewards for an operator (uses latest merkle root)
      * @param operatorAddress Address of the operator to receive rewards
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
@@ -72,36 +80,171 @@ contract RewardsRegistry is RewardsRegistryStorage {
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external override onlyAVS {
-        // Check that the lastRewardsMerkleRoot is not the default value
-        if (lastRewardsMerkleRoot == bytes32(0)) {
+        // Check that we have at least one merkle root
+        if (merkleRootHistory.length == 0) {
             revert RewardsMerkleRootNotSet();
         }
 
-        // Check if operator has already claimed for this merkle root
-        if (operatorToLastClaimedRoot[operatorAddress] == lastRewardsMerkleRoot) {
-            revert RewardsAlreadyClaimed();
+        // Claim from the latest root index
+        uint256 latestIndex = merkleRootHistory.length - 1;
+        uint256 rewardsAmount = _performClaim(operatorAddress, latestIndex, operatorPoints, proof);
+
+        // Emit the corresponding event
+        emit RewardsClaimedForIndex(operatorAddress, latestIndex, operatorPoints, rewardsAmount);
+    }
+
+    /**
+     * @notice Claim rewards for an operator from a specific merkle root index
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     * @dev Only callable by the AVS (Service Manager)
+     */
+    function claimRewardsByIndex(
+        address operatorAddress,
+        uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external override onlyAVS {
+        // Perform the claim
+        uint256 rewardsAmount = _performClaim(operatorAddress, rootIndex, operatorPoints, proof);
+
+        // Emit the corresponding event
+        emit RewardsClaimedForIndex(operatorAddress, rootIndex, operatorPoints, rewardsAmount);
+    }
+
+    /**
+     * @notice Claim rewards for an operator from multiple merkle root indices
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndices Array of merkle root indices to claim from
+     * @param operatorPoints Array of points earned by the operator for each root
+     * @param proofs Array of merkle proofs to validate the operator's rewards
+     * @dev Only callable by the AVS (Service Manager)
+     */
+    function claimRewardsBatch(
+        address operatorAddress,
+        uint256[] calldata rootIndices,
+        uint256[] calldata operatorPoints,
+        bytes32[][] calldata proofs
+    ) external override onlyAVS {
+        // Check that the arrays have the same length
+        if (rootIndices.length != operatorPoints.length || rootIndices.length != proofs.length) {
+            revert ArrayLengthMismatch();
+        }
+
+        // Perform the claims, accumulating the total rewards
+        uint256 totalRewards = 0;
+        for (uint256 i = 0; i < rootIndices.length; i++) {
+            totalRewards +=
+                _performClaim(operatorAddress, rootIndices[i], operatorPoints[i], proofs[i]);
+        }
+
+        // Emit the corresponding event
+        emit RewardsBatchClaimedForIndices(
+            operatorAddress, rootIndices, operatorPoints, totalRewards
+        );
+    }
+
+    /**
+     * @notice Internal function to perform the actual claim of rewards
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     * @return rewardsAmount The amount of rewards calculated and transferred
+     */
+    function _performClaim(
+        address operatorAddress,
+        uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) internal returns (uint256 rewardsAmount) {
+        // Check that the root index to claim from exists
+        if (rootIndex >= merkleRootHistory.length) {
+            revert InvalidMerkleRootIndex();
+        }
+
+        // Check if operator has already claimed for this merkle root index
+        if (operatorClaimedByIndex[operatorAddress][rootIndex]) {
+            revert RewardsAlreadyClaimedForIndex();
         }
 
         // Verify the merkle proof
         bytes32 leaf = keccak256(abi.encode(operatorAddress, operatorPoints));
-        if (!MerkleProof.verify(proof, lastRewardsMerkleRoot, leaf)) {
+        if (!MerkleProof.verify(proof, merkleRootHistory[rootIndex], leaf)) {
             revert InvalidMerkleProof();
         }
 
         // Calculate rewards - currently 1 point = 1 wei (placeholder)
         // TODO: Update the reward calculation formula with the proper relationship
-        uint256 rewardsAmount = operatorPoints;
+        rewardsAmount = operatorPoints;
 
-        // Update the operator's last claimed root
-        operatorToLastClaimedRoot[operatorAddress] = lastRewardsMerkleRoot;
+        // Mark as claimed for this specific index
+        operatorClaimedByIndex[operatorAddress][rootIndex] = true;
 
         // Transfer rewards to the operator
         (bool success,) = operatorAddress.call{value: rewardsAmount}("");
         if (!success) {
             revert RewardsTransferFailed();
         }
+    }
 
-        emit RewardsClaimed(operatorAddress, operatorPoints, rewardsAmount);
+    /**
+     * @notice Get the merkle root at a specific index
+     * @param index Index of the merkle root to retrieve
+     * @return The merkle root at the specified index
+     */
+    function getMerkleRootByIndex(
+        uint256 index
+    ) external view override returns (bytes32) {
+        if (index >= merkleRootHistory.length) {
+            revert InvalidMerkleRootIndex();
+        }
+        return merkleRootHistory[index];
+    }
+
+    /**
+     * @notice Get the latest merkle root index
+     * @return The index of the latest merkle root (returns 0 if no roots exist)
+     */
+    function getLatestMerkleRootIndex() external view override returns (uint256) {
+        if (merkleRootHistory.length == 0) {
+            return 0;
+        }
+        return merkleRootHistory.length - 1;
+    }
+
+    /**
+     * @notice Get the latest merkle root
+     * @return The latest merkle root (returns bytes32(0) if no roots exist)
+     */
+    function getLatestMerkleRoot() external view override returns (bytes32) {
+        if (merkleRootHistory.length == 0) {
+            return bytes32(0);
+        }
+        return merkleRootHistory[merkleRootHistory.length - 1];
+    }
+
+    /**
+     * @notice Get the total number of merkle roots in history
+     * @return The total count of merkle roots
+     */
+    function getMerkleRootHistoryLength() external view override returns (uint256) {
+        return merkleRootHistory.length;
+    }
+
+    /**
+     * @notice Check if an operator has claimed rewards for a specific root index
+     * @param operatorAddress Address of the operator
+     * @param rootIndex Index of the merkle root to check
+     * @return True if the operator has claimed rewards for this root index
+     */
+    function hasClaimedByIndex(
+        address operatorAddress,
+        uint256 rootIndex
+    ) external view override returns (bool) {
+        return operatorClaimedByIndex[operatorAddress][rootIndex];
     }
 
     /**

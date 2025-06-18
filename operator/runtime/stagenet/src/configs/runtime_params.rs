@@ -1,10 +1,10 @@
+use crate::{Balance, BlockNumber, Runtime, NANO_UNIT, UNIT};
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
 use sp_runtime::BoundedVec;
-use sp_std::vec;
-use crate::{Balance, BlockNumber, Runtime, NANO_UNIT, UNIT};
 use sp_runtime::Perbill;
+use sp_std::vec;
 
 #[cfg(feature = "storage-hub")]
 use crate::configs::storagehub::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};
@@ -48,7 +48,6 @@ pub mod dynamic_params {
         ));
     }
 }
-
 
 #[cfg(feature = "storage-hub")]
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]

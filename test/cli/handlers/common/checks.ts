@@ -16,7 +16,9 @@ export const checkBaseDependencies = async (): Promise<void> => {
   logger.success("Kurtosis CLI found");
 
   if (!(await checkBunVersion())) {
-    logger.error("Bun version must be 1.2 or higher. Run `bun upgrade` to upgrade.");
+    logger.error(
+      "Bun version must be 1.2 or higher. Please upgrade Bun by following the instructions at https://bun.sh/docs/installation#upgrading"
+    );
     throw Error("❌ Bun version is too old.");
   }
 

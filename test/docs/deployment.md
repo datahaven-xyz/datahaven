@@ -223,8 +223,16 @@ kurtosis run --enclave local-eth-testnet github.com/ethpandaops/ethereum-package
 #### 1. Get DockerHub credentials
 This is to be able to pull from the DockerHub private repo, and it's a temporary step until the repository is public.
 
+#### 2. Make sure you login into docker
+```bash
+# Complete the password interactively
+docker login -u <username>
 
-#### 2. Run the deploy command with the credentials
+# Check you can access the datahaven image's manifest
+docker manifest inspect moonsonglabs/datahaven:main
+```
+
+#### 3. Run the deploy command with the credentials
 
 ```bash
 bun cli deploy --docker-username=<username> --docker-password=<pass> --docker-email=<email>

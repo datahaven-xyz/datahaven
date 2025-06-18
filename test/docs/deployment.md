@@ -238,15 +238,39 @@ docker manifest inspect moonsonglabs/datahaven:main
 bun cli deploy --docker-username=<username> --docker-password=<pass> --docker-email=<email>
 ```
 
+If everything went well, you will see something like:
+
+> [17:24:01.058] INFO (59757): ✅ Deploy function completed successfully in 28.4 minutes
+
+## Access Kubernetes dashboard: k9s
+
+```bash
+# In a new terminal
+k9s -n kt-datahaven-stagenet
+```
+**Tip**: *type '?' to access to all key bindings to navigate the dashboard, press 'Enter' to access an object, and 'Esc' to go back.*
+
+You can also check https://k9scli.io/topics/commands/ for a list of available commands and bindings.
+
 ## Help commands (for reference only)
 
 > ⚠️ **WARNING**  
-> No need to run any of these commands, they are just for reference and troubleshooting.
+> No need to run these commands, they are just for reference and troubleshooting.
 >
 
 ### DataHaven
 
-#### 1. Run DataHaven charts
+#### 1. Access Validator Node
+
+```bash
+# Port forward to access Polkadot.js apps
+kubectl port-forward svc/dh-validator-0 -n kt-datahaven-stagenet 9955:9955
+
+# Access via Polkadot.js apps
+# https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9955#/explorer
+```
+
+#### 2. Run DataHaven charts
 
 ```bash
 cd deployment/charts/node
@@ -260,16 +284,6 @@ helm upgrade --install dh-bootnode . \
 helm upgrade --install dh-validator . \
   -f ./datahaven/dh-validator.yaml \
   -n kt-datahaven-stagenet
-```
-
-#### 2. Access Validator Node
-
-```bash
-# Port forward to access Polkadot.js apps
-kubectl port-forward svc/dh-validator-0 -n kt-datahaven-stagenet 9955:9955
-
-# Access via Polkadot.js apps
-# https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9955#/explorer
 ```
 
 ### Snowbridge Relayers Deployment

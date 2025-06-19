@@ -1,7 +1,15 @@
-export { ContractsLauncher } from "./contracts";
-export { DataHavenLauncher } from "./datahaven";
-export { EthereumLauncher } from "./ethereum";
-export * from "./network";
-export { RelayersLauncher } from "./relayers";
+export { deployContracts } from "./contracts";
+export { launchDataHaven } from "./datahaven";
+export { launchEthereum } from "./ethereum";
+export { launchNetwork } from "./network";
+export { launchRelayers } from "./relayers";
+// Export types
 export * from "./types";
-export { ValidatorsLauncher } from "./validators";
+// Export utilities
+export * from "./utils";
+export {
+  fundValidatorsStep,
+  launchValidators,
+  setupValidatorsStep,
+  updateValidatorSetStep
+} from "./validators";

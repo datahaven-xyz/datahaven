@@ -45,18 +45,18 @@ export class ConnectorFactory {
     // Create Ethereum clients
     const publicClient = createPublicClient({
       chain: anvil,
-      transport: http(this.connectors.elRpcUrl)
+      transport: http(this.connectors.ethereumRpcUrl)
     });
 
     const account = privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[0].privateKey);
     const walletClient = createWalletClient({
       account,
       chain: anvil,
-      transport: http(this.connectors.elRpcUrl)
+      transport: http(this.connectors.ethereumRpcUrl)
     });
 
     // Create DataHaven/Substrate clients
-    const wsProvider = getWsProvider(this.connectors.dhWsUrl);
+    const wsProvider = getWsProvider(this.connectors.dataHavenWsUrl);
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
 
     // Get typed API
@@ -69,8 +69,8 @@ export class ConnectorFactory {
       walletClient,
       papiClient,
       dhApi,
-      elRpcUrl: this.connectors.elRpcUrl,
-      dhWsUrl: this.connectors.dhWsUrl
+      elRpcUrl: this.connectors.ethereumRpcUrl,
+      dhWsUrl: this.connectors.dataHavenWsUrl
     };
   }
 
@@ -82,7 +82,7 @@ export class ConnectorFactory {
     return createWalletClient({
       account,
       chain: anvil,
-      transport: http(this.connectors.elRpcUrl)
+      transport: http(this.connectors.ethereumRpcUrl)
     });
   }
 

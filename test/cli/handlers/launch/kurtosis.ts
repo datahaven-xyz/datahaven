@@ -1,12 +1,7 @@
-import { $ } from "bun";
 import type { LaunchOptions } from "cli/handlers";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
-import {
-  checkKurtosisEnclaveRunning,
-  registerServices,
-  runKurtosisEnclave
-} from "../common/kurtosis";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
+import { launchEthereum } from "../../../launcher";
+import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
@@ -32,56 +27,26 @@ export const launchKurtosis = async (
 
   if (!shouldLaunchKurtosis) {
     logger.info("👍 Skipping Kurtosis Ethereum network launch. Done!");
-
-    await registerServices(launchedNetwork, options.kurtosisEnclaveName);
     printDivider();
     return;
   }
 
-  if (await checkKurtosisEnclaveRunning(options.kurtosisEnclaveName)) {
-    logger.info("ℹ️  Kurtosis Ethereum network is already running.");
+  const result = await launchEthereum(
+    {
+      networkId: "cli-launch",
+      kurtosisEnclaveName: options.kurtosisEnclaveName,
+      blockscout: options.blockscout,
+      slotTime: options.slotTime,
+      kurtosisNetworkArgs: options.kurtosisNetworkArgs
+    },
+    launchedNetwork
+  );
 
-    // If the user wants to launch the Kurtosis network, we ask them if they want
-    // to clean the existing enclave or just continue with the existing enclave.
-    if (shouldLaunchKurtosis) {
-      let shouldRelaunch = options.cleanNetwork;
-
-      if (shouldRelaunch === undefined) {
-        shouldRelaunch = await confirmWithTimeout(
-          "Do you want to clean and relaunch the Kurtosis enclave?",
-          true,
-          10
-        );
-      }
-
-      // Case: User wants to keep existing enclave
-      if (!shouldRelaunch) {
-        logger.info("👍 Keeping existing Kurtosis enclave.");
-
-        await registerServices(launchedNetwork, options.kurtosisEnclaveName);
-        printDivider();
-        return;
-      }
-
-      // Case: User wants to clean and relaunch the enclave
-      logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
-      logger.debug(await $`kurtosis enclave stop ${options.kurtosisEnclaveName}`.nothrow().text());
-      logger.debug(await $`kurtosis clean`.text());
-      logger.debug(await $`kurtosis engine stop`.nothrow().text());
-      logger.debug(await $`docker system prune -f`.nothrow().text());
-    }
+  if (!result.success) {
+    logger.error("Failed to launch Ethereum network", result.error);
+    throw result.error;
   }
 
-  if (process.platform === "darwin") {
-    logger.debug("Detected macOS, pulling container images with linux/amd64 platform...");
-    logger.debug(
-      await $`docker pull ghcr.io/blockscout/smart-contract-verifier:latest --platform linux/amd64`.text()
-    );
-  }
-
-  await runKurtosisEnclave(options, "configs/kurtosis/minimal.yaml");
-
-  await registerServices(launchedNetwork, options.kurtosisEnclaveName);
   logger.success("Kurtosis network operations completed successfully.");
   printDivider();
 };

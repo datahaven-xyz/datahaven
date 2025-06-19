@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
-import { DataHavenLauncher } from "../../../launcher";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
+import { launchDataHaven } from "../../../launcher";
+import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
 import type { LaunchOptions } from ".";
 
 /**
@@ -66,16 +66,16 @@ export const launchDataHavenSolochain = async (
     );
   }
 
-  // Use the DataHavenLauncher
-  const launcher = new DataHavenLauncher({
-    networkId: "cli-launch",
-    datahavenImageTag: options.datahavenImageTag,
-    buildDatahaven: shouldBuildDataHaven,
-    datahavenBuildExtraArgs: options.datahavenBuildExtraArgs,
-    slotTime: options.slotTime
-  });
-
-  const result = await launcher.launch(launchedNetwork);
+  const result = await launchDataHaven(
+    {
+      networkId: "cli-launch",
+      datahavenImageTag: options.datahavenImageTag || "moonsonglabs/datahaven:local",
+      buildDatahaven: shouldBuildDataHaven,
+      datahavenBuildExtraArgs: options.datahavenBuildExtraArgs,
+      slotTime: options.slotTime
+    },
+    launchedNetwork
+  );
 
   if (!result.success) {
     logger.error("Failed to launch DataHaven network", result.error);

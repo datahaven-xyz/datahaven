@@ -1,64 +1,78 @@
-import { fundValidators } from "scripts/fund-validators";
-import { setupValidators } from "scripts/setup-validators";
-import { updateValidatorSet } from "scripts/update-validator-set";
 import { logger } from "utils";
-import type { LaunchResult, NetworkLaunchOptions } from "../types";
+import { fundValidators } from "./fund";
+import { setupValidators } from "./setup";
+import type { ValidatorsLaunchOptions, ValidatorsLaunchResult } from "./types";
+import { updateValidatorSet } from "./update-set";
 
-export class ValidatorsLauncher {
-  private options: NetworkLaunchOptions;
-
-  constructor(options: NetworkLaunchOptions) {
-    this.options = options;
-  }
-
-  async fundValidators(rpcUrl: string): Promise<LaunchResult> {
-    try {
-      logger.info("💰 Funding validators with tokens and ETH...");
-
-      await fundValidators({ rpcUrl });
-
-      logger.success("Validators funded successfully");
-      return { success: true };
-    } catch (error) {
-      logger.error("Failed to fund validators", error);
-      return {
-        success: false,
-        error: error as Error
-      };
+export async function launchValidators(
+  options: ValidatorsLaunchOptions
+): Promise<ValidatorsLaunchResult> {
+  try {
+    // Fund validators
+    const fundResult = await fundValidatorsStep(options.rpcUrl);
+    if (!fundResult.success) {
+      return fundResult;
     }
-  }
 
-  async setupValidators(rpcUrl: string): Promise<LaunchResult> {
-    try {
-      logger.info("📝 Registering validators in EigenLayer...");
-
-      await setupValidators({ rpcUrl });
-
-      logger.success("Validators registered successfully");
-      return { success: true };
-    } catch (error) {
-      logger.error("Failed to setup validators", error);
-      return {
-        success: false,
-        error: error as Error
-      };
+    // Setup validators in EigenLayer
+    const setupResult = await setupValidatorsStep(options.rpcUrl);
+    if (!setupResult.success) {
+      return setupResult;
     }
+
+    // Update validator set
+    const updateResult = await updateValidatorSetStep(options.rpcUrl);
+    return updateResult;
+  } catch (error) {
+    logger.error("Failed in validator operations", error);
+    return {
+      success: false,
+      error: error as Error
+    };
   }
+}
 
-  async updateValidatorSet(rpcUrl: string): Promise<LaunchResult> {
-    try {
-      logger.info("🔄 Updating validator set...");
+export async function fundValidatorsStep(rpcUrl: string): Promise<ValidatorsLaunchResult> {
+  try {
+    logger.info("💰 Funding validators with tokens and ETH...");
+    await fundValidators({ rpcUrl });
+    logger.success("Validators funded successfully");
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to fund validators", error);
+    return {
+      success: false,
+      error: error as Error
+    };
+  }
+}
 
-      await updateValidatorSet({ rpcUrl });
+export async function setupValidatorsStep(rpcUrl: string): Promise<ValidatorsLaunchResult> {
+  try {
+    logger.info("📝 Registering validators in EigenLayer...");
+    await setupValidators({ rpcUrl });
+    logger.success("Validators registered successfully");
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to setup validators", error);
+    return {
+      success: false,
+      error: error as Error
+    };
+  }
+}
 
-      logger.success("Validator set updated successfully");
-      return { success: true };
-    } catch (error) {
-      logger.error("Failed to update validator set", error);
-      return {
-        success: false,
-        error: error as Error
-      };
-    }
+export async function updateValidatorSetStep(rpcUrl: string): Promise<ValidatorsLaunchResult> {
+  try {
+    logger.info("🔄 Updating validator set on DataHaven...");
+    await updateValidatorSet({ rpcUrl });
+    logger.success("Validator set updated successfully");
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to update validator set", error);
+    return {
+      success: false,
+      error: error as Error
+    };
   }
 }

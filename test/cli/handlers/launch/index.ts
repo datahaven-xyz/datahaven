@@ -1,8 +1,9 @@
 import type { Command } from "@commander-js/extra-typings";
 import { getPortFromKurtosis, logger } from "utils";
 import { createParameterCollection } from "utils/parameters";
+import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
+import { createLaunchedNetwork } from "../../../launcher/types/launched-network";
 import { checkBaseDependencies } from "../common/checks";
-import { LaunchedNetwork } from "../common/launchedNetwork";
 import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
@@ -68,14 +69,18 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: launchedNetwork.elRpcUrl,
+    rpcUrl: launchedNetwork.elRpcUrl || "http://localhost:8545",
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts,
     parameterCollection
   });
 
-  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  await performValidatorOperations(
+    options,
+    launchedNetwork.elRpcUrl || "http://localhost:8545",
+    contractsDeployed
+  );
 
   await setParametersFromCollection({
     launchedNetwork,
@@ -85,7 +90,11 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  await performValidatorSetUpdate(
+    options,
+    launchedNetwork.elRpcUrl || "http://localhost:8545",
+    contractsDeployed
+  );
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
@@ -94,8 +103,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 };
 
 export const launch = async (options: LaunchOptions) => {
-  const run = new LaunchedNetwork();
-  await launchFunction(options, run);
+  const launchedNetwork = createLaunchedNetwork("cli-launch");
+  await launchFunction(options, launchedNetwork);
 };
 
 export const launchPreActionHook = (

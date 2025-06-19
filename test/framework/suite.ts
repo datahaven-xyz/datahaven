@@ -1,6 +1,7 @@
 import { afterAll, beforeAll } from "bun:test";
 import { logger } from "utils";
-import { type NetworkConnectors, NetworkLauncher } from "../launcher";
+import { launchNetwork } from "../launcher";
+import type { NetworkConnectors } from "../launcher/types";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
 
@@ -19,7 +20,7 @@ export abstract class BaseTestSuite {
   protected networkId: string;
   protected connectors?: NetworkConnectors;
   protected testConnectors?: TestConnectors;
-  private networkLauncher?: NetworkLauncher;
+  private networkCleanup?: () => Promise<void>;
   private connectorFactory?: ConnectorFactory;
   private options: TestSuiteOptions;
   private manager: TestSuiteManager;
@@ -41,12 +42,17 @@ export abstract class BaseTestSuite {
         this.manager.registerSuite(this.options.suiteName, this.networkId);
 
         // Launch the network
-        this.networkLauncher = new NetworkLauncher({
+        this.connectors = await launchNetwork({
           networkId: this.networkId,
+          datahavenImageTag: "moonsonglabs/datahaven:local",
+          relayerImageTag: "moonsonglabs/snowbridge-relay:latest",
           ...this.options.networkOptions
         });
 
-        this.connectors = await this.networkLauncher.launch();
+        // Store cleanup function if available
+        if (this.connectors.cleanup) {
+          this.networkCleanup = this.connectors.cleanup;
+        }
 
         // Create test connectors
         this.connectorFactory = new ConnectorFactory(this.connectors);

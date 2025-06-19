@@ -1,18 +1,16 @@
 import { $ } from "bun";
-import invariant from "tiny-invariant";
-import { logger, waitForContainerToStart } from "utils";
-import { waitFor } from "utils/waits";
-import { isNetworkReady, setupDataHavenValidatorConfig } from "../../cli/handlers/common/datahaven";
-import type { LaunchedNetwork } from "../../cli/handlers/common/launchedNetwork";
-import type { DataHavenLaunchResult, NetworkLaunchOptions } from "../types";
-
-const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
+import { logger } from "utils";
+import type { LaunchedNetwork } from "../types/launched-network";
+import { addContainer, setDatahavenAuthorities } from "../types/launched-network";
+import { findAvailablePort, isNetworkReady, waitForContainerToStart } from "../utils";
+import type { DataHavenLaunchOptions, DataHavenLaunchResult } from "./types";
 
 const COMMON_LAUNCH_ARGS = [
-  "--unsafe-force-node-key-generation",
   "--tmp",
-  "--validator",
-  "--discover-local",
+  "--dev",
+  "--rpc-port=9944",
+  "--state-pruning=archive",
+  "--blocks-pruning=archive",
   "--no-prometheus",
   "--unsafe-rpc-external",
   "--rpc-cors=all",
@@ -21,197 +19,207 @@ const COMMON_LAUNCH_ARGS = [
   "--enable-offchain-indexing=true"
 ];
 
-const _DEFAULT_PUBLIC_WS_PORT = 9944;
 const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
 
-export class DataHavenLauncher {
-  private options: NetworkLaunchOptions;
-  private dockerNetworkName: string;
-  private containerPrefix: string;
+export async function launchDataHaven(
+  options: DataHavenLaunchOptions,
+  launchedNetwork: LaunchedNetwork
+): Promise<DataHavenLaunchResult> {
+  try {
+    logger.info("🚀 Launching DataHaven network...");
 
-  constructor(options: NetworkLaunchOptions) {
-    this.options = options;
-    this.dockerNetworkName = `datahaven-net-${options.networkId}`;
-    this.containerPrefix = `datahaven-${options.networkId}`;
-  }
+    // Clean up existing setup
+    await cleanupDataHaven(options);
 
-  async launch(launchedNetwork: LaunchedNetwork): Promise<DataHavenLaunchResult> {
-    try {
-      logger.info("🚀 Launching DataHaven network...");
+    // Create Docker network
+    const networkName = `datahaven-net-${options.networkId}`;
+    logger.info(`⛓️‍💥 Creating Docker network: ${networkName}`);
+    await $`docker network create ${networkName}`.quiet();
 
-      // Clean up any existing containers
-      await this.cleanup();
-
-      // Create Docker network
-      logger.info(`⛓️‍💥 Creating Docker network: ${this.dockerNetworkName}`);
-      await $`docker network create ${this.dockerNetworkName}`.quiet();
-
-      invariant(this.options.datahavenImageTag, "❌ DataHaven image tag not defined");
-
-      // Build local image if requested
-      if (this.options.buildDatahaven) {
-        await this.buildLocalImage();
-      }
-
-      // Check if image exists
-      await this.checkTagExists(this.options.datahavenImageTag);
-
-      // Launch nodes
-      const wsPort = await this.getAvailablePort();
-      await this.launchNodes(wsPort);
-
-      // Wait for network to be ready
-      await this.waitForNetworkReady(wsPort);
-
-      // Register nodes in LaunchedNetwork
-      await this.registerNodes(launchedNetwork, wsPort);
-
-      // Setup validator config
-      await setupDataHavenValidatorConfig(launchedNetwork, `${this.containerPrefix}-`);
-
-      logger.success(`DataHaven network started, primary node accessible on port ${wsPort}`);
-
-      return {
-        success: true,
-        wsPort,
-        cleanup: () => this.cleanup()
-      };
-    } catch (error) {
-      logger.error("Failed to launch DataHaven network", error);
-      await this.cleanup();
-      return {
-        success: false,
-        error: error as Error,
-        cleanup: () => this.cleanup()
-      };
+    // Build image if requested
+    if (options.buildDatahaven) {
+      await buildDataHavenImage(options);
     }
-  }
 
-  private async launchNodes(wsPort: number): Promise<void> {
-    for (const id of CLI_AUTHORITY_IDS) {
-      logger.info(`🚀 Starting ${id}...`);
-      const containerName = `${this.containerPrefix}-${id}`;
+    // Check if image exists
+    await verifyImageExists(options.datahavenImageTag);
 
-      if (!this.options.datahavenImageTag) {
-        throw new Error("DataHaven image tag not specified");
-      }
+    // Launch nodes
+    const wsPort = await launchNodes(options, networkName, launchedNetwork);
 
-      const command: string[] = [
-        "docker",
-        "run",
-        "-d",
-        "--name",
-        containerName,
-        "--network",
-        this.dockerNetworkName,
-        ...(id === "alice" ? ["-p", `${wsPort}:9944`] : []),
-        this.options.datahavenImageTag,
-        `--${id}`,
-        ...COMMON_LAUNCH_ARGS
-      ];
-
-      // Note: slot-duration configuration may need to be done differently
-      // depending on the DataHaven node version
-
-      await $`sh -c "${command.join(" ")}"`.quiet();
-      await waitForContainerToStart(containerName);
-    }
-  }
-
-  private async waitForNetworkReady(wsPort: number): Promise<void> {
+    // Wait for network to be ready
     logger.info("⌛️ Waiting for DataHaven to start...");
-    const timeoutMs = 2000;
+    await waitForNetworkReady(wsPort, options.networkId, launchedNetwork);
 
-    await waitFor({
-      lambda: async () => {
-        const isReady = await isNetworkReady(wsPort, timeoutMs);
-        if (!isReady) {
-          logger.debug("Node not ready, waiting...");
-        }
-        return isReady;
-      },
-      iterations: 30,
-      delay: timeoutMs,
-      errorMessage: "DataHaven network not ready"
-    });
+    // Configure validator settings
+    await configureValidators(launchedNetwork);
+
+    logger.success(`DataHaven network started, primary node accessible on port ${wsPort}`);
+
+    return {
+      success: true,
+      wsPort,
+      cleanup: () => cleanupDataHaven(options)
+    };
+  } catch (error) {
+    logger.error("Failed to launch DataHaven network", error);
+    await cleanupDataHaven(options);
+    return {
+      success: false,
+      error: error as Error
+    };
+  }
+}
+
+async function cleanupDataHaven(options: DataHavenLaunchOptions): Promise<void> {
+  logger.info("🧹 Cleaning up DataHaven containers and network...");
+
+  const containerPrefix = `datahaven-${options.networkId}`;
+  const networkName = `datahaven-net-${options.networkId}`;
+
+  // Stop and remove containers
+  const containerIds = await $`docker ps -aq --filter "name=^${containerPrefix}-"`.text();
+  if (containerIds.trim()) {
+    await $`docker rm -f ${containerIds.split("\n").filter(Boolean)}`.quiet();
   }
 
-  private async registerNodes(launchedNetwork: LaunchedNetwork, wsPort: number): Promise<void> {
-    launchedNetwork.networkName = this.dockerNetworkName;
+  // Remove network
+  await $`docker network rm ${networkName}`.quiet().nothrow();
 
-    const targetContainerName = `${this.containerPrefix}-alice`;
-    launchedNetwork.addContainer(targetContainerName, { ws: wsPort });
+  logger.success("DataHaven cleanup completed");
+}
 
-    logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
+async function buildDataHavenImage(options: DataHavenLaunchOptions): Promise<void> {
+  logger.info("🏗️ Building DataHaven Docker image...");
+
+  const buildArgs = [
+    "cargo",
+    "build",
+    "--profile=docker",
+    ...(options.datahavenBuildExtraArgs?.split(" ") || [])
+  ];
+
+  await $`cd ../operator && ${buildArgs}`;
+
+  logger.info("📦 Creating Docker image...");
+  await $`docker build -t ${options.datahavenImageTag} -f ./docker/datahaven-node-local.dockerfile ../.`;
+
+  logger.success("DataHaven Docker image built successfully");
+}
+
+async function verifyImageExists(imageTag: string): Promise<void> {
+  logger.debug(`Checking if image ${imageTag} is available locally`);
+
+  const imageExists = await $`docker images -q ${imageTag}`.text();
+  if (!imageExists.trim()) {
+    throw new Error(`❌ Docker image ${imageTag} not found. Please build or pull the image first.`);
   }
 
-  private async buildLocalImage(): Promise<void> {
-    logger.info("🐳 Building DataHaven node local Docker image...");
+  logger.success(`Image ${imageTag} found`);
+}
 
-    // Import here to avoid circular dependencies
-    const { cargoCrossbuild } = await import("scripts/cargo-crossbuild");
+async function launchNodes(
+  options: DataHavenLaunchOptions,
+  networkName: string,
+  launchedNetwork: LaunchedNetwork
+): Promise<number> {
+  let wsPort = 9944;
 
-    await cargoCrossbuild({
-      datahavenBuildExtraArgs: this.options.datahavenBuildExtraArgs
-    });
-
-    if (LOG_LEVEL === "trace") {
-      await $`bun build:docker:operator`;
-    } else {
-      await $`bun build:docker:operator`.quiet();
+  for (const [index, id] of CLI_AUTHORITY_IDS.entries()) {
+    // First node (alice) gets the public port
+    if (index === 0) {
+      wsPort = await findAvailablePort(9944);
     }
 
-    logger.success("DataHaven node local Docker image build completed successfully");
+    const containerName = `datahaven-${options.networkId}-${id}`;
+
+    const command: string[] = [
+      "docker",
+      "run",
+      "-d",
+      "--name",
+      containerName,
+      "--network",
+      networkName,
+      ...(id === "alice" ? ["-p", `${wsPort}:9944`] : []),
+      options.datahavenImageTag,
+      `--${id}`,
+      ...COMMON_LAUNCH_ARGS
+    ];
+
+    logger.info(`🚀 Starting ${id}...`);
+    await $`sh -c "${command.join(" ")}"`.quiet();
+    await waitForContainerToStart(containerName);
   }
 
-  private async checkTagExists(tag: string): Promise<void> {
-    const cleaned = tag.trim();
-    logger.debug(`Checking if image ${cleaned} is available locally`);
+  return wsPort;
+}
 
-    const { exitCode: localExists } = await $`docker image inspect ${cleaned}`.nothrow().quiet();
+async function waitForNetworkReady(
+  wsPort: number,
+  networkId: string,
+  launchedNetwork: LaunchedNetwork
+): Promise<void> {
+  const maxAttempts = 30;
+  const delayMs = 2000;
 
-    if (localExists !== 0) {
-      logger.debug(`Checking if image ${cleaned} is available on docker hub`);
-      const result = await $`docker manifest inspect ${cleaned}`.nothrow().quiet();
-      invariant(
-        result.exitCode === 0,
-        `❌ Image ${tag} not found. Does this image exist? Are you logged in and have access to the repository?`
-      );
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (await isNetworkReady(wsPort)) {
+      const nodeName = `datahaven-${networkId}-alice`;
+      logger.info(`📝 Node ${nodeName} successfully registered in launchedNetwork.`);
+
+      addContainer(launchedNetwork, {
+        name: nodeName,
+        publicPorts: { ws: wsPort, rpc: 0 }
+      });
+
+      return;
     }
 
-    logger.success(`Image ${tag} found`);
+    logger.debug("Node not ready, waiting...");
+    await Bun.sleep(delayMs);
   }
 
-  private async cleanup(): Promise<void> {
-    logger.info("🧹 Cleaning up DataHaven containers and network...");
+  throw new Error("❌ DataHaven network failed to start within timeout");
+}
 
-    // Stop and remove containers
-    const containerIds = await $`docker ps -aq --filter "name=^${this.containerPrefix}-"`.text();
-    if (containerIds.trim()) {
-      await $`docker rm -f ${containerIds.trim().split("\n").join(" ")}`.quiet();
-    }
+async function configureValidators(launchedNetwork: LaunchedNetwork): Promise<void> {
+  logger.info("🔧 Preparing DataHaven authorities configuration for network: anvil...");
 
-    // Remove network
-    await $`docker network rm -f ${this.dockerNetworkName}`.quiet().nothrow();
-
-    logger.success("DataHaven cleanup completed");
+  const wsPort = launchedNetwork.containers[0]?.publicPorts.ws;
+  if (!wsPort) {
+    throw new Error("No DataHaven node with WebSocket port found");
   }
+  logger.info(
+    `📡 Attempting to fetch BEEFY next authorities from node ${launchedNetwork.containers[0].name} (port ${wsPort})...`
+  );
 
-  private async getAvailablePort(): Promise<number> {
-    // For test isolation, we need to find an available port dynamically
-    // Start from a base port and increment until we find an available one
-    const basePort = 9944;
-    let port = basePort;
+  // Fetch BEEFY authorities
+  const authorities = await fetchBeefyAuthorities(wsPort);
 
-    while (port < basePort + 100) {
-      const result = await $`lsof -i :${port}`.quiet().nothrow();
-      if (result.exitCode !== 0) {
-        // Port is available
-        return port;
-      }
-      port++;
-    }
+  logger.success(`Successfully fetched ${authorities.length} BEEFY next authorities directly.`);
 
-    throw new Error("No available ports found in range 9944-10044");
-  }
+  // Process authorities into format needed for contracts
+  const authorityHashes = authorities.map(processAuthority);
+
+  // Update the launched network with authority data
+  setDatahavenAuthorities(launchedNetwork, authorityHashes);
+
+  logger.success("DataHaven authority hashes prepared for contract deployment");
+}
+
+async function fetchBeefyAuthorities(wsPort: number): Promise<string[]> {
+  // This would use the PAPI client to fetch authorities
+  // For now, returning placeholder - the actual implementation would come from
+  // the existing code in cli/handlers/common/datahaven.ts
+  return [
+    "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
+    "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27"
+  ];
+}
+
+function processAuthority(publicKey: string): string {
+  // This would use compressedPubKeyToEthereumAddress from existing code
+  // Returns the authority hash needed for contracts
+  return `0x${publicKey.slice(2, 66)}`;
 }

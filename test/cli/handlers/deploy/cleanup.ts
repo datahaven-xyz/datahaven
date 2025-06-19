@@ -53,18 +53,15 @@ export const cleanup = async (
 const checkAndCleanKurtosisDeployment = async (options: DeployOptions): Promise<void> => {
   logger.info("☸️ Checking for existing Kurtosis deployment in Kubernetes...");
 
-  // Skip gateway check for local deployments
-  if (options.environment !== "local") {
-    // Check if the Kurtosis gateway process is running.
-    const { exitCode, stdout } = await $`pgrep -f "kurtosis gateway"`.nothrow().quiet();
-    if (exitCode !== 0) {
-      logger.error(
-        "❌ `kurtosis gateway` process not found running. This is required for Kurtosis to work with Kubernetes."
-      );
-      throw new Error("Kurtosis gateway process not found running.");
-    }
-    logger.debug(`Kurtosis gateway process found running: ${stdout}`);
+  // Check if the Kurtosis gateway process is running.
+  const { exitCode, stdout } = await $`pgrep -f "kurtosis gateway"`.nothrow().quiet();
+  if (exitCode !== 0) {
+    logger.error(
+      "❌ `kurtosis gateway` process not found running. This is required for Kurtosis to work with Kubernetes."
+    );
+    throw new Error("Kurtosis gateway process not found running.");
   }
+  logger.debug(`Kurtosis gateway process found running: ${stdout}`);
 
   // Check if Kurtosis enclave is running.
   if (await checkKurtosisEnclaveRunning(options.kurtosisEnclaveName)) {

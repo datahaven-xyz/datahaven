@@ -37,6 +37,8 @@ This comprehensive guide covers prerequisites and deployment instructions for de
    docker --version
    docker-compose --version
    ```
+  
+    Refer to https://docs.docker.com/engine/install/ for full installation instructions.
 
 2. **Kurtosis** (for test networks)
    ```bash
@@ -49,18 +51,23 @@ This comprehensive guide covers prerequisites and deployment instructions for de
    # Verify installation
    kurtosis version
    ```
+  
+    Refer to https://docs.kurtosis.com/install/ for full installation instructions.
+
 
 3. **Bun** (TypeScript runtime)
    ```bash
-   # macOS
+   # Homebrew 
    brew install oven-sh/bun/bun
    
-   # Linux
+   # macOS / Linux
    curl -fsSL https://bun.sh/install | bash
    
    # Verify installation
    bun --version
    ```
+
+    Refer to https://bun.sh/docs/installation for full installation instructions.
 
 #### Platform-Specific Requirements
 
@@ -87,6 +94,8 @@ This comprehensive guide covers prerequisites and deployment instructions for de
    sudo ./aws/install
    ```
 
+    Refer to https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html for full installation instructions.
+
 2. **Helm** (Kubernetes package manager)
    ```bash
    # macOS
@@ -107,7 +116,8 @@ This comprehensive guide covers prerequisites and deployment instructions for de
    sudo mv k9s /usr/local/bin/
    ```
 
-
+   Refer to https://k9scli.io/topics/install/ for full installation instructions.
+   
 ## Deployment prerequisites
 
 ### Kubernetes Cluster Setup

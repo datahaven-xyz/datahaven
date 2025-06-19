@@ -1,0 +1,92 @@
+name: "Task: Check Metadata Freshness"
+
+on:
+  workflow_dispatch:
+    inputs:
+      binary-hash:
+        description: "Hash of the binary artifact to use"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      binary-hash:
+        description: "Hash of the binary artifact to use"
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RUST_BACKTRACE: "1"
+
+jobs:
+  check-metadata:
+    name: Check metadata freshness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.16
+
+      - name: Install dependencies
+        working-directory: test
+        run: bun install --frozen-lockfile
+
+      - name: Download operator artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-node-${{ inputs.binary-hash }}
+          path: ./artifacts
+
+      - name: Extract WASM from artifact
+        run: |
+          # The WASM file is located in the wbuild directory within the artifact
+          WASM_PATH="./artifacts/operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm"
+          if [ ! -f "$WASM_PATH" ]; then
+            echo "Error: WASM file not found at $WASM_PATH"
+            echo "Artifact contents:"
+            find ./artifacts -type f -name "*.wasm" || echo "No WASM files found"
+            exit 1
+          fi
+          echo "Found WASM at: $WASM_PATH"
+
+      - name: Generate metadata from WASM
+        working-directory: test
+        run: |
+          echo "Generating metadata from built WASM..."
+          bun x papi add --wasm "../artifacts/operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm" datahaven
+
+      - name: Check for metadata changes
+        run: |
+          # Check if the metadata file has changed
+          if git diff --exit-code test/.papi/metadata/datahaven.scale; then
+            echo "✅ Metadata is up to date!"
+          else
+            echo "❌ Metadata file has changed!"
+            echo ""
+            echo "The runtime metadata is out of date. Please run the following command and commit the changes:"
+            echo ""
+            echo "  cd test && bun generate:types:fast"
+            echo ""
+            echo "This ensures that TypeScript types match the current runtime."
+            echo ""
+            echo "Diff of changes:"
+            git diff test/.papi/metadata/datahaven.scale | head -50
+            exit 1
+          fi
+
+      - name: Check for other papi changes
+        run: |
+          # Also check if polkadot-api.json changed (shouldn't happen, but good to verify)
+          if git diff --exit-code test/.papi/polkadot-api.json; then
+            echo "✅ polkadot-api.json is unchanged"
+          else
+            echo "⚠️  polkadot-api.json has changed - this is unexpected"
+            git diff test/.papi/polkadot-api.json
+          fi

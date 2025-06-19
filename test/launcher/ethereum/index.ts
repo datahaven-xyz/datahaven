@@ -1,7 +1,8 @@
 import { $ } from "bun";
-import { getPortFromKurtosis, logger } from "utils";
+import { logger } from "utils";
 import { parse, stringify } from "yaml";
 import type { LaunchedNetwork } from "../types/launchedNetwork";
+import { cleanupKurtosisEnclave, registerKurtosisServices } from "../utils";
 import type { EthereumLaunchOptions, EthereumLaunchResult } from "./types";
 
 export async function launchEthereum(
@@ -55,15 +56,6 @@ async function cleanupKurtosis(): Promise<void> {
   }
 
   logger.success("Ethereum/Kurtosis cleanup completed");
-}
-
-async function cleanupKurtosisEnclave(enclaveName: string): Promise<void> {
-  logger.info(`🧹 Cleaning up Kurtosis enclave: ${enclaveName}`);
-
-  await $`kurtosis enclave stop ${enclaveName}`.quiet().nothrow();
-  await $`kurtosis enclave rm ${enclaveName}`.quiet().nothrow();
-
-  logger.success(`Kurtosis enclave ${enclaveName} cleaned up`);
 }
 
 async function getRunningKurtosisEnclaves(): Promise<Array<{ name: string }>> {
@@ -167,31 +159,4 @@ async function modifyKurtosisConfig(options: EthereumLaunchOptions): Promise<str
   await Bun.write(outputFile, stringify(parsedConfig));
 
   return outputFile;
-}
-
-async function registerKurtosisServices(
-  launchedNetwork: LaunchedNetwork,
-  enclaveName: string
-): Promise<void> {
-  logger.info("📝 Registering Kurtosis service endpoints...");
-
-  // Get EL RPC URL
-  const rethPublicPort = await getPortFromKurtosis("el-1-reth-lodestar", "rpc", enclaveName);
-  if (rethPublicPort && rethPublicPort > 0) {
-    const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-    launchedNetwork.elRpcUrl = elRpcUrl;
-    logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
-  }
-
-  // Get CL endpoint
-  const lodestarPublicPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", enclaveName);
-  if (lodestarPublicPort && lodestarPublicPort > 0) {
-    const clEndpoint = `http://127.0.0.1:${lodestarPublicPort}`;
-    launchedNetwork.clEndpoint = clEndpoint;
-    logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
-  }
-
-  if (!launchedNetwork.elRpcUrl || !launchedNetwork.clEndpoint) {
-    throw new Error("❌ Failed to register Kurtosis service endpoints");
-  }
 }

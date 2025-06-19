@@ -12,3 +12,14 @@ export const COMPONENTS = {
   VALIDATORS: "validators",
   RELAYERS: "relayers"
 } as const;
+
+/**
+ * The base services that are always launched when Kurtosis is used.
+ */
+export const BASE_SERVICES = [
+  "cl-1-lodestar-reth",
+  "cl-2-lodestar-reth",
+  "el-1-reth-lodestar",
+  "el-2-reth-lodestar",
+  "dora"
+];

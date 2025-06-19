@@ -6,6 +6,7 @@ import { launchEthereum } from "../ethereum";
 import { launchRelayers } from "../relayers";
 import type { NetworkConnectors, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
+import { checkBaseDependencies } from "../utils";
 import { launchValidators } from "../validators";
 
 // Store cleanup functions
@@ -19,6 +20,9 @@ export async function launchNetwork(options: NetworkLaunchOptions): Promise<Netw
   try {
     logger.info(`🚀 Launching complete network stack with ID: ${networkId}`);
     const startTime = performance.now();
+
+    // Check base dependencies
+    await checkBaseDependencies();
 
     // Create parameter collection for use throughout the launch
     const parameterCollection = new ParameterCollection();

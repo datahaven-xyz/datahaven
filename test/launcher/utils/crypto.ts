@@ -16,9 +16,11 @@ export function compressedPubKeyToEthereumAddress(compressedPubKey: Hex): Hex {
     : compressedPubKey;
 
   // Convert hex string to Uint8Array
-  const compressedBytes = new Uint8Array(
-    pubKeyBytes.match(/.{1,2}/g)?.map((byte) => Number.parseInt(byte, 16))
-  );
+  const matches = pubKeyBytes.match(/.{1,2}/g);
+  if (!matches) {
+    throw new Error("Invalid hex string format");
+  }
+  const compressedBytes = new Uint8Array(matches.map((byte) => Number.parseInt(byte, 16)));
 
   // Get the uncompressed point
   const point = secp256k1.ProjectivePoint.fromHex(compressedBytes);

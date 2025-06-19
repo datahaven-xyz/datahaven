@@ -1,9 +1,14 @@
-import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
+import {
+  checkBunVersion,
+  checkDockerRunning,
+  checkForgeInstalled,
+  checkHelmInstalled,
+  checkKurtosisInstalled
+} from "../../../launcher/utils";
 import type { DeployOptions } from "../deploy";
-import { MIN_BUN_VERSION } from "./consts";
 
 //  =====  Checks  =====
 export const checkBaseDependencies = async (): Promise<void> => {
@@ -18,7 +23,7 @@ export const checkBaseDependencies = async (): Promise<void> => {
 
   if (!(await checkBunVersion())) {
     logger.error(
-      `Bun version must be ${MIN_BUN_VERSION.major}.${MIN_BUN_VERSION.minor} or higher: https://bun.sh/docs/installation#upgrading`
+      "Bun version is too old. Upgrade from: https://bun.sh/docs/installation#upgrading"
     );
     throw Error("❌ Bun version is too old.");
   }
@@ -80,62 +85,4 @@ export const deploymentChecks = async (
   logger.info(`ℹ️ Deploying to Kubernetes namespace: ${launchedNetwork.kubeNamespace}`);
 
   printDivider();
-};
-
-const checkBunVersion = async (): Promise<boolean> => {
-  const bunVersion = Bun.version;
-  const [major, minor] = bunVersion.split(".").map(Number);
-
-  // Check if version meets minimum requirements
-  const isVersionValid =
-    major > MIN_BUN_VERSION.major ||
-    (major === MIN_BUN_VERSION.major && minor >= MIN_BUN_VERSION.minor);
-
-  if (!isVersionValid) {
-    logger.debug(`Bun version: ${bunVersion} (too old)`);
-    return false;
-  }
-
-  logger.debug(`Bun version: ${bunVersion}`);
-  return true;
-};
-
-const checkKurtosisInstalled = async (): Promise<boolean> => {
-  const { exitCode, stderr, stdout } = await $`kurtosis version`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    return false;
-  }
-  logger.debug(stdout.toString());
-  return true;
-};
-
-const checkDockerRunning = async (): Promise<boolean> => {
-  const { exitCode, stderr, stdout } = await $`docker system info`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    return false;
-  }
-  logger.debug(stdout.toString());
-  return true;
-};
-
-const checkForgeInstalled = async (): Promise<boolean> => {
-  const { exitCode, stderr, stdout } = await $`forge --version`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    return false;
-  }
-  logger.debug(stdout.toString());
-  return true;
-};
-
-const checkHelmInstalled = async (): Promise<boolean> => {
-  const { exitCode, stderr, stdout } = await $`helm version`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    return false;
-  }
-  logger.debug(stdout.toString());
-  return true;
 };

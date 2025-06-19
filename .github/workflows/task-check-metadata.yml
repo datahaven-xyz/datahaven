@@ -42,7 +42,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: datahaven-wasm-${{ inputs.binary-hash }}
-          path: ./operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm
+          path: ./operator/target/release/wbuild/datahaven-stagenet-runtime
 
       - name: Verify WASM download to target directory
         run: |

@@ -1,8 +1,8 @@
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import type { DeployOptions } from "../deploy";
-import type { LaunchedNetwork } from "./launchedNetwork";
 
 //  =====  Checks  =====
 export const checkBaseDependencies = async (): Promise<void> => {

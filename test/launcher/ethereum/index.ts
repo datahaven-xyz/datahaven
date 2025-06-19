@@ -1,8 +1,7 @@
 import { $ } from "bun";
 import { getPortFromKurtosis, logger } from "utils";
 import { parse, stringify } from "yaml";
-import type { LaunchedNetwork } from "../types/launched-network";
-import { setClEndpoint, setElRpcUrl } from "../types/launched-network";
+import type { LaunchedNetwork } from "../types/launchedNetwork";
 import type { EthereumLaunchOptions, EthereumLaunchResult } from "./types";
 
 export async function launchEthereum(
@@ -180,7 +179,7 @@ async function registerKurtosisServices(
   const rethPublicPort = await getPortFromKurtosis("el-1-reth-lodestar", "rpc", enclaveName);
   if (rethPublicPort && rethPublicPort > 0) {
     const elRpcUrl = `http://127.0.0.1:${rethPublicPort}`;
-    setElRpcUrl(launchedNetwork, elRpcUrl);
+    launchedNetwork.elRpcUrl = elRpcUrl;
     logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
   }
 
@@ -188,7 +187,7 @@ async function registerKurtosisServices(
   const lodestarPublicPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", enclaveName);
   if (lodestarPublicPort && lodestarPublicPort > 0) {
     const clEndpoint = `http://127.0.0.1:${lodestarPublicPort}`;
-    setClEndpoint(launchedNetwork, clEndpoint);
+    launchedNetwork.clEndpoint = clEndpoint;
     logger.info(`📝 Consensus Layer Endpoint configured: ${clEndpoint}`);
   }
 

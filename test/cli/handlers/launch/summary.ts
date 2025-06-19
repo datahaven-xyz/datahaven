@@ -1,6 +1,6 @@
 import invariant from "tiny-invariant";
 import { getServiceFromKurtosis, logger, printHeader } from "utils";
-import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { BASE_SERVICES } from "../common/consts";
 import type { LaunchOptions } from ".";
 
@@ -93,7 +93,7 @@ export const performSummaryOperations = async (
 
       case service === "datahaven-alice": {
         const container = launchedNetwork.containers.find((c) => c.name === service);
-        if (container && container.publicPorts.ws) {
+        if (container?.publicPorts.ws) {
           const port = container.publicPorts.ws;
           displayData.push({
             service,

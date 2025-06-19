@@ -5,7 +5,7 @@ import { launchDataHaven } from "../datahaven";
 import { launchEthereum } from "../ethereum";
 import { launchRelayers } from "../relayers";
 import type { NetworkConnectors, NetworkLaunchOptions } from "../types";
-import { createLaunchedNetwork, getPublicWsPort } from "../types/launched-network";
+import { LaunchedNetwork } from "../types/launchedNetwork";
 import { launchValidators } from "../validators";
 
 // Store cleanup functions
@@ -13,7 +13,8 @@ const cleanupFunctions: Array<() => Promise<void>> = [];
 
 export async function launchNetwork(options: NetworkLaunchOptions): Promise<NetworkConnectors> {
   const networkId = options.networkId;
-  const launchedNetwork = createLaunchedNetwork(networkId);
+  const launchedNetwork = new LaunchedNetwork();
+  launchedNetwork.networkName = networkId;
 
   try {
     logger.info(`🚀 Launching complete network stack with ID: ${networkId}`);
@@ -125,7 +126,7 @@ export async function launchNetwork(options: NetworkLaunchOptions): Promise<Netw
     }
 
     // Return connectors
-    const wsPort = getPublicWsPort(launchedNetwork);
+    const wsPort = launchedNetwork.getPublicWsPort();
     return {
       launchedNetwork,
       dataHavenWsUrl: `ws://127.0.0.1:${wsPort}`,

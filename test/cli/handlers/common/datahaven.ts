@@ -8,7 +8,7 @@ import invariant from "tiny-invariant";
 import { createPapiConnectors, logger } from "utils";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
-import type { LaunchedNetwork } from "./launchedNetwork";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
  * Checks if the DataHaven network is ready by sending a POST request to the system_chain method.

@@ -1,8 +1,8 @@
 import type { DeployOptions } from "cli/handlers";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { registerServices, runKurtosisEnclave } from "../common/kurtosis";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
 
 /**
  * Deploys a Kurtosis Ethereum network enclave for stagenet environment.

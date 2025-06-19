@@ -9,8 +9,8 @@ import { getEvmEcdsaSigner, logger, parseRelayConfig, SUBSTRATE_FUNDED_ACCOUNTS 
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { ZERO_HASH } from "./consts";
-import type { LaunchedNetwork } from "./launchedNetwork";
 
 export type BeaconConfig = {
   type: "beacon";

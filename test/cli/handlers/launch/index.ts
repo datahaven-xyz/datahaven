@@ -1,8 +1,7 @@
 import type { Command } from "@commander-js/extra-typings";
 import { getPortFromKurtosis, logger } from "utils";
 import { createParameterCollection } from "utils/parameters";
-import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
-import { createLaunchedNetwork } from "../../../launcher/types/launched-network";
+import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { checkBaseDependencies } from "../common/checks";
 import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
@@ -69,18 +68,14 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   }
 
   const contractsDeployed = await deployContracts({
-    rpcUrl: launchedNetwork.elRpcUrl || "http://localhost:8545",
+    rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts,
     parameterCollection
   });
 
-  await performValidatorOperations(
-    options,
-    launchedNetwork.elRpcUrl || "http://localhost:8545",
-    contractsDeployed
-  );
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await setParametersFromCollection({
     launchedNetwork,
@@ -90,11 +85,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await performValidatorSetUpdate(
-    options,
-    launchedNetwork.elRpcUrl || "http://localhost:8545",
-    contractsDeployed
-  );
+  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
@@ -103,8 +94,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 };
 
 export const launch = async (options: LaunchOptions) => {
-  const launchedNetwork = createLaunchedNetwork("cli-launch");
-  await launchFunction(options, launchedNetwork);
+  const run = new LaunchedNetwork();
+  await launchFunction(options, run);
 };
 
 export const launchPreActionHook = (

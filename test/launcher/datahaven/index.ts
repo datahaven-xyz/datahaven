@@ -1,7 +1,6 @@
 import { $ } from "bun";
 import { logger } from "utils";
-import type { LaunchedNetwork } from "../types/launched-network";
-import { addContainer, setDatahavenAuthorities } from "../types/launched-network";
+import type { LaunchedNetwork } from "../types/launchedNetwork";
 import { findAvailablePort, isNetworkReady, waitForContainerToStart } from "../utils";
 import type { DataHavenLaunchOptions, DataHavenLaunchResult } from "./types";
 
@@ -121,7 +120,7 @@ async function verifyImageExists(imageTag: string): Promise<void> {
 async function launchNodes(
   options: DataHavenLaunchOptions,
   networkName: string,
-  launchedNetwork: LaunchedNetwork
+  _launchedNetwork: LaunchedNetwork
 ): Promise<number> {
   let wsPort = 9944;
 
@@ -168,10 +167,7 @@ async function waitForNetworkReady(
       const nodeName = `datahaven-${networkId}-alice`;
       logger.info(`📝 Node ${nodeName} successfully registered in launchedNetwork.`);
 
-      addContainer(launchedNetwork, {
-        name: nodeName,
-        publicPorts: { ws: wsPort, rpc: 0 }
-      });
+      launchedNetwork.addContainer(nodeName, { ws: wsPort, rpc: 0 });
 
       return;
     }
@@ -203,12 +199,12 @@ async function configureValidators(launchedNetwork: LaunchedNetwork): Promise<vo
   const authorityHashes = authorities.map(processAuthority);
 
   // Update the launched network with authority data
-  setDatahavenAuthorities(launchedNetwork, authorityHashes);
+  launchedNetwork.datahavenAuthorities = authorityHashes;
 
   logger.success("DataHaven authority hashes prepared for contract deployment");
 }
 
-async function fetchBeefyAuthorities(wsPort: number): Promise<string[]> {
+async function fetchBeefyAuthorities(_wsPort: number): Promise<string[]> {
   // This would use the PAPI client to fetch authorities
   // For now, returning placeholder - the actual implementation would come from
   // the existing code in cli/handlers/common/datahaven.ts

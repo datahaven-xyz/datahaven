@@ -1,6 +1,6 @@
-export * from "./launched-network";
+export { LaunchedNetwork } from "./launchedNetwork";
 
-import type { LaunchedNetwork } from "./launched-network";
+import type { LaunchedNetwork } from "./launchedNetwork";
 
 export type { ContractsDeployOptions, ContractsDeployResult } from "../contracts/types";
 // Re-export component types

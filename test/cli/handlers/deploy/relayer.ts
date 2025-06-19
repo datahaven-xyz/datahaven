@@ -13,8 +13,8 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { waitFor } from "utils/waits";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { ZERO_HASH } from "../common/consts";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
 import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
 import type { DeployOptions } from ".";
 

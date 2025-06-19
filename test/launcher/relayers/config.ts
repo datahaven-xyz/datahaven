@@ -10,7 +10,7 @@ import type {
 
 export async function generateRelayerConfig(
   relayer: RelayerSpec,
-  environment: string,
+  _environment: string,
   outputDir: string
 ): Promise<void> {
   let config: any;
@@ -38,6 +38,9 @@ export async function generateRelayerConfig(
 }
 
 function createBeefyConfig(relayer: RelayerSpec): BeefyConfig {
+  if (!relayer.config.beefyClientAddress || !relayer.config.gatewayAddress) {
+    throw new Error("BeefyClient and Gateway addresses are required for beefy relayer");
+  }
   return {
     ethereum: {
       endpoint: relayer.config.ethElRpcEndpoint
@@ -48,8 +51,8 @@ function createBeefyConfig(relayer: RelayerSpec): BeefyConfig {
     sink: {
       ethereum: {
         contracts: {
-          BeefyClient: relayer.config.beefyClientAddress!,
-          Gateway: relayer.config.gatewayAddress!
+          BeefyClient: relayer.config.beefyClientAddress,
+          Gateway: relayer.config.gatewayAddress
         },
         "fast-forward-blocks": 100
       }
@@ -58,9 +61,18 @@ function createBeefyConfig(relayer: RelayerSpec): BeefyConfig {
 }
 
 function createBeaconConfig(relayer: RelayerSpec): BeaconConfig {
+  if (
+    !relayer.config.ethClEndpoint ||
+    !relayer.config.beefyClientAddress ||
+    !relayer.config.gatewayAddress
+  ) {
+    throw new Error(
+      "ethClEndpoint, BeefyClient and Gateway addresses are required for beacon relayer"
+    );
+  }
   return {
     ethereum: {
-      endpoint: relayer.config.ethClEndpoint!
+      endpoint: relayer.config.ethClEndpoint
     },
     substrate: {
       endpoint: relayer.config.substrateWsEndpoint
@@ -68,8 +80,8 @@ function createBeaconConfig(relayer: RelayerSpec): BeaconConfig {
     sink: {
       ethereum: {
         contracts: {
-          BeefyClient: relayer.config.beefyClientAddress!,
-          Gateway: relayer.config.gatewayAddress!
+          BeefyClient: relayer.config.beefyClientAddress,
+          Gateway: relayer.config.gatewayAddress
         }
       }
     }
@@ -93,6 +105,9 @@ function createExecutionConfig(relayer: RelayerSpec): ExecutionConfig {
 }
 
 function createSolochainConfig(relayer: RelayerSpec): SolochainConfig {
+  if (!relayer.config.gatewayAddress) {
+    throw new Error("Gateway address is required for solochain relayer");
+  }
   return {
     ethereum: {
       endpoint: relayer.config.ethElRpcEndpoint
@@ -103,7 +118,7 @@ function createSolochainConfig(relayer: RelayerSpec): SolochainConfig {
     source: {
       ethereum: {
         contracts: {
-          Gateway: relayer.config.gatewayAddress!
+          Gateway: relayer.config.gatewayAddress
         }
       }
     },

@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { launchDataHaven } from "../../../launcher";
-import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import type { LaunchOptions } from ".";
 
 /**

@@ -19,8 +19,7 @@ import {
 } from "utils";
 import { waitFor } from "utils/waits";
 import { initEthClientPallet } from "../../../launcher/relayers/init-pallet";
-import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
-import { addContainer, getPublicWsPort } from "../../../launcher/types/launched-network";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { ZERO_HASH } from "../common/consts";
 import { generateRelayerConfig, type RelayerSpec } from "../common/relayer";
 import type { LaunchOptions } from ".";
@@ -267,10 +266,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       logger.debug(`Running command: ${command.join(" ")}`);
       await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
 
-      addContainer(launchedNetwork, {
-        name: containerName,
-        publicPorts: { ws: 0, rpc: 0 }
-      });
+      launchedNetwork.addContainer(containerName, { ws: 0, rpc: 0 });
 
       await waitForContainerToStart(containerName);
 
@@ -306,7 +302,7 @@ const waitBeefyReady = async (
   pollIntervalMs: number,
   timeoutMs: number
 ): Promise<void> => {
-  const port = getPublicWsPort(launchedNetwork);
+  const port = launchedNetwork.getPublicWsPort();
   const wsUrl = `ws://127.0.0.1:${port}`;
   const iterations = Math.floor(timeoutMs / pollIntervalMs);
 

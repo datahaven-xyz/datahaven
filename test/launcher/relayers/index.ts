@@ -5,8 +5,7 @@ import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { ANVIL_FUNDED_ACCOUNTS, getPortFromKurtosis, logger } from "utils";
 import { waitFor } from "utils/waits";
-import type { LaunchedNetwork } from "../types/launched-network";
-import { getPublicWsPort } from "../types/launched-network";
+import type { LaunchedNetwork } from "../types/launchedNetwork";
 import { waitForContainerToStart, ZERO_HASH } from "../utils";
 import { generateRelayerConfig } from "./config";
 import { initEthClientPallet } from "./init-pallet";
@@ -28,7 +27,7 @@ export async function launchRelayers(
     logger.info("🚀 Launching Snowbridge relayers...");
 
     // Get DataHaven node port
-    const substrateWsPort = getPublicWsPort(launchedNetwork);
+    const substrateWsPort = launchedNetwork.getPublicWsPort();
     const substrateNodeId = launchedNetwork.containers[0]?.name || "default";
 
     // Clean up existing containers
@@ -124,7 +123,7 @@ async function cleanupRelayers(networkId: string): Promise<void> {
 async function waitBeefyReady(launchedNetwork: LaunchedNetwork): Promise<void> {
   logger.info("⏳ Waiting for BEEFY to be ready...");
 
-  const dhWsPort = getPublicWsPort(launchedNetwork);
+  const dhWsPort = launchedNetwork.getPublicWsPort();
   const client: PolkadotClient = createClient(
     withPolkadotSdkCompat(getWsProvider(`ws://127.0.0.1:${dhWsPort}`))
   );

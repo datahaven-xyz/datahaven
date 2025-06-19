@@ -6,8 +6,7 @@ import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { getPapiSigner, logger } from "utils";
 import { waitFor } from "utils/waits";
-import type { LaunchedNetwork } from "../types/launched-network";
-import { getPublicWsPort } from "../types/launched-network";
+import type { LaunchedNetwork } from "../types/launchedNetwork";
 
 const INITIAL_CHECKPOINT_FILE = "initial-checkpoint.json";
 const INITIAL_CHECKPOINT_DIR = "tmp/snowbridge-initial-checkpoint";
@@ -15,7 +14,7 @@ const INITIAL_CHECKPOINT_DIR = "tmp/snowbridge-initial-checkpoint";
 export async function initEthClientPallet(
   beaconConfigPath: string,
   relayerImageTag: string,
-  datastorePath: string,
+  _datastorePath: string,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> {
   await waitBeaconChainReady(beaconConfigPath, relayerImageTag);
@@ -75,7 +74,7 @@ async function forceCheckpoint(launchedNetwork: LaunchedNetwork): Promise<void> 
   const checkpoint = await Bun.file(checkpointPath).json();
 
   const signer = getPapiSigner();
-  const dhWsPort = getPublicWsPort(launchedNetwork);
+  const dhWsPort = launchedNetwork.getPublicWsPort();
   const client = createClient(withPolkadotSdkCompat(getWsProvider(`ws://127.0.0.1:${dhWsPort}`)));
   const dhApi = client.getTypedApi(datahaven);
 

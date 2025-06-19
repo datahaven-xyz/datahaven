@@ -1,7 +1,7 @@
 import type { LaunchOptions } from "cli/handlers";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { launchEthereum } from "../../../launcher";
-import type { LaunchedNetwork } from "../../../launcher/types/launched-network";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.

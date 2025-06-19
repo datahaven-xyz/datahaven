@@ -53,7 +53,7 @@ This comprehensive guide covers prerequisites and deployment instructions for de
 3. **Bun** (TypeScript runtime)
    ```bash
    # macOS
-   brew install bun
+   brew install oven-sh/bun/bun
    
    # Linux
    curl -fsSL https://bun.sh/install | bash

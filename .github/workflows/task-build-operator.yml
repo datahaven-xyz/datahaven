@@ -59,13 +59,18 @@ jobs:
           echo "datahaven-node-hash=$HASH" >> $GITHUB_OUTPUT
           echo "Hash of the datahaven-node is: $HASH (with timestamp: $TIMESTAMP)"
 
-      - name: Upload binary and WASM to workflow
+      - name: Upload binary to workflow
         uses: actions/upload-artifact@v4
         with:
           name: datahaven-node-${{ steps.hash-binary.outputs.datahaven-node-hash }}
-          path: |
-            operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
-            operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm
+          path: operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
+          retention-days: 1
+          
+      - name: Upload WASM to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: datahaven-wasm-${{ steps.hash-binary.outputs.datahaven-node-hash }}
+          path: operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm
           retention-days: 1
 
       - name: Build Stats

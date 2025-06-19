@@ -38,18 +38,17 @@ jobs:
         working-directory: test
         run: bun install --frozen-lockfile
 
-      - name: Download operator artifact
+      - name: Download WASM artifact
         uses: actions/download-artifact@v4
         with:
-          name: datahaven-node-${{ inputs.binary-hash }}
+          name: datahaven-wasm-${{ inputs.binary-hash }}
           path: ./artifacts
 
-      - name: Extract and verify WASM from artifact
+      - name: Verify WASM from artifact
         run: |
-          # The artifact should contain both the binary and the WASM
           echo "Artifact contents:"
           find ./artifacts -type f | head -20
-          
+
           # The WASM should be at this path in the artifact
           WASM_PATH="./artifacts/operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm"
           if [ ! -f "$WASM_PATH" ]; then

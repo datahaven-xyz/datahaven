@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
-use frame_support::__private::Get;
+use frame_support::traits::Get;
 use frame_support::pallet_prelude::TypedGet;
 use frame_support::traits::fungible::Credit;
 use frame_support::traits::tokens::imbalance::ResolveTo;

@@ -1,4 +1,4 @@
-// Copyright 2019-2025 PureStake Inc.
+// Copyright 2019-2025 Moonbeam Foundation.
 // This file is part of Moonbeam.
 
 // Moonbeam is free software: you can redistribute it and/or modify
@@ -17,11 +17,6 @@
 #[macro_export]
 macro_rules! impl_on_charge_evm_transaction {
 	{} => {
-		type FungibleAccountId<T> = <T as frame_system::Config>::AccountId;
-
-		type BalanceFor<T> =
-			<<T as pallet_evm::Config>::Currency as Inspect<FungibleAccountId<T>>>::Balance;
-
 		pub struct OnChargeEVMTransaction<BaseFeesOU, PriorityFeesOU>(
 			sp_std::marker::PhantomData<(BaseFeesOU, PriorityFeesOU)>
 		);

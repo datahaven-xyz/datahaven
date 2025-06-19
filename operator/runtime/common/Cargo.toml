@@ -26,6 +26,8 @@ std = [
     "codec/std",
     "frame-support/std",
     "pallet-authorship/std",
+    "pallet-balances/std",
+    "pallet-treasury/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "scale-info/std",

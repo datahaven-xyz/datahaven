@@ -20,10 +20,10 @@ const COMMON_LAUNCH_ARGS = [
 
 const CLI_AUTHORITY_IDS = ["alice", "bob"] as const;
 
-export async function launchDataHaven(
+export const launchDataHaven = async (
   options: DataHavenLaunchOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<DataHavenLaunchResult> {
+): Promise<DataHavenLaunchResult> => {
   try {
     logger.info("🚀 Launching DataHaven network...");
 
@@ -70,7 +70,7 @@ export async function launchDataHaven(
   }
 }
 
-async function cleanupDataHaven(options: DataHavenLaunchOptions): Promise<void> {
+const cleanupDataHaven = async (options: DataHavenLaunchOptions): Promise<void> => {
   logger.info("🧹 Cleaning up DataHaven containers and network...");
 
   const containerPrefix = `datahaven-${options.networkId}`;
@@ -88,7 +88,7 @@ async function cleanupDataHaven(options: DataHavenLaunchOptions): Promise<void> 
   logger.success("DataHaven cleanup completed");
 }
 
-async function buildDataHavenImage(options: DataHavenLaunchOptions): Promise<void> {
+const buildDataHavenImage = async (options: DataHavenLaunchOptions): Promise<void> => {
   logger.info("🏗️ Building DataHaven Docker image...");
 
   const buildArgs = [
@@ -106,7 +106,7 @@ async function buildDataHavenImage(options: DataHavenLaunchOptions): Promise<voi
   logger.success("DataHaven Docker image built successfully");
 }
 
-async function verifyImageExists(imageTag: string): Promise<void> {
+const verifyImageExists = async (imageTag: string): Promise<void> => {
   logger.debug(`Checking if image ${imageTag} is available locally`);
 
   const imageExists = await $`docker images -q ${imageTag}`.text();
@@ -117,11 +117,11 @@ async function verifyImageExists(imageTag: string): Promise<void> {
   logger.success(`Image ${imageTag} found`);
 }
 
-async function launchNodes(
+const launchNodes = async (
   options: DataHavenLaunchOptions,
   networkName: string,
   _launchedNetwork: LaunchedNetwork
-): Promise<number> {
+): Promise<number> => {
   let wsPort = 9944;
 
   for (const [index, id] of CLI_AUTHORITY_IDS.entries()) {
@@ -154,11 +154,11 @@ async function launchNodes(
   return wsPort;
 }
 
-async function waitForNetworkReady(
+const waitForNetworkReady = async (
   wsPort: number,
   networkId: string,
   launchedNetwork: LaunchedNetwork
-): Promise<void> {
+): Promise<void> => {
   const maxAttempts = 30;
   const delayMs = 2000;
 
@@ -179,7 +179,7 @@ async function waitForNetworkReady(
   throw new Error("❌ DataHaven network failed to start within timeout");
 }
 
-async function configureValidators(launchedNetwork: LaunchedNetwork): Promise<void> {
+const configureValidators = async (launchedNetwork: LaunchedNetwork): Promise<void> => {
   logger.info("🔧 Preparing DataHaven authorities configuration for network: anvil...");
 
   const wsPort = launchedNetwork.containers[0]?.publicPorts.ws;
@@ -204,7 +204,7 @@ async function configureValidators(launchedNetwork: LaunchedNetwork): Promise<vo
   logger.success("DataHaven authority hashes prepared for contract deployment");
 }
 
-async function fetchBeefyAuthorities(_wsPort: number): Promise<string[]> {
+const fetchBeefyAuthorities = async (_wsPort: number): Promise<string[]> => {
   // This would use the PAPI client to fetch authorities
   // For now, returning placeholder - the actual implementation would come from
   // the existing code in cli/handlers/common/datahaven.ts
@@ -214,7 +214,7 @@ async function fetchBeefyAuthorities(_wsPort: number): Promise<string[]> {
   ];
 }
 
-function processAuthority(publicKey: string): string {
+const processAuthority = (publicKey: string): string => {
   // This would use compressedPubKeyToEthereumAddress from existing code
   // Returns the authority hash needed for contracts
   return `0x${publicKey.slice(2, 66)}`;

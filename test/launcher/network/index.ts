@@ -12,7 +12,7 @@ import { launchValidators } from "../validators";
 // Store cleanup functions
 const cleanupFunctions: Array<() => Promise<void>> = [];
 
-export async function launchNetwork(options: NetworkLaunchOptions): Promise<NetworkConnectors> {
+export const launchNetwork = async (options: NetworkLaunchOptions): Promise<NetworkConnectors> => {
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
@@ -145,7 +145,7 @@ export async function launchNetwork(options: NetworkLaunchOptions): Promise<Netw
   }
 }
 
-async function cleanupNetwork(): Promise<void> {
+const cleanupNetwork = async (): Promise<void> => {
   logger.info("🧹 Cleaning up network...");
 
   // Execute cleanup functions in reverse order
@@ -163,7 +163,7 @@ async function cleanupNetwork(): Promise<void> {
   logger.success("Network cleanup completed");
 }
 
-async function getBlockscoutUrl(networkId: string): Promise<string> {
+const getBlockscoutUrl = async (networkId: string): Promise<string> => {
   // This would fetch the Blockscout URL from Kurtosis
   // For now, returning a placeholder
   const { getPortFromKurtosis } = await import("utils");

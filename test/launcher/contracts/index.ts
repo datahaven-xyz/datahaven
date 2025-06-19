@@ -9,9 +9,9 @@ import {
 import type { ParameterCollection } from "utils/parameters";
 import type { ContractsDeployOptions, ContractsDeployResult } from "./types";
 
-export async function deployContracts(
+export const deployContracts = async (
   options: ContractsDeployOptions
-): Promise<ContractsDeployResult> {
+): Promise<ContractsDeployResult> => {
   try {
     logger.info("🚀 Deploying smart contracts...");
 
@@ -45,7 +45,7 @@ export async function deployContracts(
 /**
  * Validates deployment parameters
  */
-export function validateDeploymentParams(options: ContractsDeployOptions): void {
+export const validateDeploymentParams = (options: ContractsDeployOptions): void => {
   const { rpcUrl, verified, blockscoutBackendUrl } = options;
 
   invariant(rpcUrl, "❌ RPC URL is required");
@@ -57,7 +57,7 @@ export function validateDeploymentParams(options: ContractsDeployOptions): void 
 /**
  * Builds smart contracts using forge
  */
-export async function buildContracts(): Promise<void> {
+export const buildContracts = async (): Promise<void> => {
   const {
     exitCode: buildExitCode,
     stderr: buildStderr,
@@ -74,7 +74,7 @@ export async function buildContracts(): Promise<void> {
 /**
  * Constructs the deployment command
  */
-export function constructDeployCommand(options: ContractsDeployOptions): string {
+export const constructDeployCommand = (options: ContractsDeployOptions): string => {
   const { rpcUrl, verified, blockscoutBackendUrl } = options;
 
   let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
@@ -91,10 +91,10 @@ export function constructDeployCommand(options: ContractsDeployOptions): string 
 /**
  * Executes contract deployment
  */
-export async function executeDeployment(
+export const executeDeployment = async (
   deployCommand: string,
   parameterCollection?: ParameterCollection
-): Promise<void> {
+): Promise<void> => {
   // Using custom shell command to improve logging with forge's stdoutput
   await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
 

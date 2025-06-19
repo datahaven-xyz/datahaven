@@ -4,9 +4,9 @@ import { setupValidators } from "./setup";
 import type { ValidatorsLaunchOptions, ValidatorsLaunchResult } from "./types";
 import { updateValidatorSet } from "./update-set";
 
-export async function launchValidators(
+export const launchValidators = async (
   options: ValidatorsLaunchOptions
-): Promise<ValidatorsLaunchResult> {
+): Promise<ValidatorsLaunchResult> => {
   try {
     // Fund validators
     const fundResult = await fundValidatorsStep(options.rpcUrl);
@@ -32,7 +32,7 @@ export async function launchValidators(
   }
 }
 
-export async function fundValidatorsStep(rpcUrl: string): Promise<ValidatorsLaunchResult> {
+export const fundValidatorsStep = async (rpcUrl: string): Promise<ValidatorsLaunchResult> => {
   try {
     logger.info("💰 Funding validators with tokens and ETH...");
     await fundValidators({ rpcUrl });
@@ -47,7 +47,7 @@ export async function fundValidatorsStep(rpcUrl: string): Promise<ValidatorsLaun
   }
 }
 
-export async function setupValidatorsStep(rpcUrl: string): Promise<ValidatorsLaunchResult> {
+export const setupValidatorsStep = async (rpcUrl: string): Promise<ValidatorsLaunchResult> => {
   try {
     logger.info("📝 Registering validators in EigenLayer...");
     await setupValidators({ rpcUrl });
@@ -62,7 +62,7 @@ export async function setupValidatorsStep(rpcUrl: string): Promise<ValidatorsLau
   }
 }
 
-export async function updateValidatorSetStep(rpcUrl: string): Promise<ValidatorsLaunchResult> {
+export const updateValidatorSetStep = async (rpcUrl: string): Promise<ValidatorsLaunchResult> => {
   try {
     logger.info("🔄 Updating validator set on DataHaven...");
     await updateValidatorSet({ rpcUrl });

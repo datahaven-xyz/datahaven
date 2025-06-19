@@ -8,7 +8,7 @@ interface UpdateValidatorSetOptions {
   rpcUrl: string;
 }
 
-export async function updateValidatorSet(options: UpdateValidatorSetOptions): Promise<boolean> {
+export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Promise<boolean> => {
   const { rpcUrl } = options;
 
   logger.info("🔄 Updating DataHaven Validator Set");

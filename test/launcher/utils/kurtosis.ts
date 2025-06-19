@@ -13,7 +13,7 @@ import type { LaunchedNetwork } from "../types/launchedNetwork";
  * @param enclaveName - The name of the Kurtosis enclave to check
  * @returns True if the enclave is running, false otherwise
  */
-export async function checkKurtosisEnclaveRunning(enclaveName: string): Promise<boolean> {
+export const checkKurtosisEnclaveRunning = async (enclaveName: string): Promise<boolean> => {
   const enclaves = await getRunningKurtosisEnclaves();
   return enclaves.some((enclave) => enclave.name === enclaveName);
 }
@@ -22,7 +22,7 @@ export async function checkKurtosisEnclaveRunning(enclaveName: string): Promise<
  * Gets a list of currently running Kurtosis enclaves
  * @returns Promise<KurtosisEnclaveInfo[]> - Array of running enclave information
  */
-export async function getRunningKurtosisEnclaves(): Promise<KurtosisEnclaveInfo[]> {
+export const getRunningKurtosisEnclaves = async (): Promise<KurtosisEnclaveInfo[]> => {
   logger.debug("🔎 Checking for running Kurtosis enclaves...");
 
   const lines = (await Array.fromAsync($`kurtosis enclave ls`.lines())).filter(
@@ -74,10 +74,10 @@ export async function getRunningKurtosisEnclaves(): Promise<KurtosisEnclaveInfo[
  * @param launchedNetwork - The launched network instance
  * @param enclaveName - The Kurtosis enclave name
  */
-export async function registerKurtosisServices(
+export const registerKurtosisServices = async (
   launchedNetwork: LaunchedNetwork,
   enclaveName: string
-): Promise<void> {
+): Promise<void> => {
   logger.info("📝 Registering Kurtosis services...");
 
   // Get EL RPC URL
@@ -105,7 +105,7 @@ export async function registerKurtosisServices(
  * Cleans up a Kurtosis enclave
  * @param enclaveName - The name of the enclave to clean up
  */
-export async function cleanupKurtosisEnclave(enclaveName: string): Promise<void> {
+export const cleanupKurtosisEnclave = async (enclaveName: string): Promise<void> => {
   logger.info(`🧹 Cleaning up Kurtosis enclave: ${enclaveName}...`);
   await $`kurtosis enclave rm ${enclaveName} -f`.quiet();
   logger.success(`Kurtosis enclave ${enclaveName} removed`);

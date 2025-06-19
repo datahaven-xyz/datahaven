@@ -9,7 +9,7 @@ import { logger } from "utils";
  * @param wsPort The WebSocket port to connect to
  * @returns True if the network is ready, false otherwise
  */
-export async function isNetworkReady(wsPort: number): Promise<boolean> {
+export const isNetworkReady = async (wsPort: number): Promise<boolean> => {
   try {
     const wsUrl = `ws://127.0.0.1:${wsPort}`;
     const client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
@@ -41,10 +41,10 @@ export async function isNetworkReady(wsPort: number): Promise<boolean> {
  * @param containerName The name of the container to wait for
  * @param maxWaitSeconds Maximum time to wait in seconds
  */
-export async function waitForContainerToStart(
+export const waitForContainerToStart = async (
   containerName: string,
   maxWaitSeconds = 30
-): Promise<void> {
+): Promise<void> => {
   logger.debug(`Waiting for container ${containerName} to start...`);
 
   const startTime = Date.now();
@@ -74,7 +74,7 @@ export async function waitForContainerToStart(
  * @param maxAttempts Maximum number of ports to try
  * @returns The first available port found
  */
-export async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<number> {
+export const findAvailablePort = async (startPort: number, maxAttempts = 100): Promise<number> => {
   for (let i = 0; i < maxAttempts; i++) {
     const port = startPort + i;
     const result = await $`lsof -i :${port}`.quiet().nothrow();

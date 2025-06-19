@@ -11,21 +11,21 @@ import type { LaunchedNetwork } from "../types/launchedNetwork";
 const INITIAL_CHECKPOINT_FILE = "initial-checkpoint.json";
 const INITIAL_CHECKPOINT_DIR = "tmp/snowbridge-initial-checkpoint";
 
-export async function initEthClientPallet(
+export const initEthClientPallet = async (
   beaconConfigPath: string,
   relayerImageTag: string,
   _datastorePath: string,
   launchedNetwork: LaunchedNetwork
-): Promise<void> {
+): Promise<void> => {
   await waitBeaconChainReady(beaconConfigPath, relayerImageTag);
   await forceCheckpoint(launchedNetwork);
   logger.success("Ethereum Beacon Client pallet initialised");
 }
 
-async function waitBeaconChainReady(
+const waitBeaconChainReady = async (
   beaconConfigPath: string,
   relayerImageTag: string
-): Promise<void> {
+): Promise<void> => {
   const checkpointPath = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
 
   await waitFor({
@@ -49,11 +49,11 @@ async function waitBeaconChainReady(
   });
 }
 
-async function generateInitialCheckpoint(
+const generateInitialCheckpoint = async (
   beaconConfigPath: string,
   relayerImageTag: string,
   outputPath: string
-): Promise<number> {
+): Promise<number> => {
   const outputDir = path.dirname(outputPath);
   const outputFile = path.basename(outputPath);
 
@@ -69,7 +69,7 @@ async function generateInitialCheckpoint(
   return exitCode;
 }
 
-async function forceCheckpoint(launchedNetwork: LaunchedNetwork): Promise<void> {
+const forceCheckpoint = async (launchedNetwork: LaunchedNetwork): Promise<void> => {
   const checkpointPath = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
   const checkpoint = await Bun.file(checkpointPath).json();
 

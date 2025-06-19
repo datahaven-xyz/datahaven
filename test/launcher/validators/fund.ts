@@ -17,7 +17,7 @@ interface DeploymentInfo {
   DeployedStrategies: StrategyInfo[];
 }
 
-export async function fundValidators(options: FundValidatorsOptions): Promise<boolean> {
+export const fundValidators = async (options: FundValidatorsOptions): Promise<boolean> => {
   const { rpcUrl, validatorsConfig, networkName = "anvil", deploymentPath } = options;
 
   logger.info("💸 Funding DataHaven Validators for Local Testing");

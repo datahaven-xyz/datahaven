@@ -8,11 +8,11 @@ import type {
   SolochainConfig
 } from "./types";
 
-export async function generateRelayerConfig(
+export const generateRelayerConfig = async (
   relayer: RelayerSpec,
   _environment: string,
   outputDir: string
-): Promise<void> {
+): Promise<void> => {
   let config: any;
 
   switch (relayer.config.type) {
@@ -37,7 +37,7 @@ export async function generateRelayerConfig(
   logger.success(`Updated ${relayer.config.type} config written to ${outputPath}`);
 }
 
-function createBeefyConfig(relayer: RelayerSpec): BeefyConfig {
+const createBeefyConfig = (relayer: RelayerSpec): BeefyConfig => {
   if (!relayer.config.beefyClientAddress || !relayer.config.gatewayAddress) {
     throw new Error("BeefyClient and Gateway addresses are required for beefy relayer");
   }
@@ -60,7 +60,7 @@ function createBeefyConfig(relayer: RelayerSpec): BeefyConfig {
   };
 }
 
-function createBeaconConfig(relayer: RelayerSpec): BeaconConfig {
+const createBeaconConfig = (relayer: RelayerSpec): BeaconConfig => {
   if (
     !relayer.config.ethClEndpoint ||
     !relayer.config.beefyClientAddress ||
@@ -88,7 +88,7 @@ function createBeaconConfig(relayer: RelayerSpec): BeaconConfig {
   };
 }
 
-function createExecutionConfig(relayer: RelayerSpec): ExecutionConfig {
+const createExecutionConfig = (relayer: RelayerSpec): ExecutionConfig => {
   return {
     ethereum: {
       endpoint: relayer.config.ethElRpcEndpoint
@@ -104,7 +104,7 @@ function createExecutionConfig(relayer: RelayerSpec): ExecutionConfig {
   };
 }
 
-function createSolochainConfig(relayer: RelayerSpec): SolochainConfig {
+const createSolochainConfig = (relayer: RelayerSpec): SolochainConfig => {
   if (!relayer.config.gatewayAddress) {
     throw new Error("Gateway address is required for solochain relayer");
   }

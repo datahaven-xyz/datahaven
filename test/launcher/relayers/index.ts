@@ -19,10 +19,10 @@ import type {
 const CONFIG_DIR = "tmp/configs";
 const DATASTORE_DIR = "tmp/snowbridge-relay-store";
 
-export async function launchRelayers(
+export const launchRelayers = async (
   options: RelayersLaunchOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<RelayersLaunchResult> {
+): Promise<RelayersLaunchResult> => {
   try {
     logger.info("🚀 Launching Snowbridge relayers...");
 
@@ -107,7 +107,7 @@ export async function launchRelayers(
   }
 }
 
-async function cleanupRelayers(networkId: string): Promise<void> {
+const cleanupRelayers = async (networkId: string): Promise<void> => {
   logger.info("🧹 Cleaning up relayer containers...");
 
   const containerPrefix = `snowbridge-${networkId}`;
@@ -120,7 +120,7 @@ async function cleanupRelayers(networkId: string): Promise<void> {
   logger.success("Relayers cleanup completed");
 }
 
-async function waitBeefyReady(launchedNetwork: LaunchedNetwork): Promise<void> {
+const waitBeefyReady = async (launchedNetwork: LaunchedNetwork): Promise<void> => {
   logger.info("⏳ Waiting for BEEFY to be ready...");
 
   const dhWsPort = launchedNetwork.getPublicWsPort();
@@ -142,20 +142,20 @@ async function waitBeefyReady(launchedNetwork: LaunchedNetwork): Promise<void> {
   logger.success("BEEFY is ready");
 }
 
-async function getDeployments(): Promise<Record<string, string>> {
+const getDeployments = async (): Promise<Record<string, string>> => {
   const deploymentsFile = Bun.file("../contracts/deployments/anvil.json");
   const deployments = await deploymentsFile.json();
   return deployments;
 }
 
-function defineRelayers(params: {
+const defineRelayers = (params: {
   ethElRpcEndpoint: string;
   ethClEndpoint: string;
   substrateWsEndpoint: string;
   beefyClientAddress: string;
   gatewayAddress: string;
   networkId: string;
-}): RelayerSpec[] {
+}): RelayerSpec[] => {
   const containerPrefix = `snowbridge-${params.networkId}`;
 
   return [
@@ -210,12 +210,12 @@ function defineRelayers(params: {
   ];
 }
 
-async function launchRelayerContainers(
+const launchRelayerContainers = async (
   relayers: RelayerSpec[],
   datastorePath: string,
   launchedNetwork: LaunchedNetwork,
   options: RelayersLaunchOptions
-): Promise<RelayerSpec[]> {
+): Promise<RelayerSpec[]> => {
   const isLocal = options.relayerImageTag.endsWith(":local");
 
   for (const relayer of relayers) {

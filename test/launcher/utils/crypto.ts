@@ -9,7 +9,7 @@ import type { Hex } from "viem";
  * @param compressedPubKey - The compressed public key (33 bytes)
  * @returns The Ethereum address derived from the public key
  */
-export function compressedPubKeyToEthereumAddress(compressedPubKey: Hex): Hex {
+export const compressedPubKeyToEthereumAddress = (compressedPubKey: Hex): Hex => {
   // Remove 0x prefix if present
   const pubKeyBytes = compressedPubKey.startsWith("0x")
     ? compressedPubKey.slice(2)

@@ -8,11 +8,11 @@ const MIN_BUN_VERSION = { major: 1, minor: 1 };
  * Checks if all base dependencies are installed and available.
  * These checks are needed for both CLI and test environments.
  */
-export async function checkBaseDependencies(options?: {
+export const checkBaseDependencies = async (options?: {
   skipDocker?: boolean;
   skipKurtosis?: boolean;
   skipForge?: boolean;
-}): Promise<void> {
+}): Promise<void> => {
   if (!options?.skipKurtosis && !(await checkKurtosisInstalled())) {
     throw new Error(
       "❌ Kurtosis CLI application not found. Install from: https://docs.kurtosis.com/install"
@@ -39,7 +39,7 @@ export async function checkBaseDependencies(options?: {
 /**
  * Checks if Bun version meets minimum requirements
  */
-export async function checkBunVersion(): Promise<boolean> {
+export const checkBunVersion = async (): Promise<boolean> => {
   const bunVersion = Bun.version;
   const [major, minor] = bunVersion.split(".").map(Number);
 
@@ -60,7 +60,7 @@ export async function checkBunVersion(): Promise<boolean> {
 /**
  * Checks if Kurtosis CLI is installed
  */
-export async function checkKurtosisInstalled(): Promise<boolean> {
+export const checkKurtosisInstalled = async (): Promise<boolean> => {
   const { exitCode, stderr, stdout } = await $`kurtosis version`.nothrow().quiet();
   if (exitCode !== 0) {
     logger.debug(`Kurtosis check failed: ${stderr.toString()}`);
@@ -73,7 +73,7 @@ export async function checkKurtosisInstalled(): Promise<boolean> {
 /**
  * Checks if Docker daemon is running
  */
-export async function checkDockerRunning(): Promise<boolean> {
+export const checkDockerRunning = async (): Promise<boolean> => {
   const { exitCode, stderr } = await $`docker system info`.nothrow().quiet();
   if (exitCode !== 0) {
     logger.debug(`Docker check failed: ${stderr.toString()}`);
@@ -86,7 +86,7 @@ export async function checkDockerRunning(): Promise<boolean> {
 /**
  * Checks if Forge (Foundry) is installed
  */
-export async function checkForgeInstalled(): Promise<boolean> {
+export const checkForgeInstalled = async (): Promise<boolean> => {
   const { exitCode, stderr, stdout } = await $`forge --version`.nothrow().quiet();
   if (exitCode !== 0) {
     logger.debug(`Forge check failed: ${stderr.toString()}`);
@@ -99,7 +99,7 @@ export async function checkForgeInstalled(): Promise<boolean> {
 /**
  * Checks if Helm is installed (only needed for deployment)
  */
-export async function checkHelmInstalled(): Promise<boolean> {
+export const checkHelmInstalled = async (): Promise<boolean> => {
   const { exitCode, stderr, stdout } = await $`helm version`.nothrow().quiet();
   if (exitCode !== 0) {
     logger.debug(`Helm check failed: ${stderr.toString()}`);

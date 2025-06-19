@@ -5,10 +5,10 @@ import type { LaunchedNetwork } from "../types/launchedNetwork";
 import { cleanupKurtosisEnclave, registerKurtosisServices } from "../utils";
 import type { EthereumLaunchOptions, EthereumLaunchResult } from "./types";
 
-export async function launchEthereum(
+export const launchEthereum = async (
   options: EthereumLaunchOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<EthereumLaunchResult> {
+): Promise<EthereumLaunchResult> => {
   try {
     logger.info("🚀 Launching Ethereum network via Kurtosis...");
 
@@ -44,7 +44,7 @@ export async function launchEthereum(
   }
 }
 
-async function cleanupKurtosis(): Promise<void> {
+const cleanupKurtosis = async (): Promise<void> => {
   logger.info("🧹 Cleaning up Ethereum/Kurtosis environment...");
 
   // Get list of running enclaves
@@ -58,7 +58,7 @@ async function cleanupKurtosis(): Promise<void> {
   logger.success("Ethereum/Kurtosis cleanup completed");
 }
 
-async function getRunningKurtosisEnclaves(): Promise<Array<{ name: string }>> {
+const getRunningKurtosisEnclaves = async (): Promise<Array<{ name: string }>> => {
   logger.debug("🔎 Checking for running Kurtosis enclaves...");
 
   const lines = (await Array.fromAsync($`kurtosis enclave ls`.lines())).filter(
@@ -84,7 +84,7 @@ async function getRunningKurtosisEnclaves(): Promise<Array<{ name: string }>> {
   return enclaves;
 }
 
-async function pullKurtosisImages(): Promise<void> {
+const pullKurtosisImages = async (): Promise<void> => {
   logger.debug("Detected macOS, pulling container images with linux/amd64 platform...");
 
   const images = [
@@ -99,10 +99,10 @@ async function pullKurtosisImages(): Promise<void> {
   }
 }
 
-async function runKurtosisEnclave(
+const runKurtosisEnclave = async (
   options: EthereumLaunchOptions,
   enclaveName: string
-): Promise<void> {
+): Promise<void> => {
   logger.info("🚀 Starting Kurtosis enclave...");
 
   // Modify config file
@@ -123,7 +123,7 @@ async function runKurtosisEnclave(
   logger.debug(stdout.toString());
 }
 
-async function modifyKurtosisConfig(options: EthereumLaunchOptions): Promise<string> {
+const modifyKurtosisConfig = async (options: EthereumLaunchOptions): Promise<string> => {
   const outputDir = "tmp/configs";
   await $`mkdir -p ${outputDir}`.quiet();
 

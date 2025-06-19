@@ -11,7 +11,7 @@ interface SetupValidatorsOptions {
   deploymentPath?: string;
 }
 
-export async function setupValidators(options: SetupValidatorsOptions): Promise<boolean> {
+export const setupValidators = async (options: SetupValidatorsOptions): Promise<boolean> => {
   const { rpcUrl, validatorsConfig, networkName = "anvil" } = options;
 
   logger.info("🔧 Setting Up DataHaven Validators");

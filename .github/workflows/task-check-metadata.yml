@@ -44,22 +44,27 @@ jobs:
           name: datahaven-node-${{ inputs.binary-hash }}
           path: ./artifacts
 
-      - name: Extract WASM from artifact
+      - name: Extract and verify WASM from artifact
         run: |
-          # The WASM file is located in the wbuild directory within the artifact
+          # The artifact should contain both the binary and the WASM
+          echo "Artifact contents:"
+          find ./artifacts -type f | head -20
+          
+          # The WASM should be at this path in the artifact
           WASM_PATH="./artifacts/operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm"
           if [ ! -f "$WASM_PATH" ]; then
-            echo "Error: WASM file not found at $WASM_PATH"
-            echo "Artifact contents:"
-            find ./artifacts -type f -name "*.wasm" || echo "No WASM files found"
+            echo "Error: WASM file not found at expected path: $WASM_PATH"
+            echo "Looking for WASM files in artifact:"
+            find ./artifacts -name "*.wasm" -type f
             exit 1
           fi
           echo "Found WASM at: $WASM_PATH"
+          echo "WASM size: $(du -h $WASM_PATH | cut -f1)"
 
       - name: Generate metadata from WASM
         working-directory: test
         run: |
-          echo "Generating metadata from built WASM..."
+          echo "Generating metadata from artifact WASM..."
           bun x papi add --wasm "../artifacts/operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm" datahaven
 
       - name: Check for metadata changes

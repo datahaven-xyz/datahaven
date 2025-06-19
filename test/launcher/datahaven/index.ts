@@ -68,7 +68,7 @@ export const launchDataHaven = async (
       error: error as Error
     };
   }
-}
+};
 
 const cleanupDataHaven = async (options: DataHavenLaunchOptions): Promise<void> => {
   logger.info("🧹 Cleaning up DataHaven containers and network...");
@@ -86,7 +86,7 @@ const cleanupDataHaven = async (options: DataHavenLaunchOptions): Promise<void> 
   await $`docker network rm ${networkName}`.quiet().nothrow();
 
   logger.success("DataHaven cleanup completed");
-}
+};
 
 const buildDataHavenImage = async (options: DataHavenLaunchOptions): Promise<void> => {
   logger.info("🏗️ Building DataHaven Docker image...");
@@ -104,7 +104,7 @@ const buildDataHavenImage = async (options: DataHavenLaunchOptions): Promise<voi
   await $`docker build -t ${options.datahavenImageTag} -f ./docker/datahaven-node-local.dockerfile ../.`;
 
   logger.success("DataHaven Docker image built successfully");
-}
+};
 
 const verifyImageExists = async (imageTag: string): Promise<void> => {
   logger.debug(`Checking if image ${imageTag} is available locally`);
@@ -115,7 +115,7 @@ const verifyImageExists = async (imageTag: string): Promise<void> => {
   }
 
   logger.success(`Image ${imageTag} found`);
-}
+};
 
 const launchNodes = async (
   options: DataHavenLaunchOptions,
@@ -152,7 +152,7 @@ const launchNodes = async (
   }
 
   return wsPort;
-}
+};
 
 const waitForNetworkReady = async (
   wsPort: number,
@@ -177,7 +177,7 @@ const waitForNetworkReady = async (
   }
 
   throw new Error("❌ DataHaven network failed to start within timeout");
-}
+};
 
 const configureValidators = async (launchedNetwork: LaunchedNetwork): Promise<void> => {
   logger.info("🔧 Preparing DataHaven authorities configuration for network: anvil...");
@@ -202,7 +202,7 @@ const configureValidators = async (launchedNetwork: LaunchedNetwork): Promise<vo
   launchedNetwork.datahavenAuthorities = authorityHashes;
 
   logger.success("DataHaven authority hashes prepared for contract deployment");
-}
+};
 
 const fetchBeefyAuthorities = async (_wsPort: number): Promise<string[]> => {
   // This would use the PAPI client to fetch authorities
@@ -212,10 +212,10 @@ const fetchBeefyAuthorities = async (_wsPort: number): Promise<string[]> => {
     "0x020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
     "0x0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27"
   ];
-}
+};
 
 const processAuthority = (publicKey: string): string => {
   // This would use compressedPubKeyToEthereumAddress from existing code
   // Returns the authority hash needed for contracts
   return `0x${publicKey.slice(2, 66)}`;
-}
+};

@@ -10,7 +10,7 @@ import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types"
 import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import { ZERO_HASH } from "./consts";
+import { ZERO_HASH } from "../../../launcher/utils/constants";
 
 export type BeaconConfig = {
   type: "beacon";

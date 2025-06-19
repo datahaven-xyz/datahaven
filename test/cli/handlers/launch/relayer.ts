@@ -20,7 +20,7 @@ import {
 import { waitFor } from "utils/waits";
 import { initEthClientPallet } from "../../../launcher/relayers/init-pallet";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import { ZERO_HASH } from "../common/consts";
+import { ZERO_HASH } from "../../../launcher/utils/constants";
 import { generateRelayerConfig, type RelayerSpec } from "../common/relayer";
 import type { LaunchOptions } from ".";
 

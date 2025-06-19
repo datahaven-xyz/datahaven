@@ -1,7 +1,7 @@
 import invariant from "tiny-invariant";
 import { getServiceFromKurtosis, logger, printHeader } from "utils";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import { BASE_SERVICES } from "../common/consts";
+import { BASE_SERVICES } from "../../../launcher/utils/constants";
 import type { LaunchOptions } from ".";
 
 export const performSummaryOperations = async (

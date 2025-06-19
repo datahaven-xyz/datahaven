@@ -8,6 +8,7 @@ import {
   checkHelmInstalled,
   checkKurtosisInstalled
 } from "../../../launcher/utils";
+import { MIN_BUN_VERSION } from "../../../launcher/utils/constants";
 import type { DeployOptions } from "../deploy";
 
 //  =====  Checks  =====
@@ -23,7 +24,7 @@ export const checkBaseDependencies = async (): Promise<void> => {
 
   if (!(await checkBunVersion())) {
     logger.error(
-      "Bun version is too old. Upgrade from: https://bun.sh/docs/installation#upgrading"
+      `Bun version must be ${MIN_BUN_VERSION.major}.${MIN_BUN_VERSION.minor} or higher: https://bun.sh/docs/installation#upgrading`
     );
     throw Error("❌ Bun version is too old.");
   }

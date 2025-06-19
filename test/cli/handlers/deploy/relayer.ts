@@ -14,7 +14,7 @@ import {
 } from "utils";
 import { waitFor } from "utils/waits";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import { ZERO_HASH } from "../common/consts";
+import { ZERO_HASH } from "../../../launcher/utils/constants";
 import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
 import type { DeployOptions } from ".";
 

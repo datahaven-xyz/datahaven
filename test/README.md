@@ -29,7 +29,7 @@ This project includes a comprehensive E2E testing framework that allows running 
 ## Pre-requisites
 
 - [Kurtosis](https://docs.kurtosis.com/install): For launching test networks
-- [Bun](https://bun.sh/): TypeScript runtime and package manager
+- [Bun](https://bun.sh/) v1.2 or higher: TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 
 ##### MacOS

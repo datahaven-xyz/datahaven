@@ -1,49 +1,15 @@
+import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import {
-  checkBunVersion,
-  checkDockerRunning,
-  checkForgeInstalled,
-  checkHelmInstalled,
-  checkKurtosisInstalled
-} from "../../../launcher/utils";
-import { MIN_BUN_VERSION } from "../../../launcher/utils/constants";
+import { checkBaseDependencies as checkBaseDependenciesFunc } from "../../../launcher/utils";
 import type { DeployOptions } from "../deploy";
 
 //  =====  Checks  =====
 export const checkBaseDependencies = async (): Promise<void> => {
   printHeader("Base Dependencies Checks");
 
-  if (!(await checkKurtosisInstalled())) {
-    logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
-    throw Error("❌ Kurtosis CLI application not found.");
-  }
-
-  logger.success("Kurtosis CLI found");
-
-  if (!(await checkBunVersion())) {
-    logger.error(
-      `Bun version must be ${MIN_BUN_VERSION.major}.${MIN_BUN_VERSION.minor} or higher: https://bun.sh/docs/installation#upgrading`
-    );
-    throw Error("❌ Bun version is too old.");
-  }
-
-  logger.success("Bun is installed and up to date");
-
-  if (!(await checkDockerRunning())) {
-    logger.error("Is Docker Running? Unable to make connection to docker daemon");
-    throw Error("❌ Error connecting to Docker");
-  }
-
-  logger.success("Docker is running");
-
-  if (!(await checkForgeInstalled())) {
-    logger.error("Is foundry installed? https://book.getfoundry.sh/getting-started/installation");
-    throw Error("❌ Forge binary not found in PATH");
-  }
-
-  logger.success("Forge is installed");
+  await checkBaseDependenciesFunc();
 
   printDivider();
 };
@@ -86,4 +52,17 @@ export const deploymentChecks = async (
   logger.info(`ℹ️ Deploying to Kubernetes namespace: ${launchedNetwork.kubeNamespace}`);
 
   printDivider();
+};
+
+/**
+ * Checks if Helm is installed (only needed for deployment)
+ */
+export const checkHelmInstalled = async (): Promise<boolean> => {
+  const { exitCode, stderr, stdout } = await $`helm version`.nothrow().quiet();
+  if (exitCode !== 0) {
+    logger.debug(`Helm check failed: ${stderr.toString()}`);
+    return false;
+  }
+  logger.debug(`Helm version: ${stdout.toString().trim()}`);
+  return true;
 };

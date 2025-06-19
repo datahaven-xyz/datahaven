@@ -8,33 +8,37 @@ const MIN_BUN_VERSION = { major: 1, minor: 1 };
  * Checks if all base dependencies are installed and available.
  * These checks are needed for both CLI and test environments.
  */
-export const checkBaseDependencies = async (options?: {
-  skipDocker?: boolean;
-  skipKurtosis?: boolean;
-  skipForge?: boolean;
-}): Promise<void> => {
-  if (!options?.skipKurtosis && !(await checkKurtosisInstalled())) {
-    throw new Error(
-      "❌ Kurtosis CLI application not found. Install from: https://docs.kurtosis.com/install"
-    );
+export const checkBaseDependencies = async (): Promise<void> => {
+  if (!(await checkKurtosisInstalled())) {
+    logger.error("Kurtosis CLI is required to be installed: https://docs.kurtosis.com/install");
+    throw Error("❌ Kurtosis CLI application not found.");
   }
+
+  logger.success("Kurtosis CLI found");
 
   if (!(await checkBunVersion())) {
-    throw new Error(
-      `❌ Bun version must be ${MIN_BUN_VERSION.major}.${MIN_BUN_VERSION.minor} or higher. Upgrade from: https://bun.sh/docs/installation#upgrading`
+    logger.error(
+      `Bun version must be ${MIN_BUN_VERSION.major}.${MIN_BUN_VERSION.minor} or higher: https://bun.sh/docs/installation#upgrading`
     );
+    throw Error("❌ Bun version is too old.");
   }
 
-  if (!options?.skipDocker && !(await checkDockerRunning())) {
-    throw new Error("❌ Docker is not running. Please start Docker daemon.");
+  logger.success("Bun is installed and up to date");
+
+  if (!(await checkDockerRunning())) {
+    logger.error("Is Docker Running? Unable to make connection to docker daemon");
+    throw Error("❌ Error connecting to Docker");
   }
 
-  if (!options?.skipForge && !(await checkForgeInstalled())) {
-    throw new Error(
-      "❌ Forge binary not found. Install from: https://book.getfoundry.sh/getting-started/installation"
-    );
+  logger.success("Docker is running");
+
+  if (!(await checkForgeInstalled())) {
+    logger.error("Is foundry installed? https://book.getfoundry.sh/getting-started/installation");
+    throw Error("❌ Forge binary not found in PATH");
   }
-}
+
+  logger.success("Forge is installed");
+};
 
 /**
  * Checks if Bun version meets minimum requirements
@@ -55,7 +59,7 @@ export const checkBunVersion = async (): Promise<boolean> => {
 
   logger.debug(`Bun version: ${bunVersion}`);
   return true;
-}
+};
 
 /**
  * Checks if Kurtosis CLI is installed
@@ -68,7 +72,7 @@ export const checkKurtosisInstalled = async (): Promise<boolean> => {
   }
   logger.debug(`Kurtosis version: ${stdout.toString().trim()}`);
   return true;
-}
+};
 
 /**
  * Checks if Docker daemon is running
@@ -81,7 +85,7 @@ export const checkDockerRunning = async (): Promise<boolean> => {
   }
   logger.debug("Docker daemon is running");
   return true;
-}
+};
 
 /**
  * Checks if Forge (Foundry) is installed
@@ -94,17 +98,4 @@ export const checkForgeInstalled = async (): Promise<boolean> => {
   }
   logger.debug(`Forge version: ${stdout.toString().trim()}`);
   return true;
-}
-
-/**
- * Checks if Helm is installed (only needed for deployment)
- */
-export const checkHelmInstalled = async (): Promise<boolean> => {
-  const { exitCode, stderr, stdout } = await $`helm version`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.debug(`Helm check failed: ${stderr.toString()}`);
-    return false;
-  }
-  logger.debug(`Helm version: ${stdout.toString().trim()}`);
-  return true;
-}
+};

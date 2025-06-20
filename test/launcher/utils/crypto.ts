@@ -39,4 +39,4 @@ export const compressedPubKeyToEthereumAddress = (compressedPubKey: Hex): Hex =>
   return `0x${Array.from(address)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")}` as Hex;
-}
+};

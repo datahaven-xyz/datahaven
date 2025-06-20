@@ -59,6 +59,8 @@ export const launchLocalDataHavenSolochain = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> => {
+  logger.info("🚀 Launching DataHaven network...");
+
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
 
   if (options.buildDatahaven) {

@@ -92,15 +92,12 @@ export const performSummaryOperations = async (
       }
 
       case service === "datahaven-alice": {
-        const container = launchedNetwork.containers.find((c) => c.name === service);
-        if (container?.publicPorts.ws) {
-          const port = container.publicPorts.ws;
-          displayData.push({
-            service,
-            ports: { ws: port },
-            url: `http://127.0.0.1:${port}`
-          });
-        }
+        const port = launchedNetwork.getContainerPort(service);
+        displayData.push({
+          service,
+          ports: { ws: port },
+          url: `http://127.0.0.1:${port}`
+        });
         break;
       }
 

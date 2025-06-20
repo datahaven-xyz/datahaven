@@ -18,10 +18,9 @@ import {
   waitForContainerToStart
 } from "utils";
 import { waitFor } from "utils/waits";
-import { initEthClientPallet } from "../../../launcher/relayers/init-pallet";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { ZERO_HASH } from "../../../launcher/utils/constants";
-import { generateRelayerConfig, type RelayerSpec } from "../common/relayer";
+import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
 import type { LaunchOptions } from ".";
 
 const RELAYER_CONFIG_DIR = "tmp/configs";
@@ -266,7 +265,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
       logger.debug(`Running command: ${command.join(" ")}`);
       await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
 
-      launchedNetwork.addContainer(containerName, { ws: 0, rpc: 0 });
+      launchedNetwork.addContainer(containerName);
 
       await waitForContainerToStart(containerName);
 

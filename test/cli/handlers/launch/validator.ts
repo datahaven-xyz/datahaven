@@ -1,7 +1,7 @@
+import { fundValidators } from "scripts/fund-validators";
+import { setupValidators } from "scripts/setup-validators";
+import { updateValidatorSet } from "scripts/update-validator-set";
 import { confirmWithTimeout, logger, printDivider } from "utils";
-import { fundValidators } from "../../../launcher/validators/fund";
-import { setupValidators } from "../../../launcher/validators/setup";
-import { updateValidatorSet } from "../../../launcher/validators/update-set";
 import type { LaunchOptions } from "..";
 
 export const performValidatorOperations = async (

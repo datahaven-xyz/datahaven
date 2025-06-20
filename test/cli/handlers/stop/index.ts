@@ -9,9 +9,9 @@ import {
   printHeader,
   runShellCommandWithLogger
 } from "utils";
+import { getRunningKurtosisEnclaves } from "../../../launcher/kurtosis";
 import { COMPONENTS, DOCKER_NETWORK_NAME } from "../../../launcher/utils/constants";
 import { checkBaseDependencies } from "../common/checks";
-import { getRunningKurtosisEnclaves } from "../common/kurtosis";
 
 export interface StopOptions {
   all?: boolean;

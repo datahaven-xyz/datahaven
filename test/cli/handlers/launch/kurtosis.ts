@@ -1,12 +1,12 @@
-import { $ } from "bun";
 import type { LaunchOptions } from "cli/handlers";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
-import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import {
   checkKurtosisEnclaveRunning,
-  registerServices,
-  runKurtosisEnclave
-} from "../common/kurtosis";
+  cleanKurtosisEnclave,
+  launchKurtosisNetwork,
+  registerServices
+} from "../../../launcher/kurtosis";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
@@ -64,24 +64,18 @@ export const launchKurtosis = async (
       }
 
       // Case: User wants to clean and relaunch the enclave
-      logger.info("🧹 Cleaning up Docker and Kurtosis environments...");
-      logger.debug(await $`kurtosis enclave stop ${options.kurtosisEnclaveName}`.nothrow().text());
-      logger.debug(await $`kurtosis clean`.text());
-      logger.debug(await $`kurtosis engine stop`.nothrow().text());
-      logger.debug(await $`docker system prune -f`.nothrow().text());
+      await cleanKurtosisEnclave(options.kurtosisEnclaveName);
     }
   }
 
-  if (process.platform === "darwin") {
-    logger.debug("Detected macOS, pulling container images with linux/amd64 platform...");
-    logger.debug(
-      await $`docker pull ghcr.io/blockscout/smart-contract-verifier:latest --platform linux/amd64`.text()
-    );
-  }
-
-  await runKurtosisEnclave(options, "configs/kurtosis/minimal.yaml");
-
-  await registerServices(launchedNetwork, options.kurtosisEnclaveName);
-  logger.success("Kurtosis network operations completed successfully.");
+  await launchKurtosisNetwork(
+    {
+      kurtosisEnclaveName: options.kurtosisEnclaveName,
+      blockscout: options.blockscout,
+      slotTime: options.slotTime,
+      kurtosisNetworkArgs: options.kurtosisNetworkArgs
+    },
+    launchedNetwork
+  );
   printDivider();
 };

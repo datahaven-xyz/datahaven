@@ -1,6 +1,7 @@
 import type { Command } from "@commander-js/extra-typings";
-import { getPortFromKurtosis, logger } from "utils";
+import { logger } from "utils";
 import { createParameterCollection } from "utils/parameters";
+import { getBlockscoutUrl } from "../../../launcher/kurtosis";
 import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { checkBaseDependencies } from "../common/checks";
 import { deployContracts } from "./contracts";
@@ -54,12 +55,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   let blockscoutBackendUrl: string | undefined;
 
   if (options.blockscout === true) {
-    const blockscoutPublicPort = await getPortFromKurtosis(
-      "blockscout",
-      "http",
-      options.kurtosisEnclaveName
-    );
-    blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
+    blockscoutBackendUrl = await getBlockscoutUrl(options.kurtosisEnclaveName);
     logger.trace("Blockscout backend URL:", blockscoutBackendUrl);
   } else if (options.verified) {
     logger.warn(

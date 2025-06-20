@@ -277,25 +277,10 @@ echo -e "participants:\n  - el_type: geth\n    cl_type: prysm\n    vc_type: prys
 kurtosis run --enclave local-eth-testnet github.com/ethpandaops/ethereum-package --args-file test-network.yml
 ```
 
-#### 6. Troubleshooting
-
-Ensure your Kubernetes context (shown by 'kubectl config current-context') matches the cluster Kurtosis is set to use (shown by 'kurtosis cluster get').
-For Docker Desktop, use 'docker-desktop' context and 'docker.k8s' cluster. For Minikube, use 'minikube' context and 'minikube' cluster.
+You can also go for testing against the provided hello-world by Kurtosis.
 
 ```bash
-kubectl config get-contexts
-
-# If you want to use Docker Desktop's Kubernetes, switch context:
-kubectl config use-context docker-desktop
-
-# If you want to use Minikube, switch context:
-kubectl config use-context minikube
-
-# Verify your current context:
-kubectl config current-context
-
-# Make sure your Kurtosis cluster matches your Kubernetes context:
-kurtosis cluster get
+~ kurtosis run --enclave test-k8s github.com/kurtosis-tech/awesome-kurtosis/hello-world
 ```
 
 ## Deployment
@@ -345,6 +330,66 @@ k9s -n kt-datahaven-stagenet
 **Tip**: *type '?' to access to all key bindings to navigate the dashboard, press 'Enter' to access an object, and 'Esc' to go back.*
 
 You can also check https://k9scli.io/topics/commands/ for a list of available commands and bindings.
+
+
+## Troubleshooting
+
+### Using the right context
+
+Ensure your Kubernetes context (shown by 'kubectl config current-context') matches the cluster Kurtosis is set to use (shown by 'kurtosis cluster get').
+For Docker Desktop, use 'docker-desktop' context and 'docker.k8s' cluster. For Minikube, use 'minikube' context and 'minikube' cluster.
+
+```bash
+# List available contexts
+kubectl config get-contexts
+
+# If you want to use Docker Desktop's Kubernetes, switch context:
+kubectl config use-context docker-desktop
+
+# If you want to use Minikube, switch context:
+kubectl config use-context minikube
+
+# Verify your current context:
+kubectl config current-context
+
+# Make sure your Kurtosis cluster matches your Kubernetes context:
+kurtosis cluster get
+
+```
+
+### RBAC Permission Issues (Kubernetes clusters only)
+
+You shouldn't, but If you get an error like "Failed to create cluster role with name 'kurtosis-logs-collector-*'" or "is attempting to grant RBAC permissions not currently held", you can use this to fix the RBAC permissions:
+
+```bash
+# Get the service account name from the error message and create a cluster role binding
+kubectl create clusterrolebinding kurtosis-logs-collector --clusterrole=cluster-admin --serviceaccount=<namespace>:<serviceaccount>
+
+# Example (replace with the actual service account from your error):
+kubectl create clusterrolebinding kurtosis-logs-collector --clusterrole=cluster-admin --serviceaccount=kurtosis-engine-43c7ccedab104a1f86fa8839637141e2:kurtosis-engine-43c7ccedab104a1f86fa8839637141e2
+```
+
+**Note:** This gives the Kurtosis engine cluster-admin privileges, which is acceptable for local development but should be avoided in production environments.
+
+
+### Make sure storage-class matches your config
+
+If say you're using a kurtosis cluster that has a storage-class different from `"hostpath"`when you run locally (i.e. `"standard"`, for minikube), then you might get some errors when trying to execute the helm charts.
+
+Look for this chunk in  `deploy/environments/local/values.yaml`:
+
+```yaml
+# Common node settings
+node:
+  chain: local
+  chainData:
+    storageClass: "hostpath"
+    persistence:
+      size: 10Gi
+  ...
+```
+
+And try changing storageClass to whatever you have configured in the cluster. Good luck!
 
 ## Help commands (for reference only)
 

@@ -2,25 +2,6 @@ export { LaunchedNetwork } from "./launchedNetwork";
 
 import type { LaunchedNetwork } from "./launchedNetwork";
 
-export type { ContractsDeployOptions, ContractsDeployResult } from "../contracts/types";
-// Re-export component types
-export type { DataHavenLaunchOptions, DataHavenLaunchResult } from "../datahaven/types";
-export type { EthereumLaunchOptions, EthereumLaunchResult } from "../ethereum/types";
-export type { RelayersLaunchOptions, RelayersLaunchResult } from "../relayers/types";
-export type {
-  StrategyInfo,
-  ValidatorConfig,
-  ValidatorsLaunchOptions,
-  ValidatorsLaunchResult
-} from "../validators/types";
-
-// Common result type
-export interface LaunchResult {
-  success: boolean;
-  error?: Error;
-  cleanup?: () => Promise<void>;
-}
-
 // Network launch options (combines all component options)
 export interface NetworkLaunchOptions {
   networkId: string;
@@ -40,13 +21,8 @@ export interface NetworkLaunchOptions {
 // Network connectors returned by the launcher
 export interface NetworkConnectors {
   launchedNetwork: LaunchedNetwork;
-  dataHavenWsUrl: string;
   dataHavenRpcUrl: string;
-  ethereumWsUrl: string;
   ethereumRpcUrl: string;
-  // Legacy properties for backwards compatibility
-  dhWsUrl?: string;
-  elRpcUrl?: string;
-  clEndpoint?: string;
-  cleanup?: () => Promise<void>;
+  ethereumClEndpoint: string;
+  cleanup: () => Promise<void>;
 }

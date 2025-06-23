@@ -260,10 +260,9 @@ export const launchNetwork = async (options: NetworkLaunchOptions): Promise<Netw
     const wsPort = launchedNetwork.getPublicWsPort();
     return {
       launchedNetwork,
-      dataHavenWsUrl: `ws://127.0.0.1:${wsPort}`,
       dataHavenRpcUrl: `http://127.0.0.1:${wsPort}`,
-      ethereumWsUrl: launchedNetwork.elRpcUrl,
       ethereumRpcUrl: launchedNetwork.elRpcUrl,
+      ethereumClEndpoint: launchedNetwork.clEndpoint,
       cleanup
     };
   } catch (error) {

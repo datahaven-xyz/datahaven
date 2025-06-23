@@ -8,7 +8,6 @@ use crate::{
 };
 use core::marker::PhantomData;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
-use datahaven_runtime_common::Hashing;
 use frame_support::pallet_prelude::DispatchClass;
 use frame_support::traits::AsEnsureOriginWithArg;
 use frame_support::{
@@ -46,6 +45,8 @@ use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
 pub type StorageDataUnit = u64;
 
 pub type StorageProofsMerkleTrieLayout = LayoutV1<BlakeTwo256>;
+
+pub type Hashing = BlakeTwo256;
 
 // TODO: remove this and replace with pallet treasury
 pub struct TreasuryAccount;

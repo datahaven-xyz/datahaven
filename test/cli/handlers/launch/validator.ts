@@ -1,7 +1,5 @@
-import { fundValidators } from "scripts/fund-validators";
-import { setupValidators } from "scripts/setup-validators";
-import { updateValidatorSet } from "scripts/update-validator-set";
 import { confirmWithTimeout, logger, printDivider } from "utils";
+import { fundValidators, setupValidators, updateValidatorSet } from "../../../launcher/validators";
 import type { LaunchOptions } from "..";
 
 export const performValidatorOperations = async (
@@ -30,9 +28,7 @@ export const performValidatorOperations = async (
       );
     }
 
-    await fundValidators({
-      rpcUrl: networkRpcUrl
-    });
+    await fundValidators({ rpcUrl: networkRpcUrl });
   } else {
     logger.info("👍 Skipping validator funding");
     printDivider();
@@ -59,9 +55,7 @@ export const performValidatorOperations = async (
       );
     }
 
-    await setupValidators({
-      rpcUrl: networkRpcUrl
-    });
+    await setupValidators({ rpcUrl: networkRpcUrl });
   }
 };
 
@@ -100,9 +94,7 @@ export const performValidatorSetUpdate = async (
       );
     }
 
-    await updateValidatorSet({
-      rpcUrl: networkRpcUrl
-    });
+    await updateValidatorSet({ rpcUrl: networkRpcUrl });
   } else {
     logger.info("👍 Skipping validator set update");
     printDivider();

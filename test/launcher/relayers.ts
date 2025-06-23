@@ -1,17 +1,29 @@
 import path from "node:path";
 import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
-import { createClient } from "polkadot-api";
+import { createClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
-import { getEvmEcdsaSigner, logger, parseRelayConfig, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
+import {
+  ANVIL_FUNDED_ACCOUNTS,
+  getEvmEcdsaSigner,
+  getPortFromKurtosis,
+  killExistingContainers,
+  logger,
+  parseDeploymentsFile,
+  parseRelayConfig,
+  runShellCommandWithLogger,
+  SUBSTRATE_FUNDED_ACCOUNTS,
+  waitForContainerToStart
+} from "utils";
 import type { BeaconCheckpoint, FinalityCheckpointsResponse } from "utils/types";
 import { parseJsonToBeaconCheckpoint } from "utils/types";
 import { waitFor } from "utils/waits";
-import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import { ZERO_HASH } from "../../../launcher/utils/constants";
+import type { LaunchedNetwork } from "./types/launchedNetwork";
+import { ZERO_HASH } from "./utils/constants";
 
+// Type definitions
 export type BeaconConfig = {
   type: "beacon";
   ethClEndpoint: string;
@@ -53,9 +65,29 @@ export type RelayerSpec = {
   pk: { ethereum?: string; substrate?: string };
 };
 
+// Constants
 export const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
 export const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
 export const INITIAL_CHECKPOINT_PATH = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
+
+/**
+ * Configuration options for launching Snowbridge relayers.
+ */
+export interface RelayersOptions {
+  relayerImageTag: string;
+  kurtosisEnclaveName: string;
+}
+
+/**
+ * Configuration paths for different relayer types.
+ */
+export const RELAYER_CONFIG_DIR = "tmp/configs";
+export const RELAYER_CONFIG_PATHS = {
+  BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
+  BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
+  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json"),
+  SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
+};
 
 /**
  * Generates configuration files for relayers.
@@ -323,5 +355,336 @@ const sendCheckpointToSubstrate = async (networkRpcUrl: string, checkpoint: Beac
   } finally {
     client.destroy();
     logger.debug("Destroyed client");
+  }
+};
+
+/**
+ * Launches Snowbridge relayers for cross-chain communication.
+ *
+ * This function sets up and launches all required Snowbridge relayers:
+ * - BEEFY relayer: Handles BEEFY protocol messages
+ * - Beacon relayer: Syncs Ethereum beacon chain state
+ * - Execution relayer: Processes execution layer events
+ * - Solochain relayer: Handles solochain-specific operations
+ *
+ * The function performs the following steps:
+ * 1. Kills any existing relayer containers
+ * 2. Waits for BEEFY protocol to be ready
+ * 3. Retrieves contract addresses from deployments
+ * 4. Creates configuration directories
+ * 5. Generates relayer configurations
+ * 6. Initializes the Ethereum client pallet
+ * 7. Starts all relayer containers
+ *
+ * @param options - Configuration options for launching relayers
+ * @param options.relayerImageTag - Docker image tag for the relayer containers
+ * @param options.kurtosisEnclaveName - Name of the Kurtosis enclave for Ethereum services
+ * @param launchedNetwork - The launched network instance containing connection details
+ *
+ * @throws {Error} If the relayer image tag is not provided
+ * @throws {Error} If BEEFY protocol is not ready within timeout
+ * @throws {Error} If required contract addresses are not found
+ * @throws {Error} If Docker operations fail
+ */
+export const launchRelayers = async (
+  options: RelayersOptions,
+  launchedNetwork: LaunchedNetwork
+): Promise<void> => {
+  logger.info("🚀 Launching Snowbridge relayers...");
+
+  const { relayerImageTag, kurtosisEnclaveName } = options;
+
+  invariant(relayerImageTag, "❌ relayerImageTag is required");
+  await killExistingContainers(relayerImageTag);
+
+  // Get DataHaven node port
+  const dhNodes = launchedNetwork.containers.filter((container) =>
+    container.name.includes("datahaven")
+  );
+  let substrateWsPort: number;
+  let substrateNodeId: string;
+
+  if (dhNodes.length === 0) {
+    logger.warn(
+      "⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to port 9944 for relayers."
+    );
+    substrateWsPort = 9944;
+    substrateNodeId = "default (assumed)";
+  } else {
+    const firstDhNode = dhNodes[0];
+    substrateWsPort = firstDhNode.publicPorts.ws;
+    substrateNodeId = firstDhNode.name;
+    logger.info(
+      `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
+    );
+  }
+
+  // Check if BEEFY is ready before proceeding
+  await waitBeefyReady(launchedNetwork, 2000, 60000);
+
+  const anvilDeployments = await parseDeploymentsFile();
+  const beefyClientAddress = anvilDeployments.BeefyClient;
+  const gatewayAddress = anvilDeployments.Gateway;
+  invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
+  invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
+
+  logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
+  await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
+
+  const datastorePath = "tmp/datastore";
+  logger.debug(`Ensuring datastore directory exists: ${datastorePath}`);
+  await $`mkdir -p ${datastorePath}`.quiet();
+
+  const ethWsPort = await getPortFromKurtosis("el-1-reth-lodestar", "ws", kurtosisEnclaveName);
+  const ethHttpPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", kurtosisEnclaveName);
+
+  const ethElRpcEndpoint = `ws://host.docker.internal:${ethWsPort}`;
+  const ethClEndpoint = `http://host.docker.internal:${ethHttpPort}`;
+  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+
+  const relayersToStart: RelayerSpec[] = [
+    {
+      name: "relayer-🥩",
+      configFilePath: RELAYER_CONFIG_PATHS.BEEFY,
+      config: {
+        type: "beefy",
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
+        beefyClientAddress,
+        gatewayAddress
+      },
+      pk: {
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey
+      }
+    },
+    {
+      name: "relayer-🥓",
+      configFilePath: RELAYER_CONFIG_PATHS.BEACON,
+      config: {
+        type: "beacon",
+        ethClEndpoint,
+        substrateWsEndpoint
+      },
+      pk: {
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
+      }
+    },
+    {
+      name: "relayer-⛓️",
+      configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+      config: {
+        type: "solochain",
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
+        beefyClientAddress,
+        gatewayAddress,
+        ethClEndpoint
+      },
+      pk: {
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
+      }
+    },
+    {
+      name: "relayer-⚙️",
+      configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
+      config: {
+        type: "execution",
+        ethElRpcEndpoint,
+        ethClEndpoint,
+        substrateWsEndpoint,
+        gatewayAddress
+      },
+      pk: {
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
+      }
+    }
+  ];
+
+  // Generate configurations for all relayers
+  for (const relayerSpec of relayersToStart) {
+    await generateRelayerConfig(relayerSpec, "local", RELAYER_CONFIG_DIR);
+  }
+
+  invariant(
+    launchedNetwork.networkName,
+    "❌ Docker network name not found in LaunchedNetwork instance"
+  );
+
+  // Initialize Ethereum client pallet
+  await initEthClientPallet(
+    path.resolve(RELAYER_CONFIG_PATHS.BEACON),
+    relayerImageTag,
+    datastorePath,
+    launchedNetwork
+  );
+
+  // Launch all relayers
+  await launchRelayerContainers(relayersToStart, relayerImageTag, launchedNetwork);
+
+  logger.success("Snowbridge relayers launched successfully");
+};
+
+/**
+ * Waits for the BEEFY protocol to be ready by polling its finalized head.
+ *
+ * @param launchedNetwork - An instance of LaunchedNetwork to get the node endpoint
+ * @param pollIntervalMs - The interval in milliseconds to poll the BEEFY endpoint
+ * @param timeoutMs - The total time in milliseconds to wait before timing out
+ *
+ * @throws {Error} If BEEFY is not ready within the timeout
+ */
+const waitBeefyReady = async (
+  launchedNetwork: LaunchedNetwork,
+  pollIntervalMs: number,
+  timeoutMs: number
+): Promise<void> => {
+  const port = launchedNetwork.getPublicWsPort();
+  const wsUrl = `ws://127.0.0.1:${port}`;
+  const iterations = Math.floor(timeoutMs / pollIntervalMs);
+
+  logger.info(`⌛️ Waiting for BEEFY to be ready on port ${port}...`);
+
+  let client: PolkadotClient | undefined;
+  const clientTimeoutMs = pollIntervalMs / 2;
+  const delayMs = pollIntervalMs / 2;
+  try {
+    client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
+
+    await waitFor({
+      lambda: async () => {
+        try {
+          logger.debug("Attempting to to check beefy_getFinalizedHead");
+
+          // Add timeout to the RPC call to prevent hanging.
+          const finalisedHeadPromise = client?._request<string>("beefy_getFinalizedHead", []);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error("RPC call timeout")), clientTimeoutMs);
+          });
+
+          const finalisedHeadHex = await Promise.race([finalisedHeadPromise, timeoutPromise]);
+
+          if (finalisedHeadHex && finalisedHeadHex !== ZERO_HASH) {
+            logger.info(`🥩 BEEFY is ready. Finalised head: ${finalisedHeadHex}.`);
+            return true;
+          }
+
+          logger.debug(
+            `BEEFY not ready or finalised head is zero. Retrying in ${delayMs / 1000}s...`
+          );
+          return false;
+        } catch (rpcError) {
+          logger.warn(`RPC error checking BEEFY status: ${rpcError}. Retrying...`);
+          return false;
+        }
+      },
+      iterations,
+      delay: delayMs,
+      errorMessage: "BEEFY protocol not ready. Relayers cannot be launched."
+    });
+  } catch (error) {
+    logger.error(`❌ Failed to connect to DataHaven node for BEEFY check: ${error}`);
+    throw new Error("BEEFY protocol not ready. Relayers cannot be launched.");
+  } finally {
+    if (client) {
+      client.destroy();
+    }
+  }
+};
+
+/**
+ * Launches individual relayer containers.
+ *
+ * @param relayersToStart - Array of relayer specifications
+ * @param relayerImageTag - Docker image tag for the relayers
+ * @param launchedNetwork - The launched network instance
+ */
+const launchRelayerContainers = async (
+  relayersToStart: RelayerSpec[],
+  relayerImageTag: string,
+  launchedNetwork: LaunchedNetwork
+): Promise<void> => {
+  const isLocal = relayerImageTag.endsWith(":local");
+  const networkName = launchedNetwork.networkName;
+  invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
+
+  for (const { configFilePath, name, config, pk } of relayersToStart) {
+    try {
+      const containerName = `snowbridge-${config.type}-relay`;
+      logger.info(`🚀 Starting relayer ${containerName} ...`);
+
+      const hostConfigFilePath = path.resolve(configFilePath);
+      const containerConfigFilePath = `/${configFilePath}`;
+
+      const commandBase: string[] = [
+        "docker",
+        "run",
+        "-d",
+        "--platform",
+        "linux/amd64",
+        "--add-host",
+        "host.docker.internal:host-gateway",
+        "--name",
+        containerName,
+        "--network",
+        networkName,
+        ...(isLocal ? [] : ["--pull", "always"])
+      ];
+
+      const volumeMounts: string[] = ["-v", `${hostConfigFilePath}:${containerConfigFilePath}`];
+
+      if (config.type === "beacon" || config.type === "execution") {
+        const hostDatastorePath = path.resolve("tmp/datastore");
+        const containerDatastorePath = "/data";
+        volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
+      }
+
+      const relayerCommandArgs: string[] = ["run", config.type, "--config", configFilePath];
+
+      switch (config.type) {
+        case "beacon":
+          invariant(pk.substrate, "❌ Substrate private key is required for beacon relayer");
+          relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          break;
+        case "beefy":
+          invariant(pk.ethereum, "❌ Ethereum private key is required for beefy relayer");
+          relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+          break;
+        case "solochain":
+          invariant(pk.ethereum, "❌ Ethereum private key is required for solochain relayer");
+          relayerCommandArgs.push("--ethereum.private-key", pk.ethereum);
+          if (pk.substrate) {
+            relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          } else {
+            logger.warn(
+              "⚠️ No substrate private key provided for solochain relayer. This might be an issue depending on the configuration."
+            );
+          }
+          break;
+        case "execution":
+          invariant(pk.substrate, "❌ Substrate private key is required for execution relayer");
+          relayerCommandArgs.push("--substrate.private-key", pk.substrate);
+          break;
+      }
+
+      const command: string[] = [
+        ...commandBase,
+        ...volumeMounts,
+        relayerImageTag,
+        ...relayerCommandArgs
+      ];
+
+      logger.debug(`Running command: ${command.join(" ")}`);
+      await runShellCommandWithLogger(command.join(" "), { logLevel: "debug" });
+
+      launchedNetwork.addContainer(containerName);
+
+      await waitForContainerToStart(containerName);
+
+      logger.success(`Started relayer ${name} with process ${process.pid}`);
+    } catch (e) {
+      logger.error(`Error starting relayer ${name}`);
+      logger.error(e);
+    }
   }
 };

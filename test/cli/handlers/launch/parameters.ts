@@ -1,7 +1,7 @@
-import { setDataHavenParameters } from "scripts/set-datahaven-parameters";
 import { logger, printDivider, printHeader } from "utils";
 import { confirmWithTimeout } from "utils/input";
 import type { ParameterCollection } from "utils/parameters";
+import { setDataHavenParameters } from "../../../launcher/parameters";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
@@ -23,9 +23,6 @@ export const setParametersFromCollection = async ({
   setParameters?: boolean;
 }): Promise<boolean> => {
   printHeader("Setting DataHaven Runtime Parameters");
-
-  const parametersFilePath = await collection.generateParametersFile();
-  const rpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
 
   // Check if setParameters option was set via flags, or prompt if not
   let shouldSetParameters = setParameters;
@@ -49,11 +46,11 @@ export const setParametersFromCollection = async ({
     return false;
   }
 
-  const parametersSet = await setDataHavenParameters({
-    rpcUrl,
-    parametersFilePath
+  await setDataHavenParameters({
+    launchedNetwork,
+    collection
   });
 
   printDivider();
-  return parametersSet;
+  return true;
 };

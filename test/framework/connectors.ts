@@ -13,7 +13,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
-import type { NetworkConnectors } from "../launcher";
+import type { LaunchNetworkResult } from "../launcher";
 
 export interface TestConnectors {
   // Ethereum connectors
@@ -30,9 +30,9 @@ export interface TestConnectors {
 }
 
 export class ConnectorFactory {
-  private connectors: NetworkConnectors;
+  private connectors: LaunchNetworkResult;
 
-  constructor(connectors: NetworkConnectors) {
+  constructor(connectors: LaunchNetworkResult) {
     this.connectors = connectors;
   }
 

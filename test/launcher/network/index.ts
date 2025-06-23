@@ -6,7 +6,7 @@ import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
 import { launchRelayers } from "../relayers";
-import type { NetworkConnectors, NetworkLaunchOptions } from "../types";
+import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
@@ -139,7 +139,9 @@ const createCleanupFunction = (networkId: string) => {
  * @returns NetworkConnectors with cleanup function
  * @throws {Error} if network ID is not unique or any component fails to launch
  */
-export const launchNetwork = async (options: NetworkLaunchOptions): Promise<NetworkConnectors> => {
+export const launchNetwork = async (
+  options: NetworkLaunchOptions
+): Promise<LaunchNetworkResult> => {
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;

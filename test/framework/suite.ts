@@ -1,7 +1,7 @@
 import { afterAll, beforeAll } from "bun:test";
 import { logger } from "utils";
 import { launchNetwork } from "../launcher";
-import type { NetworkConnectors } from "../launcher/types";
+import type { LaunchNetworkResult } from "../launcher/types";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
 
@@ -18,7 +18,7 @@ export interface TestSuiteOptions {
 
 export abstract class BaseTestSuite {
   protected networkId: string;
-  protected connectors?: NetworkConnectors;
+  protected connectors?: LaunchNetworkResult;
   protected testConnectors?: TestConnectors;
   private networkCleanup?: () => Promise<void>;
   private connectorFactory?: ConnectorFactory;
@@ -114,7 +114,7 @@ export abstract class BaseTestSuite {
   /**
    * Get network connectors - throws if not initialized
    */
-  protected getConnectors(): NetworkConnectors {
+  protected getConnectors(): LaunchNetworkResult {
     if (!this.connectors) {
       throw new Error("Network connectors not initialized. Did you call setupHooks()?");
     }

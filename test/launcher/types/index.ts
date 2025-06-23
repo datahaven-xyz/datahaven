@@ -19,7 +19,7 @@ export interface NetworkLaunchOptions {
 }
 
 // Network connectors returned by the launcher
-export interface NetworkConnectors {
+export interface LaunchNetworkResult {
   launchedNetwork: LaunchedNetwork;
   dataHavenRpcUrl: string;
   ethereumRpcUrl: string;

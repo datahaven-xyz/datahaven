@@ -13,7 +13,11 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { waitFor } from "utils/waits";
-import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../../../launcher/relayers";
+import {
+  generateRelayerConfig,
+  initEthClientPallet,
+  type RelayerSpec
+} from "../../../launcher/relayers";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { ZERO_HASH } from "../../../launcher/utils/constants";
 import type { DeployOptions } from ".";

@@ -101,32 +101,6 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
-# StorageHub
-## StorageHub and Polkadot deps
-pallet-bucket-nfts = { workspace = true }
-pallet-nfts = { workspace = true }
-pallet-cr-randomness = { workspace = true }
-pallet-file-system = { workspace = true }
-pallet-file-system-runtime-api = { workspace = true }
-pallet-payment-streams = { workspace = true }
-pallet-payment-streams-runtime-api = { workspace = true }
-pallet-proofs-dealer = { workspace = true }
-pallet-proofs-dealer-runtime-api = { workspace = true }
-pallet-randomness = { workspace = true }
-pallet-storage-providers = { workspace = true }
-pallet-storage-providers-runtime-api = { workspace = true }
-shp-constants = { workspace = true }
-shp-file-metadata = { workspace = true }
-shp-traits = { workspace = true }
-shp-treasury-funding = { workspace = true }
-shp-forest-verifier = { workspace = true }
-shp-file-key-verifier = { workspace = true }
-shp-data-price-updater = { workspace = true }
-sp-trie = { workspace = true }
-## Misc
-smallvec = { workspace = true }
-num-bigint = { workspace = true }
-
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
 

@@ -316,12 +316,10 @@ fn fees_burned_when_block_author_not_set() {
     use frame_support::traits::OnUnbalanced;
 
     ExtBuilder::default()
-        .with_balances(vec![
-            (
-                datahaven_testnet_runtime::Treasury::account_id(),
-                existential_deposit(),
-            ),
-        ])
+        .with_balances(vec![(
+            datahaven_testnet_runtime::Treasury::account_id(),
+            existential_deposit(),
+        )])
         .build()
         .execute_with(|| {
             // Explicitly do NOT set block author - this is the key difference from the test above

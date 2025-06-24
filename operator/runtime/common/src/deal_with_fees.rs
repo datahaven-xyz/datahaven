@@ -29,7 +29,11 @@ pub struct DealWithSubstrateFeesAndTip<R, FeesTreasuryProportion>(
 );
 impl<R, FeesTreasuryProportion> DealWithSubstrateFeesAndTip<R, FeesTreasuryProportion>
 where
-    R: pallet_balances::Config + pallet_treasury::Config + pallet_authorship::Config,
+    R: pallet_balances::Config
+        + pallet_treasury::Config
+        + pallet_authorship::Config
+        + frame_system::Config,
+    R::AccountId: Default,
     FeesTreasuryProportion: Get<Perbill>,
 {
     fn deal_with_fees(amount: Credit<R::AccountId, pallet_balances::Pallet<R>>) {
@@ -46,11 +50,14 @@ where
         ResolveTo::<BlockAuthorAccountId<R>, pallet_balances::Pallet<R>>::on_unbalanced(amount);
     }
 }
-
 impl<R, FeesTreasuryProportion> OnUnbalanced<Credit<R::AccountId, pallet_balances::Pallet<R>>>
     for DealWithSubstrateFeesAndTip<R, FeesTreasuryProportion>
 where
-    R: pallet_balances::Config + pallet_treasury::Config + pallet_authorship::Config,
+    R: pallet_balances::Config
+        + pallet_treasury::Config
+        + pallet_authorship::Config
+        + frame_system::Config,
+    R::AccountId: Default,
     FeesTreasuryProportion: Get<Perbill>,
 {
     fn on_unbalanceds(
@@ -90,11 +97,11 @@ pub struct BlockAuthorAccountId<R>(sp_std::marker::PhantomData<R>);
 impl<R> TypedGet for BlockAuthorAccountId<R>
 where
     R: frame_system::Config + pallet_authorship::Config,
+    R::AccountId: Default,
 {
     type Type = R::AccountId;
     fn get() -> Self::Type {
-        <pallet_authorship::Pallet<R>>::author()
-            .expect("Block author should always be present; qed")
+        <pallet_authorship::Pallet<R>>::author().unwrap_or_default()
     }
 }
 
@@ -103,7 +110,8 @@ pub struct DealWithEthereumPriorityFees<R>(sp_std::marker::PhantomData<R>);
 impl<R> OnUnbalanced<Credit<R::AccountId, pallet_balances::Pallet<R>>>
     for DealWithEthereumPriorityFees<R>
 where
-    R: pallet_balances::Config + pallet_authorship::Config,
+    R: pallet_balances::Config + pallet_authorship::Config + frame_system::Config,
+    R::AccountId: Default,
 {
     fn on_nonzero_unbalanced(amount: Credit<R::AccountId, pallet_balances::Pallet<R>>) {
         ResolveTo::<BlockAuthorAccountId<R>, pallet_balances::Pallet<R>>::on_unbalanced(amount);

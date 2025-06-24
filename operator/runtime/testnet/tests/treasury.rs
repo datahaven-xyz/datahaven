@@ -310,6 +310,71 @@ fn deal_with_fees_handles_tip() {
         });
 }
 
+#[test]
+fn fees_burned_when_block_author_not_set() {
+    use datahaven_runtime_common::deal_with_fees::DealWithSubstrateFeesAndTip;
+    use frame_support::traits::OnUnbalanced;
+
+    ExtBuilder::default()
+        .with_balances(vec![
+            (
+                datahaven_testnet_runtime::Treasury::account_id(),
+                existential_deposit(),
+            ),
+        ])
+        .build()
+        .execute_with(|| {
+            // Explicitly do NOT set block author - this is the key difference from the test above
+
+            let fee =
+                <pallet_balances::Pallet<Runtime> as frame_support::traits::fungible::Balanced<
+                    AccountId,
+                >>::issue(100);
+            let tip =
+                <pallet_balances::Pallet<Runtime> as frame_support::traits::fungible::Balanced<
+                    AccountId,
+                >>::issue(1000);
+
+            let total_supply_before = Balances::total_issuance();
+
+            // Expected supply: issued fee (100) + issued tip (1000) + 1 existential deposit
+            let expected_supply = 1_100 + existential_deposit();
+            assert_eq!(total_supply_before, expected_supply);
+
+            DealWithSubstrateFeesAndTip::<Runtime, FeesTreasuryProportion>::on_unbalanceds(
+                vec![fee, tip].into_iter(),
+            );
+
+            let treasury_proportion = FeesTreasuryProportion::get();
+            let treasury_fee_part: Balance = treasury_proportion.mul_floor(100);
+            let burnt_fee_part: Balance = 100 - treasury_fee_part;
+
+            // Verify treasury received its portion of the fee
+            assert_eq!(
+                Balances::free_balance(&datahaven_testnet_runtime::Treasury::account_id()),
+                existential_deposit() + treasury_fee_part,
+            );
+
+            // When block author is not set, the tip should be burned along with the fee portion
+            // Total burned = burnt_fee_part + tip (1000)
+            let total_supply_after = Balances::total_issuance();
+            let expected_burned = burnt_fee_part + 1000;
+            assert_eq!(
+                total_supply_before - total_supply_after,
+                expected_burned,
+                "Both fee portion and tip should be burned when block author is not set"
+            );
+
+            // Verify that the default account (from BlockAuthorAccountId) received nothing
+            let default_account: AccountId = Default::default();
+            assert_eq!(
+                Balances::free_balance(&default_account),
+                0,
+                "Default account should have zero balance when no block author is set"
+            );
+        });
+}
+
 #[cfg(test)]
 mod treasury_tests {
     use super::*;

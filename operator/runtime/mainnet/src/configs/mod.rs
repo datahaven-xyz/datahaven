@@ -983,11 +983,11 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         let command = Command::CallContract {
             target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
             calldata,
-            gas: 100_0000, // TODO: Determine appropriate gas value after testing
+            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
         };
         let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsOrigin::get(),
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
             // TODO: Determine appropriate id value
             id: unique(rewards_utils.rewards_merkle_root).into(),
             fee: 0,

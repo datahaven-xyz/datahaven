@@ -30,10 +30,10 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
-          
+
       # Re-enable if you get GH issues with the runner being full
       # - uses: ./.github/workflows/actions/cleanup-runner
-          
+
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: BUILD-RELEASE
@@ -42,14 +42,14 @@ jobs:
       - name: Build node binary
         run: |
           cargo build --release --locked --features fast-runtime
-          
+
       - name: Prepare binary
         run: |
           mkdir -p ./target/ci
           mkdir -p ./target/x86_64-unknown-linux-gnu/release
           cp ./target/release/datahaven-node ./target/ci/datahaven-node
           cp ./target/release/datahaven-node ./target/x86_64-unknown-linux-gnu/release/datahaven-node
-          
+
       - name: Hash binary
         id: hash-binary
         run: |
@@ -64,6 +64,13 @@ jobs:
         with:
           name: datahaven-node-${{ steps.hash-binary.outputs.datahaven-node-hash }}
           path: operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
+          retention-days: 1
+          
+      - name: Upload WASM to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: datahaven-wasm-${{ steps.hash-binary.outputs.datahaven-node-hash }}
+          path: operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm
           retention-days: 1
 
       - name: Build Stats

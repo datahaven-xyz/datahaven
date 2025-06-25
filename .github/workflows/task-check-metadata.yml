@@ -1,0 +1,96 @@
+name: "Task: Check Metadata Freshness"
+
+on:
+  workflow_dispatch:
+    inputs:
+      binary-hash:
+        description: "Hash of the binary artifact to use"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      binary-hash:
+        description: "Hash of the binary artifact to use"
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RUST_BACKTRACE: "1"
+
+jobs:
+  check-metadata:
+    name: Check metadata freshness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.16
+
+      - name: Install dependencies
+        working-directory: test
+        run: bun install --frozen-lockfile
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-wasm-${{ inputs.binary-hash }}
+          path: ./operator/target/release/wbuild/datahaven-stagenet-runtime
+
+      - name: Verify WASM download to target directory
+        run: |
+          echo "Target directory contents:"
+          find ./operator/target/release/wbuild/datahaven-stagenet-runtime -type f | head -20
+
+          # The WASM should be at this path in the artifact
+          WASM_PATH="./operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm"
+          if [ ! -f "$WASM_PATH" ]; then
+            echo "Error: WASM file not found at expected path: $WASM_PATH"
+            echo "Looking for WASM files in target directory:"
+            find ./operator/target/release/wbuild/datahaven-stagenet-runtime -name "*.wasm" -type f
+            exit 1
+          fi
+          echo "Found WASM at: $WASM_PATH"
+          echo "WASM size: $(du -h $WASM_PATH | cut -f1)"
+
+      - name: Generate metadata from WASM
+        working-directory: test
+        run: |
+          echo "Generating metadata from WASM..."
+          bun x papi add --wasm "../operator/target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.wasm" datahaven
+
+      - name: Check for metadata changes
+        run: |
+          # Check if the metadata file has changed
+          if git diff --exit-code test/.papi/metadata/datahaven.scale; then
+            echo "✅ Metadata is up to date!"
+          else
+            echo "❌ Metadata file has changed!"
+            echo ""
+            echo "The runtime metadata is out of date. Please run the following command and commit the changes:"
+            echo ""
+            echo "  cd test && bun generate:types:fast"
+            echo ""
+            echo "This ensures that TypeScript types match the current runtime."
+            echo ""
+            echo "Diff of changes:"
+            git diff test/.papi/metadata/datahaven.scale | head -50
+            exit 1
+          fi
+
+      - name: Check for other papi changes
+        run: |
+          # Also check if polkadot-api.json changed (shouldn't happen, but good to verify)
+          if git diff --exit-code test/.papi/polkadot-api.json; then
+            echo "✅ polkadot-api.json is unchanged"
+          else
+            echo "⚠️  polkadot-api.json has changed - this is unexpected"
+            git diff test/.papi/polkadot-api.json
+          fi

@@ -94,7 +94,7 @@ fn test_native_token_transfer_to_ethereum_succeeds() {
         let alice_initial = Balances::balance(&alice);
         let sovereign_initial = Balances::balance(&EthereumSovereignAccount::get());
         let treasury_initial =
-            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get());
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccount::get());
 
         // Execute transfer
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
@@ -115,7 +115,7 @@ fn test_native_token_transfer_to_ethereum_succeeds() {
         );
         // Verify treasury received the fee
         assert_eq!(
-            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get()),
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccount::get()),
             treasury_initial + fee
         );
 
@@ -217,7 +217,7 @@ fn test_multiple_concurrent_transfers_maintain_consistency() {
         let transfer2 = 300 * UNIT;
         let fee = 5 * UNIT;
         let treasury_initial =
-            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get());
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccount::get());
 
         // Execute multiple transfers
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
@@ -242,7 +242,7 @@ fn test_multiple_concurrent_transfers_maintain_consistency() {
 
         // Verify treasury received all fees (2 transfers * fee)
         assert_eq!(
-            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccountId::get()),
+            Balances::balance(&datahaven_testnet_runtime::configs::TreasuryAccount::get()),
             treasury_initial + (fee * 2)
         );
 
@@ -354,7 +354,7 @@ fn test_treasury_fee_collection() {
 
         let alice = account_id(ALICE);
         let bob = account_id(BOB);
-        let treasury_account = datahaven_testnet_runtime::configs::TreasuryAccountId::get();
+        let treasury_account = datahaven_testnet_runtime::configs::TreasuryAccount::get();
         let initial_treasury_balance = Balances::balance(&treasury_account);
 
         // Test case 1: Single transfer with fee

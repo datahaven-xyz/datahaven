@@ -168,10 +168,11 @@ export const launchNetwork = async (
     logger.info("📦 Launching DataHaven network...");
     await launchLocalDataHavenSolochain(
       {
+        networkId,
         datahavenImageTag: options.datahavenImageTag || "moonsonglabs/datahaven:local",
         relayerImageTag: options.relayerImageTag || "moonsonglabs/snowbridge-relay:latest",
         authorityIds: TEST_AUTHORITY_IDS,
-        buildDatahaven: options.buildDatahaven ?? false,
+        buildDatahaven: options.buildDatahaven ?? true,
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
       },
       launchedNetwork

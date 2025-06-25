@@ -20,7 +20,6 @@ export abstract class BaseTestSuite {
   protected networkId: string;
   protected connectors?: LaunchNetworkResult;
   protected testConnectors?: TestConnectors;
-  private networkCleanup?: () => Promise<void>;
   private connectorFactory?: ConnectorFactory;
   private options: TestSuiteOptions;
   private manager: TestSuiteManager;
@@ -44,15 +43,12 @@ export abstract class BaseTestSuite {
         // Launch the network
         this.connectors = await launchNetwork({
           networkId: this.networkId,
-          datahavenImageTag: "moonsonglabs/datahaven:local",
-          relayerImageTag: "moonsonglabs/snowbridge-relay:latest",
+          datahavenImageTag:
+            this.options.networkOptions?.datahavenImageTag || "moonsonglabs/datahaven:local",
+          relayerImageTag:
+            this.options.networkOptions?.relayerImageTag || "moonsonglabs/snowbridge-relay:latest",
           ...this.options.networkOptions
         });
-
-        // Store cleanup function if available
-        if (this.connectors.cleanup) {
-          this.networkCleanup = this.connectors.cleanup;
-        }
 
         // Create test connectors
         this.connectorFactory = new ConnectorFactory(this.connectors);

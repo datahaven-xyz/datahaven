@@ -15,12 +15,12 @@ import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchedNetwork } from "./types/launchedNetwork";
-import { DOCKER_NETWORK_NAME } from "./utils/constants";
 
 /**
  * Options for DataHaven-related operations.
  */
 export interface DataHavenOptions {
+  networkId: string;
   datahavenImageTag: string;
   relayerImageTag: string;
   buildDatahaven: boolean;
@@ -43,7 +43,8 @@ const DEFAULT_PUBLIC_WS_PORT = 9944;
  * - Setting up validator configuration with BEEFY authorities
  *
  * @param options - Configuration options for launching the network
- * @param options.datahavenImageTag - Docker image tag for DataHaven nodes (required)
+ * @param options.networkId - The network ID to use for the docker network name (will be `datahaven-${networkId}`)
+ * @param options.datahavenImageTag - Docker image tag for DataHaven nodes
  * @param options.relayerImageTag - Docker image tag for relayer nodes
  * @param options.buildDatahaven - Whether to build the local Docker image before launching
  * @param options.authorityIds - Array of authority IDs to launch (e.g., ["alice", "bob"])
@@ -81,15 +82,19 @@ export const launchLocalDataHavenSolochain = async (
     "--enable-offchain-indexing=true"
   ];
 
-  logger.info(`⛓️‍💥 Creating Docker network: ${DOCKER_NETWORK_NAME}`);
-  logger.debug(await $`docker network rm ${DOCKER_NETWORK_NAME} -f`.text());
-  logger.debug(await $`docker network create ${DOCKER_NETWORK_NAME}`.text());
+  // Create a unique Docker network name using the network ID
+  const dockerNetworkName = `datahaven-${options.networkId}`;
 
-  logger.success(`DataHaven nodes will use Docker network: ${DOCKER_NETWORK_NAME}`);
+  logger.info(`⛓️‍💥 Creating Docker network: ${dockerNetworkName}`);
+  logger.debug(await $`docker network rm ${dockerNetworkName} -f`.text());
+  logger.debug(await $`docker network create ${dockerNetworkName}`.text());
+  launchedNetwork.networkName = dockerNetworkName;
+
+  logger.success(`DataHaven nodes will use Docker network: ${dockerNetworkName}`);
 
   for (const id of options.authorityIds) {
     logger.info(`🚀 Starting ${id}...`);
-    const containerName = `datahaven-${id}`;
+    const containerName = `datahaven-${id}-${options.networkId}`;
 
     const command: string[] = [
       "docker",
@@ -98,7 +103,7 @@ export const launchLocalDataHavenSolochain = async (
       "--name",
       containerName,
       "--network",
-      DOCKER_NETWORK_NAME,
+      dockerNetworkName,
       ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
       options.datahavenImageTag,
       `--${id}`,
@@ -334,8 +339,9 @@ export const setupDataHavenValidatorConfig = async (
 export const checkDataHavenRunning = async (): Promise<boolean> => {
   // Check for any container whose name starts with "datahaven-"
   const containerIds = await $`docker ps --format "{{.Names}}" --filter "name=^datahaven-"`.text();
+  // Check for any Docker network that starts with "datahaven-"
   const networkOutput =
-    await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
+    await $`docker network ls --filter "name=^datahaven-" --format "{{.Name}}"`.text();
 
   // Check if containerIds has any actual IDs (not just whitespace)
   const containersExist = containerIds.trim().length > 0;
@@ -372,6 +378,7 @@ export const checkDataHavenRunning = async (): Promise<boolean> => {
  * @throws {Error} If containers or networks were not successfully removed
  */
 export const cleanDataHavenContainers = async (
+  networkId: string,
   datahavenImageTag: string,
   relayerImageTag?: string
 ): Promise<void> => {
@@ -389,7 +396,7 @@ export const cleanDataHavenContainers = async (
 
   logger.info("✅ Existing DataHaven containers stopped and removed.");
 
-  logger.debug(await $`docker network rm -f ${DOCKER_NETWORK_NAME}`.text());
+  logger.debug(await $`docker network rm -f datahaven-${networkId}`.text());
   logger.info("✅ DataHaven Docker network removed.");
 
   invariant(
@@ -458,15 +465,12 @@ export const checkTagExists = async (tag: string) => {
  * @param launchedNetwork - The launched network instance to register nodes in
  */
 export const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
-  // Registering DataHaven nodes Docker network.
-  launchedNetwork.networkName = DOCKER_NETWORK_NAME;
-
   const targetContainerName = "datahaven-alice";
   const aliceHostWsPort = DEFAULT_PUBLIC_WS_PORT; // Standard host port for Alice's WS, as set during launch.
 
   logger.debug(`Checking Docker status for container: ${targetContainerName}`);
   // Use ^ and $ for an exact name match in the filter.
-  const dockerPsOutput = await $`docker ps -q --filter "name=^${targetContainerName}$"`.text();
+  const dockerPsOutput = await $`docker ps -q --filter "name=^${targetContainerName}"`.text();
   const isContainerRunning = dockerPsOutput.trim().length > 0;
 
   if (!isContainerRunning) {

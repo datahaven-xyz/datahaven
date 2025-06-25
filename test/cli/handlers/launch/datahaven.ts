@@ -72,7 +72,11 @@ export const launchDataHavenSolochain = async (
       }
 
       // Case: User wants to clean and relaunch the DataHaven containers
-      await cleanDataHavenContainers(options.datahavenImageTag, options.relayerImageTag);
+      await cleanDataHavenContainers(
+        "cli-launch",
+        options.datahavenImageTag,
+        options.relayerImageTag
+      );
     }
   }
 
@@ -98,6 +102,7 @@ export const launchDataHavenSolochain = async (
 
   await launchLocalDataHavenSolochain(
     {
+      networkId: "cli-launch",
       datahavenImageTag: options.datahavenImageTag,
       relayerImageTag: options.relayerImageTag,
       authorityIds: CLI_AUTHORITY_IDS,

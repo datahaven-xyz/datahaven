@@ -26,7 +26,7 @@ export interface TestConnectors {
 
   // Raw URLs
   elRpcUrl: string;
-  dhWsUrl: string;
+  dhRpcUrl: string;
 }
 
 export class ConnectorFactory {
@@ -56,7 +56,8 @@ export class ConnectorFactory {
     });
 
     // Create DataHaven/Substrate clients
-    const wsProvider = getWsProvider(this.connectors.dataHavenWsUrl);
+    // Note: polkadot-api can handle HTTP RPC URLs even when passed to getWsProvider
+    const wsProvider = getWsProvider(this.connectors.dataHavenRpcUrl);
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
 
     // Get typed API
@@ -70,7 +71,7 @@ export class ConnectorFactory {
       papiClient,
       dhApi,
       elRpcUrl: this.connectors.ethereumRpcUrl,
-      dhWsUrl: this.connectors.dataHavenWsUrl
+      dhRpcUrl: this.connectors.dataHavenRpcUrl
     };
   }
 

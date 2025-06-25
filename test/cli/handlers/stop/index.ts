@@ -10,7 +10,7 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import { getRunningKurtosisEnclaves } from "../../../launcher/kurtosis";
-import { COMPONENTS, DOCKER_NETWORK_NAME } from "../../../launcher/utils/constants";
+import { COMPONENTS } from "../../../launcher/utils/constants";
 import { checkBaseDependencies } from "../common/checks";
 
 export interface StopOptions {
@@ -39,7 +39,7 @@ export const stop = async (options: StopOptions) => {
   await stopDockerComponents("snowbridge", options);
   printHeader("Datahaven Network");
   await stopDockerComponents("datahaven", options);
-  await removeDockerNetwork(DOCKER_NETWORK_NAME, options);
+  await removeDataHavenNetworks(options);
   printHeader("Ethereum Network");
   await stopAllEnclaves(options);
   printHeader("Kurtosis Engine");
@@ -83,42 +83,54 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
   logger.info(`🪓 ${components.length} ${name} containers stopped successfully`);
 };
 
-const removeDockerNetwork = async (networkName: string, options: StopOptions) => {
-  logger.debug(`Checking if Docker network ${networkName} exists...`);
-  const networkOutput =
-    await $`docker network ls --filter "name=^${DOCKER_NETWORK_NAME}$" --format "{{.Name}}"`.text();
+const removeDataHavenNetworks = async (options: StopOptions) => {
+  logger.debug(`Checking for Docker networks with 'datahaven-' prefix...`);
 
-  // Check if networkOutput has any network names (not just whitespace or empty lines)
-  const networksExist =
-    networkOutput
-      .trim()
-      .split("\n")
-      .filter((line) => line.trim().length > 0).length > 0;
-  if (!networksExist) {
-    logger.info(`🤷‍ Docker network ${networkName} does not exist, skipping`);
+  // Find all networks that start with "datahaven-"
+  const networkOutput =
+    await $`docker network ls --filter "name=^datahaven-" --format "{{.Name}}"`.text();
+
+  // Parse the output to get network names
+  const networks = networkOutput
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim().length > 0);
+
+  if (networks.length === 0) {
+    logger.info("🤷‍ No DataHaven Docker networks found, skipping");
     return;
   }
 
-  let shouldRemoveNetwork = options.all || options.datahaven;
-  if (shouldRemoveNetwork === undefined) {
-    shouldRemoveNetwork = await confirmWithTimeout(
-      `Do you want to remove the Docker network ${networkName}?`,
+  logger.info(`🔎 Found ${networks.length} DataHaven Docker network(s): ${networks.join(", ")}`);
+
+  let shouldRemoveNetworks = options.all || options.datahaven;
+  if (shouldRemoveNetworks === undefined) {
+    shouldRemoveNetworks = await confirmWithTimeout(
+      `Do you want to remove ${networks.length} DataHaven Docker network(s)?`,
       true,
       10
     );
   }
 
-  if (!shouldRemoveNetwork) {
-    logger.info(`👍 Skipping removing Docker network ${networkName} due to flag option`);
+  if (!shouldRemoveNetworks) {
+    logger.info("👍 Skipping removing DataHaven Docker networks due to flag option");
     return;
   }
 
-  logger.info(`⛓️‍💥 Removing Docker network: ${networkName}`);
-  const { exitCode, stderr } = await $`docker network rm -f ${networkName}`.nothrow().quiet();
-  if (exitCode !== 0) {
-    logger.warn(`⚠️ Failed to remove Docker network: ${stderr}`);
-  } else {
-    logger.info(`🪓 Docker network ${networkName} removed successfully`);
+  // Remove each network
+  let successCount = 0;
+  for (const networkName of networks) {
+    logger.info(`⛓️‍💥 Removing Docker network: ${networkName}`);
+    const { exitCode, stderr } = await $`docker network rm -f ${networkName}`.nothrow().quiet();
+    if (exitCode !== 0) {
+      logger.warn(`⚠️ Failed to remove Docker network ${networkName}: ${stderr}`);
+    } else {
+      successCount++;
+    }
+  }
+
+  if (successCount > 0) {
+    logger.info(`🪓 ${successCount} DataHaven Docker network(s) removed successfully`);
   }
 };
 

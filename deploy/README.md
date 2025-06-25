@@ -20,10 +20,6 @@ deploy/
 │   ├── local/               # Local development environment
 │   │   └── values.yaml
 │   ├── stagenet/           # Staging environment
-│   │   └── values.yaml
-│   ├── testnet/            # Testing environment
-│   │   └── values.yaml
-│   └── mainnet/            # Production environment
 │       └── values.yaml
 └── scripts/                  # Deployment scripts
 ```
@@ -50,8 +46,6 @@ Example:
 Available environments:
 - `local`: Local development environment (minimal resources)
 - `stagenet`: Staging environment for pre-release testing
-- `testnet`: Testing environment for network validation
-- `mainnet`: Production environment
 
 ## Environment Details
 
@@ -66,18 +60,6 @@ Available environments:
 - Medium resources (512Mi memory, 200m CPU)
 - Stagenet image tags
 - 20Gi persistence size
-
-### Testnet
-- 3 replicas
-- Large resources (1Gi memory, 500m CPU)
-- Testnet image tags
-- 50Gi persistence size
-
-### Mainnet
-- 5 replicas
-- Maximum resources (2Gi memory, 1000m CPU)
-- Mainnet image tags
-- 100Gi persistence size
 
 ## Configuration Structure
 

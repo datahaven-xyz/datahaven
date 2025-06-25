@@ -39,6 +39,17 @@
 | Developer tools | ❌ | ✅ | Medium |
 | Error handling | ❌ | ✅ | Low |
 
+## Why Use frame-omni-bencher Directly?
+
+Using frame-omni-bencher directly instead of through the node API provides several advantages:
+
+1. **No Node Required**: Benchmarks run against the runtime WASM directly, no need to start a node
+2. **Faster Execution**: Direct WASM execution is more efficient than going through RPC
+3. **Better CI/CD Integration**: Easier to run in automated environments without node setup
+4. **Consistent Results**: Eliminates network/node overhead from measurements
+5. **Simpler Toolchain**: One tool for all benchmarking needs
+6. **Industry Standard**: Used by Polkadot, Kusama, and major parachains
+
 ## Implementation Plan
 
 ### Phase 1: Critical Fixes (Week 1)
@@ -59,21 +70,32 @@ frame_benchmarking::define_benchmarks!(
 );
 ```
 
-#### 1.2 Verify Single Pallet First
+#### 1.2 Install frame-omni-bencher
 ```bash
-# Build with runtime-benchmarks feature
-cargo build --release --features "runtime-benchmarks"
+# Install frame-omni-bencher tool
+cargo install frame-omni-bencher
 
-# Test a single pallet to verify integration works
-./target/release/datahaven-operator benchmark pallet \
-    --chain=testnet \
-    --pallet=pallet_external_validators \
-    --extrinsic="*" \
-    --steps=50 \
-    --repeat=20
+# Download weight template from Polkadot SDK
+wget https://raw.githubusercontent.com/paritytech/polkadot-sdk/master/substrate/frame/system/src/weights.rs.template -O weight.hbs
 ```
 
-#### 1.3 Create Basic Automation Script
+#### 1.3 Verify Single Pallet First
+```bash
+# Build runtime WASM with benchmarks feature
+cargo build --release --features "runtime-benchmarks" -p datahaven-runtime-testnet
+
+# Test a single pallet using frame-omni-bencher
+frame-omni-bencher v1 benchmark pallet \
+    --runtime target/release/wbuild/datahaven-runtime-testnet/datahaven_runtime_testnet.compact.compressed.wasm \
+    --pallet pallet_external_validators \
+    --extrinsic "" \
+    --template weight.hbs \
+    --output pallets/external-validators/src/weights.rs \
+    --steps 50 \
+    --repeat 20
+```
+
+#### 1.4 Create Basic Automation Script
 **File**: `operator/scripts/run-benchmarks.sh`
 ```bash
 #!/bin/bash
@@ -84,33 +106,55 @@ STEPS=${2:-50}
 REPEAT=${3:-20}
 FEATURES="runtime-benchmarks"
 
-# Build the runtime
-echo "Building with features: $FEATURES"
-cargo build --release --features "$FEATURES"
+# Ensure frame-omni-bencher is installed
+if ! command -v frame-omni-bencher &> /dev/null; then
+    echo "Installing frame-omni-bencher..."
+    cargo install frame-omni-bencher
+fi
 
-# List of custom pallets
-PALLETS=(
-    "pallet_external_validators"
-    "pallet_external_validators_rewards"
-    "pallet_datahaven_native_transfer"
-    "pallet_ethereum_client"
-    "pallet_inbound_queue_v2"
-    "pallet_outbound_queue_v2"
-    "pallet_system"
-    "pallet_system_v2"
+# Ensure weight template exists
+if [ ! -f "weight.hbs" ]; then
+    echo "Downloading weight template..."
+    wget https://raw.githubusercontent.com/paritytech/polkadot-sdk/master/substrate/frame/system/src/weights.rs.template -O weight.hbs
+fi
+
+# Build the runtime WASM
+echo "Building runtime $RUNTIME with features: $FEATURES"
+cargo build --release --features "$FEATURES" -p datahaven-runtime-$RUNTIME
+
+# Get the WASM path
+WASM_PATH="target/release/wbuild/datahaven-runtime-$RUNTIME/datahaven_runtime_${RUNTIME}.compact.compressed.wasm"
+
+# List of custom pallets with their directory names
+declare -A PALLETS=(
+    ["pallet_external_validators"]="external-validators"
+    ["pallet_external_validators_rewards"]="external-validators-rewards"
+    ["pallet_datahaven_native_transfer"]="datahaven-native-transfer"
+    ["pallet_ethereum_client"]="ethereum-client"
+    ["pallet_inbound_queue_v2"]="inbound-queue-v2"
+    ["pallet_outbound_queue_v2"]="outbound-queue-v2"
+    ["pallet_system"]="system"
+    ["pallet_system_v2"]="system-v2"
 )
 
-# Run benchmarks for each pallet
-for PALLET in "${PALLETS[@]}"; do
+# Run benchmarks for each pallet using frame-omni-bencher
+for PALLET in "${!PALLETS[@]}"; do
+    DIR="${PALLETS[$PALLET]}"
     echo "Benchmarking $PALLET..."
-    ./target/release/datahaven-operator benchmark pallet \
-        --chain=$RUNTIME \
-        --pallet=$PALLET \
-        --extrinsic="*" \
-        --steps=$STEPS \
-        --repeat=$REPEAT \
-        --output=pallets/${PALLET#pallet_}/src/weights.rs
+    
+    frame-omni-bencher v1 benchmark pallet \
+        --runtime "$WASM_PATH" \
+        --pallet "$PALLET" \
+        --extrinsic "" \
+        --template weight.hbs \
+        --output "pallets/$DIR/src/weights.rs" \
+        --steps "$STEPS" \
+        --repeat "$REPEAT" || {
+            echo "Error benchmarking $PALLET, continuing..."
+        }
 done
+
+echo "Benchmarking complete!"
 ```
 
 ### Phase 1: CI/CD Integration
@@ -142,41 +186,68 @@ cd operator/runtime
 # Edit testnet/src/benchmarks.rs
 ```
 
-### Step 2: Verify Single Pallet (Immediate)
+### Step 2: Setup frame-omni-bencher (Immediate)
 ```bash
 cd operator
-cargo build --release --features "runtime-benchmarks"
-./target/release/datahaven-operator benchmark pallet \
-    --chain=testnet \
-    --pallet=pallet_external_validators \
-    --extrinsic="*" \
-    --steps=50 \
-    --repeat=20
+# Install frame-omni-bencher
+cargo install frame-omni-bencher
+
+# Download weight template
+wget https://raw.githubusercontent.com/paritytech/polkadot-sdk/master/substrate/frame/system/src/weights.rs.template -O weight.hbs
+
+# Build runtime WASM
+cargo build --release --features "runtime-benchmarks" -p datahaven-runtime-testnet
 ```
 
-### Step 3: Create Minimal Script (Today)
+### Step 3: Verify Single Pallet (Immediate)
+```bash
+# Run benchmark for a single pallet
+frame-omni-bencher v1 benchmark pallet \
+    --runtime target/release/wbuild/datahaven-runtime-testnet/datahaven_runtime_testnet.compact.compressed.wasm \
+    --pallet pallet_external_validators \
+    --extrinsic "" \
+    --template weight.hbs \
+    --output pallets/external-validators/src/weights.rs \
+    --steps 50 \
+    --repeat 20
+```
+
+### Step 4: Create Minimal Script (Today)
 ```bash
 cd operator
 mkdir -p scripts
 cat > scripts/benchmark-all.sh << 'EOF'
 #!/bin/bash
-FEATURES="runtime-benchmarks"
-STEPS=${1:-50}
-REPEAT=${2:-20}
+RUNTIME=${1:-testnet}
+STEPS=${2:-50}
+REPEAT=${3:-20}
 
-cargo build --release --features "$FEATURES"
-./target/release/datahaven-operator benchmark pallet \
-    --chain=testnet \
-    --pallet="*" \
-    --extrinsic="*" \
-    --steps=$STEPS \
-    --repeat=$REPEAT
+# Install frame-omni-bencher if needed
+command -v frame-omni-bencher >/dev/null || cargo install frame-omni-bencher
+
+# Get weight template if needed
+[ -f weight.hbs ] || wget https://raw.githubusercontent.com/paritytech/polkadot-sdk/master/substrate/frame/system/src/weights.rs.template -O weight.hbs
+
+# Build runtime WASM
+cargo build --release --features "runtime-benchmarks" -p datahaven-runtime-$RUNTIME
+
+# Run benchmarks for all pallets
+frame-omni-bencher v1 benchmark pallet \
+    --runtime target/release/wbuild/datahaven-runtime-$RUNTIME/datahaven_runtime_${RUNTIME}.compact.compressed.wasm \
+    --pallet "*" \
+    --extrinsic "" \
+    --template weight.hbs \
+    --steps $STEPS \
+    --repeat $REPEAT
 EOF
 chmod +x scripts/benchmark-all.sh
 ```
 
-### Step 4: Generate Fresh Weights
+### Step 5: Generate Fresh Weights
 ```bash
-# Run benchmarks
-./scripts/benchmark-all.sh
+# Run benchmarks for testnet runtime
+./scripts/benchmark-all.sh testnet 50 20
+
+# Or run for specific runtime with custom parameters
+./scripts/benchmark-all.sh mainnet 100 50
 ```

@@ -237,6 +237,7 @@ export const launchNetwork = async (
 
     await launchRelayers(
       {
+        networkId,
         relayerImageTag: options.relayerImageTag,
         kurtosisEnclaveName
       },

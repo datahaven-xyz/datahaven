@@ -165,6 +165,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigDir);
 
   await initEthClientPallet(
+    "cli-deploy",
     path.resolve(localBeaconConfigFilePath),
     options.relayerImageTag,
     "tmp/datastore",

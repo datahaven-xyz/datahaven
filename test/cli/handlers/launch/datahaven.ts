@@ -7,7 +7,7 @@ import {
   registerNodes
 } from "../../../launcher/datahaven";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import type { LaunchOptions } from ".";
+import { type LaunchOptions, NETWORK_ID } from ".";
 
 // 2 validators (Alice and Bob) are used for local & CI testing
 // <repo_root>/operator/runtime/stagenet/src/genesis_config_presets.rs#L98
@@ -42,7 +42,7 @@ export const launchDataHavenSolochain = async (
   if (!shouldLaunchDataHaven) {
     logger.info("👍 Skipping DataHaven network launch. Done!");
 
-    await registerNodes("cli-launch", launchedNetwork);
+    await registerNodes(NETWORK_ID, launchedNetwork);
     printDivider();
     return;
   }
@@ -66,14 +66,14 @@ export const launchDataHavenSolochain = async (
       if (!shouldRelaunch) {
         logger.info("👍 Keeping existing DataHaven containers/network.");
 
-        await registerNodes("cli-launch", launchedNetwork);
+        await registerNodes(NETWORK_ID, launchedNetwork);
         printDivider();
         return;
       }
 
       // Case: User wants to clean and relaunch the DataHaven containers
       await cleanDataHavenContainers(
-        "cli-launch",
+        NETWORK_ID,
         options.datahavenImageTag,
         options.relayerImageTag
       );
@@ -102,7 +102,7 @@ export const launchDataHavenSolochain = async (
 
   await launchLocalDataHavenSolochain(
     {
-      networkId: "cli-launch",
+      networkId: NETWORK_ID,
       datahavenImageTag: options.datahavenImageTag,
       relayerImageTag: options.relayerImageTag,
       authorityIds: CLI_AUTHORITY_IDS,

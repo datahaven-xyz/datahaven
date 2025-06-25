@@ -1,7 +1,7 @@
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import { launchRelayers as launchRelayersCore } from "../../../launcher/relayers";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import type { LaunchOptions } from ".";
+import { type LaunchOptions, NETWORK_ID } from ".";
 
 /**
  * Launches Snowbridge relayers for the DataHaven network.
@@ -33,6 +33,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
 
   await launchRelayersCore(
     {
+      networkId: NETWORK_ID,
       relayerImageTag: options.relayerImageTag,
       kurtosisEnclaveName: options.kurtosisEnclaveName
     },

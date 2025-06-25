@@ -12,6 +12,8 @@ import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
+export const NETWORK_ID = "cli-launch";
+
 // Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {
   datahaven?: boolean;

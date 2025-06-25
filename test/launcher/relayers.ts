@@ -74,6 +74,7 @@ export const INITIAL_CHECKPOINT_PATH = path.join(INITIAL_CHECKPOINT_DIR, INITIAL
  * Configuration options for launching Snowbridge relayers.
  */
 export interface RelayersOptions {
+  networkId: string;
   relayerImageTag: string;
   kurtosisEnclaveName: string;
 }
@@ -246,6 +247,7 @@ export const waitBeaconChainReady = async (
  * @throws If there's an error generating the beacon checkpoint or submitting it to Substrate.
  */
 export const initEthClientPallet = async (
+  networkId: string,
   beaconConfigHostPath: string,
   relayerImageTag: string,
   datastorePath: string,
@@ -281,7 +283,7 @@ export const initEthClientPallet = async (
       -v ${beaconConfigHostPath}:${beaconConfigContainerPath}:ro \
       -v ${checkpointHostPath}:${checkpointContainerPath} \
       -v ${datastoreHostPath}:/data \
-      --name generate-beacon-checkpoint \
+      --name generate-beacon-checkpoint-${networkId} \
       --platform linux/amd64 \
       --workdir /app \
       ${addHostParam} \
@@ -513,6 +515,7 @@ export const launchRelayers = async (
 
   // Initialize Ethereum client pallet
   await initEthClientPallet(
+    options.networkId,
     path.resolve(RELAYER_CONFIG_PATHS.BEACON),
     relayerImageTag,
     datastorePath,

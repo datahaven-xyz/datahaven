@@ -60,18 +60,17 @@ frame_benchmarking::define_benchmarks!(
 ```
 
 #### 1.2 Verify Single Pallet First
-**Quick verification before full automation**:
 ```bash
-# Build with fast-runtime for quicker testing
-cargo build --release --features "runtime-benchmarks fast-runtime"
+# Build with runtime-benchmarks feature
+cargo build --release --features "runtime-benchmarks"
 
 # Test a single pallet to verify integration works
 ./target/release/datahaven-operator benchmark pallet \
     --chain=testnet \
     --pallet=pallet_external_validators \
     --extrinsic="*" \
-    --steps=2 \
-    --repeat=1
+    --steps=50 \
+    --repeat=20
 ```
 
 #### 1.3 Create Basic Automation Script
@@ -83,12 +82,7 @@ set -e
 RUNTIME=${1:-testnet}
 STEPS=${2:-50}
 REPEAT=${3:-20}
-FEATURES=${4:-"runtime-benchmarks"}
-
-# Add fast-runtime for development builds
-if [[ "$STEPS" -lt "10" ]]; then
-    FEATURES="$FEATURES fast-runtime"
-fi
+FEATURES="runtime-benchmarks"
 
 # Build the runtime
 echo "Building with features: $FEATURES"
@@ -127,7 +121,7 @@ done
 - Manual dispatch option
 - All runtime validation
 - Integration with existing E2E test infrastructure
-- Use fast-runtime for PR checks, full runtime for scheduled runs
+- Run benchmarks on scheduled basis
 Run Weekly, not on each PR
 
 #### 3.2 Weight Diff Reporting
@@ -150,15 +144,14 @@ cd operator/runtime
 
 ### Step 2: Verify Single Pallet (Immediate)
 ```bash
-# Quick test with fast-runtime
 cd operator
-cargo build --release --features "runtime-benchmarks fast-runtime"
+cargo build --release --features "runtime-benchmarks"
 ./target/release/datahaven-operator benchmark pallet \
     --chain=testnet \
     --pallet=pallet_external_validators \
     --extrinsic="*" \
-    --steps=2 \
-    --repeat=1
+    --steps=50 \
+    --repeat=20
 ```
 
 ### Step 3: Create Minimal Script (Today)
@@ -167,16 +160,9 @@ cd operator
 mkdir -p scripts
 cat > scripts/benchmark-all.sh << 'EOF'
 #!/bin/bash
-# Quick mode for development
-if [ "$1" == "--quick" ]; then
-    FEATURES="runtime-benchmarks fast-runtime"
-    STEPS=5
-    REPEAT=2
-else
-    FEATURES="runtime-benchmarks"
-    STEPS=50
-    REPEAT=20
-fi
+FEATURES="runtime-benchmarks"
+STEPS=${1:-50}
+REPEAT=${2:-20}
 
 cargo build --release --features "$FEATURES"
 ./target/release/datahaven-operator benchmark pallet \
@@ -191,9 +177,6 @@ chmod +x scripts/benchmark-all.sh
 
 ### Step 4: Generate Fresh Weights
 ```bash
-# Quick test first
-./scripts/benchmark-all.sh --quick
-
-# Full benchmark run
+# Run benchmarks
 ./scripts/benchmark-all.sh
 ```

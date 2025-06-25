@@ -30,8 +30,6 @@ export const fundValidators = async (options: ValidatorOptions): Promise<void> =
   await fundValidatorsScript({
     rpcUrl: options.rpcUrl
   });
-
-  logger.success("Validators funded successfully");
 };
 
 /**
@@ -56,8 +54,6 @@ export const setupValidators = async (options: ValidatorOptions): Promise<void> 
   await setupValidatorsScript({
     rpcUrl: options.rpcUrl
   });
-
-  logger.success("Validators registered successfully");
 };
 
 /**
@@ -82,6 +78,4 @@ export const updateValidatorSet = async (options: ValidatorOptions): Promise<voi
   await updateValidatorSetScript({
     rpcUrl: options.rpcUrl
   });
-
-  logger.success("Validator set updated successfully");
 };

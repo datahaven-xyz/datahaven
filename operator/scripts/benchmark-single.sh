@@ -15,24 +15,33 @@ RUNTIME=${2:-testnet}
 STEPS=${3:-50}
 REPEAT=${4:-20}
 
-# Map pallet names to directories
-declare -A PALLET_DIRS=(
-    ["pallet_external_validators"]="external-validators"
-    ["pallet_external_validators_rewards"]="external-validators-rewards"
-    ["pallet_datahaven_native_transfer"]="datahaven-native-transfer"
-    ["pallet_ethereum_client"]="ethereum-client"
-    ["pallet_inbound_queue_v2"]="inbound-queue-v2"
-    ["pallet_outbound_queue_v2"]="outbound-queue-v2"
-    ["pallet_system"]="system"
-    ["pallet_system_v2"]="system-v2"
+# Validate pallet name
+VALID_PALLETS=(
+    "pallet_external_validators"
+    "pallet_external_validators_rewards"
+    "pallet_datahaven_native_transfer"
+    "pallet_ethereum_client"
+    "pallet_inbound_queue_v2"
+    "pallet_outbound_queue_v2"
+    "pallet_system"
+    "pallet_system_v2"
+    "pallet_balances"
+    "pallet_multisig"
+    "pallet_proxy"
+    "pallet_session"
+    "pallet_sudo"
+    "pallet_timestamp"
+    "pallet_transaction_payment"
+    "pallet_utility"
+    "cumulus_pallet_parachain_system"
+    "cumulus_pallet_xcmp_queue"
+    "pallet_xcm"
 )
 
-# Get the directory for this pallet
-DIR="${PALLET_DIRS[$PALLET]}"
-if [ -z "$DIR" ]; then
+if [[ ! " ${VALID_PALLETS[@]} " =~ " ${PALLET} " ]]; then
     echo "Error: Unknown pallet $PALLET"
     echo "Available pallets:"
-    for p in "${!PALLET_DIRS[@]}"; do
+    for p in "${VALID_PALLETS[@]}"; do
         echo "  - $p"
     done
     exit 1
@@ -58,6 +67,10 @@ if [ ! -f "$WASM_PATH" ] || [ "$WASM_PATH" -ot "runtime/$RUNTIME/src/lib.rs" ]; 
     cargo build --release --features "runtime-benchmarks" -p datahaven-runtime-$RUNTIME
 fi
 
+# Create runtime weights directory if it doesn't exist
+WEIGHTS_DIR="runtime/$RUNTIME/src/weights"
+mkdir -p "$WEIGHTS_DIR"
+
 # Run the benchmark
 echo "Benchmarking $PALLET (runtime: $RUNTIME, steps: $STEPS, repeat: $REPEAT)..."
 frame-omni-bencher v1 benchmark pallet \
@@ -65,8 +78,8 @@ frame-omni-bencher v1 benchmark pallet \
     --pallet "$PALLET" \
     --extrinsic "" \
     --template weight.hbs \
-    --output "pallets/$DIR/src/weights.rs" \
+    --output "$WEIGHTS_DIR/$PALLET.rs" \
     --steps "$STEPS" \
     --repeat "$REPEAT"
 
-echo "Benchmark complete! Weights written to pallets/$DIR/src/weights.rs"
+echo "Benchmark complete! Weights written to $WEIGHTS_DIR/$PALLET.rs"

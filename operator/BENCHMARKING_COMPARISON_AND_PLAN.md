@@ -245,9 +245,31 @@ chmod +x scripts/benchmark-all.sh
 
 ### Step 5: Generate Fresh Weights
 ```bash
-# Run benchmarks for testnet runtime
-./scripts/benchmark-all.sh testnet 50 20
+# Run benchmarks for all pallets in testnet runtime
+./scripts/run-benchmarks.sh testnet 50 20
 
-# Or run for specific runtime with custom parameters
-./scripts/benchmark-all.sh mainnet 100 50
+# Run benchmarks for specific pallet groups
+./scripts/run-benchmarks.sh testnet 50 20 datahaven    # Only DataHaven pallets
+./scripts/run-benchmarks.sh testnet 50 20 substrate    # Only Substrate pallets
+./scripts/run-benchmarks.sh testnet 50 20 cumulus      # Only Cumulus pallets
+./scripts/run-benchmarks.sh testnet 50 20 xcm          # Only XCM pallets
+
+# Run benchmark for a single pallet
+./scripts/benchmark-single.sh pallet_external_validators testnet 50 20
 ```
+
+### Step 6: Update Runtime to Use Centralized Weights
+After generating weights, update your runtime configuration to use the centralized weights from `runtime/*/src/weights/`:
+
+```rust
+// In runtime/testnet/src/lib.rs
+mod weights;
+
+// In pallet configurations
+impl pallet_external_validators::Config for Runtime {
+    type WeightInfo = weights::pallet_external_validators::DataHavenWeight<Runtime>;
+    // ... other config
+}
+```
+
+**Note**: Weights are now stored in `runtime/{runtime_name}/src/weights/` following the Moonbeam pattern, making them easier to manage and update.

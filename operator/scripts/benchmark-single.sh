@@ -17,25 +17,28 @@ REPEAT=${4:-20}
 
 # Validate pallet name
 VALID_PALLETS=(
+    # DataHaven pallets
     "pallet_external_validators"
     "pallet_external_validators_rewards"
     "pallet_datahaven_native_transfer"
-    "pallet_ethereum_client"
-    "pallet_inbound_queue_v2"
-    "pallet_outbound_queue_v2"
-    "pallet_system"
-    "pallet_system_v2"
+    # Snowbridge pallets
+    "snowbridge_pallet_ethereum_client"
+    "snowbridge_pallet_inbound_queue_v2"
+    "snowbridge_pallet_outbound_queue_v2"
+    "snowbridge_pallet_system"
+    "snowbridge_pallet_system_v2"
+    # Substrate pallets
     "pallet_balances"
+    "pallet_identity"
+    "pallet_im_online"
     "pallet_multisig"
-    "pallet_proxy"
+    "pallet_preimage"
+    "pallet_scheduler"
     "pallet_session"
     "pallet_sudo"
     "pallet_timestamp"
     "pallet_transaction_payment"
     "pallet_utility"
-    "cumulus_pallet_parachain_system"
-    "cumulus_pallet_xcmp_queue"
-    "pallet_xcm"
 )
 
 if [[ ! " ${VALID_PALLETS[@]} " =~ " ${PALLET} " ]]; then

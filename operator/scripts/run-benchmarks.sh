@@ -26,7 +26,7 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
     echo "  steps         - Number of steps for benchmarking. Default: 50"
     echo "  repeat        - Number of repetitions. Default: 20"
     echo "  pallet_group  - Which pallets to benchmark. Default: all"
-    echo "                  Options: all, datahaven, substrate, cumulus, xcm"
+    echo "                  Options: all, datahaven, snowbridge, substrate"
     echo ""
     echo "Examples:"
     echo "  $0                                # Benchmark all pallets for testnet"
@@ -78,11 +78,15 @@ declare -A DATAHAVEN_PALLETS=(
     ["pallet_external_validators"]="pallet_external_validators"
     ["pallet_external_validators_rewards"]="pallet_external_validators_rewards"
     ["pallet_datahaven_native_transfer"]="pallet_datahaven_native_transfer"
-    ["pallet_ethereum_client"]="pallet_ethereum_client"
-    ["pallet_inbound_queue_v2"]="pallet_inbound_queue_v2"
-    ["pallet_outbound_queue_v2"]="pallet_outbound_queue_v2"
-    ["pallet_system"]="pallet_system"
-    ["pallet_system_v2"]="pallet_system_v2"
+)
+
+# Snowbridge pallets
+declare -A SNOWBRIDGE_PALLETS=(
+    ["snowbridge_pallet_ethereum_client"]="snowbridge_pallet_ethereum_client"
+    ["snowbridge_pallet_inbound_queue_v2"]="snowbridge_pallet_inbound_queue_v2"
+    ["snowbridge_pallet_outbound_queue_v2"]="snowbridge_pallet_outbound_queue_v2"
+    ["snowbridge_pallet_system"]="snowbridge_pallet_system"
+    ["snowbridge_pallet_system_v2"]="snowbridge_pallet_system_v2"
 )
 
 # Substrate pallets
@@ -97,23 +101,11 @@ declare -A SUBSTRATE_PALLETS=(
     ["pallet_utility"]="pallet_utility"
 )
 
-# Cumulus pallets
-declare -A CUMULUS_PALLETS=(
-    ["cumulus_pallet_parachain_system"]="cumulus_pallet_parachain_system"
-    ["cumulus_pallet_xcmp_queue"]="cumulus_pallet_xcmp_queue"
-)
-
-# XCM pallets
-declare -A XCM_PALLETS=(
-    ["pallet_xcm"]="pallet_xcm"
-)
-
 # Combine all pallets
 declare -A ALL_PALLETS
 for key in "${!DATAHAVEN_PALLETS[@]}"; do ALL_PALLETS[$key]="${DATAHAVEN_PALLETS[$key]}"; done
+for key in "${!SNOWBRIDGE_PALLETS[@]}"; do ALL_PALLETS[$key]="${SNOWBRIDGE_PALLETS[$key]}"; done
 for key in "${!SUBSTRATE_PALLETS[@]}"; do ALL_PALLETS[$key]="${SUBSTRATE_PALLETS[$key]}"; done
-for key in "${!CUMULUS_PALLETS[@]}"; do ALL_PALLETS[$key]="${CUMULUS_PALLETS[$key]}"; done
-for key in "${!XCM_PALLETS[@]}"; do ALL_PALLETS[$key]="${XCM_PALLETS[$key]}"; done
 
 # Track success/failure
 declare -A RESULTS
@@ -159,22 +151,16 @@ case "$PALLET_GROUP" in
             PALLETS_TO_BENCHMARK[$key]="${DATAHAVEN_PALLETS[$key]}"
         done
         ;;
+    "snowbridge")
+        echo -e "${GREEN}Benchmarking Snowbridge pallets only${NC}"
+        for key in "${!SNOWBRIDGE_PALLETS[@]}"; do 
+            PALLETS_TO_BENCHMARK[$key]="${SNOWBRIDGE_PALLETS[$key]}"
+        done
+        ;;
     "substrate")
         echo -e "${GREEN}Benchmarking Substrate pallets only${NC}"
         for key in "${!SUBSTRATE_PALLETS[@]}"; do 
             PALLETS_TO_BENCHMARK[$key]="${SUBSTRATE_PALLETS[$key]}"
-        done
-        ;;
-    "cumulus")
-        echo -e "${GREEN}Benchmarking Cumulus pallets only${NC}"
-        for key in "${!CUMULUS_PALLETS[@]}"; do 
-            PALLETS_TO_BENCHMARK[$key]="${CUMULUS_PALLETS[$key]}"
-        done
-        ;;
-    "xcm")
-        echo -e "${GREEN}Benchmarking XCM pallets only${NC}"
-        for key in "${!XCM_PALLETS[@]}"; do 
-            PALLETS_TO_BENCHMARK[$key]="${XCM_PALLETS[$key]}"
         done
         ;;
     "all"|*)

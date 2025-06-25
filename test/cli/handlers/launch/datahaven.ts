@@ -42,7 +42,7 @@ export const launchDataHavenSolochain = async (
   if (!shouldLaunchDataHaven) {
     logger.info("👍 Skipping DataHaven network launch. Done!");
 
-    await registerNodes(launchedNetwork);
+    await registerNodes("cli-launch", launchedNetwork);
     printDivider();
     return;
   }
@@ -66,7 +66,7 @@ export const launchDataHavenSolochain = async (
       if (!shouldRelaunch) {
         logger.info("👍 Keeping existing DataHaven containers/network.");
 
-        await registerNodes(launchedNetwork);
+        await registerNodes("cli-launch", launchedNetwork);
         printDivider();
         return;
       }

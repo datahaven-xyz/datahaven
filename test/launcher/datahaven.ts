@@ -7,6 +7,7 @@ import { cargoCrossbuild } from "scripts/cargo-crossbuild";
 import invariant from "tiny-invariant";
 import {
   createPapiConnectors,
+  getPublicPort,
   killExistingContainers,
   logger,
   waitForContainerToStart
@@ -27,8 +28,6 @@ export interface DataHavenOptions {
   authorityIds: readonly string[];
   datahavenBuildExtraArgs?: string;
 }
-
-const DEFAULT_PUBLIC_WS_PORT = 9944;
 
 /**
  * Launches a local DataHaven solochain network for testing.
@@ -104,7 +103,7 @@ export const launchLocalDataHavenSolochain = async (
       containerName,
       "--network",
       dockerNetworkName,
-      ...(id === "alice" ? ["-p", `${DEFAULT_PUBLIC_WS_PORT}:9944`] : []),
+      ...(id === "alice" ? ["-p", "9944"] : []),
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS
@@ -125,11 +124,19 @@ export const launchLocalDataHavenSolochain = async (
     // logger.debug(listeningLine);
   }
 
+  // Register Alice node after all containers are started
+  await registerNodes(options.networkId, launchedNetwork);
+
   logger.info("⌛️ Waiting for DataHaven to start...");
   const timeoutMs = 2000; // 2 second timeout
+
+  // Get the dynamic port from the launched network
+  const aliceContainerName = `datahaven-alice-${options.networkId}`;
+  const alicePort = launchedNetwork.getContainerPort(aliceContainerName);
+
   await waitFor({
     lambda: async () => {
-      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT, timeoutMs);
+      const isReady = await isNetworkReady(alicePort, timeoutMs);
       if (!isReady) {
         logger.debug("Node not ready, waiting 1 second...");
       }
@@ -140,13 +147,9 @@ export const launchLocalDataHavenSolochain = async (
     errorMessage: "DataHaven network not ready"
   });
 
-  logger.success(
-    `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
-  );
-
-  await registerNodes(launchedNetwork);
-
   await setupDataHavenValidatorConfig(launchedNetwork, "datahaven-");
+
+  logger.success(`DataHaven network started, primary node accessible on port ${alicePort}`);
 };
 
 /**
@@ -454,9 +457,9 @@ export const checkTagExists = async (tag: string) => {
  * Registers the primary DataHaven node (alice) in the launched network.
  *
  * This function:
- * - Sets the Docker network name in the launched network configuration
  * - Checks if the 'datahaven-alice' container is running
- * - If running, registers it with the default WebSocket port (9944)
+ * - If running and not already registered, queries its dynamic port
+ * - Registers it with the dynamically assigned port
  * - If not running, logs a warning and returns without error
  *
  * Note: Only the alice node is registered as it's the primary node exposed on the default port.
@@ -464,9 +467,8 @@ export const checkTagExists = async (tag: string) => {
  *
  * @param launchedNetwork - The launched network instance to register nodes in
  */
-export const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
-  const targetContainerName = "datahaven-alice";
-  const aliceHostWsPort = DEFAULT_PUBLIC_WS_PORT; // Standard host port for Alice's WS, as set during launch.
+export const registerNodes = async (networkId: string, launchedNetwork: LaunchedNetwork) => {
+  const targetContainerName = `datahaven-alice-${networkId}`;
 
   logger.debug(`Checking Docker status for container: ${targetContainerName}`);
   // Use ^ and $ for an exact name match in the filter.
@@ -479,11 +481,22 @@ export const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
     return;
   }
 
-  // If the Docker container is running, proceed to register it in launchedNetwork.
-  // We use the standard host WS port that "datahaven-alice" is expected to use.
+  // Check if already registered
+  const existingContainer = launchedNetwork.containers.find((c) => c.name === targetContainerName);
+  if (existingContainer) {
+    logger.debug(
+      `Container ${targetContainerName} already registered with port ${existingContainer.publicPorts.ws}`
+    );
+    return;
+  }
+
+  // Query the dynamic port and register
+  const dynamicPort = await getPublicPort(targetContainerName, 9944);
   logger.debug(
-    `Docker container ${targetContainerName} is running. Registering with WS port ${aliceHostWsPort}.`
+    `Docker container ${targetContainerName} is running. Registering with dynamic port ${dynamicPort}.`
   );
-  launchedNetwork.addContainer(targetContainerName, { ws: aliceHostWsPort });
-  logger.info(`📝 Node ${targetContainerName} successfully registered in launchedNetwork.`);
+  launchedNetwork.addContainer(targetContainerName, { ws: dynamicPort });
+  logger.info(
+    `📝 Node ${targetContainerName} successfully registered in ${networkId} as datahaven-alice`
+  );
 };

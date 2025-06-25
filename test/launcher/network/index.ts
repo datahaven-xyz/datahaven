@@ -260,7 +260,8 @@ export const launchNetwork = async (
     }
 
     // Return connectors
-    const wsPort = launchedNetwork.getPublicWsPort();
+    const aliceContainerName = `datahaven-alice-${networkId}`;
+    const wsPort = launchedNetwork.getContainerPort(aliceContainerName);
     return {
       launchedNetwork,
       dataHavenRpcUrl: `http://127.0.0.1:${wsPort}`,

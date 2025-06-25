@@ -23,18 +23,22 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-mod runtime_params;
+pub mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EvmChainId, ExternalValidators, ExternalValidatorsRewards, Hash,
-    Historical, ImOnline, MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore,
-    OutboundQueueV2, PalletInfo, Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System,
-    Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
+    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
+    deal_with_fees::{
+        DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
+    },
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -45,6 +49,7 @@ use frame_support::{
     parameter_types,
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
+        tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
@@ -52,6 +57,7 @@ use frame_support::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
         IdentityFee, RuntimeDbWeight, Weight,
     },
+    PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -71,7 +77,7 @@ use pallet_transaction_payment::{
 use polkadot_primitives::Moment;
 use runtime_params::RuntimeParameters;
 use snowbridge_beacon_primitives::{Fork, ForkVersions};
-use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards};
+use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId};
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
@@ -103,6 +109,8 @@ use xcm::prelude::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
+#[cfg(feature = "runtime-benchmarks")]
+use datahaven_runtime_common::benchmarking::BenchmarkHelper;
 
 const EVM_CHAIN_ID: u64 = 1283;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
@@ -331,7 +339,13 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = FungibleAdapter<Balances, ()>;
+    type OnChargeTransaction = FungibleAdapter<
+        Balances,
+        DealWithSubstrateFeesAndTip<
+            Runtime,
+            runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
+        >,
+    >;
     type OperationalFeeMultiplier = ConstU8<5>;
     type WeightToFee = IdentityFee<Balance>;
     type LengthToFee = IdentityFee<Balance>;
@@ -470,9 +484,7 @@ impl pallet_identity::Config for Runtime {
     type MaxSubAccounts = MaxSubAccounts;
     type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
     type MaxRegistrars = MaxRegistrars;
-    type Slashed = ();
-    // TODO: Slashed funds should be sent to the treasury (when added to the runtime)
-    // type Slashed = Treasury;
+    type Slashed = Treasury;
     type ForceOrigin = IdentityForceOrigin;
     type RegistrarOrigin = IdentityRegistrarOrigin;
     type OffchainSignature = Signature;
@@ -531,7 +543,7 @@ parameter_types! {
 impl pallet_message_queue::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type MessageProcessor = OutboundQueueV2;
+    type MessageProcessor = EthereumOutboundQueueV2;
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor =
         pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
@@ -543,6 +555,36 @@ impl pallet_message_queue::Config for Runtime {
     type ServiceWeight = MessageQueueServiceWeight;
     type IdleMaxServiceWeight = MessageQueueServiceWeight;
     type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const TreasuryId: PalletId = PalletId(*b"pc/trsry");
+    pub TreasuryAccount: AccountId = Treasury::account_id();
+    pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
+}
+
+impl pallet_treasury::Config for Runtime {
+    type PalletId = TreasuryId;
+    type Currency = Balances;
+    type RejectOrigin = EnsureRoot<AccountId>;
+    type RuntimeEvent = RuntimeEvent;
+    type SpendPeriod = ConstU32<{ 6 * DAYS }>;
+    type Burn = ();
+    type BurnDestination = ();
+    type MaxApprovals = ConstU32<100>;
+    type WeightInfo = ();
+    type SpendFunds = ();
+    type SpendOrigin =
+        frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;
+    type AssetKind = ();
+    type Beneficiary = AccountId;
+    type BeneficiaryLookup = IdentityLookup<AccountId>;
+    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+    type BalanceConverter = UnityAssetBalanceConversion;
+    type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = BenchmarkHelper;
+    type BlockNumberProvider = System;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -623,7 +665,13 @@ impl pallet_evm::Config for Runtime {
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
-    type OnChargeTransaction = OnChargeEVMTransaction<()>;
+    type OnChargeTransaction = OnChargeEVMTransaction<
+        DealWithEthereumBaseFees<
+            Runtime,
+            runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
+        >,
+        DealWithEthereumPriorityFees<Runtime>,
+    >;
     type OnCreate = ();
     type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
@@ -640,7 +688,11 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    pub UniversalLocation: InteriorLocation = Here;
+    // TODO: Update with real genesis hash once stagenet is deployed
+    pub const StagenetGenesisHash: [u8; 32] = [3u8; 32];
+    pub UniversalLocation: InteriorLocation = [
+        GlobalConsensus(ByGenesis(StagenetGenesisHash::get()))
+    ].into();
     pub InboundDeliveryCost: BalanceOf<Runtime> = 0;
     pub RootLocation: Location = Location::here();
     pub Parameters: PricingParameters<u128> = PricingParameters {
@@ -650,8 +702,6 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
-    // TODO: Change to the actual treasury account
-    pub TreasuryAccountId: AccountId = AccountId::from([0u8; 20]);
 }
 
 pub struct DoNothingOutboundQueue;
@@ -684,7 +734,7 @@ impl snowbridge_pallet_system::Config for Runtime {
     type SiblingOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type AgentIdOf = AgentIdOf;
     type Token = Balances;
-    type TreasuryAccount = TreasuryAccountId;
+    type TreasuryAccount = TreasuryAccount;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
     type WeightInfo = ();
@@ -697,7 +747,7 @@ impl snowbridge_pallet_system::Config for Runtime {
 // Implement the Snowbridge System v2 config trait
 impl snowbridge_pallet_system_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OutboundQueue = OutboundQueueV2;
+    type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type WeightInfo = ();
@@ -772,10 +822,10 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 
 parameter_types! {
     /// Network and location for the Ethereum chain.
-    /// Using the Sepolia Ethereum testnet, with chain ID 11155111.
-    /// <https://chainlist.org/chain/11155111>
+    /// Using the local test network, with chain ID 3151908.
+    /// This matches the chain ID used in the local test environment.
     /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
-    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 11155111 };
+    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 3151908 };
 }
 
 pub struct CommitmentHandler;
@@ -892,11 +942,11 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         let command = Command::CallContract {
             target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
             calldata,
-            gas: 100_0000, // TODO: Determine appropriate gas value after testing
+            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
         };
         let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsOrigin::get(),
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
             // TODO: Determine appropriate id value
             id: unique(rewards_utils.rewards_merkle_root).into(),
             fee: 0,
@@ -915,10 +965,10 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        OutboundQueueV2::validate(&message)
+        EthereumOutboundQueueV2::validate(&message)
     }
     fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        OutboundQueueV2::deliver(message)
+        EthereumOutboundQueueV2::deliver(message)
     }
 }
 
@@ -933,10 +983,65 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type Hashing = Keccak256;
     type Currency = Balances;
-    type RewardsEthereumSovereignAccount = TreasuryAccountId;
+    type RewardsEthereumSovereignAccount = TreasuryAccount;
     type WeightInfo = ();
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
+}
+
+parameter_types! {
+    /// The Ethereum sovereign account derived from its XCM location
+    /// This is a hardcoded value for performance, computed from:
+    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 3151908 })])
+    /// using GlobalConsensusConvertsFor<UniversalLocation, AccountId>
+    pub EthereumSovereignAccount: AccountId = AccountId::from(
+        hex_literal::hex!("d8030fb68aa5b447caec066f3c0bde23e6db0a05")
+    );
+}
+
+/// Implementation of Get<Option<TokenId>> for DataHaven native transfer pallet
+pub struct DataHavenTokenId;
+impl Get<Option<TokenId>> for DataHavenTokenId {
+    fn get() -> Option<TokenId> {
+        let native_location = Location::here();
+
+        let reanchored = crate::SnowbridgeSystemV2::reanchor(native_location).ok()?;
+        <crate::SnowbridgeSystemV2 as sp_runtime::traits::MaybeEquivalence<TokenId, Location>>::convert_back(&reanchored)
+    }
+}
+
+impl pallet_datahaven_native_transfer::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type EthereumSovereignAccount = EthereumSovereignAccount;
+    type OutboundQueue = EthereumOutboundQueueV2;
+    type NativeTokenId = DataHavenTokenId;
+    type FeeRecipient = TreasuryAccount;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use xcm_builder::GlobalConsensusConvertsFor;
+    use xcm_executor::traits::ConvertLocation;
+
+    #[test]
+    fn test_ethereum_sovereign_account_computation() {
+        // Verify that the hardcoded Ethereum sovereign account matches the computed value
+        let computed_account =
+            GlobalConsensusConvertsFor::<UniversalLocation, AccountId>::convert_location(
+                &EthereumLocation::get(),
+            )
+            .expect("Ethereum location conversion should succeed");
+
+        assert_eq!(
+            computed_account,
+            EthereumSovereignAccount::get(),
+            "Computed account must match hardcoded value"
+        );
+    }
 }

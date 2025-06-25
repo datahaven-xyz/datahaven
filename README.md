@@ -20,7 +20,7 @@ This repo comes with a CLI for launching a local DataHaven network, packaged wit
 
 1. A full Ethereum network with:
    - 2 x Execution Layer clients (e.g., reth)
-   - 2 x Consensus Layer clients (e.g., lighthouse)
+   - 2 x Consensus Layer clients (e.g., lodestar)
    - Blockscout Explorer services for EL (if enabled with --blockscout)
    - Dora Explorer service for CL
    - Contracts deployed and configured for the DataHaven network.
@@ -101,11 +101,11 @@ These settings configure Solidity support:
 
 #### Typescript
 
-This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting and formatting. Bare in mind, that as of writing, it needs to be the pre-release version of the extension, that supports setting an inner folder as the project root. To make the extension work nicely with this repo, add the following to your `.vscode/settings.json` file:
+This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting and formatting. To make the extension work nicely with this repo, add the following to your `.vscode/settings.json` file:
 
 ```json
 {
-  "biome.projects": [{ "path": "test/" }],
+  "biome.lsp.bin": "test/node_modules/.bin/biome",
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
@@ -115,7 +115,7 @@ This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting 
 }
 ```
 
-- Sets up Biome for JavaScript/TypeScript formatting in the test directory.
+- Sets the Biome binary to the one in the `test/` folder.
 - Sets Biome as the default formatter for TypeScript.
 - Sets Biome to always organise imports on save.
 

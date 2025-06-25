@@ -22,23 +22,23 @@ export type KurtosisServiceInfo = {
 };
 
 export const standardKurtosisServices = [
-  "el-1-reth-lighthouse",
-  "el-2-reth-lighthouse",
-  "vc-1-reth-lighthouse",
-  "vc-2-reth-lighthouse",
+  "el-1-reth-lodestar",
+  "el-2-reth-lodestar",
+  "vc-1-reth-lodestar",
+  "vc-2-reth-lodestar",
   "dora"
 ];
 
 export const StandardServiceMappings: ServiceMapping[] = [
   {
     service: "reth-1-rpc",
-    containerPattern: "el-1-reth-lighthouse",
+    containerPattern: "el-1-reth-lodestar",
     internalPort: 8545,
     protocol: "tcp"
   },
   {
     service: "reth-2-rpc",
-    containerPattern: "el-2-reth-lighthouse",
+    containerPattern: "el-2-reth-lodestar",
     internalPort: 8545,
     protocol: "tcp"
   },
@@ -71,7 +71,7 @@ const serviceSchema = z.object({
   files: z.record(z.string(), z.array(z.string())).optional(),
   entrypoint: z.array(z.string()).optional(),
   cmd: z.array(z.string()),
-  env_vars: z.record(z.string(), z.string()),
+  env_vars: z.record(z.string(), z.string()).optional(),
   labels: z.record(z.string(), z.string()).optional(),
   tini_enabled: z.boolean()
 });

@@ -118,7 +118,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             newValidatorSet[i] = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
         }
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
-            DataHavenSnowbridgeMessages.NewValidatorSetPayload({newValidatorSet: newValidatorSet});
+            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
         DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
         DataHavenSnowbridgeMessages.NewValidatorSet({
             nonce: 0,

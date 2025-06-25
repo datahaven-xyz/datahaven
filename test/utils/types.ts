@@ -181,6 +181,160 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
 };
 
 /**
+ * The key of the DataHaven runtime parameter.
+ * This is an union type with all the possible parameter keys.
+ */
+export type DataHavenRuntimeParameterKey =
+  | "EthereumGatewayAddress"
+  | "RewardsRegistryAddress"
+  | "RewardsUpdateSelector"
+  | "RewardsAgentOrigin";
+
+/**
+ * Interface for raw JSON parameters before conversion
+ */
+export interface RawJsonParameter {
+  name: DataHavenRuntimeParameterKey;
+  value: string | null | undefined;
+}
+
+/**
+ * Schema for raw EthereumGatewayAddress parameter
+ */
+const rawEthereumGatewayAddressSchema = z.object({
+  name: z.literal("EthereumGatewayAddress"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
+ * Schema for raw RewardsRegistryAddress parameter
+ */
+const rawRewardsRegistryAddressSchema = z.object({
+  name: z.literal("RewardsRegistryAddress"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
+ * Schema for raw RewardsUpdateSelector parameter
+ */
+const rawRewardsUpdateSelectorSchema = z.object({
+  name: z.literal("RewardsUpdateSelector"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
+ * Schema for raw RewardsOrigin parameter
+ */
+const rawRewardsAgentOriginSchema = z.object({
+  name: z.literal("RewardsAgentOrigin"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
+ * Union schema for raw DataHaven parameters (for parsing JSON)
+ */
+export const rawDataHavenParameterSchema = z.discriminatedUnion("name", [
+  rawEthereumGatewayAddressSchema,
+  rawRewardsRegistryAddressSchema,
+  rawRewardsUpdateSelectorSchema,
+  rawRewardsAgentOriginSchema
+]);
+
+/**
+ * Schema for an array of raw DataHaven parameters
+ */
+export const rawDataHavenParametersArraySchema = z.array(rawDataHavenParameterSchema);
+
+/**
+ * The parsed type of a DataHaven runtime parameter.
+ */
+export interface ParsedDataHavenParameter {
+  name: DataHavenRuntimeParameterKey;
+  value: any;
+}
+
+/**
+ * Converts a parsed raw parameter to its typed version
+ */
+function convertParameter(rawParam: any): ParsedDataHavenParameter {
+  if (rawParam.name === "EthereumGatewayAddress" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
+    };
+  }
+  if (rawParam.name === "RewardsRegistryAddress" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
+    };
+  }
+  if (rawParam.name === "RewardsUpdateSelector" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<4>(hexToUint8Array(rawParam.value))
+    };
+  }
+  if (rawParam.name === "RewardsAgentOrigin" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<32>(hexToUint8Array(rawParam.value))
+    };
+  }
+
+  // For other parameter types, add conversion logic here
+  return rawParam;
+}
+
+/**
+ * Parses and converts a JSON object into a typed DataHaven parameter.
+ *
+ * @param jsonInput - The JSON parameter object to parse.
+ * @returns The parsed and converted parameter.
+ */
+export const parseJsonToParameter = (jsonInput: any): ParsedDataHavenParameter => {
+  try {
+    // First validate the raw structure
+    const rawParam = rawDataHavenParameterSchema.parse(jsonInput);
+    // Then convert to typed version
+    return convertParameter(rawParam);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(
+        `Invalid JSON structure for DataHaven parameter: ${error.errors
+          .map((e) => `${e.path.join(".")} - ${e.message}`)
+          .join(", ")}`
+      );
+    }
+    throw error;
+  }
+};
+
+/**
+ * Parses and converts an array of JSON parameters into typed DataHaven parameters.
+ *
+ * @param jsonInput - Array of JSON parameter objects to parse.
+ * @returns Array of parsed and converted parameters.
+ */
+export const parseJsonToParameters = (jsonInput: any[]): ParsedDataHavenParameter[] => {
+  try {
+    // First validate the raw structure of all parameters
+    const rawParams = rawDataHavenParametersArraySchema.parse(jsonInput);
+    // Then convert each parameter to its typed version
+    return rawParams.map(convertParameter);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(
+        `Invalid JSON structure for DataHaven parameters array: ${error.errors
+          .map((e) => `${e.path.join(".")} - ${e.message}`)
+          .join(", ")}`
+      );
+    }
+    throw error;
+  }
+};
+
+/**
  * Converts an array to a FixedSizeArray of the specified length.
  * Throws an error if the array length does not match the expected length.
  *

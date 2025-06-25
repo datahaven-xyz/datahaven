@@ -2,7 +2,7 @@ use crate::Runtime;
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
-use sp_runtime::BoundedVec;
+use sp_runtime::{BoundedVec, Perbill};
 use sp_std::vec;
 
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
@@ -36,10 +36,17 @@ pub mod dynamic_params {
 
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
-        /// The Origin is the hash of the string "external_validators_rewards"
-        pub static RewardsOrigin: H256 = H256::from_slice(&hex!(
+        /// The RewardsAgentOrigin is the hash of the string "external_validators_rewards"
+        /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
+        pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
             "c505dfb2df107d106d08bd0f1a0acd10052ca9aa078629a4ccfd0c90c6e69b65"
         ));
+
+        // Proportion of fees allocated to the Treasury (remainder are burned).
+        // e.g. 20% to the treasury, 80% burned.
+        #[codec(index = 4)]
+        #[allow(non_upper_case_globals)]
+        pub static FeesTreasuryProportion: Perbill = Perbill::from_percent(20);
     }
 }
 
@@ -47,9 +54,9 @@ pub mod dynamic_params {
 impl Default for RuntimeParameters {
     fn default() -> Self {
         RuntimeParameters::RuntimeConfig(
-            dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
-                dynamic_params::runtime_config::EthereumGatewayAddress,
-                Some(H160::repeat_byte(0x0)),
+            dynamic_params::runtime_config::Parameters::FeesTreasuryProportion(
+                dynamic_params::runtime_config::FeesTreasuryProportion,
+                Some(Perbill::from_percent(20)),
             ),
         )
     }

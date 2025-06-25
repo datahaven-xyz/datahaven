@@ -5,15 +5,17 @@ use parity_scale_codec::DecodeAll;
 use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
 use sp_std::vec::Vec;
 
-pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56];
+// Message ID. This is not expected to change and its arbitrary bytes defined here.
+// It should match the EL_MESSAGE_ID in DataHavenSnowbridgeMessages.sol
+pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56]; // 0x70150038
 
 #[derive(Encode, Decode)]
 pub struct Payload<T>
 where
     T: pallet_external_validators::Config,
 {
-    message: Message<T>,
-    message_id: [u8; 4],
+    pub message: Message<T>,
+    pub message_id: [u8; 4],
 }
 
 #[derive(Encode, Decode)]
@@ -38,6 +40,20 @@ where
 /// EigenLayer Message Processor
 pub struct EigenLayerMessageProcessor<T>(PhantomData<T>);
 
+impl<T> EigenLayerMessageProcessor<T>
+where
+    T: pallet_external_validators::Config,
+{
+    pub fn decode_message(mut payload: &[u8]) -> Result<Payload<T>, DispatchError> {
+        let decode_result = Payload::<T>::decode_all(&mut payload);
+        if let Ok(payload) = decode_result {
+            Ok(payload)
+        } else {
+            Err(DispatchError::Other("unable to parse the message payload"))
+        }
+    }
+}
+
 impl<T, AccountId> MessageProcessor<AccountId> for EigenLayerMessageProcessor<T>
 where
     T: pallet_external_validators::Config,
@@ -50,7 +66,7 @@ where
                 network: _,
             } => return false,
         };
-        let decode_result = Payload::<T>::decode_all(&mut payload.as_slice());
+        let decode_result = Self::decode_message(payload.as_slice());
         if let Ok(payload) = decode_result {
             payload.message_id == EL_MESSAGE_ID
         } else {
@@ -69,7 +85,7 @@ where
                 network: _,
             } => return Err(DispatchError::Other("Invalid Message")),
         };
-        let decode_result = Payload::<T>::decode_all(&mut payload.as_slice());
+        let decode_result = Self::decode_message(payload.as_slice());
         let message = if let Ok(payload) = decode_result {
             payload.message
         } else {

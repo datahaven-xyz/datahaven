@@ -51,6 +51,7 @@ pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
+pallet-datahaven-native-transfer = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -59,6 +60,7 @@ pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -103,6 +105,18 @@ xcm-executor = { workspace = true }
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
 
+[dev-dependencies]
+# Test utilities
+frame-support-test = { workspace = true }
+sp-io = { workspace = true }
+sp-tracing = { workspace = true }
+
+# Snowbridge testing
+snowbridge-core = { workspace = true }
+snowbridge-pallet-system = { workspace = true }
+snowbridge-pallet-system-v2 = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
+
 [features]
 default = ["std"]
 std = [
@@ -140,6 +154,7 @@ std = [
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
+    "pallet-treasury/std",
     "pallet-utility/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
@@ -180,6 +195,7 @@ std = [
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
+    "pallet-datahaven-native-transfer/std",
 ]
 
 runtime-benchmarks = [
@@ -205,6 +221,7 @@ runtime-benchmarks = [
     "pallet-scheduler/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
+    "pallet-treasury/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
@@ -218,6 +235,7 @@ runtime-benchmarks = [
     "pallet-outbound-commitment-store/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
     "pallet-external-validators-rewards/runtime-benchmarks",
+    "pallet-datahaven-native-transfer/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -247,6 +265,7 @@ try-runtime = [
     "pallet-sudo/try-runtime",
     "pallet-timestamp/try-runtime",
     "pallet-transaction-payment/try-runtime",
+    "pallet-treasury/try-runtime",
     "pallet-utility/try-runtime",
     "polkadot-runtime-common/try-runtime",
     "snowbridge-pallet-ethereum-client/try-runtime",
@@ -258,6 +277,7 @@ try-runtime = [
     "pallet-outbound-commitment-store/try-runtime",
     "pallet-external-validators/try-runtime",
     "pallet-external-validators-rewards/try-runtime",
+    "pallet-datahaven-native-transfer/try-runtime",
 ]
 
 fast-runtime = ["datahaven-runtime-common/fast-runtime"]

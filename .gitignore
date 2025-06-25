@@ -18,6 +18,10 @@ target/
 cspell.json
 
 tmp/*
+
 # macOS system files
 .DS_Store
 **/.DS_Store
+
+.worktrees/
+.claude/

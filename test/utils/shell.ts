@@ -34,8 +34,10 @@ export const runShellCommandWithLogger = async (
     const stdoutReader = proc.stdout.getReader();
     const stderrReader = proc.stderr.getReader();
 
+    let stderrBuffer = "";
+
     const readStream = async (
-      reader: typeof stdoutReader | typeof stderrReader,
+      reader: typeof stdoutReader,
       streamName: string,
       logLevel: LogLevel
     ) => {
@@ -58,16 +60,37 @@ export const runShellCommandWithLogger = async (
       }
     };
 
-    await Promise.all([
-      readStream(stdoutReader, "stdout", logLevel),
-      readStream(stderrReader, "stderr", "error")
-    ]);
+    const readStderr = async () => {
+      try {
+        while (true) {
+          const { done, value } = await stderrReader.read();
+          if (done) break;
+          stderrBuffer += new TextDecoder().decode(value);
+        }
+      } catch (err) {
+        logger.error("Error reading from stderr stream:", err);
+      } finally {
+        stderrReader.releaseLock();
+      }
+    };
+
+    await Promise.all([readStream(stdoutReader, "stdout", logLevel), readStderr()]);
 
     if (options?.waitFor) {
       await options.waitFor();
     }
 
-    await proc.exited;
+    const exitCode = await proc.exited;
+
+    // Only log stderr if the command failed
+    if (exitCode !== 0) {
+      const trimmedStderr = stderrBuffer.trim();
+      if (trimmedStderr) {
+        logger.error(
+          trimmedStderr.includes("\n") ? `>_ \n${trimmedStderr}` : `>_ ${trimmedStderr}`
+        );
+      }
+    }
   } catch (err) {
     logger.error("❌ Error running shell command:", command, "in", cwd);
     logger.error(err);

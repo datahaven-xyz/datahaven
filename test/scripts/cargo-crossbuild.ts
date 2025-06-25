@@ -52,7 +52,11 @@ export const cargoCrossbuild = async (options: { datahavenBuildExtraArgs?: strin
 
     const target = "x86_64-unknown-linux-gnu";
     await addRustupTarget(target);
-    const command = `cargo build --target ${target} --release`;
+
+    // Get additional arguments from command line
+    const additionalArgs = options.datahavenBuildExtraArgs ?? "";
+
+    const command = `cargo build --target ${target} --release ${additionalArgs}`;
     logger.debug(`Running build command: ${command}`);
 
     if (LOG_LEVEL === "debug") {

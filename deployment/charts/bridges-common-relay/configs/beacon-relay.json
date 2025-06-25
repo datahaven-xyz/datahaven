@@ -1,8 +1,8 @@
 {
     "source": {
         "beacon": {
-            "endpoint": "http://cl-1-lighthouse-reth:4000",
-            "stateEndpoint": "http://cl-1-lighthouse-reth:4000",
+            "endpoint": "http://cl-1-lodestar-reth:4000",
+            "stateEndpoint": "http://cl-1-lodestar-reth:4000",
             "spec": {
                 "syncCommitteeSize": 512,
                 "slotsInEpoch": 32,
@@ -13,7 +13,7 @@
                 }
             },
             "datastore": {
-                "location": "tmp/datastore",
+                "location": "/data",
                 "maxEntries": 100
             }
         }

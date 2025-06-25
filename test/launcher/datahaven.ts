@@ -421,7 +421,8 @@ export const cleanDataHavenContainers = async (
  */
 export const buildLocalImage = async (options: DataHavenOptions) => {
   await cargoCrossbuild({
-    datahavenBuildExtraArgs: options.datahavenBuildExtraArgs
+    datahavenBuildExtraArgs: options.datahavenBuildExtraArgs,
+    networkId: options.networkId
   });
 
   logger.info("🐳 Building DataHaven node local Docker image...");

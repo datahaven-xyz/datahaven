@@ -3,6 +3,7 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import {
   confirmWithTimeout,
+  getContainersByPrefix,
   getContainersMatchingImage,
   killExistingContainers,
   logger,
@@ -48,9 +49,8 @@ export const stop = async (options: StopOptions) => {
 
 export const stopDockerComponents = async (type: keyof typeof COMPONENTS, options: StopOptions) => {
   const name = COMPONENTS[type].componentName;
-  const imageName = COMPONENTS[type].imageName;
   logger.debug(`Checking currently running ${name} ...`);
-  const components = await getContainersMatchingImage(imageName);
+  const components = await getContainersByPrefix(type);
   logger.info(`🔎 Found ${components.length} containers(s) running the ${name}`);
   if (components.length === 0) {
     logger.info(`🤷‍ No ${name} containers found running`);
@@ -59,7 +59,7 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
   let shouldStopComponent = options.all || options[COMPONENTS[type].optionName];
   if (shouldStopComponent === undefined) {
     shouldStopComponent = await confirmWithTimeout(
-      `Do you want to stop the ${imageName} containers?`,
+      `Do you want to stop the ${type} containers?`,
       true,
       10
     );
@@ -74,8 +74,8 @@ export const stopDockerComponents = async (type: keyof typeof COMPONENTS, option
     return;
   }
 
-  await killExistingContainers(imageName);
-  const remaining = await getContainersMatchingImage(imageName);
+  await killExistingContainers(type);
+  const remaining = await getContainersByPrefix(type);
   invariant(
     remaining.length === 0,
     `❌ ${remaining.length} containers are still running and have not been stopped.`

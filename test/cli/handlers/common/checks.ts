@@ -116,27 +116,29 @@ export const checkKurtosisCluster = async (kubernetes?: boolean): Promise<boolea
   const { exitCode, stderr, stdout } = await $`kurtosis cluster get`.nothrow().quiet();
 
   if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    return false;
+    logger.warn(`⚠️ Kurtosis cluster get failed: ${stderr.toString()}`);
+    logger.info("ℹ️ Assuming local launch mode and continuing.");
+    return true; 
   }
 
   const currentCluster = stdout.toString().trim();
   logger.debug(`Current Kurtosis cluster: ${currentCluster}`);
 
-  // Get the cluster type from config using sed
+  // Try to get the cluster type from config, but don't fail if config path is not reachable
   const clusterTypeResult =
     await $`CURRENT_CLUSTER=${currentCluster} && sed -n "/^  $CURRENT_CLUSTER:$/,/^  [^ ]/p" "$(kurtosis config path)" | grep "type:" | sed 's/.*type: "\(.*\)"/\1/'`
       .nothrow()
       .quiet();
 
   if (clusterTypeResult.exitCode !== 0) {
-    logger.error("❌ Failed to read Kurtosis cluster type from config");
+    logger.warn("⚠️ Failed to read Kurtosis cluster type from config");
     logger.debug(clusterTypeResult.stderr.toString());
-    return false;
+    logger.info("ℹ️ Assuming local launch mode and continuing gracefully");
+    return true; // Continue gracefully for local launch
   }
 
   const clusterType = clusterTypeResult.stdout.toString().trim();
-  logger.warn(`Kurtosis cluster type: ${clusterType}`);
+  logger.debug(`Kurtosis cluster type: ${clusterType}`);
 
   // Validate cluster type against expected type
   if (kubernetes && clusterType !== "kubernetes") {

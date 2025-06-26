@@ -57,7 +57,7 @@ export abstract class BaseTestSuite {
         // Allow derived classes to perform additional setup
         await this.onSetup();
 
-        logger.success(`✅ Test suite setup complete: ${this.options.suiteName}`);
+        logger.success(`Test suite setup complete: ${this.options.suiteName}`);
       } catch (error) {
         logger.error(`Failed to setup test suite: ${this.options.suiteName}`, error);
         this.manager.failSuite(this.options.suiteName);

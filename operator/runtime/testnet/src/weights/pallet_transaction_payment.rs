@@ -35,7 +35,7 @@
 // --extrinsic
 // 
 // --template
-// weight.hbs
+// benchmarking/frame-weight-template.hbs
 // --output
 // runtime/testnet/src/weights/pallet_transaction_payment.rs
 // --steps
@@ -65,8 +65,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `166`
 		//  Estimated: `3581`
-		// Minimum execution time: 35_606_000 picoseconds.
-		Weight::from_parts(38_648_000, 3581)
+		// Minimum execution time: 37_389_000 picoseconds.
+		Weight::from_parts(42_869_000, 3581)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -80,8 +80,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `166`
 		//  Estimated: `3581`
-		// Minimum execution time: 35_606_000 picoseconds.
-		Weight::from_parts(38_648_000, 3581)
+		// Minimum execution time: 37_389_000 picoseconds.
+		Weight::from_parts(42_869_000, 3581)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}

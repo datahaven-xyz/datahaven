@@ -1011,11 +1011,25 @@ impl Get<Option<TokenId>> for DataHavenTokenId {
     }
 }
 
+/// Mock implementation of Get<Option<TokenId>> for benchmarking
+#[cfg(feature = "runtime-benchmarks")]
+pub struct MockNativeTokenId;
+#[cfg(feature = "runtime-benchmarks")]
+impl Get<Option<TokenId>> for MockNativeTokenId {
+    fn get() -> Option<TokenId> {
+        // Always return a valid token ID for benchmarks
+        Some(TokenId::from([1u8; 32]))
+    }
+}
+
 impl pallet_datahaven_native_transfer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = EthereumOutboundQueueV2;
+    #[cfg(feature = "runtime-benchmarks")]
+    type NativeTokenId = MockNativeTokenId;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type NativeTokenId = DataHavenTokenId;
     type FeeRecipient = TreasuryAccountId;
     type PauseOrigin = EnsureRoot<AccountId>;

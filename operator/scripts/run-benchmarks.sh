@@ -45,9 +45,10 @@ if ! command -v frame-omni-bencher &> /dev/null; then
 fi
 
 # Ensure weight template exists
-if [ ! -f "weight.hbs" ]; then
-    echo -e "${RED}Error: weight.hbs template file not found!${NC}"
-    echo "Please ensure weight.hbs exists in the operator directory"
+TEMPLATE_PATH="benchmarking/frame-weight-template.hbs"
+if [ ! -f "$TEMPLATE_PATH" ]; then
+    echo -e "${RED}Error: Weight template file not found at $TEMPLATE_PATH${NC}"
+    echo "Please ensure the template exists in the benchmarking directory"
     exit 1
 fi
 
@@ -107,7 +108,7 @@ benchmark_pallet() {
         --runtime "$WASM_PATH" \
         --pallet "$PALLET" \
         --extrinsic "" \
-        --template weight.hbs \
+        --template "$TEMPLATE_PATH" \
         --output "$WEIGHTS_DIR/$OUTPUT_FILE.rs" \
         --steps "$STEPS" \
         --repeat "$REPEAT" 2>&1 | tee benchmark_${PALLET}.log; then

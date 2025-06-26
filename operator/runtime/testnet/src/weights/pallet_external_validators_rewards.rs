@@ -35,7 +35,7 @@
 // --extrinsic
 // 
 // --template
-// weight.hbs
+// benchmarking/frame-weight-template.hbs
 // --output
 // runtime/testnet/src/weights/pallet_external_validators_rewards.rs
 // --steps
@@ -73,8 +73,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `24165`
 		//  Estimated: `27630`
-		// Minimum execution time: 1_011_241_000 picoseconds.
-		Weight::from_parts(1_031_436_000, 27630)
+		// Minimum execution time: 1_004_998_000 picoseconds.
+		Weight::from_parts(1_029_120_000, 27630)
 			.saturating_add(T::DbWeight::get().reads(6_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -96,8 +96,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `24165`
 		//  Estimated: `27630`
-		// Minimum execution time: 1_011_241_000 picoseconds.
-		Weight::from_parts(1_031_436_000, 27630)
+		// Minimum execution time: 1_004_998_000 picoseconds.
+		Weight::from_parts(1_029_120_000, 27630)
 			.saturating_add(RocksDbWeight::get().reads(6_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
 	}

@@ -35,7 +35,7 @@
 // --extrinsic
 // 
 // --template
-// weight.hbs
+// benchmarking/frame-weight-template.hbs
 // --output
 // runtime/testnet/src/weights/frame_benchmarking.rs
 // --steps
@@ -69,49 +69,49 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 124_000 picoseconds.
-		Weight::from_parts(125_000, 0)
+		// Minimum execution time: 113_000 picoseconds.
+		Weight::from_parts(152_500, 0)
 	}
 	/// The range of component `i` is `[0, 1000000]`.
 	fn subtraction(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 118_000 picoseconds.
-		Weight::from_parts(131_500, 0)
+		// Minimum execution time: 110_000 picoseconds.
+		Weight::from_parts(138_000, 0)
 	}
 	/// The range of component `i` is `[0, 1000000]`.
 	fn multiplication(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 106_000 picoseconds.
-		Weight::from_parts(148_500, 0)
+		// Minimum execution time: 126_000 picoseconds.
+		Weight::from_parts(134_000, 0)
 	}
 	/// The range of component `i` is `[0, 1000000]`.
 	fn division(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 107_000 picoseconds.
-		Weight::from_parts(139_500, 0)
+		// Minimum execution time: 113_000 picoseconds.
+		Weight::from_parts(116_500, 0)
 	}
 	fn hashing() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 21_243_356_000 picoseconds.
-		Weight::from_parts(21_360_529_000, 0)
+		// Minimum execution time: 20_957_262_000 picoseconds.
+		Weight::from_parts(20_968_903_000, 0)
 	}
 	/// The range of component `i` is `[0, 100]`.
 	fn sr25519_verification(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 113_000 picoseconds.
-		Weight::from_parts(126_500, 0)
-			// Standard Error: 199_350
-			.saturating_add(Weight::from_parts(39_882_425, 0).saturating_mul(i.into()))
+		// Minimum execution time: 145_000 picoseconds.
+		Weight::from_parts(146_500, 0)
+			// Standard Error: 24_050
+			.saturating_add(Weight::from_parts(40_235_685, 0).saturating_mul(i.into()))
 	}
 }
 
@@ -122,48 +122,48 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 124_000 picoseconds.
-		Weight::from_parts(125_000, 0)
+		// Minimum execution time: 113_000 picoseconds.
+		Weight::from_parts(152_500, 0)
 	}
 	/// The range of component `i` is `[0, 1000000]`.
 	fn subtraction(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 118_000 picoseconds.
-		Weight::from_parts(131_500, 0)
+		// Minimum execution time: 110_000 picoseconds.
+		Weight::from_parts(138_000, 0)
 	}
 	/// The range of component `i` is `[0, 1000000]`.
 	fn multiplication(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 106_000 picoseconds.
-		Weight::from_parts(148_500, 0)
+		// Minimum execution time: 126_000 picoseconds.
+		Weight::from_parts(134_000, 0)
 	}
 	/// The range of component `i` is `[0, 1000000]`.
 	fn division(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 107_000 picoseconds.
-		Weight::from_parts(139_500, 0)
+		// Minimum execution time: 113_000 picoseconds.
+		Weight::from_parts(116_500, 0)
 	}
 	fn hashing() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 21_243_356_000 picoseconds.
-		Weight::from_parts(21_360_529_000, 0)
+		// Minimum execution time: 20_957_262_000 picoseconds.
+		Weight::from_parts(20_968_903_000, 0)
 	}
 	/// The range of component `i` is `[0, 100]`.
 	fn sr25519_verification(i: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 113_000 picoseconds.
-		Weight::from_parts(126_500, 0)
-			// Standard Error: 199_350
-			.saturating_add(Weight::from_parts(39_882_425, 0).saturating_mul(i.into()))
+		// Minimum execution time: 145_000 picoseconds.
+		Weight::from_parts(146_500, 0)
+			// Standard Error: 24_050
+			.saturating_add(Weight::from_parts(40_235_685, 0).saturating_mul(i.into()))
 	}
 }

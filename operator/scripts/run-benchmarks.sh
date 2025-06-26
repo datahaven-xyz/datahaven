@@ -62,10 +62,10 @@ fi
 
 # Build the runtime WASM
 echo -e "${YELLOW}Building runtime $RUNTIME with features: $FEATURES${NC}"
-cargo build --release --features "$FEATURES" -p datahaven-runtime-$RUNTIME
+cargo build --release --features "$FEATURES" -p datahaven-$RUNTIME-runtime
 
 # Get the WASM path
-WASM_PATH="target/release/wbuild/datahaven-runtime-$RUNTIME/datahaven_runtime_${RUNTIME}.compact.compressed.wasm"
+WASM_PATH="target/release/wbuild/datahaven-$RUNTIME-runtime/datahaven_${RUNTIME}_runtime.compact.compressed.wasm"
 
 if [ ! -f "$WASM_PATH" ]; then
     echo -e "${RED}Error: WASM runtime not found at $WASM_PATH${NC}"
@@ -94,7 +94,6 @@ declare -A SUBSTRATE_PALLETS=(
     ["pallet_balances"]="pallet_balances"
     ["pallet_multisig"]="pallet_multisig"
     ["pallet_proxy"]="pallet_proxy"
-    ["pallet_session"]="pallet_session"
     ["pallet_sudo"]="pallet_sudo"
     ["pallet_timestamp"]="pallet_timestamp"
     ["pallet_transaction_payment"]="pallet_transaction_payment"

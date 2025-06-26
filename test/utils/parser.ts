@@ -237,4 +237,4 @@ export function parseRelayConfig(
   }
 }
 
-export type DeployEnvironment = "stagenet" | "testnet" | "mainnet";
+export type DeployEnvironment = "local" | "stagenet" | "testnet" | "mainnet";

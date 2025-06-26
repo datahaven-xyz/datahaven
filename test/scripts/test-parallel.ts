@@ -34,10 +34,18 @@ async function killAllProcesses() {
       try {
         // Get all descendant PIDs using pgrep
         const childPids = await $`pgrep -P ${pid}`.text().catch(() => "");
-        const allPids = [pid, ...childPids.trim().split('\n').filter(p => p)].map(p => parseInt(p.toString())).filter(p => !isNaN(p));
-        
-        logger.info(`Found PIDs to kill: ${allPids.join(', ')}`);
-        
+        const allPids = [
+          pid,
+          ...childPids
+            .trim()
+            .split("\n")
+            .filter((p) => p)
+        ]
+          .map((p) => Number.parseInt(p.toString()))
+          .filter((p) => !Number.isNaN(p));
+
+        logger.info(`Found PIDs to kill: ${allPids.join(", ")}`);
+
         // Kill all processes in reverse order (children first)
         for (const targetPid of allPids.reverse()) {
           try {
@@ -46,10 +54,10 @@ async function killAllProcesses() {
             // Process might already be dead
           }
         }
-        
+
         // Give processes a moment to clean up
         await Bun.sleep(500);
-        
+
         // Force kill any remaining processes
         for (const targetPid of allPids) {
           try {
@@ -86,24 +94,28 @@ async function killAllProcesses() {
   // Also kill any lingering kurtosis or docker processes started by tests
   try {
     logger.info("Cleaning up any lingering test processes...");
-    
+
     // Kill kurtosis processes
     await $`pkill -f "kurtosis.*e2e-test" || true`.quiet();
-    
+
     // Find and kill all containers with e2e-test prefix
     const containers = await $`docker ps -q --filter "name=e2e-test"`.text().catch(() => "");
     if (containers.trim()) {
       logger.info("Killing e2e-test containers...");
-      await $`docker kill ${containers.trim().split('\n').join(' ')}`.quiet().catch(() => {});
+      await $`docker kill ${containers.trim().split("\n").join(" ")}`.quiet().catch(() => {});
     }
-    
+
     // Also clean up any snowbridge containers
-    const snowbridgeContainers = await $`docker ps -q --filter "name=snowbridge"`.text().catch(() => "");
+    const snowbridgeContainers = await $`docker ps -q --filter "name=snowbridge"`
+      .text()
+      .catch(() => "");
     if (snowbridgeContainers.trim()) {
       logger.info("Killing snowbridge containers...");
-      await $`docker kill ${snowbridgeContainers.trim().split('\n').join(' ')}`.quiet().catch(() => {});
+      await $`docker kill ${snowbridgeContainers.trim().split("\n").join(" ")}`
+        .quiet()
+        .catch(() => {});
     }
-    
+
     // Kill any remaining bun test processes
     await $`pkill -f "bun.*test.*\\.test\\.ts" || true`.quiet();
   } catch {

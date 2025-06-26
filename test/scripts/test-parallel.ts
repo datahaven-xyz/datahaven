@@ -10,6 +10,9 @@ import { logger, printHeader } from "../utils";
 const TEST_TIMEOUT = 900000; // 15 minutes
 const LOG_DIR = "tmp/e2e-test-logs";
 
+// Track all spawned processes for cleanup
+const spawnedProcesses: Set<ReturnType<typeof Bun.spawn>> = new Set();
+
 async function ensureLogDirectory() {
   const logPath = join(process.cwd(), LOG_DIR);
   if (!existsSync(logPath)) {
@@ -17,6 +20,123 @@ async function ensureLogDirectory() {
   }
   return logPath;
 }
+
+async function killAllProcesses() {
+  logger.info("🛑 Killing all spawned processes...");
+
+  // Kill all tracked processes and their children
+  const killPromises = Array.from(spawnedProcesses).map(async (proc) => {
+    try {
+      const pid = proc.pid;
+      logger.info(`Killing process tree for PID ${pid}...`);
+
+      // First, try to get all child processes
+      try {
+        // Get all descendant PIDs using pgrep
+        const childPids = await $`pgrep -P ${pid}`.text().catch(() => "");
+        const allPids = [pid, ...childPids.trim().split('\n').filter(p => p)].map(p => parseInt(p.toString())).filter(p => !isNaN(p));
+        
+        logger.info(`Found PIDs to kill: ${allPids.join(', ')}`);
+        
+        // Kill all processes in reverse order (children first)
+        for (const targetPid of allPids.reverse()) {
+          try {
+            await $`kill -TERM ${targetPid}`.quiet();
+          } catch {
+            // Process might already be dead
+          }
+        }
+        
+        // Give processes a moment to clean up
+        await Bun.sleep(500);
+        
+        // Force kill any remaining processes
+        for (const targetPid of allPids) {
+          try {
+            await $`kill -KILL ${targetPid}`.quiet();
+          } catch {
+            // Process already dead
+          }
+        }
+      } catch {
+        // Fallback: try process group kill
+        try {
+          await $`kill -TERM -${pid}`.quiet();
+          await Bun.sleep(500);
+          await $`kill -KILL -${pid}`.quiet();
+        } catch {
+          // Process group might not exist
+        }
+      }
+
+      // Also try to kill the process directly
+      try {
+        proc.kill("SIGKILL");
+      } catch {
+        // Process already dead
+      }
+    } catch (error) {
+      logger.error("Error killing process:", error);
+    }
+  });
+
+  await Promise.all(killPromises);
+  spawnedProcesses.clear();
+
+  // Also kill any lingering kurtosis or docker processes started by tests
+  try {
+    logger.info("Cleaning up any lingering test processes...");
+    
+    // Kill kurtosis processes
+    await $`pkill -f "kurtosis.*e2e-test" || true`.quiet();
+    
+    // Find and kill all containers with e2e-test prefix
+    const containers = await $`docker ps -q --filter "name=e2e-test"`.text().catch(() => "");
+    if (containers.trim()) {
+      logger.info("Killing e2e-test containers...");
+      await $`docker kill ${containers.trim().split('\n').join(' ')}`.quiet().catch(() => {});
+    }
+    
+    // Also clean up any snowbridge containers
+    const snowbridgeContainers = await $`docker ps -q --filter "name=snowbridge"`.text().catch(() => "");
+    if (snowbridgeContainers.trim()) {
+      logger.info("Killing snowbridge containers...");
+      await $`docker kill ${snowbridgeContainers.trim().split('\n').join(' ')}`.quiet().catch(() => {});
+    }
+    
+    // Kill any remaining bun test processes
+    await $`pkill -f "bun.*test.*\\.test\\.ts" || true`.quiet();
+  } catch {
+    // Ignore errors - processes might not exist
+  }
+}
+
+// Set up signal handlers for graceful shutdown
+process.on("SIGINT", async () => {
+  logger.info("\n⚠️  Received SIGINT, cleaning up...");
+  await killAllProcesses();
+  process.exit(130); // Standard exit code for SIGINT
+});
+
+process.on("SIGTERM", async () => {
+  logger.info("\n⚠️  Received SIGTERM, cleaning up...");
+  await killAllProcesses();
+  process.exit(143); // Standard exit code for SIGTERM
+});
+
+// Handle uncaught exceptions
+process.on("uncaughtException", async (error) => {
+  logger.error("💥 Uncaught exception:", error);
+  await killAllProcesses();
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", async (reason, _promise) => {
+  logger.error("💥 Unhandled promise rejection:", reason);
+  await killAllProcesses();
+  process.exit(1);
+});
 
 async function getTestFiles(): Promise<string[]> {
   const result = await $`find suites -name "*.test.ts" -type f`.text();
@@ -47,11 +167,20 @@ async function runTestsInParallel() {
     logger.info(`📋 Starting ${file}...`);
 
     try {
-      // Run each test file in its own process, capturing all output to log file
+      // Run each test file in its own process group, capturing all output to log file
       const proc = Bun.spawn(["bun", "test", file, "--timeout", TEST_TIMEOUT.toString()], {
         stdout: "pipe",
-        stderr: "pipe"
+        stderr: "pipe",
+        // Create a new process group so we can kill all child processes
+        env: {
+          ...process.env,
+          // This will help identify processes started by this test run
+          E2E_TEST_RUN_ID: `e2e-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        }
       });
+
+      // Track the spawned process
+      spawnedProcesses.add(proc);
 
       // Create write stream for log file
       const logFileHandle = Bun.file(logFile);
@@ -86,6 +215,9 @@ async function runTestsInParallel() {
       await Promise.all([stdoutPromise, stderrPromise]);
       const exitCode = await proc.exited;
       await writer.end();
+
+      // Remove from tracked processes
+      spawnedProcesses.delete(proc);
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       if (exitCode === 0) {
@@ -126,14 +258,17 @@ async function runTestsInParallel() {
   // Exit with error if any tests failed
   if (failed > 0) {
     logger.error("❌ Some tests failed! Check the logs for details.");
+    await killAllProcesses();
     process.exit(1);
   } else {
     logger.success("All tests passed!");
+    await killAllProcesses();
   }
 }
 
 // Run the tests
-runTestsInParallel().catch((error) => {
+runTestsInParallel().catch(async (error) => {
   logger.error("Failed to run tests:", error);
+  await killAllProcesses();
   process.exit(1);
 });

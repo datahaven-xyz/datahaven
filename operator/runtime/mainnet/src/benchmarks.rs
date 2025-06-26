@@ -39,7 +39,6 @@ frame_benchmarking::define_benchmarks!(
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]
     [pallet_transaction_payment, TransactionPayment]
-    [pallet_session, Session]
     
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]

@@ -147,8 +147,6 @@ export const launchPreActionHook = (
     thisCmd.setOptionValue("updateValidatorSet", true);
     thisCmd.setOptionValue("setParameters", true);
     thisCmd.setOptionValue("relayer", true);
-    thisCmd.setOptionValue("blockscout", true);
-    thisCmd.setOptionValue("verified", true);
     thisCmd.setOptionValue("cleanNetwork", true);
   }
 

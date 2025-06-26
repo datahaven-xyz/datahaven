@@ -118,7 +118,7 @@ export const checkKurtosisCluster = async (kubernetes?: boolean): Promise<boolea
   if (exitCode !== 0) {
     logger.warn(`⚠️ Kurtosis cluster get failed: ${stderr.toString()}`);
     logger.info("ℹ️ Assuming local launch mode and continuing.");
-    return true; 
+    return true;
   }
 
   const currentCluster = stdout.toString().trim();

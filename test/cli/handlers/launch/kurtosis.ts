@@ -20,7 +20,6 @@ export const launchKurtosis = async (
 ): Promise<void> => {
   printHeader("Starting Kurtosis Ethereum Network");
 
-
   let shouldLaunchKurtosis = options.launchKurtosis;
 
   if (shouldLaunchKurtosis === undefined) {

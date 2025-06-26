@@ -114,8 +114,7 @@ export const launchPreActionHook = (
     launchKurtosis,
     relayer,
     setParameters,
-    updateValidatorSet,
-    cleanNetwork
+    updateValidatorSet
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag

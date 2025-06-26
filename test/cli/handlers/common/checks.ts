@@ -110,6 +110,48 @@ const checkKurtosisInstalled = async (): Promise<boolean> => {
   return true;
 };
 
+export const checkKurtosisCluster = async (kubernetes?: boolean): Promise<boolean> => {
+  // First check if kurtosis cluster get works
+  const { exitCode, stderr, stdout } = await $`kurtosis cluster get`.nothrow().quiet();
+
+  if (exitCode !== 0) {
+    logger.error(stderr.toString());
+    return false;
+  }
+
+  const currentCluster = stdout.toString().trim();
+  logger.debug(`Current Kurtosis cluster: ${currentCluster}`);
+
+  // Get the cluster type from config using sed
+  const clusterTypeResult =
+    await $`CURRENT_CLUSTER=${currentCluster} && sed -n "/^  $CURRENT_CLUSTER:$/,/^  [^ ]/p" "$(kurtosis config path)" | grep "type:" | sed 's/.*type: "\(.*\)"/\1/'`
+      .nothrow()
+      .quiet();
+
+  if (clusterTypeResult.exitCode !== 0) {
+    logger.error("❌ Failed to read Kurtosis cluster type from config");
+    logger.debug(clusterTypeResult.stderr.toString());
+    return false;
+  }
+
+  const clusterType = clusterTypeResult.stdout.toString().trim();
+  logger.warn(`Kurtosis cluster type: ${clusterType}`);
+
+  // Validate cluster type against expected type
+  if (kubernetes && clusterType !== "kubernetes") {
+    logger.error(`❌ Kurtosis cluster type is "${clusterType}" but kubernetes is required`);
+    return false;
+  }
+
+  if (!kubernetes && clusterType !== "docker") {
+    logger.error(`❌ Kurtosis cluster type is "${clusterType}" but docker is required`);
+    return false;
+  }
+
+  logger.success(`✅ Kurtosis cluster type "${clusterType}" is compatible`);
+  return true;
+};
+
 const checkDockerRunning = async (): Promise<boolean> => {
   const { exitCode, stderr, stdout } = await $`docker system info`.nothrow().quiet();
   if (exitCode !== 0) {

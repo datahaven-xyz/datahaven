@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import type { LaunchOptions } from "cli/handlers";
+import { checkKurtosisCluster, type LaunchOptions } from "cli/handlers";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import {
   checkKurtosisEnclaveRunning,
@@ -20,6 +20,7 @@ export const launchKurtosis = async (
 ): Promise<void> => {
   printHeader("Starting Kurtosis Ethereum Network");
 
+
   let shouldLaunchKurtosis = options.launchKurtosis;
 
   if (shouldLaunchKurtosis === undefined) {
@@ -35,6 +36,13 @@ export const launchKurtosis = async (
 
     await registerServices(launchedNetwork, options.kurtosisEnclaveName);
     printDivider();
+    return;
+  }
+
+  if (!(await checkKurtosisCluster())) {
+    logger.error(
+      "❌ Kurtosis cluster is not configured for local launch, run `kurtosis cluster get`"
+    );
     return;
   }
 

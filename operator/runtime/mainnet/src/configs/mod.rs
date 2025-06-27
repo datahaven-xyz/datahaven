@@ -23,7 +23,7 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-mod runtime_params;
+pub mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
@@ -31,11 +31,14 @@ use super::{
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
     OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
     RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
+    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
     STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
+    deal_with_fees::{
+        DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
+    },
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -46,6 +49,7 @@ use frame_support::{
     parameter_types,
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
+        tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
@@ -53,6 +57,7 @@ use frame_support::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
         IdentityFee, RuntimeDbWeight, Weight,
     },
+    PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -104,6 +109,8 @@ use xcm::prelude::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
+#[cfg(feature = "runtime-benchmarks")]
+use datahaven_runtime_common::benchmarking::BenchmarkHelper;
 
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
@@ -333,7 +340,13 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = FungibleAdapter<Balances, ()>;
+    type OnChargeTransaction = FungibleAdapter<
+        Balances,
+        DealWithSubstrateFeesAndTip<
+            Runtime,
+            runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
+        >,
+    >;
     type OperationalFeeMultiplier = ConstU8<5>;
     type WeightToFee = IdentityFee<Balance>;
     type LengthToFee = IdentityFee<Balance>;
@@ -472,9 +485,7 @@ impl pallet_identity::Config for Runtime {
     type MaxSubAccounts = MaxSubAccounts;
     type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
     type MaxRegistrars = MaxRegistrars;
-    type Slashed = ();
-    // TODO: Slashed funds should be sent to the treasury (when added to the runtime)
-    // type Slashed = Treasury;
+    type Slashed = Treasury;
     type ForceOrigin = IdentityForceOrigin;
     type RegistrarOrigin = IdentityRegistrarOrigin;
     type OffchainSignature = Signature;
@@ -545,6 +556,36 @@ impl pallet_message_queue::Config for Runtime {
     type ServiceWeight = MessageQueueServiceWeight;
     type IdleMaxServiceWeight = MessageQueueServiceWeight;
     type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const TreasuryId: PalletId = PalletId(*b"pc/trsry");
+    pub TreasuryAccount: AccountId = Treasury::account_id();
+    pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
+}
+
+impl pallet_treasury::Config for Runtime {
+    type PalletId = TreasuryId;
+    type Currency = Balances;
+    type RejectOrigin = EnsureRoot<AccountId>;
+    type RuntimeEvent = RuntimeEvent;
+    type SpendPeriod = ConstU32<{ 6 * DAYS }>;
+    type Burn = ();
+    type BurnDestination = ();
+    type MaxApprovals = ConstU32<100>;
+    type WeightInfo = ();
+    type SpendFunds = ();
+    type SpendOrigin =
+        frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;
+    type AssetKind = ();
+    type Beneficiary = AccountId;
+    type BeneficiaryLookup = IdentityLookup<AccountId>;
+    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+    type BalanceConverter = UnityAssetBalanceConversion;
+    type PayoutPeriod = ConstU32<{ 30 * DAYS }>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = BenchmarkHelper;
+    type BlockNumberProvider = System;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -625,7 +666,13 @@ impl pallet_evm::Config for Runtime {
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
-    type OnChargeTransaction = OnChargeEVMTransaction<()>;
+    type OnChargeTransaction = OnChargeEVMTransaction<
+        DealWithEthereumBaseFees<
+            Runtime,
+            runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
+        >,
+        DealWithEthereumPriorityFees<Runtime>,
+    >;
     type OnCreate = ();
     type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
@@ -656,12 +703,6 @@ parameter_types! {
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
-    // TODO: Update this account once the treasury pallet is added
-    // For now, using a hardcoded account that can properly receive and hold fees
-    // This prevents fees from being burned and allows for proper accounting
-    pub TreasuryAccountId: AccountId = AccountId::from(
-        hex_literal::hex!("1234567890123456789012345678901234567890")
-    );
 }
 
 pub struct DoNothingOutboundQueue;
@@ -694,7 +735,7 @@ impl snowbridge_pallet_system::Config for Runtime {
     type SiblingOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type AgentIdOf = AgentIdOf;
     type Token = Balances;
-    type TreasuryAccount = TreasuryAccountId;
+    type TreasuryAccount = TreasuryAccount;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
     type WeightInfo = ();
@@ -986,7 +1027,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type Hashing = Keccak256;
     type Currency = Balances;
-    type RewardsEthereumSovereignAccount = TreasuryAccountId;
+    type RewardsEthereumSovereignAccount = TreasuryAccount;
     type WeightInfo = ();
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ();
@@ -1021,7 +1062,7 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = EthereumOutboundQueueV2;
     type NativeTokenId = DataHavenTokenId;
-    type FeeRecipient = TreasuryAccountId;
+    type FeeRecipient = TreasuryAccount;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
 }

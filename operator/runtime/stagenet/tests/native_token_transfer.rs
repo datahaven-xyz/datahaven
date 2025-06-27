@@ -179,7 +179,7 @@ fn treasury_collects_fees_from_multiple_transfers() {
         let _token_id = register_native_token();
         let alice = account_id(ALICE);
         let bob = account_id(BOB);
-        let treasury_account = datahaven_stagenet_runtime::configs::TreasuryAccountId::get();
+        let treasury_account = datahaven_stagenet_runtime::configs::TreasuryAccount::get();
         let initial_treasury_balance = Balances::balance(&treasury_account);
 
         let fee1 = 5 * UNIT;

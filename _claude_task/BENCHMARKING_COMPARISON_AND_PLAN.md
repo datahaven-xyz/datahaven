@@ -54,6 +54,25 @@ Using frame-omni-bencher directly instead of through the node API provides sever
 
 ### Phase 1: Critical Fixes (Week 1)
 
+#### 1.0 Fix Native Pallets Benchmarks
+**Priority**: CRITICAL - Must be done before runtime integration
+All native DataHaven pallets have compilation errors or implementation issues in their benchmarking code that need to be fixed:
+- `pallet_external_validators`: Fix benchmark compilation errors
+- `pallet_external_validators_rewards`: Update benchmarks to match current pallet logic
+- `pallet_datahaven_native_transfer`: Complete benchmark implementation
+- `pallet_ethereum_client`: **Special Case - InvalidSyncCommitteeMerkleProof errors**
+  - Root cause: Hardcoded fixtures in `fixtures/src/lib.rs` have invalid merkle proofs
+  - Solution: Update fixture generation to use JSON test data from `tests/fixtures/`
+  - The JSON files contain valid beacon chain data with correct merkle proofs
+  - Need to either:
+    1. Regenerate `fixtures/src/lib.rs` from the JSON test data
+    2. Modify benchmarks to load JSON fixtures directly
+    3. Or temporarily mock the merkle verification for benchmarking purposes
+- `pallet_inbound_queue_v2`: Ensure benchmarks cover all extrinsics
+- `pallet_outbound_queue_v2`: Fix benchmark parameter ranges
+- `pallet_system`: Update benchmarks for v2 API
+- `pallet_system_v2`: Complete benchmark coverage
+
 #### 1.1 Fix Runtime Benchmark Integration
 **File**: `operator/runtime/*/src/benchmarks.rs`
 ```rust
@@ -177,7 +196,18 @@ Run Weekly, not on each PR
 
 ## Quick Start Implementation
 
-### Step 1: Fix Runtime Integration (Immediate)
+### Step 0: Fix Native Pallets Benchmarks (Immediate - PREREQUISITE)
+```bash
+# Fix benchmark compilation and implementation issues in all native pallets
+cd operator/pallets
+# Fix each pallet's benchmarking.rs file to ensure:
+# - Compilation without errors
+# - Coverage of all dispatchable functions
+# - Proper setup and verification
+# - Realistic parameter ranges
+```
+
+### Step 1: Fix Runtime Integration (After Step 0)
 ```bash
 # Add custom pallets to benchmarks.rs in all runtimes
 cd operator/runtime

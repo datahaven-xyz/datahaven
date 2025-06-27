@@ -933,6 +933,18 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
+        let rewards_registry_address =
+            runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get();
+
+        // Skip sending message if RewardsRegistryAddress is zero (invalid)
+        if rewards_registry_address == H160::zero() {
+            log::warn!(
+                target: "rewards_send_adapter",
+                "Skipping rewards message: RewardsRegistryAddress is zero"
+            );
+            return None;
+        }
+
         let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
 
         let mut calldata = Vec::new();
@@ -940,7 +952,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
 
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
+            target: rewards_registry_address,
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,

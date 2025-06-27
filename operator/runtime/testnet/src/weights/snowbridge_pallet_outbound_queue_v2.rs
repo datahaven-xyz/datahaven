@@ -75,8 +75,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `1594`
-		// Minimum execution time: 19_265_000 picoseconds.
-		Weight::from_parts(21_438_000, 1594)
+		// Minimum execution time: 19_462_000 picoseconds.
+		Weight::from_parts(21_857_000, 1594)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}
@@ -88,8 +88,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `1195`
 		//  Estimated: `2680`
-		// Minimum execution time: 28_551_000 picoseconds.
-		Weight::from_parts(29_831_000, 2680)
+		// Minimum execution time: 29_713_000 picoseconds.
+		Weight::from_parts(31_242_000, 2680)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -101,8 +101,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `202`
 		//  Estimated: `1687`
-		// Minimum execution time: 10_300_000 picoseconds.
-		Weight::from_parts(11_573_000, 1687)
+		// Minimum execution time: 11_093_000 picoseconds.
+		Weight::from_parts(12_567_000, 1687)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -114,8 +114,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 564_000 picoseconds.
-		Weight::from_parts(774_000, 0)
+		// Minimum execution time: 818_000 picoseconds.
+		Weight::from_parts(899_000, 0)
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	/// Storage: `EthereumOutboundQueueV2::Nonce` (r:1 w:1)
@@ -132,8 +132,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `180`
 		//  Estimated: `1493`
-		// Minimum execution time: 475_578_000 picoseconds.
-		Weight::from_parts(541_732_000, 1493)
+		// Minimum execution time: 460_574_000 picoseconds.
+		Weight::from_parts(467_403_000, 1493)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(36_u64))
 	}
@@ -153,8 +153,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `1594`
-		// Minimum execution time: 19_265_000 picoseconds.
-		Weight::from_parts(21_438_000, 1594)
+		// Minimum execution time: 19_462_000 picoseconds.
+		Weight::from_parts(21_857_000, 1594)
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(4_u64))
 	}
@@ -166,8 +166,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `1195`
 		//  Estimated: `2680`
-		// Minimum execution time: 28_551_000 picoseconds.
-		Weight::from_parts(29_831_000, 2680)
+		// Minimum execution time: 29_713_000 picoseconds.
+		Weight::from_parts(31_242_000, 2680)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
@@ -179,8 +179,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `202`
 		//  Estimated: `1687`
-		// Minimum execution time: 10_300_000 picoseconds.
-		Weight::from_parts(11_573_000, 1687)
+		// Minimum execution time: 11_093_000 picoseconds.
+		Weight::from_parts(12_567_000, 1687)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
@@ -192,8 +192,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 564_000 picoseconds.
-		Weight::from_parts(774_000, 0)
+		// Minimum execution time: 818_000 picoseconds.
+		Weight::from_parts(899_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
 	}
 	/// Storage: `EthereumOutboundQueueV2::Nonce` (r:1 w:1)
@@ -210,8 +210,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `180`
 		//  Estimated: `1493`
-		// Minimum execution time: 475_578_000 picoseconds.
-		Weight::from_parts(541_732_000, 1493)
+		// Minimum execution time: 460_574_000 picoseconds.
+		Weight::from_parts(467_403_000, 1493)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(36_u64))
 	}

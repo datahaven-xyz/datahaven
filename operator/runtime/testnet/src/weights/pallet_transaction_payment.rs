@@ -65,8 +65,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `166`
 		//  Estimated: `3581`
-		// Minimum execution time: 35_414_000 picoseconds.
-		Weight::from_parts(40_719_000, 3581)
+		// Minimum execution time: 35_730_000 picoseconds.
+		Weight::from_parts(41_003_000, 3581)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -80,8 +80,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `166`
 		//  Estimated: `3581`
-		// Minimum execution time: 35_414_000 picoseconds.
-		Weight::from_parts(40_719_000, 3581)
+		// Minimum execution time: 35_730_000 picoseconds.
+		Weight::from_parts(41_003_000, 3581)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}

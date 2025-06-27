@@ -75,8 +75,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `483`
 		//  Estimated: `8763`
-		// Minimum execution time: 98_426_000 picoseconds.
-		Weight::from_parts(99_039_000, 8763)
+		// Minimum execution time: 86_176_000 picoseconds.
+		Weight::from_parts(97_931_000, 8763)
 			.saturating_add(T::DbWeight::get().reads(6_u64))
 			.saturating_add(T::DbWeight::get().writes(6_u64))
 	}
@@ -86,8 +86,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_860_000 picoseconds.
-		Weight::from_parts(7_969_000, 0)
+		// Minimum execution time: 5_379_000 picoseconds.
+		Weight::from_parts(8_618_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `DataHavenNativeTransfer::Paused` (r:0 w:1)
@@ -96,8 +96,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_035_000 picoseconds.
-		Weight::from_parts(8_992_000, 0)
+		// Minimum execution time: 4_057_000 picoseconds.
+		Weight::from_parts(8_712_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 }
@@ -118,8 +118,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `483`
 		//  Estimated: `8763`
-		// Minimum execution time: 98_426_000 picoseconds.
-		Weight::from_parts(99_039_000, 8763)
+		// Minimum execution time: 86_176_000 picoseconds.
+		Weight::from_parts(97_931_000, 8763)
 			.saturating_add(RocksDbWeight::get().reads(6_u64))
 			.saturating_add(RocksDbWeight::get().writes(6_u64))
 	}
@@ -129,8 +129,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_860_000 picoseconds.
-		Weight::from_parts(7_969_000, 0)
+		// Minimum execution time: 5_379_000 picoseconds.
+		Weight::from_parts(8_618_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	/// Storage: `DataHavenNativeTransfer::Paused` (r:0 w:1)
@@ -139,8 +139,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_035_000 picoseconds.
-		Weight::from_parts(8_992_000, 0)
+		// Minimum execution time: 4_057_000 picoseconds.
+		Weight::from_parts(8_712_000, 0)
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 }

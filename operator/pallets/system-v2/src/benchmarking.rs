@@ -17,8 +17,8 @@ mod benchmarks {
         let origin_location = Location::new(1, [Parachain(1000), PalletInstance(36)]);
         let origin = <T as Config>::Helper::make_xcm_origin(origin_location.clone());
         let creator = Box::new(VersionedLocation::from(origin_location.clone()));
-        let relay_token_asset_id: Location = Location::parent();
-        let asset = Box::new(VersionedLocation::from(relay_token_asset_id));
+        let native_token_location: Location = Location::here();
+        let asset = Box::new(VersionedLocation::from(native_token_location));
         let asset_metadata = AssetMetadata {
             name: "wnd".as_bytes().to_vec().try_into().unwrap(),
             symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),

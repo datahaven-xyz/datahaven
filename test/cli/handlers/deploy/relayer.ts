@@ -22,7 +22,7 @@ import type { DeployOptions } from ".";
 const ETH_EL_RPC_PORT = 8546;
 const ETH_CL_HTTP_PORT = 4000;
 
-const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
+const RELAYER_CONFIG_DIR = "../deploy/charts/relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
@@ -222,11 +222,13 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       // Deploying relayer with helm chart
       const relayerTimeout = "2m"; // 2 minutes
       logger.debug(
-        await $`helm upgrade --install ${containerName} . -f ./snowbridge/${containerName}.yaml \
+        await $`helm upgrade --install ${containerName} charts/relay \
+        -f charts/relay/snowbridge/${containerName}.yaml \
+        -f environments/${options.environment}/values.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${relayerTimeout}`
-          .cwd(path.join(process.cwd(), "../deployment/charts/bridges-common-relay"))
+          .cwd(path.join(process.cwd(), "../deploy"))
           .text()
       );
 

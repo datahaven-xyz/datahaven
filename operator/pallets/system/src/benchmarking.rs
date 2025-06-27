@@ -74,8 +74,10 @@ mod benchmarks {
 
         T::Token::mint_into(&caller, amount)?;
 
-        let relay_token_asset_id: Location = Location::parent();
-        let asset = Box::new(VersionedLocation::from(relay_token_asset_id));
+        // Use the current chain's location, which will properly reanchor
+        // This represents the native token of the current chain
+        let native_token_location: Location = Location::here();
+        let asset = Box::new(VersionedLocation::from(native_token_location));
         let asset_metadata = AssetMetadata {
             name: "wnd".as_bytes().to_vec().try_into().unwrap(),
             symbol: "wnd".as_bytes().to_vec().try_into().unwrap(),

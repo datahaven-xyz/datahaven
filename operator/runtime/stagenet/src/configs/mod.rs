@@ -829,24 +829,27 @@ pub mod benchmark_helpers {
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
     use sp_core::H256;
-    use xcm::opaque::latest::Location;
 
     impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
         fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }
+}
 
-    impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
-        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
-            RuntimeOrigin::root()
-        }
+// BenchmarkHelper implementations for Snowbridge pallets
+// These need to be outside the benchmark_helpers module so they can be found by the compiler
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
+    fn make_xcm_origin(_location: xcm::opaque::latest::Location) -> RuntimeOrigin {
+        RuntimeOrigin::root()
     }
+}
 
-    impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
-        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
-            RuntimeOrigin::root()
-        }
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
+    fn make_xcm_origin(_location: xcm::opaque::latest::Location) -> RuntimeOrigin {
+        RuntimeOrigin::root()
     }
 }
 
@@ -971,11 +974,26 @@ impl Get<Option<TokenId>> for DataHavenTokenId {
     }
 }
 
+/// Mock implementation for benchmarks
+#[cfg(feature = "runtime-benchmarks")]
+pub struct MockNativeTokenId;
+#[cfg(feature = "runtime-benchmarks")]
+impl Get<Option<TokenId>> for MockNativeTokenId {
+    fn get() -> Option<TokenId> {
+        // For benchmarks, always return a valid token ID
+        // This represents a pre-registered native token
+        Some(TokenId::from([1u8; 32]))
+    }
+}
+
 impl pallet_datahaven_native_transfer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = EthereumOutboundQueueV2;
+    #[cfg(feature = "runtime-benchmarks")]
+    type NativeTokenId = MockNativeTokenId;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type NativeTokenId = DataHavenTokenId;
     type FeeRecipient = TreasuryAccountId;
     type PauseOrigin = EnsureRoot<AccountId>;

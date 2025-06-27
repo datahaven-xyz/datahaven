@@ -153,7 +153,7 @@ export const launchRelayers = async (options: LaunchOptions, launchedNetwork: La
         substrateWsEndpoint,
         beefyClientAddress,
         gatewayAddress,
-		rewardRegistryAddress,
+        rewardRegistryAddress,
         ethClEndpoint
       },
       pk: {

@@ -136,7 +136,7 @@ export const generateRelayerConfig = async (
       cfg.source.beacon.datastore.location = "/data";
       cfg.sink.ethereum.endpoint = config.ethElRpcEndpoint;
       cfg.sink.contracts.Gateway = config.gatewayAddress;
-	  cfg["reward-address"] = config.rewardRegistryAddress;
+      cfg["reward-address"] = config.rewardRegistryAddress;
 
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated solochain config written to ${outputFilePath}`);

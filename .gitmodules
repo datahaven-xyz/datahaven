@@ -7,4 +7,3 @@
 [submodule "contracts/lib/snowbridge"]
 	path = contracts/lib/snowbridge
 	url = https://github.com/Moonsong-Labs/snowbridge
-	branch = solochain

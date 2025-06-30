@@ -109,6 +109,7 @@ program
   `
   )
   .description("Launch a full E2E DataHaven & Ethereum network and more")
+  .option("--A, --all", "Launch all components without prompting")
   .option("--d, --datahaven", "(Re)Launch DataHaven network")
   .option("--nd, --no-datahaven", "Skip launching DataHaven network")
   .option("--bd, --build-datahaven", "Build DataHaven node local Docker image")

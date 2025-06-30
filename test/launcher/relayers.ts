@@ -66,9 +66,9 @@ export type RelayerSpec = {
 };
 
 // Constants
-export const INITIAL_CHECKPOINT_FILE = "dump-initial-checkpoint.json";
 export const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
-export const INITIAL_CHECKPOINT_PATH = path.join(INITIAL_CHECKPOINT_DIR, INITIAL_CHECKPOINT_FILE);
+export const getInitialCheckpointFile = (networkId: string) => `dump-initial-checkpoint-${networkId}.json`;
+export const getInitialCheckpointPath = (networkId: string) => path.join(INITIAL_CHECKPOINT_DIR, getInitialCheckpointFile(networkId));
 
 /**
  * Configuration options for launching Snowbridge relayers.
@@ -258,15 +258,15 @@ export const initEthClientPallet = async (
   await waitBeaconChainReady(launchedNetwork, 10000, 600000);
 
   const beaconConfigContainerPath = "/app/beacon-relay.json";
-  const checkpointHostPath = path.resolve(INITIAL_CHECKPOINT_PATH);
-  const checkpointContainerPath = `/app/${INITIAL_CHECKPOINT_FILE}`;
+  const checkpointHostPath = path.resolve(getInitialCheckpointPath(networkId));
+  const checkpointContainerPath = `/app/${getInitialCheckpointFile(networkId)}`;
 
   logger.debug("Generating beacon checkpoint");
   // Pre-create the checkpoint file so that Docker doesn't interpret it as a directory
-  await Bun.write(INITIAL_CHECKPOINT_PATH, "");
+  await Bun.write(getInitialCheckpointPath(networkId), "");
 
-  logger.debug("Removing 'generate-beacon-checkpoint' container if it exists");
-  logger.debug(await $`docker rm -f generate-beacon-checkpoint`.text());
+  logger.debug(`Removing 'generate-beacon-checkpoint-${networkId}' container if it exists`);
+  logger.debug(await $`docker rm -f generate-beacon-checkpoint-${networkId}`.text());
 
   // When running in Linux, `host.docker.internal` is not pre-defined when running in a container.
   // So we need to add the parameter `--add-host host.docker.internal:host-gateway` to the command.
@@ -295,7 +295,7 @@ export const initEthClientPallet = async (
   logger.debug(await $`sh -c "${command}"`.text());
 
   // Load the checkpoint into a JSON object and clean it up
-  const initialCheckpointFile = Bun.file(INITIAL_CHECKPOINT_PATH);
+  const initialCheckpointFile = Bun.file(getInitialCheckpointPath(networkId));
   const initialCheckpointRaw = await initialCheckpointFile.text();
   const initialCheckpoint = parseJsonToBeaconCheckpoint(JSON.parse(initialCheckpointRaw));
   await initialCheckpointFile.delete();
@@ -523,7 +523,12 @@ export const launchRelayers = async (
   );
 
   // Launch all relayers
-  await launchRelayerContainers(relayersToStart, relayerImageTag, launchedNetwork);
+  await launchRelayerContainers(
+    relayersToStart,
+    relayerImageTag,
+    launchedNetwork,
+    options.networkId
+  );
 
   logger.success("Snowbridge relayers launched successfully");
 };
@@ -601,11 +606,13 @@ const waitBeefyReady = async (
  * @param relayersToStart - Array of relayer specifications
  * @param relayerImageTag - Docker image tag for the relayers
  * @param launchedNetwork - The launched network instance
+ * @param networkId - The network ID to suffix container names
  */
 const launchRelayerContainers = async (
   relayersToStart: RelayerSpec[],
   relayerImageTag: string,
-  launchedNetwork: LaunchedNetwork
+  launchedNetwork: LaunchedNetwork,
+  networkId: string
 ): Promise<void> => {
   const isLocal = relayerImageTag.endsWith(":local");
   const networkName = launchedNetwork.networkName;
@@ -613,7 +620,7 @@ const launchRelayerContainers = async (
 
   for (const { configFilePath, name, config, pk } of relayersToStart) {
     try {
-      const containerName = `snowbridge-${config.type}-relay`;
+      const containerName = `snowbridge-${config.type}-relay-${networkId}`;
       logger.info(`🚀 Starting relayer ${containerName} ...`);
 
       const hostConfigFilePath = path.resolve(configFilePath);

@@ -114,7 +114,7 @@ fn transfer_to_ethereum_works() {
             Balances::balance(&alice),
             alice_initial - TRANSFER_AMOUNT - FEE_AMOUNT
         );
-        
+
         // Verify tokens were locked in sovereign account
         assert_eq!(
             Balances::balance(&EthereumSovereignAccount::get()),
@@ -279,7 +279,7 @@ fn inbound_message_processing_works() {
         // Verify tokens were unlocked to recipient
         let recipient: AccountId = ETH_ALICE.into();
         assert_eq!(Balances::balance(&recipient), TRANSFER_AMOUNT);
-        
+
         // Verify sovereign balance decreased by transfer amount
         assert_eq!(
             Balances::balance(&EthereumSovereignAccount::get()),

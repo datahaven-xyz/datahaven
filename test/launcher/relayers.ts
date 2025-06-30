@@ -67,8 +67,10 @@ export type RelayerSpec = {
 
 // Constants
 export const INITIAL_CHECKPOINT_DIR = "tmp/beacon-checkpoint";
-export const getInitialCheckpointFile = (networkId: string) => `dump-initial-checkpoint-${networkId}.json`;
-export const getInitialCheckpointPath = (networkId: string) => path.join(INITIAL_CHECKPOINT_DIR, getInitialCheckpointFile(networkId));
+export const getInitialCheckpointFile = (networkId: string) =>
+  `dump-initial-checkpoint-${networkId}.json`;
+export const getInitialCheckpointPath = (networkId: string) =>
+  path.join(INITIAL_CHECKPOINT_DIR, getInitialCheckpointFile(networkId));
 
 /**
  * Configuration options for launching Snowbridge relayers.
@@ -259,7 +261,7 @@ export const initEthClientPallet = async (
 
   const beaconConfigContainerPath = "/app/beacon-relay.json";
   const checkpointHostPath = path.resolve(getInitialCheckpointPath(networkId));
-  const checkpointContainerPath = `/app/${getInitialCheckpointFile(networkId)}`;
+  const checkpointContainerPath = "/app/dump-initial-checkpoint.json"; // Hardcoded filename that generate-beacon-checkpoint expects
 
   logger.debug("Generating beacon checkpoint");
   // Pre-create the checkpoint file so that Docker doesn't interpret it as a directory

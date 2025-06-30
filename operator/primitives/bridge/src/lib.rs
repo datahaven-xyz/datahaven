@@ -12,6 +12,9 @@ use sp_std::vec::Vec;
 // It should match the EL_MESSAGE_ID in DataHavenSnowbridgeMessages.sol
 pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56]; // 0x70150038
 
+// Message ID for native token transfers
+pub const NATIVE_TRANSFER_MESSAGE_ID: [u8; 4] = [112, 21, 0, 57]; // 0x70150039
+
 #[derive(Encode, Decode)]
 pub struct Payload<T>
 where
@@ -105,9 +108,9 @@ where
                     validators,
                     external_index,
                 )?;
-                // Build a unique 32-byte identifier using the outbound message nonce
+                // Return a 32-byte identifier using the message type ID
                 let mut id = [0u8; 32];
-                id[..8].copy_from_slice(&snow_msg.nonce.to_le_bytes());
+                id[..EL_MESSAGE_ID.len()].copy_from_slice(&EL_MESSAGE_ID);
                 Ok(id)
             }
         }
@@ -196,9 +199,9 @@ where
         // Unlock tokens from the sovereign account
         pallet_datahaven_native_transfer::Pallet::<T>::unlock_tokens(&recipient, balance_amount)?;
 
-        // Return a 32-byte identifier derived from the message nonce
+        // Return a 32-byte identifier using the native transfer message type ID
         let mut id = [0u8; 32];
-        id[..8].copy_from_slice(&snow_msg.nonce.to_le_bytes());
+        id[..NATIVE_TRANSFER_MESSAGE_ID.len()].copy_from_slice(&NATIVE_TRANSFER_MESSAGE_ID);
         Ok(id)
     }
 }

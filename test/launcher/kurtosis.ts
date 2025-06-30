@@ -184,6 +184,7 @@ export const modifyConfig = async (
     blockscout?: boolean;
     slotTime?: number;
     kurtosisNetworkArgs?: string;
+    kurtosisEnclaveName?: string;
   },
   configFile: string
 ): Promise<string> => {
@@ -218,7 +219,11 @@ export const modifyConfig = async (
   }
 
   logger.trace(parsedConfig);
-  const outputFile = `${outputDir}/modified-config.yaml`;
+  // Use a unique filename based on the enclave name to avoid conflicts in parallel execution
+  const configFileName = options.kurtosisEnclaveName
+    ? `modified-config-${options.kurtosisEnclaveName}.yaml`
+    : "modified-config.yaml";
+  const outputFile = `${outputDir}/${configFileName}`;
   logger.debug(`Modified config saving to ${outputFile}`);
 
   await Bun.write(outputFile, stringify(parsedConfig));

@@ -151,7 +151,7 @@ export const checkKurtosisCluster = async (kubernetes?: boolean): Promise<boolea
     return false;
   }
 
-  logger.success(`✅ Kurtosis cluster type "${clusterType}" is compatible`);
+  logger.success(`Kurtosis cluster type "${clusterType}" is compatible`);
   return true;
 };
 

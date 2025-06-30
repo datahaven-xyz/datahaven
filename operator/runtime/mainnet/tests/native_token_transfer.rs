@@ -69,6 +69,7 @@ fn native_token_registration_works() {
     ExtBuilder::default().build().execute_with(|| {
         let asset_location = Location::here();
 
+        // Register the native HAVE token with Snowbridge
         assert_ok!(SnowbridgeSystemV2::register_token(
             root_origin(),
             Box::new(VersionedLocation::V5(asset_location.clone())),
@@ -76,6 +77,7 @@ fn native_token_registration_works() {
             datahaven_token_metadata()
         ));
 
+        // Verify token was registered and assigned a valid token ID
         let reanchored = SnowbridgeSystemV2::reanchor(asset_location).unwrap();
         let token_id = TokenIdOf::convert_location(&reanchored).unwrap();
 
@@ -95,9 +97,11 @@ fn transfer_to_ethereum_works() {
         let _token_id = register_native_token();
         let alice = account_id(ALICE);
 
+        // Record initial balances
         let alice_initial = Balances::balance(&alice);
         let sovereign_initial = Balances::balance(&EthereumSovereignAccount::get());
 
+        // Transfer native tokens to Ethereum
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
             RuntimeOrigin::signed(alice.clone()),
             ETH_ALICE,
@@ -105,10 +109,13 @@ fn transfer_to_ethereum_works() {
             FEE_AMOUNT
         ));
 
+        // Verify Alice's balance decreased by transfer amount + fee
         assert_eq!(
             Balances::balance(&alice),
             alice_initial - TRANSFER_AMOUNT - FEE_AMOUNT
         );
+        
+        // Verify tokens were locked in sovereign account
         assert_eq!(
             Balances::balance(&EthereumSovereignAccount::get()),
             sovereign_initial + TRANSFER_AMOUNT
@@ -130,8 +137,10 @@ fn transfer_fails_when_paused() {
         let _token_id = register_native_token();
         let alice = account_id(ALICE);
 
+        // Pause the pallet
         assert_ok!(DataHavenNativeTransfer::pause(root_origin()));
 
+        // Verify transfers are disabled when paused
         assert_noop!(
             DataHavenNativeTransfer::transfer_to_ethereum(
                 RuntimeOrigin::signed(alice),
@@ -216,6 +225,7 @@ fn message_processor_accepts_registered_token() {
         let alice = account_id(ALICE);
         let message = create_message(token_id, TRANSFER_AMOUNT, ETH_ALICE, 1);
 
+        // Verify processor accepts messages containing registered native token
         assert!(
             NativeTokenTransferMessageProcessor::<Runtime>::can_process_message(&alice, &message)
         );
@@ -257,15 +267,20 @@ fn inbound_message_processing_works() {
         let alice = account_id(ALICE);
         let message = create_message(token_id, TRANSFER_AMOUNT, ETH_ALICE, 1);
 
+        // Setup sovereign account with sufficient balance
         setup_sovereign_balance(TRANSFER_AMOUNT * 2);
         let sovereign_initial = Balances::balance(&EthereumSovereignAccount::get());
 
+        // Process inbound message from Ethereum
         assert_ok!(
             snowbridge_pallet_inbound_queue_v2::Pallet::<Runtime>::process_message(alice, message)
         );
 
+        // Verify tokens were unlocked to recipient
         let recipient: AccountId = ETH_ALICE.into();
         assert_eq!(Balances::balance(&recipient), TRANSFER_AMOUNT);
+        
+        // Verify sovereign balance decreased by transfer amount
         assert_eq!(
             Balances::balance(&EthereumSovereignAccount::get()),
             sovereign_initial - TRANSFER_AMOUNT
@@ -366,7 +381,7 @@ fn end_to_end_transfer_flow() {
         let token_id = register_native_token();
         let alice = account_id(ALICE);
 
-        // Outbound transfer
+        // Step 1: Outbound transfer - Alice sends tokens to Ethereum
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
             RuntimeOrigin::signed(alice.clone()),
             ETH_ALICE,
@@ -374,13 +389,13 @@ fn end_to_end_transfer_flow() {
             FEE_AMOUNT
         ));
 
-        // Verify message was queued
+        // Verify message was queued for Snowbridge
         assert!(System::events().iter().any(|e| matches!(
             &e.event,
             RuntimeEvent::EthereumOutboundQueueV2(OutboundQueueEvent::MessageQueued { .. })
         )));
 
-        // Simulate inbound processing
+        // Step 2: Simulate inbound processing - tokens returning from Ethereum
         let message = create_message(token_id, TRANSFER_AMOUNT, ETH_BOB, 1);
         setup_sovereign_balance(TRANSFER_AMOUNT * 3);
 
@@ -388,6 +403,7 @@ fn end_to_end_transfer_flow() {
             snowbridge_pallet_inbound_queue_v2::Pallet::<Runtime>::process_message(alice, message)
         );
 
+        // Verify tokens were delivered to recipient
         let recipient: AccountId = ETH_BOB.into();
         assert_eq!(Balances::balance(&recipient), TRANSFER_AMOUNT);
     });

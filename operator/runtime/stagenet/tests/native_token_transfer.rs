@@ -69,6 +69,7 @@ fn native_token_registration_works() {
     ExtBuilder::default().build().execute_with(|| {
         let asset_location = Location::here();
 
+        // Register the native HAVE token with Snowbridge
         assert_ok!(SnowbridgeSystemV2::register_token(
             root_origin(),
             Box::new(VersionedLocation::V5(asset_location.clone())),
@@ -76,6 +77,7 @@ fn native_token_registration_works() {
             datahaven_token_metadata()
         ));
 
+        // Verify token was registered and assigned a valid token ID
         let reanchored = SnowbridgeSystemV2::reanchor(asset_location).unwrap();
         let token_id = TokenIdOf::convert_location(&reanchored).unwrap();
 

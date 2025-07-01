@@ -3,8 +3,6 @@
 
 //! Common test utilities for DataHaven stagenet runtime tests
 
-pub mod message_processor;
-
 use datahaven_stagenet_runtime::{
     AccountId, Balance, Runtime, RuntimeEvent, RuntimeOrigin, Session, SessionKeys, System, UNIT,
 };

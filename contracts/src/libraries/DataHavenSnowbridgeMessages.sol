@@ -20,16 +20,9 @@ library DataHavenSnowbridgeMessages {
     /**
      * @title New Validator Set Snowbridge Message
      * @notice A struct representing a new validator set to be sent as a message through Snowbridge.
-     *         This mimics the message format defined in the Snowbridge inbound pallet of the DataHaven
-     *         solochain.
-     * !IMPORTANT: The fields in this struct are placeholder until we have the actual message format
-     * !           defined in the DataHaven solochain.
+     *         This contains only the payload as nonce and topic are not used.
      */
     struct NewValidatorSet {
-        /// @notice The nonce of the message
-        uint64 nonce;
-        /// @notice The topic of the message
-        bytes32 topic;
         /// @notice The payload of the message
         NewValidatorSetPayload payload;
     }
@@ -53,11 +46,7 @@ library DataHavenSnowbridgeMessages {
     function scaleEncodeNewValidatorSetMessage(
         NewValidatorSet memory message
     ) public pure returns (bytes memory) {
-        return bytes.concat(
-            ScaleCodec.encodeU64(message.nonce),
-            message.topic,
-            scaleEncodeNewValidatorSetMessagePayload(message.payload)
-        );
+        return scaleEncodeNewValidatorSetMessagePayload(message.payload);
     }
 
     /**

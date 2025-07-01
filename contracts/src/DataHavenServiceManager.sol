@@ -121,8 +121,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
         DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
         DataHavenSnowbridgeMessages.NewValidatorSet({
-            nonce: 0,
-            topic: bytes32(0),
             payload: newValidatorSetPayload
         });
 

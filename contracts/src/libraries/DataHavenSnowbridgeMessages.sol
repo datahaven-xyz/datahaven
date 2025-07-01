@@ -78,8 +78,8 @@ library DataHavenSnowbridgeMessages {
 
         // Convert the bytes32[] to bytes20[] - keep the most significant 20 bytes
         bytes20[] memory validatorSetBytes20 = adaptValidatorsetToBytes20(validatorSet);
-        // TODO: This shouldn't be hardcoded, but set to the corresponding epoch of this validator set.
-        uint48 epoch = 0;
+
+        uint64 externalIndex = uint64(0);
 
         // Flatten the validator set into a single bytes array
         bytes memory validatorsFlattened;
@@ -94,7 +94,7 @@ library DataHavenSnowbridgeMessages {
             bytes1(uint8(OutboundCommandV1.ReceiveValidators)),
             ScaleCodec.encodeCompactU32(validatorsLen),
             validatorsFlattened,
-            ScaleCodec.encodeU64(uint64(epoch))
+            ScaleCodec.encodeU64(externalIndex)
         );
     }
 }

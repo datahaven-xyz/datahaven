@@ -34,23 +34,7 @@ library DataHavenSnowbridgeMessages {
      */
     struct NewValidatorSetPayload {
         /// @notice The list of validators in the DataHaven network.
-        bytes32[] validators;
-    }
-
-    /**
-     * @notice Converts a bytes32[] validator set to bytes20[] format.
-     * @param validatorSet The validator set in bytes32 format.
-     * @return The validator set converted to bytes20 format.
-     */
-    function adaptValidatorsetToBytes20(
-        bytes32[] memory validatorSet
-    ) internal pure returns (bytes20[] memory) {
-        bytes20[] memory validatorSetBytes20 = new bytes20[](validatorSet.length);
-        for (uint32 i = 0; i < validatorSet.length; i++) {
-            // Convert bytes32 to address (which is 20 bytes) by taking the rightmost 20 bytes
-            validatorSetBytes20[i] = bytes20(uint160(uint256(validatorSet[i])));
-        }
-        return validatorSetBytes20;
+        address[] validators;
     }
 
     /**
@@ -73,10 +57,7 @@ library DataHavenSnowbridgeMessages {
         NewValidatorSetPayload memory payload
     ) public pure returns (bytes memory) {
         uint32 validatorsLen = uint32(payload.validators.length);
-        bytes32[] memory validatorSet = payload.validators;
-
-        // Convert the bytes32[] to bytes20[] - keep the most significant 20 bytes
-        bytes20[] memory validatorSetBytes20 = adaptValidatorsetToBytes20(validatorSet);
+        address[] memory validatorSet = payload.validators;
 
         uint64 externalIndex = uint64(0);
 

@@ -42,7 +42,7 @@ library DataHavenSnowbridgeMessages {
      */
     struct NewValidatorSetPayload {
         /// @notice The list of validators in the DataHaven network.
-        bytes32[] validators;
+        address[] validators;
     }
 
     /**
@@ -69,7 +69,7 @@ library DataHavenSnowbridgeMessages {
         NewValidatorSetPayload memory payload
     ) public pure returns (bytes memory) {
         uint32 validatorsLen = uint32(payload.validators.length);
-        bytes32[] memory validatorSet = payload.validators;
+        address[] memory validatorSet = payload.validators;
         // TODO: This shouldn't be hardcoded, but set to the corresponding epoch of this validator set.
         uint48 epoch = 0;
         bytes memory validatorsFlattened;

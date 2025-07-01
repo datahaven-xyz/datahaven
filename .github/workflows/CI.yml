@@ -31,7 +31,13 @@ jobs:
   rust-lint:
     uses: ./.github/workflows/task-rust-lint.yml
     
-  # Second Tier - Docker build depends on operator build
+  # Second Tier - Jobs that depend on operator build
+  check-metadata:
+    needs: [build-operator]
+    uses: ./.github/workflows/task-check-metadata.yml
+    with:
+      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
+      
   docker-build:
     needs: [build-operator]
     uses: ./.github/workflows/task-docker.yml

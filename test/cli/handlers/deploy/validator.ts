@@ -12,7 +12,7 @@ export const performValidatorOperations = async (options: DeployOptions, network
   }
 
   // If not specified, prompt for funding
-  const shouldFundValidators = options.environment === "stagenet";
+  const shouldFundValidators = options.isPrivateNetwork;
 
   if (shouldFundValidators) {
     await fundValidators({

@@ -4,7 +4,8 @@ import {
   getPortFromKurtosis,
   type KurtosisEnclaveInfo,
   KurtosisEnclaveInfoSchema,
-  logger
+  logger,
+  runShellCommandWithLogger
 } from "utils";
 import { parse, stringify } from "yaml";
 import type { LaunchedNetwork } from "./types/launchedNetwork";
@@ -303,16 +304,12 @@ export const runKurtosisEnclave = async (
 
   logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
 
-  const { stderr, stdout, exitCode } =
-    await $`kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`
-      .nothrow()
-      .quiet();
-
-  if (exitCode !== 0) {
-    logger.error(stderr.toString());
-    throw Error("❌ Kurtosis network has failed to start properly.");
-  }
-  logger.debug(stdout.toString());
+  await runShellCommandWithLogger(
+    `kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
+    {
+      logLevel: "debug"
+    }
+  );
 };
 
 /**

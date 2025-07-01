@@ -118,6 +118,7 @@ snowbridge-pallet-system-v2 = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 
 [features]
+storage-hub = []
 default = ["std"]
 std = [
     "codec/std",

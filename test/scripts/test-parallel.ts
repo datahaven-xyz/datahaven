@@ -1,14 +1,16 @@
 #!/usr/bin/env bun
 import { existsSync, mkdirSync } from "node:fs";
 import { basename, join } from "node:path";
-/**
- * Script to run all test suites in parallel
- */
 import { $ } from "bun";
 import { logger, printHeader } from "../utils";
 
+/**
+ * Script to run all test suites in parallel with concurrency control
+ */
+
 const TEST_TIMEOUT = 900000; // 15 minutes
 const LOG_DIR = "tmp/e2e-test-logs";
+const MAX_CONCURRENT_TESTS = 3; // Limit concurrent tests to prevent resource exhaustion
 
 // Track all spawned processes for cleanup
 const spawnedProcesses: Set<ReturnType<typeof Bun.spawn>> = new Set();
@@ -17,6 +19,25 @@ async function ensureLogDirectory() {
   const logPath = join(process.cwd(), LOG_DIR);
   if (!existsSync(logPath)) {
     mkdirSync(logPath, { recursive: true });
+  }
+
+  // Clear content of existing .log files
+  try {
+    const existingLogs = await $`find ${logPath} -name "*.log" -type f`.text().catch(() => "");
+    const logFiles = existingLogs
+      .trim()
+      .split("\n")
+      .filter((file) => file.length > 0);
+
+    if (logFiles.length > 0) {
+      logger.info(`🧹 Clearing content of ${logFiles.length} existing log files...`);
+      // Truncate files to 0 bytes using Bun.write
+      for (const logFile of logFiles) {
+        await Bun.write(logFile, "");
+      }
+    }
+  } catch (error) {
+    logger.warn("Failed to clear existing log files:", error);
   }
   return logPath;
 }
@@ -158,8 +179,97 @@ async function getTestFiles(): Promise<string[]> {
     .filter((file) => file.length > 0);
 }
 
-async function runTestsInParallel() {
-  logger.info("🚀 Starting all test suites in parallel...");
+async function runTest(
+  file: string,
+  logPath: string
+): Promise<{
+  file: string;
+  success: boolean;
+  duration: string;
+  logFile: string;
+  exitCode?: number;
+  error?: any;
+}> {
+  const startTime = Date.now();
+  const testName = basename(file, ".test.ts");
+  const logFile = join(logPath, `${testName}.log`);
+
+  logger.info(`📋 Starting ${file}...`);
+
+  try {
+    // Run each test file in its own process group, capturing all output to log file
+    const proc = Bun.spawn(["bun", "test", file, "--timeout", TEST_TIMEOUT.toString()], {
+      stdout: "pipe",
+      stderr: "pipe",
+      // Create a new process group so we can kill all child processes
+      env: {
+        ...process.env,
+        // This will help identify processes started by this test run
+        E2E_TEST_RUN_ID: `e2e-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      }
+    });
+
+    // Track the spawned process
+    spawnedProcesses.add(proc);
+
+    // Create write stream for log file
+    const logFileHandle = Bun.file(logFile);
+    const writer = logFileHandle.writer();
+
+    // Write both stdout and stderr to the same log file
+    const decoder = new TextDecoder();
+
+    // Handle stdout
+    const stdoutReader = proc.stdout.getReader();
+    const stdoutPromise = (async () => {
+      while (true) {
+        const { done, value } = await stdoutReader.read();
+        if (done) break;
+        const text = decoder.decode(value);
+        await writer.write(text);
+      }
+    })();
+
+    // Handle stderr
+    const stderrReader = proc.stderr.getReader();
+    const stderrPromise = (async () => {
+      while (true) {
+        const { done, value } = await stderrReader.read();
+        if (done) break;
+        const text = decoder.decode(value);
+        await writer.write(text);
+      }
+    })();
+
+    // Wait for process to complete
+    await Promise.all([stdoutPromise, stderrPromise]);
+    const exitCode = await proc.exited;
+    await writer.end();
+
+    // Remove from tracked processes
+    spawnedProcesses.delete(proc);
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    if (exitCode === 0) {
+      logger.success(`${file} passed (${duration}s) - Log: ${logFile}`);
+      return { file, success: true, duration, logFile };
+    }
+    logger.error(`❌ ${file} failed (${duration}s) - Log: ${logFile}`);
+    return { file, success: false, duration, logFile, exitCode };
+  } catch (error) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    logger.error(`❌ ${file} crashed (${duration}s) - Log: ${logFile}:`, error);
+
+    // Write error to log file
+    const errorLog = Bun.file(logFile);
+    await Bun.write(errorLog, `Test crashed with error:\n${error}\n`);
+
+    return { file, success: false, duration, error, logFile };
+  }
+}
+
+async function runTestsWithConcurrencyLimit() {
+  logger.info(`🚀 Starting test suites with max concurrency of ${MAX_CONCURRENT_TESTS}...`);
 
   // Ensure log directory exists
   const logPath = await ensureLogDirectory();
@@ -170,88 +280,49 @@ async function runTestsInParallel() {
   logger.info(`📋 Found ${testFiles.length} test files:`);
   testFiles.forEach((file) => logger.info(`  - ${file}`));
 
-  // Launch all test files in parallel
-  const testPromises = testFiles.map(async (file) => {
-    const startTime = Date.now();
-    const testName = basename(file, ".test.ts");
-    const logFile = join(logPath, `${testName}.log`);
+  // Create a queue of test files
+  const testQueue = [...testFiles];
+  const results: Array<Awaited<ReturnType<typeof runTest>>> = [];
+  const runningTests = new Map<string, Promise<any>>();
 
-    logger.info(`📋 Starting ${file}...`);
+  // Process tests with concurrency limit
+  while (testQueue.length > 0 || runningTests.size > 0) {
+    // Start new tests if we have capacity
+    while (runningTests.size < MAX_CONCURRENT_TESTS && testQueue.length > 0) {
+      const testFile = testQueue.shift();
+      if (!testFile) continue;
+      const testPromise = runTest(testFile, logPath);
 
-    try {
-      // Run each test file in its own process group, capturing all output to log file
-      const proc = Bun.spawn(["bun", "test", file, "--timeout", TEST_TIMEOUT.toString()], {
-        stdout: "pipe",
-        stderr: "pipe",
-        // Create a new process group so we can kill all child processes
-        env: {
-          ...process.env,
-          // This will help identify processes started by this test run
-          E2E_TEST_RUN_ID: `e2e-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
-        }
-      });
+      runningTests.set(testFile, testPromise);
 
-      // Track the spawned process
-      spawnedProcesses.add(proc);
-
-      // Create write stream for log file
-      const logFileHandle = Bun.file(logFile);
-      const writer = logFileHandle.writer();
-
-      // Write both stdout and stderr to the same log file
-      const decoder = new TextDecoder();
-
-      // Handle stdout
-      const stdoutReader = proc.stdout.getReader();
-      const stdoutPromise = (async () => {
-        while (true) {
-          const { done, value } = await stdoutReader.read();
-          if (done) break;
-          const text = decoder.decode(value);
-          await writer.write(text);
-        }
-      })();
-
-      // Handle stderr
-      const stderrReader = proc.stderr.getReader();
-      const stderrPromise = (async () => {
-        while (true) {
-          const { done, value } = await stderrReader.read();
-          if (done) break;
-          const text = decoder.decode(value);
-          await writer.write(text);
-        }
-      })();
-
-      // Wait for process to complete
-      await Promise.all([stdoutPromise, stderrPromise]);
-      const exitCode = await proc.exited;
-      await writer.end();
-
-      // Remove from tracked processes
-      spawnedProcesses.delete(proc);
-
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      if (exitCode === 0) {
-        logger.success(`${file} passed (${duration}s) - Log: ${logFile}`);
-        return { file, success: true, duration, logFile };
+      // Add 1 second delay between starting test suites to prevent resource contention
+      if (testQueue.length > 0) {
+        await Bun.sleep(1000);
       }
-      logger.error(`❌ ${file} failed (${duration}s) - Log: ${logFile}`);
-      return { file, success: false, duration, logFile, exitCode };
-    } catch (error) {
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      logger.error(`❌ ${file} crashed (${duration}s) - Log: ${logFile}:`, error);
 
-      // Write error to log file
-      const errorLog = Bun.file(logFile);
-      await Bun.write(errorLog, `Test crashed with error:\n${error}\n`);
-
-      return { file, success: false, duration, error, logFile };
+      // When test completes, remove it from running tests and store result
+      testPromise
+        .then((result) => {
+          runningTests.delete(testFile);
+          results.push(result);
+        })
+        .catch((error) => {
+          runningTests.delete(testFile);
+          results.push({
+            file: testFile,
+            success: false,
+            duration: "0",
+            logFile: join(logPath, `${basename(testFile, ".test.ts")}.log`),
+            error
+          });
+        });
     }
-  });
 
-  // Wait for all tests to complete
-  const results = await Promise.all(testPromises);
+    // Wait for at least one test to complete before checking again
+    if (runningTests.size > 0) {
+      await Promise.race(runningTests.values());
+    }
+  }
 
   // Summary
   printHeader("📊 Test Summary");
@@ -279,7 +350,7 @@ async function runTestsInParallel() {
 }
 
 // Run the tests
-runTestsInParallel().catch(async (error) => {
+runTestsWithConcurrencyLimit().catch(async (error) => {
   logger.error("Failed to run tests:", error);
   await killAllProcesses();
   process.exit(1);

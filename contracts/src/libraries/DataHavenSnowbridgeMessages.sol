@@ -39,6 +39,22 @@ library DataHavenSnowbridgeMessages {
     }
 
     /**
+     * @notice Converts a bytes32[] validator set to bytes20[] format.
+     * @param validatorSet The validator set in bytes32 format.
+     * @return The validator set converted to bytes20 format.
+     */
+    function adaptValidatorsetToBytes20(
+        bytes32[] memory validatorSet
+    ) internal pure returns (bytes20[] memory) {
+        bytes20[] memory validatorSetBytes20 = new bytes20[](validatorSet.length);
+        for (uint32 i = 0; i < validatorSet.length; i++) {
+            // Convert bytes32 to address (which is 20 bytes) by taking the rightmost 20 bytes
+            validatorSetBytes20[i] = bytes20(uint160(uint256(validatorSet[i])));
+        }
+        return validatorSetBytes20;
+    }
+
+    /**
      * @notice Encodes a new validator set message into a bytes array.
      * @param message The new validator set message to encode.
      * @return The encoded message.
@@ -59,12 +75,17 @@ library DataHavenSnowbridgeMessages {
     ) public pure returns (bytes memory) {
         uint32 validatorsLen = uint32(payload.validators.length);
         bytes32[] memory validatorSet = payload.validators;
+
+        // Convert the bytes32[] to bytes20[] - keep the most significant 20 bytes
+        bytes20[] memory validatorSetBytes20 = adaptValidatorsetToBytes20(validatorSet);
         // TODO: This shouldn't be hardcoded, but set to the corresponding epoch of this validator set.
         uint48 epoch = 0;
+
+        // Flatten the validator set into a single bytes array
         bytes memory validatorsFlattened;
-        for (uint32 i = 0; i < validatorSet.length; i++) {
+        for (uint32 i = 0; i < validatorSetBytes20.length; i++) {
             validatorsFlattened =
-                bytes.concat(validatorsFlattened, abi.encodePacked(validatorSet[i]));
+                bytes.concat(validatorsFlattened, abi.encodePacked(validatorSetBytes20[i]));
         }
 
         return bytes.concat(

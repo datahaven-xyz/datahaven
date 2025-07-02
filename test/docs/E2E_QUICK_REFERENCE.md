@@ -1,5 +1,7 @@
 # E2E Testing Framework Quick Reference
 
+> **Note**: This document is being consolidated into the [E2E Testing Guide](./E2E_TESTING_GUIDE.md). Please refer there for the most current information.
+
 ## Quick Start
 
 ```bash

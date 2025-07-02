@@ -1,5 +1,7 @@
 # E2E Testing Framework Setup Guide
 
+> **Note**: This document is being consolidated into the [E2E Testing Guide](./E2E_TESTING_GUIDE.md). Please refer there for the most current setup information.
+
 This guide walks through setting up and using the DataHaven E2E testing framework.
 
 ## Prerequisites

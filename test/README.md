@@ -1,30 +1,6 @@
-# End-to-End Test Environment
+# DataHaven E2E Testing
 
-## Contents
-
-```sh
-.
-├── README.md
-├── configs                 # Configurations for test networks
-├── scripts                 # Helper scripts for interacting with the network
-├── launcher                # Shared network launching infrastructure
-├── framework               # E2E testing framework core
-├── suites                  # E2E test suites
-└── docs                    # Documentation
-    ├── E2E_TESTING.md                  # Testing framework overview
-    ├── E2E_FRAMEWORK_ARCHITECTURE.md   # Detailed architecture guide
-    ├── E2E_SETUP_GUIDE.md             # Setup and troubleshooting
-    └── E2E_QUICK_REFERENCE.md         # Quick reference guide
-```
-
-## E2E Testing Framework
-
-This project includes a comprehensive E2E testing framework that allows running isolated test suites with complete network stacks. For details, see:
-
-- **[E2E Testing Overview](./E2E_TESTING.md)** - Introduction to the testing framework
-- **[Setup Guide](./docs/E2E_SETUP_GUIDE.md)** - Detailed setup instructions
-- **[Architecture](./docs/E2E_FRAMEWORK_ARCHITECTURE.md)** - Framework design and implementation
-- **[Quick Reference](./docs/E2E_QUICK_REFERENCE.md)** - Common patterns and commands
+Quick start guide for running DataHaven end-to-end tests. For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUIDE.md).
 
 ## Pre-requisites
 
@@ -37,23 +13,44 @@ This project includes a comprehensive E2E testing framework that allows running 
 > [!IMPORTANT]
 > If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
 
-## QuickStart
-
-Run:
+## Quick Start
 
 ```bash
+# Install dependencies
 bun i
-bun cli
+
+# Interactive CLI to launch a full local DataHaven network
+bun cli launch
+
+# Run all the e2e tests
+bun test:e2e
+
+# Run all the e2e tests with limited concurrency
+bun test:e2e:parallel
+
+# Run a specific test suite
+bun test suites/some-test.test.ts
+
 ```
 
-## Manual Deployment
+## Other Common Commands
 
-Follow these steps to set up and interact with your test environment:
+| Command                   | Description                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `bun cli stop`            | Stop all local DataHaven networks (interactive, will ask for confirmation on each component of the network) |
+| `bun cli deploy`          | Deploy the DataHaven network to a remote Kubernetes cluster                                                 |
+| `bun generate:wagmi`      | Generate contract TypeScript bindings for the contracts in the `contracts` directory                        |
+| `bun generate:types`      | Generate Polkadot API types                                                                                 |
+| `bun generate:types:fast` | Generate Polkadot API types with the `--fast-runtime` feature enabled                                       |
+
+## Local Network Deployment
+
+Follow these steps to set up and interact with your local network:
 
 1. **Deploy a minimal test environment**
 
    ```bash
-   bun cli
+   bun cli launch
    ```
 
    This script will:
@@ -67,79 +64,18 @@ Follow these steps to set up and interact with your test environment:
       - Dora Explorer service for CL
    4. Deploy DataHaven smart contracts to the Ethereum network. This can optionally include verification on Blockscout if the `--verified` flag is used (requires Blockscout to be enabled).
    5. Perform validator setup and funding operations.
-   6. Launch Snowbridge relayers.
+   6. Set parameters in the DataHaven chain.
+   7. Launch Snowbridge relayers.
+   8. Perform validator set update.
 
    > [!NOTE]
    >
-   > If you want to also have the contracts verified on blockscout, you can run `bun start:e2e:verified` instead. This will do all the previous steps, but also verify the contracts on blockscout. However, note that this takes some time to complete.
+   > If you want to also have the contracts verified on Blockscout, you can pass the `--verified` flag to the `bun cli launch` command, along with the `--blockscout` flag. This will do all the previous, but also verify the contracts on Blockscout. However, note that this takes some time to complete.
 
 2. **Explore the network**
 
    - Block Explorer: [http://127.0.0.1:3000](http://127.0.0.1:3000).
    - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
-
-## Network Management
-
-- **Stop the test environment**
-
-  ```bash
-  bun stop:e2e
-  ```
-
-- **Stop the Kurtosis engine completely**
-
-  ```bash
-  bun stop:kurtosis-engine
-  ```
-
-## Blockscout
-
-Can be accessed at: [http://127.0.0.1:3000](http://127.0.0.1:3000).
-
-You can also access the backend via REST API, documented here: [http://127.0.0.1:3000/api-docs](http://127.0.0.1:3000/api-docs)
-
-![API DOCS](../resources/swagger.png)
-
-## Testing
-
-### E2E Tests
-
-The test suite in the `suites` folder includes both unit tests and full E2E integration tests.
-
-**Run all tests:**
-
-```bash
-bun test:e2e  # Runs all tests with 15-minute timeout
-```
-
-**Run specific test:**
-
-```bash
-bun test suites/ethereum-basic.test.ts --timeout 900000
-```
-
-> [!NOTE]
->
-> - E2E tests launch their own isolated network stacks including:
->   - DataHaven nodes (Alice and Bob validators)
->   - Ethereum network via Kurtosis
->   - Smart contract deployments
->   - Validator setup in EigenLayer
->   - Cross-chain relayers (if needed)
-> - First run may take 10-15 minutes due to full network setup
-> - Each test suite gets its own isolated network to ensure test independence
-> - You can increase the logging level by setting `LOG_LEVEL=debug`
-> - No need to run `bun cli` first - tests manage their own networks
-
-### Wagmi Bindings Generation
-
-To ensure contract bindings are up-to-date, run the following command after modifying smart contracts or updating ABIs:
-
-```bash
-bun generate:wagmi
-```
-
-This command generates TypeScript bindings for interacting with the deployed smart contracts using Wagmi.
 
 ## Troubleshooting
 
@@ -147,7 +83,7 @@ This command generates TypeScript bindings for interacting with the deployed sma
 
 #### Script halts unexpectedly
 
-When running `bun cli` the script appears to halt after the following:
+When running `bun cli launch` the script appears to halt after the following:
 
 ```shell
 ## Setting up 1 EVM.

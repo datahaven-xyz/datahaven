@@ -1,5 +1,7 @@
 # E2E Testing Framework
 
+> **Note**: This document is being consolidated. Please refer to the [E2E Testing Guide](./docs/E2E_TESTING_GUIDE.md) for the most up-to-date and comprehensive information.
+
 This document describes the end-to-end testing framework for DataHaven, which allows running isolated test suites with complete network stacks.
 
 ## Architecture

@@ -806,11 +806,39 @@ impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
     }
 }
 
+// No-op message processor for benchmarks
+// TODO: Adding this as fixture from upstream pallet has an incompatible
+// payload type. See if EigenLayerMessageProcessor has non trivial
+// compute or has storage read/writes that we may want to compute
+// as part of the weight
+#[cfg(feature = "runtime-benchmarks")]
+pub struct NoOpMessageProcessor;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_inbound_queue_primitives::v2::MessageProcessor<AccountId> for NoOpMessageProcessor {
+    fn can_process_message(
+        _who: &AccountId,
+        _message: &snowbridge_inbound_queue_primitives::v2::Message,
+    ) -> bool {
+        true
+    }
+
+    fn process_message(
+        _who: AccountId,
+        _message: snowbridge_inbound_queue_primitives::v2::Message,
+    ) -> Result<[u8; 32], sp_runtime::DispatchError> {
+        Ok([0u8; 32])
+    }
+}
+
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type MessageProcessor = NoOpMessageProcessor;
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
     type RewardPayment = DummyRewardPayment;

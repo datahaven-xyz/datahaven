@@ -766,11 +766,39 @@ impl RewardLedger<AccountId, (), u128> for DummyRewardPayment {
     }
 }
 
+// No-op message processor for benchmarks
+// TODO: Adding this as fixture from upstream pallet has an incompatible
+// payload type. See if EigenLayerMessageProcessor has non trivial
+// compute or has storage read/writes that we may want to compute
+// as part of the weight
+#[cfg(feature = "runtime-benchmarks")]
+pub struct NoOpMessageProcessor;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_inbound_queue_primitives::v2::MessageProcessor<AccountId> for NoOpMessageProcessor {
+    fn can_process_message(
+        _who: &AccountId,
+        _message: &snowbridge_inbound_queue_primitives::v2::Message,
+    ) -> bool {
+        true
+    }
+
+    fn process_message(
+        _who: AccountId,
+        _message: snowbridge_inbound_queue_primitives::v2::Message,
+    ) -> Result<[u8; 32], sp_runtime::DispatchError> {
+        Ok([0u8; 32])
+    }
+}
+
 impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = EigenLayerMessageProcessor<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type MessageProcessor = NoOpMessageProcessor;
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
     type RewardPayment = DummyRewardPayment;
@@ -828,10 +856,30 @@ pub mod benchmark_helpers {
     use crate::{EthereumBeaconClient, Runtime};
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
-    use sp_core::H256;
+    use sp_core::{H160, H256};
 
     impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
         fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
+            // Set the gateway address to match the one used in the fixture
+            use super::runtime_params::dynamic_params;
+            use super::RuntimeParameters;
+            use frame_support::assert_ok;
+            use hex_literal::hex;
+
+            // Gateway address from the fixture: 0xb1185ede04202fe62d38f5db72f71e38ff3e8305
+            let gateway_address = H160::from(hex!("b1185ede04202fe62d38f5db72f71e38ff3e8305"));
+
+            // Set the parameter using the pallet_parameters extrinsic
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
+                        dynamic_params::runtime_config::EthereumGatewayAddress,
+                        Some(gateway_address),
+                    )
+                )
+            ));
+
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }

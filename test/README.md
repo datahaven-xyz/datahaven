@@ -33,6 +33,8 @@ bun test suites/some-test.test.ts
 
 ```
 
+For more information on the E2E testing framework, see the [E2E Testing Framework Overview](./docs/E2E_FRAMEWORK_OVERVIEW.md).
+
 ## Other Common Commands
 
 | Command                   | Description                                                                                                 |

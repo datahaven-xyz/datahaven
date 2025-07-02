@@ -1799,11 +1799,7 @@ export const beefyClientAbi = [
             internalType: 'bytes32',
             type: 'bytes32',
           },
-          {
-            name: 'parachainHeadsRoot',
-            internalType: 'bytes32',
-            type: 'bytes32',
-          },
+          { name: 'beefyExtraField', internalType: 'bytes32', type: 'bytes32' },
         ],
       },
       { name: 'leafProof', internalType: 'bytes32[]', type: 'bytes32[]' },
@@ -5662,6 +5658,20 @@ export const gatewayAbi = [
       },
     ],
     name: 'AgentFundsWithdrawn',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'nonce', internalType: 'uint64', type: 'uint64', indexed: true },
+      {
+        name: 'index',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'CommandFailed',
   },
   {
     type: 'event',
@@ -14412,6 +14422,15 @@ export const watchGatewayAgentFundsWithdrawnEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: gatewayAbi,
     eventName: 'AgentFundsWithdrawn',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"CommandFailed"`
+ */
+export const watchGatewayCommandFailedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: gatewayAbi,
+    eventName: 'CommandFailed',
   })
 
 /**

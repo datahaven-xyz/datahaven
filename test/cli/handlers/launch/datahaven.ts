@@ -72,11 +72,7 @@ export const launchDataHavenSolochain = async (
       }
 
       // Case: User wants to clean and relaunch the DataHaven containers
-      await cleanDataHavenContainers(
-        NETWORK_ID,
-        options.datahavenImageTag,
-        options.relayerImageTag
-      );
+      await cleanDataHavenContainers(NETWORK_ID);
     }
   }
 

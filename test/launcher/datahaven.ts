@@ -380,22 +380,15 @@ export const checkDataHavenRunning = async (): Promise<boolean> => {
  * @throws {Error} If the DataHaven image tag is not provided
  * @throws {Error} If containers or networks were not successfully removed
  */
-export const cleanDataHavenContainers = async (
-  networkId: string,
-  datahavenImageTag: string,
-  relayerImageTag?: string
-): Promise<void> => {
+export const cleanDataHavenContainers = async (networkId: string): Promise<void> => {
   logger.info("🧹 Stopping and removing existing DataHaven containers...");
 
-  invariant(datahavenImageTag, "❌ DataHaven image tag not defined");
-  await killExistingContainers(datahavenImageTag);
+  await killExistingContainers("datahaven-");
 
-  if (relayerImageTag) {
-    logger.info(
-      "🧹 Stopping and removing existing relayer containers (relayers depend on DataHaven nodes)..."
-    );
-    await killExistingContainers(relayerImageTag);
-  }
+  logger.info(
+    "🧹 Stopping and removing existing relayer containers (relayers depend on DataHaven nodes)..."
+  );
+  await killExistingContainers("snowbridge-");
 
   logger.info("✅ Existing DataHaven containers stopped and removed.");
 

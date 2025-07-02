@@ -399,7 +399,8 @@ export const launchRelayers = async (
   const { relayerImageTag, kurtosisEnclaveName } = options;
 
   invariant(relayerImageTag, "❌ relayerImageTag is required");
-  await killExistingContainers(relayerImageTag);
+
+  await killExistingContainers("snowbridge-");
 
   // Get DataHaven node port
   const dhNodes = launchedNetwork.containers.filter((container) =>

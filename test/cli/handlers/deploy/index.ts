@@ -14,6 +14,7 @@ import { performValidatorOperations } from "./validator";
 // Non-optional properties determined by having default values
 export interface DeployOptions {
   environment: DeployEnvironment;
+  isPrivateNetwork?: boolean;
   kubeNamespace?: string;
   kurtosisEnclaveName: string;
   slotTime: number;
@@ -101,13 +102,15 @@ export const deployPreActionHook = (
     thisCmd.error("--verified requires --blockscout to be set");
   }
 
-  if (opts.environment === "stagenet" && opts.kubeNamespace !== undefined) {
+  opts.isPrivateNetwork = opts.environment === "local" || opts.environment === "stagenet";
+
+  if (opts.isPrivateNetwork && opts.kubeNamespace !== undefined) {
     logger.warn(
-      "⚠️ --kube-namespace is not allowed in stagenet environment. The Kurtosis namespace will be used instead."
+      "⚠️ --kube-namespace is not allowed in private networks (local and stagenet). The Kurtosis namespace will be used instead."
     );
   }
 
-  if (opts.environment !== "stagenet" && opts.elRpcUrl === undefined) {
-    thisCmd.error("--eth-rpc-url is required in non-stagenet environment");
+  if (!opts.isPrivateNetwork && opts.elRpcUrl === undefined) {
+    thisCmd.error("--eth-rpc-url is required in public networks (testnet and mainnet)");
   }
 };

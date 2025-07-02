@@ -25,8 +25,8 @@ export const deployKurtosis = async (
   printHeader("Deploying Kurtosis Ethereum Network");
 
   invariant(
-    options.environment === "stagenet",
-    "❌ Kurtosis should only be used in stagenet environment"
+    options.isPrivateNetwork,
+    "❌ Kurtosis should only be used in private networks (local and stagenet)"
   );
 
   await runKurtosisEnclave(options, "configs/kurtosis/minimal.yaml");

@@ -16,6 +16,7 @@ export const NETWORK_ID = "cli-launch";
 
 // Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {
+  all?: boolean;
   datahaven?: boolean;
   buildDatahaven?: boolean;
   datahavenBuildExtraArgs: string;
@@ -99,7 +100,53 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
+  const {
+    all,
+    blockscout,
+    verified,
+    fundValidators,
+    setupValidators,
+    deployContracts,
+    datahaven,
+    buildDatahaven,
+    launchKurtosis,
+    relayer,
+    setParameters,
+    updateValidatorSet
+  } = thisCmd.opts();
+
+  // Check for conflicts with --all flag
+  if (
+    all &&
+    (datahaven === false ||
+      buildDatahaven === false ||
+      launchKurtosis === false ||
+      deployContracts === false ||
+      fundValidators === false ||
+      setupValidators === false ||
+      updateValidatorSet === false ||
+      setParameters === false ||
+      relayer === false)
+  ) {
+    thisCmd.error(
+      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, or --no-relayer"
+    );
+  }
+
+  // If --all is set, enable all components
+  if (all) {
+    thisCmd.setOptionValue("datahaven", true);
+    thisCmd.setOptionValue("buildDatahaven", true);
+    thisCmd.setOptionValue("launchKurtosis", true);
+    thisCmd.setOptionValue("deployContracts", true);
+    thisCmd.setOptionValue("fundValidators", true);
+    thisCmd.setOptionValue("setupValidators", true);
+    thisCmd.setOptionValue("updateValidatorSet", true);
+    thisCmd.setOptionValue("setParameters", true);
+    thisCmd.setOptionValue("relayer", true);
+    thisCmd.setOptionValue("cleanNetwork", true);
+  }
+
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
   }

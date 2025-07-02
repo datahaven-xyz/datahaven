@@ -1,12 +1,13 @@
 import type { LaunchOptions } from "cli/handlers";
-import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import {
   checkKurtosisEnclaveRunning,
   cleanKurtosisEnclave,
   launchKurtosisNetwork,
   registerServices
-} from "../../../launcher/kurtosis";
-import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
+} from "launcher/kurtosis";
+import type { LaunchedNetwork } from "launcher/types/launchedNetwork";
+import { checkKurtosisCluster } from "launcher/utils/checks";
+import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 
 /**
  * Launches a Kurtosis Ethereum network enclave for testing.
@@ -35,6 +36,13 @@ export const launchKurtosis = async (
 
     await registerServices(launchedNetwork, options.kurtosisEnclaveName);
     printDivider();
+    return;
+  }
+
+  if (!(await checkKurtosisCluster())) {
+    logger.error(
+      "❌ Kurtosis cluster is not configured for local launch, run `kurtosis cluster get`"
+    );
     return;
   }
 

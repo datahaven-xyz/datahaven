@@ -13,13 +13,13 @@ use datahaven_testnet_runtime::{
 use dhp_bridge::NativeTokenTransferMessageProcessor;
 use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};
 use pallet_datahaven_native_transfer::Event as NativeTransferEvent;
-use sp_core::Get;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
     EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload,
 };
 use snowbridge_pallet_outbound_queue_v2::Event as OutboundQueueEvent;
 use snowbridge_pallet_system::NativeToForeignId;
+use sp_core::Get;
 use sp_core::{H160, H256};
 use sp_runtime::DispatchError;
 use xcm::prelude::*;

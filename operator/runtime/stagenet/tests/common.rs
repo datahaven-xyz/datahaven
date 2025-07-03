@@ -4,7 +4,7 @@
 //! Common test utilities for DataHaven stagenet runtime tests
 
 use datahaven_stagenet_runtime::{
-    AccountId, Balance, Runtime, RuntimeEvent, RuntimeOrigin, Session, SessionKeys, System, UNIT,
+    AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System, UNIT,
 };
 use frame_support::traits::Hooks;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -135,10 +135,6 @@ impl ExtBuilder {
 
 pub fn root_origin() -> RuntimeOrigin {
     RuntimeOrigin::root()
-}
-
-pub fn last_event() -> RuntimeEvent {
-    System::events().pop().expect("Event expected").event
 }
 
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {

@@ -20,7 +20,6 @@ library DataHavenSnowbridgeMessages {
     /**
      * @title New Validator Set Snowbridge Message
      * @notice A struct representing a new validator set to be sent as a message through Snowbridge.
-     *         This contains only the payload as nonce and topic are not used.
      */
     struct NewValidatorSet {
         /// @notice The payload of the message

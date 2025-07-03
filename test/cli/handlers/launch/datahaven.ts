@@ -93,7 +93,6 @@ export const launchDataHavenSolochain = async (
 
   if (!shouldBuildDataHaven) {
     logger.info("👍 Skipping DataHaven node local Docker image build. Done!");
-    return;
   }
 
   await launchLocalDataHavenSolochain(

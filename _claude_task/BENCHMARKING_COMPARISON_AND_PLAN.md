@@ -1,5 +1,33 @@
 # DataHaven vs Moonbeam Benchmarking Comparison & Implementation Plan
 
+## Benchmark Log Analysis Results
+
+Based on analysis of benchmark log files in `/operator/`:
+
+### Successfully Benchmarked Pallets (8/10 custom pallets)
+- **Native DataHaven Pallets**: All passed successfully
+  - `pallet_external_validators`: 6 benchmarks completed
+  - `pallet_external_validators_rewards`: 1 benchmark completed  
+  - `pallet_datahaven_native_transfer`: 3 benchmarks completed
+- **Snowbridge Pallets**: All passed successfully
+  - `snowbridge_pallet_ethereum_client`: 3 benchmarks completed
+  - `snowbridge_pallet_inbound_queue_v2`: 1 benchmark completed
+  - `snowbridge_pallet_outbound_queue_v2`: 5 benchmarks completed
+  - `snowbridge_pallet_system`: 5 benchmarks completed
+  - `snowbridge_pallet_system_v2`: 1 benchmark completed
+
+### Failed Benchmarks (2 standard Substrate pallets)
+1. **pallet_im_online**: "More than the maximum number of keys provided"
+   - Incompatible with DataHaven's external validator architecture
+2. **pallet_identity**: "Sr25519 not supported for EthereumSignature"  
+   - Ethereum accounts (AccountId20) incompatible with Sr25519 signatures
+
+### Key Findings
+- All custom DataHaven pallets benchmark successfully
+- Failures only in standard Substrate pallets due to architectural differences
+- Benchmarks were run with minimal configuration (steps=2, repeat=2)
+- Weight files were successfully generated for all passing benchmarks
+
 ## Current State Analysis
 
 ### DataHaven's Current Setup
@@ -56,22 +84,25 @@ Using frame-omni-bencher directly instead of through the node API provides sever
 
 #### 1.0 Fix Native Pallets Benchmarks
 **Priority**: CRITICAL - Must be done before runtime integration
-All native DataHaven pallets have compilation errors or implementation issues in their benchmarking code that need to be fixed:
-- `pallet_external_validators`: Fix benchmark compilation errors
-- `pallet_external_validators_rewards`: Update benchmarks to match current pallet logic
-- `pallet_datahaven_native_transfer`: Complete benchmark implementation
-- `pallet_ethereum_client`: **Special Case - InvalidSyncCommitteeMerkleProof errors**
-  - Root cause: Hardcoded fixtures in `fixtures/src/lib.rs` have invalid merkle proofs
-  - Solution: Update fixture generation to use JSON test data from `tests/fixtures/`
-  - The JSON files contain valid beacon chain data with correct merkle proofs
-  - Need to either:
-    1. Regenerate `fixtures/src/lib.rs` from the JSON test data
-    2. Modify benchmarks to load JSON fixtures directly
-    3. Or temporarily mock the merkle verification for benchmarking purposes
-- `pallet_inbound_queue_v2`: Ensure benchmarks cover all extrinsics
-- `pallet_outbound_queue_v2`: Fix benchmark parameter ranges
-- `pallet_system`: Update benchmarks for v2 API
-- `pallet_system_v2`: Complete benchmark coverage
+
+**✅ Successfully Benchmarked Native Pallets:**
+- `pallet_external_validators`: All 6 benchmarks passed
+- `pallet_external_validators_rewards`: 1 benchmark passed
+- `pallet_datahaven_native_transfer`: All 3 benchmarks passed
+- `snowbridge_pallet_ethereum_client`: All 3 benchmarks passed
+- `snowbridge_pallet_inbound_queue_v2`: 1 benchmark passed
+- `snowbridge_pallet_outbound_queue_v2`: All 5 benchmarks passed
+- `snowbridge_pallet_system`: All 5 benchmarks passed
+- `snowbridge_pallet_system_v2`: 1 benchmark passed
+
+**❌ Failed Standard Substrate Pallets:**
+- `pallet_im_online::validate_unsigned_and_then_heartbeat`: Error - "More than the maximum number of keys provided"
+  - This pallet is for validator heartbeats and may not be compatible with DataHaven's external validator model
+  - Consider removing from benchmarks or implementing custom solution
+- `pallet_identity::set_username_for`: Error - "Sr25519 not supported for EthereumSignature"
+  - Root cause: DataHaven uses Ethereum accounts (AccountId20) which are incompatible with Sr25519 signatures
+  - This specific benchmark requires Sr25519 signatures for username authorities
+  - Solution: Either skip this benchmark or adapt identity pallet for Ethereum accounts
 
 #### 1.1 Fix Runtime Benchmark Integration
 **File**: `operator/runtime/*/src/benchmarks.rs`
@@ -287,6 +318,8 @@ chmod +x scripts/benchmark-all.sh
 # Run benchmark for a single pallet
 ./scripts/benchmark-single.sh pallet_external_validators testnet 50 20
 ```
+
+**Note**: Based on the benchmark logs analyzed, the benchmarks were run with minimal configuration (steps=2, repeat=2) which is suitable for testing but not for production weights. Production benchmarks should use steps=50, repeat=20 for accurate measurements.
 
 ### Step 6: Update Runtime to Use Centralized Weights
 After generating weights, update your runtime configuration to use the centralized weights from `runtime/*/src/weights/`:

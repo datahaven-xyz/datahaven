@@ -29,7 +29,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.compact.compressed.wasm
+// target/release/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
 // --pallet
 // snowbridge_pallet_inbound_queue_v2
 // --extrinsic
@@ -37,7 +37,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/stagenet/src/weights/snowbridge_pallet_inbound_queue_v2.rs
+// runtime/testnet/src/weights/snowbridge_pallet_inbound_queue_v2.rs
 // --steps
 // 2
 // --repeat
@@ -73,8 +73,8 @@ impl<T: frame_system::Config> WeightInfo for DataHavenWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `305`
 		//  Estimated: `3537`
-		// Minimum execution time: 59_218_000 picoseconds.
-		Weight::from_parts(65_763_000, 3537)
+		// Minimum execution time: 60_922_000 picoseconds.
+		Weight::from_parts(64_932_000, 3537)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -96,8 +96,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `305`
 		//  Estimated: `3537`
-		// Minimum execution time: 59_218_000 picoseconds.
-		Weight::from_parts(65_763_000, 3537)
+		// Minimum execution time: 60_922_000 picoseconds.
+		Weight::from_parts(64_932_000, 3537)
 			.saturating_add(RocksDbWeight::get().reads(5_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}

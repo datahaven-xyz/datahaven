@@ -27,11 +27,16 @@ frame_benchmarking::define_benchmarks!(
     // System benchmarks
     [frame_benchmarking, BaselineBench::<Runtime>]
     [frame_system, SystemBench::<Runtime>]
-    
+
     // Substrate pallets
     [pallet_balances, Balances]
-    [pallet_identity, Identity]
-    [pallet_im_online, ImOnline]
+    // TODO: We cannot add due to EthereumSignature not being able
+    // to sign with Sr25519. Can be implemented once we incorporate
+    // https://github.com/paritytech/polkadot-sdk/pull/8179
+    // [pallet_identity, Identity]
+    // TODO: Benchmark does not work when MaxKeys is set < 1000.
+    // See https://github.com/paritytech/polkadot-sdk/blob/180fcce69fbddfa1bde9830362d8026340b4b750/substrate/frame/im-online/src/benchmarking.rs#L32
+    // [pallet_im_online, ImOnline]
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]
     [pallet_scheduler, Scheduler]
@@ -39,12 +44,12 @@ frame_benchmarking::define_benchmarks!(
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]
     [pallet_transaction_payment, TransactionPayment]
-    
+
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]
     [pallet_external_validators_rewards, ExternalValidatorsRewards]
     [pallet_datahaven_native_transfer, DataHavenNativeTransfer]
-    
+
     // Snowbridge pallets
     [snowbridge_pallet_ethereum_client, EthereumBeaconClient]
     [snowbridge_pallet_inbound_queue_v2, EthereumInboundQueueV2]

@@ -13,6 +13,7 @@ use datahaven_stagenet_runtime::{
 use dhp_bridge::NativeTokenTransferMessageProcessor;
 use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};
 use pallet_datahaven_native_transfer::Event as NativeTransferEvent;
+use sp_core::Get;
 use snowbridge_core::TokenIdOf;
 use snowbridge_inbound_queue_primitives::v2::{
     EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload,
@@ -28,6 +29,12 @@ const TRANSFER_AMOUNT: Balance = 1000 * UNIT;
 const FEE_AMOUNT: Balance = 10 * UNIT;
 const ETH_ALICE: H160 = H160([0x11; 20]);
 const ETH_BOB: H160 = H160([0x22; 20]);
+
+// Get the gateway address from runtime configuration
+fn gateway_address() -> H160 {
+    use datahaven_stagenet_runtime::configs::runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
+    EthereumGatewayAddress::get()
+}
 
 fn register_native_token() -> H256 {
     let asset_location = Location::here();
@@ -47,7 +54,7 @@ fn setup_sovereign_balance(amount: Balance) {
 
 fn create_message(token_id: H256, amount: Balance, claimer: H160, nonce: u64) -> SnowbridgeMessage {
     SnowbridgeMessage {
-        gateway: H160::zero(),
+        gateway: gateway_address(),
         nonce,
         origin: H160::zero(),
         assets: vec![EthereumAsset::ForeignTokenERC20 {

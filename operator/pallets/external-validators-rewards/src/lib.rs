@@ -44,12 +44,13 @@ use {
     sp_core::H256,
     sp_runtime::traits::{Hash, Zero},
     sp_staking::SessionIndex,
-    sp_std::{collections::btree_set::BTreeSet, vec::Vec},
+    sp_std::{collections::btree_set::BTreeSet, vec, vec::Vec},
 };
 
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::traits::fungible;
+    use frame_system::pallet_prelude::BlockNumberFor;
 
     pub use crate::weights::WeightInfo;
     use {
@@ -331,6 +332,30 @@ pub mod pallet {
                     rewards_merkle_root: utils.rewards_merkle_root,
                 });
             }
+        }
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+            let mock_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::from_low_u64_be(0),
+                leaves: vec![],
+                leaf_index: None,
+                total_points: 0,
+            };
+
+            if let Some(message_id) = Self::send_rewards_message(&mock_utils) {
+                Self::deposit_event(Event::RewardsMessageSent {
+                    message_id,
+                    era_index: 0,
+                    total_points: 0,
+                    inflation_amount: 0,
+                    rewards_merkle_root: mock_utils.rewards_merkle_root,
+                });
+            }
+
+            Zero::zero()
         }
     }
 }

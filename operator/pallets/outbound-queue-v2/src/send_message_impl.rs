@@ -35,8 +35,10 @@ where
     fn deliver(ticket: Self::Ticket) -> Result<H256, SendError> {
         let origin = AggregateMessageOrigin::SnowbridgeV2(ticket.origin);
 
-        let message =
-            BoundedVec::try_from(ticket.encode()).map_err(|_| SendError::MessageTooLarge)?;
+        let message: BoundedVec<
+            u8,
+            <<T as Config>::MessageQueue as EnqueueMessage<AggregateMessageOrigin>>::MaxMessageLen,
+        > = BoundedVec::try_from(ticket.encode()).map_err(|_| SendError::MessageTooLarge)?;
 
         T::MessageQueue::enqueue_message(message.as_bounded_slice(), origin);
         Self::deposit_event(Event::MessageQueued {

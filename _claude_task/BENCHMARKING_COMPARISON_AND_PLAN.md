@@ -67,16 +67,6 @@ Based on analysis of benchmark log files in `/operator/`:
 | Developer tools | ❌ | ✅ | Medium |
 | Error handling | ❌ | ✅ | Low |
 
-## Why Use frame-omni-bencher Directly?
-
-Using frame-omni-bencher directly instead of through the node API provides several advantages:
-
-1. **No Node Required**: Benchmarks run against the runtime WASM directly, no need to start a node
-2. **Faster Execution**: Direct WASM execution is more efficient than going through RPC
-3. **Better CI/CD Integration**: Easier to run in automated environments without node setup
-4. **Consistent Results**: Eliminates network/node overhead from measurements
-5. **Simpler Toolchain**: One tool for all benchmarking needs
-6. **Industry Standard**: Used by Polkadot, Kusama, and major parachains
 
 ## Implementation Plan
 
@@ -92,8 +82,6 @@ Using frame-omni-bencher directly instead of through the node API provides sever
 - `snowbridge_pallet_ethereum_client`: All 3 benchmarks passed
 - `snowbridge_pallet_inbound_queue_v2`: 1 benchmark passed
 - `snowbridge_pallet_outbound_queue_v2`: All 5 benchmarks passed
-- `snowbridge_pallet_system`: All 5 benchmarks passed
-- `snowbridge_pallet_system_v2`: 1 benchmark passed
 
 **❌ Failed Standard Substrate Pallets:**
 - `pallet_im_online::validate_unsigned_and_then_heartbeat`: Error - "More than the maximum number of keys provided"

@@ -102,6 +102,8 @@ use sp_version::RuntimeVersion;
 use xcm::latest::NetworkId;
 use xcm::prelude::*;
 
+pub(crate) use crate::weights as testnet_weights;
+
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
 
@@ -216,7 +218,7 @@ impl pallet_timestamp::Config for Runtime {
     type Moment = u64;
     type OnTimestampSet = Babe;
     type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
-    type WeightInfo = crate::weights::pallet_timestamp::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -230,7 +232,7 @@ impl pallet_balances::Config for Runtime {
     type DustRemoval = ();
     type ExistentialDeposit = ConstU128<EXISTENTIAL_DEPOSIT>;
     type AccountStore = System;
-    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_balances::WeightInfo<Runtime>;
     type FreezeIdentifier = RuntimeFreezeReason;
     type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
     type RuntimeHoldReason = RuntimeHoldReason;
@@ -337,7 +339,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type WeightToFee = IdentityFee<Balance>;
     type LengthToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
-    type WeightInfo = crate::weights::pallet_transaction_payment::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -379,7 +381,7 @@ impl pallet_mmr::Config for Runtime {
     type Hashing = Keccak256;
     type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
     type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_mmr::WeightInfo<Runtime>;
     type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -390,7 +392,7 @@ impl pallet_beefy_mmr::Config for Runtime {
     type BeefyAuthorityToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
     type LeafExtra = LeafExtraData;
     type BeefyDataProvider = LeafExtraDataProvider;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_beefy_mmr::WeightInfo<Runtime>;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -401,7 +403,7 @@ impl pallet_utility::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type PalletsOrigin = OriginCaller;
-    type WeightInfo = crate::weights::pallet_utility::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_utility::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -419,7 +421,7 @@ impl pallet_scheduler::Config for Runtime {
     type MaxScheduledPerBlock = ConstU32<50>;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type Preimages = Preimage;
-    type WeightInfo = crate::weights::pallet_scheduler::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_scheduler::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -439,7 +441,7 @@ impl pallet_preimage::Config for Runtime {
         PreimageHoldReason,
         LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
     >;
-    type WeightInfo = crate::weights::pallet_preimage::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_preimage::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -502,20 +504,20 @@ impl pallet_multisig::Config for Runtime {
     type DepositBase = DepositBase;
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
-    type WeightInfo = crate::weights::pallet_multisig::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_multisig::WeightInfo<Runtime>;
 }
 
 impl pallet_parameters::Config for Runtime {
     type AdminOrigin = EnsureRoot<AccountId>;
     type RuntimeEvent = RuntimeEvent;
     type RuntimeParameters = RuntimeParameters;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
-    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_sudo::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -543,7 +545,7 @@ impl pallet_message_queue::Config for Runtime {
     type MaxStale = MessageQueueMaxStale;
     type ServiceWeight = MessageQueueServiceWeight;
     type IdleMaxServiceWeight = MessageQueueServiceWeight;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_message_queue::WeightInfo<Runtime>;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -630,7 +632,7 @@ impl pallet_evm::Config for Runtime {
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
     type GasLimitStorageGrowthRatio = ();
     type Timestamp = Timestamp;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_evm::WeightInfo<Runtime>;
 }
 
 impl pallet_evm_chain_id::Config for Runtime {}
@@ -696,7 +698,7 @@ impl snowbridge_pallet_system::Config for Runtime {
     type TreasuryAccount = TreasuryAccountId;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
-    type WeightInfo = crate::weights::snowbridge_pallet_system::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::snowbridge_pallet_system::WeightInfo<Runtime>;
     type UniversalLocation = UniversalLocation;
     type EthereumLocation = EthereumLocation;
     #[cfg(feature = "runtime-benchmarks")]
@@ -709,7 +711,8 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
-    type WeightInfo = crate::weights::snowbridge_pallet_system_v2::DataHavenWeight<Runtime>;
+    type WeightInfo = ();
+    //type WeightInfo = testnet_weights::snowbridge_pallet_system_v2::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
 }
@@ -791,7 +794,7 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ForkVersions = ChainForkVersions;
     type FreeHeadersInterval = ();
-    type WeightInfo = crate::weights::snowbridge_pallet_ethereum_client::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -842,7 +845,7 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
     type RewardPayment = DummyRewardPayment;
-    type WeightInfo = crate::weights::snowbridge_pallet_inbound_queue_v2::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::snowbridge_pallet_inbound_queue_v2::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;
 }
@@ -872,7 +875,8 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type MaxMessagesPerBlock = ConstU32<32>;
     type OnNewCommitment = CommitmentHandler;
     type WeightToFee = IdentityFee<Balance>;
-    type WeightInfo = crate::weights::snowbridge_pallet_outbound_queue_v2::DataHavenWeight<Runtime>;
+    type WeightInfo = ();
+    //type WeightInfo = testnet_weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type RewardKind = ();
@@ -963,7 +967,7 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = ExternalValidatorsRewards;
     type OnEraEnd = ExternalValidatorsRewards;
-    type WeightInfo = crate::weights::pallet_external_validators::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;
 }
@@ -1034,7 +1038,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = TreasuryAccountId;
-    type WeightInfo = crate::weights::pallet_external_validators_rewards::DataHavenWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ();
     #[cfg(feature = "runtime-benchmarks")]
@@ -1085,7 +1089,7 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type NativeTokenId = DataHavenTokenId;
     type FeeRecipient = TreasuryAccountId;
     type PauseOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_datahaven_native_transfer::WeightInfo<Runtime>;
 }
 
 #[cfg(test)]

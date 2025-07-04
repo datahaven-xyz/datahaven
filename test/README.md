@@ -7,6 +7,8 @@ Quick start guide for running DataHaven end-to-end tests. For comprehensive docu
 - [Kurtosis](https://docs.kurtosis.com/install): For launching test networks
 - [Bun](https://bun.sh/) v1.2 or higher: TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
+- [Foundry](https://getfoundry.sh/introduction/installation/): To deploy contracts
+- [Helm](https://helm.sh/docs/intro/install/): The Kubernetes Package Manager 
 
 ##### MacOS
 

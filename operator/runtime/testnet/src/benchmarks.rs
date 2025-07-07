@@ -44,6 +44,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_preimage, Preimage]
     [pallet_scheduler, Scheduler]
     [pallet_timestamp, Timestamp]
+    [pallet_treasury, Treasury]
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]
     [pallet_transaction_payment, TransactionPayment]

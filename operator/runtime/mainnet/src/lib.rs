@@ -302,6 +302,9 @@ mod runtime {
 
     #[runtime::pallet_index(36)]
     pub type Sudo = pallet_sudo;
+
+    #[runtime::pallet_index(37)]
+    pub type Treasury = pallet_treasury;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗

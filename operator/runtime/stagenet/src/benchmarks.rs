@@ -46,6 +46,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]
     [pallet_scheduler, Scheduler]
+    [pallet_treasury, Treasury]
     [pallet_timestamp, Timestamp]
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]

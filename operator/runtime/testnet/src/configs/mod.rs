@@ -754,8 +754,8 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
-    type WeightInfo = ();
-    //type WeightInfo = testnet_weights::snowbridge_pallet_system_v2::WeightInfo<Runtime>;
+    // type WeightInfo = ();
+    type WeightInfo = testnet_weights::snowbridge_pallet_system_v2::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
 }

@@ -91,5 +91,4 @@ jobs:
         run: |
           kurtosis enclave inspect datahaven-ethereum
           docker container ls
-        # TODO: Uncomment this once we have good and meaningful test suites
-      # - run: bun test:e2e
+      - run: bun test:e2e

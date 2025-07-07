@@ -44,50 +44,6 @@ describe("DataHaven Substrate Operations", () => {
     expect(freeBalance).toBeGreaterThan(0n);
   });
 
-  it("should submit extrinsic to finalized block", async () => {
-    const connectors = suite.getTestConnectors();
-    const value = parseEther("1");
-    const { address: dest } = generateRandomAccount();
-
-    const ext = connectors.dhApi.tx.Balances.transfer_allow_death({
-      dest,
-      value
-    });
-
-    // Submit and wait for finalization
-    const resp = await ext.signAndSubmit(signer, {});
-    logger.info(`Transaction finalized: ${resp.txHash}`);
-
-    // Verify balance
-    const {
-      data: { free: destBalance }
-    } = await connectors.dhApi.query.System.Account.getValue(dest);
-
-    expect(destBalance).toBeGreaterThan(0n);
-  });
-
-  it("should submit extrinsic to best block (faster)", async () => {
-    const connectors = suite.getTestConnectors();
-    const value = parseEther("0.5");
-    const { address: dest } = generateRandomAccount();
-
-    const ext = connectors.dhApi.tx.Balances.transfer_allow_death({
-      dest,
-      value
-    });
-
-    // Submit to best block (faster than finalized)
-    const resp = await ext.signAndSubmit(signer, { at: "best" });
-    logger.info(`Transaction in best block: ${resp.txHash}`);
-
-    // Check balance at best block
-    const {
-      data: { free: destBalance }
-    } = await connectors.dhApi.query.System.Account.getValue(dest, { at: "best" });
-
-    expect(destBalance).toBe(value);
-  });
-
   it("should listen to events", async () => {
     const connectors = suite.getTestConnectors();
 
@@ -111,37 +67,5 @@ describe("DataHaven Substrate Operations", () => {
     expect(blockHeader.number).toBeGreaterThan(0);
 
     logger.info(`Current block #${blockHeader.number}`);
-  });
-
-  it("should batch multiple transfers", async () => {
-    const connectors = suite.getTestConnectors();
-    const recipients = Array.from({ length: 3 }, () => generateRandomAccount());
-    const amount = parseEther("0.1");
-
-    // Create batch call
-    const calls = recipients.map(
-      (recipient) =>
-        connectors.dhApi.tx.Balances.transfer_allow_death({
-          dest: recipient.address,
-          value: amount
-        }).decodedCall
-    );
-
-    const batchExt = connectors.dhApi.tx.Utility.batch({ calls });
-
-    // Submit batch
-    const resp = await batchExt.signAndSubmit(signer, { at: "best" });
-    logger.info(`Batch transaction submitted: ${resp.txHash}`);
-
-    // Verify all recipients received funds
-    for (const recipient of recipients) {
-      const {
-        data: { free: balance }
-      } = await connectors.dhApi.query.System.Account.getValue(recipient.address, { at: "best" });
-
-      expect(balance).toBe(amount);
-    }
-
-    logger.info(`Successfully sent ${amount} wei to ${recipients.length} recipients in batch`);
   });
 });

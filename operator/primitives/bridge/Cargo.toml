@@ -11,9 +11,11 @@ version = "0.1.0"
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-external-validators = { workspace = true }
+pallet-datahaven-native-transfer = { workspace = true }
 parity-scale-codec = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
+sp-core = { workspace = true }
 sp-std = { workspace = true }
 hex = { workspace = true }
 
@@ -25,6 +27,8 @@ std = [
     "snowbridge-core/std",
     "parity-scale-codec/std",
     "pallet-external-validators/std",
+    "pallet-datahaven-native-transfer/std",
+    "sp-core/std",
     "sp-std/std",
     "snowbridge-inbound-queue-primitives/std",
 ]

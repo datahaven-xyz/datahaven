@@ -1,4 +1,4 @@
-use crate::{Balance, BlockNumber, Runtime, NANO_UNIT, UNIT};
+use crate::Runtime;
 use frame_support::dynamic_params::{dynamic_pallet_params, dynamic_params};
 use hex_literal::hex;
 use sp_core::{ConstU32, H160, H256};
@@ -23,14 +23,18 @@ pub mod dynamic_params {
         /// Set the initial address of the Snowbridge Gateway contract on Ethereum.
         /// The fact that this is a parameter means that we can set it initially to the zero address,
         /// and then change it later via governance, to the actual address of the deployed contract.
-        pub static EthereumGatewayAddress: H160 = H160::repeat_byte(0x0);
+        /// FIXME: this is a temporary address for testing.
+        pub static EthereumGatewayAddress: H160 =
+            H160::from_slice(&hex!("8f86403a4de0bb5791fa46b8e795c547942fe4cf"));
 
         #[codec(index = 1)]
         #[allow(non_upper_case_globals)]
         /// Set the initial address of the Rewards Registry contract on Ethereum.
         /// The fact that this is a parameter means that we can set it initially to the zero address,
         /// and then change it later via governance, to the actual address of the deployed contract.
-        pub static RewardsRegistryAddress: H160 = H160::repeat_byte(0x0);
+        /// FIXME: this is a temporary address for testing.
+        pub static RewardsRegistryAddress: H160 =
+            H160::from_slice(&hex!("4c5859f0f772848b2d91f1d83e2fe57935348029"));
 
         #[codec(index = 2)]
         #[allow(non_upper_case_globals)]
@@ -40,10 +44,10 @@ pub mod dynamic_params {
 
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
-        /// The RewardsAgentOrigin is the hash of the string "external_validators_rewards"
+        /// The RewardsAgentOrigin is the origin of the rewards agent, which is its ID.
         /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
         pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
-            "c505dfb2df107d106d08bd0f1a0acd10052ca9aa078629a4ccfd0c90c6e69b65"
+            "0000000000000000000000000000000000000000000000000000000000000000"
         ));
 
         // Proportion of fees allocated to the Treasury (remainder are burned).

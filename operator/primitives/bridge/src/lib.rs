@@ -2,12 +2,18 @@
 
 use frame_support::pallet_prelude::*;
 use parity_scale_codec::DecodeAll;
-use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
+use snowbridge_inbound_queue_primitives::v2::{
+    EthereumAsset, Message as SnowbridgeMessage, MessageProcessor,
+};
+use sp_core::H160;
 use sp_std::vec::Vec;
 
 // Message ID. This is not expected to change and its arbitrary bytes defined here.
 // It should match the EL_MESSAGE_ID in DataHavenSnowbridgeMessages.sol
 pub const EL_MESSAGE_ID: [u8; 4] = [112, 21, 0, 56]; // 0x70150038
+
+// Message ID for native token transfers
+pub const NATIVE_TRANSFER_MESSAGE_ID: [u8; 4] = [112, 21, 0, 57]; // 0x70150039
 
 #[derive(Encode, Decode)]
 pub struct Payload<T>
@@ -76,9 +82,10 @@ where
 
     fn process_message(
         _who: AccountId,
-        message: SnowbridgeMessage,
+        snow_msg: SnowbridgeMessage,
     ) -> Result<[u8; 32], DispatchError> {
-        let payload = match &message.xcm {
+        // Extract and decode the raw payload that came from Ethereum
+        let payload = match &snow_msg.xcm {
             snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,
             snowbridge_inbound_queue_primitives::v2::Payload::CreateAsset {
                 token: _,
@@ -86,13 +93,13 @@ where
             } => return Err(DispatchError::Other("Invalid Message")),
         };
         let decode_result = Self::decode_message(payload.as_slice());
-        let message = if let Ok(payload) = decode_result {
+        let inner_message = if let Ok(payload) = decode_result {
             payload.message
         } else {
             return Err(DispatchError::Other("unable to parse the message payload"));
         };
 
-        match message {
+        match inner_message {
             Message::V1(InboundCommand::ReceiveValidators {
                 validators,
                 external_index,
@@ -101,10 +108,100 @@ where
                     validators,
                     external_index,
                 )?;
+                // Return a 32-byte identifier using the message type ID
                 let mut id = [0u8; 32];
                 id[..EL_MESSAGE_ID.len()].copy_from_slice(&EL_MESSAGE_ID);
                 Ok(id)
             }
         }
+    }
+}
+
+/// Native Token Transfer Message Processor
+/// Handles inbound messages for native token transfers from Ethereum back to DataHaven
+pub struct NativeTokenTransferMessageProcessor<T>(PhantomData<T>);
+
+impl<T> NativeTokenTransferMessageProcessor<T>
+where
+    T: pallet_datahaven_native_transfer::Config + frame_system::Config,
+    T::AccountId: From<H160>,
+{
+    /// Extract account ID from claimer field
+    /// For native token transfers, the claimer contains an H160 Ethereum address
+    /// that needs to be converted to the runtime's AccountId format
+    fn extract_recipient_from_claimer(claimer: &[u8]) -> Result<T::AccountId, DispatchError> {
+        // For native token transfers, decode the claimer as an H160 Ethereum address
+        let eth_address = H160::decode(&mut &claimer[..])
+            .map_err(|_| DispatchError::Other("Invalid Ethereum address in claimer"))?;
+
+        Ok(T::AccountId::from(eth_address))
+    }
+}
+
+impl<T, AccountId> MessageProcessor<AccountId> for NativeTokenTransferMessageProcessor<T>
+where
+    T: pallet_datahaven_native_transfer::Config + frame_system::Config,
+    T::AccountId: From<H160>,
+{
+    fn can_process_message(_who: &AccountId, message: &SnowbridgeMessage) -> bool {
+        // Check if the native token is registered
+        let native_token_id = match T::NativeTokenId::get() {
+            Some(id) => id,
+            None => return false, // Token not registered
+        };
+
+        // Ensure all assets are the native token as ForeignTokenERC20
+        !message.assets.is_empty()
+            && message.assets.iter().all(|asset| match asset {
+                EthereumAsset::ForeignTokenERC20 { token_id, .. } => *token_id == native_token_id,
+                _ => false,
+            })
+    }
+
+    fn process_message(
+        _who: AccountId,
+        snow_msg: SnowbridgeMessage,
+    ) -> Result<[u8; 32], DispatchError> {
+        let native_token_id =
+            T::NativeTokenId::get().ok_or(DispatchError::Other("Native token not registered"))?;
+
+        // Extract and sum all native token assets
+        let token_amount: u128 = snow_msg
+            .assets
+            .iter()
+            .filter_map(|asset| match asset {
+                EthereumAsset::ForeignTokenERC20 { token_id, value }
+                    if *token_id == native_token_id =>
+                {
+                    Some(*value)
+                }
+                _ => None,
+            })
+            .sum();
+
+        if token_amount == 0 {
+            return Err(DispatchError::Other("No native token found in assets"));
+        }
+
+        // Extract recipient from claimer field
+        let claimer = snow_msg
+            .claimer
+            .as_ref()
+            .ok_or(DispatchError::Other("No claimer specified in message"))?;
+
+        let recipient = Self::extract_recipient_from_claimer(claimer.as_slice())?;
+
+        // Convert amount to balance type
+        let balance_amount = token_amount
+            .try_into()
+            .map_err(|_| DispatchError::Other("Amount conversion failed"))?;
+
+        // Unlock tokens from the sovereign account
+        pallet_datahaven_native_transfer::Pallet::<T>::unlock_tokens(&recipient, balance_amount)?;
+
+        // Return a 32-byte identifier using the native transfer message type ID
+        let mut id = [0u8; 32];
+        id[..NATIVE_TRANSFER_MESSAGE_ID.len()].copy_from_slice(&NATIVE_TRANSFER_MESSAGE_ID);
+        Ok(id)
     }
 }

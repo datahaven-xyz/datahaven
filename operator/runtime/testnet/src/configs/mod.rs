@@ -754,7 +754,6 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
-    // type WeightInfo = ();
     type WeightInfo = testnet_weights::snowbridge_pallet_system_v2::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
@@ -921,8 +920,7 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type MaxMessagesPerBlock = ConstU32<32>;
     type OnNewCommitment = CommitmentHandler;
     type WeightToFee = IdentityFee<Balance>;
-    type WeightInfo = ();
-    //type WeightInfo = testnet_weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
+    type WeightInfo = testnet_weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type RewardKind = ();
@@ -930,6 +928,8 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RewardPayment = DummyRewardPayment;
     type EthereumNetwork = EthereumNetwork;
     type ConvertAssetId = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = Runtime;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -946,6 +946,7 @@ pub mod benchmark_helpers {
     use crate::{EthereumBeaconClient, Runtime};
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
+    use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
     use sp_core::{H160, H256};
 
     impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
@@ -970,6 +971,31 @@ pub mod benchmark_helpers {
                 )
             ));
 
+            EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+        }
+    }
+
+    impl<T: snowbridge_pallet_outbound_queue_v2::Config> OutboundQueueBenchmarkHelperV2<T> for Runtime {
+        fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
+            // Set the gateway address to match the one used in the fixture
+            use super::runtime_params::dynamic_params;
+            use super::RuntimeParameters;
+            use frame_support::assert_ok;
+            use hex_literal::hex;
+
+            // Gateway address from the fixture: 0xb1185ede04202fe62d38f5db72f71e38ff3e8305
+            let gateway_address = H160::from(hex!("b1185ede04202fe62d38f5db72f71e38ff3e8305"));
+
+            // Set the parameter using the pallet_parameters extrinsic
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
+                        dynamic_params::runtime_config::EthereumGatewayAddress,
+                        Some(gateway_address),
+                    )
+                )
+            ));
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }

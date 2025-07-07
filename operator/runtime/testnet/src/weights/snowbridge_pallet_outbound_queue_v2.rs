@@ -50,8 +50,8 @@ impl<T: frame_system::Config> snowbridge_pallet_outbound_queue_v2::WeightInfo fo
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `1594`
-		// Minimum execution time: 19_510_000 picoseconds.
-		Weight::from_parts(23_907_000, 1594)
+		// Minimum execution time: 19_395_000 picoseconds.
+		Weight::from_parts(23_117_000, 1594)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}
@@ -63,8 +63,8 @@ impl<T: frame_system::Config> snowbridge_pallet_outbound_queue_v2::WeightInfo fo
 		// Proof Size summary in bytes:
 		//  Measured:  `1195`
 		//  Estimated: `2680`
-		// Minimum execution time: 27_044_000 picoseconds.
-		Weight::from_parts(30_343_000, 2680)
+		// Minimum execution time: 26_930_000 picoseconds.
+		Weight::from_parts(32_182_000, 2680)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -76,8 +76,8 @@ impl<T: frame_system::Config> snowbridge_pallet_outbound_queue_v2::WeightInfo fo
 		// Proof Size summary in bytes:
 		//  Measured:  `202`
 		//  Estimated: `1687`
-		// Minimum execution time: 10_977_000 picoseconds.
-		Weight::from_parts(13_047_000, 1687)
+		// Minimum execution time: 10_984_000 picoseconds.
+		Weight::from_parts(13_058_000, 1687)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -89,8 +89,8 @@ impl<T: frame_system::Config> snowbridge_pallet_outbound_queue_v2::WeightInfo fo
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 564_000 picoseconds.
-		Weight::from_parts(865_000, 0)
+		// Minimum execution time: 602_000 picoseconds.
+		Weight::from_parts(890_000, 0)
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	/// Storage: `EthereumOutboundQueueV2::Nonce` (r:1 w:1)
@@ -107,9 +107,26 @@ impl<T: frame_system::Config> snowbridge_pallet_outbound_queue_v2::WeightInfo fo
 		// Proof Size summary in bytes:
 		//  Measured:  `180`
 		//  Estimated: `1493`
-		// Minimum execution time: 464_714_000 picoseconds.
-		Weight::from_parts(464_884_000, 1493)
+		// Minimum execution time: 452_920_000 picoseconds.
+		Weight::from_parts(459_361_000, 1493)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(36_u64))
+	}
+	/// Storage: `EthereumBeaconClient::LatestFinalizedBlockRoot` (r:1 w:0)
+	/// Proof: `EthereumBeaconClient::LatestFinalizedBlockRoot` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	/// Storage: `EthereumBeaconClient::FinalizedBeaconState` (r:1 w:0)
+	/// Proof: `EthereumBeaconClient::FinalizedBeaconState` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `MaxEncodedLen`)
+	/// Storage: `Parameters::Parameters` (r:1 w:0)
+	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: `EthereumOutboundQueueV2::PendingOrders` (r:1 w:1)
+	/// Proof: `EthereumOutboundQueueV2::PendingOrders` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
+	fn submit_delivery_receipt() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `464`
+		//  Estimated: `3537`
+		// Minimum execution time: 59_689_000 picoseconds.
+		Weight::from_parts(64_086_000, 3537)
+			.saturating_add(T::DbWeight::get().reads(4_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 }

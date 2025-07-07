@@ -372,7 +372,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(validators[i], points[i]));
         }
 
-        return _buildMerkleProof(leaves, leafIndex);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
     }
 
     function _buildMessagesMerkleTree(
@@ -395,6 +395,6 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(messages[i]));
         }
 
-        return _buildMerkleProof(leaves, leafIndex);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
     }
 }

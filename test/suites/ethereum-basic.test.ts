@@ -47,6 +47,12 @@ describe("Ethereum Basic Operations", () => {
     });
     expect(balanceBefore).toBe(0n);
 
+    // Check balance of the sender
+    const balance = await connectors.publicClient.getBalance({
+      address: connectors.walletClient.account.address
+    });
+    expect(balance).toBeGreaterThan(amount);
+
     // Send transaction
     if (!connectors.walletClient.account) {
       throw new Error("Wallet client account not available");
@@ -82,10 +88,48 @@ describe("Ethereum Basic Operations", () => {
     const recipient = generateRandomAccount();
     const amount = parseEther("0.5");
 
+    // Fund wallet1 and wallet2 with 1ETH to successfully send transaction
+    const initialAmount = parseEther("1");
+
+    // Give 1ETH to wallet1
+    const hashInit1 = await connectors.walletClient.sendTransaction({
+      account: connectors.walletClient.account,
+      chain: null,
+      to: wallet1.account.address as `0x${string}`,
+      value: initialAmount
+    });
+
+    // Wait for receipt
+    const receiptInit1 = await connectors.publicClient.waitForTransactionReceipt({ hash: hashInit1 });
+    expect(receiptInit1.status).toBe("success");
+
+    const balance1 = await connectors.publicClient.getBalance({
+      address: wallet1.account.address
+    });
+    expect(balance1).toBeGreaterThan(parseEther("1"));
+
+    // Give 1ETH to wallet2
+    const hashInit2 = await connectors.walletClient.sendTransaction({
+      account: connectors.walletClient.account,
+      chain: null,
+      to: wallet2.account.address as `0x${string}`,
+      value: initialAmount
+    });
+
+    // Wait for receipt
+    const receiptInit2 = await connectors.publicClient.waitForTransactionReceipt({ hash: hashInit2 });
+    expect(receiptInit2.status).toBe("success");
+
+    const balance2 = await connectors.publicClient.getBalance({
+      address: wallet2.account.address
+    });
+    expect(balance2).toBeGreaterThan(parseEther("1"));
+
     // Send from account 1
     if (!wallet1.account) {
       throw new Error("Wallet1 account not available");
     }
+
     const hash1 = await wallet1.sendTransaction({
       account: wallet1.account,
       chain: null,
@@ -97,6 +141,7 @@ describe("Ethereum Basic Operations", () => {
     if (!wallet2.account) {
       throw new Error("Wallet2 account not available");
     }
+
     const hash2 = await wallet2.sendTransaction({
       account: wallet2.account,
       chain: null,
@@ -120,5 +165,5 @@ describe("Ethereum Basic Operations", () => {
     expect(finalBalance).toBe(amount * 2n);
 
     logger.info(`Received total of ${finalBalance} wei from multiple accounts`);
-  });
+  }, 20_000);
 });

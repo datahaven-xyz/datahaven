@@ -63,9 +63,9 @@ library DataHavenSnowbridgeMessages {
 
         // Flatten the validator set into a single bytes array
         bytes memory validatorsFlattened;
-        for (uint32 i = 0; i < validatorSetBytes20.length; i++) {
+        for (uint32 i = 0; i < validatorSet.length; i++) {
             validatorsFlattened =
-                bytes.concat(validatorsFlattened, abi.encodePacked(validatorSetBytes20[i]));
+                bytes.concat(validatorsFlattened, abi.encodePacked(validatorSet[i]));
         }
 
         return bytes.concat(

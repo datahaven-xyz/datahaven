@@ -47,6 +47,7 @@ export abstract class BaseTestSuite {
             this.options.networkOptions?.datahavenImageTag || "moonsonglabs/datahaven:local",
           relayerImageTag:
             this.options.networkOptions?.relayerImageTag || "moonsonglabs/snowbridge-relay:latest",
+          buildDatahaven: false, // default to false in the test suite so we can speed up the CI
           ...this.options.networkOptions
         });
 

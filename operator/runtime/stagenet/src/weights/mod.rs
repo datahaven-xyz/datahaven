@@ -30,7 +30,6 @@ pub mod snowbridge_pallet_system;
 pub mod snowbridge_pallet_system_v2;
 
 // Substrate pallets
-pub mod frame_benchmarking;
 pub mod frame_system;
 pub mod pallet_balances;
 pub mod pallet_beefy_mmr;

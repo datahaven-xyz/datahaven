@@ -87,8 +87,11 @@ jobs:
           docker rm temp
       - run: tmp/bin/snowbridge-relay --help
       - run: docker pull ${{ inputs.image-tag }}
+      - run: |
+          docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
+          docker images
       - run: bun install
-      - run: bun start:e2e:ci --datahaven-image-tag ${{ inputs.image-tag }}
+      - run: bun start:e2e:ci --datahaven-image-tag moonsonglabs/datahaven:local
       - name: Check network
         run: |
           kurtosis enclave inspect datahaven-ethereum

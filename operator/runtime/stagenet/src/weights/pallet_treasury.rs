@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/release/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_treasury
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_treasury.rs
+// runtime/stagenet/src/weights/pallet_treasury.rs
 // --steps
 // 2
 // --repeat
@@ -48,8 +48,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `6`
 		//  Estimated: `1887`
-		// Minimum execution time: 10_019_000 picoseconds.
-		Weight::from_parts(15_064_000, 1887)
+		// Minimum execution time: 10_742_000 picoseconds.
+		Weight::from_parts(15_079_000, 1887)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -59,8 +59,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `90`
 		//  Estimated: `1887`
-		// Minimum execution time: 5_016_000 picoseconds.
-		Weight::from_parts(5_441_000, 1887)
+		// Minimum execution time: 5_454_000 picoseconds.
+		Weight::from_parts(5_502_000, 1887)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -75,10 +75,10 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `134 + p * (2 ±0)`
 		//  Estimated: `3581`
-		// Minimum execution time: 11_671_000 picoseconds.
-		Weight::from_parts(12_953_000, 3581)
-			// Standard Error: 41_702
-			.saturating_add(Weight::from_parts(64_601, 0).saturating_mul(p.into()))
+		// Minimum execution time: 10_676_000 picoseconds.
+		Weight::from_parts(11_782_500, 3581)
+			// Standard Error: 20_151
+			.saturating_add(Weight::from_parts(48_237, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
@@ -90,8 +90,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `6`
 		//  Estimated: `1489`
-		// Minimum execution time: 8_714_000 picoseconds.
-		Weight::from_parts(13_987_000, 1489)
+		// Minimum execution time: 8_560_000 picoseconds.
+		Weight::from_parts(14_441_000, 1489)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
@@ -103,8 +103,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `280`
 		//  Estimated: `6172`
-		// Minimum execution time: 44_001_000 picoseconds.
-		Weight::from_parts(44_418_000, 6172)
+		// Minimum execution time: 46_616_000 picoseconds.
+		Weight::from_parts(48_498_000, 6172)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -114,8 +114,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `112`
 		//  Estimated: `3522`
-		// Minimum execution time: 9_658_000 picoseconds.
-		Weight::from_parts(10_608_000, 3522)
+		// Minimum execution time: 9_896_000 picoseconds.
+		Weight::from_parts(12_088_000, 3522)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -125,8 +125,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `112`
 		//  Estimated: `3522`
-		// Minimum execution time: 8_622_000 picoseconds.
-		Weight::from_parts(11_154_000, 3522)
+		// Minimum execution time: 8_786_000 picoseconds.
+		Weight::from_parts(10_604_000, 3522)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}

@@ -42,7 +42,7 @@ impl<T: frame_system::Config> pallet_evm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_719_000 picoseconds.
-		Weight::from_parts(4_039_000, 0)
+		// Minimum execution time: 1_687_000 picoseconds.
+		Weight::from_parts(3_853_000, 0)
 	}
 }

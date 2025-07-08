@@ -576,7 +576,8 @@ impl pallet_treasury::Config for Runtime {
     type Burn = ();
     type BurnDestination = ();
     type MaxApprovals = ConstU32<100>;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_treasury::WeightInfo<Runtime>;
+
     type SpendFunds = ();
     type SpendOrigin =
         frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;

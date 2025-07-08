@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/release/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/release/wbuild/datahaven-stagenet-runtime/datahaven_stagenet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_beefy_mmr
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_beefy_mmr.rs
+// runtime/stagenet/src/weights/pallet_beefy_mmr.rs
 // --steps
 // 2
 // --repeat
@@ -44,8 +44,8 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `68`
 		//  Estimated: `3509`
-		// Minimum execution time: 5_525_000 picoseconds.
-		Weight::from_parts(5_665_000, 3509)
+		// Minimum execution time: 5_248_000 picoseconds.
+		Weight::from_parts(5_627_000, 3509)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 	}
 	/// Storage: `Mmr::Nodes` (r:1 w:0)
@@ -54,8 +54,8 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `187`
 		//  Estimated: `3505`
-		// Minimum execution time: 4_915_000 picoseconds.
-		Weight::from_parts(4_963_000, 3505)
+		// Minimum execution time: 5_164_000 picoseconds.
+		Weight::from_parts(5_330_000, 3505)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 	}
 	/// Storage: `Mmr::RootHash` (r:1 w:0)
@@ -67,10 +67,10 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `179`
 		//  Estimated: `1517`
-		// Minimum execution time: 11_281_000 picoseconds.
-		Weight::from_parts(12_340_380, 1517)
-			// Standard Error: 129_741
-			.saturating_add(Weight::from_parts(1_120_059, 0).saturating_mul(n.into()))
+		// Minimum execution time: 11_319_000 picoseconds.
+		Weight::from_parts(9_554_737, 1517)
+			// Standard Error: 233_208
+			.saturating_add(Weight::from_parts(1_249_881, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 	}
 }

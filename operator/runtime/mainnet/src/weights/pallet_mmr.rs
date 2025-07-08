@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/release/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/release/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_mmr
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_mmr.rs
+// runtime/mainnet/src/weights/pallet_mmr.rs
 // --steps
 // 2
 // --repeat
@@ -57,10 +57,10 @@ impl<T: frame_system::Config> pallet_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `258`
 		//  Estimated: `1529 + x * (21 ±0)`
-		// Minimum execution time: 17_864_000 picoseconds.
-		Weight::from_parts(19_455_462, 1529)
-			// Standard Error: 1_655
-			.saturating_add(Weight::from_parts(39_037, 0).saturating_mul(x.into()))
+		// Minimum execution time: 37_248_000 picoseconds.
+		Weight::from_parts(38_878_905, 1529)
+			// Standard Error: 4_766
+			.saturating_add(Weight::from_parts(76_594, 0).saturating_mul(x.into()))
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 			.saturating_add(Weight::from_parts(0, 21).saturating_mul(x.into()))

@@ -25,14 +25,11 @@
 
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
-    [frame_benchmarking, BaselineBench::<Runtime>]
     [frame_system, SystemBench::<Runtime>]
 
     // Consensus pallets
-    [pallet_babe, Babe]
-    [pallet_grandpa, Grandpa]
     [pallet_mmr, Mmr]
-    // Note: pallet_beefy and pallet_beefy_mmr don't have benchmarking support
+    [pallet_beefy_mmr, BeefyMmrLeaf]
 
     // Substrate pallets
     [pallet_balances, Balances]
@@ -55,7 +52,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_message_queue, MessageQueue]
 
     // EVM pallets
-    [pallet_evm, EVM]
+    [pallet_evm, Evm]
 
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]

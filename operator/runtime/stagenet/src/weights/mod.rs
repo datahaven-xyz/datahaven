@@ -30,14 +30,22 @@ pub mod snowbridge_pallet_system;
 pub mod snowbridge_pallet_system_v2;
 
 // Substrate pallets
+pub mod frame_benchmarking;
+pub mod frame_system;
 pub mod pallet_balances;
-pub mod pallet_identity;
-pub mod pallet_im_online;
+pub mod pallet_beefy_mmr;
+pub mod pallet_evm;
+// pub mod pallet_identity;
+// pub mod pallet_im_online;
+pub mod pallet_message_queue;
+pub mod pallet_mmr;
 pub mod pallet_multisig;
+pub mod pallet_parameters;
 pub mod pallet_preimage;
 pub mod pallet_scheduler;
-pub mod pallet_session;
 pub mod pallet_sudo;
 pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
+pub mod pallet_treasury;
 pub mod pallet_utility;
+

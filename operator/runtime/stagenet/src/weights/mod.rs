@@ -48,4 +48,3 @@ pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
 pub mod pallet_treasury;
 pub mod pallet_utility;
-

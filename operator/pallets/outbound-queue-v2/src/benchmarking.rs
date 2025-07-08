@@ -158,7 +158,8 @@ mod benchmarks {
 
         T::Helper::initialize_storage(message.finalized_header, message.block_roots_root);
 
-        let receipt: DeliveryReceipt<T::AccountId> = DeliveryReceipt::try_from(&message.event.event_log).unwrap();
+        let receipt: DeliveryReceipt<T::AccountId> =
+            DeliveryReceipt::try_from(&message.event.event_log).unwrap();
 
         let order = PendingOrder {
             nonce: receipt.nonce,

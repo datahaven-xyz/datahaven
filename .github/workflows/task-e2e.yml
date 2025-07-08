@@ -37,6 +37,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: d
+      - name: Install requires deps
+        run: sudo apt install -y protobuf-compiler
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1

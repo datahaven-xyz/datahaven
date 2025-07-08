@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
-import { generateRandomAccount, getPapiSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
-import { isAddress, parseEther } from "viem";
+import { getPapiSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
+import { isAddress } from "viem";
 import { BaseTestSuite } from "../framework";
 
 class DataHavenSubstrateTestSuite extends BaseTestSuite {
@@ -18,10 +18,10 @@ class DataHavenSubstrateTestSuite extends BaseTestSuite {
 const suite = new DataHavenSubstrateTestSuite();
 
 describe("DataHaven Substrate Operations", () => {
-  let signer: PolkadotSigner;
+  let _signer: PolkadotSigner;
 
   beforeAll(() => {
-    signer = getPapiSigner();
+    _signer = getPapiSigner();
   });
 
   it("should query runtime API", async () => {

@@ -100,7 +100,9 @@ describe("Ethereum Basic Operations", () => {
     });
 
     // Wait for receipt
-    const receiptInit1 = await connectors.publicClient.waitForTransactionReceipt({ hash: hashInit1 });
+    const receiptInit1 = await connectors.publicClient.waitForTransactionReceipt({
+      hash: hashInit1
+    });
     expect(receiptInit1.status).toBe("success");
 
     const balance1 = await connectors.publicClient.getBalance({
@@ -117,7 +119,9 @@ describe("Ethereum Basic Operations", () => {
     });
 
     // Wait for receipt
-    const receiptInit2 = await connectors.publicClient.waitForTransactionReceipt({ hash: hashInit2 });
+    const receiptInit2 = await connectors.publicClient.waitForTransactionReceipt({
+      hash: hashInit2
+    });
     expect(receiptInit2.status).toBe("success");
 
     const balance2 = await connectors.publicClient.getBalance({

@@ -139,7 +139,10 @@ pub const MICRO_UNIT: Balance = 1_000_000;
 pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
 
 /// Existential deposit.
+#[cfg(not(feature = "runtime-benchmarks"))]
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+#[cfg(feature = "runtime-benchmarks")]
+pub const EXISTENTIAL_DEPOSIT: Balance = 1;
 
 pub const fn deposit(items: u32, bytes: u32) -> Balance {
     items as Balance * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE

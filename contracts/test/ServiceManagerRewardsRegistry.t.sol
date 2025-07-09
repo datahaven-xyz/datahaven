@@ -161,7 +161,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 2, thirdOperatorPoints, thirdOperatorPoints);
 
-        serviceManager.claimLatestOperatorRewards(operatorSetId, thirdOperatorPoints, thirdValidProof);
+        serviceManager.claimLatestOperatorRewards(
+            operatorSetId, thirdOperatorPoints, thirdValidProof
+        );
 
         assertEq(
             operatorAddress.balance,
@@ -190,7 +192,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         // First claim (uses latest merkle root - index 2)
         vm.prank(operatorAddress);
-        serviceManager.claimLatestOperatorRewards(operatorSetId, thirdOperatorPoints, thirdValidProof);
+        serviceManager.claimLatestOperatorRewards(
+            operatorSetId, thirdOperatorPoints, thirdValidProof
+        );
 
         // Second claim should fail
         vm.prank(operatorAddress);
@@ -198,7 +202,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
 
-        serviceManager.claimLatestOperatorRewards(operatorSetId, thirdOperatorPoints, thirdValidProof);
+        serviceManager.claimLatestOperatorRewards(
+            operatorSetId, thirdOperatorPoints, thirdValidProof
+        );
     }
 
     function test_claimOperatorRewards() public {
@@ -246,9 +252,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         // Claim from index 2 (third merkle root)
         vm.prank(operatorAddress);
-        serviceManager.claimOperatorRewards(
-            operatorSetId, 2, thirdOperatorPoints, thirdValidProof
-        );
+        serviceManager.claimOperatorRewards(operatorSetId, 2, thirdOperatorPoints, thirdValidProof);
 
         assertEq(
             operatorAddress.balance,
@@ -516,7 +520,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encode(true)
         );
         vm.prank(operatorAddress);
-        serviceManager.claimLatestOperatorRewards(operatorSetId, thirdOperatorPoints, thirdValidProof); // Use latest root
+        serviceManager.claimLatestOperatorRewards(
+            operatorSetId, thirdOperatorPoints, thirdValidProof
+        ); // Use latest root
 
         // Verify balance after first claim
         assertEq(

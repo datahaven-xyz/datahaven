@@ -1,6 +1,6 @@
 # Build Operator: CI for building the operator binary
 
-name: DataHave Operator Rust Tests
+name: DataHaven Operator Rust Tests
 
 on:
   workflow_dispatch:
@@ -38,7 +38,15 @@ jobs:
         with:
           cache-key: BUILD-RELEASE
           install-deps: true
-
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build node binary
         run: |
           cargo build --release --locked --features fast-runtime

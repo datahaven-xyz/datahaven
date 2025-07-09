@@ -152,6 +152,8 @@ pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
 /// Existential deposit.
 #[cfg(not(feature = "runtime-benchmarks"))]
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+// NOTE: pallet_treasury benchmark creates spends of 100 to a random beneficiary and the payout()
+// benchmark will fail if `ExistentialDeposit` is greater than that
 #[cfg(feature = "runtime-benchmarks")]
 pub const EXISTENTIAL_DEPOSIT: Balance = 1;
 

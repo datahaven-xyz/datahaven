@@ -187,6 +187,7 @@ impl frame_system::Config for Runtime {
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type SystemWeightInfo = testnet_weights::frame_system::WeightInfo<Runtime>;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.

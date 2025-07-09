@@ -58,7 +58,7 @@ use frame_support::{
     },
     weights::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, RuntimeDbWeight, Weight, WeightToFee,
+        IdentityFee, RuntimeDbWeight, Weight,
     },
     PalletId,
 };

@@ -91,7 +91,7 @@ jobs:
           docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
           docker images
       - run: bun install
-      - run: bun start:e2e:ci --datahaven-image-tag moonsonglabs/datahaven:local
+      - run: bun cli launch --all
       - name: Check network
         run: |
           kurtosis enclave inspect datahaven-ethereum

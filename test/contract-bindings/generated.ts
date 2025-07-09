@@ -2105,6 +2105,18 @@ export const dataHavenServiceManagerAbi = [
       { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
       { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
     ],
+    name: 'claimLatestOperatorRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
+      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
+      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
     name: 'claimOperatorRewards',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -2118,18 +2130,6 @@ export const dataHavenServiceManagerAbi = [
       { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
     ],
     name: 'claimOperatorRewardsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
-      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    name: 'claimOperatorRewardsByIndex',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -8137,6 +8137,18 @@ export const rewardsRegistryAbi = [
       { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
       { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
     ],
+    name: 'claimLatestRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorAddress', internalType: 'address', type: 'address' },
+      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
+      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
     name: 'claimRewards',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -8150,18 +8162,6 @@ export const rewardsRegistryAbi = [
       { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
     ],
     name: 'claimRewardsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorAddress', internalType: 'address', type: 'address' },
-      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
-      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    name: 'claimRewardsByIndex',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -11423,6 +11423,15 @@ export const writeDataHavenServiceManagerAddValidatorToAllowlist =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimLatestOperatorRewards"`
+ */
+export const writeDataHavenServiceManagerClaimLatestOperatorRewards =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimLatestOperatorRewards',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
  */
 export const writeDataHavenServiceManagerClaimOperatorRewards =
@@ -11438,15 +11447,6 @@ export const writeDataHavenServiceManagerClaimOperatorRewardsBatch =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'claimOperatorRewardsBatch',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsByIndex"`
- */
-export const writeDataHavenServiceManagerClaimOperatorRewardsByIndex =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimOperatorRewardsByIndex',
   })
 
 /**
@@ -11825,6 +11825,15 @@ export const simulateDataHavenServiceManagerAddValidatorToAllowlist =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimLatestOperatorRewards"`
+ */
+export const simulateDataHavenServiceManagerClaimLatestOperatorRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimLatestOperatorRewards',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
  */
 export const simulateDataHavenServiceManagerClaimOperatorRewards =
@@ -11840,15 +11849,6 @@ export const simulateDataHavenServiceManagerClaimOperatorRewardsBatch =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'claimOperatorRewardsBatch',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsByIndex"`
- */
-export const simulateDataHavenServiceManagerClaimOperatorRewardsByIndex =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimOperatorRewardsByIndex',
   })
 
 /**
@@ -16201,6 +16201,15 @@ export const writeRewardsRegistry = /*#__PURE__*/ createWriteContract({
 })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimLatestRewards"`
+ */
+export const writeRewardsRegistryClaimLatestRewards =
+  /*#__PURE__*/ createWriteContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'claimLatestRewards',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewards"`
  */
 export const writeRewardsRegistryClaimRewards =
@@ -16216,15 +16225,6 @@ export const writeRewardsRegistryClaimRewardsBatch =
   /*#__PURE__*/ createWriteContract({
     abi: rewardsRegistryAbi,
     functionName: 'claimRewardsBatch',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewardsByIndex"`
- */
-export const writeRewardsRegistryClaimRewardsByIndex =
-  /*#__PURE__*/ createWriteContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimRewardsByIndex',
   })
 
 /**
@@ -16253,6 +16253,15 @@ export const simulateRewardsRegistry = /*#__PURE__*/ createSimulateContract({
 })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimLatestRewards"`
+ */
+export const simulateRewardsRegistryClaimLatestRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'claimLatestRewards',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewards"`
  */
 export const simulateRewardsRegistryClaimRewards =
@@ -16268,15 +16277,6 @@ export const simulateRewardsRegistryClaimRewardsBatch =
   /*#__PURE__*/ createSimulateContract({
     abi: rewardsRegistryAbi,
     functionName: 'claimRewardsBatch',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewardsByIndex"`
- */
-export const simulateRewardsRegistryClaimRewardsByIndex =
-  /*#__PURE__*/ createSimulateContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimRewardsByIndex',
   })
 
 /**

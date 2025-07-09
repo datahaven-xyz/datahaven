@@ -79,19 +79,6 @@ interface IRewardsRegistry is IRewardsRegistryErrors, IRewardsRegistryEvents {
     ) external;
 
     /**
-     * @notice Claim rewards for an operator (uses the latest merkle root)
-     * @param operatorAddress Address of the operator to receive rewards
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     * @dev Only callable by the AVS (Service Manager)
-     */
-    function claimRewards(
-        address operatorAddress,
-        uint256 operatorPoints,
-        bytes32[] calldata proof
-    ) external;
-
-    /**
      * @notice Claim rewards for an operator from a specific merkle root index
      * @param operatorAddress Address of the operator to receive rewards
      * @param rootIndex Index of the merkle root to claim from
@@ -99,9 +86,22 @@ interface IRewardsRegistry is IRewardsRegistryErrors, IRewardsRegistryEvents {
      * @param proof Merkle proof to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
-    function claimRewardsByIndex(
+    function claimRewards(
         address operatorAddress,
         uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external;
+
+    /**
+     * @notice Claim rewards for an operator from the latest merkle root
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     * @dev Only callable by the AVS (Service Manager)
+     */
+    function claimLatestRewards(
+        address operatorAddress,
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external;

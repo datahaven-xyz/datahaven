@@ -134,27 +134,27 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
     function setRewardsRegistry(uint32 operatorSetId, IRewardsRegistry rewardsRegistry) external;
 
     /**
-     * @notice Claim rewards for an operator from the specified operator set
-     * @param operatorSetId The ID of the operator set
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     */
-    function claimOperatorRewards(
-        uint32 operatorSetId,
-        uint256 operatorPoints,
-        bytes32[] calldata proof
-    ) external;
-
-    /**
      * @notice Claim rewards for an operator from a specific merkle root index
      * @param operatorSetId The ID of the operator set
      * @param rootIndex Index of the merkle root to claim from
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
      */
-    function claimOperatorRewardsByIndex(
+    function claimOperatorRewards(
         uint32 operatorSetId,
         uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external;
+
+    /**
+     * @notice Claim rewards for an operator from the latest merkle root
+     * @param operatorSetId The ID of the operator set
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     */
+    function claimLatestOperatorRewards(
+        uint32 operatorSetId,
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external;

@@ -104,7 +104,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         emit IRewardsRegistryEvents.RewardsClaimedForIndex(
             _validatorAddresses[0], 0, _validatorPoints[0], uint256(_validatorPoints[0])
         );
-        serviceManager.claimOperatorRewards(0, _validatorPoints[0], rewardsProofFirstValidator);
+        serviceManager.claimLatestOperatorRewards(0, _validatorPoints[0], rewardsProofFirstValidator);
         vm.stopPrank();
 
         // Check that the validator has received the rewards.
@@ -124,7 +124,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         emit IRewardsRegistryEvents.RewardsClaimedForIndex(
             _validatorAddresses[9], 0, _validatorPoints[9], uint256(_validatorPoints[9])
         );
-        serviceManager.claimOperatorRewards(0, _validatorPoints[9], rewardsProofLastValidator);
+        serviceManager.claimLatestOperatorRewards(0, _validatorPoints[9], rewardsProofLastValidator);
         vm.stopPrank();
 
         // Check that the last validator has received the rewards.

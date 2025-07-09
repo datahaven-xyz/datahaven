@@ -303,37 +303,13 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * @notice Claim rewards for an operator from the specified operator set
-     * @param operatorSetId The ID of the operator set
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     */
-    function claimOperatorRewards(
-        uint32 operatorSetId,
-        uint256 operatorPoints,
-        bytes32[] calldata proof
-    ) external virtual override {
-        // Get the rewards registry for this operator set
-        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
-        if (address(rewardsRegistry) == address(0)) {
-            revert NoRewardsRegistryForOperatorSet();
-        }
-
-        // Ensure the operator is part of the operator set
-        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-
-        // Forward the claim to the rewards registry
-        rewardsRegistry.claimRewards(msg.sender, operatorPoints, proof);
-    }
-
-    /**
      * @notice Claim rewards for an operator from a specific merkle root index
      * @param operatorSetId The ID of the operator set
      * @param rootIndex Index of the merkle root to claim from
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
      */
-    function claimOperatorRewardsByIndex(
+    function claimOperatorRewards(
         uint32 operatorSetId,
         uint256 rootIndex,
         uint256 operatorPoints,
@@ -349,7 +325,31 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
 
         // Forward the claim to the rewards registry
-        rewardsRegistry.claimRewardsByIndex(msg.sender, rootIndex, operatorPoints, proof);
+        rewardsRegistry.claimRewards(msg.sender, rootIndex, operatorPoints, proof);
+    }
+
+    /**
+     * @notice Claim rewards for an operator from the latest merkle root
+     * @param operatorSetId The ID of the operator set
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     */
+    function claimLatestOperatorRewards(
+        uint32 operatorSetId,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external virtual override {
+        // Get the rewards registry for this operator set
+        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
+        if (address(rewardsRegistry) == address(0)) {
+            revert NoRewardsRegistryForOperatorSet();
+        }
+
+        // Ensure the operator is part of the operator set
+        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
+
+        // Forward the claim to the rewards registry
+        rewardsRegistry.claimLatestRewards(msg.sender, operatorPoints, proof);
     }
 
     /**

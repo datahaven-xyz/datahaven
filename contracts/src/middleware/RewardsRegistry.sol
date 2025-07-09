@@ -69,13 +69,35 @@ contract RewardsRegistry is RewardsRegistryStorage {
     }
 
     /**
-     * @notice Claim rewards for an operator (uses latest merkle root)
+     * @notice Claim rewards for an operator from a specific merkle root index
      * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndex Index of the merkle root to claim from
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
     function claimRewards(
+        address operatorAddress,
+        uint256 rootIndex,
+        uint256 operatorPoints,
+        bytes32[] calldata proof
+    ) external override onlyAVS {
+        // Validate the claim and calculate rewards
+        uint256 rewardsAmount = _validateClaim(operatorAddress, rootIndex, operatorPoints, proof);
+        _transferRewards(operatorAddress, rewardsAmount);
+
+        // Emit the corresponding event
+        emit RewardsClaimedForIndex(operatorAddress, rootIndex, operatorPoints, rewardsAmount);
+    }
+
+    /**
+     * @notice Claim rewards for an operator from the latest merkle root
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param operatorPoints Points earned by the operator
+     * @param proof Merkle proof to validate the operator's rewards
+     * @dev Only callable by the AVS (Service Manager)
+     */
+    function claimLatestRewards(
         address operatorAddress,
         uint256 operatorPoints,
         bytes32[] calldata proof
@@ -92,28 +114,6 @@ contract RewardsRegistry is RewardsRegistryStorage {
 
         // Emit the corresponding event
         emit RewardsClaimedForIndex(operatorAddress, latestIndex, operatorPoints, rewardsAmount);
-    }
-
-    /**
-     * @notice Claim rewards for an operator from a specific merkle root index
-     * @param operatorAddress Address of the operator to receive rewards
-     * @param rootIndex Index of the merkle root to claim from
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     * @dev Only callable by the AVS (Service Manager)
-     */
-    function claimRewardsByIndex(
-        address operatorAddress,
-        uint256 rootIndex,
-        uint256 operatorPoints,
-        bytes32[] calldata proof
-    ) external override onlyAVS {
-        // Validate the claim and calculate rewards
-        uint256 rewardsAmount = _validateClaim(operatorAddress, rootIndex, operatorPoints, proof);
-        _transferRewards(operatorAddress, rewardsAmount);
-
-        // Emit the corresponding event
-        emit RewardsClaimedForIndex(operatorAddress, rootIndex, operatorPoints, rewardsAmount);
     }
 
     /**

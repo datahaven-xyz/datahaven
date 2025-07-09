@@ -354,7 +354,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type WeightToFee = IdentityFee<Balance>;
     type LengthToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
-    type WeightInfo = mainnet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
+    type WeightInfo = ();
 }
 
 parameter_types! {

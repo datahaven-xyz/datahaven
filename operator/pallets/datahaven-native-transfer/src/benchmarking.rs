@@ -46,21 +46,18 @@ mod benchmarks {
     #[benchmark]
     fn transfer_to_ethereum() -> Result<(), BenchmarkError> {
         // Setup
-        let existential_deposit: BalanceOf<T> = 1_000_000_000u128.into();
         let amount: BalanceOf<T> = (10_000 * 1_000_000_000u128).into(); // 10k units
         let fee: BalanceOf<T> = (100 * 1_000_000_000u128).into(); // 100 units
+        let existential_deposit: BalanceOf<T> = T::Currency::minimum_balance();
 
-        // Sender needs: amount + fee + existential deposit to remain after transfers
-        let total_needed = amount + fee + existential_deposit + existential_deposit;
+        // Sender needs: amount + fee + existential_deposit;
+        let total_needed = amount + fee + existential_deposit;
 
         let sender = create_funded_account::<T>(1, total_needed);
         let recipient = ethereum_address(42);
 
-        // Ensure fee recipient exists with existential deposit
-        let _ = T::Currency::mint_into(&T::FeeRecipient::get(), existential_deposit);
-
-        // Ensure Ethereum sovereign account exists with existential deposit
-        let _ = T::Currency::mint_into(&T::EthereumSovereignAccount::get(), existential_deposit);
+        // Check the initial balance of the fee recipient
+        let initial_fee_recipient_balance = T::Currency::balance(&T::FeeRecipient::get());
 
         // Ensure pallet is not paused
         Paused::<T>::put(false);
@@ -71,11 +68,11 @@ mod benchmarks {
         // Verify
         assert_eq!(
             T::Currency::balance(&T::EthereumSovereignAccount::get()),
-            amount + existential_deposit
+            amount
         );
         assert_eq!(
             T::Currency::balance(&T::FeeRecipient::get()),
-            fee + existential_deposit
+            initial_fee_recipient_balance + fee
         );
 
         Ok(())

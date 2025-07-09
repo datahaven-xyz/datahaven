@@ -43,43 +43,43 @@ impl<T: frame_system::Config> pallet_utility::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_313_000 picoseconds.
-		Weight::from_parts(6_184_500, 0)
-			// Standard Error: 86_756
-			.saturating_add(Weight::from_parts(2_602_472, 0).saturating_mul(c.into()))
+		// Minimum execution time: 4_190_000 picoseconds.
+		Weight::from_parts(5_929_500, 0)
+			// Standard Error: 18_007
+			.saturating_add(Weight::from_parts(2_507_390, 0).saturating_mul(c.into()))
 	}
 	fn as_derivative() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 3_811_000 picoseconds.
-		Weight::from_parts(7_213_000, 0)
+		// Minimum execution time: 3_776_000 picoseconds.
+		Weight::from_parts(6_985_000, 0)
 	}
 	/// The range of component `c` is `[0, 1000]`.
 	fn batch_all(c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_197_000 picoseconds.
-		Weight::from_parts(5_584_000, 0)
-			// Standard Error: 35_754
-			.saturating_add(Weight::from_parts(2_709_339, 0).saturating_mul(c.into()))
+		// Minimum execution time: 3_977_000 picoseconds.
+		Weight::from_parts(5_559_000, 0)
+			// Standard Error: 25_857
+			.saturating_add(Weight::from_parts(2_689_491, 0).saturating_mul(c.into()))
 	}
 	fn dispatch_as() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_498_000 picoseconds.
-		Weight::from_parts(8_872_000, 0)
+		// Minimum execution time: 5_687_000 picoseconds.
+		Weight::from_parts(8_714_000, 0)
 	}
 	/// The range of component `c` is `[0, 1000]`.
 	fn force_batch(c: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_318_000 picoseconds.
-		Weight::from_parts(5_819_500, 0)
-			// Standard Error: 53_417
-			.saturating_add(Weight::from_parts(2_538_430, 0).saturating_mul(c.into()))
+		// Minimum execution time: 3_882_000 picoseconds.
+		Weight::from_parts(5_596_000, 0)
+			// Standard Error: 41_706
+			.saturating_add(Weight::from_parts(2_550_934, 0).saturating_mul(c.into()))
 	}
 }

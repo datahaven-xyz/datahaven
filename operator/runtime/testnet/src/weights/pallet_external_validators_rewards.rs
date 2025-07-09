@@ -52,8 +52,8 @@ impl<T: frame_system::Config> pallet_external_validators_rewards::WeightInfo for
 		// Proof Size summary in bytes:
 		//  Measured:  `24165`
 		//  Estimated: `27630`
-		// Minimum execution time: 1_013_971_000 picoseconds.
-		Weight::from_parts(1_035_521_000, 27630)
+		// Minimum execution time: 1_025_206_000 picoseconds.
+		Weight::from_parts(1_048_579_000, 27630)
 			.saturating_add(T::DbWeight::get().reads(6_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}

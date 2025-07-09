@@ -52,8 +52,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_v2::WeightInfo for Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `81`
 		//  Estimated: `4115`
-		// Minimum execution time: 40_518_000 picoseconds.
-		Weight::from_parts(42_946_000, 4115)
+		// Minimum execution time: 31_300_000 picoseconds.
+		Weight::from_parts(40_026_000, 4115)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
@@ -67,8 +67,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_v2::WeightInfo for Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `6`
 		//  Estimated: `3601`
-		// Minimum execution time: 28_271_000 picoseconds.
-		Weight::from_parts(42_522_000, 3601)
+		// Minimum execution time: 25_263_000 picoseconds.
+		Weight::from_parts(28_901_000, 3601)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -82,8 +82,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system_v2::WeightInfo for Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `6`
 		//  Estimated: `3601`
-		// Minimum execution time: 19_838_000 picoseconds.
-		Weight::from_parts(26_664_000, 3601)
+		// Minimum execution time: 18_742_000 picoseconds.
+		Weight::from_parts(23_567_000, 3601)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}

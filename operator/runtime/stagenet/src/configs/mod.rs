@@ -58,7 +58,7 @@ use frame_support::{
     },
     weights::{
         constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, RuntimeDbWeight, Weight,
+        IdentityFee, RuntimeDbWeight, Weight, WeightToFee,
     },
     PalletId,
 };
@@ -353,11 +353,16 @@ impl pallet_transaction_payment::Config for Runtime {
         >,
     >;
     type OperationalFeeMultiplier = ConstU8<5>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type WeightToFee = IdentityFee<Balance>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type WeightToFee = benchmark_helpers::BenchmarkWeightToFee;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type LengthToFee = IdentityFee<Balance>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type LengthToFee = benchmark_helpers::BenchmarkWeightToFee;
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
-    //type WeightInfo = stagenet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
-    type WeightInfo = ();
+    type WeightInfo = stagenet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -948,7 +953,8 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
     use crate::RuntimeOrigin;
-    use crate::{EthereumBeaconClient, Runtime};
+    use crate::{Balance, EthereumBeaconClient, Runtime};
+    use frame_support::weights::{Weight, WeightToFee};
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
     use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
@@ -1002,6 +1008,19 @@ pub mod benchmark_helpers {
                 )
             ));
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
+        }
+    }
+
+    /// Benchmark helper for transaction payment that provides minimal fees
+    pub struct BenchmarkWeightToFee;
+
+    impl WeightToFee for BenchmarkWeightToFee {
+        type Balance = Balance;
+
+        fn weight_to_fee(weight: &Weight) -> Self::Balance {
+            // Divide weight by 10,000,000 to get minimal fees
+            // This ensures fees are small enough to work with minimal funding
+            weight.ref_time().saturating_div(10_000_000).max(1).into()
         }
     }
 }

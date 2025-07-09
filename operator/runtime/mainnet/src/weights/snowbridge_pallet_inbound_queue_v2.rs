@@ -52,8 +52,8 @@ impl<T: frame_system::Config> snowbridge_pallet_inbound_queue_v2::WeightInfo for
 		// Proof Size summary in bytes:
 		//  Measured:  `305`
 		//  Estimated: `3537`
-		// Minimum execution time: 63_548_000 picoseconds.
-		Weight::from_parts(64_168_000, 3537)
+		// Minimum execution time: 60_353_000 picoseconds.
+		Weight::from_parts(69_626_000, 3537)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}

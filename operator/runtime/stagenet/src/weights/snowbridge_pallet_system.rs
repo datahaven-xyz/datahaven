@@ -42,15 +42,15 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_891_000 picoseconds.
-		Weight::from_parts(9_354_000, 0)
+		// Minimum execution time: 5_434_000 picoseconds.
+		Weight::from_parts(10_413_000, 0)
 	}
 	fn set_operating_mode() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_299_000 picoseconds.
-		Weight::from_parts(7_464_000, 0)
+		// Minimum execution time: 4_553_000 picoseconds.
+		Weight::from_parts(9_106_000, 0)
 	}
 	/// Storage: `SnowbridgeSystem::PricingParameters` (r:0 w:1)
 	/// Proof: `SnowbridgeSystem::PricingParameters` (`max_values`: Some(1), `max_size`: Some(112), added: 607, mode: `MaxEncodedLen`)
@@ -58,16 +58,16 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_744_000 picoseconds.
-		Weight::from_parts(9_058_000, 0)
+		// Minimum execution time: 5_938_000 picoseconds.
+		Weight::from_parts(10_166_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	fn set_token_transfer_fees() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 4_802_000 picoseconds.
-		Weight::from_parts(11_432_000, 0)
+		// Minimum execution time: 4_810_000 picoseconds.
+		Weight::from_parts(13_429_000, 0)
 	}
 	/// Storage: `SnowbridgeSystem::ForeignToNativeId` (r:1 w:1)
 	/// Proof: `SnowbridgeSystem::ForeignToNativeId` (`max_values`: None, `max_size`: Some(650), added: 3125, mode: `MaxEncodedLen`)
@@ -77,8 +77,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `75`
 		//  Estimated: `4115`
-		// Minimum execution time: 13_132_000 picoseconds.
-		Weight::from_parts(16_722_000, 4115)
+		// Minimum execution time: 14_032_000 picoseconds.
+		Weight::from_parts(17_465_000, 4115)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}

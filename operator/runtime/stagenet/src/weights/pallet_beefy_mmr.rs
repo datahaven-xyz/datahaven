@@ -44,8 +44,8 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `68`
 		//  Estimated: `3509`
-		// Minimum execution time: 5_577_000 picoseconds.
-		Weight::from_parts(5_616_000, 3509)
+		// Minimum execution time: 5_630_000 picoseconds.
+		Weight::from_parts(5_712_000, 3509)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 	}
 	/// Storage: `Mmr::Nodes` (r:1 w:0)
@@ -54,8 +54,8 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `187`
 		//  Estimated: `3505`
-		// Minimum execution time: 5_073_000 picoseconds.
-		Weight::from_parts(5_319_000, 3505)
+		// Minimum execution time: 5_005_000 picoseconds.
+		Weight::from_parts(5_176_000, 3505)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 	}
 	/// Storage: `Mmr::RootHash` (r:1 w:0)
@@ -67,10 +67,10 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `179`
 		//  Estimated: `1517`
-		// Minimum execution time: 10_907_000 picoseconds.
-		Weight::from_parts(9_334_031, 1517)
-			// Standard Error: 174_840
-			.saturating_add(Weight::from_parts(1_236_734, 0).saturating_mul(n.into()))
+		// Minimum execution time: 10_416_000 picoseconds.
+		Weight::from_parts(9_395_056, 1517)
+			// Standard Error: 161_248
+			.saturating_add(Weight::from_parts(1_089_221, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 	}
 }

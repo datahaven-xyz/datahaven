@@ -87,7 +87,8 @@ contract RewardsRegistry is RewardsRegistryStorage {
 
         // Claim from the latest root index
         uint256 latestIndex = merkleRootHistory.length - 1;
-        uint256 rewardsAmount = _performClaim(operatorAddress, latestIndex, operatorPoints, proof);
+        uint256 rewardsAmount = _validateClaim(operatorAddress, latestIndex, operatorPoints, proof);
+        _transferRewards(operatorAddress, rewardsAmount);
 
         // Emit the corresponding event
         emit RewardsClaimedForIndex(operatorAddress, latestIndex, operatorPoints, rewardsAmount);
@@ -107,8 +108,9 @@ contract RewardsRegistry is RewardsRegistryStorage {
         uint256 operatorPoints,
         bytes32[] calldata proof
     ) external override onlyAVS {
-        // Perform the claim
-        uint256 rewardsAmount = _performClaim(operatorAddress, rootIndex, operatorPoints, proof);
+        // Validate the claim and calculate rewards
+        uint256 rewardsAmount = _validateClaim(operatorAddress, rootIndex, operatorPoints, proof);
+        _transferRewards(operatorAddress, rewardsAmount);
 
         // Emit the corresponding event
         emit RewardsClaimedForIndex(operatorAddress, rootIndex, operatorPoints, rewardsAmount);
@@ -133,12 +135,15 @@ contract RewardsRegistry is RewardsRegistryStorage {
             revert ArrayLengthMismatch();
         }
 
-        // Perform the claims, accumulating the total rewards
+        // Validate all claims and accumulate the total rewards
         uint256 totalRewards = 0;
         for (uint256 i = 0; i < rootIndices.length; i++) {
             totalRewards +=
-                _performClaim(operatorAddress, rootIndices[i], operatorPoints[i], proofs[i]);
+                _validateClaim(operatorAddress, rootIndices[i], operatorPoints[i], proofs[i]);
         }
+
+        // Transfer the total rewards in a single transaction
+        _transferRewards(operatorAddress, totalRewards);
 
         // Emit the corresponding event
         emit RewardsBatchClaimedForIndices(
@@ -147,14 +152,14 @@ contract RewardsRegistry is RewardsRegistryStorage {
     }
 
     /**
-     * @notice Internal function to perform the actual claim of rewards
+     * @notice Internal function to validate a claim and calculate rewards
      * @param operatorAddress Address of the operator to receive rewards
      * @param rootIndex Index of the merkle root to claim from
      * @param operatorPoints Points earned by the operator
      * @param proof Merkle proof to validate the operator's rewards
-     * @return rewardsAmount The amount of rewards calculated and transferred
+     * @return rewardsAmount The amount of rewards calculated
      */
-    function _performClaim(
+    function _validateClaim(
         address operatorAddress,
         uint256 rootIndex,
         uint256 operatorPoints,
@@ -182,7 +187,14 @@ contract RewardsRegistry is RewardsRegistryStorage {
 
         // Mark as claimed for this specific index
         operatorClaimedByIndex[operatorAddress][rootIndex] = true;
+    }
 
+    /**
+     * @notice Internal function to transfer rewards to an operator
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rewardsAmount Amount of rewards to transfer
+     */
+    function _transferRewards(address operatorAddress, uint256 rewardsAmount) internal {
         // Transfer rewards to the operator
         (bool success,) = operatorAddress.call{value: rewardsAmount}("");
         if (!success) {

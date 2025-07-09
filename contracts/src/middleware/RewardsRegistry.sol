@@ -221,10 +221,8 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @return The index of the latest merkle root (returns 0 if no roots exist)
      */
     function getLatestMerkleRootIndex() external view override returns (uint256) {
-        if (merkleRootHistory.length == 0) {
-            return 0;
-        }
-        return merkleRootHistory.length - 1;
+        uint256 length = merkleRootHistory.length;
+        return length == 0 ? 0 : length - 1;
     }
 
     /**
@@ -232,10 +230,8 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @return The latest merkle root (returns bytes32(0) if no roots exist)
      */
     function getLatestMerkleRoot() external view override returns (bytes32) {
-        if (merkleRootHistory.length == 0) {
-            return bytes32(0);
-        }
-        return merkleRootHistory[merkleRootHistory.length - 1];
+        uint256 length = merkleRootHistory.length;
+        return length == 0 ? bytes32(0) : merkleRootHistory[length - 1];
     }
 
     /**

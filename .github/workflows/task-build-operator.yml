@@ -34,6 +34,11 @@ jobs:
       # Re-enable if you get GH issues with the runner being full
       # - uses: ./.github/workflows/actions/cleanup-runner
 
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: BUILD-RELEASE
+          install-deps: true
+
       - name: Build node binary
         run: |
           cargo build --release --locked --features fast-runtime

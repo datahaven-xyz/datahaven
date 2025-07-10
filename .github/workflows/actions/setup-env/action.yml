@@ -26,10 +26,6 @@ runs:
       shell: bash
       run: sccache --show-stats
       
-    - uses: ./.github/workflows/actions/setup-env
-      with:
-        cache-key: BUILD-RELEASE
-        install-deps: true
     - uses: actions/cache@v4
       with:
         path: |

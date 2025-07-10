@@ -25,10 +25,13 @@ runs:
     - name: Show sccache stats
       shell: bash
       run: sccache --show-stats
+
+    - run: ls -lh ~
       
     - uses: actions/cache@v4
       with:
         path: |
+          ~/sscache
           ~/.cargo/bin/
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/

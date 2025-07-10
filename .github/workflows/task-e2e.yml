@@ -104,10 +104,10 @@ jobs:
       - name: Tar logs
         run: |
           ls -lh
-          tar cvzf ./logs.tgz ./logs
+          tar cvzf /home/runner/work/datahaven/datahaven/logs.tgz /home/runner/work/datahaven/datahaven/logs
       - name: Upload logs to GitHub
         uses: actions/upload-artifact@master
         with:
           name: logs.tgz
-          path: ./logs.tgz
+          path: /home/runner/work/datahaven/datahaven/logs.tgz
       - run: bun test:e2e

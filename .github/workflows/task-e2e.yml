@@ -91,9 +91,21 @@ jobs:
           docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
           docker images
       - run: bun install
-      - run: bun cli launch --all
+      - run: bun start:e2e:ci --datahaven-image-tag moonsonglabs/datahaven:local
       - name: Check network
         run: |
           kurtosis enclave inspect datahaven-ethereum
           docker container ls
+      # Try to collect all docker logs and upload it
+      - name: Collect docker logs on failure
+        uses: jwalton/gh-docker-logs@v2
+        with:
+          dest: './logs'
+      - name: Tar logs
+        run: tar cvzf ./logs.tgz ./logs
+      - name: Upload logs to GitHub
+        uses: actions/upload-artifact@master
+        with:
+          name: logs.tgz
+          path: ./logs.tgz
       - run: bun test:e2e

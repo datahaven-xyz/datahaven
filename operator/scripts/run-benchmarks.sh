@@ -104,28 +104,38 @@ benchmark_pallet() {
     
     echo -e "${YELLOW}Benchmarking $PALLET...${NC}"
     
-    if frame-omni-bencher v1 benchmark pallet \
+    # Run the benchmark with tee to show output and save to log, using PIPESTATUS to get exit code
+    frame-omni-bencher v1 benchmark pallet \
         --runtime "$WASM_PATH" \
         --pallet "$PALLET" \
         --extrinsic "" \
         --template "$TEMPLATE_PATH" \
         --output "$WEIGHTS_DIR/$OUTPUT_FILE.rs" \
         --steps "$STEPS" \
-        --repeat "$REPEAT" 2>&1 | tee benchmark_${PALLET}.log; then
+        --repeat "$REPEAT" 2>&1 | tee "benchmark_${PALLET}.log"
+    
+    # Check the exit code from the benchmark command (first command in the pipeline)
+    local exit_code=${PIPESTATUS[0]}
+    
+    if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}✓ $PALLET benchmarked successfully${NC}"
-        RESULTS[$PALLET]="SUCCESS"
+        return 0
     else
         echo -e "${RED}✗ Error benchmarking $PALLET${NC}"
-        RESULTS[$PALLET]="FAILED"
+        return 1
     fi
-    echo ""
 }
 
 # Benchmark all discovered pallets
 for PALLET in "${PALLETS[@]}"; do
     # Use the pallet name directly as the output file name
     OUTPUT_FILE="$PALLET"
-    benchmark_pallet "$PALLET" "$OUTPUT_FILE"
+    if benchmark_pallet "$PALLET" "$OUTPUT_FILE"; then
+        RESULTS[$PALLET]="SUCCESS"
+    else
+        RESULTS[$PALLET]="FAILED"
+    fi
+    echo ""
 done
 
 # Summary
@@ -136,10 +146,10 @@ FAILED_COUNT=0
 for PALLET in "${!RESULTS[@]}"; do
     if [ "${RESULTS[$PALLET]}" == "SUCCESS" ]; then
         echo -e "${GREEN}✓${NC} $PALLET"
-        ((SUCCESS_COUNT++))
+        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
     else
         echo -e "${RED}✗${NC} $PALLET"
-        ((FAILED_COUNT++))
+        FAILED_COUNT=$((FAILED_COUNT + 1))
     fi
 done
 

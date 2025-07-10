@@ -97,12 +97,14 @@ jobs:
           kurtosis enclave inspect datahaven-ethereum
           docker container ls
       # Try to collect all docker logs and upload it
-      - name: Collect docker logs on failure
+      - name: Collect docker logs
         uses: jwalton/gh-docker-logs@v2
         with:
           dest: './logs'
       - name: Tar logs
-        run: tar cvzf ./logs.tgz ./logs
+        run: |
+          ls -lh
+          tar cvzf ./logs.tgz ./logs
       - name: Upload logs to GitHub
         uses: actions/upload-artifact@master
         with:

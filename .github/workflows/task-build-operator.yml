@@ -21,7 +21,7 @@ jobs:
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
       RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
-      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_GHA_ENABLED: "false"
     defaults:
       run:
         working-directory: ./operator

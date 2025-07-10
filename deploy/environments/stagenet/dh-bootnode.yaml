@@ -1,0 +1,36 @@
+# Bootnode-specific settings for stagenet
+# (includes common stagenet settings)
+
+global:
+  environment: stagenet
+  namespace: kt-datahaven-stagenet
+
+image:
+  repository: moonsonglabs/datahaven
+  tag: stagenet
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+ingress:
+  enabled: true
+  ingressClassName: alb
+  perReplica: true
+  wildcardDomain: stagenet.datahaven.xyz
+  # This will generate:
+  # - dh-bootnode-0.stagenet.datahaven.xyz
+
+node:
+  chain: stagenet-local
+  chainData:
+    persistence:
+      size: 20Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238

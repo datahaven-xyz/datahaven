@@ -1,9 +1,10 @@
-# Global settings
+# Local validator configuration
+# Minimal setup for local development
+
 global:
   environment: local
   namespace: kt-datahaven-local
 
-# Common image settings
 image:
   tag: local
   pullPolicy: IfNotPresent
@@ -11,7 +12,15 @@ image:
 imagePullSecrets:
   - name: datahaven-dockerhub
 
-# Common node settings
+# Ingress disabled for local (can be enabled for testing)
+ingress:
+  enabled: false
+  perReplica: true
+  wildcardDomain: local.datahaven.xyz
+  # If enabled, this would generate:
+  # - dh-validator-0.local.datahaven.xyz
+  # - dh-validator-1.local.datahaven.xyz
+
 node:
   chain: local
   chainData:
@@ -27,15 +36,6 @@ node:
     limits:
       memory: "512Mi"
       cpu: "200m"
-
-# Override settings for bootnode
-dh-bootnode:
-  node:
-    customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238
-
-# Override settings for validator
-dh-validator:
-  node:
     customNodeKey:
       # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
       # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
@@ -43,12 +43,7 @@ dh-validator:
       # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
       - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
 
-# Common relay settings
-relay:
-  resources:
-    requests:
-      memory: "256Mi"
-      cpu: "100m"
-    limits:
-      memory: "512Mi"
-      cpu: "200m" 
+# Local development settings
+development:
+  debug: true
+  fastRuntime: true

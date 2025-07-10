@@ -54,6 +54,14 @@ node:
       enabled: true
       type: NodePort
 
+ingress:
+  enabled: false
+  perReplica: true
+  wildcardDomain: local.datahaven.xyz
+  # If enabled, this would generate:
+  # - dh-validator-0.local.datahaven.xyz
+  # - dh-validator-1.local.datahaven.xyz
+
 extraInitContainers:
   - name: dump-state-and-wasm
     image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

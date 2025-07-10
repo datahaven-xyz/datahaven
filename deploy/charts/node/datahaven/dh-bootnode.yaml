@@ -31,6 +31,13 @@ node:
     - "--allow-private-ipv4"
     - "--discover-local"
 
+ingress:
+  enabled: false
+  perReplica: true
+  wildcardDomain: local.datahaven.xyz
+  # If enabled, this would generate:
+  # - dh-bootnode-0.local.datahaven.xyz
+
 # Generate chainspec, and expose it as url
 extraInitContainers:
   - name: chainspec-generator

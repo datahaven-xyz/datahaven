@@ -1,0 +1,43 @@
+# Validator-specific settings for stagenet
+# (includes common stagenet settings)
+
+global:
+  environment: stagenet
+  namespace: kt-datahaven-stagenet
+
+image:
+  repository: moonsonglabs/datahaven
+  tag: stagenet
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+ingress:
+  enabled: true
+  ingressClassName: alb
+  perReplica: true
+  wildcardDomain: stagenet.datahaven.xyz
+  # This will generate:
+  # - dh-validator-0.stagenet.datahaven.xyz
+  # - dh-validator-1.stagenet.datahaven.xyz
+  # (based on replica count)
+
+node:
+  chain: stagenet-local
+  chainData:
+    persistence:
+      size: 20Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  customNodeKey:
+    # To generate new key run: docker run --rm -t moonsonglabs/datahaven:latest key generate-node-key
+    # 12D3KooWL5Av1ZZSKkaittmxXBmZpzP7zgiB1AAnWHEw7MxzqnFp
+    - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
+    # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
+    - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948

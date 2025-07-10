@@ -40,12 +40,12 @@
     "startBlock": 1,
     "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "initialValidators": [
-      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
-      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
+      "0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac",
+      "0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0"
     ],
     "nextValidators": [
-      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
-      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
+      "0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac",
+      "0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0"
     ]
   }
 }

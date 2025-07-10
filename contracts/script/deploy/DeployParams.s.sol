@@ -208,12 +208,12 @@ contract DeployParams is Script, Config {
     function _loadValidatorsFromConfig(
         string memory configJson,
         string memory path
-    ) internal pure returns (bytes32[] memory) {
+    ) internal pure returns (address[] memory) {
         // Load validators from JSON config
         string[] memory validatorsArray = vm.parseJsonStringArray(configJson, path);
-        bytes32[] memory validators = new bytes32[](validatorsArray.length);
+        address[] memory validators = new address[](validatorsArray.length);
         for (uint256 i = 0; i < validatorsArray.length; i++) {
-            validators[i] = vm.parseBytes32(validatorsArray[i]);
+            validators[i] = vm.parseAddress(validatorsArray[i]);
         }
         return validators;
     }

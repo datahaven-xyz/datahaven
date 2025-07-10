@@ -1,6 +1,6 @@
 # Build Operator: CI for building the operator binary
 
-name: DataHaven Operator Rust Tests
+name: DataHaven Operator Binary Build
 
 on:
   workflow_dispatch:

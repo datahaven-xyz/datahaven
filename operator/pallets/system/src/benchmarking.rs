@@ -74,8 +74,9 @@ mod benchmarks {
 
         T::Token::mint_into(&caller, amount)?;
 
-        // Use the current chain's location, which will properly reanchor
-        // This represents the native token of the current chain
+        // TODO: Upstream pallet uses `Location::parent()` because it is a parachain
+        // working with the relay chain native token. We will need to adapt to that
+        // benchmark when we move to using the upstream pallet
         let native_token_location: Location = Location::here();
         let asset = Box::new(VersionedLocation::from(native_token_location));
         let asset_metadata = AssetMetadata {

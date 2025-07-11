@@ -36,21 +36,6 @@ runs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
-    # - name: Cache cargo + target + sccache
-    #   uses: Swatinem/rust-cache@v2
-    #   with:
-    #     cache-targets: true
-    #     cache-all-crates: true
-    #     shared-key: ${{ runner.os }}-${{inputs.cache-key}}-${{ hashFiles('operator/rust-toolchain.toml') }}-${{ hashFiles('operator/Cargo.lock') }}
-    #     workspaces: |
-    #       operator -> target
-    #     cache-on-failure: true
-    #     cache-bin: true
-    #     cache-directories: |
-    #       **/sccache         
-    #       **/.cargo/registry
-    #       **/.cargo/git
-    
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:

@@ -95,7 +95,8 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         nextValidatorHashes = TestUtils.generateMockValidators(10, 10);
 
         BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidatorHashes);
-        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidatorHashes);
+        BeefyClient.ValidatorSet memory nextValidatorSet =
+            _buildValidatorSet(1, nextValidatorHashes);
 
         cheats.prank(regularDeployer);
         beefyClient = new BeefyClient(
@@ -229,7 +230,10 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validatorHashes);
 
         // Create and return the validator set with the calculated merkle root
-        return
-            BeefyClient.ValidatorSet({id: id, length: uint128(validatorHashes.length), root: merkleRoot});
+        return BeefyClient.ValidatorSet({
+            id: id,
+            length: uint128(validatorHashes.length),
+            root: merkleRoot
+        });
     }
 }

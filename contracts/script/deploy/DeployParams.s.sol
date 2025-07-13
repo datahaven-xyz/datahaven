@@ -195,8 +195,6 @@ contract DeployParams is Script, Config {
         }
     }
 
-
-
     function _loadValidatorsFromConfig(
         string memory configJson,
         string memory path

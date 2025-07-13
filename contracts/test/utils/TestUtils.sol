@@ -6,7 +6,7 @@ pragma solidity ^0.8.27;
  * @notice Utility functions for testing DataHaven contracts
  */
 library TestUtils {
-        /**
+    /**
      * @notice Generates mock validator addresses for testing
      * @param count Number of validators to generate
      * @param startIndex Starting index for validator numbering (defaults to 0)

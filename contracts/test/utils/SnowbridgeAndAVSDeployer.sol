@@ -230,19 +230,6 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
 
         // Create and return the validator set with the calculated merkle root
         return
-            BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
-    }
-
-    function _buildMerkleProof(
-        address[] memory validators,
-        uint256 leafIndex
-    ) internal pure returns (bytes32[] memory) {
-        // Convert addresses to hashed leaves for the merkle tree
-        bytes32[] memory hashedLeaves = new bytes32[](validators.length);
-        for (uint256 i = 0; i < validators.length; i++) {
-            hashedLeaves[i] = keccak256(abi.encodePacked(validators[i]));
-        }
-
-        return MerkleUtils.buildMerkleProof(hashedLeaves, leafIndex);
+            BeefyClient.ValidatorSet({id: id, length: uint128(validatorHashes.length), root: merkleRoot});
     }
 }

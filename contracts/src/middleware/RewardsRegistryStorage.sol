@@ -26,11 +26,11 @@ abstract contract RewardsRegistryStorage is IRewardsRegistry {
     /// @notice Address of the rewards agent contract
     address public rewardsAgent;
 
-    /// @notice Last rewards merkle root
-    bytes32 public lastRewardsMerkleRoot;
+    /// @notice History of all merkle roots, accessible by index
+    bytes32[] public merkleRootHistory;
 
-    /// @notice Mapping from operator ID to the last claimed merkle root
-    mapping(address => bytes32) public operatorToLastClaimedRoot;
+    /// @notice Mapping from operator to merkle root index to claimed status
+    mapping(address => mapping(uint256 => bool)) public operatorClaimedByIndex;
 
     /**
      * @notice Constructor to set up the immutable AVS address

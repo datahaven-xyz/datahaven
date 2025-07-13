@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# This script is used to test the message encoding for the snowbridge message processor.
+# You can pass the -v flag to run the test with a more verbose output.
+
 set -e
 
 echo "🚀 Starting message encoding test..."
@@ -22,5 +26,5 @@ cd ../operator
 echo "📁 Changed to operator directory"
 
 echo "🧪 Running cargo test for snowbridge message processor..."
-cargo test --test snowbridge_message_processor 
+cargo test --test snowbridge_message_processor ${1:+-v -- --nocapture}
 echo "✅ Cargo test completed successfully!" 

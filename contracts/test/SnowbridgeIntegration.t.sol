@@ -168,13 +168,13 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
     function test_sendNewValidatorsSetMessage() public {
         // Check that the current validators signed as operators have a registered address for the DataHaven solochain.
-        address[] memory currentValidators = allocationManager.getMembers(
+        address[] memory currentOperators = allocationManager.getMembers(
             OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()})
         );
-        for (uint256 i = 0; i < currentValidators.length; i++) {
+        for (uint256 i = 0; i < currentOperators.length; i++) {
             assertEq(
-                serviceManager.validatorEthAddressToSolochainAddress(currentValidators[i]),
-                initialValidators[i],
+                serviceManager.validatorEthAddressToSolochainAddress(currentOperators[i]),
+                address(uint160(uint256(initialValidatorHashes[i]))),
                 "Validator should have a registered address for the DataHaven solochain"
             );
         }

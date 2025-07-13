@@ -12,7 +12,7 @@ import {TestUtils} from "./utils/TestUtils.sol";
 contract MessageEncodingTest is Test {
     function testEncodeReceiveValidatorsMessage() public pure {
         // Use the utility function for consistency
-        address[] memory mockValidators = TestUtils.generateMockValidators(3);
+        address[] memory mockValidators = TestUtils.generateMockValidatorsAddresses(3);
 
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory payload =
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: mockValidators});

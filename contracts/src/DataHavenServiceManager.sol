@@ -164,7 +164,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             }
 
             // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
-            // TODO: We should have some sort of validation of this address that validators are setting for themselves.
+            // Require validators to provide 20 bytes addresses.
             require(data.length == 20, "Invalid solochain address length");
             validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
         }

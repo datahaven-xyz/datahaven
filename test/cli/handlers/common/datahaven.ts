@@ -175,8 +175,8 @@ export const setupDataHavenValidatorConfig = async (
       configJson.snowbridge = {};
     }
 
-    configJson.snowbridge.initialValidators = authorityHashes;
-    configJson.snowbridge.nextValidators = authorityHashes;
+    configJson.snowbridge.initialValidatorHashes = authorityHashes;
+    configJson.snowbridge.nextValidatorHashes = authorityHashes;
 
     fs.writeFileSync(configFilePath, JSON.stringify(configJson, null, 2));
     logger.success(`DataHaven authority hashes updated in: ${configFilePath}`);

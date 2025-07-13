@@ -48,10 +48,10 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
     address[] public mspsAllowlist;
 
     // Snowbridge contracts params
-    // The addresses of the initial (current) Validators in the DataHaven solochain.
-    address[] public initialValidators;
-    // The addresses of the next Validators in the DataHaven solochain.
-    address[] public nextValidators;
+    // The hashes of the initial (current) Validators in the DataHaven solochain.
+    bytes32[] public initialValidatorHashes;
+    // The hashes of the next Validators in the DataHaven solochain.
+    bytes32[] public nextValidatorHashes;
     // In reality this should be set to MAX_SEED_LOOKAHEAD (4 epochs = 128 blocks/slots)
     // https://eth2book.info/capella/part3/config/preset/#time-parameters
     uint256 public constant RANDAO_COMMIT_DELAY = 4;
@@ -91,11 +91,11 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
 
     function _deployMockSnowbridge() internal {
         // Generate validator arrays using the generator functions
-        initialValidators = TestUtils.generateMockValidators(10);
-        nextValidators = TestUtils.generateMockValidators(10, 10);
+        initialValidatorHashes = TestUtils.generateMockValidators(10);
+        nextValidatorHashes = TestUtils.generateMockValidators(10, 10);
 
-        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
-        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);
+        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidatorHashes);
+        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidatorHashes);
 
         cheats.prank(regularDeployer);
         beefyClient = new BeefyClient(
@@ -212,7 +212,7 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
                 .RegisterParams({
                 avs: address(serviceManager),
                 operatorSetIds: operatorSetIds,
-                data: abi.encodePacked(initialValidators[i])
+                data: abi.encodePacked(address(uint160(uint256(initialValidatorHashes[i]))))
             });
             allocationManager.registerForOperatorSets(validatorsAllowlist[i], registerParams);
             cheats.stopPrank();
@@ -223,16 +223,10 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
 
     function _buildValidatorSet(
         uint128 id,
-        address[] memory validators
+        bytes32[] memory validatorHashes
     ) internal pure returns (BeefyClient.ValidatorSet memory) {
-        // Convert addresses to hashed leaves for the merkle tree
-        bytes32[] memory hashedLeaves = new bytes32[](validators.length);
-        for (uint256 i = 0; i < validators.length; i++) {
-            hashedLeaves[i] = keccak256(abi.encodePacked(validators[i]));
-        }
-
         // Calculate the merkle root from the hashed leaves using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRoot(hashedLeaves);
+        bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validatorHashes);
 
         // Create and return the validator set with the calculated merkle root
         return

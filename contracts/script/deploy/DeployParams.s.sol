@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import {Config} from "./Config.sol";
 import {Script} from "forge-std/Script.sol";
+import {TestUtils} from "../../test/utils/TestUtils.sol";
 
 contract DeployParams is Script, Config {
     function getSnowbridgeConfig() public view returns (SnowbridgeConfig memory) {
@@ -27,13 +28,13 @@ contract DeployParams is Script, Config {
         bool isDevMode = keccak256(abi.encodePacked(vm.envOr("DEV_MODE", string("false"))))
             == keccak256(abi.encodePacked("true"));
         if (isDevMode) {
-            config.initialValidators = _generateMockValidators(10);
-            config.nextValidators = _generateMockValidators(10);
+            config.initialValidatorHashes = TestUtils.generateMockValidators(10);
+            config.nextValidatorHashes = TestUtils.generateMockValidators(10);
         } else {
-            config.initialValidators =
-                _loadValidatorsFromConfig(configJson, ".snowbridge.initialValidators");
-            config.nextValidators =
-                _loadValidatorsFromConfig(configJson, ".snowbridge.nextValidators");
+            config.initialValidatorHashes =
+                _loadValidatorsFromConfig(configJson, ".snowbridge.initialValidatorHashes");
+            config.nextValidatorHashes =
+                _loadValidatorsFromConfig(configJson, ".snowbridge.nextValidatorHashes");
         }
 
         return config;
@@ -194,26 +195,17 @@ contract DeployParams is Script, Config {
         }
     }
 
-    function _generateMockValidators(
-        uint256 count
-    ) internal pure returns (bytes32[] memory) {
-        // Generate mock validators for testing
-        bytes32[] memory validators = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
-            validators[i] = keccak256(abi.encodePacked("validator", i + 1));
-        }
-        return validators;
-    }
+
 
     function _loadValidatorsFromConfig(
         string memory configJson,
         string memory path
-    ) internal pure returns (address[] memory) {
+    ) internal pure returns (bytes32[] memory) {
         // Load validators from JSON config
         string[] memory validatorsArray = vm.parseJsonStringArray(configJson, path);
-        address[] memory validators = new address[](validatorsArray.length);
+        bytes32[] memory validators = new bytes32[](validatorsArray.length);
         for (uint256 i = 0; i < validatorsArray.length; i++) {
-            validators[i] = vm.parseAddress(validatorsArray[i]);
+            validators[i] = vm.parseBytes32(validatorsArray[i]);
         }
         return validators;
     }

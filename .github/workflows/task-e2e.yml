@@ -99,17 +99,18 @@ jobs:
       # Try to collect all docker logs and upload it
       - name: Collect docker logs
         if: always()
-        uses: jwalton/gh-docker-logs@v2
-        with:
-          dest: './logs'
+        run: |
+          mkdir ./logs
+          for name in `docker ps -a --format '{{.Names}}'`; do docker logs $name > ./logs/$name.log 2>&1; done
       - name: Tar logs
         if: always()
         run: |
           ls -lh
-          tar cvzf /home/runner/work/datahaven/datahaven/logs.tgz /home/runner/work/datahaven/datahaven/logs
+          tar cvzf ./logs.tgz ./logs
       - name: Upload logs to GitHub
         if: always()
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: logs.tgz
-          path: /home/runner/work/datahaven/datahaven/logs.tgz
+          path: ./logs.tgz
+          retention-days: 1

@@ -246,23 +246,20 @@ kurtosis-clusters:
   ...
 ```
 
-#### 4. For local deploymeny
-Assuming well use Docker Kubernetes cluster:
+#### 4. Deployment
 
 ```bash
 # Set your Docker kubernetes
-kurtosis cluster set docker.k8s
-
-# In a separete terminal, run and keep the gateway running (we still need this to communicate from local machine to the local kubernetes cluster)
-kurtosis gateway
+kurtosis cluster set <pick-a-cluster-option> # For local use `kurtosis cluster set docker.k8s`
 ```
+You can pick between the three options configure :
+* `docker.k8s` -> For local deployment
+* `minikube` -> To deploy with minikube
+* `cloud` -> Use for production deployment
 
-#### 5. For production deploymeny
+
 ```bash
-# Set your cloud cluster as the target
-kurtosis cluster set cloud
-
-# In a separete terminal, run and keep the gateway running
+# In a separete terminal, run and keep the gateway running (we still need this to communicate from local machine to the local kubernetes cluster)
 kurtosis gateway
 ```
 
@@ -374,6 +371,37 @@ kubectl create clusterrolebinding kurtosis-logs-collector --clusterrole=cluster-
 
 ### Make sure storage-class matches your config
 
+If you have a similar error to this :
+```
+▶ Deploying DataHaven Network
+──────────────────────────────
+[22:45:21.779] INFO (248627): ✅ Image moonsonglabs/datahaven:main found on Docker Hub
+[22:45:21.780] INFO (248627): 🔍 Checking if Kubernetes namespace "kt-datahaven-local" exists...
+[22:45:21.858] INFO (248627): ✅ Namespace "kt-datahaven-local" already exists
+[22:45:21.858] INFO (248627): 🔐 Creating Docker Hub secret...
+[22:45:21.927] INFO (248627): ✅ Docker Hub secret created successfully
+[22:45:21.928] INFO (248627): 🚀 Deploying DataHaven bootnode with helm chart...
+62 | 
+63 |   // Deploy DataHaven bootnode and validators with helm chart.
+64 |   logger.info("🚀 Deploying DataHaven bootnode with helm chart...");
+65 |   const bootnodeTimeout = "10m"; // 10 minutes
+66 |   logger.debug(
+67 |     await $`helm upgrade --install dh-bootnode charts/node \
+                    ^
+ShellError: Failed with exit code 1
+ exitCode: 1,
+   stdout: "Release \"dh-bootnode\" does not exist. Installing it now.\n",
+   stderr: "Error: context deadline exceeded\n",
+
+      at new ShellError (13:16)
+      at new ShellPromise (75:16)
+      at BunShell (191:35)
+      at <anonymous> (/home/lola/Workspace/Moonsonglabs/datahaven/test/cli/handlers/deploy/datahaven.ts:67:11)
+
+Bun v1.2.17 (Linux x64)
+error: script "cli" exited with code 1
+```
+
 If say you're using a kurtosis cluster that has a storage-class different from `"hostpath"`when you run locally (i.e. `"standard"`, for minikube), then you might get some errors when trying to execute the helm charts.
 
 Look for this chunk in  `deploy/environments/local/values.yaml`:
@@ -388,6 +416,14 @@ node:
       size: 10Gi
   ...
 ```
+
+### Minikube purge
+
+To purge delete everything on minikube and restart :
+```
+minikube delete --all --purge
+```
+
 
 And try changing storageClass to whatever you have configured in the cluster. Good luck!
 

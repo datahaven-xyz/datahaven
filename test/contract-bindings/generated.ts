@@ -2639,7 +2639,7 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'solochainAddress', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'solochainAddress', internalType: 'address', type: 'address' },
     ],
     name: 'updateSolochainAddressForValidator',
     outputs: [],
@@ -2649,7 +2649,7 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorEthAddressToSolochainAddress',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {

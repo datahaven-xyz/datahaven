@@ -1,0 +1,99 @@
+// Discover all Docker containers
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Configure how to process discovered targets
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  // Keep container name as a label
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container_name"
+  }
+
+  // Extract service type from container name
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(datahaven|snowbridge|el-|cl-|kurtosis)-.*"
+    target_label  = "service_type"
+    replacement   = "$1"
+  }
+
+  // Set the path to the container log file
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "__path__"
+    replacement   = "/var/lib/docker/containers/$1/$1-json.log"
+  }
+
+  // Add network name as label
+  rule {
+    source_labels = ["__meta_docker_network_name"]
+    target_label  = "docker_network"
+  }
+
+  // Keep some useful Docker labels
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// Read and parse container logs
+loki.source.file "containers" {
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.process.containers.receiver]
+}
+
+// Process logs - parse JSON and add labels
+loki.process "containers" {
+  forward_to = [loki.write.local.receiver]
+
+  // Parse JSON logs
+  stage.json {
+    expressions = {
+      output = "log",
+      stream = "stream",
+      time   = "time",
+    }
+  }
+
+  // Parse nested JSON if present in the log field
+  stage.json {
+    expressions = {
+      level   = "level",
+      msg     = "msg",
+      message = "message",
+      target  = "target",
+      component = "component",
+    }
+    source = "output"
+  }
+
+  // Add log level as label if found
+  stage.labels {
+    values = {
+      level = "level",
+    }
+  }
+
+  // Parse timestamp
+  stage.timestamp {
+    source = "time"
+    format = "RFC3339Nano"
+  }
+
+  // Output the actual log message
+  stage.output {
+    source = "output"
+  }
+}
+
+// Write logs to Loki
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

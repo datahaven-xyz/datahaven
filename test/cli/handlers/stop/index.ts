@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { Command } from "@commander-js/extra-typings";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
@@ -19,13 +20,19 @@ export interface StopOptions {
   enclave?: boolean;
   kurtosisEngine: boolean;
   relayer?: boolean;
+  monitoring?: boolean;
 }
 
 export const stopPreActionHook = (thisCmd: Command<[], StopOptions & { [key: string]: any }>) => {
-  const { all, datahaven, enclave, relayer } = thisCmd.opts();
+  const { all, datahaven, enclave, relayer, monitoring } = thisCmd.opts();
 
-  if (all && (datahaven === false || enclave === false || relayer === false)) {
-    thisCmd.error("--all cannot be used with --no-datahaven, --no-enclave or --no-relayer");
+  if (
+    all &&
+    (datahaven === false || enclave === false || relayer === false || monitoring === false)
+  ) {
+    thisCmd.error(
+      "--all cannot be used with --no-datahaven, --no-enclave, --no-relayer or --no-monitoring"
+    );
   }
 };
 
@@ -35,6 +42,8 @@ export const stop = async (options: StopOptions) => {
 
   await checkBaseDependencies();
 
+  printHeader("Monitoring Stack");
+  await stopMonitoring(options);
   printHeader("Snowbridge Relayers");
   await stopDockerComponents("snowbridge", options);
   printHeader("Datahaven Network");
@@ -181,4 +190,41 @@ export const stopKurtosisEngine = async (options: StopOptions) => {
     logLevel: "debug"
   });
   logger.info("🪓 Kurtosis engine stopped successfully");
+};
+
+const stopMonitoring = async (options: StopOptions) => {
+  logger.debug("Checking currently running monitoring stack...");
+
+  const monitoringContainers =
+    await $`docker ps --format "{{.Names}}" --filter "name=^datahaven-(loki|alloy|grafana)$"`.text();
+
+  if (monitoringContainers.trim().length === 0) {
+    logger.info("🤷‍ No monitoring stack found running");
+    return;
+  }
+
+  let shouldStopMonitoring = options.all || options.monitoring;
+  if (shouldStopMonitoring === undefined) {
+    shouldStopMonitoring = await confirmWithTimeout(
+      "Do you want to stop the monitoring stack?",
+      true,
+      10
+    );
+  } else {
+    logger.info(
+      `🏳️ Using flag option: ${shouldStopMonitoring ? "will stop" : "will not stop"} monitoring stack`
+    );
+  }
+
+  if (!shouldStopMonitoring) {
+    logger.info("👍 Skipping stopping monitoring stack due to flag option");
+    return;
+  }
+
+  const monitoringDir = path.join("test", "monitoring");
+  const composeFile = path.join(monitoringDir, "docker-compose.yml");
+
+  logger.info("🛑 Stopping monitoring stack...");
+  await $`docker compose -f ${composeFile} down`.nothrow();
+  logger.info("🪓 Monitoring stack stopped successfully");
 };

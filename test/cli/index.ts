@@ -128,6 +128,9 @@ program
   .option("--nsp, --no-set-parameters", "Skip setting DataHaven runtime parameters")
   .option("--r, --relayer", "Launch Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
+  .option("--m, --monitoring", "Launch monitoring stack (Loki, Grafana)")
+  .option("--nm, --no-monitoring", "Skip monitoring stack")
+  .option("--grafana-port <number>", "Set Grafana port", parseIntValue, 3000)
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
@@ -168,6 +171,8 @@ program
   .option("--kurtosis-engine", "Stop Kurtosis engine", false)
   .option("--r, --relayer", "Stop Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip stopping Snowbridge Relayers")
+  .option("--m, --monitoring", "Stop monitoring stack")
+  .option("--nm, --no-monitoring", "Skip stopping monitoring stack")
   .hook("preAction", stopPreActionHook)
   .action(stop);
 

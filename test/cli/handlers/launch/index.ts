@@ -6,6 +6,7 @@ import { LaunchedNetwork } from "../common/launchedNetwork";
 import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
+import { launchMonitoring } from "./monitoring";
 import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
@@ -32,6 +33,8 @@ export interface LaunchOptions {
   relayer?: boolean;
   relayerImageTag: string;
   cleanNetwork?: boolean;
+  monitoring?: boolean;
+  grafanaPort?: number;
 }
 
 // =====  Launch Handler Functions  =====
@@ -50,6 +53,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   await launchDataHavenSolochain(options, launchedNetwork);
 
   await launchKurtosis(options, launchedNetwork);
+
+  await launchMonitoring(options, launchedNetwork);
 
   logger.trace("Checking if Blockscout is enabled...");
   let blockscoutBackendUrl: string | undefined;
@@ -114,7 +119,8 @@ export const launchPreActionHook = (
     launchKurtosis,
     relayer,
     setParameters,
-    updateValidatorSet
+    updateValidatorSet,
+    monitoring
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag
@@ -128,10 +134,11 @@ export const launchPreActionHook = (
       setupValidators === false ||
       updateValidatorSet === false ||
       setParameters === false ||
-      relayer === false)
+      relayer === false ||
+      monitoring === false)
   ) {
     thisCmd.error(
-      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, or --no-relayer"
+      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, --no-relayer, or --no-monitoring"
     );
   }
 
@@ -147,6 +154,7 @@ export const launchPreActionHook = (
     thisCmd.setOptionValue("setParameters", true);
     thisCmd.setOptionValue("relayer", true);
     thisCmd.setOptionValue("cleanNetwork", true);
+    thisCmd.setOptionValue("monitoring", true);
   }
 
   if (verified && !blockscout) {

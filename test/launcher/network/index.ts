@@ -181,7 +181,6 @@ export const launchNetwork = async (
     // 2. Launch Ethereum/Kurtosis network
     logger.info("⚡️ Launching Kurtosis Ethereum network...");
     const kurtosisEnclaveName = `eth-${networkId}`;
-    console.log(options);
     await launchKurtosisNetwork(
       {
         kurtosisEnclaveName: kurtosisEnclaveName,

@@ -201,8 +201,6 @@ export const waitBeaconChainReady = async (
 
   await waitFor({
     lambda: async () => {
-      console.log(launchedNetwork.clEndpoint);
-      console.log(launchedNetwork);
       try {
         const response = await fetch(
           `${launchedNetwork.clEndpoint}/eth/v1/beacon/states/head/finality_checkpoints`

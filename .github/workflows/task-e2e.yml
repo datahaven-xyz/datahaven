@@ -89,12 +89,6 @@ jobs:
           docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
           docker images
       - run: bun install
-      # - run: bun start:e2e:ci --datahaven-image-tag moonsonglabs/datahaven:local
-      # - name: Check network
-      #   run: |
-      #     kurtosis enclave inspect datahaven-ethereum
-      #     docker container ls
-
       - run: bun test:e2e
       # Try to collect all docker logs and upload it
       - name: Collect docker logs
@@ -102,15 +96,10 @@ jobs:
         run: |
           mkdir ./logs
           for name in `docker ps -a --format '{{.Names}}'`; do docker logs $name > ./logs/$name.log 2>&1; done
-      - name: Tar logs
-        if: always()
-        run: |
-          ls -lh
-          tar cvzf ./logs.tgz ./logs
       - name: Upload logs to GitHub
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs.tgz
-          path: ./logs.tgz
+          name: logs
+          path: logs/
           retention-days: 1

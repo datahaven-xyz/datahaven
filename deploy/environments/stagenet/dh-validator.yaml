@@ -7,7 +7,7 @@ global:
 
 image:
   repository: moonsonglabs/datahaven
-  tag: stagenet
+  tag: main
   pullPolicy: Always
 
 imagePullSecrets:

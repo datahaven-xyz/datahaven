@@ -12,7 +12,7 @@ imagePullSecrets:
 
 node:
   command: datahaven-node
-  # customChainspec: true # see extraInitContainers, chainspec-generator
+  customChainspec: true # see extraInitContainers, chainspec-generator
   role: full
   replicas: 1
   chainData:

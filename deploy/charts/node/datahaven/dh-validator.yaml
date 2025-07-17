@@ -12,8 +12,8 @@ imagePullSecrets:
 
 node:
   command: datahaven-node
-  # customChainspecUrl: http://dh-bootnode:8080/chainspec.json
-  # forceDownloadChainspec: true
+  customChainspecUrl: http://dh-bootnode:8080/chainspec.json
+  forceDownloadChainspec: true
   role: authority
   replicas: 2
   chainData:

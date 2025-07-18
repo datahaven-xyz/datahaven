@@ -15,13 +15,15 @@ imagePullSecrets:
 # Ingress disabled for local (can be enabled for testing)
 ingress:
   enabled: false
+  ingressClassName: traefik
   perReplica: true
-  wildcardDomain: local.datahaven.xyz
+  wildcardDomain: datahaven.local
   # If enabled, this would generate:
-  # - dh-bootnode-0.local.datahaven.xyz
+  # - dh-bootnode-0.datahaven.local
 
 node:
   chain: local
+  customChainspec: false
   chainData:
     storageClass: "hostpath"
     persistence:

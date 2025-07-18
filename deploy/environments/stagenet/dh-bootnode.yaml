@@ -6,7 +6,6 @@ global:
   namespace: kt-datahaven-stagenet
 
 image:
-  repository: moonsonglabs/datahaven
   tag: main
   pullPolicy: Always
 

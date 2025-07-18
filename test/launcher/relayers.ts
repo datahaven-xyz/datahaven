@@ -450,13 +450,15 @@ export const launchRelayers = async (
 
   const ethElRpcEndpoint = `ws://host.docker.internal:${ethWsPort}`;
   const ethClEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-  
+
   // Get the container port mapped to the host port
   const containerPort = await getContainerPortFromHostPort(substrateNodeId, substrateWsPort);
   if (!containerPort) {
     logger.warn(`Could not determine container port for ${substrateNodeId}, using default 9944`);
   }
-  logger.info(`🔗 Substrate endpoint for relayers: ${substrateNodeId}:${containerPort || 9944} (host port: ${substrateWsPort})`);
+  logger.info(
+    `🔗 Substrate endpoint for relayers: ${substrateNodeId}:${containerPort || 9944} (host port: ${substrateWsPort})`
+  );
   const substrateWsEndpoint = `ws://${substrateNodeId}:${containerPort || 9944}`;
 
   const relayersToStart: RelayerSpec[] = [

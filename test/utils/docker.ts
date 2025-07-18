@@ -100,7 +100,7 @@ export const getPublicPort = async (
 
 /**
  * Gets the container port that is mapped to a given host port
- * 
+ *
  * @param containerName - Name of the container
  * @param hostPort - The host port to look up
  * @returns The container port mapped to the host port, or null if not found
@@ -110,28 +110,26 @@ export const getContainerPortFromHostPort = async (
   hostPort: number
 ): Promise<number | null> => {
   const docker = new Docker();
-  
+
   try {
     const containers = await docker.listContainers();
-    const container = containers.find((c) =>
-      c.Names.some((name) => name.includes(containerName))
-    );
-    
+    const container = containers.find((c) => c.Names.some((name) => name.includes(containerName)));
+
     if (!container) {
       logger.warn(`Container ${containerName} not found`);
       return null;
     }
-    
+
     // Find the port mapping where PublicPort matches our hostPort
     const portMapping = container.Ports.find(
       (port) => port.PublicPort === hostPort && port.Type === "tcp"
     );
-    
+
     if (!portMapping) {
       logger.warn(`No port mapping found for host port ${hostPort} in container ${containerName}`);
       return null;
     }
-    
+
     logger.debug(`Host port ${hostPort} maps to container port ${portMapping.PrivatePort}`);
     return portMapping.PrivatePort;
   } catch (error) {

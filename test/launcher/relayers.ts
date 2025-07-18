@@ -7,6 +7,7 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  getContainerPortFromHostPort,
   getEvmEcdsaSigner,
   getPortFromKurtosis,
   killExistingContainers,
@@ -449,7 +450,14 @@ export const launchRelayers = async (
 
   const ethElRpcEndpoint = `ws://host.docker.internal:${ethWsPort}`;
   const ethClEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+  
+  // Get the container port mapped to the host port
+  const containerPort = await getContainerPortFromHostPort(substrateNodeId, substrateWsPort);
+  if (!containerPort) {
+    logger.warn(`Could not determine container port for ${substrateNodeId}, using default 9944`);
+  }
+  logger.info(`🔗 Substrate endpoint for relayers: ${substrateNodeId}:${containerPort || 9944} (host port: ${substrateWsPort})`);
+  const substrateWsEndpoint = `ws://${substrateNodeId}:${containerPort || 9944}`;
 
   const relayersToStart: RelayerSpec[] = [
     {

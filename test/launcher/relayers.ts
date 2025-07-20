@@ -409,6 +409,7 @@ export const launchRelayers = async (
     container.name.includes("datahaven")
   );
   let substrateWsPort: number;
+  let substrateWsInternalPort: number;
   let substrateNodeId: string;
 
   if (dhNodes.length === 0) {
@@ -416,10 +417,12 @@ export const launchRelayers = async (
       "⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to port 9944 for relayers."
     );
     substrateWsPort = 9944;
+    substrateWsInternalPort = 9944;
     substrateNodeId = "default (assumed)";
   } else {
     const firstDhNode = dhNodes[0];
     substrateWsPort = firstDhNode.publicPorts.ws;
+    substrateWsInternalPort = firstDhNode.internalPorts.ws;
     substrateNodeId = firstDhNode.name;
     logger.info(
       `🔌 Using DataHaven node ${substrateNodeId} on port ${substrateWsPort} for relayers and BEEFY check.`
@@ -449,7 +452,9 @@ export const launchRelayers = async (
 
   const ethElRpcEndpoint = `ws://host.docker.internal:${ethWsPort}`;
   const ethClEndpoint = `http://host.docker.internal:${ethHttpPort}`;
-  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+
+  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsInternalPort}`;
+  logger.info(`🔗 Substrate endpoint for relayers: ${substrateWsEndpoint}`);
 
   const relayersToStart: RelayerSpec[] = [
     {

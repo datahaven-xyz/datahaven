@@ -489,7 +489,7 @@ export const registerNodes = async (networkId: string, launchedNetwork: Launched
   logger.debug(
     `Docker container ${targetContainerName} is running. Registering with dynamic port ${dynamicPort}.`
   );
-  launchedNetwork.addContainer(targetContainerName, { ws: dynamicPort });
+  launchedNetwork.addContainer(targetContainerName, { ws: dynamicPort }, { ws: 9944 });
   logger.info(
     `📝 Node ${targetContainerName} successfully registered in ${networkId} as datahaven-alice`
   );

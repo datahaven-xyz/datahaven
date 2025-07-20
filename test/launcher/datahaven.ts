@@ -103,7 +103,7 @@ export const launchLocalDataHavenSolochain = async (
       containerName,
       "--network",
       dockerNetworkName,
-      ...(id === "alice" ? ["-p", "9944"] : []),
+      ...(id === "alice" ? ["-p", "9944:9944"] : []),
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS

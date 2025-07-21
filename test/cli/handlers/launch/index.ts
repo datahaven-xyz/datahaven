@@ -16,7 +16,7 @@ import { performValidatorOperations, performValidatorSetUpdate } from "./validat
 export const NETWORK_ID = "cli-launch";
 
 export interface NetworkOptions {
-  networkId: string
+  networkId: string;
   dhInternalPort?: number;
 }
 

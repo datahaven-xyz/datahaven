@@ -1,11 +1,6 @@
-import {
-  buildContracts,
-  constructDeployCommand,
-  executeDeployment,
-  validateDeploymentParams
-} from "scripts/deploy-contracts";
 import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
 import type { ParameterCollection } from "utils/parameters";
+import { deployContracts as deployContractsCore } from "../../../launcher/contracts";
 
 interface DeployContractsOptions {
   rpcUrl: string;
@@ -51,16 +46,13 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     return false;
   }
 
-  // Check if required parameters are provided
-  validateDeploymentParams(options);
+  await deployContractsCore({
+    rpcUrl: options.rpcUrl,
+    verified: options.verified,
+    blockscoutBackendUrl: options.blockscoutBackendUrl,
+    parameterCollection: options.parameterCollection
+  });
 
-  // Build contracts
-  await buildContracts();
-
-  // Construct and execute deployment
-  const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand, options.parameterCollection);
   printDivider();
-
   return true;
 };

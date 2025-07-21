@@ -3,7 +3,7 @@ import path from "node:path";
 // Script to fund validators with tokens and ETH for local testing
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader } from "../utils/index";
+import { logger } from "../utils/index";
 
 interface FundValidatorsOptions {
   rpcUrl: string;
@@ -51,8 +51,6 @@ interface DeploymentInfo {
  */
 export const fundValidators = async (options: FundValidatorsOptions): Promise<boolean> => {
   const { rpcUrl, validatorsConfig, networkName = "anvil", deploymentPath } = options;
-
-  printHeader("Funding DataHaven Validators for Local Testing");
 
   // Validate RPC URL
   invariant(rpcUrl, "❌ RPC URL is required");
@@ -127,8 +125,6 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   logger.debug(`Found ${deployments.DeployedStrategies.length} strategies with token information`);
 
   // We need to ensure all operators to be registered have the necessary tokens
-  logger.info("💸 Funding validators with tokens...");
-
   // Iterate through the strategies, using the embedded token information to fund validators
   for (const strategy of deployments.DeployedStrategies) {
     const strategyAddress = strategy.address;
@@ -228,7 +224,6 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   }
 
   logger.success("All validators have been funded with tokens");
-  printDivider();
 
   return true;
 };

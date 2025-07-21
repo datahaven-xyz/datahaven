@@ -255,7 +255,7 @@ kurtosis cluster set <pick-a-cluster-option> # For local use `kurtosis cluster s
 You can pick between the three options configure :
 * `docker.k8s` -> For local deployment
 * `minikube` -> To deploy with minikube
-* `cloud` -> Use for production deployment
+* `cloud` -> Use for cloud-hosted Kubernetes cluster
 
 
 ```bash

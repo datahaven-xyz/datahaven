@@ -1,7 +1,11 @@
 import invariant from "tiny-invariant";
 import { logger, type RelayerType } from "utils";
 
-type ContainerSpec = { name: string; publicPorts: Record<string, number> };
+type ContainerSpec = {
+  name: string;
+  publicPorts: Record<string, number>;
+  internalPorts: Record<string, number>;
+};
 
 /**
  * Represents the state and associated resources of a launched network environment,
@@ -66,8 +70,12 @@ export class LaunchedNetwork {
     return container.publicPorts.ws ?? -1;
   }
 
-  addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
-    this._containers.push({ name: containerName, publicPorts });
+  addContainer(
+    containerName: string,
+    publicPorts: Record<string, number> = {},
+    internalPorts: Record<string, number> = {}
+  ) {
+    this._containers.push({ name: containerName, publicPorts, internalPorts });
   }
 
   public getPublicWsPort(): number {

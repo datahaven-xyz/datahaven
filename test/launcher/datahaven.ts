@@ -12,6 +12,7 @@ import {
   logger,
   waitForContainerToStart
 } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
@@ -28,6 +29,30 @@ export interface DataHavenOptions {
   authorityIds: readonly string[];
   datahavenBuildExtraArgs?: string;
 }
+
+/**
+ * Determines the port mapping for a DataHaven node based on the network type.
+ *
+ * For CLI-launch networks (networkId === "cli-launch"), only the alice node gets
+ * a fixed port mapping (9944:9944). For other networks, only the internal port is exposed
+ * and Docker assigns a random external port.
+ *
+ * @param nodeId - The node identifier (e.g., "alice", "bob")
+ * @param networkId - The network identifier
+ * @returns Array of port mapping arguments for Docker run command
+ */
+export const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
+  const isCliLaunch = networkId === "cli-launch";
+
+  if (isCliLaunch && nodeId === "alice") {
+    // For CLI-launch networks, only alice gets the fixed port mapping
+    return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}:${DEFAULT_SUBSTRATE_WS_PORT}`];
+  }
+
+  // For other networks or non-alice nodes, only expose internal port
+  // Docker will assign a random external port
+  return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}`];
+};
 
 /**
  * Launches a local DataHaven solochain network for testing.
@@ -103,7 +128,7 @@ export const launchLocalDataHavenSolochain = async (
       containerName,
       "--network",
       dockerNetworkName,
-      ...(id === "alice" ? ["-p", "9944"] : []),
+      ...getPortMappingForNode(id, options.networkId),
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS
@@ -485,11 +510,15 @@ export const registerNodes = async (networkId: string, launchedNetwork: Launched
   }
 
   // Query the dynamic port and register
-  const dynamicPort = await getPublicPort(targetContainerName, 9944);
+  const dynamicPort = await getPublicPort(targetContainerName, DEFAULT_SUBSTRATE_WS_PORT);
   logger.debug(
     `Docker container ${targetContainerName} is running. Registering with dynamic port ${dynamicPort}.`
   );
-  launchedNetwork.addContainer(targetContainerName, { ws: dynamicPort });
+  launchedNetwork.addContainer(
+    targetContainerName,
+    { ws: dynamicPort },
+    { ws: DEFAULT_SUBSTRATE_WS_PORT }
+  );
   logger.info(
     `📝 Node ${targetContainerName} successfully registered in ${networkId} as datahaven-alice`
   );

@@ -22,7 +22,6 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
       suiteName: "native-token-transfer",
       networkOptions: {
         slotTime: 2,
-        blockscout: true
       }
     });
 

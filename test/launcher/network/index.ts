@@ -186,7 +186,8 @@ export const launchNetwork = async (
         kurtosisEnclaveName: kurtosisEnclaveName,
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
-        kurtosisNetworkArgs: options.kurtosisNetworkArgs
+        kurtosisNetworkArgs: options.kurtosisNetworkArgs,
+        injectContracts: true,
       },
       launchedNetwork
     );

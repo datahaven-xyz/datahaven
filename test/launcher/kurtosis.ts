@@ -21,6 +21,8 @@ export interface KurtosisOptions {
   blockscout?: boolean;
   slotTime?: number;
   kurtosisNetworkArgs?: string;
+  injectContracts?: boolean;
+  additionalPrefunded?: string[];
 }
 
 /**
@@ -342,6 +344,8 @@ export const runKurtosisEnclave = async (
     blockscout?: boolean;
     slotTime?: number;
     kurtosisNetworkArgs?: string;
+    injectContracts?: boolean;
+    additionalPrefunded?: string[];
   },
   configFilePath: string
 ): Promise<void> => {

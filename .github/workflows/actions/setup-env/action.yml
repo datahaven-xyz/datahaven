@@ -25,21 +25,15 @@ runs:
     - name: Show sccache stats
       shell: bash
       run: sccache --show-stats
-    
-    - name: Cache cargo + target + sccache
-      uses: Swatinem/rust-cache@v2
+      
+    - uses: actions/cache@v4
       with:
-        cache-targets: true
-        cache-all-crates: true
-        shared-key: ${{ runner.os }}-${{inputs.cache-key}}-${{ hashFiles('operator/rust-toolchain.toml') }}-${{ hashFiles('operator/Cargo.lock') }}
-        workspaces: |
-          operator -> target
-        cache-on-failure: true
-        cache-bin: true
-        cache-directories: |
-          **/sccache         
-          **/.cargo/registry
-          **/.cargo/git
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable

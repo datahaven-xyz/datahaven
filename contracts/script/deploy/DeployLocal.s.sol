@@ -608,9 +608,9 @@ contract Deploy is Script, DeployParams, Accounts {
     ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
         BeefyClient.ValidatorSet memory validatorSet =
-            _buildValidatorSet(0, config.initialValidators);
+            _buildValidatorSet(0, config.initialValidatorHashes);
         BeefyClient.ValidatorSet memory nextValidatorSet =
-            _buildValidatorSet(1, config.nextValidators);
+            _buildValidatorSet(1, config.nextValidatorHashes);
 
         // Deploy BeefyClient
         vm.broadcast(_deployerPrivateKey);

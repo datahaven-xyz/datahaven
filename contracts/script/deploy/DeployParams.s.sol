@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import {Config} from "./Config.sol";
 import {Script} from "forge-std/Script.sol";
+import {TestUtils} from "../../test/utils/TestUtils.sol";
 
 contract DeployParams is Script, Config {
     function getSnowbridgeConfig() public view returns (SnowbridgeConfig memory) {
@@ -27,13 +28,13 @@ contract DeployParams is Script, Config {
         bool isDevMode = keccak256(abi.encodePacked(vm.envOr("DEV_MODE", string("false"))))
             == keccak256(abi.encodePacked("true"));
         if (isDevMode) {
-            config.initialValidators = _generateMockValidators(10);
-            config.nextValidators = _generateMockValidators(10);
+            config.initialValidatorHashes = TestUtils.generateMockValidators(10);
+            config.nextValidatorHashes = TestUtils.generateMockValidators(10);
         } else {
-            config.initialValidators =
-                _loadValidatorsFromConfig(configJson, ".snowbridge.initialValidators");
-            config.nextValidators =
-                _loadValidatorsFromConfig(configJson, ".snowbridge.nextValidators");
+            config.initialValidatorHashes =
+                _loadValidatorsFromConfig(configJson, ".snowbridge.initialValidatorHashes");
+            config.nextValidatorHashes =
+                _loadValidatorsFromConfig(configJson, ".snowbridge.nextValidatorHashes");
         }
 
         return config;
@@ -192,17 +193,6 @@ contract DeployParams is Script, Config {
             // Deploy a mock ETH deposit contract if not configured
             return address(new EmptyContract());
         }
-    }
-
-    function _generateMockValidators(
-        uint256 count
-    ) internal pure returns (bytes32[] memory) {
-        // Generate mock validators for testing
-        bytes32[] memory validators = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
-            validators[i] = keccak256(abi.encodePacked("validator", i + 1));
-        }
-        return validators;
     }
 
     function _loadValidatorsFromConfig(

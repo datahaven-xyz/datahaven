@@ -379,7 +379,7 @@ mod runtime {
     // `on_initialize` hook and the latter clears up messages in
     // its `on_initialize` hook, so otherwise messages will be cleared
     // up before they are processed.
-    #[runtime::pallet_index(70)]
+    #[runtime::pallet_index(59)]
     pub type MessageQueue = pallet_message_queue;
     // ╚════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╝
 

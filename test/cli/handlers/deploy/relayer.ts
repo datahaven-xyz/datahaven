@@ -13,9 +13,13 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { waitFor } from "utils/waits";
-import { ZERO_HASH } from "../common/consts";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
-import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
+import {
+  generateRelayerConfig,
+  initEthClientPallet,
+  type RelayerSpec
+} from "../../../launcher/relayers";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
+import { ZERO_HASH } from "../../../launcher/utils/constants";
 import type { DeployOptions } from ".";
 
 // Standard ports for the Ethereum network
@@ -161,6 +165,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigDir);
 
   await initEthClientPallet(
+    "cli-deploy",
     path.resolve(localBeaconConfigFilePath),
     options.relayerImageTag,
     "tmp/datastore",

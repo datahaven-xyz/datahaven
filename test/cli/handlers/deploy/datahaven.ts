@@ -3,9 +3,9 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import { waitFor } from "utils/waits";
-import { isNetworkReady, setupDataHavenValidatorConfig } from "../common/datahaven";
+import { isNetworkReady, setupDataHavenValidatorConfig } from "../../../launcher/datahaven";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { forwardPort } from "../common/kubernetes";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 
 const DEFAULT_PUBLIC_WS_PORT = 9944;

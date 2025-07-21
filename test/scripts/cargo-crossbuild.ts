@@ -8,7 +8,10 @@ const LOG_LEVEL = Bun.env.LOG_LEVEL || "info";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const cargoCrossbuild = async (options: { datahavenBuildExtraArgs?: string }) => {
+export const cargoCrossbuild = async (options: {
+  datahavenBuildExtraArgs?: string;
+  networkId?: string;
+}) => {
   logger.info("🔀 Cross-building DataHaven node for Linux AMD64");
 
   const ARCH = (await $`uname -m`.text()).trim();
@@ -32,7 +35,7 @@ export const cargoCrossbuild = async (options: { datahavenBuildExtraArgs?: strin
     await addRustupTarget(target);
 
     // Build and copy libpq.so before cargo zigbuild
-    await buildAndCopyLibpq(target);
+    await buildAndCopyLibpq(target, options.networkId);
 
     // Get additional arguments from command line
     const additionalArgs = options.datahavenBuildExtraArgs ?? "";
@@ -95,7 +98,7 @@ const addRustupTarget = async (target: string): Promise<void> => {
 };
 
 // Updated function to build and copy libpq.so
-const buildAndCopyLibpq = async (target: string): Promise<void> => {
+const buildAndCopyLibpq = async (target: string, networkId?: string): Promise<void> => {
   logger.info("🏗️ Building and copying libpq.so...");
 
   // Set Docker platform
@@ -107,8 +110,9 @@ const buildAndCopyLibpq = async (target: string): Promise<void> => {
     await $`docker build -f ${dockerfilePath} -t crossbuild-libpq ${path.join(__dirname, "..", "..")}`.text()
   );
 
-  // Create container and copy libpq.so
-  logger.debug(await $`docker create --name linux-libpq-container crossbuild-libpq`.text());
+  // Create container with unique name
+  const containerName = networkId ? `linux-libpq-container-${networkId}` : "linux-libpq-container";
+  logger.debug(await $`docker create --name ${containerName} crossbuild-libpq`.text());
 
   const destPath = path.join(
     __dirname,
@@ -125,11 +129,11 @@ const buildAndCopyLibpq = async (target: string): Promise<void> => {
   fs.mkdirSync(destPath, { recursive: true });
 
   logger.debug(
-    await $`docker cp linux-libpq-container:/artifacts/libpq.so ${path.join(destPath, "libpq.so")}`.text()
+    await $`docker cp ${containerName}:/artifacts/libpq.so ${path.join(destPath, "libpq.so")}`.text()
   );
 
   // Remove container
-  logger.debug(await $`docker rm linux-libpq-container`.text());
+  logger.debug(await $`docker rm ${containerName}`.text());
 
   // Set RUSTFLAGS with the correct library path
   process.env.RUSTFLAGS = `-C link-arg=-Wl,-rpath,$ORIGIN/../release/deps -L ${destPath}`;

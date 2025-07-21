@@ -47,6 +47,8 @@
     "suites/**/*.ts",
     "cli/**/*.ts",
     "wagmi.config.ts",
-    "contract-bindings/*.ts"
+    "contract-bindings/*.ts",
+    "launcher/**/*.ts",
+    "framework/**/*.ts"
   ]
 }

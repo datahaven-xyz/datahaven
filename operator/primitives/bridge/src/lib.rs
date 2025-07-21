@@ -20,8 +20,8 @@ pub struct Payload<T>
 where
     T: pallet_external_validators::Config,
 {
-    pub message: Message<T>,
     pub message_id: [u8; 4],
+    pub message: Message<T>,
 }
 
 #[derive(Encode, Decode)]

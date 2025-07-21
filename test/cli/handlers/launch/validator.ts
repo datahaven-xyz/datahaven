@@ -1,7 +1,5 @@
-import { fundValidators } from "scripts/fund-validators";
-import { setupValidators } from "scripts/setup-validators";
-import { updateValidatorSet } from "scripts/update-validator-set";
-import { confirmWithTimeout, logger, printDivider } from "utils";
+import { confirmWithTimeout, logger, printDivider, printHeader } from "utils";
+import { fundValidators, setupValidators, updateValidatorSet } from "../../../launcher/validators";
 import type { LaunchOptions } from "..";
 
 export const performValidatorOperations = async (
@@ -9,6 +7,8 @@ export const performValidatorOperations = async (
   networkRpcUrl: string,
   contractsDeployed: boolean
 ) => {
+  printHeader("Funding DataHaven Validators");
+
   // If not specified, prompt for funding
   let shouldFundValidators = options.fundValidators;
   if (shouldFundValidators === undefined) {
@@ -30,13 +30,14 @@ export const performValidatorOperations = async (
       );
     }
 
-    await fundValidators({
-      rpcUrl: networkRpcUrl
-    });
+    await fundValidators({ rpcUrl: networkRpcUrl });
+    printDivider();
   } else {
     logger.info("👍 Skipping validator funding");
     printDivider();
   }
+
+  printHeader("Setting Up DataHaven Validators");
 
   // If not specified, prompt for setup
   let shouldSetupValidators = options.setupValidators;
@@ -59,9 +60,8 @@ export const performValidatorOperations = async (
       );
     }
 
-    await setupValidators({
-      rpcUrl: networkRpcUrl
-    });
+    await setupValidators({ rpcUrl: networkRpcUrl });
+    printDivider();
   }
 };
 
@@ -79,6 +79,8 @@ export const performValidatorSetUpdate = async (
   networkRpcUrl: string,
   contractsDeployed: boolean
 ) => {
+  printHeader("Updating DataHaven Validator Set");
+
   // If not specified, prompt for update
   let shouldUpdateValidatorSet = options.updateValidatorSet;
   if (shouldUpdateValidatorSet === undefined) {
@@ -100,9 +102,8 @@ export const performValidatorSetUpdate = async (
       );
     }
 
-    await updateValidatorSet({
-      rpcUrl: networkRpcUrl
-    });
+    await updateValidatorSet({ rpcUrl: networkRpcUrl });
+    printDivider();
   } else {
     logger.info("👍 Skipping validator set update");
     printDivider();

@@ -71,6 +71,14 @@ export const getContainersMatchingImage = async (imageName: string) => {
   return matches;
 };
 
+export const getContainersByPrefix = async (prefix: string) => {
+  const containers = await docker.listContainers({ all: true });
+  const matches = containers.filter((container) =>
+    container.Names.some((name) => name.startsWith(`/${prefix}`))
+  );
+  return matches;
+};
+
 export const getPublicPort = async (
   containerName: string,
   internalPort: number
@@ -179,20 +187,17 @@ export const waitForContainerToStart = async (
   );
 };
 
-export const killExistingContainers = async (imageName: string) => {
-  logger.debug(`Searching for containers with image ${imageName}...`);
-  const docker = new Docker();
-  const containerInfos = (await docker.listContainers({ all: true })).filter((container) =>
-    container.Image.includes(imageName)
-  );
+export const killExistingContainers = async (prefix: string) => {
+  logger.debug(`Searching for containers with image ${prefix}...`);
+  const containerInfos = await getContainersByPrefix(prefix);
 
   if (containerInfos.length === 0) {
-    logger.debug(`No containers found with image ${imageName}`);
+    logger.debug(`No containers found with name starting with "${prefix}"`);
     return;
   }
 
   const promises = containerInfos.map(({ Id }) => docker.getContainer(Id).remove({ force: true }));
   await Promise.all(promises);
 
-  logger.debug(`${containerInfos.length} containers with image ${imageName} killed`);
+  logger.debug(`${containerInfos.length} containers with name starting with "${prefix}" killed`);
 };

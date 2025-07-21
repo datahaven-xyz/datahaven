@@ -7,6 +7,7 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  DEFAULT_SUBSTRATE_WS_PORT,
   getEvmEcdsaSigner,
   getPortFromKurtosis,
   killExistingContainers,
@@ -414,10 +415,10 @@ export const launchRelayers = async (
 
   if (dhNodes.length === 0) {
     logger.warn(
-      "⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to port 9944 for relayers."
+      `⚠️ No DataHaven nodes found in launchedNetwork. Assuming DataHaven is running and defaulting to ${DEFAULT_SUBSTRATE_WS_PORT} for relayers.`
     );
-    substrateWsPort = 9944;
-    substrateWsInternalPort = 9944;
+    substrateWsPort = DEFAULT_SUBSTRATE_WS_PORT;
+    substrateWsInternalPort = DEFAULT_SUBSTRATE_WS_PORT;
     substrateNodeId = "default (assumed)";
   } else {
     const firstDhNode = dhNodes[0];

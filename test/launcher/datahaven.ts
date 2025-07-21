@@ -12,6 +12,7 @@ import {
   logger,
   waitForContainerToStart
 } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
@@ -485,11 +486,15 @@ export const registerNodes = async (networkId: string, launchedNetwork: Launched
   }
 
   // Query the dynamic port and register
-  const dynamicPort = await getPublicPort(targetContainerName, 9944);
+  const dynamicPort = await getPublicPort(targetContainerName, DEFAULT_SUBSTRATE_WS_PORT);
   logger.debug(
     `Docker container ${targetContainerName} is running. Registering with dynamic port ${dynamicPort}.`
   );
-  launchedNetwork.addContainer(targetContainerName, { ws: dynamicPort }, { ws: 9944 });
+  launchedNetwork.addContainer(
+    targetContainerName,
+    { ws: dynamicPort },
+    { ws: DEFAULT_SUBSTRATE_WS_PORT }
+  );
   logger.info(
     `📝 Node ${targetContainerName} successfully registered in ${networkId} as datahaven-alice`
   );

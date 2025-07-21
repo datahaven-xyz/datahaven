@@ -13,13 +13,15 @@ import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
+export const NETWORK_ID = "cli-launch";
+
 export interface NetworkOptions {
-  networkId: string;
+  networkId: string
   dhInternalPort?: number;
 }
 
 export const CLI_NETWORK_OPTIONS: NetworkOptions = {
-  networkId: "cli-launch",
+  networkId: NETWORK_ID,
   dhInternalPort: DEFAULT_SUBSTRATE_WS_PORT
 };
 

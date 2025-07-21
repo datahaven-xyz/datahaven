@@ -1,7 +1,11 @@
 import invariant from "tiny-invariant";
 import { logger, type RelayerType } from "utils";
 
-type ContainerSpec = { name: string; publicPorts: Record<string, number>; internalPorts: Record<string, number> };
+type ContainerSpec = {
+  name: string;
+  publicPorts: Record<string, number>;
+  internalPorts: Record<string, number>;
+};
 
 /**
  * Represents the state and associated resources of a launched network environment,

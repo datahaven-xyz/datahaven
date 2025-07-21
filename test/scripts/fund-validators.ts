@@ -3,11 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "bun";
 import invariant from "tiny-invariant";
-import {
-  logger,
-  runShellCommandWithLogger,
-  waitForNodeToSync
-} from "../utils/index";
+import { logger, runShellCommandWithLogger, waitForNodeToSync } from "../utils/index";
 
 interface FundValidatorsOptions {
   rpcUrl: string;

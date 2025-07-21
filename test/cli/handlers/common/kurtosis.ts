@@ -10,7 +10,7 @@ import {
 } from "utils";
 import { parse, stringify } from "yaml";
 import { z } from "zod";
-import type { LaunchedNetwork } from "./launchedNetwork";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
  * Checks if a Kurtosis enclave with the specified name is currently running.

@@ -11,13 +11,13 @@ export interface HarnessComponent extends AsyncDisposable {
 
 import { $ } from "bun";
 import { type StopOptions, stopAllEnclaves, stopDockerComponents } from "cli/handlers";
-import { LaunchedNetwork } from "cli/handlers/common/launchedNetwork";
 import { launchDataHavenSolochain } from "cli/handlers/launch/datahaven";
 import { launchKurtosis } from "cli/handlers/launch/kurtosis";
 import { launchRelayers } from "cli/handlers/launch/relayer";
 import type { LaunchOptions } from "cli-launch";
 import invariant from "tiny-invariant";
 import { getContainersMatchingImage, logger } from "utils";
+import { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 
 /**
  * DataHaven network component wrapper

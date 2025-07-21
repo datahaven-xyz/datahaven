@@ -138,7 +138,7 @@ export const launchPreActionHook = (
     relayer,
     setParameters,
     updateValidatorSet,
-    injectContracts,
+    injectContracts
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag

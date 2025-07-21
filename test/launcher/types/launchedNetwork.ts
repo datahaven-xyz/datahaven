@@ -170,4 +170,13 @@ export class LaunchedNetwork {
   public get datahavenAuthorities(): string[] {
     return this._datahavenAuthorities || [];
   }
+
+  /**
+   * Clean-up hook for consumers that need to release resources associated with the launched
+   * network. Currently this is a no-op placeholder to satisfy the interface used by the test
+   * harness.
+   */
+  async cleanup(): Promise<void> {
+    /* no-op – concrete handlers perform their own cleanup */
+  }
 }

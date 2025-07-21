@@ -48,7 +48,7 @@ export const deployContracts = async (options: ContractsOptions): Promise<void> 
   await buildContracts();
 
   // Construct and execute deployment
-  const deployCommand = constructDeployCommand(options);
+  const deployCommand = await constructDeployCommand(options);
   await executeDeployment(deployCommand, options.parameterCollection);
 
   logger.success("Smart contracts deployed successfully");

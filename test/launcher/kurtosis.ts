@@ -1,6 +1,6 @@
 import { $ } from "bun";
-import invariant from "tiny-invariant";
 import type { LaunchOptions } from "cli-launch";
+import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
   getPortFromKurtosis,
@@ -385,7 +385,6 @@ export const getBlockscoutUrl = async (enclaveName: string): Promise<string> => 
   invariant(blockscoutPort, "❌ Could not find Blockscout service port");
   return `http://127.0.0.1:${blockscoutPort}`;
 };
-
 
 const preDeployedContractsSchema = z.record(
   z.string(),

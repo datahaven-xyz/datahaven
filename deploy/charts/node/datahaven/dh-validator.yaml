@@ -57,10 +57,10 @@ node:
 ingress:
   enabled: false
   perReplica: true
-  wildcardDomain: local.datahaven.xyz
+  wildcardDomain: datahaven.local
   # If enabled, this would generate:
-  # - dh-validator-0.local.datahaven.xyz
-  # - dh-validator-1.local.datahaven.xyz
+  # - dh-validator-0.datahaven.local
+  # - dh-validator-1.datahaven.local
 
 extraInitContainers:
   - name: dump-state-and-wasm

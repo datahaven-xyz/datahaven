@@ -34,9 +34,9 @@ node:
 ingress:
   enabled: false
   perReplica: true
-  wildcardDomain: local.datahaven.xyz
+  wildcardDomain: datahaven.local
   # If enabled, this would generate:
-  # - dh-bootnode-0.local.datahaven.xyz
+  # - dh-bootnode-0.datahaven.local
 
 # Generate chainspec, and expose it as url
 extraInitContainers:

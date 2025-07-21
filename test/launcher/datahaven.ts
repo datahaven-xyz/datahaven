@@ -30,6 +30,19 @@ export interface DataHavenOptions {
   datahavenBuildExtraArgs?: string;
 }
 
+export const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
+  const isCliLaunch = networkId === "cli-launch";
+
+  if (isCliLaunch && nodeId === "alice") {
+    // For CLI-launch networks, only alice gets the fixed port mapping
+    return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}:${DEFAULT_SUBSTRATE_WS_PORT}`];
+  }
+
+  // For other networks or non-alice nodes, only expose internal port
+  // Docker will assign a random external port
+  return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}`];
+};
+
 /**
  * Launches a local DataHaven solochain network for testing.
  *
@@ -104,7 +117,7 @@ export const launchLocalDataHavenSolochain = async (
       containerName,
       "--network",
       dockerNetworkName,
-      ...(id === "alice" ? ["-p", "9944:9944"] : []),
+      ...getPortMappingForNode(id, options.networkId),
       options.datahavenImageTag,
       `--${id}`,
       ...COMMON_LAUNCH_ARGS

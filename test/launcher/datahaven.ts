@@ -30,6 +30,17 @@ export interface DataHavenOptions {
   datahavenBuildExtraArgs?: string;
 }
 
+/**
+ * Determines the port mapping for a DataHaven node based on the network type.
+ *
+ * For CLI-launch networks (networkId === "cli-launch"), only the alice node gets
+ * a fixed port mapping (9944:9944). For other networks, only the internal port is exposed
+ * and Docker assigns a random external port.
+ *
+ * @param nodeId - The node identifier (e.g., "alice", "bob")
+ * @param networkId - The network identifier
+ * @returns Array of port mapping arguments for Docker run command
+ */
 export const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
   const isCliLaunch = networkId === "cli-launch";
 

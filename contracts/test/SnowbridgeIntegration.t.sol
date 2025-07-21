@@ -101,10 +101,12 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         );
         vm.startPrank(_validatorAddresses[0]);
         vm.expectEmit(address(rewardsRegistry));
-        emit IRewardsRegistryEvents.RewardsClaimed(
-            _validatorAddresses[0], _validatorPoints[0], uint256(_validatorPoints[0])
+        emit IRewardsRegistryEvents.RewardsClaimedForIndex(
+            _validatorAddresses[0], 0, _validatorPoints[0], uint256(_validatorPoints[0])
         );
-        serviceManager.claimOperatorRewards(0, _validatorPoints[0], rewardsProofFirstValidator);
+        serviceManager.claimLatestOperatorRewards(
+            0, _validatorPoints[0], rewardsProofFirstValidator
+        );
         vm.stopPrank();
 
         // Check that the validator has received the rewards.
@@ -121,10 +123,10 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         // Claim rewards for the last validator.
         vm.startPrank(_validatorAddresses[9]);
         vm.expectEmit(address(rewardsRegistry));
-        emit IRewardsRegistryEvents.RewardsClaimed(
-            _validatorAddresses[9], _validatorPoints[9], uint256(_validatorPoints[9])
+        emit IRewardsRegistryEvents.RewardsClaimedForIndex(
+            _validatorAddresses[9], 0, _validatorPoints[9], uint256(_validatorPoints[9])
         );
-        serviceManager.claimOperatorRewards(0, _validatorPoints[9], rewardsProofLastValidator);
+        serviceManager.claimLatestOperatorRewards(0, _validatorPoints[9], rewardsProofLastValidator);
         vm.stopPrank();
 
         // Check that the last validator has received the rewards.
@@ -168,13 +170,13 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
     function test_sendNewValidatorsSetMessage() public {
         // Check that the current validators signed as operators have a registered address for the DataHaven solochain.
-        address[] memory currentValidators = allocationManager.getMembers(
+        address[] memory currentOperators = allocationManager.getMembers(
             OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()})
         );
-        for (uint256 i = 0; i < currentValidators.length; i++) {
+        for (uint256 i = 0; i < currentOperators.length; i++) {
             assertEq(
-                serviceManager.validatorEthAddressToSolochainAddress(currentValidators[i]),
-                initialValidators[i],
+                serviceManager.validatorEthAddressToSolochainAddress(currentOperators[i]),
+                address(uint160(uint256(initialValidatorHashes[i]))),
                 "Validator should have a registered address for the DataHaven solochain"
             );
         }
@@ -372,7 +374,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(validators[i], points[i]));
         }
 
-        return _buildMerkleProof(leaves, leafIndex);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
     }
 
     function _buildMessagesMerkleTree(
@@ -395,6 +397,6 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(messages[i]));
         }
 
-        return _buildMerkleProof(leaves, leafIndex);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
     }
 }

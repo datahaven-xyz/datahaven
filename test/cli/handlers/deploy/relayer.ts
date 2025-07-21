@@ -13,16 +13,20 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
 import { waitFor } from "utils/waits";
-import { ZERO_HASH } from "../common/consts";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
-import { generateRelayerConfig, initEthClientPallet, type RelayerSpec } from "../common/relayer";
+import {
+  generateRelayerConfig,
+  initEthClientPallet,
+  type RelayerSpec
+} from "../../../launcher/relayers";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
+import { ZERO_HASH } from "../../../launcher/utils/constants";
 import type { DeployOptions } from ".";
 
 // Standard ports for the Ethereum network
 const ETH_EL_RPC_PORT = 8546;
 const ETH_CL_HTTP_PORT = 4000;
 
-const RELAYER_CONFIG_DIR = "../deployment/charts/bridges-common-relay/configs";
+const RELAYER_CONFIG_DIR = "../deploy/charts/relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
@@ -161,6 +165,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   await generateRelayerConfig(localBeaconConfig, options.environment, localBeaconConfigDir);
 
   await initEthClientPallet(
+    "cli-deploy",
     path.resolve(localBeaconConfigFilePath),
     options.relayerImageTag,
     "tmp/datastore",
@@ -222,11 +227,13 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       // Deploying relayer with helm chart
       const relayerTimeout = "2m"; // 2 minutes
       logger.debug(
-        await $`helm upgrade --install ${containerName} . -f ./snowbridge/${containerName}.yaml \
+        await $`helm upgrade --install ${containerName} charts/relay \
+        -f charts/relay/snowbridge/${containerName}.yaml \
+        -f environments/${options.environment}/values.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${relayerTimeout}`
-          .cwd(path.join(process.cwd(), "../deployment/charts/bridges-common-relay"))
+          .cwd(path.join(process.cwd(), "../deploy"))
           .text()
       );
 

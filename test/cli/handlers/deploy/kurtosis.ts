@@ -1,8 +1,8 @@
 import type { DeployOptions } from "cli/handlers";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
-import { registerServices, runKurtosisEnclave } from "../common/kurtosis";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
+import { registerServices, runKurtosisEnclave } from "../../../launcher/kurtosis";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
  * Deploys a Kurtosis Ethereum network enclave for stagenet environment.
@@ -25,8 +25,8 @@ export const deployKurtosis = async (
   printHeader("Deploying Kurtosis Ethereum Network");
 
   invariant(
-    options.environment === "stagenet",
-    "❌ Kurtosis should only be used in stagenet environment"
+    options.isPrivateNetwork,
+    "❌ Kurtosis should only be used in private networks (local and stagenet)"
   );
 
   await runKurtosisEnclave(options, "configs/kurtosis/minimal.yaml");

@@ -1799,11 +1799,7 @@ export const beefyClientAbi = [
             internalType: 'bytes32',
             type: 'bytes32',
           },
-          {
-            name: 'parachainHeadsRoot',
-            internalType: 'bytes32',
-            type: 'bytes32',
-          },
+          { name: 'beefyExtraField', internalType: 'bytes32', type: 'bytes32' },
         ],
       },
       { name: 'leafProof', internalType: 'bytes32[]', type: 'bytes32[]' },
@@ -2109,7 +2105,31 @@ export const dataHavenServiceManagerAbi = [
       { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
       { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
     ],
+    name: 'claimLatestOperatorRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
+      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
+      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
     name: 'claimOperatorRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
+      { name: 'rootIndices', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'operatorPoints', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
+    ],
+    name: 'claimOperatorRewardsBatch',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2619,7 +2639,7 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'solochainAddress', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'solochainAddress', internalType: 'address', type: 'address' },
     ],
     name: 'updateSolochainAddressForValidator',
     outputs: [],
@@ -2629,7 +2649,7 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorEthAddressToSolochainAddress',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -5667,6 +5687,20 @@ export const gatewayAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
+      { name: 'nonce', internalType: 'uint64', type: 'uint64', indexed: true },
+      {
+        name: 'index',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'CommandFailed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
       {
         name: 'sender',
         internalType: 'address',
@@ -8103,22 +8137,87 @@ export const rewardsRegistryAbi = [
       { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
       { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
     ],
+    name: 'claimLatestRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorAddress', internalType: 'address', type: 'address' },
+      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
+      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
+      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
     name: 'claimRewards',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'operatorAddress', internalType: 'address', type: 'address' },
+      { name: 'rootIndices', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'operatorPoints', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
+    ],
+    name: 'claimRewardsBatch',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
-    name: 'lastRewardsMerkleRoot',
+    name: 'getLatestMerkleRoot',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'operatorToLastClaimedRoot',
+    inputs: [],
+    name: 'getLatestMerkleRootIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'index', internalType: 'uint256', type: 'uint256' }],
+    name: 'getMerkleRootByIndex',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getMerkleRootHistoryLength',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operatorAddress', internalType: 'address', type: 'address' },
+      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'hasClaimedByIndex',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'merkleRootHistory',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'operatorClaimedByIndex',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
   {
@@ -8157,6 +8256,43 @@ export const rewardsRegistryAbi = [
         indexed: true,
       },
       {
+        name: 'rootIndices',
+        internalType: 'uint256[]',
+        type: 'uint256[]',
+        indexed: false,
+      },
+      {
+        name: 'points',
+        internalType: 'uint256[]',
+        type: 'uint256[]',
+        indexed: false,
+      },
+      {
+        name: 'totalRewardsAmount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsBatchClaimedForIndices',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'operatorAddress',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'rootIndex',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
         name: 'points',
         internalType: 'uint256',
         type: 'uint256',
@@ -8169,7 +8305,7 @@ export const rewardsRegistryAbi = [
         indexed: false,
       },
     ],
-    name: 'RewardsClaimed',
+    name: 'RewardsClaimedForIndex',
   },
   {
     type: 'event',
@@ -8187,13 +8323,21 @@ export const rewardsRegistryAbi = [
         type: 'bytes32',
         indexed: false,
       },
+      {
+        name: 'newRootIndex',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'RewardsMerkleRootUpdated',
   },
+  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'InvalidMerkleProof' },
+  { type: 'error', inputs: [], name: 'InvalidMerkleRootIndex' },
   { type: 'error', inputs: [], name: 'OnlyAVS' },
   { type: 'error', inputs: [], name: 'OnlyRewardsAgent' },
-  { type: 'error', inputs: [], name: 'RewardsAlreadyClaimed' },
+  { type: 'error', inputs: [], name: 'RewardsAlreadyClaimedForIndex' },
   { type: 'error', inputs: [], name: 'RewardsMerkleRootNotSet' },
   { type: 'error', inputs: [], name: 'RewardsTransferFailed' },
 ] as const
@@ -11279,12 +11423,30 @@ export const writeDataHavenServiceManagerAddValidatorToAllowlist =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimLatestOperatorRewards"`
+ */
+export const writeDataHavenServiceManagerClaimLatestOperatorRewards =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimLatestOperatorRewards',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
  */
 export const writeDataHavenServiceManagerClaimOperatorRewards =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'claimOperatorRewards',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsBatch"`
+ */
+export const writeDataHavenServiceManagerClaimOperatorRewardsBatch =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimOperatorRewardsBatch',
   })
 
 /**
@@ -11663,12 +11825,30 @@ export const simulateDataHavenServiceManagerAddValidatorToAllowlist =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimLatestOperatorRewards"`
+ */
+export const simulateDataHavenServiceManagerClaimLatestOperatorRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimLatestOperatorRewards',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
  */
 export const simulateDataHavenServiceManagerClaimOperatorRewards =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'claimOperatorRewards',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsBatch"`
+ */
+export const simulateDataHavenServiceManagerClaimOperatorRewardsBatch =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'claimOperatorRewardsBatch',
   })
 
 /**
@@ -14415,6 +14595,15 @@ export const watchGatewayAgentFundsWithdrawnEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"CommandFailed"`
+ */
+export const watchGatewayCommandFailedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: gatewayAbi,
+    eventName: 'CommandFailed',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link gatewayAbi}__ and `eventName` set to `"Deposited"`
  */
 export const watchGatewayDepositedEvent =
@@ -15935,21 +16124,66 @@ export const readRewardsRegistryAvs = /*#__PURE__*/ createReadContract({
 })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"lastRewardsMerkleRoot"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getLatestMerkleRoot"`
  */
-export const readRewardsRegistryLastRewardsMerkleRoot =
+export const readRewardsRegistryGetLatestMerkleRoot =
   /*#__PURE__*/ createReadContract({
     abi: rewardsRegistryAbi,
-    functionName: 'lastRewardsMerkleRoot',
+    functionName: 'getLatestMerkleRoot',
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"operatorToLastClaimedRoot"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getLatestMerkleRootIndex"`
  */
-export const readRewardsRegistryOperatorToLastClaimedRoot =
+export const readRewardsRegistryGetLatestMerkleRootIndex =
   /*#__PURE__*/ createReadContract({
     abi: rewardsRegistryAbi,
-    functionName: 'operatorToLastClaimedRoot',
+    functionName: 'getLatestMerkleRootIndex',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getMerkleRootByIndex"`
+ */
+export const readRewardsRegistryGetMerkleRootByIndex =
+  /*#__PURE__*/ createReadContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'getMerkleRootByIndex',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getMerkleRootHistoryLength"`
+ */
+export const readRewardsRegistryGetMerkleRootHistoryLength =
+  /*#__PURE__*/ createReadContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'getMerkleRootHistoryLength',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"hasClaimedByIndex"`
+ */
+export const readRewardsRegistryHasClaimedByIndex =
+  /*#__PURE__*/ createReadContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'hasClaimedByIndex',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"merkleRootHistory"`
+ */
+export const readRewardsRegistryMerkleRootHistory =
+  /*#__PURE__*/ createReadContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'merkleRootHistory',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"operatorClaimedByIndex"`
+ */
+export const readRewardsRegistryOperatorClaimedByIndex =
+  /*#__PURE__*/ createReadContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'operatorClaimedByIndex',
   })
 
 /**
@@ -15967,12 +16201,30 @@ export const writeRewardsRegistry = /*#__PURE__*/ createWriteContract({
 })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimLatestRewards"`
+ */
+export const writeRewardsRegistryClaimLatestRewards =
+  /*#__PURE__*/ createWriteContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'claimLatestRewards',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewards"`
  */
 export const writeRewardsRegistryClaimRewards =
   /*#__PURE__*/ createWriteContract({
     abi: rewardsRegistryAbi,
     functionName: 'claimRewards',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewardsBatch"`
+ */
+export const writeRewardsRegistryClaimRewardsBatch =
+  /*#__PURE__*/ createWriteContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'claimRewardsBatch',
   })
 
 /**
@@ -16001,12 +16253,30 @@ export const simulateRewardsRegistry = /*#__PURE__*/ createSimulateContract({
 })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimLatestRewards"`
+ */
+export const simulateRewardsRegistryClaimLatestRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'claimLatestRewards',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewards"`
  */
 export const simulateRewardsRegistryClaimRewards =
   /*#__PURE__*/ createSimulateContract({
     abi: rewardsRegistryAbi,
     functionName: 'claimRewards',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewardsBatch"`
+ */
+export const simulateRewardsRegistryClaimRewardsBatch =
+  /*#__PURE__*/ createSimulateContract({
+    abi: rewardsRegistryAbi,
+    functionName: 'claimRewardsBatch',
   })
 
 /**
@@ -16035,12 +16305,21 @@ export const watchRewardsRegistryEvent = /*#__PURE__*/ createWatchContractEvent(
 )
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `eventName` set to `"RewardsClaimed"`
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `eventName` set to `"RewardsBatchClaimedForIndices"`
  */
-export const watchRewardsRegistryRewardsClaimedEvent =
+export const watchRewardsRegistryRewardsBatchClaimedForIndicesEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: rewardsRegistryAbi,
-    eventName: 'RewardsClaimed',
+    eventName: 'RewardsBatchClaimedForIndices',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `eventName` set to `"RewardsClaimedForIndex"`
+ */
+export const watchRewardsRegistryRewardsClaimedForIndexEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: rewardsRegistryAbi,
+    eventName: 'RewardsClaimedForIndex',
   })
 
 /**

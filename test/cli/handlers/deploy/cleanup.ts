@@ -2,8 +2,8 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import { waitFor } from "utils/waits";
-import { checkKurtosisEnclaveRunning } from "../common/kurtosis";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
+import { checkKurtosisEnclaveRunning } from "../../../launcher/kurtosis";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import type { DeployOptions } from ".";
 
 export const cleanup = async (
@@ -18,7 +18,7 @@ export const cleanup = async (
     return;
   }
 
-  if (options.environment === "stagenet") {
+  if (options.isPrivateNetwork) {
     await checkAndCleanKurtosisDeployment(options);
   }
 

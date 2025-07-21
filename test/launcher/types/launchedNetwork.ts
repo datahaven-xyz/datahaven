@@ -20,6 +20,8 @@ export class LaunchedNetwork {
   protected _clEndpoint?: string;
   /** The Kubernetes namespace for the network. Used only for deploy commands. */
   protected _kubeNamespace?: string;
+  /** The DataHaven authorities for the network. */
+  protected _datahavenAuthorities?: string[];
 
   constructor(runId: `${string}-${string}-${string}-${string}-${string}` = crypto.randomUUID()) {
     this.runId = runId;
@@ -30,6 +32,7 @@ export class LaunchedNetwork {
     this._clEndpoint = undefined;
     this._dhRpcUrl = undefined;
     this._kubeNamespace = undefined;
+    this._datahavenAuthorities = undefined;
   }
 
   public set networkName(name: string) {
@@ -153,11 +156,18 @@ export class LaunchedNetwork {
   }
 
   /**
-   * Clean-up hook for consumers that need to release resources associated with the launched
-   * network. Currently this is a no-op placeholder to satisfy the interface used by the test
-   * harness.
+   * Sets the DataHaven authorities for the network.
+   * @param authorities - Array of authority hashes.
    */
-  async cleanup(): Promise<void> {
-    /* no-op – concrete handlers perform their own cleanup */
+  public set datahavenAuthorities(authorities: string[]) {
+    this._datahavenAuthorities = authorities;
+  }
+
+  /**
+   * Gets the DataHaven authorities for the network.
+   * @returns Array of authority hashes.
+   */
+  public get datahavenAuthorities(): string[] {
+    return this._datahavenAuthorities || [];
   }
 }

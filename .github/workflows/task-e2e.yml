@@ -85,12 +85,10 @@ jobs:
           docker rm temp
       - run: tmp/bin/snowbridge-relay --help
       - run: docker pull ${{ inputs.image-tag }}
+      - run: |
+          docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
+          docker images
       - run: bun install
-      - run: bun start:e2e:ci --datahaven-image-tag ${{ inputs.image-tag }}
-      - name: Check network
-        run: |
-          kurtosis enclave inspect datahaven-ethereum
-          docker container ls
       - run: bun test:e2e
       - name: Upload state-diff.json artifact
         uses: actions/upload-artifact@v4
@@ -98,6 +96,20 @@ jobs:
           name: state-diff
           path: contracts/deployments/state-diff.json
           retention-days: 1
+      # Try to collect all docker logs and upload it
+      - name: Collect docker logs
+        if: always()
+        run: |
+          mkdir ./logs
+          for name in `docker ps -a --format '{{.Names}}'`; do docker logs $name > ./logs/$name.log 2>&1; done
+      - name: Upload logs to GitHub
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: test/logs/
+          retention-days: 1
+
 
   verify-state-diff:
     runs-on: ubuntu-latest
@@ -122,3 +134,4 @@ jobs:
             exit 1
           fi
           echo "✅ state-diff.json is up to date!"
+

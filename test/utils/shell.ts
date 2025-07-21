@@ -84,8 +84,10 @@ export const runShellCommandWithLogger = async (
 
     // Only log stderr if the command failed
     if (exitCode !== 0) {
+      logger.error("❌ Command failed with exit code:", exitCode);
       const trimmedStderr = stderrBuffer.trim();
       if (trimmedStderr) {
+        logger.error("Stderr:");
         logger.error(
           trimmedStderr.includes("\n") ? `>_ \n${trimmedStderr}` : `>_ ${trimmedStderr}`
         );

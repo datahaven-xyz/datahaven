@@ -3,7 +3,7 @@ import path from "node:path";
 // Update validator set on DataHaven substrate chain
 import { $ } from "bun";
 import invariant from "tiny-invariant";
-import { ANVIL_FUNDED_ACCOUNTS, logger, printDivider, printHeader } from "../utils/index";
+import { ANVIL_FUNDED_ACCOUNTS, logger } from "../utils/index";
 
 interface UpdateValidatorSetOptions {
   rpcUrl: string;
@@ -18,8 +18,6 @@ interface UpdateValidatorSetOptions {
  */
 export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Promise<boolean> => {
   const { rpcUrl } = options;
-
-  printHeader("Updating DataHaven Validator Set");
 
   // Validate RPC URL
   invariant(rpcUrl, "❌ RPC URL is required");
@@ -80,8 +78,6 @@ export const updateValidatorSet = async (options: UpdateValidatorSetOptions): Pr
     logger.warn('Validator set not properly queued on substrate chain');
   }
   */
-
-  printDivider();
 
   return true;
 };

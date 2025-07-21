@@ -160,6 +160,12 @@ should-send-metrics: true
 kurtosis-clusters:
   docker:
     type: "docker"
+  docker.k8s:
+    type: "kubernetes"
+    config:
+      kubernetes-cluster-name: "docker-desktop"
+      storage-class: "hostpath"
+      enclave-size-in-megabytes: 10
   minikube:
     type: "kubernetes"
     config:
@@ -175,7 +181,57 @@ kurtosis-clusters:
 EOF
 ```
 
-This will add three kurtosis clusters. You won't need all of them at once, but is good to have them configured. First one is docker, second is for minikube (useful for some), and the third one is the one we'll use for the deployment to kubernetes.  Alternatively, you can check your current Kurtosis config file:
+This will add four kurtosis clusters. You won't need all of them at once, but is good to have them configured.
+
+1. **Docker containers**
+
+This is usually only for running kurtosis directly to docker containers, it doesn't need a specific config, and it's equivalent to what we use in the `bun cli launch` command.
+
+```yaml
+  docker:
+    type: "docker"
+```
+
+2. **Docker Kubernetes**
+
+For macOS users or everyone that can run Docker Desktop, you can check this docs to enable Kubernetes natively on your Docker Desktop app: https://docs.docker.com/desktop/features/kubernetes/
+
+```yaml
+  docker.k8s:
+    type: "kubernetes"
+    config:
+      kubernetes-cluster-name: "docker-desktop"
+      storage-class: "hostpath"
+      enclave-size-in-megabytes: 10
+```
+
+2. **Minikube**
+
+Great tool for running local Kubernetes clusters, you can check installation instructions here: https://minikube.sigs.k8s.io/docs/start/
+
+```yaml
+  minikube:
+    type: "kubernetes"
+    config:
+      kubernetes-cluster-name: "minikube"
+      storage-class: "standard"
+      enclave-size-in-megabytes: 10
+```
+
+4. **Kubernetes**
+
+This is gonna be for a production deployment.
+
+```yaml
+  cloud:
+    type: "kubernetes"
+    config:
+      kubernetes-cluster-name: "vira-dh-poc-cluster"
+      storage-class: "gp2"
+      enclave-size-in-megabytes: 10
+```
+
+If yout don't want all of them, you can always check your Kurtosis config file and add the desired clusters under `kurtosis-clusters:`
 
 ```bash
 kurtosis config path
@@ -187,23 +243,21 @@ And manually paste the contents:
 config-version: 2
 should-send-metrics: true
 kurtosis-clusters:
-  docker:
-    type: "docker"
-  minikube:
-    type: "kubernetes"
-    config:
-      kubernetes-cluster-name: "minikube"
-      storage-class: "standard"
-      enclave-size-in-megabytes: 10
-  cloud:
-    type: "kubernetes"
-    config:
-      kubernetes-cluster-name: "vira-dh-poc-cluster"
-      storage-class: "gp2"
-      enclave-size-in-megabytes: 10
-
+  ...
 ```
 
+#### 4. For local deploymeny
+Assuming well use Docker Kubernetes cluster:
+
+```bash
+# Set your Docker kubernetes
+kurtosis cluster set docker.k8s
+
+# In a separete terminal, run and keep the gateway running (we still need this to communicate from local machine to the local kubernetes cluster)
+kurtosis gateway
+```
+
+#### 5. For production deploymeny
 ```bash
 # Set your cloud cluster as the target
 kurtosis cluster set cloud
@@ -212,8 +266,8 @@ kurtosis cluster set cloud
 kurtosis gateway
 ```
 
-
-#### 4. (Optional) Test a simple deployment
+#### 5. Test a simple deployment (recommended)
+Before going any further, it's highly recommended that you test your config by creating a simple test network and runing it. Below, the steps:
 
 ```bash
 # Creates a test-network.yml file
@@ -223,8 +277,15 @@ echo -e "participants:\n  - el_type: geth\n    cl_type: prysm\n    vc_type: prys
 kurtosis run --enclave local-eth-testnet github.com/ethpandaops/ethereum-package --args-file test-network.yml
 ```
 
+You can also go for testing against the provided hello-world by Kurtosis.
+
+```bash
+~ kurtosis run --enclave test-k8s github.com/kurtosis-tech/awesome-kurtosis/hello-world
+```
 
 ## Deployment
+
+### Access to GitHub
 
 > ⚠️ **WARNING**  
 > This is a permissioned step. You need to get credentials for DockerHub.
@@ -242,6 +303,8 @@ docker login -u <username>
 docker manifest inspect moonsonglabs/datahaven:main
 ```
 
+### Remote deployment
+
 #### 3. Run the deploy command with the credentials
 
 ```bash
@@ -252,6 +315,12 @@ If everything went well, you will see something like:
 
 > [17:24:01.058] INFO (59757): ✅ Deploy function completed successfully in 28.4 minutes
 
+### Local deployment
+
+```bash
+bun cli deploy --docker-username=<username> --docker-password=<pass> --docker-email=<email> --e local
+```
+
 ## Access Kubernetes dashboard: k9s
 
 ```bash
@@ -261,6 +330,66 @@ k9s -n kt-datahaven-stagenet
 **Tip**: *type '?' to access to all key bindings to navigate the dashboard, press 'Enter' to access an object, and 'Esc' to go back.*
 
 You can also check https://k9scli.io/topics/commands/ for a list of available commands and bindings.
+
+
+## Troubleshooting
+
+### Using the right context
+
+Ensure your Kubernetes context (shown by 'kubectl config current-context') matches the cluster Kurtosis is set to use (shown by 'kurtosis cluster get').
+For Docker Desktop, use 'docker-desktop' context and 'docker.k8s' cluster. For Minikube, use 'minikube' context and 'minikube' cluster.
+
+```bash
+# List available contexts
+kubectl config get-contexts
+
+# If you want to use Docker Desktop's Kubernetes, switch context:
+kubectl config use-context docker-desktop
+
+# If you want to use Minikube, switch context:
+kubectl config use-context minikube
+
+# Verify your current context:
+kubectl config current-context
+
+# Make sure your Kurtosis cluster matches your Kubernetes context:
+kurtosis cluster get
+
+```
+
+### RBAC Permission Issues (Kubernetes clusters only)
+
+You shouldn't, but If you get an error like "Failed to create cluster role with name 'kurtosis-logs-collector-*'" or "is attempting to grant RBAC permissions not currently held", you can use this to fix the RBAC permissions:
+
+```bash
+# Get the service account name from the error message and create a cluster role binding
+kubectl create clusterrolebinding kurtosis-logs-collector --clusterrole=cluster-admin --serviceaccount=<namespace>:<serviceaccount>
+
+# Example (replace with the actual service account from your error):
+kubectl create clusterrolebinding kurtosis-logs-collector --clusterrole=cluster-admin --serviceaccount=kurtosis-engine-43c7ccedab104a1f86fa8839637141e2:kurtosis-engine-43c7ccedab104a1f86fa8839637141e2
+```
+
+**Note:** This gives the Kurtosis engine cluster-admin privileges, which is acceptable for local development but should be avoided in production environments.
+
+
+### Make sure storage-class matches your config
+
+If say you're using a kurtosis cluster that has a storage-class different from `"hostpath"`when you run locally (i.e. `"standard"`, for minikube), then you might get some errors when trying to execute the helm charts.
+
+Look for this chunk in  `deploy/environments/local/values.yaml`:
+
+```yaml
+# Common node settings
+node:
+  chain: local
+  chainData:
+    storageClass: "hostpath"
+    persistence:
+      size: 10Gi
+  ...
+```
+
+And try changing storageClass to whatever you have configured in the cluster. Good luck!
 
 ## Help commands (for reference only)
 

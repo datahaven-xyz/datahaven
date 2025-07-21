@@ -5,8 +5,6 @@ import { spawn } from "bun";
 import invariant from "tiny-invariant";
 import {
   logger,
-  printDivider,
-  printHeader,
   runShellCommandWithLogger,
   waitForNodeToSync
 } from "../utils/index";
@@ -112,8 +110,6 @@ async function runCastCommand(command: string, logOutput = true): Promise<string
 export const fundValidators = async (options: FundValidatorsOptions): Promise<boolean> => {
   const { rpcUrl, validatorsConfig, networkName = "anvil", deploymentPath } = options;
 
-  printHeader("Funding DataHaven Validators for Local Testing");
-
   // Validate RPC URL
   invariant(rpcUrl, "❌ RPC URL is required");
 
@@ -187,8 +183,6 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   logger.debug(`Found ${deployments.DeployedStrategies.length} strategies with token information`);
 
   // We need to ensure all operators to be registered have the necessary tokens
-  logger.info("💸 Funding validators with tokens...");
-
   // Iterate through the strategies, using the embedded token information to fund validators
   for (const strategy of deployments.DeployedStrategies) {
     const strategyAddress = strategy.address;
@@ -300,7 +294,6 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
   }
 
   logger.success("All validators have been funded with tokens");
-  printDivider();
 
   return true;
 };

@@ -7,6 +7,7 @@ export * from "./input";
 export * from "./kurtosis";
 export * from "./logger";
 export * from "./papi";
+export * from "./parameters";
 export * from "./parser";
 export * from "./rpc";
 export * from "./shell";

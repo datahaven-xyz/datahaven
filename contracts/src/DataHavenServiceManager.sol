@@ -49,7 +49,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     IGatewayV2 private _snowbridgeGateway;
 
     /// @inheritdoc IDataHavenServiceManager
-    mapping(address => bytes32) public validatorEthAddressToSolochainAddress;
+    mapping(address => address) public validatorEthAddressToSolochainAddress;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -113,18 +113,14 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
 
         // Build the new validator set message
-        bytes32[] memory newValidatorSet = new bytes32[](currentValidatorSet.length);
+        address[] memory newValidatorSet = new address[](currentValidatorSet.length);
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
             newValidatorSet[i] = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
         }
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
         DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
-        DataHavenSnowbridgeMessages.NewValidatorSet({
-            nonce: 0,
-            topic: bytes32(0),
-            payload: newValidatorSetPayload
-        });
+            DataHavenSnowbridgeMessages.NewValidatorSet({payload: newValidatorSetPayload});
 
         // Return the encoded message
         return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
@@ -132,7 +128,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
     /// @inheritdoc IDataHavenServiceManager
     function updateSolochainAddressForValidator(
-        bytes32 solochainAddress
+        address solochainAddress
     ) external onlyValidator {
         // Update the Solochain address for the Validator
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
@@ -168,8 +164,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             }
 
             // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
-            // TODO: We should have some sort of validation of this address that validators are setting for themselves.
-            validatorEthAddressToSolochainAddress[operator] = bytes32(data);
+            // Require validators to provide 20 bytes addresses.
+            require(data.length == 20, "Invalid solochain address length");
+            validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
         }
         // Case: BSP
         else if (operatorSetIds[0] == BSPS_SET_ID) {

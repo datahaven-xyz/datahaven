@@ -3,9 +3,9 @@ import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import { waitFor } from "utils/waits";
-import { isNetworkReady, setupDataHavenValidatorConfig } from "../common/datahaven";
+import { isNetworkReady, setupDataHavenValidatorConfig } from "../../../launcher/datahaven";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { forwardPort } from "../common/kubernetes";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
 
 const DEFAULT_PUBLIC_WS_PORT = 9944;
@@ -64,11 +64,13 @@ export const deployDataHavenSolochain = async (
   logger.info("🚀 Deploying DataHaven bootnode with helm chart...");
   const bootnodeTimeout = "5m"; // 5 minutes
   logger.debug(
-    await $`helm upgrade --install dh-bootnode . -f ./datahaven/dh-bootnode.yaml \
+    await $`helm upgrade --install dh-bootnode charts/node \
+        -f charts/node/datahaven/dh-bootnode.yaml \
+        -f environments/${options.environment}/values.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${bootnodeTimeout}`
-      .cwd(path.join(process.cwd(), "../deployment/charts/node"))
+      .cwd(path.join(process.cwd(), "../deploy"))
       .text()
   );
   logger.success("DataHaven bootnode deployed successfully");
@@ -76,11 +78,13 @@ export const deployDataHavenSolochain = async (
   logger.info("🚀 Deploying DataHaven validators with helm chart...");
   const validatorTimeout = "5m"; // 5 minutes
   logger.debug(
-    await $`helm upgrade --install dh-validator . -f ./datahaven/dh-validator.yaml \
+    await $`helm upgrade --install dh-validator charts/node \
+        -f charts/node/datahaven/dh-validator.yaml \
+        -f environments/${options.environment}/values.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${validatorTimeout}`
-      .cwd(path.join(process.cwd(), "../deployment/charts/node"))
+      .cwd(path.join(process.cwd(), "../deploy"))
       .text()
   );
   logger.success("DataHaven validators deployed successfully");

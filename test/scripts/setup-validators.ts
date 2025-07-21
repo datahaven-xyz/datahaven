@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import invariant from "tiny-invariant";
-import { logger, printDivider, printHeader, runShellCommandWithLogger } from "../utils/index";
+import { logger, runShellCommandWithLogger } from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -46,8 +46,6 @@ interface ValidatorConfig {
  */
 export const setupValidators = async (options: SetupValidatorsOptions): Promise<boolean> => {
   const { rpcUrl, validatorsConfig, networkName = "anvil" } = options;
-
-  printHeader("Setting Up DataHaven Validators");
 
   // Validate RPC URL
   invariant(rpcUrl, "❌ RPC URL is required");
@@ -121,8 +119,6 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
 
     logger.success(`Successfully registered validator ${validator.publicKey}`);
   }
-
-  printDivider();
 
   return true;
 };

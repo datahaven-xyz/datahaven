@@ -11,7 +11,6 @@ imagePullSecrets:
   - name: datahaven-dockerhub
 
 node:
-  chain: stagenet-local
   command: datahaven-node
   # customChainspec: true # see extraInitContainers, chainspec-generator
   role: full
@@ -63,4 +62,4 @@ extraContainers:
       - name: chain-data
         subPath: chainspec.json
         mountPath: /usr/share/nginx/html/chainspec.json
-        readOnly: true
+        readOnly: true 

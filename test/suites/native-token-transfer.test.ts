@@ -1,3 +1,16 @@
+/**
+ * Native Token Transfer E2E Tests
+ *
+ * Tests the native HAVE token transfer functionality between DataHaven and Ethereum
+ * using the Snowbridge cross-chain messaging protocol.
+ *
+ * Prerequisites:
+ * - DataHaven network with DataHavenNativeTransfer pallet
+ * - Ethereum network with Gateway contract
+ * - Snowbridge relayers running
+ * - Sudo access for token registration
+ */
+
 import { describe, expect, it } from "bun:test";
 import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";

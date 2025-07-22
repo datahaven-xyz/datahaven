@@ -1,5 +1,6 @@
 import type { Command } from "@commander-js/extra-typings";
 import { logger } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { createParameterCollection } from "utils/parameters";
 import { getBlockscoutUrl } from "../../../launcher/kurtosis";
 import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
@@ -13,6 +14,16 @@ import { performSummaryOperations } from "./summary";
 import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
 export const NETWORK_ID = "cli-launch";
+
+export interface NetworkOptions {
+  networkId: string;
+  dhInternalPort?: number;
+}
+
+export const CLI_NETWORK_OPTIONS: NetworkOptions = {
+  networkId: NETWORK_ID,
+  dhInternalPort: DEFAULT_SUBSTRATE_WS_PORT
+};
 
 // Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {

@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
-import { deployContracts } from "../contracts";
+import { deployContracts } from "../../cli/handlers/launch/contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
@@ -58,7 +58,7 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   }
 
   // Check for existing Docker network
-  const dockerNetworkName = `datahaven-${networkId}`;
+  const dockerNetworkName = `datahaven-import { deployContracts${networkId}`;
   const networkOutput =
     await $`docker network ls --filter "name=^${dockerNetworkName}$" --format "{{.Name}}"`.text();
   if (networkOutput.trim()) {
@@ -117,7 +117,7 @@ const createCleanupFunction = (networkId: string) => {
 
       logger.success(`Cleanup completed for network: ${networkId}`);
     } catch (error) {
-      logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
+      logger.error(`❌ Cleanup failed fimport { deployContractsor network ${networkId}:`, error);
       // Continue cleanup, don't throw
     }
   };
@@ -208,7 +208,9 @@ export const launchNetwork = async (
       rpcUrl: launchedNetwork.elRpcUrl,
       verified: options.verified ?? false,
       blockscoutBackendUrl,
-      parameterCollection
+      parameterCollection,
+      deployContracts: false,
+      injectContracts: true, // Because we are injecting contracts in kurtosis deployment
     });
 
     // 4. Fund validators
@@ -218,10 +220,30 @@ export const launchNetwork = async (
     });
 
     // 5. Setup validators
-    logger.info("🔐 Setting up validators...");
-    await setupValidators({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
+    // Skipping this because we have injected contracts
+    logger.info("🔐 Setting up validators... (skipping because we have injected contracts)");
+    // await setupValidators({
+    //   rpcUrl: launchedNetwork.elRpcUrl
+    // });
+
+    // We are injecting contracts but we still need the address
+    try {
+      const { parseDeploymentsFile } = await import("utils/contracts");
+      const deployments = await parseDeploymentsFile();
+      const gatewayAddress = deployments.Gateway;
+
+      if (gatewayAddress) {
+        logger.debug(
+          `📝 Reading EthereumGatewayAddress from existing deployment: ${gatewayAddress}`
+        );
+        parameterCollection.addParameter({
+          name: "EthereumGatewayAddress",
+          value: gatewayAddress
+        });
+      }
+    } catch (error) {
+      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+    }
 
     // 6. Set DataHaven runtime parameters
     logger.info("⚙️ Setting DataHaven parameters...");

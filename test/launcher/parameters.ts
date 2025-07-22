@@ -38,6 +38,8 @@ export const setDataHavenParameters = async (options: ParametersOptions): Promis
 
   const { launchedNetwork, collection } = options;
 
+  console.log(collection);
+
   // Generate the parameters file from the collection
   const parametersFilePath = await collection.generateParametersFile();
 

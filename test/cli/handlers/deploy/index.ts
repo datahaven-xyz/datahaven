@@ -4,7 +4,7 @@ import { createParameterCollection } from "utils/parameters";
 import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { checkBaseDependencies, deploymentChecks } from "../common/checks";
 import { cleanup } from "./cleanup";
-import { deployContracts } from "./contracts";
+import { deployContracts } from "../../../launcher/contracts";
 import { deployDataHavenSolochain } from "./datahaven";
 import { deployKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
@@ -69,7 +69,7 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
     verified: options.verified,
     blockscoutBackendUrl,
     parameterCollection,
-    skipContracts: options.skipContracts
+    // skipContracts: options.skipContracts
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);

@@ -61,8 +61,12 @@ export const setDataHavenParameters = async (
 
   let allSuccessful = true;
 
+  console.log(parameters);
+
   try {
     for (const param of parameters) {
+      console.log(param)
+
       // TODO: Add a graceful way to print the value of the parameter, since it won't always be representable as a hex string
       logger.info(
         `🔧 Attempting to set parameter: ${param.name.toString()} = ${param.value.asHex()}`

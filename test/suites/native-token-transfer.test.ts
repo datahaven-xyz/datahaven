@@ -27,12 +27,6 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
 
     this.setupHooks();
   }
-
-  override async onSetup(): Promise<void> {
-    // Wait for relayers and chain sync
-    logger.info("Waiting for relayers and chain synchronization...");
-    await Bun.sleep(15000);
-  }
 }
 
 // Create the test suite instance

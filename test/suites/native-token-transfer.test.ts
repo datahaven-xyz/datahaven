@@ -29,6 +29,10 @@ import { BaseTestSuite } from "../framework";
 const ETHEREUM_SOVEREIGN_ACCOUNT = "0x23e598fa2f50bba6885988e5077200c6d0c5f5cf";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+// Native token ID - Deterministic value based on blake2_256 hash of reanchored location
+// TODO: Update this with the actual computed token ID
+const NATIVE_TOKEN_ID = "0x0000000000000000000000000000000000000000000000000000000000000001";
+
 // Helper function to get native token ID from Snowbridge storage
 async function getNativeTokenId(dhApi: any): Promise<string | null> {
   try {
@@ -94,21 +98,9 @@ describe("Native Token Transfer", () => {
     const alithSigner = getPapiSigner("ALITH");
     const deployments = await parseDeploymentsFile();
 
-    // Check if already registered by querying Snowbridge storage
-    const tokenId = await getNativeTokenId(connectors.dhApi);
-    if (tokenId) {
-      const gateway = getContract({
-        address: deployments.Gateway,
-        abi: gatewayAbi,
-        client: connectors.publicClient
-      });
-
-      const tokenAddress = await getTokenAddress(gateway, tokenId);
-      if (tokenAddress) {
-        logger.info(`Token already registered with ID ${tokenId} at address ${tokenAddress}`);
-        return;
-      }
-    }
+    // Ensure token is not already registered
+    const existingTokenId = await getNativeTokenId(connectors.dhApi);
+    expect(existingTokenId).toBeNull();
 
     // Register token via sudo
     const registerTx = connectors.dhApi.tx.SnowbridgeSystemV2.register_token({
@@ -129,9 +121,10 @@ describe("Native Token Transfer", () => {
     // Wait for processing
     await Bun.sleep(30000);
 
-    // Verify registration succeeded by checking Snowbridge storage
+    // Verify registration succeeded
     const registeredTokenId = await getNativeTokenId(connectors.dhApi);
     expect(registeredTokenId).toBeDefined();
+    expect(registeredTokenId).toBe(NATIVE_TOKEN_ID);
 
     // Verify token has an address on Ethereum
     const gateway = getContract({

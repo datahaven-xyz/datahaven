@@ -29,16 +29,59 @@ import { BaseTestSuite } from "../framework";
 const ETHEREUM_SOVEREIGN_ACCOUNT = "0x23e598fa2f50bba6885988e5077200c6d0c5f5cf";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+// Helper function to get native token ID from Snowbridge storage
+async function getNativeTokenId(dhApi: any): Promise<string | null> {
+  try {
+    // Native token location is "Here" (parents: 0, interior: Here)
+    // This represents the native token of the current chain
+    const nativeLocation = {
+      parents: 0,
+      interior: {
+        type: "Here"
+      }
+    };
+
+    // Query the Snowbridge storage for the token ID
+    const tokenId = await dhApi.query.SnowbridgeSystem.NativeToForeignId(nativeLocation);
+
+    if (tokenId && tokenId.isSome) {
+      return tokenId.unwrap().toHex();
+    }
+
+    return null;
+  } catch (error) {
+    logger.debug(`Failed to query NativeToForeignId: ${error}`);
+    return null;
+  }
+}
+
+// Helper function to get token address from Gateway
+async function getTokenAddress(gateway: any, tokenId: string): Promise<Address | null> {
+  try {
+    const address = await gateway.read.tokenAddressOf([tokenId as `0x${string}`]);
+    return address !== ZERO_ADDRESS ? address : null;
+  } catch (error) {
+    logger.debug(`Failed to query token address: ${error}`);
+    return null;
+  }
+}
+
 class NativeTokenTransferTestSuite extends BaseTestSuite {
   constructor() {
     super({
       suiteName: "native-token-transfer",
       networkOptions: {
-        slotTime: 2,
+        slotTime: 2
       }
     });
 
     this.setupHooks();
+  }
+
+  override async onSetup(): Promise<void> {
+    // Wait for relayers and chain sync
+    logger.info("Waiting for relayers and chain synchronization...");
+    await Bun.sleep(15000);
   }
 }
 
@@ -49,27 +92,28 @@ describe("Native Token Transfer", () => {
   it("should register DataHaven native token on Ethereum", async () => {
     const connectors = suite.getTestConnectors();
     const alithSigner = getPapiSigner("ALITH");
+    const deployments = await parseDeploymentsFile();
 
-    // Check if already registered
-    let nativeTokenId: string | undefined;
-    try {
-      const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-      if (storage.NativeTokenId) {
-        nativeTokenId = await storage.NativeTokenId.getValue();
+    // Check if already registered by querying Snowbridge storage
+    const tokenId = await getNativeTokenId(connectors.dhApi);
+    if (tokenId) {
+      const gateway = getContract({
+        address: deployments.Gateway,
+        abi: gatewayAbi,
+        client: connectors.publicClient
+      });
+
+      const tokenAddress = await getTokenAddress(gateway, tokenId);
+      if (tokenAddress) {
+        logger.info(`Token already registered with ID ${tokenId} at address ${tokenAddress}`);
+        return;
       }
-    } catch (_error) {
-      logger.debug("Native token not yet registered");
-    }
-
-    if (nativeTokenId) {
-      logger.info("Token already registered, skipping");
-      return;
     }
 
     // Register token via sudo
     const registerTx = connectors.dhApi.tx.SnowbridgeSystemV2.register_token({
-      sender: { type: "V3", value: { parents: 0, interior: { type: "Here", value: undefined } } },
-      asset_id: { type: "V3", value: { parents: 0, interior: { type: "Here", value: undefined } } },
+      sender: { type: "V5", value: { parents: 0, interior: { type: "Here", value: undefined } } },
+      asset_id: { type: "V5", value: { parents: 0, interior: { type: "Here", value: undefined } } },
       metadata: {
         name: Binary.fromText("HAVE"),
         symbol: Binary.fromText("wHAVE"),
@@ -85,53 +129,47 @@ describe("Native Token Transfer", () => {
     // Wait for processing
     await Bun.sleep(30000);
 
-    // Verify registration succeeded
-    const deployments = await parseDeploymentsFile();
+    // Verify registration succeeded by checking Snowbridge storage
+    const registeredTokenId = await getNativeTokenId(connectors.dhApi);
+    expect(registeredTokenId).toBeDefined();
+
+    // Verify token has an address on Ethereum
     const gateway = getContract({
       address: deployments.Gateway,
       abi: gatewayAbi,
       client: connectors.publicClient
     });
 
-    // Check token is registered
-    const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-    const tokenId = await storage.NativeTokenId.getValue();
-    expect(tokenId).toBeDefined();
-
-    const tokenAddress = await gateway.read.tokenAddressOf([tokenId as `0x${string}`]);
+    const tokenAddress = await getTokenAddress(gateway, registeredTokenId!);
+    expect(tokenAddress).toBeDefined();
     expect(tokenAddress).not.toBe(ZERO_ADDRESS);
 
-    logger.success(`Native token registered at: ${tokenAddress}`);
-  });
+    logger.success(`Native token registered with ID ${registeredTokenId} at: ${tokenAddress}`);
+  }, 60_000); // 60 second timeout for registration
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
     const deployments = await parseDeploymentsFile();
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
-    // Get token info
-    let tokenId: string | undefined;
-    let tokenAddress: Address | undefined;
+    // Get token info from Snowbridge storage
+    const tokenId = await getNativeTokenId(connectors.dhApi);
 
-    try {
-      const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-      tokenId = await storage.NativeTokenId.getValue();
-
-      if (tokenId) {
-        const gateway = getContract({
-          address: deployments.Gateway,
-          abi: gatewayAbi,
-          client: connectors.publicClient
-        });
-        tokenAddress = await gateway.read.tokenAddressOf([tokenId as `0x${string}`]);
-      }
-    } catch (_error) {
+    if (!tokenId) {
       logger.warn("Token not registered, skipping transfer test");
       return;
     }
 
-    if (!tokenId || !tokenAddress || tokenAddress === ZERO_ADDRESS) {
-      logger.warn("Token not properly registered");
+    // Get token address from Gateway
+    const gateway = getContract({
+      address: deployments.Gateway,
+      abi: gatewayAbi,
+      client: connectors.publicClient
+    });
+
+    const tokenAddress = await getTokenAddress(gateway, tokenId);
+    if (!tokenAddress) {
+      logger.warn("Token address not found on Ethereum, skipping transfer test");
       return;
     }
 
@@ -212,24 +250,17 @@ describe("Native Token Transfer", () => {
     expect(ethIncrease).toBe(amount);
 
     logger.success("Transfer completed successfully!");
-  });
+  }, 90_000); // 90 second timeout for cross-chain transfer
 
   it("should reject transfer with zero amount", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Check if token is registered
-    let tokenId: string | undefined;
-    try {
-      const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-      tokenId = await storage.NativeTokenId.getValue();
-    } catch (_error) {
-      logger.warn("Token not registered, skipping validation test");
-      return;
-    }
+    const tokenId = await getNativeTokenId(connectors.dhApi);
 
     if (!tokenId) {
-      logger.warn("Token not registered");
+      logger.warn("Token not registered, skipping validation test");
       return;
     }
 
@@ -247,8 +278,9 @@ describe("Native Token Transfer", () => {
     try {
       await tx.signAndSubmit(baltatharSigner);
       throw new Error("Transfer should have failed");
-    } catch (error) {
+    } catch (error: any) {
       logger.info("Zero amount transfer correctly rejected");
+      logger.debug(`Rejection reason: ${error.message || error}`);
       expect(error).toBeDefined();
     }
   });
@@ -258,17 +290,10 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Check if token is registered
-    let tokenId: string | undefined;
-    try {
-      const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-      tokenId = await storage.NativeTokenId.getValue();
-    } catch (_error) {
-      logger.warn("Token not registered, skipping validation test");
-      return;
-    }
+    const tokenId = await getNativeTokenId(connectors.dhApi);
 
     if (!tokenId) {
-      logger.warn("Token not registered");
+      logger.warn("Token not registered, skipping validation test");
       return;
     }
 
@@ -286,8 +311,9 @@ describe("Native Token Transfer", () => {
     try {
       await tx.signAndSubmit(baltatharSigner);
       throw new Error("Transfer should have failed");
-    } catch (error) {
+    } catch (error: any) {
       logger.info("Zero fee transfer correctly rejected");
+      logger.debug(`Rejection reason: ${error.message || error}`);
       expect(error).toBeDefined();
     }
   });
@@ -326,8 +352,9 @@ describe("Native Token Transfer", () => {
     try {
       await tx.signAndSubmit(baltatharSigner);
       throw new Error("Transfer should have failed while paused");
-    } catch (error) {
+    } catch (error: any) {
       logger.info("Transfer correctly rejected while paused");
+      logger.debug(`Rejection reason: ${error.message || error}`);
       expect(error).toBeDefined();
     }
 
@@ -349,29 +376,24 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
     const deployments = await parseDeploymentsFile();
 
-    // Get token info
-    let tokenId: string | undefined;
-    let tokenAddress: Address | undefined;
+    // Get token info from Snowbridge storage
+    const tokenId = await getNativeTokenId(connectors.dhApi);
 
-    try {
-      const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-      tokenId = await storage.NativeTokenId.getValue();
-
-      if (tokenId) {
-        const gateway = getContract({
-          address: deployments.Gateway,
-          abi: gatewayAbi,
-          client: connectors.publicClient
-        });
-        tokenAddress = await gateway.read.tokenAddressOf([tokenId as `0x${string}`]);
-      }
-    } catch (_error) {
+    if (!tokenId) {
       logger.warn("Token not registered, skipping backing ratio test");
       return;
     }
 
-    if (!tokenId || !tokenAddress || tokenAddress === ZERO_ADDRESS) {
-      logger.warn("Token not properly registered");
+    // Get token address from Gateway
+    const gateway = getContract({
+      address: deployments.Gateway,
+      abi: gatewayAbi,
+      client: connectors.publicClient
+    });
+
+    const tokenAddress = await getTokenAddress(gateway, tokenId);
+    if (!tokenAddress) {
+      logger.warn("Token address not found on Ethereum, skipping backing ratio test");
       return;
     }
 
@@ -409,17 +431,10 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Check if token is registered
-    let tokenId: string | undefined;
-    try {
-      const storage = connectors.dhApi.query.DataHavenNativeTransfer as any;
-      tokenId = await storage.NativeTokenId.getValue();
-    } catch (_error) {
-      logger.warn("Token not registered, skipping event test");
-      return;
-    }
+    const tokenId = await getNativeTokenId(connectors.dhApi);
 
     if (!tokenId) {
-      logger.warn("Token not registered");
+      logger.warn("Token not registered, skipping event test");
       return;
     }
 

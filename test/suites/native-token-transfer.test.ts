@@ -33,6 +33,45 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 // TODO: Update this with the actual computed token ID
 const NATIVE_TOKEN_ID = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
+// Minimal ERC20 ABI for reading token metadata
+const ERC20_METADATA_ABI = [
+  {
+    inputs: [],
+    name: "name",
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "symbol",
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "decimals",
+    outputs: [{ name: "", type: "uint8" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "totalSupply",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  }
+] as const;
+
 // Helper function to get native token ID from Snowbridge storage
 async function getNativeTokenId(dhApi: any): Promise<string | null> {
   try {
@@ -137,7 +176,32 @@ describe("Native Token Transfer", () => {
     expect(tokenAddress).toBeDefined();
     expect(tokenAddress).not.toBe(ZERO_ADDRESS);
 
+    // Verify ERC20 token properties
+    const tokenName = await connectors.publicClient.readContract({
+      address: tokenAddress!,
+      abi: ERC20_METADATA_ABI,
+      functionName: "name"
+    }) as string;
+
+    const tokenSymbol = await connectors.publicClient.readContract({
+      address: tokenAddress!,
+      abi: ERC20_METADATA_ABI,
+      functionName: "symbol"
+    }) as string;
+
+    const tokenDecimals = await connectors.publicClient.readContract({
+      address: tokenAddress!,
+      abi: ERC20_METADATA_ABI,
+      functionName: "decimals"
+    }) as number;
+
+    // Verify token metadata matches what was registered
+    expect(tokenName).toBe("HAVE");
+    expect(tokenSymbol).toBe("wHAVE");
+    expect(tokenDecimals).toBe(18);
+
     logger.success(`Native token registered with ID ${registeredTokenId} at: ${tokenAddress}`);
+    logger.info(`Token details - Name: ${tokenName}, Symbol: ${tokenSymbol}, Decimals: ${tokenDecimals}`);
   }, 60_000); // 60 second timeout for registration
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
@@ -177,15 +241,7 @@ describe("Native Token Transfer", () => {
 
     const initialEthBalance = (await connectors.publicClient.readContract({
       address: tokenAddress,
-      abi: [
-        {
-          inputs: [{ name: "account", type: "address" }],
-          name: "balanceOf",
-          outputs: [{ name: "", type: "uint256" }],
-          stateMutability: "view",
-          type: "function"
-        }
-      ],
+      abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
     })) as bigint;
@@ -215,15 +271,7 @@ describe("Native Token Transfer", () => {
 
     const finalEthBalance = (await connectors.publicClient.readContract({
       address: tokenAddress,
-      abi: [
-        {
-          inputs: [{ name: "account", type: "address" }],
-          name: "balanceOf",
-          outputs: [{ name: "", type: "uint256" }],
-          stateMutability: "view",
-          type: "function"
-        }
-      ],
+      abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
     })) as bigint;
@@ -393,15 +441,7 @@ describe("Native Token Transfer", () => {
     // Get total supply of wrapped tokens
     const totalSupply = (await connectors.publicClient.readContract({
       address: tokenAddress,
-      abi: [
-        {
-          inputs: [],
-          name: "totalSupply",
-          outputs: [{ name: "", type: "uint256" }],
-          stateMutability: "view",
-          type: "function"
-        }
-      ],
+      abi: ERC20_METADATA_ABI,
       functionName: "totalSupply"
     })) as bigint;
 

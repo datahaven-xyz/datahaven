@@ -10,7 +10,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { fundValidators, setupValidators, updateValidatorSet } from "../validators";
+import { updateValidatorSet } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -187,7 +187,7 @@ export const launchNetwork = async (
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
         kurtosisNetworkArgs: options.kurtosisNetworkArgs,
-        injectContracts: true,
+        injectContracts: true
       },
       launchedNetwork
     );
@@ -210,7 +210,7 @@ export const launchNetwork = async (
       blockscoutBackendUrl,
       parameterCollection,
       deployContracts: false,
-      injectContracts: true, // Because we are injecting contracts in kurtosis deployment
+      injectContracts: true // Because we are injecting contracts in kurtosis deployment
     });
 
     // 4. Fund validators

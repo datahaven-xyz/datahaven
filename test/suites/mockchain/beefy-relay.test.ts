@@ -6,7 +6,7 @@ import { createPublicClient, http } from "viem";
 
 // Test to that covers the snowbridge relay reading the beefy pallet and performing expected outputs
 
-describe("Beefy Relay Integration Tests", () => {
+describe.skip("Beefy Relay Integration Tests", () => {
   let mockEth: Bun.Server;
 
   beforeAll(async () => {

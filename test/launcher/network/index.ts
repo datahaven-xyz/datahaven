@@ -214,10 +214,10 @@ export const launchNetwork = async (
     });
 
     // 4. Fund validators
-    logger.info("💰 Funding validators...");
-    await fundValidators({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
+    logger.info("💰 Funding validators... (skipping because we have injected contracts)");
+    // await fundValidators({
+    //   rpcUrl: launchedNetwork.elRpcUrl
+    // });
 
     // 5. Setup validators
     // Skipping this because we have injected contracts

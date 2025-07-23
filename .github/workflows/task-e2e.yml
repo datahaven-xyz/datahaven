@@ -90,12 +90,6 @@ jobs:
           docker images
       - run: bun install
       - run: bun test:e2e
-      - name: Upload state-diff.json artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: state-diff
-          path: contracts/deployments/state-diff.json
-          retention-days: 1
       # Try to collect all docker logs and upload it
       - name: Collect docker logs
         if: always()
@@ -109,29 +103,3 @@ jobs:
           name: logs
           path: test/logs/
           retention-days: 1
-
-
-  verify-state-diff:
-    runs-on: ubuntu-latest
-    name: Verify state-diff.json
-    needs: kurtosis
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download state-diff artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: state-diff
-          path: ./generated
-      - name: Verify state-diff.json matches repository
-        run: |
-          echo "Checking for differences..."
-          if [ -n "$(git status --porcelain contracts/deployments/state-diff.json)" ]; then
-            echo "ERROR: state-diff.json has changed!"
-            echo "Please run 'bun start:e2e:ci' locally and commit the updated file."
-            echo ""
-            echo "Changes detected:"
-            git diff contracts/deployments/state-diff.json
-            exit 1
-          fi
-          echo "✅ state-diff.json is up to date!"
-

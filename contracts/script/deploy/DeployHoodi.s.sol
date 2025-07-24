@@ -21,7 +21,8 @@ import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // OpenZeppelin imports
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // EigenLayer imports (for references only)
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
@@ -29,7 +30,8 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 
 // DataHaven imports
@@ -85,8 +87,12 @@ contract DeployHoodi is Script, DeployParams, Accounts {
 
         // Deploy Snowbridge and configure Agent
         Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
-        (BeefyClient beefyClient, AgentExecutor agentExecutor, IGatewayV2 gateway, address payable rewardsAgentAddress)
-        = _deploySnowbridge(snowbridgeConfig);
+        (
+            BeefyClient beefyClient,
+            AgentExecutor agentExecutor,
+            IGatewayV2 gateway,
+            address payable rewardsAgentAddress
+        ) = _deploySnowbridge(snowbridgeConfig);
         Logging.logFooter();
         _logProgress();
 
@@ -127,10 +133,16 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         );
 
         // Output rewards info (Rewards agent address and origin, updateRewardsMerkleRoot function selector)
-        _outputRewardsInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin, updateRewardsMerkleRootSelector);
+        _outputRewardsInfo(
+            rewardsAgentAddress,
+            snowbridgeConfig.rewardsMessageOrigin,
+            updateRewardsMerkleRootSelector
+        );
     }
 
-    function _referenceEigenLayerContracts(EigenLayerConfig memory config) internal {
+    function _referenceEigenLayerContracts(
+        EigenLayerConfig memory config
+    ) internal {
         Logging.logSection("Referencing Existing EigenLayer Contracts on Hoodi");
 
         // Reference existing EigenLayer contracts using addresses from config
@@ -146,15 +158,16 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         Logging.logContractDeployed("AVSDirectory (existing)", address(avsDirectory));
         Logging.logContractDeployed("RewardsCoordinator (existing)", address(rewardsCoordinator));
         Logging.logContractDeployed("AllocationManager (existing)", address(allocationManager));
-        Logging.logContractDeployed("PermissionController (existing)", address(permissionController));
+        Logging.logContractDeployed(
+            "PermissionController (existing)", address(permissionController)
+        );
 
         Logging.logStep("All EigenLayer contracts referenced successfully");
     }
 
-    function _deploySnowbridge(SnowbridgeConfig memory config)
-        internal
-        returns (BeefyClient, AgentExecutor, IGatewayV2, address payable)
-    {
+    function _deploySnowbridge(
+        SnowbridgeConfig memory config
+    ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
         Logging.logSection("Deploying Snowbridge Core Components");
 
         BeefyClient beefyClient = _deployBeefyClient(config);
@@ -181,8 +194,9 @@ contract DeployHoodi is Script, DeployParams, Accounts {
             maxDestinationFee: 1
         });
 
-        IGatewayV2 gateway =
-            IGatewayV2(address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig))));
+        IGatewayV2 gateway = IGatewayV2(
+            address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig)))
+        );
         Logging.logContractDeployed("Gateway Proxy", address(gateway));
 
         // Create Agent
@@ -195,22 +209,26 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
     }
 
-    function _buildValidatorSet(uint128 id, bytes32[] memory validators)
-        internal
-        pure
-        returns (BeefyClient.ValidatorSet memory)
-    {
+    function _buildValidatorSet(
+        uint128 id,
+        bytes32[] memory validators
+    ) internal pure returns (BeefyClient.ValidatorSet memory) {
         // Calculate the merkle root from the validators array using the shared library
         bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validators);
 
         // Create and return the validator set with the calculated merkle root
-        return BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
+        return
+            BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
     }
 
-    function _deployBeefyClient(SnowbridgeConfig memory config) internal returns (BeefyClient) {
+    function _deployBeefyClient(
+        SnowbridgeConfig memory config
+    ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
-        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, config.initialValidatorHashes);
-        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, config.nextValidatorHashes);
+        BeefyClient.ValidatorSet memory validatorSet =
+            _buildValidatorSet(0, config.initialValidatorHashes);
+        BeefyClient.ValidatorSet memory nextValidatorSet =
+            _buildValidatorSet(1, config.nextValidatorHashes);
 
         // Deploy BeefyClient
         vm.startBroadcast(_deployerPrivateKey);
@@ -261,7 +279,8 @@ contract DeployHoodi is Script, DeployParams, Accounts {
 
         // Write to deployment file for future reference
         string memory network = vm.envOr("NETWORK", string("hoodi"));
-        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", network, ".json");
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
@@ -274,21 +293,34 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         json = string.concat(json, '"BeefyClient": "', vm.toString(address(beefyClient)), '",');
         json = string.concat(json, '"AgentExecutor": "', vm.toString(address(agentExecutor)), '",');
         json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
-        json = string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
+        json =
+            string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
         json = string.concat(
-            json, '"ServiceManagerImplementation": "', vm.toString(address(serviceManagerImplementation)), '",'
+            json,
+            '"ServiceManagerImplementation": "',
+            vm.toString(address(serviceManagerImplementation)),
+            '",'
         );
-        json = string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
-        json = string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json =
+            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
+        json =
+            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts (existing on Hoodi)
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
-        json = string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json =
+            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
         json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
-        json = string.concat(json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",');
-        json = string.concat(json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",');
-        json = string.concat(json, '"PermissionController": "', vm.toString(address(permissionController)), '"');
+        json = string.concat(
+            json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
+        );
+        json = string.concat(
+            json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
+        );
+        json = string.concat(
+            json, '"PermissionController": "', vm.toString(address(permissionController)), '"'
+        );
 
         json = string.concat(json, "}");
 
@@ -305,12 +337,15 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         Logging.logHeader("REWARDS AGENT INFO");
         Logging.logContractDeployed("RewardsAgent", rewardsAgent);
         Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
-        Logging.logFunctionSelector("updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector));
+        Logging.logFunctionSelector(
+            "updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector)
+        );
         Logging.logFooter();
 
         // Write to deployment file for future reference
         string memory network = vm.envOr("NETWORK", string("hoodi"));
-        string memory rewardsInfoPath = string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
+        string memory rewardsInfoPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
@@ -332,9 +367,18 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         Logging.logInfo(string.concat("Rewards info saved to: ", rewardsInfoPath));
     }
 
-    function _deployDataHavenContracts(AVSConfig memory avsConfig, IGatewayV2 gateway)
+    function _deployDataHavenContracts(
+        AVSConfig memory avsConfig,
+        IGatewayV2 gateway
+    )
         internal
-        returns (DataHavenServiceManager, DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4)
+        returns (
+            DataHavenServiceManager,
+            DataHavenServiceManager,
+            VetoableSlasher,
+            RewardsRegistry,
+            bytes4
+        )
     {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
@@ -342,7 +386,9 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         vm.startBroadcast(_deployerPrivateKey);
         DataHavenServiceManager serviceManagerImplementation =
             new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
-        Logging.logContractDeployed("ServiceManager Implementation", address(serviceManagerImplementation));
+        Logging.logContractDeployed(
+            "ServiceManager Implementation", address(serviceManagerImplementation)
+        );
 
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
@@ -355,12 +401,16 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         });
 
         // Create the service manager proxy
-        DataHavenServiceManager serviceManager = _createServiceManagerProxy(serviceManagerImplementation, initParams);
+        DataHavenServiceManager serviceManager =
+            _createServiceManagerProxy(serviceManagerImplementation, initParams);
         Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
         // Deploy VetoableSlasher
         VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager, serviceManager, avsConfig.vetoCommitteeMember, avsConfig.vetoWindowBlocks
+            allocationManager,
+            serviceManager,
+            avsConfig.vetoCommitteeMember,
+            avsConfig.vetoWindowBlocks
         );
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 
@@ -399,10 +449,10 @@ contract DeployHoodi is Script, DeployParams, Accounts {
         );
     }
 
-    function _createServiceManagerProxy(DataHavenServiceManager implementation, ServiceManagerInitParams memory params)
-        internal
-        returns (DataHavenServiceManager)
-    {
+    function _createServiceManagerProxy(
+        DataHavenServiceManager implementation,
+        ServiceManagerInitParams memory params
+    ) internal returns (DataHavenServiceManager) {
         // Deploy ProxyAdmin for the proxy
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         Logging.logContractDeployed("ProxyAdmin", address(proxyAdmin));
@@ -428,7 +478,9 @@ contract DeployHoodi is Script, DeployParams, Accounts {
      * @param paddedHex The padded hex string from vm.toString()
      * @return A hex string with only the first 4 bytes (e.g., "0x12345678")
      */
-    function _trimToBytes4(string memory paddedHex) internal pure returns (string memory) {
+    function _trimToBytes4(
+        string memory paddedHex
+    ) internal pure returns (string memory) {
         bytes memory data = bytes(paddedHex);
         bytes memory trimmed = new bytes(10); // 0x + 8 hex chars = 10 total chars
 

@@ -169,7 +169,8 @@ contract DeployParams is Script, Config {
         }
 
         // Load Hoodi-specific contract addresses (if they exist in config)
-        try vm.parseJsonAddress(configJson, ".eigenLayer.delegationManager") returns (address addr) {
+        try vm.parseJsonAddress(configJson, ".eigenLayer.delegationManager") returns (address addr)
+        {
             config.delegationManager = addr;
         } catch {
             config.delegationManager = address(0);
@@ -187,19 +188,23 @@ contract DeployParams is Script, Config {
             config.avsDirectory = address(0);
         }
 
-        try vm.parseJsonAddress(configJson, ".eigenLayer.rewardsCoordinator") returns (address addr) {
+        try vm.parseJsonAddress(configJson, ".eigenLayer.rewardsCoordinator") returns (address addr)
+        {
             config.rewardsCoordinator = addr;
         } catch {
             config.rewardsCoordinator = address(0);
         }
 
-        try vm.parseJsonAddress(configJson, ".eigenLayer.allocationManager") returns (address addr) {
+        try vm.parseJsonAddress(configJson, ".eigenLayer.allocationManager") returns (address addr)
+        {
             config.allocationManager = addr;
         } catch {
             config.allocationManager = address(0);
         }
 
-        try vm.parseJsonAddress(configJson, ".eigenLayer.permissionController") returns (address addr) {
+        try vm.parseJsonAddress(configJson, ".eigenLayer.permissionController") returns (
+            address addr
+        ) {
             config.permissionController = addr;
         } catch {
             config.permissionController = address(0);

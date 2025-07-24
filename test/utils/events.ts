@@ -129,28 +129,36 @@ export async function waitForDataHavenEvent<T = any>(
 
     // Watch for events
     try {
-      unsubscribe = eventWatcher.watch((event: T) => {
-        logger.debug(`Event ${eventPath} received`);
+      // eventWatcher.watch returns an Observable, we need to subscribe to it
+      const subscription = eventWatcher.watch().subscribe({
+        next: (event: T) => {
+          logger.debug(`Event ${eventPath} received`);
 
-        // Apply filter if provided
-        if (filter && !filter(event)) {
-          return false; // Continue watching
-        }
+          // Apply filter if provided
+          if (filter && !filter(event)) {
+            return; // Continue watching
+          }
 
-        // Event matched
-        matchedEvent = event;
-        if (onEvent) {
-          onEvent(event);
-        }
+          // Event matched
+          matchedEvent = event;
+          if (onEvent) {
+            onEvent(event);
+          }
 
-        if (stopOnFirst) {
+          if (stopOnFirst) {
+            cleanup();
+            resolve(event);
+          }
+        },
+        error: (error: any) => {
+          logger.error(`Error in event subscription ${eventPath}: ${error}`);
           cleanup();
-          resolve(event);
-          return true; // Stop watching
+          resolve(null);
         }
-
-        return false; // Continue watching
       });
+      
+      // Store the unsubscribe function
+      unsubscribe = () => subscription.unsubscribe();
     } catch (error) {
       logger.error(`Failed to watch event ${eventPath}: ${error}`);
       cleanup();
@@ -204,41 +212,44 @@ export async function waitForMultipleDataHavenEvents(
       }
 
       try {
-        const unsubscribe = eventWatcher.watch((event: any) => {
-          logger.debug(`Event ${eventConfig.path} received`);
+        // eventWatcher.watch returns an Observable, we need to subscribe to it
+        const subscription = eventWatcher.watch().subscribe({
+          next: (event: any) => {
+            logger.debug(`Event ${eventConfig.path} received`);
 
-          // Apply filter if provided
-          if (eventConfig.filter && !eventConfig.filter(event)) {
-            return false; // Continue watching
-          }
-
-          // Store the event
-          const currentEvents = eventResults.get(eventConfig.path) || [];
-          currentEvents.push(event);
-          eventResults.set(eventConfig.path, currentEvents);
-
-          if (onAnyEvent) {
-            onAnyEvent(eventConfig.path, event);
-          }
-
-          // Check if we should stop watching this event
-          if (eventConfig.stopOnMatch) {
-            // Check if all events that should stop on match have been matched
-            allEventsMatched = events
-              .filter((e) => e.stopOnMatch)
-              .every((e) => (eventResults.get(e.path) || []).length > 0);
-
-            if (allEventsMatched) {
-              cleanup();
-              resolve(eventResults);
-              return true; // Stop watching
+            // Apply filter if provided
+            if (eventConfig.filter && !eventConfig.filter(event)) {
+              return; // Continue watching
             }
-          }
 
-          return false; // Continue watching
+            // Store the event
+            const currentEvents = eventResults.get(eventConfig.path) || [];
+            currentEvents.push(event);
+            eventResults.set(eventConfig.path, currentEvents);
+
+            if (onAnyEvent) {
+              onAnyEvent(eventConfig.path, event);
+            }
+
+            // Check if we should stop watching this event
+            if (eventConfig.stopOnMatch) {
+              // Check if all events that should stop on match have been matched
+              allEventsMatched = events
+                .filter((e) => e.stopOnMatch)
+                .every((e) => (eventResults.get(e.path) || []).length > 0);
+
+              if (allEventsMatched) {
+                cleanup();
+                resolve(eventResults);
+              }
+            }
+          },
+          error: (error: any) => {
+            logger.error(`Error in event subscription ${eventConfig.path}: ${error}`);
+          }
         });
 
-        subscriptions.push({ unsubscribe, path: eventConfig.path });
+        subscriptions.push({ unsubscribe: () => subscription.unsubscribe(), path: eventConfig.path });
       } catch (error) {
         logger.error(`Failed to watch event ${eventConfig.path}: ${error}`);
       }

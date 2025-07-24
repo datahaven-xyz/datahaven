@@ -1,5 +1,6 @@
-import type { Abi, Address, Log, PublicClient, WatchContractEventParameters } from "viem";
+import type { Abi, Address, Log, PublicClient } from "viem";
 import { logger } from "./logger";
+import type { DataHavenApi } from "./papi";
 
 /**
  * Event utilities for DataHaven and Ethereum chains
@@ -14,7 +15,7 @@ import { logger } from "./logger";
  */
 export interface WaitForDataHavenEventOptions<T = any> {
   /** DataHaven API instance */
-  api: any;
+  api: DataHavenApi;
   /** Event path in dot notation (e.g., "SnowbridgeSystemV2.RegisterToken") */
   eventPath: string;
   /** Optional filter function to match specific events */
@@ -32,7 +33,7 @@ export interface WaitForDataHavenEventOptions<T = any> {
  */
 export interface WaitForMultipleDataHavenEventsOptions {
   /** DataHaven API instance */
-  api: any;
+  api: DataHavenApi;
   /** Array of event configurations to watch */
   events: Array<{
     /** Event path in dot notation */
@@ -54,7 +55,7 @@ export interface WaitForMultipleDataHavenEventsOptions {
  * @param eventPath - Event path like "Pallet.EventName"
  * @returns Event watcher object or null if not found
  */
-function getDataHavenEventWatcher(api: any, eventPath: string): any {
+function getDataHavenEventWatcher(api: DataHavenApi, eventPath: string): any {
   try {
     const parts = eventPath.split(".");
     if (parts.length !== 2) {
@@ -68,15 +69,18 @@ function getDataHavenEventWatcher(api: any, eventPath: string): any {
       throw new Error("API does not have event property");
     }
 
-    if (!api.event[pallet]) {
+    // Use type assertion to handle dynamic access
+    const palletEvents = (api.event as any)[pallet];
+    if (!palletEvents) {
       throw new Error(`Pallet ${pallet} not found in API`);
     }
 
-    if (!api.event[pallet][eventName]) {
+    const eventWatcher = palletEvents[eventName];
+    if (!eventWatcher) {
       throw new Error(`Event ${eventName} not found in pallet ${pallet}`);
     }
 
-    return api.event[pallet][eventName];
+    return eventWatcher;
   } catch (error) {
     logger.debug(`Failed to get event watcher for ${eventPath}: ${error}`);
     return null;
@@ -300,7 +304,7 @@ export interface WaitForEthereumEventOptions<TAbi extends Abi = Abi> {
   /** Contract ABI */
   abi: TAbi;
   /** Event name to watch for */
-  eventName: string;
+  eventName: any;
   /** Optional event arguments to filter */
   args?: any;
   /** Timeout in milliseconds (default: 30000) */

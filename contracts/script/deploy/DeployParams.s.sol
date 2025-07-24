@@ -168,6 +168,43 @@ contract DeployParams is Script, Config {
             config.beaconChainGenesisTimestamp = 1616508000; // Mainnet default
         }
 
+        // Load Hoodi-specific contract addresses (if they exist in config)
+        try vm.parseJsonAddress(configJson, ".eigenLayer.delegationManager") returns (address addr) {
+            config.delegationManager = addr;
+        } catch {
+            config.delegationManager = address(0);
+        }
+
+        try vm.parseJsonAddress(configJson, ".eigenLayer.strategyManager") returns (address addr) {
+            config.strategyManager = addr;
+        } catch {
+            config.strategyManager = address(0);
+        }
+
+        try vm.parseJsonAddress(configJson, ".eigenLayer.avsDirectory") returns (address addr) {
+            config.avsDirectory = addr;
+        } catch {
+            config.avsDirectory = address(0);
+        }
+
+        try vm.parseJsonAddress(configJson, ".eigenLayer.rewardsCoordinator") returns (address addr) {
+            config.rewardsCoordinator = addr;
+        } catch {
+            config.rewardsCoordinator = address(0);
+        }
+
+        try vm.parseJsonAddress(configJson, ".eigenLayer.allocationManager") returns (address addr) {
+            config.allocationManager = addr;
+        } catch {
+            config.allocationManager = address(0);
+        }
+
+        try vm.parseJsonAddress(configJson, ".eigenLayer.permissionController") returns (address addr) {
+            config.permissionController = addr;
+        } catch {
+            config.permissionController = address(0);
+        }
+
         return config;
     }
 

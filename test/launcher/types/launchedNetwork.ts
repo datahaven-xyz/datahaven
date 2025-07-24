@@ -1,7 +1,11 @@
 import invariant from "tiny-invariant";
 import { logger, type RelayerType } from "utils";
 
-type ContainerSpec = { name: string; publicPorts: Record<string, number> };
+type ContainerSpec = {
+  name: string;
+  publicPorts: Record<string, number>;
+  internalPorts: Record<string, number>;
+};
 
 /**
  * Represents the state and associated resources of a launched network environment,
@@ -18,6 +22,8 @@ export class LaunchedNetwork {
   protected _clEndpoint?: string;
   /** The Kubernetes namespace for the network. Used only for deploy commands. */
   protected _kubeNamespace?: string;
+  /** The DataHaven authorities for the network. */
+  protected _datahavenAuthorities?: string[];
 
   constructor() {
     this.runId = crypto.randomUUID();
@@ -27,6 +33,7 @@ export class LaunchedNetwork {
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
     this._kubeNamespace = undefined;
+    this._datahavenAuthorities = undefined;
   }
 
   public set networkName(name: string) {
@@ -60,8 +67,12 @@ export class LaunchedNetwork {
     return container.publicPorts.ws ?? -1;
   }
 
-  addContainer(containerName: string, publicPorts: Record<string, number> = {}) {
-    this._containers.push({ name: containerName, publicPorts });
+  addContainer(
+    containerName: string,
+    publicPorts: Record<string, number> = {},
+    internalPorts: Record<string, number> = {}
+  ) {
+    this._containers.push({ name: containerName, publicPorts, internalPorts });
   }
 
   public getPublicWsPort(): number {
@@ -124,5 +135,21 @@ export class LaunchedNetwork {
   public get kubeNamespace(): string {
     invariant(this._kubeNamespace, "❌ Kubernetes namespace not set in LaunchedNetwork");
     return this._kubeNamespace;
+  }
+
+  /**
+   * Sets the DataHaven authorities for the network.
+   * @param authorities - Array of authority hashes.
+   */
+  public set datahavenAuthorities(authorities: string[]) {
+    this._datahavenAuthorities = authorities;
+  }
+
+  /**
+   * Gets the DataHaven authorities for the network.
+   * @returns Array of authority hashes.
+   */
+  public get datahavenAuthorities(): string[] {
+    return this._datahavenAuthorities || [];
   }
 }

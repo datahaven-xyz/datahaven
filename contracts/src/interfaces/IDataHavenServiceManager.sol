@@ -109,7 +109,7 @@ interface IDataHavenServiceManager is
      */
     function validatorEthAddressToSolochainAddress(
         address validatorAddress
-    ) external view returns (bytes32);
+    ) external view returns (address);
 
     /**
      * @notice Initializes the DataHaven Service Manager
@@ -152,7 +152,7 @@ interface IDataHavenServiceManager is
      *      in the Validators operator set (operatorSetId = VALIDATORS_SET_ID)
      */
     function updateSolochainAddressForValidator(
-        bytes32 solochainAddress
+        address solochainAddress
     ) external;
 
     /**

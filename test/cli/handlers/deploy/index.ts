@@ -1,8 +1,8 @@
 import type { Command } from "node_modules/@commander-js/extra-typings";
 import { type DeployEnvironment, logger } from "utils";
 import { createParameterCollection } from "utils/parameters";
+import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { checkBaseDependencies, deploymentChecks } from "../common/checks";
-import { LaunchedNetwork } from "../common/launchedNetwork";
 import { cleanup } from "./cleanup";
 import { deployContracts } from "./contracts";
 import { deployDataHavenSolochain } from "./datahaven";

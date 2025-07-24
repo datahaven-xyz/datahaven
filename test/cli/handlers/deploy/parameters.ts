@@ -1,9 +1,7 @@
 import { setDataHavenParameters } from "scripts/set-datahaven-parameters";
 import { logger, printDivider, printHeader } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import type { ParameterCollection } from "utils/parameters";
-
-// Standard ports for the substrate network
-const DEFAULT_SUBSTRATE_WS_PORT = 9944;
 
 /**
  * A helper function to set DataHaven parameters from a ParameterCollection

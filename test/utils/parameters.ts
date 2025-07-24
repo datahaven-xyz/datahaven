@@ -1,7 +1,7 @@
 import path from "node:path";
 import { $ } from "bun";
-import { logger } from "utils";
-import type { ParsedDataHavenParameter } from "utils/types";
+import { logger } from "./logger";
+import type { ParsedDataHavenParameter } from "./types";
 
 // Constants for paths
 export const PARAMETERS_TEMPLATE_PATH = "configs/parameters/datahaven-parameters.json";

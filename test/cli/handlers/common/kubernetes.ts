@@ -1,5 +1,5 @@
 import { logger } from "utils";
-import type { LaunchedNetwork } from "./launchedNetwork";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 
 /**
  * Forwards a port from a Kubernetes service to localhost and returns a cleanup function.

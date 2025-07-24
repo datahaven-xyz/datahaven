@@ -2,13 +2,12 @@ import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { waitFor } from "utils/waits";
-import { isNetworkReady, setupDataHavenValidatorConfig } from "../common/datahaven";
+import { isNetworkReady, setupDataHavenValidatorConfig } from "../../../launcher/datahaven";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { forwardPort } from "../common/kubernetes";
-import type { LaunchedNetwork } from "../common/launchedNetwork";
 import type { DeployOptions } from ".";
-
-const DEFAULT_PUBLIC_WS_PORT = 9944;
 
 /**
  * Deploys a DataHaven solochain network in a Kubernetes namespace.
@@ -27,8 +26,8 @@ export const deployDataHavenSolochain = async (
     // Forward port from validator to localhost, to interact with the network.
     const { cleanup: validatorPortForwardCleanup } = await forwardPort(
       "dh-validator-0",
-      DEFAULT_PUBLIC_WS_PORT,
-      DEFAULT_PUBLIC_WS_PORT,
+      DEFAULT_SUBSTRATE_WS_PORT,
+      DEFAULT_SUBSTRATE_WS_PORT,
       launchedNetwork
     );
 
@@ -92,8 +91,8 @@ export const deployDataHavenSolochain = async (
   // Forward port from validator to localhost, to interact with the network.
   const { cleanup: validatorPortForwardCleanup } = await forwardPort(
     "dh-validator-0",
-    DEFAULT_PUBLIC_WS_PORT,
-    DEFAULT_PUBLIC_WS_PORT,
+    DEFAULT_SUBSTRATE_WS_PORT,
+    DEFAULT_SUBSTRATE_WS_PORT,
     launchedNetwork
   );
 
@@ -104,7 +103,7 @@ export const deployDataHavenSolochain = async (
   await waitFor({
     lambda: async () => {
       logger.info(`📡 Checking if DataHaven is ready (timeout: ${timeoutMs / 1000}s)...`);
-      const isReady = await isNetworkReady(DEFAULT_PUBLIC_WS_PORT, timeoutMs);
+      const isReady = await isNetworkReady(DEFAULT_SUBSTRATE_WS_PORT, timeoutMs);
       if (!isReady) {
         logger.info(`⌛️ Node not ready, waiting ${delayMs / 1000}s to check again...`);
       }
@@ -116,7 +115,7 @@ export const deployDataHavenSolochain = async (
   });
 
   logger.success(
-    `DataHaven network started, primary node accessible on port ${DEFAULT_PUBLIC_WS_PORT}`
+    `DataHaven network started, primary node accessible on port ${DEFAULT_SUBSTRATE_WS_PORT}`
   );
 
   await registerNodes(launchedNetwork);
@@ -174,7 +173,7 @@ const checkOrCreateKubernetesNamespace = async (namespace: string) => {
 const registerNodes = async (launchedNetwork: LaunchedNetwork) => {
   // Register the validator node, using the standard host WS port that we just forwarded.
   launchedNetwork.addContainer("dh-validator-0", {
-    ws: DEFAULT_PUBLIC_WS_PORT
+    ws: DEFAULT_SUBSTRATE_WS_PORT
   });
   logger.info("📝 Node dh-validator-0 successfully registered in launchedNetwork.");
 };

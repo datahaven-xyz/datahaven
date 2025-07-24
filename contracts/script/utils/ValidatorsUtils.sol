@@ -5,7 +5,6 @@ import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 library ValidatorsUtils {
-
     function _buildValidatorSet(
         uint128 id,
         bytes32[] memory validators
@@ -17,5 +16,4 @@ library ValidatorsUtils {
         return
             BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
     }
-
 }

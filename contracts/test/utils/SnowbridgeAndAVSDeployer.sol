@@ -94,7 +94,8 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         initialValidatorHashes = TestUtils.generateMockValidators(10);
         nextValidatorHashes = TestUtils.generateMockValidators(10, 10);
 
-        BeefyClient.ValidatorSet memory validatorSet = ValidatorsUtils._buildValidatorSet(0, initialValidatorHashes);
+        BeefyClient.ValidatorSet memory validatorSet =
+            ValidatorsUtils._buildValidatorSet(0, initialValidatorHashes);
         BeefyClient.ValidatorSet memory nextValidatorSet =
             ValidatorsUtils._buildValidatorSet(1, nextValidatorHashes);
 

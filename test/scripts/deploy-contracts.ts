@@ -9,7 +9,9 @@ import {
 import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
+  chain?: string;
   rpcUrl: string;
+  privateKey: string;
   verified?: boolean;
   blockscoutBackendUrl?: string;
 }
@@ -48,9 +50,35 @@ export const buildContracts = async () => {
  * Constructs the deployment command
  */
 export const constructDeployCommand = (options: ContractDeploymentOptions): string => {
-  const { rpcUrl, verified, blockscoutBackendUrl } = options;
+  const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
 
-  let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+  // Determine deployment script based on chain, default to DeployLocal.s.sol for backwards compatibility
+  const getDeploymentScript = (chain?: string): string => {
+    if (!chain) {
+      return "script/deploy/DeployLocal.s.sol"; // Default for backwards compatibility
+    }
+
+    switch (chain) {
+      case "hoodi":
+        return "script/deploy/DeployHoodi.s.sol";
+      case "anvil":
+      case "local":
+        return "script/deploy/DeployLocal.s.sol";
+      default:
+        logger.warn(
+          `⚠️ No specific deployment script for chain '${chain}', using DeployLocal.s.sol`
+        );
+        return "script/deploy/DeployLocal.s.sol";
+    }
+  };
+
+  const deploymentScript = getDeploymentScript(chain);
+  let deployCommand = `forge script ${deploymentScript} --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+
+  // Add environment variable for chain if specified
+  if (chain) {
+    deployCommand = `NETWORK=${chain} ${deployCommand}`;
+  }
 
   if (verified && blockscoutBackendUrl) {
     // TODO: Allow for other verifiers like Etherscan.
@@ -63,11 +91,29 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
 
 /**
  * Executes contract deployment
+ * Supports multiple calling patterns for backwards compatibility:
+ * - executeDeployment(deployCommand, parameterCollection?)
+ * - executeDeployment(deployCommand, chain)
+ * - executeDeployment(deployCommand, parameterCollection, chain)
  */
 export const executeDeployment = async (
   deployCommand: string,
-  parameterCollection?: ParameterCollection
+  parameterCollectionOrChain?: ParameterCollection | string,
+  chain?: string
 ) => {
+  // Parse parameters to support different calling patterns
+  let parameterCollection: ParameterCollection | undefined;
+  let chainNetwork: string | undefined;
+
+  if (typeof parameterCollectionOrChain === "string") {
+    // Called as executeDeployment(deployCommand, chain)
+    chainNetwork = parameterCollectionOrChain;
+  } else if (parameterCollectionOrChain && typeof parameterCollectionOrChain === "object") {
+    // Called as executeDeployment(deployCommand, parameterCollection) or
+    // executeDeployment(deployCommand, parameterCollection, chain)
+    parameterCollection = parameterCollectionOrChain;
+    chainNetwork = chain;
+  }
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
@@ -81,8 +127,9 @@ export const executeDeployment = async (
   // and add it to parameters if collection is provided
   if (parameterCollection) {
     try {
-      const deployments = await parseDeploymentsFile();
-      const rewardsInfo = await parseRewardsInfoFile();
+      const network = chainNetwork || "anvil"; // Default to "anvil" for backwards compatibility
+      const deployments = await parseDeploymentsFile(network);
+      const rewardsInfo = await parseRewardsInfoFile(network);
       const gatewayAddress = deployments.Gateway;
       const rewardsRegistryAddress = deployments.RewardsRegistry;
       const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
@@ -138,6 +185,47 @@ export const executeDeployment = async (
   logger.success("Contracts deployed successfully");
 };
 
+/**
+ * Main function to deploy contracts with simplified interface
+ * This is the main entry point for CLI handlers
+ */
+export const deployContracts = async (options: {
+  chain: string;
+  rpcUrl?: string;
+  privateKey: string;
+  verified?: boolean;
+  blockscoutBackendUrl?: string;
+}) => {
+  const { CHAIN_CONFIGS } = require("../cli/handlers/contracts/config");
+  const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
+
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${options.chain}`);
+  }
+
+  const finalRpcUrl = options.rpcUrl || chainConfig.RPC_URL;
+
+  const deploymentOptions: ContractDeploymentOptions = {
+    chain: options.chain,
+    rpcUrl: finalRpcUrl,
+    privateKey: options.privateKey,
+    verified: options.verified,
+    blockscoutBackendUrl: options.blockscoutBackendUrl
+  };
+
+  // Validate parameters
+  validateDeploymentParams(deploymentOptions);
+
+  // Build contracts
+  await buildContracts();
+
+  // Construct and execute deployment
+  const deployCommand = constructDeployCommand(deploymentOptions);
+  await executeDeployment(deployCommand, options.chain);
+
+  logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
+};
+
 // Allow script to be run directly with CLI arguments
 if (import.meta.main) {
   const args = process.argv.slice(2);
@@ -147,12 +235,19 @@ if (import.meta.main) {
   invariant(rpcUrlIndex !== -1, "❌ --rpc-url flag is required");
   invariant(rpcUrlIndex + 1 < args.length, "❌ --rpc-url flag requires an argument");
 
+  // Extract private key
+  const privateKeyIndex = args.indexOf("--private-key");
+  invariant(privateKeyIndex !== -1, "❌ --private-key flag is required");
+  invariant(privateKeyIndex + 1 < args.length, "❌ --private-key flag requires an argument");
+
   const options: {
     rpcUrl: string;
+    privateKey: string;
     verified: boolean;
     blockscoutBackendUrl?: string;
   } = {
     rpcUrl: args[rpcUrlIndex + 1],
+    privateKey: args[privateKeyIndex + 1],
     verified: args.includes("--verified")
   };
 

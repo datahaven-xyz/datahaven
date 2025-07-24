@@ -28,23 +28,24 @@ const AnvilDeploymentsSchema = z.object({
   AgentExecutor: ethAddressCustom,
   Gateway: ethAddressCustom,
   ServiceManager: ethAddressCustom,
+  ServiceManagerImplementation: ethAddressCustom,
   VetoableSlasher: ethAddressCustom,
   RewardsRegistry: ethAddressCustom,
   RewardsAgent: ethAddressCustom,
   DelegationManager: ethAddressCustom,
   StrategyManager: ethAddressCustom,
   AVSDirectory: ethAddressCustom,
-  EigenPodManager: ethAddressCustom,
-  EigenPodBeacon: ethAddressCustom,
+  EigenPodManager: ethAddressCustom.optional(),
+  EigenPodBeacon: ethAddressCustom.optional(),
   RewardsCoordinator: ethAddressCustom,
   AllocationManager: ethAddressCustom,
   PermissionController: ethAddressCustom,
-  ETHPOSDeposit: ethAddressCustom,
-  BaseStrategyImplementation: ethAddressCustom,
-  DeployedStrategies: z.array(DeployedStrategySchema)
+  ETHPOSDeposit: ethAddressCustom.optional(),
+  BaseStrategyImplementation: ethAddressCustom.optional(),
+  DeployedStrategies: z.array(DeployedStrategySchema).optional()
 });
 
-export type AnvilDeployments = z.infer<typeof AnvilDeploymentsSchema>;
+export type Deployments = z.infer<typeof AnvilDeploymentsSchema>;
 
 const RewardsInfoSchema = z.object({
   RewardsAgent: ethAddressCustom,
@@ -54,39 +55,39 @@ const RewardsInfoSchema = z.object({
 
 export type RewardsInfo = z.infer<typeof RewardsInfoSchema>;
 
-export const parseDeploymentsFile = async (): Promise<AnvilDeployments> => {
-  const anvilDeploymentsPath = "../contracts/deployments/anvil.json";
-  const anvilDeploymentsFile = Bun.file(anvilDeploymentsPath);
-  if (!(await anvilDeploymentsFile.exists())) {
-    logger.error(`File ${anvilDeploymentsPath} does not exist`);
-    throw new Error("Error reading anvil deployments file");
+export const parseDeploymentsFile = async (network = "anvil"): Promise<Deployments> => {
+  const deploymentsPath = `../contracts/deployments/${network}.json`;
+  const deploymentsFile = Bun.file(deploymentsPath);
+  if (!(await deploymentsFile.exists())) {
+    logger.error(`File ${deploymentsPath} does not exist`);
+    throw new Error(`Error reading ${network} deployments file`);
   }
-  const anvilDeploymentsJson = await anvilDeploymentsFile.json();
+  const deploymentsJson = await deploymentsFile.json();
   try {
-    const parsedDeployments = AnvilDeploymentsSchema.parse(anvilDeploymentsJson);
-    logger.debug("Successfully parsed anvil deployments file.");
+    const parsedDeployments = AnvilDeploymentsSchema.parse(deploymentsJson);
+    logger.debug(`Successfully parsed ${network} deployments file.`);
     return parsedDeployments;
   } catch (error) {
-    logger.error("Failed to parse anvil deployments file:", error);
-    throw new Error("Invalid anvil deployments file format");
+    logger.error(`Failed to parse ${network} deployments file:`, error);
+    throw new Error(`Invalid ${network} deployments file format`);
   }
 };
 
-export const parseRewardsInfoFile = async (): Promise<RewardsInfo> => {
-  const rewardsInfoPath = "../contracts/deployments/anvil-rewards-info.json";
+export const parseRewardsInfoFile = async (network = "anvil"): Promise<RewardsInfo> => {
+  const rewardsInfoPath = `../contracts/deployments/${network}-rewards-info.json`;
   const rewardsInfoFile = Bun.file(rewardsInfoPath);
   if (!(await rewardsInfoFile.exists())) {
     logger.error(`File ${rewardsInfoPath} does not exist`);
-    throw new Error("Error reading rewards info file");
+    throw new Error(`Error reading ${network} rewards info file`);
   }
   const rewardsInfoJson = await rewardsInfoFile.json();
   try {
     const parsedRewardsInfo = RewardsInfoSchema.parse(rewardsInfoJson);
-    logger.debug("Successfully parsed rewards info file.");
+    logger.debug(`Successfully parsed ${network} rewards info file.`);
     return parsedRewardsInfo;
   } catch (error) {
-    logger.error("Failed to parse rewards info file:", error);
-    throw new Error("Invalid rewards info file format");
+    logger.error(`Failed to parse ${network} rewards info file:`, error);
+    throw new Error(`Invalid ${network} rewards info file format`);
   }
 };
 
@@ -96,6 +97,7 @@ const abiMap = {
   AgentExecutor: generated.agentExecutorAbi,
   Gateway: generated.gatewayAbi,
   ServiceManager: generated.dataHavenServiceManagerAbi,
+  ServiceManagerImplementation: generated.dataHavenServiceManagerAbi,
   VetoableSlasher: generated.vetoableSlasherAbi,
   RewardsRegistry: generated.rewardsRegistryAbi,
   RewardsAgent: generated.agentAbi,
@@ -110,7 +112,7 @@ const abiMap = {
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
   DeployedStrategies: erc20Abi
-} as const satisfies Record<keyof Omit<AnvilDeployments, "network" | "RewardsAgentOrigin">, Abi>;
+} as const satisfies Record<keyof Omit<Deployments, "network" | "RewardsAgentOrigin">, Abi>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];
@@ -121,9 +123,10 @@ export type ContractInstance<C extends ContractName> = Awaited<
 // TODO: make this work with DeployedStrategies
 export const getContractInstance = async <C extends ContractName>(
   contract: C,
-  viemClient?: ViemClientInterface
+  viemClient?: ViemClientInterface,
+  network = "anvil"
 ) => {
-  const deployments = await parseDeploymentsFile();
+  const deployments = await parseDeploymentsFile(network);
   const contractAddress = deployments[contract];
   logger.debug(`Contract ${contract} deployed to ${contractAddress}`);
 

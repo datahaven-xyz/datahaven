@@ -11,7 +11,9 @@ import type { ParameterCollection } from "utils/parameters";
  * Configuration options for contract deployment.
  */
 export interface ContractsOptions {
-  rpcUrl: string;
+  chain: string;
+  rpcUrl?: string;
+  privateKey: string;
   verified?: boolean;
   blockscoutBackendUrl?: string;
   parameterCollection?: ParameterCollection;
@@ -29,6 +31,7 @@ export interface ContractsOptions {
  * - Automatically adding deployed contract addresses to parameter collection if provided
  *
  * @param options - Configuration options for deployment
+ * @param options.chain - The network to deploy to
  * @param options.rpcUrl - The RPC URL of the target network
  * @param options.verified - Whether to verify contracts on Blockscout (requires blockscoutBackendUrl)
  * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
@@ -49,7 +52,7 @@ export const deployContracts = async (options: ContractsOptions): Promise<void> 
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand, options.parameterCollection);
+  await executeDeployment(deployCommand, options.chain);
 
   logger.success("Smart contracts deployed successfully");
 };

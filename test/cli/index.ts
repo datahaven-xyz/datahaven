@@ -2,6 +2,10 @@
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
 import type { DeployEnvironment } from "utils";
 import {
+  contractsCheck,
+  contractsDeploy,
+  contractsPreActionHook,
+  contractsVerify,
   deploy,
   deployPreActionHook,
   launch,
@@ -170,6 +174,69 @@ program
   .option("--nr, --no-relayer", "Skip stopping Snowbridge Relayers")
   .hook("preAction", stopPreActionHook)
   .action(stop);
+
+// ===== Contracts ======
+const contractsCommand = program
+  .command("contracts")
+  .addHelpText(
+    "before",
+    `🫎  DataHaven: Contracts Deployment CLI for deploying DataHaven AVS contracts to supported chains
+    
+    Commands:
+    - status: Show deployment plan, configuration, and status (default)
+    - deploy: Deploy contracts to specified chain
+    - verify: Verify deployed contracts on block explorer
+    
+    Common options:
+    --chain: Target chain (required: hoodi, holesky, mainnet)
+    --rpc-url: Chain RPC URL (optional, defaults based on chain)
+    --private-key: Private key for deployment
+    --skip-verification: Skip contract verification
+    `
+  )
+  .description("Deploy and manage DataHaven AVS contracts on supported chains");
+
+// Contracts Check (default)
+contractsCommand
+  .command("status")
+  .description("Show deployment plan, configuration, and status")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option("--skip-verification", "Skip contract verification", false)
+  .hook("preAction", contractsPreActionHook)
+  .action(contractsCheck);
+
+// Contracts Deploy
+contractsCommand
+  .command("deploy")
+  .description("Deploy DataHaven AVS contracts to specified chain")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option("--skip-verification", "Skip contract verification", false)
+  .hook("preAction", contractsPreActionHook)
+  .action(contractsDeploy);
+
+// Contracts Verify
+contractsCommand
+  .command("verify")
+  .description("Verify deployed contracts on block explorer")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--skip-verification", "Skip contract verification", false)
+  .hook("preAction", contractsPreActionHook)
+  .action(contractsVerify);
+
+// Default Contracts command (runs check)
+contractsCommand
+  .description("Show deployment plan, configuration, and status")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option("--skip-verification", "Skip contract verification", false)
+  .hook("preAction", contractsPreActionHook)
+  .action(contractsCheck);
 
 // ===== Exec ======
 // Disabled until need arises

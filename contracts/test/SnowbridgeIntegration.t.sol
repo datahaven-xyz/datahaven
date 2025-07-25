@@ -356,7 +356,8 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(validators[i], points[i]));
         }
 
-        return MerkleUtils.calculateMerkleRoot(leaves);
+        // We calculate the merkle root by sorting the pair before hashing (See Open Zeppelin Merkle Tree lib).
+        return MerkleUtils.calculateMerkleRoot(leaves, true);
     }
 
     function _buildValidatorPointsProof(
@@ -374,7 +375,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(validators[i], points[i]));
         }
 
-        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex, true);
     }
 
     function _buildMessagesMerkleTree(
@@ -385,7 +386,8 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(messages[i]));
         }
 
-        return MerkleUtils.calculateMerkleRoot(leaves);
+        // We calculate the merkle root by sorting the pair before hashing (See Open Zeppelin Merkle Tree lib).
+        return MerkleUtils.calculateMerkleRoot(leaves, true);
     }
 
     function _buildMessagesProof(
@@ -397,6 +399,6 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             leaves[i] = keccak256(abi.encode(messages[i]));
         }
 
-        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex, true);
     }
 }

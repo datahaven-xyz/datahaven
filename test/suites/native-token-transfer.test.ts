@@ -29,10 +29,6 @@ import { BaseTestSuite } from "../framework";
 const ETHEREUM_SOVEREIGN_ACCOUNT = "0x23e598fa2f50bba6885988e5077200c6d0c5f5cf";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// Native token ID - Deterministic value based on blake2_256 hash of reanchored location
-// TODO: Update this with the actual computed token ID
-const NATIVE_TOKEN_ID = "0x0000000000000000000000000000000000000000000000000000000000000001";
-
 // Minimal ERC20 ABI for reading token metadata
 const ERC20_METADATA_ABI = [
   {
@@ -72,41 +68,26 @@ const ERC20_METADATA_ABI = [
   }
 ] as const;
 
-// Helper function to get native token ID from Snowbridge storage
-async function getNativeTokenId(dhApi: any): Promise<string | null> {
-  try {
-    // Native token location is "Here" (parents: 0, interior: Here)
-    // This represents the native token of the current chain
-    const nativeLocation = {
-      parents: 0,
-      interior: {
-        type: "Here"
-      }
-    };
+const NATIVE_TOKEN_LOCATION = { parents: 0, interior: { type: "Here", value: undefined } } as const;
 
-    // Query the Snowbridge storage for the token ID
-    const tokenId = await dhApi.query.SnowbridgeSystem.NativeToForeignId(nativeLocation);
-
-    if (tokenId && tokenId.isSome) {
-      return tokenId.unwrap().toHex();
-    }
-
-    return null;
-  } catch (error) {
-    logger.debug(`Failed to query NativeToForeignId: ${error}`);
-    return null;
-  }
-}
-
-// Helper function to get token address from Gateway
-async function getTokenAddress(gateway: any, tokenId: string): Promise<Address | null> {
-  try {
-    const address = await gateway.read.tokenAddressOf([tokenId as `0x${string}`]);
-    return address !== ZERO_ADDRESS ? address : null;
-  } catch (error) {
-    logger.debug(`Failed to query token address: ${error}`);
-    return null;
-  }
+/**
+ * Query the Gateway contract for the ERC-20 address that backs a Snowbridge
+ * `TokenId`.
+ *
+ * The Gateway maintains the mapping `tokenAddressOf(bytes32 id) → address`.
+ * A non-zero result indicates that the wrapped token has already been
+ * deployed on Ethereum.
+ *
+ * Returns the address when present, or `undefined` if the mapping returns the
+ * zero-address.  Errors thrown by the RPC are forwarded unchanged so the test
+ * harness can report them.
+ */
+async function getTokenAddress(gateway: any, tokenId: string): Promise<Address | undefined> {
+  // Using blockTag "latest" to ensure we always read committed state.
+  const address = await gateway.read.tokenAddressOf([tokenId as `0x${string}`], {
+    blockTag: "latest"
+  } as any);
+  return address !== ZERO_ADDRESS ? (address as Address) : undefined;
 }
 
 class NativeTokenTransferTestSuite extends BaseTestSuite {
@@ -138,8 +119,11 @@ describe("Native Token Transfer", () => {
     const deployments = await parseDeploymentsFile();
 
     // Ensure token is not already registered
-    const existingTokenId = await getNativeTokenId(connectors.dhApi);
-    expect(existingTokenId).toBeNull();
+    const existingTokenId =
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      );
+    expect(existingTokenId).toBeUndefined();
 
     // Register token via sudo
     const registerTx = connectors.dhApi.tx.SnowbridgeSystemV2.register_token({
@@ -152,56 +136,53 @@ describe("Native Token Transfer", () => {
       }
     });
 
-    const sudoTx = connectors.dhApi.tx.Sudo.sudo({ call: registerTx.decodedCall });
-    const result = await sudoTx.signAndSubmit(alithSigner);
+    await connectors.dhApi.tx.Sudo.sudo({ call: registerTx.decodedCall }).signAndSubmit(
+      alithSigner
+    );
 
-    logger.info(`Registration transaction: ${result}`);
+    // Check if token was successfully registered
+    const tokenId = (
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      )
+    )?.asHex();
+    expect(tokenId).toBeDefined();
 
-    // Wait for processing
-    await Bun.sleep(30000);
-
-    // Verify registration succeeded
-    const registeredTokenId = await getNativeTokenId(connectors.dhApi);
-    expect(registeredTokenId).toBeDefined();
-    expect(registeredTokenId).toBe(NATIVE_TOKEN_ID);
-
-    // Verify token has an address on Ethereum
+    // Get token address from Gateway
     const gateway = getContract({
       address: deployments.Gateway,
       abi: gatewayAbi,
       client: connectors.publicClient
     });
 
-    const tokenAddress = await getTokenAddress(gateway, registeredTokenId!);
+    const tokenAddress = await getTokenAddress(gateway, tokenId as string);
     expect(tokenAddress).toBeDefined();
-    expect(tokenAddress).not.toBe(ZERO_ADDRESS);
 
-    // Verify ERC20 token properties
-    const tokenName = await connectors.publicClient.readContract({
-      address: tokenAddress!,
-      abi: ERC20_METADATA_ABI,
-      functionName: "name"
-    }) as string;
+    // Read and verify ERC20 metadata in parallel
+    const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
+      connectors.publicClient.readContract({
+        address: tokenAddress!,
+        abi: ERC20_METADATA_ABI,
+        functionName: "name"
+      }) as Promise<string>,
+      connectors.publicClient.readContract({
+        address: tokenAddress!,
+        abi: ERC20_METADATA_ABI,
+        functionName: "symbol"
+      }) as Promise<string>,
+      connectors.publicClient.readContract({
+        address: tokenAddress!,
+        abi: ERC20_METADATA_ABI,
+        functionName: "decimals"
+      }) as Promise<number>
+    ]);
 
-    const tokenSymbol = await connectors.publicClient.readContract({
-      address: tokenAddress!,
-      abi: ERC20_METADATA_ABI,
-      functionName: "symbol"
-    }) as string;
-
-    const tokenDecimals = await connectors.publicClient.readContract({
-      address: tokenAddress!,
-      abi: ERC20_METADATA_ABI,
-      functionName: "decimals"
-    }) as number;
-
-    // Verify token metadata matches what was registered
+    // Verify metadata
     expect(tokenName).toBe("HAVE");
     expect(tokenSymbol).toBe("wHAVE");
     expect(tokenDecimals).toBe(18);
 
-    logger.success(`Native token registered with ID ${registeredTokenId} at: ${tokenAddress}`);
-    logger.info(`Token details - Name: ${tokenName}, Symbol: ${tokenSymbol}, Decimals: ${tokenDecimals}`);
+    logger.success(`Native token registered with ID ${tokenId} at: ${tokenAddress}`);
   }, 60_000); // 60 second timeout for registration
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
@@ -210,7 +191,11 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Get token info from Snowbridge storage
-    const tokenId = await getNativeTokenId(connectors.dhApi);
+    const tokenId = (
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      )
+    )?.asHex();
 
     if (!tokenId) {
       logger.warn("Token not registered, skipping transfer test");
@@ -240,7 +225,7 @@ describe("Native Token Transfer", () => {
     );
 
     const initialEthBalance = (await connectors.publicClient.readContract({
-      address: tokenAddress,
+      address: tokenAddress!,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -270,7 +255,7 @@ describe("Native Token Transfer", () => {
     );
 
     const finalEthBalance = (await connectors.publicClient.readContract({
-      address: tokenAddress,
+      address: tokenAddress!,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -298,7 +283,11 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Check if token is registered
-    const tokenId = await getNativeTokenId(connectors.dhApi);
+    const tokenId = (
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      )
+    )?.asHex();
 
     if (!tokenId) {
       logger.warn("Token not registered, skipping validation test");
@@ -331,7 +320,11 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Check if token is registered
-    const tokenId = await getNativeTokenId(connectors.dhApi);
+    const tokenId = (
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      )
+    )?.asHex();
 
     if (!tokenId) {
       logger.warn("Token not registered, skipping validation test");
@@ -418,7 +411,11 @@ describe("Native Token Transfer", () => {
     const deployments = await parseDeploymentsFile();
 
     // Get token info from Snowbridge storage
-    const tokenId = await getNativeTokenId(connectors.dhApi);
+    const tokenId = (
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      )
+    )?.asHex();
 
     if (!tokenId) {
       logger.warn("Token not registered, skipping backing ratio test");
@@ -440,7 +437,7 @@ describe("Native Token Transfer", () => {
 
     // Get total supply of wrapped tokens
     const totalSupply = (await connectors.publicClient.readContract({
-      address: tokenAddress,
+      address: tokenAddress!,
       abi: ERC20_METADATA_ABI,
       functionName: "totalSupply"
     })) as bigint;
@@ -464,7 +461,11 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Check if token is registered
-    const tokenId = await getNativeTokenId(connectors.dhApi);
+    const tokenId = (
+      await connectors.dhApi.query.SnowbridgeSystem.NativeToForeignId.getValue(
+        NATIVE_TOKEN_LOCATION
+      )
+    )?.asHex();
 
     if (!tokenId) {
       logger.warn("Token not registered, skipping event test");

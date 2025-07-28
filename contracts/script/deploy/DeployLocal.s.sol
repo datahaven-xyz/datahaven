@@ -199,6 +199,7 @@ contract Deploy is Script, DeployParams, Accounts {
         // Deploy DataHaven custom contracts
         (
             DataHavenServiceManager serviceManager,
+            DataHavenServiceManager serviceManagerImplementation,
             VetoableSlasher vetoableSlasher,
             RewardsRegistry rewardsRegistry,
             bytes4 updateRewardsMerkleRootSelector
@@ -224,6 +225,7 @@ contract Deploy is Script, DeployParams, Accounts {
             agentExecutor,
             gateway,
             serviceManager,
+            serviceManagerImplementation,
             vetoableSlasher,
             rewardsRegistry,
             rewardsAgentAddress
@@ -629,6 +631,7 @@ contract Deploy is Script, DeployParams, Accounts {
         AgentExecutor agentExecutor,
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
+        DataHavenServiceManager serviceManagerImplementation,
         VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
         address rewardsAgent
@@ -643,6 +646,7 @@ contract Deploy is Script, DeployParams, Accounts {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
+        Logging.logContractDeployed("ServiceManagerImplementation", address(serviceManagerImplementation));
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
@@ -687,6 +691,8 @@ contract Deploy is Script, DeployParams, Accounts {
         json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
         json =
             string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
+        json =
+            string.concat(json, '"ServiceManagerImplementation": "', vm.toString(address(serviceManagerImplementation)), '",');
         json =
             string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
         json =
@@ -798,7 +804,7 @@ contract Deploy is Script, DeployParams, Accounts {
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway
-    ) internal returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4) {
+    ) internal returns (DataHavenServiceManager, DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
@@ -864,7 +870,7 @@ contract Deploy is Script, DeployParams, Accounts {
         serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
         Logging.logStep("RewardsRegistry set in ServiceManager");
 
-        return (serviceManager, vetoableSlasher, rewardsRegistry, updateRewardsMerkleRootSelector);
+        return (serviceManager, serviceManagerImplementation, vetoableSlasher, rewardsRegistry, updateRewardsMerkleRootSelector);
     }
 
     function _createServiceManagerProxy(

@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { logger } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
-import { CHAIN_CONFIGS } from "./config";
+import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
 
 // TODO: unhardcode constructor args
 function getConstructorArgs(artifactName: string): string[] {

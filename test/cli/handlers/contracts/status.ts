@@ -1,5 +1,5 @@
 import { logger, printDivider } from "utils";
-import { getChainDeploymentParams, loadChainConfig } from "./config";
+import { getChainDeploymentParams, loadChainConfig } from "../../../configs/contracts/config";
 import { checkContractVerification } from "./verify";
 
 /**

@@ -1,3 +1,4 @@
+import { getChainDeploymentParams } from "configs/contracts/config";
 import {
   buildContracts,
   constructDeployCommand,

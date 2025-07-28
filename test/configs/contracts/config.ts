@@ -33,12 +33,16 @@ export const CHAIN_CONFIGS = {
     SLOT_TIME: 12, // seconds
     EPOCHS_PER_SYNC_COMMITTEE_PERIOD: 256,
     SYNC_COMMITTEE_SIZE: 512
+  },
+  anvil: {
+    NETWORK_NAME: "anvil",
+    CHAIN_ID: 31337,
+    RPC_URL: "http://localhost:8545",
+    BLOCK_EXPLORER: "https://etherscan.io/",
+    GENESIS_TIME: 1606824023
   }
 };
 
-/**
- * Loads chain configuration from file
- */
 export const loadChainConfig = async (chain: string) => {
   try {
     const configPath = `../contracts/config/${chain}.json`;
@@ -59,10 +63,10 @@ export const loadChainConfig = async (chain: string) => {
   }
 };
 
-export const getChainDeploymentParams = (chain: string) => {
-  const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
+export const getChainDeploymentParams = (chain?: string) => {
+  let chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
   if (!chainConfig) {
-    throw new Error(`Unsupported chain: ${chain}`);
+    chainConfig = CHAIN_CONFIGS.anvil;
   }
 
   return {

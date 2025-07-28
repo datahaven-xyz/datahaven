@@ -1,7 +1,7 @@
 import type { Command } from "node_modules/@commander-js/extra-typings";
 import { type DeployEnvironment, logger } from "utils";
 import { createParameterCollection } from "utils/parameters";
-import { deployContracts } from "../../../launcher/contracts";
+import { deployContracts } from "./contracts";
 import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { checkBaseDependencies, deploymentChecks } from "../common/checks";
 import { cleanup } from "./cleanup";
@@ -68,8 +68,8 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
     rpcUrl: launchedNetwork.elRpcUrl,
     verified: options.verified,
     blockscoutBackendUrl,
-    parameterCollection
-    // skipContracts: options.skipContracts
+    parameterCollection,
+    skipContracts: options.skipContracts
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);

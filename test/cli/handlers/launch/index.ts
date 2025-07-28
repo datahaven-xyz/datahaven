@@ -193,7 +193,9 @@ export const launchPreActionHook = (
   if (deployContracts === false && fundValidators) {
     thisCmd.error("--fundValidators requires --deployContracts to be set");
   }
-  if (injectContracts && !deployContracts) {
+
+  // If we have `--all` argument then `deployContracts` is technically true
+  if (injectContracts && (!deployContracts && !all)) {
     thisCmd.error("--inject-contracts requires --deploy-contracts to be set");
   }
 };

@@ -136,9 +136,25 @@ describe("Native Token Transfer", () => {
       }
     });
 
-    await connectors.dhApi.tx.Sudo.sudo({ call: registerTx.decodedCall }).signAndSubmit(
-      alithSigner
+    const result = await connectors.dhApi.tx.Sudo.sudo({
+      call: registerTx.decodedCall
+    }).signAndSubmit(alithSigner);
+
+    // Verify transaction succeeded
+    expect(result.ok).toBe(true);
+
+    // Check for events in the transaction result
+    const { events } = result;
+
+    // Find Sudo.Sudid event (indicates sudo execution succeeded)
+    const sudoEvent = events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+    expect(sudoEvent).toBeDefined();
+
+    // Find SnowbridgeSystemV2.RegisterToken event
+    const registerTokenEvent = events.find(
+      (e: any) => e.type === "SnowbridgeSystemV2" && e.value.type === "RegisterToken"
     );
+    expect(registerTokenEvent).toBeDefined();
 
     // Check if token was successfully registered
     const tokenId = (
@@ -181,8 +197,6 @@ describe("Native Token Transfer", () => {
     expect(tokenName).toBe("HAVE");
     expect(tokenSymbol).toBe("wHAVE");
     expect(tokenDecimals).toBe(18);
-
-    logger.success(`Native token registered with ID ${tokenId} at: ${tokenAddress}`);
   }, 60_000); // 60 second timeout for registration
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {

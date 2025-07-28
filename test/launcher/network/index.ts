@@ -213,19 +213,6 @@ export const launchNetwork = async (
       injectContracts: true // Because we are injecting contracts in kurtosis deployment
     });
 
-    // 4. Fund validators
-    logger.info("💰 Funding validators... (skipping because we have injected contracts)");
-    // await fundValidators({
-    //   rpcUrl: launchedNetwork.elRpcUrl
-    // });
-
-    // 5. Setup validators
-    // Skipping this because we have injected contracts
-    logger.info("🔐 Setting up validators... (skipping because we have injected contracts)");
-    // await setupValidators({
-    //   rpcUrl: launchedNetwork.elRpcUrl
-    // });
-
     // We are injecting contracts but we still need the address
     try {
       const { parseDeploymentsFile } = await import("utils/contracts");

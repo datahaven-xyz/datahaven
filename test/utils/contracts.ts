@@ -17,12 +17,12 @@ const ethBytes4Regex = /^0x[a-fA-F0-9]{8}$/;
 const ethBytes4 = z.string().regex(ethBytes4Regex, "Invalid Ethereum bytes4");
 
 const DeployedStrategySchema = z.object({
-  address: ethAddress,
+  address: ethAddress, 
   underlyingToken: ethAddress,
   tokenCreator: ethAddress
 });
 
-const AnvilDeploymentsSchema = z.object({
+const DeploymentsSchema = z.object({
   network: z.string(),
   BeefyClient: ethAddressCustom,
   AgentExecutor: ethAddressCustom,
@@ -45,7 +45,7 @@ const AnvilDeploymentsSchema = z.object({
   DeployedStrategies: z.array(DeployedStrategySchema).optional()
 });
 
-export type Deployments = z.infer<typeof AnvilDeploymentsSchema>;
+export type Deployments = z.infer<typeof DeploymentsSchema>;
 
 const RewardsInfoSchema = z.object({
   RewardsAgent: ethAddressCustom,
@@ -63,8 +63,9 @@ export const parseDeploymentsFile = async (network = "anvil"): Promise<Deploymen
     throw new Error(`Error reading ${network} deployments file`);
   }
   const deploymentsJson = await deploymentsFile.json();
+  logger.info(`Deployments: ${JSON.stringify(deploymentsJson, null, 2)}`);
   try {
-    const parsedDeployments = AnvilDeploymentsSchema.parse(deploymentsJson);
+    const parsedDeployments = DeploymentsSchema.parse(deploymentsJson);
     logger.debug(`Successfully parsed ${network} deployments file.`);
     return parsedDeployments;
   } catch (error) {

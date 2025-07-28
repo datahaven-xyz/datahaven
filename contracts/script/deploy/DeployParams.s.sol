@@ -168,7 +168,7 @@ contract DeployParams is Script, Config {
             config.beaconChainGenesisTimestamp = 1616508000; // Mainnet default
         }
 
-        // Load Hoodi-specific contract addresses (if they exist in config)
+        // Load EigenLayer-specific contract addresses (if they exist in config)
         try vm.parseJsonAddress(configJson, ".eigenLayer.delegationManager") returns (address addr)
         {
             config.delegationManager = addr;

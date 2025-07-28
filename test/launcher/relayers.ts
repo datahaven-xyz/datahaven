@@ -433,10 +433,10 @@ export const launchRelayers = async (
   // Check if BEEFY is ready before proceeding
   await waitBeefyReady(launchedNetwork, 2000, 60000);
 
-  const anvilDeployments = await parseDeploymentsFile();
-  const beefyClientAddress = anvilDeployments.BeefyClient;
-  const gatewayAddress = anvilDeployments.Gateway;
-  const rewardsRegistryAddress = anvilDeployments.RewardsRegistry;
+  const deployments = await parseDeploymentsFile();
+  const beefyClientAddress = deployments.BeefyClient;
+  const gatewayAddress = deployments.Gateway;
+  const rewardsRegistryAddress = deployments.RewardsRegistry;
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
   invariant(rewardsRegistryAddress, "❌ RewardsRegistry address not found in anvil.json");

@@ -54,7 +54,7 @@ export const deployContracts = async (options: ContractsOptions): Promise<void> 
 
     // Construct and execute deployment with parameter collection
     const deployCommand = constructDeployCommand(options);
-    await executeDeployment(deployCommand, options);
+    await executeDeployment(deployCommand, options.parameterCollection, options.chain);
   } else {
     await deployContractsCore({
       chain: options.chain || "anvil",

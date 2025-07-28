@@ -10,7 +10,7 @@ import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
   chain?: string;
-  rpcUrl: string;
+  rpcUrl?: string;
   privateKey: string;
   verified?: boolean;
   blockscoutBackendUrl?: string;
@@ -92,28 +92,12 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
 /**
  * Executes contract deployment
  * Supports multiple calling patterns for backwards compatibility:
- * - executeDeployment(deployCommand, parameterCollection?)
- * - executeDeployment(deployCommand, chain)
- * - executeDeployment(deployCommand, parameterCollection, chain)
  */
 export const executeDeployment = async (
   deployCommand: string,
-  parameterCollectionOrChain?: ParameterCollection | string,
+  parameterCollection?: ParameterCollection,
   chain?: string
 ) => {
-  // Parse parameters to support different calling patterns
-  let parameterCollection: ParameterCollection | undefined;
-  let chainNetwork: string | undefined;
-
-  if (typeof parameterCollectionOrChain === "string") {
-    // Called as executeDeployment(deployCommand, chain)
-    chainNetwork = parameterCollectionOrChain;
-  } else if (parameterCollectionOrChain && typeof parameterCollectionOrChain === "object") {
-    // Called as executeDeployment(deployCommand, parameterCollection) or
-    // executeDeployment(deployCommand, parameterCollection, chain)
-    parameterCollection = parameterCollectionOrChain;
-    chainNetwork = chain;
-  }
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
@@ -127,9 +111,8 @@ export const executeDeployment = async (
   // and add it to parameters if collection is provided
   if (parameterCollection) {
     try {
-      const network = chainNetwork || "anvil"; // Default to "anvil" for backwards compatibility
-      const deployments = await parseDeploymentsFile(network);
-      const rewardsInfo = await parseRewardsInfoFile(network);
+      const deployments = await parseDeploymentsFile(chain);
+      const rewardsInfo = await parseRewardsInfoFile(chain);
       const gatewayAddress = deployments.Gateway;
       const rewardsRegistryAddress = deployments.RewardsRegistry;
       const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
@@ -221,7 +204,7 @@ export const deployContracts = async (options: {
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  await executeDeployment(deployCommand, options.chain);
+  await executeDeployment(deployCommand);
 
   logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
 };

@@ -38,9 +38,9 @@ const printContractStatus = async (
   etherscanApiKey?: string
 ) => {
   if (!contract.address || contract.address === "0x0000000000000000000000000000000000000000") {
-    logger.info(`  ❌ ${contract.name}: Not deployed`);
+    logger.info(`❌ ${contract.name}: Not deployed`);
   } else if (!etherscanApiKey) {
-    logger.info(`⚠️ ${contract.name}: Deployed (${contract.address}) - verification status unknown`);
+    logger.info(`⚠️ ${contract.name}: Deployed (${contract.address}) - verification unknown`);
   } else {
     try {
       const isVerified = await checkContractVerification(contract.address);

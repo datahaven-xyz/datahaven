@@ -1,7 +1,7 @@
-import { getChainDeploymentParams } from "configs/contracts/config";
 import {
   buildContracts,
   constructDeployCommand,
+  deployContracts as deployContractsCore,
   executeDeployment,
   validateDeploymentParams
 } from "scripts/deploy-contracts";
@@ -12,7 +12,7 @@ import type { ParameterCollection } from "utils/parameters";
  * Configuration options for contract deployment.
  */
 export interface ContractsOptions {
-  chain: string;
+  chain?: string;
   rpcUrl?: string;
   privateKey: string;
   verified?: boolean;
@@ -32,7 +32,7 @@ export interface ContractsOptions {
  * - Automatically adding deployed contract addresses to parameter collection if provided
  *
  * @param options - Configuration options for deployment
- * @param options.chain - The network to deploy to
+ * @param options.chain - The network to deploy to (optional, defaults to local deployment)
  * @param options.rpcUrl - The RPC URL of the target network
  * @param options.verified - Whether to verify contracts on Blockscout (requires blockscoutBackendUrl)
  * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
@@ -45,15 +45,25 @@ export interface ContractsOptions {
 export const deployContracts = async (options: ContractsOptions): Promise<void> => {
   logger.info("🚀 Deploying smart contracts...");
 
-  // Validate required parameters
-  validateDeploymentParams(options);
+  if (options.parameterCollection) {
+    // Validate required parameters
+    validateDeploymentParams(options);
 
-  // Build contracts
-  await buildContracts();
+    // Build contracts
+    await buildContracts();
 
-  // Construct and execute deployment
-  const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand, options.chain);
+    // Construct and execute deployment with parameter collection
+    const deployCommand = constructDeployCommand(options);
+    await executeDeployment(deployCommand, options);
+  } else {
+    await deployContractsCore({
+      chain: options.chain || "anvil",
+      rpcUrl: options.rpcUrl,
+      privateKey: options.privateKey,
+      verified: options.verified,
+      blockscoutBackendUrl: options.blockscoutBackendUrl
+    });
+  }
 
   logger.success("Smart contracts deployed successfully");
 };

@@ -17,7 +17,7 @@ const ethBytes4Regex = /^0x[a-fA-F0-9]{8}$/;
 const ethBytes4 = z.string().regex(ethBytes4Regex, "Invalid Ethereum bytes4");
 
 const DeployedStrategySchema = z.object({
-  address: ethAddress, 
+  address: ethAddress,
   underlyingToken: ethAddress,
   tokenCreator: ethAddress
 });

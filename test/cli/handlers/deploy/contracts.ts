@@ -8,7 +8,6 @@ import { logger, printDivider, printHeader } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 
 interface DeployContractsOptions {
-  chain: string;
   rpcUrl: string;
   privateKey: string;
   verified?: boolean;
@@ -44,7 +43,7 @@ export const deployContracts = async (options: DeployContractsOptions) => {
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand, options.parameterCollection, options.chain);
+  await executeDeployment(deployCommand, options);
 
   printDivider();
 };

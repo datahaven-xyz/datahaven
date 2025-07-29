@@ -158,22 +158,65 @@ async function verifySingleContract(contract: ContractToVerify, options: Contrac
 }
 
 /**
- * Checks if contracts are already verified using a simple HTTP request
+ * Checks if contracts are already verified. For proxies, checks implementation contracts.
  */
-export const checkContractVerification = async (contractAddress: string): Promise<boolean> => {
+export const checkContractVerification = async (
+  contractAddress: string,
+  chain?: string,
+  rpcUrl?: string
+): Promise<boolean> => {
   try {
     const apiKey = process.env.ETHERSCAN_API_KEY;
-    if (!apiKey) {
-      throw new Error("ETHERSCAN_API_KEY not found");
+    if (!apiKey) throw new Error("ETHERSCAN_API_KEY not found");
+
+    // Try to get implementation address for proxy contracts
+    if (rpcUrl) {
+      const implAddress = await getProxyImplementation(contractAddress, rpcUrl);
+      if (implAddress && implAddress !== contractAddress) {
+        const implVerified = await isVerified(implAddress, chain, apiKey);
+        if (implVerified) return true;
+      }
     }
 
-    const response = await fetch(
-      `https://api.etherscan.io/v2/api?module=contract&action=getsourcecode&address=${contractAddress}&chainid=560048&apikey=${apiKey}`
-    );
-    const data = (await response.json()) as any;
-    return data.result?.[0]?.SourceCode && data.result[0].SourceCode !== "";
+    // Check the original contract
+    return await isVerified(contractAddress, chain, apiKey);
   } catch (error) {
     logger.warn(`Failed to check verification status for ${contractAddress}: ${error}`);
     return false;
   }
+};
+
+const getProxyImplementation = async (address: string, rpcUrl: string): Promise<string | null> => {
+  try {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "eth_getStorageAt",
+        params: [
+          address,
+          "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+          "latest"
+        ],
+        id: 1
+      })
+    });
+    const data = (await response.json()) as any;
+    return data.result ? `0x${data.result.slice(-40)}` : null;
+  } catch {
+    return null;
+  }
+};
+
+const isVerified = async (
+  address: string,
+  chain: string,
+  apiKey: string
+): Promise<boolean> => {
+  const response = await fetch(
+    `https://api.etherscan.io/v2/api?module=contract&action=getsourcecode&address=${address}&chainid=${chain}&apikey=${apiKey}`
+  );
+  const data = (await response.json()) as any;
+  return data.result?.[0]?.SourceCode && data.result[0].SourceCode !== "";
 };

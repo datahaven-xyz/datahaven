@@ -1,4 +1,5 @@
 import { $ } from "bun";
+import { CHAIN_CONFIGS } from "configs/contracts/config";
 import invariant from "tiny-invariant";
 import {
   logger,
@@ -52,27 +53,13 @@ export const buildContracts = async () => {
 export const constructDeployCommand = (options: ContractDeploymentOptions): string => {
   const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
 
-  // Determine deployment script based on chain, default to DeployLocal.s.sol for backwards compatibility
-  const getDeploymentScript = (chain?: string): string => {
-    if (!chain) {
-      return "script/deploy/DeployLocal.s.sol"; // Default for backwards compatibility
-    }
+  const deploymentScript =
+    !chain || chain === "anvil" || chain === "local"
+      ? "script/deploy/DeployLocal.s.sol"
+      : "script/deploy/DeployTestnet.s.sol";
 
-    switch (chain) {
-      case "hoodi":
-        return "script/deploy/DeployHoodi.s.sol";
-      case "anvil":
-      case "local":
-        return "script/deploy/DeployLocal.s.sol";
-      default:
-        logger.warn(
-          `⚠️ No specific deployment script for chain '${chain}', using DeployLocal.s.sol`
-        );
-        return "script/deploy/DeployLocal.s.sol";
-    }
-  };
+  logger.info(`🚀 Deploying contracts to ${chain} using ${deploymentScript}`);
 
-  const deploymentScript = getDeploymentScript(chain);
   let deployCommand = `forge script ${deploymentScript} --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 
   // Add environment variable for chain if specified
@@ -179,7 +166,6 @@ export const deployContracts = async (options: {
   verified?: boolean;
   blockscoutBackendUrl?: string;
 }) => {
-  const { CHAIN_CONFIGS } = require("../cli/handlers/contracts/config");
   const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
 
   if (!chainConfig) {

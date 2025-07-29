@@ -21,8 +21,12 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
     };
     console.table(displayData);
 
-    await showDatahavenContractStatus(chain);
-    await showEigenLayerContractStatus(config);
+    await showDatahavenContractStatus(chain, deploymentParams.rpcUrl);
+    await showEigenLayerContractStatus(
+      config,
+      deploymentParams.chainId.toString(),
+      deploymentParams.rpcUrl
+    );
 
     printDivider();
   } catch (error) {
@@ -35,7 +39,9 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
  */
 const printContractStatus = async (
   contract: { name: string; address: string },
-  etherscanApiKey?: string
+  etherscanApiKey?: string,
+  chainId?: string,
+  rpcUrl?: string
 ) => {
   if (!contract.address || contract.address === "0x0000000000000000000000000000000000000000") {
     logger.info(`❌ ${contract.name}: Not deployed`);
@@ -43,7 +49,7 @@ const printContractStatus = async (
     logger.info(`⚠️ ${contract.name}: Deployed (${contract.address}) - verification unknown`);
   } else {
     try {
-      const isVerified = await checkContractVerification(contract.address);
+      const isVerified = await checkContractVerification(contract.address, chainId, rpcUrl);
       if (isVerified) {
         logger.info(`✅ ${contract.name}: Deployed and verified`);
       } else {
@@ -63,7 +69,7 @@ const printContractStatus = async (
 /**
  * Shows the status of all contracts (deployment + verification)
  */
-const showDatahavenContractStatus = async (chain: string) => {
+const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
   try {
     const contracts = [
       { name: "DataHavenServiceManager", key: "ServiceManagerImplementation" },
@@ -91,7 +97,12 @@ const showDatahavenContractStatus = async (chain: string) => {
 
     for (const contract of contracts) {
       const address = deployments[contract.key];
-      await printContractStatus({ name: contract.name, address }, etherscanApiKey);
+      await printContractStatus(
+        { name: contract.name, address },
+        etherscanApiKey,
+        "560048",
+        rpcUrl
+      );
     }
   } catch (error) {
     logger.warn(`⚠️ Could not check contract status: ${error}`);
@@ -101,7 +112,7 @@ const showDatahavenContractStatus = async (chain: string) => {
 /**
  * Shows the status of EigenLayer contracts (verification only)
  */
-const showEigenLayerContractStatus = async (config: any) => {
+const showEigenLayerContractStatus = async (config: any, chainId: string, rpcUrl: string) => {
   try {
     const contracts = [
       {
@@ -129,7 +140,7 @@ const showEigenLayerContractStatus = async (config: any) => {
     const etherscanApiKey = process.env.ETHERSCAN_API_KEY;
 
     for (const contract of contracts) {
-      await printContractStatus(contract, etherscanApiKey);
+      await printContractStatus(contract, etherscanApiKey, chainId, rpcUrl);
     }
   } catch (error) {
     logger.warn(`⚠️ Could not check EigenLayer contract status: ${error}`);

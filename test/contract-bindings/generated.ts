@@ -2299,16 +2299,6 @@ export const dataHavenServiceManagerAbi = [
         type: 'address[]',
       },
       {
-        name: 'bspsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-      {
-        name: 'mspsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-      {
         name: '_snowbridgeGatewayAddress',
         internalType: 'address',
         type: 'address',

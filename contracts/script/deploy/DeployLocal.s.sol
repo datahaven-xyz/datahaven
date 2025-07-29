@@ -162,8 +162,6 @@ contract DeployLocal is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            params.bspsStrategies,
-            params.mspsStrategies,
             params.gateway
         );
 
@@ -289,12 +287,8 @@ contract DeployLocal is DeployBase {
     function _prepareStrategiesForServiceManager(ServiceManagerInitParams memory params) view internal {
         if (params.validatorsStrategies.length == 0) {
             params.validatorsStrategies = new address[](deployedStrategies.length);
-            params.bspsStrategies = new address[](deployedStrategies.length);
-            params.mspsStrategies = new address[](deployedStrategies.length);
             for (uint256 i = 0; i < deployedStrategies.length; i++) {
                 params.validatorsStrategies[i] = deployedStrategies[i].address_;
-                params.bspsStrategies[i] = deployedStrategies[i].address_;
-                params.mspsStrategies[i] = deployedStrategies[i].address_;
             }
         }
     }

@@ -45,8 +45,6 @@ struct ServiceManagerInitParams {
     address avsOwner;
     address rewardsInitiator;
     address[] validatorsStrategies;
-    address[] bspsStrategies;
-    address[] mspsStrategies;
     address gateway;
 }
 
@@ -255,8 +253,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             avsOwner: avsConfig.avsOwner,
             rewardsInitiator: avsConfig.rewardsInitiator,
             validatorsStrategies: avsConfig.validatorsStrategies,
-            bspsStrategies: avsConfig.bspsStrategies,
-            mspsStrategies: avsConfig.mspsStrategies,
             gateway: address(gateway)
         });
 

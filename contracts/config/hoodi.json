@@ -35,9 +35,7 @@
     "rewardsInitiator": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
     "vetoCommitteeMember": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
     "vetoWindowBlocks": 100,
-    "validatorsStrategies": [],
-    "bspsStrategies": [],
-    "mspsStrategies": []
+    "validatorsStrategies": []
   },
   "snowbridge": {
     "randaoCommitDelay": 4,

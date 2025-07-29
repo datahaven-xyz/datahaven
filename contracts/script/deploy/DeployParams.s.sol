@@ -55,8 +55,6 @@ contract DeployParams is Script, Config {
         config.vetoWindowBlocks = uint32(vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks"));
         config.validatorsStrategies =
             vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
-        config.bspsStrategies = vm.parseJsonAddressArray(configJson, ".avs.bspsStrategies");
-        config.mspsStrategies = vm.parseJsonAddressArray(configJson, ".avs.mspsStrategies");
 
         return config;
     }

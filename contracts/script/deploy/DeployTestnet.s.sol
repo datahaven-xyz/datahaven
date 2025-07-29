@@ -118,8 +118,6 @@ contract DeployTestnet is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            params.bspsStrategies,
-            params.mspsStrategies,
             params.gateway
         );
 

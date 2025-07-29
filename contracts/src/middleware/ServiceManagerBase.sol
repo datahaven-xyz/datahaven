@@ -428,7 +428,10 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     function getOperatorRestakedStrategies(
         address operator
     ) external view virtual returns (address[] memory) {
-        // TODO: Implement this
+        // TODO implement 
+        if (operator == address(0)) {
+            return new address[](0);
+        }
         return new address[](0);
     }
 

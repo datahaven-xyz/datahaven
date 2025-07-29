@@ -195,7 +195,7 @@ export const launchPreActionHook = (
   }
 
   // If we have `--all` argument then `deployContracts` is technically true
-  if (injectContracts && (!deployContracts && !all)) {
+  if (injectContracts && !deployContracts && !all) {
     thisCmd.error("--inject-contracts requires --deploy-contracts to be set");
   }
 };

@@ -3,25 +3,6 @@ import { logger } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
 import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
 
-// TODO: unhardcode constructor args
-function getConstructorArgs(artifactName: string): string[] {
-  switch (artifactName) {
-    case "DataHavenServiceManager":
-      return [
-        "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
-        "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2",
-        "0x95a7431400F362F3647a69535C5666cA0133CAA0"
-      ];
-    case "RewardsRegistry":
-      return [
-        "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
-        "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2"
-      ];
-    default:
-      return [];
-  }
-}
-
 interface ContractsVerifyOptions {
   chain: string;
   rpcUrl?: string;
@@ -32,6 +13,8 @@ interface ContractToVerify {
   name: string;
   address: string;
   artifactName: string;
+  constructorArgs: string[];
+  constructorArgTypes: string[];
 }
 
 /**
@@ -58,29 +41,54 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
     {
       name: "ServiceManager Implementation",
       address: deployments.ServiceManagerImplementation,
-      artifactName: "DataHavenServiceManager"
+      artifactName: "DataHavenServiceManager",
+      constructorArgs: [
+        deployments.RewardsCoordinator,
+        deployments.PermissionController,
+        deployments.AllocationManager
+      ],
+      constructorArgTypes: ["address", "address", "address"]
+    },
+    {
+      name: "VetoableSlasher",
+      address: deployments.VetoableSlasher,
+      artifactName: "VetoableSlasher",
+      constructorArgs: [
+        deployments.AllocationManager,
+        deployments.ServiceManager,
+        "0x0000000000000000000000000000000000000000",
+        "0"
+      ],
+      constructorArgTypes: ["address", "address", "address", "uint32"]
+    },
+    {
+      name: "RewardsRegistry",
+      address: deployments.RewardsRegistry,
+      artifactName: "RewardsRegistry",
+      constructorArgs: [deployments.RewardsCoordinator, deployments.RewardsAgent],
+      constructorArgTypes: ["address", "address"]
+    },
+    {
+      name: "Gateway",
+      address: deployments.Gateway,
+      artifactName: "Gateway",
+      constructorArgs: [],
+      constructorArgTypes: []
+    },
+    {
+      name: "BeefyClient",
+      address: deployments.BeefyClient,
+      artifactName: "BeefyClient",
+      constructorArgs: [],
+      constructorArgTypes: []
+    },
+    {
+      name: "AgentExecutor",
+      address: deployments.AgentExecutor,
+      artifactName: "AgentExecutor",
+      constructorArgs: [],
+      constructorArgTypes: []
     }
-    // {
-    // 	name: "VetoableSlasher",
-    // 	address: deployments.VetoableSlasher,
-    // 	artifactName: "VetoableSlasher",
-    // },
-    // {
-    // 	name: "RewardsRegistry",
-    // 	address: deployments.RewardsRegistry,
-    // 	artifactName: "RewardsRegistry",
-    // },
-    // { name: "Gateway", address: deployments.Gateway, artifactName: "Gateway" },
-    // {
-    // 	name: "BeefyClient",
-    // 	address: deployments.BeefyClient,
-    // 	artifactName: "BeefyClient",
-    // },
-    // {
-    // 	name: "AgentExecutor",
-    // 	address: deployments.AgentExecutor,
-    // 	artifactName: "AgentExecutor",
-    // },
   ];
 
   try {
@@ -117,19 +125,17 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
 async function verifySingleContract(contract: ContractToVerify, options: ContractsVerifyOptions) {
   logger.info(`\n🔍 Verifying ${contract.name} (${contract.address})...`);
 
-  // Get constructor arguments for the contract
-  const constructorArgs = getConstructorArgs(contract.artifactName);
+  const { address, artifactName, constructorArgs: args, constructorArgTypes: types } = contract;
 
-  // Build the forge verify-contract command
-  const constructorArgsStr =
-    constructorArgs.length > 0 ? `--constructor-args ${constructorArgs.join(",")}` : "";
+  const abiEncodedArgs = getEncodedConstructorArgs(args, types);
+  const constructorArgsStr = abiEncodedArgs ? `--constructor-args ${abiEncodedArgs}` : "";
 
   try {
     const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
     const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
     const chainParameter =
       options.chain === "hoodi" ? "--chain-id 560048" : `--chain ${options.chain}`;
-    const verifyCommand = `forge verify-contract ${contract.address} src/${contract.artifactName}.sol:${contract.artifactName} --rpc-url ${rpcUrl} ${chainParameter} ${constructorArgsStr} --watch`;
+    const verifyCommand = `forge verify-contract ${address} src/${artifactName}.sol:${artifactName} --rpc-url ${rpcUrl} ${chainParameter} ${constructorArgsStr} --watch`;
 
     logger.info(`Running: ${verifyCommand}`);
 
@@ -156,6 +162,21 @@ async function verifySingleContract(contract: ContractToVerify, options: Contrac
     logger.info(`cd ../contracts && ${manualCommand}`);
   }
 }
+
+const getEncodedConstructorArgs = (args: string[], types: string[]): string => {
+  if (args.length > 0) {
+    try {
+      return execSync(
+        `cast abi-encode "constructor(${types.join(",")})" ${args.map((arg) => `"${arg}"`).join(" ")}`,
+        { encoding: "utf8", stdio: "pipe", cwd: "../contracts" }
+      ).trim();
+    } catch (error) {
+      logger.error(`Failed to ABI-encode constructor arguments: ${error}`);
+      throw error;
+    }
+  }
+  return "";
+};
 
 /**
  * Checks if contracts are already verified. For proxies, checks implementation contracts.
@@ -209,11 +230,7 @@ const getProxyImplementation = async (address: string, rpcUrl: string): Promise<
   }
 };
 
-const isVerified = async (
-  address: string,
-  chain: string,
-  apiKey: string
-): Promise<boolean> => {
+const isVerified = async (address: string, chain: string, apiKey: string): Promise<boolean> => {
   const response = await fetch(
     `https://api.etherscan.io/v2/api?module=contract&action=getsourcecode&address=${address}&chainid=${chain}&apikey=${apiKey}`
   );

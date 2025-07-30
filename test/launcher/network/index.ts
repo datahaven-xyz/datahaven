@@ -187,7 +187,7 @@ export const launchNetwork = async (
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
         kurtosisNetworkArgs: options.kurtosisNetworkArgs,
-        injectContracts: true
+        injectContracts: true // Forcing it to be true to run e2e tests
       },
       launchedNetwork
     );

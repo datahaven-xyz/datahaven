@@ -9,8 +9,8 @@ library ValidatorsUtils {
         uint128 id,
         bytes32[] memory validators
     ) internal pure returns (BeefyClient.ValidatorSet memory) {
-        // Calculate the merkle root from the validators array using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validators);
+        // Calculate the merkle root from the validators array. We specify to not sort the pair before hashing to be compatible with Beefy Merkle Tree implementation.
+        bytes32 merkleRoot = MerkleUtils.calculateMerkleRoot(validators, false);
 
         // Create and return the validator set with the calculated merkle root
         return

@@ -21,7 +21,7 @@ import {
   parseDeploymentsFile,
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
-import { type Address, getContract, parseEther } from "viem";
+import { getContract, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
@@ -68,28 +68,9 @@ const ERC20_METADATA_ABI = [
   }
 ] as const;
 
-// Store the token ID after registration for use in other tests
 let registeredTokenId: string | undefined;
+let deployedERC20Address: `0x${string}` | undefined;
 
-/**
- * Query the Gateway contract for the ERC-20 address that backs a Snowbridge
- * `TokenId`.
- *
- * The Gateway maintains the mapping `tokenAddressOf(bytes32 id) → address`.
- * A non-zero result indicates that the wrapped token has already been
- * deployed on Ethereum.
- *
- * Returns the address when present, or `undefined` if the mapping returns the
- * zero-address.  Errors thrown by the RPC are forwarded unchanged so the test
- * harness can report them.
- */
-async function getTokenAddress(gateway: any, tokenId: string): Promise<Address | undefined> {
-  // Using blockTag "latest" to ensure we always read committed state.
-  const address = await gateway.read.tokenAddressOf([tokenId as `0x${string}`], {
-    blockTag: "latest"
-  } as any);
-  return address !== ZERO_ADDRESS ? (address as Address) : undefined;
-}
 
 class NativeTokenTransferTestSuite extends BaseTestSuite {
   constructor() {
@@ -157,51 +138,43 @@ describe("Native Token Transfer", () => {
     );
     expect(registerTokenEvent).toBeDefined();
 
-    // Extract token ID from the event
     const tokenIdRaw = registerTokenEvent?.value?.value?.foreign_token_id;
     expect(tokenIdRaw).toBeDefined();
-
-    // Convert FixedSizeBinary to hex string
     const tokenId = tokenIdRaw.asHex();
 
     logger.debug(`Token registered successfully with ID: ${tokenId}`);
-
-    // Store for use in other tests
     registeredTokenId = tokenId;
 
-    // Get token address from Gateway
     const gateway = getContract({
       address: deployments.Gateway,
       abi: gatewayAbi,
       client: connectors.publicClient
     });
 
-    // Get the token address from Gateway, fail the test if not found
-    const tokenAddress = await getTokenAddress(gateway, tokenId);
-    expect(tokenAddress).toBeDefined();
+    const tokenAddress = await gateway.read.tokenAddressOf([tokenId as `0x${string}`], {
+      blockTag: "latest"
+    } as any);
+    expect(tokenAddress).not.toBe(ZERO_ADDRESS);
+    deployedERC20Address = tokenAddress as `0x${string}`;
 
-    expect(tokenAddress).toBeDefined();
-
-    // Read and verify ERC20 metadata in parallel
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       connectors.publicClient.readContract({
-        address: tokenAddress!,
+        address: tokenAddress as `0x${string}`,
         abi: ERC20_METADATA_ABI,
         functionName: "name"
       }) as Promise<string>,
       connectors.publicClient.readContract({
-        address: tokenAddress!,
+        address: tokenAddress as `0x${string}`,
         abi: ERC20_METADATA_ABI,
         functionName: "symbol"
       }) as Promise<string>,
       connectors.publicClient.readContract({
-        address: tokenAddress!,
+        address: tokenAddress as `0x${string}`,
         abi: ERC20_METADATA_ABI,
         functionName: "decimals"
       }) as Promise<number>
     ]);
 
-    // Verify metadata
     expect(tokenName).toBe("HAVE");
     expect(tokenSymbol).toBe("wHAVE");
     expect(tokenDecimals).toBe(18);
@@ -209,46 +182,23 @@ describe("Native Token Transfer", () => {
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
-    const deployments = await parseDeploymentsFile();
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
-    // Use the stored token ID from registration
     expect(registeredTokenId).toBeDefined();
+    expect(deployedERC20Address).toBeDefined();
 
-    const tokenId = registeredTokenId!;
 
-    // Get token address from Gateway
-    const gateway = getContract({
-      address: deployments.Gateway,
-      abi: gatewayAbi,
-      client: connectors.publicClient
-    });
-
-    let tokenAddress;
-    try {
-      tokenAddress = await getTokenAddress(gateway, tokenId);
-    } catch (error) {
-      logger.warn("Token not yet deployed on Ethereum, skipping transfer test");
-      logger.info("This is expected if the cross-chain message hasn't been processed yet");
-      return;
-    }
-
-    if (!tokenAddress) {
-      logger.warn("Token address not found on Ethereum, skipping transfer test");
-      return;
-    }
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
     const fee = parseEther("1");
 
-    // Get initial balances
     const initialDHBalance = await connectors.dhApi.query.System.Account.getValue(
       SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
     const initialEthBalance = (await connectors.publicClient.readContract({
-      address: tokenAddress!,
+      address: deployedERC20Address!,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -268,17 +218,14 @@ describe("Native Token Transfer", () => {
     const result = await tx.signAndSubmit(baltatharSigner);
     logger.info(`Transfer transaction submitted, hash: ${result.txHash}`);
 
-    // Wait for cross-chain processing
     logger.info("Waiting for cross-chain processing...");
     await Bun.sleep(60000);
-
-    // Check final balances
     const finalDHBalance = await connectors.dhApi.query.System.Account.getValue(
       SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
     const finalEthBalance = (await connectors.publicClient.readContract({
-      address: tokenAddress!,
+      address: deployedERC20Address!,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -288,7 +235,6 @@ describe("Native Token Transfer", () => {
     logger.info(`  DataHaven: ${finalDHBalance.data.free}`);
     logger.info(`  Ethereum: ${finalEthBalance}`);
 
-    // Verify balances changed correctly
     expect(finalDHBalance.data.free).toBeLessThan(initialDHBalance.data.free);
     expect(finalEthBalance).toBeGreaterThan(initialEthBalance);
 
@@ -305,14 +251,12 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
-    // Check if token is registered
     expect(registeredTokenId).toBeDefined();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = 0n;
     const fee = parseEther("1");
 
-    // Attempt transfer
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
       recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
       amount,
@@ -333,14 +277,12 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
-    // Check if token is registered
     expect(registeredTokenId).toBeDefined();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
     const fee = 0n;
 
-    // Attempt transfer
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
       recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
       amount,
@@ -362,11 +304,9 @@ describe("Native Token Transfer", () => {
     const alithSigner = getPapiSigner("ALITH");
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
-    // Check initial pause state
     const initialPaused = await connectors.dhApi.query.DataHavenNativeTransfer.Paused.getValue();
     logger.info(`Initial paused state: ${initialPaused}`);
 
-    // If already paused, unpause first
     if (initialPaused) {
       logger.info("Pallet is already paused, unpausing first...");
       const unpauseTx = connectors.dhApi.tx.DataHavenNativeTransfer.unpause();
@@ -425,42 +365,18 @@ describe("Native Token Transfer", () => {
 
   it("should maintain 1:1 backing ratio", async () => {
     const connectors = suite.getTestConnectors();
-    const deployments = await parseDeploymentsFile();
 
-    // Get token info from stored registration
     expect(registeredTokenId).toBeDefined();
+    expect(deployedERC20Address).toBeDefined();
 
-    const tokenId = registeredTokenId!;
 
-    // Get token address from Gateway
-    const gateway = getContract({
-      address: deployments.Gateway,
-      abi: gatewayAbi,
-      client: connectors.publicClient
-    });
 
-    let tokenAddress;
-    try {
-      tokenAddress = await getTokenAddress(gateway, tokenId);
-    } catch (error) {
-      logger.warn("Token not yet deployed on Ethereum, skipping backing ratio test");
-      logger.info("This is expected if the cross-chain message hasn't been processed yet");
-      return;
-    }
-
-    if (!tokenAddress) {
-      logger.warn("Token address not found on Ethereum, skipping backing ratio test");
-      return;
-    }
-
-    // Get total supply of wrapped tokens
     const totalSupply = (await connectors.publicClient.readContract({
-      address: tokenAddress!,
+      address: deployedERC20Address!,
       abi: ERC20_METADATA_ABI,
       functionName: "totalSupply"
     })) as bigint;
 
-    // Get sovereign account balance
     const sovereignBalance = await connectors.dhApi.query.System.Account.getValue(
       ETHEREUM_SOVEREIGN_ACCOUNT
     );
@@ -468,7 +384,6 @@ describe("Native Token Transfer", () => {
     logger.info(`Wrapped token total supply: ${totalSupply}`);
     logger.info(`Sovereign account balance: ${sovereignBalance.data.free}`);
 
-    // Verify 1:1 backing
     expect(sovereignBalance.data.free).toBeGreaterThanOrEqual(totalSupply);
 
     logger.success("1:1 backing ratio verified");
@@ -478,7 +393,6 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
-    // Check if token is registered
     expect(registeredTokenId).toBeDefined();
 
     let tokensTransferredEvent: any = null;

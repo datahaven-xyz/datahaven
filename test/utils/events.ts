@@ -156,7 +156,7 @@ export async function waitForDataHavenEvent<T = any>(
           resolve(null);
         }
       });
-      
+
       // Store the unsubscribe function
       unsubscribe = () => subscription.unsubscribe();
     } catch (error) {
@@ -249,7 +249,10 @@ export async function waitForMultipleDataHavenEvents(
           }
         });
 
-        subscriptions.push({ unsubscribe: () => subscription.unsubscribe(), path: eventConfig.path });
+        subscriptions.push({
+          unsubscribe: () => subscription.unsubscribe(),
+          path: eventConfig.path
+        });
       } catch (error) {
         logger.error(`Failed to watch event ${eventConfig.path}: ${error}`);
       }

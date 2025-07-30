@@ -50,44 +50,6 @@ export interface WaitForMultipleDataHavenEventsOptions {
 }
 
 /**
- * Get DataHaven event watcher from dot-notation path
- * @param api - DataHaven API instance
- * @param eventPath - Event path like "Pallet.EventName"
- * @returns Event watcher object or null if not found
- */
-function getDataHavenEventWatcher(api: DataHavenApi, eventPath: string): any {
-  try {
-    const parts = eventPath.split(".");
-    if (parts.length !== 2) {
-      throw new Error(`Invalid event path format: ${eventPath}. Expected "Pallet.EventName"`);
-    }
-
-    const [pallet, eventName] = parts;
-
-    // Navigate through the API structure
-    if (!api.event) {
-      throw new Error("API does not have event property");
-    }
-
-    // Use type assertion to handle dynamic access
-    const palletEvents = (api.event as any)[pallet];
-    if (!palletEvents) {
-      throw new Error(`Pallet ${pallet} not found in API`);
-    }
-
-    const eventWatcher = palletEvents[eventName];
-    if (!eventWatcher) {
-      throw new Error(`Event ${eventName} not found in pallet ${pallet}`);
-    }
-
-    return eventWatcher;
-  } catch (error) {
-    logger.debug(`Failed to get event watcher for ${eventPath}: ${error}`);
-    return null;
-  }
-}
-
-/**
  * Wait for a specific event on the DataHaven chain
  * @param options - Options for event waiting
  * @returns The first matched event or null if timeout
@@ -118,28 +80,34 @@ export async function waitForDataHavenEvent<T = any>(
       resolve(matchedEvent);
     }, timeout);
 
-    // Get event watcher
-    const eventWatcher = getDataHavenEventWatcher(api, eventPath);
-    if (!eventWatcher) {
-      logger.warn(`Event ${eventPath} not found in API`);
+    // Parse event path
+    const parts = eventPath.split(".");
+    if (parts.length !== 2) {
+      logger.error(`Invalid event path format: ${eventPath}. Expected "Pallet.EventName"`);
       cleanup();
       resolve(null);
       return;
     }
 
+    const [pallet, eventName] = parts;
+
     // Watch for events
     try {
-      // eventWatcher.watch returns an Observable, we need to subscribe to it
-      const subscription = eventWatcher.watch().subscribe({
+      // Access the event directly from the API
+      const eventWatcher = (api.event as any)[pallet]?.[eventName];
+      if (!eventWatcher) {
+        logger.warn(`Event ${eventPath} not found in API`);
+        cleanup();
+        resolve(null);
+        return;
+      }
+
+      // Use polkadot-api's native filter parameter
+      const subscription = eventWatcher.watch(filter).subscribe({
         next: (event: T) => {
           logger.debug(`Event ${eventPath} received`);
 
-          // Apply filter if provided
-          if (filter && !filter(event)) {
-            return; // Continue watching
-          }
-
-          // Event matched
+          // Event matched (already filtered by watch())
           matchedEvent = event;
           if (onEvent) {
             onEvent(event);
@@ -205,24 +173,29 @@ export async function waitForMultipleDataHavenEvents(
     let allEventsMatched = false;
 
     events.forEach((eventConfig) => {
-      const eventWatcher = getDataHavenEventWatcher(api, eventConfig.path);
-      if (!eventWatcher) {
-        logger.warn(`Event ${eventConfig.path} not found in API`);
+      // Parse event path
+      const parts = eventConfig.path.split(".");
+      if (parts.length !== 2) {
+        logger.error(`Invalid event path format: ${eventConfig.path}. Expected "Pallet.EventName"`);
         return;
       }
 
+      const [pallet, eventName] = parts;
+
       try {
-        // eventWatcher.watch returns an Observable, we need to subscribe to it
-        const subscription = eventWatcher.watch().subscribe({
+        // Access the event directly from the API
+        const eventWatcher = (api.event as any)[pallet]?.[eventName];
+        if (!eventWatcher) {
+          logger.warn(`Event ${eventConfig.path} not found in API`);
+          return;
+        }
+
+        // Use polkadot-api's native filter parameter
+        const subscription = eventWatcher.watch(eventConfig.filter).subscribe({
           next: (event: any) => {
             logger.debug(`Event ${eventConfig.path} received`);
 
-            // Apply filter if provided
-            if (eventConfig.filter && !eventConfig.filter(event)) {
-              return; // Continue watching
-            }
-
-            // Store the event
+            // Store the event (already filtered by watch())
             const currentEvents = eventResults.get(eventConfig.path) || [];
             currentEvents.push(event);
             eventResults.set(eventConfig.path, currentEvents);

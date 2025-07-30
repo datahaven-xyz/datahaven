@@ -148,6 +148,7 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
         // Register the operator as operator for the DataHaven service.
         uint32[] memory operatorSetIds = new uint32[](1);
         operatorSetIds[0] = _getOperatorSetId();
+
         IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
             .RegisterParams({
             avs: address(serviceManager),

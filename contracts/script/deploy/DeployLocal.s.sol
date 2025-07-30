@@ -870,7 +870,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         DataHavenServiceManager implementation,
         ProxyAdmin proxyAdmin,
         ServiceManagerInitParams memory params
-    ) internal trackStateDiff returns (DataHavenServiceManager) {
+    ) internal returns (DataHavenServiceManager) {
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
             DataHavenServiceManager.initialise.selector,

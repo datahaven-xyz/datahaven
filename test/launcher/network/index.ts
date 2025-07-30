@@ -10,7 +10,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { updateValidatorSet } from "../validators";
+import { updateValidatorSet, fundValidators, setupValidators } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -213,11 +213,27 @@ export const launchNetwork = async (
       injectContracts: true // Because we are injecting contracts in kurtosis deployment
     });
 
+    // 4. Fund validators
+    logger.info("💰 Funding validators...");
+    await fundValidators({
+      rpcUrl: launchedNetwork.elRpcUrl
+    });
+
+    // 5. Setup validators
+    logger.info("🔐 Setting up validators...");
+    await setupValidators({
+      rpcUrl: launchedNetwork.elRpcUrl
+    });
+
     // We are injecting contracts but we still need the address
     try {
-      const { parseDeploymentsFile } = await import("utils/contracts");
+      const { parseDeploymentsFile, parseRewardsInfoFile } = await import("utils/contracts");
       const deployments = await parseDeploymentsFile();
       const gatewayAddress = deployments.Gateway;
+      const rewardsRegistryAddress = deployments.RewardsRegistry;
+      const rewardsInfo = await parseRewardsInfoFile();
+      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
 
       if (gatewayAddress) {
         logger.debug(
@@ -227,6 +243,38 @@ export const launchNetwork = async (
           name: "EthereumGatewayAddress",
           value: gatewayAddress
         });
+      }
+
+      if (rewardsRegistryAddress) {
+        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+        parameterCollection.addParameter({
+          name: "RewardsRegistryAddress",
+          value: rewardsRegistryAddress
+        });
+      } else {
+        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+      }
+
+      if (updateRewardsMerkleRootSelector) {
+        logger.debug(
+          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
+        );
+        parameterCollection.addParameter({
+          name: "RewardsUpdateSelector",
+          value: updateRewardsMerkleRootSelector
+        });
+      } else {
+        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+      }
+
+      if (rewardsAgentOrigin) {
+        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+        parameterCollection.addParameter({
+          name: "RewardsAgentOrigin",
+          value: rewardsAgentOrigin
+        });
+      } else {
+        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
       }
     } catch (error) {
       logger.error(`Failed to read Gateway address from deployments: ${error}`);

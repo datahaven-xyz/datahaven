@@ -170,6 +170,21 @@ export const launchPreActionHook = (
     );
   }
 
+  if (verified && !blockscout) {
+    thisCmd.error("--verified requires --blockscout to be set");
+  }
+  if (deployContracts === false && setupValidators) {
+    thisCmd.error("--setupValidators requires --deployContracts to be set");
+  }
+  if (deployContracts === false && fundValidators) {
+    thisCmd.error("--fundValidators requires --deployContracts to be set");
+  }
+
+  if (injectContracts && !deployContracts && !all) {
+    // If we have `--all` argument then `deployContracts` is technically true
+    thisCmd.error("--inject-contracts requires --deploy-contracts to be set");
+  }
+
   // If --all is set, enable all components
   if (all) {
     thisCmd.setOptionValue("datahaven", true);
@@ -182,20 +197,5 @@ export const launchPreActionHook = (
     thisCmd.setOptionValue("setParameters", true);
     thisCmd.setOptionValue("relayer", true);
     thisCmd.setOptionValue("cleanNetwork", true);
-  }
-
-  if (verified && !blockscout) {
-    thisCmd.error("--verified requires --blockscout to be set");
-  }
-  if (deployContracts === false && setupValidators) {
-    thisCmd.error("--setupValidators requires --deployContracts to be set");
-  }
-  if (deployContracts === false && fundValidators) {
-    thisCmd.error("--fundValidators requires --deployContracts to be set");
-  }
-
-  // If we have `--all` argument then `deployContracts` is technically true
-  if (injectContracts && !deployContracts && !all) {
-    thisCmd.error("--inject-contracts requires --deploy-contracts to be set");
   }
 };

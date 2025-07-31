@@ -13,6 +13,18 @@ import type { DataHavenApi } from "./papi";
  */
 
 /**
+ * Result from waiting for a DataHaven event
+ */
+export interface DataHavenEventResult<T = any> {
+  /** Pallet name */
+  pallet: string;
+  /** Event name */
+  event: string;
+  /** Event data payload (null if timeout or error) */
+  data: T | null;
+}
+
+/**
  * Options for waiting for a single DataHaven event
  */
 export interface WaitForDataHavenEventOptions<T = any> {
@@ -33,40 +45,46 @@ export interface WaitForDataHavenEventOptions<T = any> {
 /**
  * Wait for a specific event on the DataHaven chain
  * @param options - Options for event waiting
- * @returns The first matched event or null if timeout
+ * @returns Event result with pallet, event name, and data
  */
 export async function waitForDataHavenEvent<T = any>(
   options: WaitForDataHavenEventOptions<T>
-): Promise<T | null> {
+): Promise<DataHavenEventResult<T>> {
   const { api, pallet, event, filter, timeout: timeoutMs = 30000, onEvent } = options;
 
   const eventWatcher = (api.event as any)?.[pallet]?.[event];
   if (!eventWatcher?.watch) {
     logger.warn(`Event ${pallet}.${event} not found`);
-    return null;
+    return { pallet, event, data: null };
   }
 
-  return firstValueFrom(
-    eventWatcher.watch(filter).pipe(
-      tap((data: T) => {
-        logger.debug(`Event ${pallet}.${event} received`);
-        onEvent?.(data);
-      }),
-      take(1), // Always stop on first event
-      timeout({
-        first: timeoutMs,
-        with: () => {
-          logger.debug(`Timeout waiting for event ${pallet}.${event} after ${timeoutMs}ms`);
+  let data: T | null;
+  try {
+    data = await firstValueFrom(
+      eventWatcher.watch(filter).pipe(
+        tap((eventData: T) => {
+          logger.debug(`Event ${pallet}.${event} received`);
+          onEvent?.(eventData);
+        }),
+        take(1), // Always stop on first event
+        timeout({
+          first: timeoutMs,
+          with: () => {
+            logger.debug(`Timeout waiting for event ${pallet}.${event} after ${timeoutMs}ms`);
+            return of(null);
+          }
+        }),
+        catchError((error) => {
+          logger.error(`Error in event subscription ${pallet}.${event}: ${error}`);
           return of(null);
-        }
-      }),
-      catchError((error) => {
-        logger.error(`Error in event subscription ${pallet}.${event}: ${error}`);
-        return of(null);
-      })
-    ),
-    { defaultValue: null }
-  );
+        })
+      )
+    );
+  } catch {
+    data = null;
+  }
+
+  return { pallet, event, data };
 }
 
 /**
@@ -84,7 +102,7 @@ export async function submitAndWaitForDataHavenEvents(
   timeout = 30000
 ): Promise<{
   txResult: any;
-  events: Array<any | null>;
+  events: Array<DataHavenEventResult>;
 }> {
   // Submit transaction
   const txResult = await tx.signAndSubmit(signer);
@@ -115,6 +133,18 @@ export async function submitAndWaitForDataHavenEvents(
 // ================== Ethereum Event Utilities ==================
 
 /**
+ * Result from waiting for an Ethereum event
+ */
+export interface EthereumEventResult {
+  /** Contract address */
+  address: Address;
+  /** Event name */
+  eventName: string;
+  /** Event log (null if timeout or error) */
+  log: Log | null;
+}
+
+/**
  * Options for waiting for a single Ethereum event
  */
 export interface WaitForEthereumEventOptions<TAbi extends Abi = Abi> {
@@ -139,14 +169,14 @@ export interface WaitForEthereumEventOptions<TAbi extends Abi = Abi> {
 /**
  * Wait for a specific event on the Ethereum chain
  * @param options - Options for event waiting
- * @returns The first matched event log or null if timeout
+ * @returns Event result with address, event name, and log
  */
 export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
   options: WaitForEthereumEventOptions<TAbi>
-): Promise<Log | null> {
+): Promise<EthereumEventResult> {
   const { client, address, abi, eventName, args, timeout = 30000, fromBlock, onEvent } = options;
 
-  return new Promise<Log | null>((resolve) => {
+  const log = await new Promise<Log | null>((resolve) => {
     let unwatch: (() => void) | null = null;
     let timeoutId: NodeJS.Timeout | null = null;
     let matchedLog: Log | null = null;
@@ -199,6 +229,8 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
       resolve(null);
     }
   });
+
+  return { address, eventName, log };
 }
 
 /**
@@ -221,7 +253,7 @@ export async function waitForTransactionAndEvents(
   timeout = 30000
 ): Promise<{
   receipt: any;
-  events: Array<Log | null>;
+  events: Array<EthereumEventResult>;
 }> {
   // Wait for transaction receipt
   const receipt = await client.waitForTransactionReceipt({ hash });

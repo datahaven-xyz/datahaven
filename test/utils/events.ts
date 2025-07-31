@@ -31,29 +31,6 @@ export interface WaitForDataHavenEventOptions<T = any> {
 }
 
 /**
- * Options for waiting for multiple DataHaven events
- */
-export interface WaitForMultipleDataHavenEventsOptions {
-  /** DataHaven API instance */
-  api: DataHavenApi;
-  /** Array of event configurations to watch */
-  events: Array<{
-    /** Pallet name */
-    pallet: string;
-    /** Event name */
-    event: string;
-    /** Optional filter function */
-    filter?: (event: any) => boolean;
-    /** Stop watching this event after first match */
-    stopOnMatch?: boolean;
-  }>;
-  /** Timeout in milliseconds (default: 30000) */
-  timeout?: number;
-  /** Callback for any matched event */
-  onAnyEvent?: (pallet: string, event: string, payload: any) => void;
-}
-
-/**
  * Wait for a specific event on the DataHaven chain
  * @param options - Options for event waiting
  * @returns The first matched event or null if timeout
@@ -93,108 +70,6 @@ export async function waitForDataHavenEvent<T = any>(
 }
 
 /**
- * Wait for multiple events on the DataHaven chain
- * @param options - Options for waiting for multiple events
- * @returns Map of event paths to arrays of matched events
- */
-export async function waitForMultipleDataHavenEvents(
-  options: WaitForMultipleDataHavenEventsOptions
-): Promise<Map<string, any[]>> {
-  const { api, events, timeout = 30000, onAnyEvent } = options;
-
-  return new Promise<Map<string, any[]>>((resolve) => {
-    const subscriptions: Array<{ unsubscribe: () => void; path: string }> = [];
-    const eventResults = new Map<string, any[]>();
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    // Initialize result map
-    events.forEach((eventConfig) => {
-      const key = `${eventConfig.pallet}.${eventConfig.event}`;
-      eventResults.set(key, []);
-    });
-
-    const cleanup = () => {
-      subscriptions.forEach((sub) => sub.unsubscribe());
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    // Set up timeout
-    timeoutId = setTimeout(() => {
-      logger.debug(`Timeout waiting for events after ${timeout}ms`);
-      cleanup();
-      resolve(eventResults);
-    }, timeout);
-
-    // Set up watchers for each event
-    let allEventsMatched = false;
-
-    events.forEach((eventConfig) => {
-      const { pallet, event } = eventConfig;
-      const eventKey = `${pallet}.${event}`;
-
-      try {
-        // Access the event directly from the API
-        const eventWatcher = (api.event as any)[pallet]?.[event];
-        if (!eventWatcher) {
-          logger.warn(`Event ${eventKey} not found in API`);
-          return;
-        }
-
-        // Use polkadot-api's native filter parameter
-        const subscription = eventWatcher.watch(eventConfig.filter).subscribe({
-          next: (eventData: any) => {
-            logger.debug(`Event ${eventKey} received`);
-
-            // Store the event (already filtered by watch())
-            const currentEvents = eventResults.get(eventKey) || [];
-            currentEvents.push(eventData);
-            eventResults.set(eventKey, currentEvents);
-
-            if (onAnyEvent) {
-              onAnyEvent(pallet, event, eventData);
-            }
-
-            // Check if we should stop watching this event
-            if (eventConfig.stopOnMatch) {
-              // Check if all events that should stop on match have been matched
-              allEventsMatched = events
-                .filter((e) => e.stopOnMatch)
-                .every((e) => {
-                  const key = `${e.pallet}.${e.event}`;
-                  return (eventResults.get(key) || []).length > 0;
-                });
-
-              if (allEventsMatched) {
-                cleanup();
-                resolve(eventResults);
-              }
-            }
-          },
-          error: (error: any) => {
-            logger.error(`Error in event subscription ${eventKey}: ${error}`);
-          }
-        });
-
-        subscriptions.push({
-          unsubscribe: () => subscription.unsubscribe(),
-          path: eventKey
-        });
-      } catch (error) {
-        logger.error(`Failed to watch event ${eventKey}: ${error}`);
-      }
-    });
-
-    // If no events to watch or all failed to set up, resolve immediately
-    if (subscriptions.length === 0) {
-      cleanup();
-      resolve(eventResults);
-    }
-  });
-}
-
-/**
  * Submit a DataHaven transaction and wait for specific events
  * @param tx - Transaction to submit
  * @param signer - Transaction signer
@@ -209,7 +84,7 @@ export async function submitAndWaitForDataHavenEvents(
   timeout = 30000
 ): Promise<{
   txResult: any;
-  events: Map<string, any[]>;
+  events: Array<any | null>;
 }> {
   // Submit transaction
   const txResult = await tx.signAndSubmit(signer);
@@ -217,19 +92,22 @@ export async function submitAndWaitForDataHavenEvents(
 
   // If no events specified, just return the tx result
   if (!events || events.length === 0) {
-    return { txResult, events: new Map() };
+    return { txResult, events: [] };
   }
 
-  // Wait for specified events
-  const matchedEvents = await waitForMultipleDataHavenEvents({
-    api: tx._api || tx.api, // Handle different API access patterns
-    events: events.map((e) => ({
-      pallet: e.pallet,
-      event: e.event,
-      stopOnMatch: true
-    })),
-    timeout
-  });
+  const api = tx._api || tx.api; // Handle different API access patterns
+
+  // Wait for specified events using Promise.all
+  const matchedEvents = await Promise.all(
+    events.map((e) =>
+      waitForDataHavenEvent({
+        api,
+        pallet: e.pallet,
+        event: e.event,
+        timeout
+      })
+    )
+  );
 
   return { txResult, events: matchedEvents };
 }
@@ -256,33 +134,6 @@ export interface WaitForEthereumEventOptions<TAbi extends Abi = Abi> {
   fromBlock?: bigint;
   /** Callback for each matched event */
   onEvent?: (log: Log) => void;
-}
-
-/**
- * Options for waiting for multiple Ethereum events
- */
-export interface WaitForMultipleEthereumEventsOptions {
-  /** Viem public client instance */
-  client: PublicClient;
-  /** Array of event configurations to watch */
-  events: Array<{
-    /** Contract address */
-    address: Address;
-    /** Contract ABI */
-    abi: Abi;
-    /** Event name */
-    eventName: string;
-    /** Optional event arguments */
-    args?: any;
-    /** Stop watching after first match */
-    stopOnMatch?: boolean;
-  }>;
-  /** Timeout in milliseconds (default: 30000) */
-  timeout?: number;
-  /** Include events from past blocks */
-  fromBlock?: bigint;
-  /** Callback for any matched event */
-  onAnyEvent?: (contractAddress: Address, eventName: string, log: Log) => void;
 }
 
 /**
@@ -351,101 +202,6 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
 }
 
 /**
- * Wait for multiple events on the Ethereum chain
- * @param options - Options for waiting for multiple events
- * @returns Map of event identifiers to arrays of matched logs
- */
-export async function waitForMultipleEthereumEvents(
-  options: WaitForMultipleEthereumEventsOptions
-): Promise<Map<string, Log[]>> {
-  const { client, events, timeout = 30000, fromBlock, onAnyEvent } = options;
-
-  return new Promise<Map<string, Log[]>>((resolve) => {
-    const unwatchers: Array<() => void> = [];
-    const eventResults = new Map<string, Log[]>();
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    // Initialize result map with event identifiers
-    events.forEach((event) => {
-      const key = `${event.address}:${event.eventName}`;
-      eventResults.set(key, []);
-    });
-
-    const cleanup = () => {
-      unwatchers.forEach((unwatch) => unwatch());
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    // Set up timeout
-    timeoutId = setTimeout(() => {
-      logger.debug(`Timeout waiting for Ethereum events after ${timeout}ms`);
-      cleanup();
-      resolve(eventResults);
-    }, timeout);
-
-    // Set up watchers for each event
-    let allEventsMatched = false;
-
-    events.forEach((eventConfig) => {
-      const key = `${eventConfig.address}:${eventConfig.eventName}`;
-
-      try {
-        const unwatch = client.watchContractEvent({
-          address: eventConfig.address,
-          abi: eventConfig.abi,
-          eventName: eventConfig.eventName,
-          args: eventConfig.args,
-          fromBlock,
-          onLogs: (logs) => {
-            logger.debug(`Ethereum event ${eventConfig.eventName} received: ${logs.length} logs`);
-
-            // Store the logs
-            const currentLogs = eventResults.get(key) || [];
-            currentLogs.push(...logs);
-            eventResults.set(key, currentLogs);
-
-            if (onAnyEvent) {
-              logs.forEach((log) => onAnyEvent(eventConfig.address, eventConfig.eventName, log));
-            }
-
-            // Check if we should stop watching
-            if (eventConfig.stopOnMatch && logs.length > 0) {
-              // Check if all events that should stop on match have been matched
-              allEventsMatched = events
-                .filter((e) => e.stopOnMatch)
-                .every((e) => {
-                  const k = `${e.address}:${e.eventName}`;
-                  return (eventResults.get(k) || []).length > 0;
-                });
-
-              if (allEventsMatched) {
-                cleanup();
-                resolve(eventResults);
-              }
-            }
-          },
-          onError: (error) => {
-            logger.error(`Error watching Ethereum event ${eventConfig.eventName}: ${error}`);
-          }
-        });
-
-        unwatchers.push(unwatch);
-      } catch (error) {
-        logger.error(`Failed to watch Ethereum event ${eventConfig.eventName}: ${error}`);
-      }
-    });
-
-    // If no events to watch or all failed to set up, resolve immediately
-    if (unwatchers.length === 0) {
-      cleanup();
-      resolve(eventResults);
-    }
-  });
-}
-
-/**
  * Wait for a transaction receipt and optionally wait for specific events
  * @param client - Viem public client
  * @param hash - Transaction hash
@@ -465,7 +221,7 @@ export async function waitForTransactionAndEvents(
   timeout = 30000
 ): Promise<{
   receipt: any;
-  events: Map<string, Log[]>;
+  events: Array<Log | null>;
 }> {
   // Wait for transaction receipt
   const receipt = await client.waitForTransactionReceipt({ hash });
@@ -473,19 +229,20 @@ export async function waitForTransactionAndEvents(
 
   // If no event configs specified, just return the receipt
   if (!eventConfigs || eventConfigs.length === 0) {
-    return { receipt, events: new Map() };
+    return { receipt, events: [] };
   }
 
-  // Wait for specified events starting from the transaction block
-  const events = await waitForMultipleEthereumEvents({
-    client,
-    events: eventConfigs.map((config) => ({
-      ...config,
-      stopOnMatch: true
-    })),
-    fromBlock: receipt.blockNumber,
-    timeout
-  });
+  // Wait for specified events starting from the transaction block using Promise.all
+  const events = await Promise.all(
+    eventConfigs.map((config) =>
+      waitForEthereumEvent({
+        client,
+        ...config,
+        fromBlock: receipt.blockNumber,
+        timeout
+      })
+    )
+  );
 
   return { receipt, events };
 }

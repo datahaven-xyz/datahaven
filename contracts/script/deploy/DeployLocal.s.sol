@@ -29,11 +29,14 @@ import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 // Additional imports specific to local deployment
-import {ERC20PresetFixedSupply} from "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {ERC20PresetFixedSupply} from
+    "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ITransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 
 // EigenLayer core contract imports for implementation declarations
@@ -42,9 +45,11 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
-import {IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {IAllocationManagerTypes} from
+    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {
     IRewardsCoordinator,
@@ -54,7 +59,8 @@ import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {EigenPod} from "eigenlayer-contracts/src/contracts/pods/EigenPod.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
-import {StrategyBaseTVLLimits} from "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
+import {StrategyBaseTVLLimits} from
+    "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
@@ -98,11 +104,9 @@ contract DeployLocal is DeployBase {
         return "LOCAL";
     }
 
-    function _setupEigenLayerContracts(EigenLayerConfig memory eigenLayerConfig)
-        internal
-        override
-        returns (ProxyAdmin)
-    {
+    function _setupEigenLayerContracts(
+        EigenLayerConfig memory eigenLayerConfig
+    ) internal override returns (ProxyAdmin) {
         Logging.logHeader("EIGENLAYER CORE CONTRACTS DEPLOYMENT");
         Logging.logInfo("Deploying core infrastructure contracts");
 
@@ -131,8 +135,9 @@ contract DeployLocal is DeployBase {
 
         // Deploy EigenPod implementation and beacon
         vm.broadcast(_deployerPrivateKey);
-        eigenPodImplementation =
-            new EigenPod(ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp, SEMVER);
+        eigenPodImplementation = new EigenPod(
+            ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp, SEMVER
+        );
         vm.broadcast(_deployerPrivateKey);
         eigenPodBeacon = new UpgradeableBeacon(address(eigenPodImplementation));
         Logging.logContractDeployed("EigenPod Implementation", address(eigenPodImplementation));
@@ -222,7 +227,9 @@ contract DeployLocal is DeployBase {
         Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
 
         Logging.logSection("Strategy Contracts");
-        Logging.logContractDeployed("BaseStrategyImplementation", address(baseStrategyImplementation));
+        Logging.logContractDeployed(
+            "BaseStrategyImplementation", address(baseStrategyImplementation)
+        );
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             Logging.logContractDeployed(
                 string.concat("DeployedStrategy", vm.toString(i)), deployedStrategies[i].address_
@@ -233,7 +240,8 @@ contract DeployLocal is DeployBase {
 
         // Write to deployment file for future reference
         string memory network = _getNetworkName();
-        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", network, ".json");
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
@@ -246,26 +254,44 @@ contract DeployLocal is DeployBase {
         json = string.concat(json, '"BeefyClient": "', vm.toString(address(beefyClient)), '",');
         json = string.concat(json, '"AgentExecutor": "', vm.toString(address(agentExecutor)), '",');
         json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
-        json = string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
+        json =
+            string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
         json = string.concat(
-            json, '"ServiceManagerImplementation": "', vm.toString(address(serviceManagerImplementation)), '",'
+            json,
+            '"ServiceManagerImplementation": "',
+            vm.toString(address(serviceManagerImplementation)),
+            '",'
         );
-        json = string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
-        json = string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json =
+            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
+        json =
+            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
-        json = string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json =
+            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
         json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
-        json = string.concat(json, '"EigenPodManager": "', vm.toString(address(eigenPodManager)), '",');
-        json = string.concat(json, '"EigenPodBeacon": "', vm.toString(address(eigenPodBeacon)), '",');
-        json = string.concat(json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",');
-        json = string.concat(json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",');
-        json = string.concat(json, '"PermissionController": "', vm.toString(address(permissionController)), '",');
+        json =
+            string.concat(json, '"EigenPodManager": "', vm.toString(address(eigenPodManager)), '",');
+        json =
+            string.concat(json, '"EigenPodBeacon": "', vm.toString(address(eigenPodBeacon)), '",');
+        json = string.concat(
+            json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
+        );
+        json = string.concat(
+            json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
+        );
+        json = string.concat(
+            json, '"PermissionController": "', vm.toString(address(permissionController)), '",'
+        );
         json = string.concat(json, '"ETHPOSDeposit": "', vm.toString(address(ethPOSDeposit)), '",');
         json = string.concat(
-            json, '"BaseStrategyImplementation": "', vm.toString(address(baseStrategyImplementation)), '"'
+            json,
+            '"BaseStrategyImplementation": "',
+            vm.toString(address(baseStrategyImplementation)),
+            '"'
         );
 
         // Add strategies with token information
@@ -275,11 +301,18 @@ contract DeployLocal is DeployBase {
 
             for (uint256 i = 0; i < deployedStrategies.length; i++) {
                 json = string.concat(json, "{");
-                json = string.concat(json, '"address": "', vm.toString(deployedStrategies[i].address_), '",');
                 json = string.concat(
-                    json, '"underlyingToken": "', vm.toString(deployedStrategies[i].underlyingToken), '",'
+                    json, '"address": "', vm.toString(deployedStrategies[i].address_), '",'
                 );
-                json = string.concat(json, '"tokenCreator": "', vm.toString(deployedStrategies[i].tokenCreator), '"');
+                json = string.concat(
+                    json,
+                    '"underlyingToken": "',
+                    vm.toString(deployedStrategies[i].underlyingToken),
+                    '",'
+                );
+                json = string.concat(
+                    json, '"tokenCreator": "', vm.toString(deployedStrategies[i].tokenCreator), '"'
+                );
                 json = string.concat(json, "}");
 
                 // Add comma if not the last element
@@ -300,7 +333,9 @@ contract DeployLocal is DeployBase {
 
     // LOCAL-SPECIFIC FUNCTIONS
 
-    function _prepareStrategiesForServiceManager(ServiceManagerInitParams memory params) view internal {
+    function _prepareStrategiesForServiceManager(
+        ServiceManagerInitParams memory params
+    ) internal view {
         if (params.validatorsStrategies.length == 0) {
             params.validatorsStrategies = new address[](deployedStrategies.length);
             for (uint256 i = 0; i < deployedStrategies.length; i++) {
@@ -309,47 +344,71 @@ contract DeployLocal is DeployBase {
         }
     }
 
-    function _deployProxies(ProxyAdmin proxyAdmin) internal {
+    function _deployProxies(
+        ProxyAdmin proxyAdmin
+    ) internal {
         // Deploy proxies with empty implementation initially
         vm.broadcast(_deployerPrivateKey);
-        delegation =
-            DelegationManager(address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")));
+        delegation = DelegationManager(
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
+        );
         Logging.logContractDeployed("DelegationManager Proxy", address(delegation));
 
         vm.broadcast(_deployerPrivateKey);
-        strategyManager =
-            StrategyManager(address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")));
+        strategyManager = StrategyManager(
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
+        );
         Logging.logContractDeployed("StrategyManager Proxy", address(strategyManager));
 
         vm.broadcast(_deployerPrivateKey);
-        avsDirectory =
-            AVSDirectory(address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")));
+        avsDirectory = AVSDirectory(
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
+        );
         Logging.logContractDeployed("AVSDirectory Proxy", address(avsDirectory));
 
         vm.broadcast(_deployerPrivateKey);
-        eigenPodManager =
-            EigenPodManager(address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")));
+        eigenPodManager = EigenPodManager(
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
+        );
         Logging.logContractDeployed("EigenPodManager Proxy", address(eigenPodManager));
 
         vm.broadcast(_deployerPrivateKey);
         rewardsCoordinator = RewardsCoordinator(
-            address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), ""))
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
         );
         Logging.logContractDeployed("RewardsCoordinator Proxy", address(rewardsCoordinator));
 
         vm.broadcast(_deployerPrivateKey);
-        allocationManager =
-            AllocationManager(address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")));
+        allocationManager = AllocationManager(
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
+        );
         Logging.logContractDeployed("AllocationManager Proxy", address(allocationManager));
 
         vm.broadcast(_deployerPrivateKey);
         permissionController = PermissionController(
-            address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), ""))
+            address(
+                new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")
+            )
         );
         Logging.logContractDeployed("PermissionController Proxy", address(permissionController));
     }
 
-    function _deployImplementations(EigenLayerConfig memory config, PauserRegistry pauserRegistry) internal {
+    function _deployImplementations(
+        EigenLayerConfig memory config,
+        PauserRegistry pauserRegistry
+    ) internal {
         // Deploy implementation contracts
         vm.broadcast(_deployerPrivateKey);
         delegationImplementation = new DelegationManager(
@@ -361,20 +420,28 @@ contract DeployLocal is DeployBase {
             config.minWithdrawalDelayBlocks,
             SEMVER
         );
-        Logging.logContractDeployed("DelegationManager Implementation", address(delegationImplementation));
+        Logging.logContractDeployed(
+            "DelegationManager Implementation", address(delegationImplementation)
+        );
 
         vm.broadcast(_deployerPrivateKey);
         strategyManagerImplementation = new StrategyManager(delegation, pauserRegistry, SEMVER);
-        Logging.logContractDeployed("StrategyManager Implementation", address(strategyManagerImplementation));
+        Logging.logContractDeployed(
+            "StrategyManager Implementation", address(strategyManagerImplementation)
+        );
 
         vm.broadcast(_deployerPrivateKey);
         avsDirectoryImplementation = new AVSDirectory(delegation, pauserRegistry, SEMVER);
-        Logging.logContractDeployed("AVSDirectory Implementation", address(avsDirectoryImplementation));
+        Logging.logContractDeployed(
+            "AVSDirectory Implementation", address(avsDirectoryImplementation)
+        );
 
         vm.broadcast(_deployerPrivateKey);
         eigenPodManagerImplementation =
             new EigenPodManager(ethPOSDeposit, eigenPodBeacon, delegation, pauserRegistry, SEMVER);
-        Logging.logContractDeployed("EigenPodManager Implementation", address(eigenPodManagerImplementation));
+        Logging.logContractDeployed(
+            "EigenPodManager Implementation", address(eigenPodManagerImplementation)
+        );
 
         vm.broadcast(_deployerPrivateKey);
         rewardsCoordinatorImplementation = new RewardsCoordinator(
@@ -392,7 +459,9 @@ contract DeployLocal is DeployBase {
                 SEMVER
             )
         );
-        Logging.logContractDeployed("RewardsCoordinator Implementation", address(rewardsCoordinatorImplementation));
+        Logging.logContractDeployed(
+            "RewardsCoordinator Implementation", address(rewardsCoordinatorImplementation)
+        );
 
         vm.broadcast(_deployerPrivateKey);
         allocationManagerImplementation = new AllocationManager(
@@ -403,14 +472,21 @@ contract DeployLocal is DeployBase {
             config.allocationConfigurationDelay,
             SEMVER
         );
-        Logging.logContractDeployed("AllocationManager Implementation", address(allocationManagerImplementation));
+        Logging.logContractDeployed(
+            "AllocationManager Implementation", address(allocationManagerImplementation)
+        );
 
         vm.broadcast(_deployerPrivateKey);
         permissionControllerImplementation = new PermissionController(SEMVER);
-        Logging.logContractDeployed("PermissionController Implementation", address(permissionControllerImplementation));
+        Logging.logContractDeployed(
+            "PermissionController Implementation", address(permissionControllerImplementation)
+        );
     }
 
-    function _upgradeAndInitializeProxies(EigenLayerConfig memory config, ProxyAdmin proxyAdmin) internal {
+    function _upgradeAndInitializeProxies(
+        EigenLayerConfig memory config,
+        ProxyAdmin proxyAdmin
+    ) internal {
         // Initialize DelegationManager
         {
             IStrategy[] memory strategies;
@@ -465,7 +541,9 @@ contract DeployLocal is DeployBase {
             ITransparentUpgradeableProxy(payable(address(eigenPodManager))),
             address(eigenPodManagerImplementation),
             abi.encodeWithSelector(
-                EigenPodManager.initialize.selector, config.executorMultisig, config.eigenPodManagerInitPausedStatus
+                EigenPodManager.initialize.selector,
+                config.executorMultisig,
+                config.eigenPodManagerInitPausedStatus
             )
         );
         Logging.logStep("EigenPodManager initialized");
@@ -492,7 +570,9 @@ contract DeployLocal is DeployBase {
             ITransparentUpgradeableProxy(payable(address(allocationManager))),
             address(allocationManagerImplementation),
             abi.encodeWithSelector(
-                AllocationManager.initialize.selector, config.executorMultisig, config.allocationManagerInitPausedStatus
+                AllocationManager.initialize.selector,
+                config.executorMultisig,
+                config.allocationManagerInitPausedStatus
             )
         );
         Logging.logStep("AllocationManager initialized");
@@ -509,7 +589,8 @@ contract DeployLocal is DeployBase {
     function _deployStrategies(PauserRegistry pauserRegistry, ProxyAdmin proxyAdmin) internal {
         // Deploy base strategy implementation
         vm.broadcast(_deployerPrivateKey);
-        baseStrategyImplementation = new StrategyBaseTVLLimits(strategyManager, pauserRegistry, SEMVER);
+        baseStrategyImplementation =
+            new StrategyBaseTVLLimits(strategyManager, pauserRegistry, SEMVER);
         Logging.logContractDeployed("Strategy Implementation", address(baseStrategyImplementation));
 
         // Create default test token and strategy if needed
@@ -517,7 +598,8 @@ contract DeployLocal is DeployBase {
         if (block.chainid != 1) {
             // We mint tokens to the operator account so that it then has a balance to deposit as stake.
             vm.broadcast(_deployerPrivateKey);
-            address testToken = address(new ERC20PresetFixedSupply("TestToken", "TEST", 1000000 ether, _operator));
+            address testToken =
+                address(new ERC20PresetFixedSupply("TestToken", "TEST", 1000000 ether, _operator));
             Logging.logContractDeployed("TestToken", testToken);
 
             // Create strategy for test token
@@ -539,7 +621,11 @@ contract DeployLocal is DeployBase {
 
             // Store the strategy with its token information
             deployedStrategies.push(
-                StrategyInfo({address_: address(strategy), underlyingToken: testToken, tokenCreator: _operator})
+                StrategyInfo({
+                    address_: address(strategy),
+                    underlyingToken: testToken,
+                    tokenCreator: _operator
+                })
             );
             Logging.logContractDeployed("Test Strategy", address(strategy));
         }
@@ -553,7 +639,9 @@ contract DeployLocal is DeployBase {
         strategyManager.addStrategiesToDepositWhitelist(strategies);
     }
 
-    function _deployPauserRegistry(EigenLayerConfig memory config) internal returns (PauserRegistry) {
+    function _deployPauserRegistry(
+        EigenLayerConfig memory config
+    ) internal returns (PauserRegistry) {
         // Use the array of pauser addresses directly from the config
         vm.broadcast(_deployerPrivateKey);
         return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);

@@ -21,7 +21,8 @@ import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // OpenZeppelin imports
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // EigenLayer imports
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
@@ -29,7 +30,8 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 
@@ -81,7 +83,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     }
 
     // Abstract functions that must be implemented by inheriting contracts
-    function _setupEigenLayerContracts(EigenLayerConfig memory config) internal virtual returns (ProxyAdmin);
+    function _setupEigenLayerContracts(
+        EigenLayerConfig memory config
+    ) internal virtual returns (ProxyAdmin);
     function _getNetworkName() internal virtual returns (string memory);
     function _getDeploymentMode() internal virtual returns (string memory);
 
@@ -109,8 +113,12 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
 
         // Deploy Snowbridge (same for both modes)
         Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
-        (BeefyClient beefyClient, AgentExecutor agentExecutor, IGatewayV2 gateway, address payable rewardsAgentAddress)
-        = _deploySnowbridge(snowbridgeConfig);
+        (
+            BeefyClient beefyClient,
+            AgentExecutor agentExecutor,
+            IGatewayV2 gateway,
+            address payable rewardsAgentAddress
+        ) = _deploySnowbridge(snowbridgeConfig);
         Logging.logFooter();
         _logProgress();
 
@@ -147,16 +155,19 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             rewardsAgentAddress
         );
 
-        _outputRewardsInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin, updateRewardsMerkleRootSelector);
+        _outputRewardsInfo(
+            rewardsAgentAddress,
+            snowbridgeConfig.rewardsMessageOrigin,
+            updateRewardsMerkleRootSelector
+        );
     }
 
     /**
      * @notice Deploy Snowbridge components (shared across all deployment types)
      */
-    function _deploySnowbridge(SnowbridgeConfig memory config)
-        internal
-        returns (BeefyClient, AgentExecutor, IGatewayV2, address payable)
-    {
+    function _deploySnowbridge(
+        SnowbridgeConfig memory config
+    ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
         Logging.logSection("Deploying Snowbridge Core Components");
 
         BeefyClient beefyClient = _deployBeefyClient(config);
@@ -185,8 +196,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         });
 
         vm.broadcast(_deployerPrivateKey);
-        IGatewayV2 gateway =
-            IGatewayV2(address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig))));
+        IGatewayV2 gateway = IGatewayV2(
+            address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig)))
+        );
         Logging.logContractDeployed("Gateway Proxy", address(gateway));
 
         // Create Agent
@@ -226,9 +238,19 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     /**
      * @notice Deploy DataHaven custom contracts (shared with mode-specific proxy creation)
      */
-    function _deployDataHavenContracts(AVSConfig memory avsConfig, ProxyAdmin proxyAdmin, IGatewayV2 gateway)
+    function _deployDataHavenContracts(
+        AVSConfig memory avsConfig,
+        ProxyAdmin proxyAdmin,
+        IGatewayV2 gateway
+    )
         internal
-        returns (DataHavenServiceManager, DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4)
+        returns (
+            DataHavenServiceManager,
+            DataHavenServiceManager,
+            VetoableSlasher,
+            RewardsRegistry,
+            bytes4
+        )
     {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
@@ -236,7 +258,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         vm.broadcast(_deployerPrivateKey);
         DataHavenServiceManager serviceManagerImplementation =
             new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
-        Logging.logContractDeployed("ServiceManager Implementation", address(serviceManagerImplementation));
+        Logging.logContractDeployed(
+            "ServiceManager Implementation", address(serviceManagerImplementation)
+        );
 
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
@@ -254,7 +278,10 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Deploy VetoableSlasher
         vm.broadcast(_deployerPrivateKey);
         VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager, serviceManager, avsConfig.vetoCommitteeMember, avsConfig.vetoWindowBlocks
+            allocationManager,
+            serviceManager,
+            avsConfig.vetoCommitteeMember,
+            avsConfig.vetoWindowBlocks
         );
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 
@@ -328,12 +355,15 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         Logging.logHeader("REWARDS AGENT INFO");
         Logging.logContractDeployed("RewardsAgent", rewardsAgent);
         Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
-        Logging.logFunctionSelector("updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector));
+        Logging.logFunctionSelector(
+            "updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector)
+        );
         Logging.logFooter();
 
         // Write to deployment file for future reference
         string memory network = _getNetworkName();
-        string memory rewardsInfoPath = string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
+        string memory rewardsInfoPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
@@ -358,7 +388,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     /**
      * @notice Helper function to trim a padded hex string to only the first 4 bytes
      */
-    function _trimToBytes4(string memory paddedHex) internal pure returns (string memory) {
+    function _trimToBytes4(
+        string memory paddedHex
+    ) internal pure returns (string memory) {
         bytes memory data = bytes(paddedHex);
         bytes memory trimmed = new bytes(10); // 0x + 8 hex chars = 10 total chars
 

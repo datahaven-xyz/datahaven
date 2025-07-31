@@ -22,11 +22,13 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
 // OpenZeppelin imports for proxy creation
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title DeployTestnet
@@ -46,7 +48,10 @@ contract DeployTestnet is DeployBase {
     function run() public {
         // Network detection and validation
         networkName = vm.envString("NETWORK");
-        require(bytes(networkName).length > 0, "NETWORK environment variable required for testnet deployment");
+        require(
+            bytes(networkName).length > 0,
+            "NETWORK environment variable required for testnet deployment"
+        );
 
         currentTestnet = _detectAndValidateNetwork(networkName);
         totalSteps = 2; // Reduced steps since we're not deploying EigenLayer
@@ -68,9 +73,13 @@ contract DeployTestnet is DeployBase {
         return "UNKNOWN_TESTNET";
     }
 
-    function _setupEigenLayerContracts(EigenLayerConfig memory config) internal override returns (ProxyAdmin) {
+    function _setupEigenLayerContracts(
+        EigenLayerConfig memory config
+    ) internal override returns (ProxyAdmin) {
         Logging.logHeader("REFERENCING EXISTING EIGENLAYER CONTRACTS");
-        Logging.logSection(string.concat("Referencing Existing EigenLayer Contracts on ", _getDeploymentMode()));
+        Logging.logSection(
+            string.concat("Referencing Existing EigenLayer Contracts on ", _getDeploymentMode())
+        );
 
         // Reference existing EigenLayer contracts using addresses from config
         delegation = DelegationManager(config.delegationManager);
@@ -93,7 +102,9 @@ contract DeployTestnet is DeployBase {
         Logging.logContractDeployed("AVSDirectory (existing)", address(avsDirectory));
         Logging.logContractDeployed("RewardsCoordinator (existing)", address(rewardsCoordinator));
         Logging.logContractDeployed("AllocationManager (existing)", address(allocationManager));
-        Logging.logContractDeployed("PermissionController (existing)", address(permissionController));
+        Logging.logContractDeployed(
+            "PermissionController (existing)", address(permissionController)
+        );
 
         Logging.logStep("All EigenLayer contracts referenced successfully");
         Logging.logFooter();
@@ -150,7 +161,9 @@ contract DeployTestnet is DeployBase {
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
-        Logging.logSection(string.concat("EigenLayer Core Contracts (Existing on ", _getDeploymentMode(), ")"));
+        Logging.logSection(
+            string.concat("EigenLayer Core Contracts (Existing on ", _getDeploymentMode(), ")")
+        );
         Logging.logContractDeployed("DelegationManager", address(delegation));
         Logging.logContractDeployed("StrategyManager", address(strategyManager));
         Logging.logContractDeployed("AVSDirectory", address(avsDirectory));
@@ -162,7 +175,8 @@ contract DeployTestnet is DeployBase {
 
         // Write to deployment file for future reference
         string memory network = _getNetworkName();
-        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", network, ".json");
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
 
         // Create directory if it doesn't exist
         vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
@@ -175,21 +189,34 @@ contract DeployTestnet is DeployBase {
         json = string.concat(json, '"BeefyClient": "', vm.toString(address(beefyClient)), '",');
         json = string.concat(json, '"AgentExecutor": "', vm.toString(address(agentExecutor)), '",');
         json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
-        json = string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
+        json =
+            string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
         json = string.concat(
-            json, '"ServiceManagerImplementation": "', vm.toString(address(serviceManagerImplementation)), '",'
+            json,
+            '"ServiceManagerImplementation": "',
+            vm.toString(address(serviceManagerImplementation)),
+            '",'
         );
-        json = string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
-        json = string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json =
+            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
+        json =
+            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts (existing on testnet)
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
-        json = string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json =
+            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
         json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
-        json = string.concat(json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",');
-        json = string.concat(json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",');
-        json = string.concat(json, '"PermissionController": "', vm.toString(address(permissionController)), '"');
+        json = string.concat(
+            json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
+        );
+        json = string.concat(
+            json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
+        );
+        json = string.concat(
+            json, '"PermissionController": "', vm.toString(address(permissionController)), '"'
+        );
 
         json = string.concat(json, "}");
 
@@ -203,7 +230,9 @@ contract DeployTestnet is DeployBase {
     /**
      * @notice Detect and validate the target testnet network
      */
-    function _detectAndValidateNetwork(string memory network) internal pure returns (TestnetChain) {
+    function _detectAndValidateNetwork(
+        string memory network
+    ) internal pure returns (TestnetChain) {
         bytes32 networkHash = keccak256(abi.encodePacked(network));
 
         if (networkHash == keccak256(abi.encodePacked("hoodi"))) {
@@ -212,14 +241,23 @@ contract DeployTestnet is DeployBase {
             return TestnetChain.HOLESKY;
         }
 
-        revert(string.concat("Unsupported testnet network: ", network, ". Supported networks: hoodi, holesky"));
+        revert(
+            string.concat(
+                "Unsupported testnet network: ", network, ". Supported networks: hoodi, holesky"
+            )
+        );
     }
 
     /**
      * @notice Validate that a contract exists at the given address
      */
-    function _validateContractExists(address contractAddress, string memory contractName) internal view {
-        require(contractAddress != address(0), string.concat(contractName, " address cannot be zero"));
+    function _validateContractExists(
+        address contractAddress,
+        string memory contractName
+    ) internal view {
+        require(
+            contractAddress != address(0), string.concat(contractName, " address cannot be zero")
+        );
 
         uint256 codeSize;
         assembly {
@@ -227,7 +265,9 @@ contract DeployTestnet is DeployBase {
         }
         require(
             codeSize > 0,
-            string.concat("No contract found at ", contractName, " address: ", vm.toString(contractAddress))
+            string.concat(
+                "No contract found at ", contractName, " address: ", vm.toString(contractAddress)
+            )
         );
     }
 

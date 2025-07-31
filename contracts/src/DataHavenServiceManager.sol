@@ -51,7 +51,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-
     enum Message {
         V0
     }
@@ -59,7 +58,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     enum OutboundCommandV1 {
         ReceiveValidators
     }
-
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -144,7 +142,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         }
 
         bytes4 EL_MESSAGE_ID = 0x70150038;
-        
+
         return bytes.concat(
             EL_MESSAGE_ID,
             bytes1(uint8(Message.V0)),

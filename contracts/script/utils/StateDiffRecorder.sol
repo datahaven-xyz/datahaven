@@ -465,7 +465,9 @@ abstract contract StateDiffRecorder is Script {
         return finalJson;
     }
 
-    function finalizeStateDiff(Vm.AccountAccess[] memory diffs) internal {
+    function finalizeStateDiff(
+        Vm.AccountAccess[] memory diffs
+    ) internal {
         if (diffs.length > 0) {
             processAndDisplayStateDiff(diffs);
             exportStateDiff(vm, diffs, stateDiffFilename);

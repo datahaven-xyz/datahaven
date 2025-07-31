@@ -294,7 +294,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
 
     function _deployProxies(
         ProxyAdmin proxyAdmin
-    ) internal  {
+    ) internal {
         // Deploy proxies with empty implementation initially
         vm.broadcast(_deployerPrivateKey);
         delegation = DelegationManager(
@@ -356,7 +356,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
     function _deployImplementations(
         EigenLayerConfig memory config,
         PauserRegistry pauserRegistry
-    ) internal  {
+    ) internal {
         // Deploy implementation contracts
         vm.broadcast(_deployerPrivateKey);
         delegationImplementation = new DelegationManager(
@@ -434,7 +434,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
     function _upgradeAndInitializeProxies(
         EigenLayerConfig memory config,
         ProxyAdmin proxyAdmin
-    ) internal  {
+    ) internal {
         // Initialize DelegationManager
         {
             IStrategy[] memory strategies;
@@ -534,10 +534,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         Logging.logStep("PermissionController upgraded");
     }
 
-    function _deployStrategies(
-        PauserRegistry pauserRegistry,
-        ProxyAdmin proxyAdmin
-    ) internal  {
+    function _deployStrategies(PauserRegistry pauserRegistry, ProxyAdmin proxyAdmin) internal {
         // Deploy base strategy implementation
         vm.broadcast(_deployerPrivateKey);
         baseStrategyImplementation =
@@ -590,14 +587,14 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         strategyManager.addStrategiesToDepositWhitelist(strategies);
     }
 
-    function _deployProxyAdmin() internal  returns (ProxyAdmin) {
+    function _deployProxyAdmin() internal returns (ProxyAdmin) {
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         return proxyAdmin;
     }
 
     function _deployPauserRegistry(
         EigenLayerConfig memory config
-    ) internal  returns (PauserRegistry) {
+    ) internal returns (PauserRegistry) {
         // Use the array of pauser addresses directly from the config
         vm.broadcast(_deployerPrivateKey);
         return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
@@ -605,7 +602,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
 
     function _deployBeefyClient(
         SnowbridgeConfig memory config
-    ) internal  returns (BeefyClient) {
+    ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
         BeefyClient.ValidatorSet memory validatorSet =
             ValidatorsUtils._buildValidatorSet(0, config.initialValidatorHashes);
@@ -798,11 +795,7 @@ contract Deploy is StateDiffRecorder, DeployParams, Accounts {
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway
-    )
-        internal
-        
-        returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4)
-    {
+    ) internal returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager

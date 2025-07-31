@@ -10,6 +10,19 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 
 // Logging import
 import {Logging} from "../utils/Logging.sol";
+import {Accounts} from "../utils/Accounts.sol";
+import {ValidatorsUtils} from "../utils/ValidatorsUtils.sol";
+
+// Snowbridge imports
+import {Gateway} from "snowbridge/src/Gateway.sol";
+import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
+import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
+import {AgentExecutor} from "snowbridge/src/AgentExecutor.sol";
+import {Agent} from "snowbridge/src/Agent.sol";
+import {Initializer} from "snowbridge/src/Initializer.sol";
+import {OperatingMode} from "snowbridge/src/types/Common.sol";
+import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
+import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // DataHaven imports for function signatures
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
@@ -45,6 +58,9 @@ import {StrategyBaseTVLLimits} from "eigenlayer-contracts/src/contracts/strategi
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
+import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
+import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
+import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
 /**
  * @title DeployLocal
@@ -541,5 +557,153 @@ contract DeployLocal is DeployBase {
         // Use the array of pauser addresses directly from the config
         vm.broadcast(_deployerPrivateKey);
         return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
+    }
+
+    function _outputDeployedAddresses(
+        BeefyClient beefyClient,
+        AgentExecutor agentExecutor,
+        IGatewayV2 gateway,
+        DataHavenServiceManager serviceManager,
+        VetoableSlasher vetoableSlasher,
+        RewardsRegistry rewardsRegistry,
+        address rewardsAgent
+    ) internal {
+        Logging.logHeader("DEPLOYMENT SUMMARY");
+
+        Logging.logSection("Snowbridge Contracts + Rewards Agent");
+        Logging.logContractDeployed("BeefyClient", address(beefyClient));
+        Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
+        Logging.logContractDeployed("Gateway", address(gateway));
+        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
+
+        Logging.logSection("DataHaven Contracts");
+        Logging.logContractDeployed("ServiceManager", address(serviceManager));
+        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
+        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
+
+        Logging.logSection("EigenLayer Core Contracts");
+        Logging.logContractDeployed("DelegationManager", address(delegation));
+        Logging.logContractDeployed("StrategyManager", address(strategyManager));
+        Logging.logContractDeployed("AVSDirectory", address(avsDirectory));
+        Logging.logContractDeployed("EigenPodManager", address(eigenPodManager));
+        Logging.logContractDeployed("EigenPodBeacon", address(eigenPodBeacon));
+        Logging.logContractDeployed("RewardsCoordinator", address(rewardsCoordinator));
+        Logging.logContractDeployed("AllocationManager", address(allocationManager));
+        Logging.logContractDeployed("PermissionController", address(permissionController));
+        Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
+
+        Logging.logSection("Strategy Contracts");
+        Logging.logContractDeployed(
+            "BaseStrategyImplementation", address(baseStrategyImplementation)
+        );
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            Logging.logContractDeployed(
+                string.concat("DeployedStrategy", vm.toString(i)), deployedStrategies[i].address_
+            );
+        }
+
+        Logging.logFooter();
+
+        // Write to deployment file for future reference
+        string memory network = vm.envOr("NETWORK", string("anvil"));
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
+
+        // Create directory if it doesn't exist
+        vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
+
+        // Create JSON with deployed addresses
+        string memory json = "{";
+        json = string.concat(json, '"network": "', network, '",');
+
+        // Snowbridge contracts
+        json = string.concat(json, '"BeefyClient": "', vm.toString(address(beefyClient)), '",');
+        json = string.concat(json, '"AgentExecutor": "', vm.toString(address(agentExecutor)), '",');
+        json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
+        json =
+            string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
+        json =
+            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
+        json =
+            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
+
+        // EigenLayer contracts
+        json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
+        json =
+            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
+        json =
+            string.concat(json, '"EigenPodManager": "', vm.toString(address(eigenPodManager)), '",');
+        json =
+            string.concat(json, '"EigenPodBeacon": "', vm.toString(address(eigenPodBeacon)), '",');
+        json = string.concat(
+            json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
+        );
+        json = string.concat(
+            json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
+        );
+        json = string.concat(
+            json, '"PermissionController": "', vm.toString(address(permissionController)), '",'
+        );
+        json = string.concat(json, '"ETHPOSDeposit": "', vm.toString(address(ethPOSDeposit)), '",');
+        json = string.concat(
+            json,
+            '"BaseStrategyImplementation": "',
+            vm.toString(address(baseStrategyImplementation)),
+            '"'
+        );
+
+        // Add strategies with token information
+        if (deployedStrategies.length > 0) {
+            json = string.concat(json, ",");
+            json = string.concat(json, '"DeployedStrategies": [');
+
+            for (uint256 i = 0; i < deployedStrategies.length; i++) {
+                json = string.concat(json, "{");
+                json = string.concat(
+                    json, '"address": "', vm.toString(deployedStrategies[i].address_), '",'
+                );
+                json = string.concat(
+                    json,
+                    '"underlyingToken": "',
+                    vm.toString(deployedStrategies[i].underlyingToken),
+                    '",'
+                );
+                json = string.concat(
+                    json, '"tokenCreator": "', vm.toString(deployedStrategies[i].tokenCreator), '"'
+                );
+                json = string.concat(json, "}");
+
+                // Add comma if not the last element
+                if (i < deployedStrategies.length - 1) {
+                    json = string.concat(json, ",");
+                }
+            }
+
+            json = string.concat(json, "]");
+        }
+
+        json = string.concat(json, "}");
+
+        // Write to file
+        vm.writeFile(deploymentPath, json);
+        Logging.logInfo(string.concat("Deployment info saved to: ", deploymentPath));
+    }
+
+    function _prepareStrategiesForServiceManager(
+        AVSConfig memory config,
+        StrategyInfo[] memory strategies
+    ) internal pure {
+        if (config.validatorsStrategies.length == 0) {
+            config.validatorsStrategies = new address[](strategies.length);
+            config.bspsStrategies = new address[](strategies.length);
+            config.mspsStrategies = new address[](strategies.length);
+            for (uint256 i = 0; i < strategies.length; i++) {
+                config.validatorsStrategies[i] = strategies[i].address_;
+                config.bspsStrategies[i] = strategies[i].address_;
+                config.mspsStrategies[i] = strategies[i].address_;
+            }
+        }
     }
 }

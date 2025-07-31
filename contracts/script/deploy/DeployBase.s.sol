@@ -39,6 +39,7 @@ import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
+import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
 // Shared structs
 struct ServiceManagerInitParams {
@@ -199,27 +200,16 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     }
 
     /**
-     * @notice Build validator set from validator hashes (shared utility)
-     */
-    function _buildValidatorSet(uint128 id, bytes32[] memory validators)
-        internal
-        pure
-        returns (BeefyClient.ValidatorSet memory)
-    {
-        // Calculate the merkle root from the validators array using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validators);
-
-        // Create and return the validator set with the calculated merkle root
-        return BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
-    }
-
-    /**
      * @notice Deploy BeefyClient (shared across all deployment types)
      */
-    function _deployBeefyClient(SnowbridgeConfig memory config) internal returns (BeefyClient) {
+    function _deployBeefyClient(
+        SnowbridgeConfig memory config
+    ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
-        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, config.initialValidatorHashes);
-        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, config.nextValidatorHashes);
+        BeefyClient.ValidatorSet memory validatorSet =
+            ValidatorsUtils._buildValidatorSet(0, config.initialValidatorHashes);
+        BeefyClient.ValidatorSet memory nextValidatorSet =
+            ValidatorsUtils._buildValidatorSet(1, config.nextValidatorHashes);
 
         // Deploy BeefyClient
         vm.broadcast(_deployerPrivateKey);

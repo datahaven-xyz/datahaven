@@ -87,49 +87,6 @@ export async function waitForDataHavenEvent<T = any>(
   return { pallet, event, data };
 }
 
-/**
- * Submit a DataHaven transaction and wait for specific events
- * @param tx - Transaction to submit
- * @param signer - Transaction signer
- * @param events - Optional array of events to wait for after inclusion
- * @param timeout - Timeout in milliseconds
- * @returns Transaction result and any matched events
- */
-export async function submitAndWaitForDataHavenEvents(
-  tx: any,
-  signer: any,
-  events?: Array<{ pallet: string; event: string }>,
-  timeout = 30000
-): Promise<{
-  txResult: any;
-  events: Array<DataHavenEventResult>;
-}> {
-  // Submit transaction
-  const txResult = await tx.signAndSubmit(signer);
-  logger.debug(`Transaction submitted: ${txResult}`);
-
-  // If no events specified, just return the tx result
-  if (!events || events.length === 0) {
-    return { txResult, events: [] };
-  }
-
-  const api = tx._api || tx.api; // Handle different API access patterns
-
-  // Wait for specified events using Promise.all
-  const matchedEvents = await Promise.all(
-    events.map((e) =>
-      waitForDataHavenEvent({
-        api,
-        pallet: e.pallet,
-        event: e.event,
-        timeout
-      })
-    )
-  );
-
-  return { txResult, events: matchedEvents };
-}
-
 // ================== Ethereum Event Utilities ==================
 
 /**

@@ -112,7 +112,7 @@ export interface WaitForEthereumEventOptions<TAbi extends Abi = Abi> {
   /** Contract ABI */
   abi: TAbi;
   /** Event name to watch for */
-  eventName: string;
+  eventName: any;
   /** Optional event arguments to filter */
   args?: any;
   /** Timeout in milliseconds (default: 30000) */

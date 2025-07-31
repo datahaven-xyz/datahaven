@@ -8,7 +8,9 @@ DataHaven uses runtime benchmarking to generate accurate weight calculations for
 
 ### Requirements
 
-- `frame-omni-bencher` - Install with: `cargo install frame-omni-bencher --profile=production`
+Make sure you have the lastest rust version
+
+- `frame-omni-bencher` - Install with: `cargo install frame-omni-bencher --profile=production` (or `cargo install --git https://github.com/paritytech/polkadot-sdk frame-omni-bencher --profile=production --locked`)
 
 ### Running Benchmarks
 

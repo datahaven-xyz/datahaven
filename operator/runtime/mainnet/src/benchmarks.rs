@@ -33,13 +33,9 @@ frame_benchmarking::define_benchmarks!(
 
     // Substrate pallets
     [pallet_balances, Balances]
-    // TODO: We cannot add due to EthereumSignature not being able
-    // to sign with Sr25519. Can be implemented once we incorporate
-    // https://github.com/paritytech/polkadot-sdk/pull/8179
+    // FIXME: benchmarking identity fail
     // [pallet_identity, Identity]
-    // TODO: Benchmark does not work when MaxKeys is set < 1000.
-    // See https://github.com/paritytech/polkadot-sdk/blob/180fcce69fbddfa1bde9830362d8026340b4b750/substrate/frame/im-online/src/benchmarking.rs#L32
-    // [pallet_im_online, ImOnline]
+    [pallet_im_online, ImOnline]
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]
     [pallet_scheduler, Scheduler]

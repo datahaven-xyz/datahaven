@@ -51,6 +51,16 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
+
+    enum Message {
+        V0
+    }
+
+    enum OutboundCommandV1 {
+        ReceiveValidators
+    }
+
+
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
@@ -96,7 +106,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         uint128 relayerFee
     ) external payable onlyOwner {
         // Send the new validator set message to the Snowbridge Gateway
-        // bytes memory message = buildNewValidatorSetMessage();
+        bytes memory message = buildNewValidatorSetMessage();
         // _snowbridgeGateway.v2_sendMessage{value: msg.value}(
         //     message,
         //     new bytes[](0), // No assets to send
@@ -119,11 +129,34 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         }
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
-        DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
-            DataHavenSnowbridgeMessages.NewValidatorSet({payload: newValidatorSetPayload});
+
+        // FIXME: temp solution until we figure out why the lib broke when we inject contracts
+        uint32 validatorsLen = uint32(newValidatorSetPayload.validators.length);
+        address[] memory validatorSet = newValidatorSetPayload.validators;
+
+        uint64 externalIndex = uint64(0);
+
+        // Flatten the validator set into a single bytes array
+        bytes memory validatorsFlattened;
+        for (uint32 i = 0; i < validatorSet.length; i++) {
+            validatorsFlattened =
+                bytes.concat(validatorsFlattened, abi.encodePacked(validatorSet[i]));
+        }
+
+        bytes4 EL_MESSAGE_ID = 0x70150038;
+        
+        return bytes.concat(
+            EL_MESSAGE_ID,
+            bytes1(uint8(Message.V0)),
+            bytes1(uint8(OutboundCommandV1.ReceiveValidators)),
+            ScaleCodec.encodeCompactU32(validatorsLen),
+            validatorsFlattened,
+            ScaleCodec.encodeU64(externalIndex)
+        );
 
         // Return the encoded message
-        return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
+        // FIXME: When we inject the contracts this call failed. It could be becaus the library code is not snapshoted and injected with it leading to broken link.
+        // return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(newValidatorSetPayload);
     }
 
     /// @inheritdoc IDataHavenServiceManager

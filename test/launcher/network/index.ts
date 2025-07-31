@@ -10,7 +10,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { updateValidatorSet, fundValidators, setupValidators } from "../validators";
+import { fundValidators, setupValidators, updateValidatorSet } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;

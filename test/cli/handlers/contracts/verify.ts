@@ -230,7 +230,10 @@ const getProxyImplementation = async (address: string, rpcUrl: string): Promise<
   }
 };
 
-const isVerified = async (address: string, chain: string, apiKey: string): Promise<boolean> => {
+const isVerified = async (address: string, chain: string | undefined, apiKey: string): Promise<boolean> => {
+  if (!chain) {
+    return false;
+  }
   const response = await fetch(
     `https://api.etherscan.io/v2/api?module=contract&action=getsourcecode&address=${address}&chainid=${chain}&apikey=${apiKey}`
   );

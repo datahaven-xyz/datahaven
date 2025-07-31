@@ -12,11 +12,11 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {AVSDeployer} from "./AVSDeployer.sol";
-import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {TestUtils} from "./TestUtils.sol";
 import {IAllocationManagerTypes} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
 import "forge-std/Test.sol";
 
@@ -94,9 +94,10 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         initialValidatorHashes = TestUtils.generateMockValidators(10);
         nextValidatorHashes = TestUtils.generateMockValidators(10, 10);
 
-        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidatorHashes);
+        BeefyClient.ValidatorSet memory validatorSet =
+            ValidatorsUtils._buildValidatorSet(0, initialValidatorHashes);
         BeefyClient.ValidatorSet memory nextValidatorSet =
-            _buildValidatorSet(1, nextValidatorHashes);
+            ValidatorsUtils._buildValidatorSet(1, nextValidatorHashes);
 
         cheats.prank(regularDeployer);
         beefyClient = new BeefyClient(
@@ -220,20 +221,5 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
 
             console.log("Validator %s setup as operator", validatorsAllowlist[i]);
         }
-    }
-
-    function _buildValidatorSet(
-        uint128 id,
-        bytes32[] memory validatorHashes
-    ) internal pure returns (BeefyClient.ValidatorSet memory) {
-        // Calculate the merkle root from the hashed leaves using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validatorHashes);
-
-        // Create and return the validator set with the calculated merkle root
-        return BeefyClient.ValidatorSet({
-            id: id,
-            length: uint128(validatorHashes.length),
-            root: merkleRoot
-        });
     }
 }

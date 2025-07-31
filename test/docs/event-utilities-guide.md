@@ -2,16 +2,26 @@
 
 This guide demonstrates how to use the event waiting utilities for both DataHaven (Substrate) and Ethereum chains in your tests.
 
-## Key Changes in Latest Version
+## Event Utilities Overview
 
-### Simplified API
-- Removed `waitForMultipleDataHavenEvents` and `waitForMultipleEthereumEvents` functions
-- Use `Promise.all()` directly for waiting for multiple events
-- Event functions now return descriptive result objects with event identification
+The event utilities module provides a unified interface for waiting for blockchain events across both DataHaven (Substrate-based) and Ethereum chains. The API is designed to be simple, composable, and type-safe.
 
-### New Return Types
+### Core Features
+- **Single event watchers**: `waitForDataHavenEvent` and `waitForEthereumEvent` for individual events
+- **Descriptive results**: Events return structured objects containing event identification (pallet/event name or address/event name) along with the event data
+- **Composable design**: Use standard JavaScript `Promise.all()` for multiple events instead of dedicated wrapper functions
+- **Transaction helper**: `waitForTransactionAndEvents` for Ethereum transaction + event patterns
+- **Timeout handling**: All functions support configurable timeouts with graceful null returns
+- **Type safety**: Full TypeScript support with generic types for event data
+
+### Return Types
 - `waitForDataHavenEvent` returns `DataHavenEventResult<T>` with `{ pallet, event, data }`
 - `waitForEthereumEvent` returns `EthereumEventResult` with `{ address, eventName, log }`
+
+### Timeout Behavior
+- Functions return `null` for data/log on timeout instead of throwing errors
+- This allows graceful handling in `Promise.all()` scenarios
+- Check for `null` values to detect timeouts
 
 ## DataHaven Event Utilities
 
@@ -79,32 +89,6 @@ results.forEach(result => {
 // Filter successful events
 const successfulEvents = results.filter(r => r.data !== null);
 ```
-
-#### Submit Transaction and Wait for Events
-
-```typescript
-import { submitAndWaitForDataHavenEvents } from "utils";
-
-const tx = api.tx.System.remark({ remark: "Hello" });
-
-const { txResult, events } = await submitAndWaitForDataHavenEvents(
-  tx,
-  signer,
-  [
-    { pallet: "System", event: "ExtrinsicSuccess" },
-    { pallet: "System", event: "Remarked" }
-  ],
-  20000
-);
-
-// events is now an array of DataHavenEventResult
-const [extrinsicResult, remarkResult] = events;
-
-if (extrinsicResult.data) {
-  console.log("Transaction succeeded");
-}
-```
-
 ### Advanced Patterns
 
 #### Filtering Events by Multiple Criteria
@@ -128,6 +112,8 @@ if (result.data) {
 
 #### Handling Timeouts Gracefully
 
+When an event times out, the functions return `null` for the data/log property rather than throwing an error. This allows graceful handling:
+
 ```typescript
 const result = await waitForDataHavenEvent({
   api,
@@ -138,12 +124,17 @@ const result = await waitForDataHavenEvent({
 
 if (!result.data) {
   console.log(`Event ${result.pallet}.${result.event} did not occur within timeout period`);
-  // Handle timeout case
+  // Handle timeout case - no error thrown
 } else {
   // Process event data
   console.log(`Event data:`, result.data);
 }
 ```
+
+**Important**: The functions return `null` on timeout instead of throwing errors. This design choice:
+- Prevents unexpected exceptions in Promise.all scenarios
+- Allows you to handle timeouts alongside successful events
+- Makes it easy to filter out timed-out events from results
 
 ## Ethereum Event Utilities
 
@@ -318,13 +309,16 @@ if (result.log) {
 ```typescript
 // 1. Send message from DataHaven
 const dhTx = api.tx.EthereumOutboundQueue.sendMessage({...});
-const { txResult, events: dhEvents } = await submitAndWaitForDataHavenEvents(
-  dhTx,
-  signer,
-  [{ pallet: "EthereumOutboundQueue", event: "MessageQueued" }]
-);
+const txResult = await dhTx.signAndSubmit(signer);
 
-const queuedEvent = dhEvents[0];
+// Wait for the message to be queued
+const queuedEvent = await waitForDataHavenEvent({
+  api,
+  pallet: "EthereumOutboundQueue",
+  event: "MessageQueued",
+  timeout: 30000
+});
+
 const messageId = queuedEvent.data?.message_id;
 
 // 2. Wait for message on Ethereum
@@ -452,6 +446,8 @@ async function verifyEventSequence(api, expectedEvents) {
 
 ### Understanding Timeouts and Promise.all Behavior
 
+When using `Promise.all`, it's important to understand how timeouts work:
+
 ```typescript
 // When using Promise.all, all promises complete before returning
 const results = await Promise.all([
@@ -466,9 +462,19 @@ const results = await Promise.all([
 //   { pallet: "Invalid", event: "NonExistent", data: null }         // Timeout/Not found
 // ]
 
+// IMPORTANT: No errors are thrown on timeout - check for null data/log
+const successfulEvents = results.filter(r => r.data !== null);
+const timedOutEvents = results.filter(r => r.data === null);
+
 // For fail-fast behavior, use Promise.race with a timeout:
 const raceResult = await Promise.race([
   Promise.all([...eventPromises]),
   new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
 ]);
 ```
+
+**Key Points:**
+- Timeouts return `null` values, not errors
+- `Promise.all` waits for all events to complete or timeout
+- Filter results to separate successful events from timeouts
+- Use `Promise.race` if you need fail-fast behavior

@@ -230,7 +230,11 @@ const getProxyImplementation = async (address: string, rpcUrl: string): Promise<
   }
 };
 
-const isVerified = async (address: string, chain: string | undefined, apiKey: string): Promise<boolean> => {
+const isVerified = async (
+  address: string,
+  chain: string | undefined,
+  apiKey: string
+): Promise<boolean> => {
   if (!chain) {
     return false;
   }

@@ -1,3 +1,5 @@
+import { firstValueFrom, of } from "rxjs";
+import { catchError, take, tap, timeout } from "rxjs/operators";
 import type { Abi, Address, Log, PublicClient } from "viem";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
@@ -16,15 +18,15 @@ import type { DataHavenApi } from "./papi";
 export interface WaitForDataHavenEventOptions<T = any> {
   /** DataHaven API instance */
   api: DataHavenApi;
-  /** Event path in dot notation (e.g., "SnowbridgeSystemV2.RegisterToken") */
-  eventPath: string;
+  /** Pallet name (e.g., "System", "Balances") */
+  pallet: string;
+  /** Event name (e.g., "ExtrinsicSuccess", "Transfer") */
+  event: string;
   /** Optional filter function to match specific events */
   filter?: (event: T) => boolean;
   /** Timeout in milliseconds (default: 30000) */
   timeout?: number;
-  /** Stop watching after first match (default: true) */
-  stopOnFirst?: boolean;
-  /** Callback for each matched event */
+  /** Callback for matched event */
   onEvent?: (event: T) => void;
 }
 
@@ -36,8 +38,10 @@ export interface WaitForMultipleDataHavenEventsOptions {
   api: DataHavenApi;
   /** Array of event configurations to watch */
   events: Array<{
-    /** Event path in dot notation */
-    path: string;
+    /** Pallet name */
+    pallet: string;
+    /** Event name */
+    event: string;
     /** Optional filter function */
     filter?: (event: any) => boolean;
     /** Stop watching this event after first match */
@@ -46,7 +50,7 @@ export interface WaitForMultipleDataHavenEventsOptions {
   /** Timeout in milliseconds (default: 30000) */
   timeout?: number;
   /** Callback for any matched event */
-  onAnyEvent?: (eventPath: string, event: any) => void;
+  onAnyEvent?: (pallet: string, event: string, payload: any) => void;
 }
 
 /**
@@ -57,82 +61,35 @@ export interface WaitForMultipleDataHavenEventsOptions {
 export async function waitForDataHavenEvent<T = any>(
   options: WaitForDataHavenEventOptions<T>
 ): Promise<T | null> {
-  const { api, eventPath, filter, timeout = 30000, stopOnFirst = true, onEvent } = options;
+  const { api, pallet, event, filter, timeout: timeoutMs = 30000, onEvent } = options;
 
-  return new Promise<T | null>((resolve) => {
-    let unsubscribe: (() => void) | null = null;
-    let timeoutId: NodeJS.Timeout | null = null;
-    let matchedEvent: T | null = null;
+  const eventWatcher = (api.event as any)?.[pallet]?.[event];
+  if (!eventWatcher?.watch) {
+    logger.warn(`Event ${pallet}.${event} not found`);
+    return null;
+  }
 
-    const cleanup = () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    // Set up timeout
-    timeoutId = setTimeout(() => {
-      logger.debug(`Timeout waiting for event ${eventPath} after ${timeout}ms`);
-      cleanup();
-      resolve(matchedEvent);
-    }, timeout);
-
-    // Parse event path
-    const parts = eventPath.split(".");
-    if (parts.length !== 2) {
-      logger.error(`Invalid event path format: ${eventPath}. Expected "Pallet.EventName"`);
-      cleanup();
-      resolve(null);
-      return;
-    }
-
-    const [pallet, eventName] = parts;
-
-    // Watch for events
-    try {
-      // Access the event directly from the API
-      const eventWatcher = (api.event as any)[pallet]?.[eventName];
-      if (!eventWatcher) {
-        logger.warn(`Event ${eventPath} not found in API`);
-        cleanup();
-        resolve(null);
-        return;
-      }
-
-      // Use polkadot-api's native filter parameter
-      const subscription = eventWatcher.watch(filter).subscribe({
-        next: (event: T) => {
-          logger.debug(`Event ${eventPath} received`);
-
-          // Event matched (already filtered by watch())
-          matchedEvent = event;
-          if (onEvent) {
-            onEvent(event);
-          }
-
-          if (stopOnFirst) {
-            cleanup();
-            resolve(event);
-          }
-        },
-        error: (error: any) => {
-          logger.error(`Error in event subscription ${eventPath}: ${error}`);
-          cleanup();
-          resolve(null);
+  return firstValueFrom(
+    eventWatcher.watch(filter).pipe(
+      tap((data: T) => {
+        logger.debug(`Event ${pallet}.${event} received`);
+        onEvent?.(data);
+      }),
+      take(1), // Always stop on first event
+      timeout({
+        first: timeoutMs,
+        with: () => {
+          logger.debug(`Timeout waiting for event ${pallet}.${event} after ${timeoutMs}ms`);
+          return of(null);
         }
-      });
-
-      // Store the unsubscribe function
-      unsubscribe = () => subscription.unsubscribe();
-    } catch (error) {
-      logger.error(`Failed to watch event ${eventPath}: ${error}`);
-      cleanup();
-      resolve(null);
-    }
-  });
+      }),
+      catchError((error) => {
+        logger.error(`Error in event subscription ${pallet}.${event}: ${error}`);
+        return of(null);
+      })
+    ),
+    { defaultValue: null }
+  );
 }
 
 /**
@@ -151,8 +108,9 @@ export async function waitForMultipleDataHavenEvents(
     let timeoutId: NodeJS.Timeout | null = null;
 
     // Initialize result map
-    events.forEach((event) => {
-      eventResults.set(event.path, []);
+    events.forEach((eventConfig) => {
+      const key = `${eventConfig.pallet}.${eventConfig.event}`;
+      eventResults.set(key, []);
     });
 
     const cleanup = () => {
@@ -173,35 +131,29 @@ export async function waitForMultipleDataHavenEvents(
     let allEventsMatched = false;
 
     events.forEach((eventConfig) => {
-      // Parse event path
-      const parts = eventConfig.path.split(".");
-      if (parts.length !== 2) {
-        logger.error(`Invalid event path format: ${eventConfig.path}. Expected "Pallet.EventName"`);
-        return;
-      }
-
-      const [pallet, eventName] = parts;
+      const { pallet, event } = eventConfig;
+      const eventKey = `${pallet}.${event}`;
 
       try {
         // Access the event directly from the API
-        const eventWatcher = (api.event as any)[pallet]?.[eventName];
+        const eventWatcher = (api.event as any)[pallet]?.[event];
         if (!eventWatcher) {
-          logger.warn(`Event ${eventConfig.path} not found in API`);
+          logger.warn(`Event ${eventKey} not found in API`);
           return;
         }
 
         // Use polkadot-api's native filter parameter
         const subscription = eventWatcher.watch(eventConfig.filter).subscribe({
-          next: (event: any) => {
-            logger.debug(`Event ${eventConfig.path} received`);
+          next: (eventData: any) => {
+            logger.debug(`Event ${eventKey} received`);
 
             // Store the event (already filtered by watch())
-            const currentEvents = eventResults.get(eventConfig.path) || [];
-            currentEvents.push(event);
-            eventResults.set(eventConfig.path, currentEvents);
+            const currentEvents = eventResults.get(eventKey) || [];
+            currentEvents.push(eventData);
+            eventResults.set(eventKey, currentEvents);
 
             if (onAnyEvent) {
-              onAnyEvent(eventConfig.path, event);
+              onAnyEvent(pallet, event, eventData);
             }
 
             // Check if we should stop watching this event
@@ -209,7 +161,10 @@ export async function waitForMultipleDataHavenEvents(
               // Check if all events that should stop on match have been matched
               allEventsMatched = events
                 .filter((e) => e.stopOnMatch)
-                .every((e) => (eventResults.get(e.path) || []).length > 0);
+                .every((e) => {
+                  const key = `${e.pallet}.${e.event}`;
+                  return (eventResults.get(key) || []).length > 0;
+                });
 
               if (allEventsMatched) {
                 cleanup();
@@ -218,16 +173,16 @@ export async function waitForMultipleDataHavenEvents(
             }
           },
           error: (error: any) => {
-            logger.error(`Error in event subscription ${eventConfig.path}: ${error}`);
+            logger.error(`Error in event subscription ${eventKey}: ${error}`);
           }
         });
 
         subscriptions.push({
           unsubscribe: () => subscription.unsubscribe(),
-          path: eventConfig.path
+          path: eventKey
         });
       } catch (error) {
-        logger.error(`Failed to watch event ${eventConfig.path}: ${error}`);
+        logger.error(`Failed to watch event ${eventKey}: ${error}`);
       }
     });
 
@@ -243,14 +198,14 @@ export async function waitForMultipleDataHavenEvents(
  * Submit a DataHaven transaction and wait for specific events
  * @param tx - Transaction to submit
  * @param signer - Transaction signer
- * @param eventPaths - Optional array of event paths to wait for after inclusion
+ * @param events - Optional array of events to wait for after inclusion
  * @param timeout - Timeout in milliseconds
  * @returns Transaction result and any matched events
  */
 export async function submitAndWaitForDataHavenEvents(
   tx: any,
   signer: any,
-  eventPaths?: string[],
+  events?: Array<{ pallet: string; event: string }>,
   timeout = 30000
 ): Promise<{
   txResult: any;
@@ -260,22 +215,23 @@ export async function submitAndWaitForDataHavenEvents(
   const txResult = await tx.signAndSubmit(signer);
   logger.debug(`Transaction submitted: ${txResult}`);
 
-  // If no event paths specified, just return the tx result
-  if (!eventPaths || eventPaths.length === 0) {
+  // If no events specified, just return the tx result
+  if (!events || events.length === 0) {
     return { txResult, events: new Map() };
   }
 
   // Wait for specified events
-  const events = await waitForMultipleDataHavenEvents({
+  const matchedEvents = await waitForMultipleDataHavenEvents({
     api: tx._api || tx.api, // Handle different API access patterns
-    events: eventPaths.map((path) => ({
-      path,
+    events: events.map((e) => ({
+      pallet: e.pallet,
+      event: e.event,
       stopOnMatch: true
     })),
     timeout
   });
 
-  return { txResult, events };
+  return { txResult, events: matchedEvents };
 }
 
 // ================== Ethereum Event Utilities ==================

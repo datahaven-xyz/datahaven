@@ -2,6 +2,17 @@
 
 This guide demonstrates how to use the event waiting utilities for both DataHaven (Substrate) and Ethereum chains in your tests.
 
+## Key Changes in Latest Version
+
+### Simplified API
+- Removed `waitForMultipleDataHavenEvents` and `waitForMultipleEthereumEvents` functions
+- Use `Promise.all()` directly for waiting for multiple events
+- Event functions now return descriptive result objects with event identification
+
+### New Return Types
+- `waitForDataHavenEvent` returns `DataHavenEventResult<T>` with `{ pallet, event, data }`
+- `waitForEthereumEvent` returns `EthereumEventResult` with `{ address, eventName, log }`
+
 ## DataHaven Event Utilities
 
 ### Basic Usage
@@ -11,39 +22,62 @@ This guide demonstrates how to use the event waiting utilities for both DataHave
 ```typescript
 import { waitForDataHavenEvent } from "utils";
 
-const transferEvent = await waitForDataHavenEvent({
+const result = await waitForDataHavenEvent({
   api: connectors.dhApi,
-  eventPath: "Balances.Transfer",
+  pallet: "Balances",
+  event: "Transfer",
   timeout: 10000,
   filter: (event) => event.from === senderAddress,
   onEvent: (event) => {
     console.log(`Transfer of ${event.amount} detected`);
   }
 });
+
+// Result structure:
+// {
+//   pallet: "Balances",
+//   event: "Transfer", 
+//   data: { from: "...", to: "...", amount: "..." } | null
+// }
+
+if (result.data) {
+  console.log(`Transfer amount: ${result.data.amount}`);
+} else {
+  console.log("Transfer event timed out");
+}
 ```
 
 #### Wait for Multiple Events
 
 ```typescript
-import { waitForMultipleDataHavenEvents } from "utils";
+import { waitForDataHavenEvent } from "utils";
 
-const eventResults = await waitForMultipleDataHavenEvents({
-  api: connectors.dhApi,
-  events: [
-    {
-      path: "System.ExtrinsicSuccess",
-      stopOnMatch: true
-    },
-    {
-      path: "Balances.Transfer",
-      stopOnMatch: false // Collect all transfer events
-    }
-  ],
-  timeout: 15000
+// Use Promise.all() to wait for multiple events
+const results = await Promise.all([
+  waitForDataHavenEvent({
+    api: connectors.dhApi,
+    pallet: "System",
+    event: "ExtrinsicSuccess",
+    timeout: 15000
+  }),
+  waitForDataHavenEvent({
+    api: connectors.dhApi,
+    pallet: "Balances",
+    event: "Transfer",
+    timeout: 15000
+  })
+]);
+
+// Results array maintains order
+const [extrinsicResult, transferResult] = results;
+
+// Easy to identify events by their properties
+results.forEach(result => {
+  console.log(`${result.pallet}.${result.event}: ${result.data ? 'Success' : 'Timeout'}`);
 });
 
-const transfers = eventResults.get("Balances.Transfer") || [];
-console.log(`Captured ${transfers.length} transfer events`);
+// Filter successful events
+const successfulEvents = results.filter(r => r.data !== null);
 ```
 
 #### Submit Transaction and Wait for Events
@@ -56,9 +90,19 @@ const tx = api.tx.System.remark({ remark: "Hello" });
 const { txResult, events } = await submitAndWaitForDataHavenEvents(
   tx,
   signer,
-  ["System.ExtrinsicSuccess", "System.Remarked"],
+  [
+    { pallet: "System", event: "ExtrinsicSuccess" },
+    { pallet: "System", event: "Remarked" }
+  ],
   20000
 );
+
+// events is now an array of DataHavenEventResult
+const [extrinsicResult, remarkResult] = events;
+
+if (extrinsicResult.data) {
+  console.log("Transaction succeeded");
+}
 ```
 
 ### Advanced Patterns
@@ -66,31 +110,38 @@ const { txResult, events } = await submitAndWaitForDataHavenEvents(
 #### Filtering Events by Multiple Criteria
 
 ```typescript
-const event = await waitForDataHavenEvent({
+const result = await waitForDataHavenEvent({
   api,
-  eventPath: "DataHavenNativeTransfer.TokensTransferredToEthereum",
+  pallet: "DataHavenNativeTransfer",
+  event: "TokensTransferredToEthereum",
   filter: (event) => {
     return event.from === myAddress && 
            event.amount > parseEther("10") &&
            event.recipient === targetAddress;
   }
 });
+
+if (result.data) {
+  console.log(`Transferred ${result.data.amount} tokens`);
+}
 ```
 
 #### Handling Timeouts Gracefully
 
 ```typescript
-const event = await waitForDataHavenEvent({
+const result = await waitForDataHavenEvent({
   api,
-  eventPath: "SomeRareEvent",
+  pallet: "SomePallet",
+  event: "SomeRareEvent",
   timeout: 5000
 });
 
-if (!event) {
-  console.log("Event did not occur within timeout period");
+if (!result.data) {
+  console.log(`Event ${result.pallet}.${result.event} did not occur within timeout period`);
   // Handle timeout case
 } else {
-  // Process event
+  // Process event data
+  console.log(`Event data:`, result.data);
 }
 ```
 
@@ -103,7 +154,7 @@ if (!event) {
 ```typescript
 import { waitForEthereumEvent } from "utils";
 
-const transferLog = await waitForEthereumEvent({
+const result = await waitForEthereumEvent({
   client: publicClient,
   address: tokenAddress,
   abi: erc20Abi,
@@ -113,12 +164,23 @@ const transferLog = await waitForEthereumEvent({
     console.log(`Transfer detected in block ${log.blockNumber}`);
   }
 });
+
+// Result structure:
+// {
+//   address: "0x...",
+//   eventName: "Transfer",
+//   log: { blockNumber, transactionHash, args, ... } | null
+// }
+
+if (result.log) {
+  console.log(`Transfer from ${result.log.args.from} to ${result.log.args.to}`);
+}
 ```
 
 #### Wait for Events with Argument Filtering
 
 ```typescript
-const approvalLog = await waitForEthereumEvent({
+const result = await waitForEthereumEvent({
   client: publicClient,
   address: tokenAddress,
   abi: erc20Abi,
@@ -128,36 +190,42 @@ const approvalLog = await waitForEthereumEvent({
     spender: spenderAddress
   }
 });
+
+if (result.log) {
+  console.log(`Approval amount: ${result.log.args.value}`);
+}
 ```
 
 #### Wait for Multiple Events from Different Contracts
 
 ```typescript
-import { waitForMultipleEthereumEvents } from "utils";
+import { waitForEthereumEvent } from "utils";
 
-const eventResults = await waitForMultipleEthereumEvents({
-  client: publicClient,
-  events: [
-    {
-      address: gatewayAddress,
-      abi: gatewayAbi,
-      eventName: "MessageReceived",
-      stopOnMatch: true
-    },
-    {
-      address: tokenAddress,
-      abi: erc20Abi,
-      eventName: "Transfer",
-      args: { to: myAddress },
-      stopOnMatch: false
-    }
-  ],
-  timeout: 20000
+// Use Promise.all() for multiple events
+const results = await Promise.all([
+  waitForEthereumEvent({
+    client: publicClient,
+    address: gatewayAddress,
+    abi: gatewayAbi,
+    eventName: "MessageReceived",
+    timeout: 20000
+  }),
+  waitForEthereumEvent({
+    client: publicClient,
+    address: tokenAddress,
+    abi: erc20Abi,
+    eventName: "Transfer",
+    args: { to: myAddress },
+    timeout: 20000
+  })
+]);
+
+const [messageResult, transferResult] = results;
+
+// Easy to identify by properties
+results.forEach(result => {
+  console.log(`${result.eventName} at ${result.address}: ${result.log ? 'Found' : 'Timeout'}`);
 });
-
-// Access results by key (address:eventName)
-const messages = eventResults.get(`${gatewayAddress}:MessageReceived`) || [];
-const transfers = eventResults.get(`${tokenAddress}:Transfer`) || [];
 ```
 
 #### Wait for Transaction and Events
@@ -187,7 +255,13 @@ const { receipt, events } = await waitForTransactionAndEvents(
 );
 
 console.log(`Transaction confirmed: ${receipt.status}`);
-console.log(`Transfer events: ${events.get(`${tokenAddress}:Transfer`)?.length}`);
+
+// events is now an array of EthereumEventResult
+const [transferResult, messageResult] = events;
+
+if (transferResult.log) {
+  console.log(`Transfer detected: ${transferResult.log.args.value}`);
+}
 ```
 
 ### Advanced Patterns
@@ -198,23 +272,24 @@ console.log(`Transfer events: ${events.get(`${tokenAddress}:Transfer`)?.length}`
 const currentBlock = await publicClient.getBlockNumber();
 const fromBlock = currentBlock - 1000n; // Last 1000 blocks
 
-const events = await waitForMultipleEthereumEvents({
+const result = await waitForEthereumEvent({
   client: publicClient,
-  events: [{
-    address: contractAddress,
-    abi: contractAbi,
-    eventName: "StateChanged",
-    stopOnMatch: false
-  }],
+  address: contractAddress,
+  abi: contractAbi,
+  eventName: "StateChanged",
   fromBlock,
   timeout: 10000
 });
+
+if (result.log) {
+  console.log(`Found StateChanged event in block ${result.log.blockNumber}`);
+}
 ```
 
 #### Complex Event Filtering
 
 ```typescript
-const complexFilter = await waitForEthereumEvent({
+const result = await waitForEthereumEvent({
   client: publicClient,
   address: dexAddress,
   abi: dexAbi,
@@ -230,6 +305,10 @@ const complexFilter = await waitForEthereumEvent({
     console.log(`Swap rate: ${rate}`);
   }
 });
+
+if (result.log) {
+  console.log(`Swap executed at ${result.address}`);
+}
 ```
 
 ## Cross-Chain Event Coordination
@@ -239,25 +318,26 @@ const complexFilter = await waitForEthereumEvent({
 ```typescript
 // 1. Send message from DataHaven
 const dhTx = api.tx.EthereumOutboundQueue.sendMessage({...});
-const { events: dhEvents } = await submitAndWaitForDataHavenEvents(
+const { txResult, events: dhEvents } = await submitAndWaitForDataHavenEvents(
   dhTx,
   signer,
-  ["EthereumOutboundQueue.MessageQueued"]
+  [{ pallet: "EthereumOutboundQueue", event: "MessageQueued" }]
 );
 
-const messageId = dhEvents.get("EthereumOutboundQueue.MessageQueued")?.[0]?.message_id;
+const queuedEvent = dhEvents[0];
+const messageId = queuedEvent.data?.message_id;
 
 // 2. Wait for message on Ethereum
-const ethEvent = await waitForEthereumEvent({
+const ethResult = await waitForEthereumEvent({
   client: publicClient,
   address: gatewayAddress,
   abi: gatewayAbi,
   eventName: "InboundMessageDispatched",
-  filter: (log) => log.args.messageId === messageId,
+  args: { messageId },
   timeout: 60000 // Cross-chain can take time
 });
 
-if (ethEvent) {
+if (ethResult.log) {
   console.log("Message successfully bridged!");
 }
 ```
@@ -266,26 +346,29 @@ if (ethEvent) {
 
 ```typescript
 // Watch for events on both chains simultaneously
-const [dhEvents, ethEvents] = await Promise.all([
-  waitForMultipleDataHavenEvents({
+const [dhSuccess, dhTokensLocked, ethTokenMinted] = await Promise.all([
+  waitForDataHavenEvent({
     api: dhApi,
-    events: [
-      { path: "System.ExtrinsicSuccess", stopOnMatch: true },
-      { path: "DataHavenNativeTransfer.TokensLocked", stopOnMatch: true }
-    ]
+    pallet: "System",
+    event: "ExtrinsicSuccess"
   }),
-  waitForMultipleEthereumEvents({
+  waitForDataHavenEvent({
+    api: dhApi,
+    pallet: "DataHavenNativeTransfer",
+    event: "TokensLocked"
+  }),
+  waitForEthereumEvent({
     client: publicClient,
-    events: [
-      { 
-        address: gatewayAddress, 
-        abi: gatewayAbi, 
-        eventName: "TokenMinted",
-        stopOnMatch: true 
-      }
-    ]
+    address: gatewayAddress,
+    abi: gatewayAbi,
+    eventName: "TokenMinted"
   })
 ]);
+
+// Check results
+if (dhSuccess.data && dhTokensLocked.data && ethTokenMinted.log) {
+  console.log("Cross-chain transfer completed successfully!");
+}
 ```
 
 ## Best Practices
@@ -294,7 +377,7 @@ const [dhEvents, ethEvents] = await Promise.all([
 
 2. **Use Filters When Possible**: Filtering events reduces noise and ensures you get the exact event you're looking for.
 
-3. **Handle Null Returns**: Always check if an event was actually found before using it.
+3. **Handle Null Returns**: Always check if `result.data` (DataHaven) or `result.log` (Ethereum) is not null before using it.
 
 4. **Log Event Details**: Use the `onEvent` callback to log important details for debugging.
 
@@ -310,44 +393,82 @@ const [dhEvents, ethEvents] = await Promise.all([
 ```typescript
 async function waitForEventWithRetry(options, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
-    const event = await waitForDataHavenEvent(options);
-    if (event) return event;
+    const result = await waitForDataHavenEvent(options);
+    if (result.data) return result;
     console.log(`Retry ${i + 1}/${maxRetries}`);
   }
-  throw new Error("Event not found after retries");
+  throw new Error(`Event ${options.pallet}.${options.event} not found after retries`);
 }
 ```
 
 ### Event Collection Pattern
 ```typescript
-// Collect all events during a time period
+// Collect events during a specific time period using Promise.race
 const collectionPeriod = 10000; // 10 seconds
 const startTime = Date.now();
 
-const events = await waitForMultipleDataHavenEvents({
-  api,
-  events: [
-    { path: "Balances.Transfer", stopOnMatch: false }
-  ],
-  timeout: collectionPeriod
-});
+const result = await Promise.race([
+  waitForDataHavenEvent({
+    api,
+    pallet: "Balances",
+    event: "Transfer",
+    timeout: collectionPeriod
+  }),
+  new Promise<DataHavenEventResult<any>>(resolve => 
+    setTimeout(() => resolve({ 
+      pallet: "Balances", 
+      event: "Transfer", 
+      data: null 
+    }), collectionPeriod)
+  )
+]);
 
-console.log(`Collected ${events.get("Balances.Transfer")?.length} transfers in ${Date.now() - startTime}ms`);
+console.log(`Event search completed in ${Date.now() - startTime}ms`);
 ```
 
 ### Event Verification Pattern
 ```typescript
 async function verifyEventSequence(api, expectedEvents) {
-  const results = await waitForMultipleDataHavenEvents({
-    api,
-    events: expectedEvents.map(e => ({ path: e, stopOnMatch: true })),
-    timeout: 30000
-  });
+  const results = await Promise.all(
+    expectedEvents.map(({ pallet, event }) => 
+      waitForDataHavenEvent({
+        api,
+        pallet,
+        event,
+        timeout: 30000
+      })
+    )
+  );
 
   // Verify all expected events occurred
-  for (const expectedEvent of expectedEvents) {
-    const events = results.get(expectedEvent) || [];
-    expect(events.length).toBeGreaterThan(0);
-  }
+  results.forEach((result, index) => {
+    const expected = expectedEvents[index];
+    expect(result.data).not.toBeNull();
+    expect(result.pallet).toBe(expected.pallet);
+    expect(result.event).toBe(expected.event);
+  });
 }
+```
+
+### Understanding Timeouts and Promise.all Behavior
+
+```typescript
+// When using Promise.all, all promises complete before returning
+const results = await Promise.all([
+  waitForDataHavenEvent({ api, pallet: "System", event: "ExtrinsicSuccess", timeout: 5000 }),
+  waitForDataHavenEvent({ api, pallet: "Invalid", event: "NonExistent", timeout: 5000 })
+]);
+
+// Even if one times out quickly, Promise.all waits for all
+// Results might be:
+// [
+//   { pallet: "System", event: "ExtrinsicSuccess", data: {...} },  // Success
+//   { pallet: "Invalid", event: "NonExistent", data: null }         // Timeout/Not found
+// ]
+
+// For fail-fast behavior, use Promise.race with a timeout:
+const raceResult = await Promise.race([
+  Promise.all([...eventPromises]),
+  new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
+]);
 ```

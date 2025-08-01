@@ -4,6 +4,7 @@ import { deployContracts as deployContractsCore } from "../../../launcher/contra
 
 interface DeployContractsOptions {
   rpcUrl: string;
+  privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
   deployContracts?: boolean;

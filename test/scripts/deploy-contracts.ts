@@ -12,7 +12,7 @@ import type { ParameterCollection } from "utils/parameters";
 interface ContractDeploymentOptions {
   chain?: string;
   rpcUrl?: string;
-  privateKey?: string;
+  privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
 }
@@ -162,7 +162,7 @@ export const executeDeployment = async (
 export const deployContracts = async (options: {
   chain: string;
   rpcUrl?: string;
-  privateKey?: string;
+  privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
 }) => {

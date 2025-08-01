@@ -10,7 +10,7 @@ import type { ParameterCollection } from "utils/parameters";
 interface DeployContractsOptions {
   chain?: string;
   rpcUrl: string;
-  privateKey: string;
+  privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
   parameterCollection?: ParameterCollection;

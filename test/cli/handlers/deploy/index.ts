@@ -69,7 +69,7 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
     verified: options.verified,
     blockscoutBackendUrl,
     parameterCollection,
-    skipContracts: options.skipContracts,
+    skipContracts: options.skipContracts
   });
 
   await performValidatorOperations(options, launchedNetwork.elRpcUrl);

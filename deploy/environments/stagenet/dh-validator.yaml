@@ -1,5 +1,4 @@
 # Validator-specific settings for stagenet
-# (includes common stagenet settings)
 
 global:
   environment: stagenet
@@ -14,13 +13,25 @@ imagePullSecrets:
 
 ingress:
   enabled: true
-  ingressClassName: alb
   perReplica: true
-  wildcardDomain: stagenet.datahaven.xyz
+  wildcardDomain: datahaven-kt.xyz
   # This will generate:
-  # - dh-validator-0.stagenet.datahaven.xyz
-  # - dh-validator-1.stagenet.datahaven.xyz
+  # - dh-validator-0.datahaven-kt.xyz
+  # - dh-validator-1.datahaven-kt.xyz
   # (based on replica count)
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-name: dh-validator
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
+    external-dns.alpha.kubernetes.io/hostname: dh-validator.datahaven-kt.xyz
+    meta.helm.sh/release-name: dh-validator
+    meta.helm.sh/release-namespace: kt-datahaven-stagenet
 
 node:
   chain: stagenet-local
@@ -40,3 +51,7 @@ node:
     - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
     # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
     - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort

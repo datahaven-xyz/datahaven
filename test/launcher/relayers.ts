@@ -130,7 +130,7 @@ export const generateRelayerConfig = async (
       const cfg = parseRelayConfig(json, type);
       cfg.source.beacon.endpoint = config.ethClEndpoint;
       cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
-      cfg.source.beacon.datastore.location = "/data";
+      cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.parachain.endpoint = config.substrateWsEndpoint;
 
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
@@ -153,7 +153,7 @@ export const generateRelayerConfig = async (
       cfg.source.ethereum.endpoint = config.ethElRpcEndpoint;
       cfg.source.beacon.endpoint = config.ethClEndpoint;
       cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
-      cfg.source.beacon.datastore.location = "/data";
+      cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.parachain.endpoint = config.substrateWsEndpoint;
       cfg.source.contracts.Gateway = config.gatewayAddress;
 
@@ -169,7 +169,7 @@ export const generateRelayerConfig = async (
       cfg.source.contracts.Gateway = config.gatewayAddress;
       cfg.source.beacon.endpoint = config.ethClEndpoint;
       cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
-      cfg.source.beacon.datastore.location = "/data";
+      cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.ethereum.endpoint = config.ethElRpcEndpoint;
       cfg.sink.contracts.Gateway = config.gatewayAddress;
       cfg["reward-address"] = config.rewardsRegistryAddress;
@@ -659,7 +659,7 @@ const launchRelayerContainers = async (
 
       if (config.type === "beacon" || config.type === "execution") {
         const hostDatastorePath = path.resolve("tmp/datastore");
-        const containerDatastorePath = "/data";
+        const containerDatastorePath = "/relay-data";
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
       }
 

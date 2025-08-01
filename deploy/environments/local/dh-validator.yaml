@@ -1,5 +1,4 @@
-# Local validator configuration
-# Minimal setup for local development
+# Validator-specific settings for local development
 
 global:
   environment: local
@@ -24,8 +23,6 @@ ingress:
 
 node:
   chain: local
-  customChainspecUrl:
-  forceDownloadChainspec: false
   chainData:
     storageClass: "hostpath"
     persistence:
@@ -45,6 +42,10 @@ node:
       - bdf71a910354e231095366230621eaefb5f99465045f1501478fd3d9b5deef98
       # 12D3KooWAxFonTS177T81CTDeH6mfvJQWYEJeVQ1gPrnULjNY8Cn
       - 2a775a9db9fb0ff40afacb4aa7ccbf2a5d04c6d980bb1437c196c8e38a6cd948
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort
 
 # Local development settings
 development:

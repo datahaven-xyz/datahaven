@@ -8,11 +8,24 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}-{{ $i }}
   labels:
-  {{- include "node.labels" $ | nindent 4 }}
+  {{- $labels := include "node.labels" $ | fromYaml }}
+  {{- range $key, $value := $labels }}
+    {{- if contains "instance" $key }}
+    {{ $key }}: {{ $value | replace $fullName (printf "%s-%d" $fullName $i) | quote }}
+    {{- else }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
     replica: "{{ $i }}"
   {{- with $.Values.ingress.annotations }}
   annotations:
-  {{- toYaml . | nindent 4 }}
+  {{- range $key, $value := . }}
+    {{- if contains "release-name" $key }}
+    {{ $key }}: {{ $value | quote }}
+    {{- else }}
+    {{ $key }}: {{ $value | replace $fullName (printf "%s-%d" $fullName $i) | quote }}
+    {{- end }}
+  {{- end }}
   {{- end }}
 spec:
   {{- if $.Values.ingress.ingressClassName }}

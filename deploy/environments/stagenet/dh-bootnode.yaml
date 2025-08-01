@@ -1,5 +1,4 @@
 # Bootnode-specific settings for stagenet
-# (includes common stagenet settings)
 
 global:
   environment: stagenet
@@ -14,15 +13,36 @@ imagePullSecrets:
 
 ingress:
   enabled: true
-  ingressClassName: alb
-  perReplica: true
-  wildcardDomain: stagenet.datahaven.xyz
-  # This will generate:
-  # - dh-bootnode-0.stagenet.datahaven.xyz
+  host: dh-bootnode.datahaven-kt.xyz
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-name: dh-bootnode
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
+    external-dns.alpha.kubernetes.io/hostname: dh-bootnode.datahaven-kt.xyz
+    meta.helm.sh/release-name: dh-bootnode
+    meta.helm.sh/release-namespace: kt-datahaven-stagenet
+  rules:
+    - host: dh-bootnode.datahaven-kt.xyz
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: dh-bootnode
+                port:
+                  name: rpc
 
 node:
   chain: stagenet-local
   chainData:
+    pruning: archive
     persistence:
       size: 20Gi
   resources:
@@ -33,3 +53,7 @@ node:
       memory: "1Gi"
       cpu: "500m"
   customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238
+  enableOffchainIndexing: true
+  perNodeServices:
+    apiService:
+      enabled: true

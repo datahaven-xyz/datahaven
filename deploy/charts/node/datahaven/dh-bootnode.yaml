@@ -16,7 +16,7 @@ node:
   role: full
   replicas: 1
   chainData:
-    pruning: archive
+    pruning: 1000
     storageClass: "gp2"
   chainKeystore:
     mountInMemory:
@@ -30,10 +30,11 @@ node:
   flags:
     - "--allow-private-ipv4"
     - "--discover-local"
+    - "--network-backend libp2p"
 
 ingress:
   enabled: false
-  perReplica: true
+  perReplica: false
   wildcardDomain: datahaven.local
   # If enabled, this would generate:
   # - dh-bootnode-0.datahaven.local

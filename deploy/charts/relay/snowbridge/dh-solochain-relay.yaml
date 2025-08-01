@@ -1,0 +1,32 @@
+name: dh-solochain-relay
+description: Datahaven Solochain Relay
+fullnameOverride: dh-solochain-relay
+
+image:
+  repository: moonsonglabs/snowbridge-relay
+  pullPolicy: Always
+  tag: latest
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+config:
+  name: "solochain-relay"
+
+existingSecretName: "dh-solochain-relay-ethereum-key"
+
+relayData:
+  storagePath: "/relay-data"
+  storageClass: "gp2"
+  volumeSize: 10Gi 
+
+extraArgs: [
+  "run",
+  "solochain",
+  "--config",
+  "/configs/solochain-relay.json",
+  "--ethereum.private-key-file",
+  "/secrets/dh-solochain-relay-ethereum-key",
+  "--substrate.private-key",
+  "0x0b6e18cafb6ed99687ec547bd28139cafdd2bffe70e6b688025de6b445aa5c5b",
+]

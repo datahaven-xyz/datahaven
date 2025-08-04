@@ -94,7 +94,7 @@ use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
     traits::{
-        Convert, ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto,
+        Convert, ConvertInto, IdentityLookup, IdentifyAccount, Keccak256, One, OpaqueKeys, UniqueSaturatedInto,
     },
     FixedPointNumber, Perbill,
 };
@@ -507,6 +507,43 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = ();
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
+        let public = sp_io::crypto::ecdsa_generate(0.into(), None);
+        let hash_msg = sp_io::hashing::keccak_256(&message);
+        let signature =
+            sp_io::crypto::ecdsa_sign(
+                0.into(),
+                &public.into_account().try_into().unwrap(),
+                &hash_msg,
+            )
+            .unwrap();
+
+        // Lola's trying to debug code
+
+        log::info!("{}", hex::encode(public));
+
+        // We check that indeed our signature can be recovered
+        match sp_io::crypto::secp256k1_ecdsa_recover(&signature.0, &hash_msg) {
+            Ok(p) => {
+                log::info!("{}", hex::encode(&p));
+                let res = fp_account::AccountId20(H160::from(H256::from(sp_io::hashing::keccak_256(&p))).0);
+                log::info!("{}", hex::encode(res));
+            },
+            Err(_) => log::error!("ERROR"),
+        }
+
+        // Verifying that the benchmark code return the actual account... but it looks like it is missing the hashing before the truncating
+        let publickey = fp_account::EthereumSigner::decode(&mut &public[..]).unwrap();
+		let who_account: fp_account::AccountId20 = publickey.into_account();
+
+        log::info!("{}", who_account);
+
+        // END
+
+        (public.encode(), signature.encode())
+    }
 }
 
 parameter_types! {
@@ -1225,4 +1262,5 @@ mod tests {
             "Different chain IDs must produce different sovereign accounts"
         );
     }
+
 }

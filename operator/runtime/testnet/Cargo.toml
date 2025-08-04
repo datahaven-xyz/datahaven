@@ -89,6 +89,7 @@ sp-consensus-grandpa = { workspace = true, features = ["serde"] }
 sp-core = { workspace = true, features = ["serde"] }
 sp-genesis-builder = { workspace = true }
 sp-inherents = { workspace = true }
+sp-io = { workspace = true }
 sp-keyring = { workspace = true }
 sp-offchain = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }

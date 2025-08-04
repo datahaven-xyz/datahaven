@@ -19,7 +19,9 @@ import {
   getPapiSigner,
   logger,
   parseDeploymentsFile,
-  SUBSTRATE_FUNDED_ACCOUNTS
+  SUBSTRATE_FUNDED_ACCOUNTS,
+  waitForEthereumEvent,
+  waitForDataHavenEvent
 } from "utils";
 import { getContract, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
@@ -29,7 +31,7 @@ import { BaseTestSuite } from "../framework";
 const ETHEREUM_SOVEREIGN_ACCOUNT = "0x23e598fa2f50bba6885988e5077200c6d0c5f5cf";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// Minimal ERC20 ABI for reading token metadata
+// Minimal ERC20 ABI for reading token metadata and Transfer events
 const ERC20_METADATA_ABI = [
   {
     inputs: [],
@@ -65,6 +67,15 @@ const ERC20_METADATA_ABI = [
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function"
+  },
+  {
+    type: "event",
+    name: "Transfer",
+    inputs: [
+      { name: "from", type: "address", indexed: true },
+      { name: "to", type: "address", indexed: true },
+      { name: "value", type: "uint256", indexed: false }
+    ]
   }
 ] as const;
 
@@ -85,9 +96,8 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
   }
 
   override async onSetup(): Promise<void> {
-    // Wait for relayers and chain sync
-    logger.info("Waiting for relayers and chain synchronization...");
-    await Bun.sleep(15000);
+    // No longer need to wait - will use event-based synchronization
+    logger.info("Test setup complete - using event-based synchronization");
   }
 }
 
@@ -119,14 +129,28 @@ describe("Native Token Transfer", () => {
       call: registerTx.decodedCall
     });
 
-    // Submit and wait for transaction to be included in a block
-    const result = await sudoTx.signAndSubmit(alithSigner);
+    // Submit transaction and wait for both DataHaven confirmation and Ethereum event
+    const [dhTxResult, ethEventResult] = await Promise.all([
+      // Submit and wait for transaction on DataHaven
+      sudoTx.signAndSubmit(alithSigner),
+      // Wait for the token registration event on Ethereum Gateway
+      waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: deployments.Gateway,
+        abi: gatewayAbi,
+        eventName: "ForeignTokenRegistered",
+        timeout: 60000, // 1 minute for cross-chain message propagation
+        onEvent: (log) => {
+          logger.info(`Token registered on Ethereum - tokenID: ${(log as any).args.tokenID}, address: ${(log as any).args.token}`);
+        }
+      })
+    ]);
 
-    // Verify transaction succeeded
-    expect(result.ok).toBe(true);
+    // Verify DataHaven transaction succeeded
+    expect(dhTxResult.ok).toBe(true);
 
-    // Check for events in the transaction result
-    const { events } = result;
+    // Check for events in the DataHaven transaction result
+    const { events } = dhTxResult;
 
     // Find Sudo.Sudid event (indicates sudo execution succeeded)
     const sudoEvent = events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
@@ -142,34 +166,33 @@ describe("Native Token Transfer", () => {
     expect(tokenIdRaw).toBeDefined();
     const tokenId = tokenIdRaw.asHex();
 
-    logger.debug(`Token registered successfully with ID: ${tokenId}`);
+    logger.debug(`Token registered on DataHaven with ID: ${tokenId}`);
     registeredTokenId = tokenId;
 
-    const gateway = getContract({
-      address: deployments.Gateway,
-      abi: gatewayAbi,
-      client: connectors.publicClient
-    });
-
-    const tokenAddress = await gateway.read.tokenAddressOf([tokenId as `0x${string}`], {
-      blockTag: "latest"
-    } as any);
-    expect(tokenAddress).not.toBe(ZERO_ADDRESS);
-    deployedERC20Address = tokenAddress as `0x${string}`;
+    // Verify the Ethereum event was received
+    expect(ethEventResult.log).toBeDefined();
+    const eventArgs = (ethEventResult.log as any)?.args;
+    expect(eventArgs?.tokenID).toBe(tokenId);
+    
+    // Get the deployed token address from the event
+    deployedERC20Address = eventArgs?.token as `0x${string}`;
+    expect(deployedERC20Address).not.toBe(ZERO_ADDRESS);
+    
+    logger.info(`ERC20 token deployed at: ${deployedERC20Address}`);
 
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       connectors.publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
+        address: deployedERC20Address!,
         abi: ERC20_METADATA_ABI,
         functionName: "name"
       }) as Promise<string>,
       connectors.publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
+        address: deployedERC20Address!,
         abi: ERC20_METADATA_ABI,
         functionName: "symbol"
       }) as Promise<string>,
       connectors.publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
+        address: deployedERC20Address!,
         abi: ERC20_METADATA_ABI,
         functionName: "decimals"
       }) as Promise<number>
@@ -215,11 +238,43 @@ describe("Native Token Transfer", () => {
       fee
     });
 
-    const result = await tx.signAndSubmit(baltatharSigner);
-    logger.info(`Transfer transaction submitted, hash: ${result.txHash}`);
+    // Submit transaction and wait for both DataHaven events and Ethereum token transfer
+    const [txResult, tokenTransferEvent, tokenMintEvent] = await Promise.all([
+      // Submit the transaction
+      tx.signAndSubmit(baltatharSigner),
+      // Wait for DataHaven transfer event
+      waitForDataHavenEvent({
+        api: connectors.dhApi,
+        pallet: "DataHavenNativeTransfer",
+        event: "TokensTransferredToEthereum",
+        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
+        timeout: 30000,
+        onEvent: (event) => {
+          logger.info(`Tokens transferred on DataHaven: ${JSON.stringify(event)}`);
+        }
+      }),
+      // Wait for ERC20 Transfer event on Ethereum (minting to recipient)
+      waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: deployedERC20Address!,
+        abi: ERC20_METADATA_ABI,
+        eventName: "Transfer",
+        args: {
+          from: ZERO_ADDRESS, // Minting from zero address
+          to: recipient
+        },
+        timeout: 90000, // 90 seconds for cross-chain propagation
+        onEvent: (log) => {
+          logger.info(`Tokens minted on Ethereum: ${(log as any).args.value} to ${(log as any).args.to}`);
+        }
+      })
+    ]);
 
-    logger.info("Waiting for cross-chain processing...");
-    await Bun.sleep(60000);
+    logger.info(`Transfer transaction submitted, hash: ${txResult.txHash}`);
+    
+    // Verify DataHaven event was received
+    expect(tokenTransferEvent.data).toBeDefined();
+    expect(tokenMintEvent.log).toBeDefined();
     const finalDHBalance = await connectors.dhApi.query.System.Account.getValue(
       SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
@@ -395,26 +450,6 @@ describe("Native Token Transfer", () => {
 
     expect(registeredTokenId).toBeDefined();
 
-    let tokensTransferredEvent: any = null;
-    let tokensLockedEvent: any = null;
-
-    // Subscribe to events
-    const subscriptions: any[] = [];
-
-    subscriptions.push(
-      connectors.dhApi.event.DataHavenNativeTransfer.TokensTransferredToEthereum.watch((event) => {
-        tokensTransferredEvent = event;
-        return true;
-      })
-    );
-
-    subscriptions.push(
-      connectors.dhApi.event.DataHavenNativeTransfer.TokensLocked.watch((event) => {
-        tokensLockedEvent = event;
-        return true;
-      })
-    );
-
     // Perform small transfer
     const recipient = ANVIL_FUNDED_ACCOUNTS[2].publicKey;
     const amount = parseEther("1");
@@ -426,21 +461,31 @@ describe("Native Token Transfer", () => {
       fee
     });
 
-    await tx.signAndSubmit(baltatharSigner);
+    // Submit transaction and wait for both events
+    const [txResult, transferredEvent, lockedEvent] = await Promise.all([
+      tx.signAndSubmit(baltatharSigner),
+      waitForDataHavenEvent({
+        api: connectors.dhApi,
+        pallet: "DataHavenNativeTransfer",
+        event: "TokensTransferredToEthereum",
+        timeout: 10000,
+        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      }),
+      waitForDataHavenEvent({
+        api: connectors.dhApi,
+        pallet: "DataHavenNativeTransfer",
+        event: "TokensLocked",
+        timeout: 10000,
+        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      })
+    ]);
 
-    // Wait for events
-    await Bun.sleep(5000);
+    // Verify transaction succeeded
+    expect(txResult.ok).toBe(true);
 
-    // Cleanup subscriptions
-    for (const sub of subscriptions) {
-      if (sub && typeof sub.unsubscribe === "function") {
-        sub.unsubscribe();
-      }
-    }
-
-    // Verify events
-    expect(tokensTransferredEvent).toBeTruthy();
-    expect(tokensLockedEvent).toBeTruthy();
+    // Verify events were received
+    expect(transferredEvent.data).toBeTruthy();
+    expect(lockedEvent.data).toBeTruthy();
 
     logger.success("Event emissions verified");
   });

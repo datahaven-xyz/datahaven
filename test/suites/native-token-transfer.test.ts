@@ -366,23 +366,36 @@ describe("Native Token Transfer", () => {
       logger.info("Pallet is already paused, unpausing first...");
       const unpauseTx = connectors.dhApi.tx.DataHavenNativeTransfer.unpause();
       const sudoUnpauseTx = connectors.dhApi.tx.Sudo.sudo({ call: unpauseTx.decodedCall });
-      await sudoUnpauseTx.signAndSubmit(alithSigner);
-      await Bun.sleep(3000);
-
-      const newPausedState = await connectors.dhApi.query.DataHavenNativeTransfer.Paused.getValue();
-      expect(newPausedState).toBe(false);
+      const result = await sudoUnpauseTx.signAndSubmit(alithSigner);
+      
+      // Verify transaction succeeded and check events
+      expect(result.ok).toBe(true);
+      const sudoEvent = result.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+      expect(sudoEvent).toBeDefined();
+      
+      const unpausedEvent = result.events.find(
+        (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Unpaused"
+      );
+      expect(unpausedEvent).toBeDefined();
+      logger.info("Pallet unpaused successfully");
     }
 
     // Pause transfers
     const pauseTx = connectors.dhApi.tx.DataHavenNativeTransfer.pause();
     const sudoPauseTx = connectors.dhApi.tx.Sudo.sudo({ call: pauseTx.decodedCall });
 
-    await sudoPauseTx.signAndSubmit(alithSigner);
-    await Bun.sleep(3000);
-
-    // Verify paused
-    const pausedState = await connectors.dhApi.query.DataHavenNativeTransfer.Paused.getValue();
-    expect(pausedState).toBe(true);
+    const pauseResult = await sudoPauseTx.signAndSubmit(alithSigner);
+    
+    // Verify transaction succeeded and check events
+    expect(pauseResult.ok).toBe(true);
+    const pauseSudoEvent = pauseResult.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+    expect(pauseSudoEvent).toBeDefined();
+    
+    const pausedEvent = pauseResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Paused"
+    );
+    expect(pausedEvent).toBeDefined();
+    logger.info("Pallet paused successfully");
 
     // Try transfer while paused
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
@@ -408,12 +421,17 @@ describe("Native Token Transfer", () => {
     const unpauseTx = connectors.dhApi.tx.DataHavenNativeTransfer.unpause();
     const sudoUnpauseTx = connectors.dhApi.tx.Sudo.sudo({ call: unpauseTx.decodedCall });
 
-    await sudoUnpauseTx.signAndSubmit(alithSigner);
-    await Bun.sleep(3000);
-
-    // Verify unpaused
-    const unpausedState = await connectors.dhApi.query.DataHavenNativeTransfer.Paused.getValue();
-    expect(unpausedState).toBe(false);
+    const unpauseResult = await sudoUnpauseTx.signAndSubmit(alithSigner);
+    
+    // Verify transaction succeeded and check events
+    expect(unpauseResult.ok).toBe(true);
+    const unpauseSudoEvent = unpauseResult.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+    expect(unpauseSudoEvent).toBeDefined();
+    
+    const finalUnpausedEvent = unpauseResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Unpaused"
+    );
+    expect(finalUnpausedEvent).toBeDefined();
 
     logger.success("Pause/unpause functionality verified");
   });

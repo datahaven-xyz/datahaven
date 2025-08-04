@@ -43,6 +43,7 @@ use datahaven_runtime_common::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
+    proxy::ProxyType,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -538,6 +539,117 @@ impl pallet_multisig::Config for Runtime {
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = stagenet_weights::pallet_multisig::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    // One storage item; key size 32 (AccountId), value overhead ~8 bytes (Vec metadata)
+    pub const ProxyDepositBase: Balance = deposit(1, 8);
+    // Additional storage item size of 21 bytes (20 bytes AccountId + 1 byte sizeof(ProxyType)).
+    pub const ProxyDepositFactor: Balance = deposit(0, 21);
+    pub const MaxProxies: u16 = 32;
+    // One storage item; key size 32 (AccountId), value overhead ~8 bytes (BoundedVec metadata)
+    pub const AnnouncementDepositBase: Balance = deposit(1, 8);
+    // Additional storage item size of 56 bytes:
+	// - 20 bytes AccountId
+	// - 32 bytes Hasher (Blake2256)
+	// - 4 bytes BlockNumber (u32)
+    pub const AnnouncementDepositFactor: Balance = deposit(0, 56);
+    pub const MaxPending: u16 = 32;
+}
+
+// Implement the proxy filter logic specific to the stagenet runtime
+impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
+    fn filter(&self, c: &RuntimeCall) -> bool {
+        match self {
+            ProxyType::Any => true,
+            ProxyType::NonTransfer => {
+                matches!(
+                    c,
+                    RuntimeCall::Timestamp(..) |
+                    RuntimeCall::Identity(..) |
+                    RuntimeCall::Utility(..) |
+                    RuntimeCall::Multisig(..) |
+                    RuntimeCall::Proxy(..) |
+                    RuntimeCall::Parameters(..) |
+                    RuntimeCall::Scheduler(..) |
+                    RuntimeCall::Preimage(..)
+                )
+            },
+            ProxyType::Governance => {
+                matches!(
+                    c,
+                    RuntimeCall::Treasury(..) |
+                    RuntimeCall::Utility(..) |
+                    RuntimeCall::Multisig(..) |
+                    RuntimeCall::Proxy(..) |
+                    RuntimeCall::Scheduler(..) |
+                    RuntimeCall::Preimage(..) |
+                    RuntimeCall::Parameters(..)
+                )
+            },
+            ProxyType::Staking => {
+                matches!(
+                    c,
+                    RuntimeCall::Utility(..)
+                )
+            },
+            ProxyType::Identity => {
+                matches!(
+                    c,
+                    RuntimeCall::Identity(..) |
+                    RuntimeCall::Utility(..) |
+                    RuntimeCall::Proxy(..)
+                )
+            },
+            ProxyType::CancelProxy => {
+                matches!(
+                    c,
+                    RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
+                    RuntimeCall::Proxy(pallet_proxy::Call::remove_announcement { .. })
+                )
+            },
+            ProxyType::Balances => {
+                matches!(
+                    c,
+                    RuntimeCall::Balances(..) |
+                    RuntimeCall::Utility(..) |
+                    RuntimeCall::Proxy(..)
+                )
+            },
+            ProxyType::SudoOnly => {
+                matches!(
+                    c,
+                    RuntimeCall::Sudo(..) |
+                    RuntimeCall::Utility(..) |
+                    RuntimeCall::Proxy(..)
+                )
+            },
+        }
+    }
+
+    fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(ProxyType::Any, _) => true,
+			(_, ProxyType::Any) => false,
+			_ => false,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type Currency = Balances;
+    type ProxyType = ProxyType;
+    type ProxyDepositBase = ProxyDepositBase;
+    type ProxyDepositFactor = ProxyDepositFactor;
+    type MaxProxies = MaxProxies;
+    type WeightInfo = ();
+    type MaxPending = MaxPending;
+    type CallHasher = sp_runtime::traits::BlakeTwo256;
+    type AnnouncementDepositBase = AnnouncementDepositBase;
+    type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
 impl pallet_parameters::Config for Runtime {

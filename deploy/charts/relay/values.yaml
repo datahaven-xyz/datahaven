@@ -22,11 +22,11 @@ extraLabels: {}
 
 relayData:
   # -- (string) Path on the volume to store relay data
-  storagePath:
+  storagePath: "/relay-data"
   # -- Storage class to use for persistent volume
   storageClass: ""
   # -- Size of the volume for relay data
-  volumeSize: 10Gi 
+  volumeSize: 10Gi
   # -- Annotations to add to the volumeClaimTemplates
   annotations: {}
 

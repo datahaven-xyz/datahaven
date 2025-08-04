@@ -23,6 +23,8 @@ ingress:
 
 node:
   chain: local
+  customChainspecUrl:
+  forceDownloadChainspec: false
   chainData:
     storageClass: "hostpath"
     persistence:

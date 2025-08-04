@@ -18,7 +18,7 @@ existingSecretName: "dh-solochain-relay-ethereum-key"
 relayData:
   storagePath: "/relay-data"
   storageClass: "gp2"
-  volumeSize: 10Gi 
+  volumeSize: 10Gi
 
 extraArgs: [
   "run",

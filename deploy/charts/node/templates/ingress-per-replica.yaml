@@ -10,7 +10,7 @@ metadata:
   labels:
   {{- $labels := include "node.labels" $ | fromYaml }}
   {{- range $key, $value := $labels }}
-    {{- if contains "instance" $key }}
+    {{- if eq $key "app.kubernetes.io/instance" }}
     {{ $key }}: {{ $value | replace $fullName (printf "%s-%d" $fullName $i) | quote }}
     {{- else }}
     {{ $key }}: {{ $value | quote }}
@@ -20,7 +20,7 @@ metadata:
   {{- with $.Values.ingress.annotations }}
   annotations:
   {{- range $key, $value := . }}
-    {{- if contains "release-name" $key }}
+    {{- if eq $key "meta.helm.sh/release-name" }}
     {{ $key }}: {{ $value | quote }}
     {{- else }}
     {{ $key }}: {{ $value | replace $fullName (printf "%s-%d" $fullName $i) | quote }}

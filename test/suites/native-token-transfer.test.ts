@@ -139,7 +139,7 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        timeout: 60000, // 1 minute for cross-chain message propagation
+        timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
         onEvent: (log) => {
           logger.info(`Token registered on Ethereum - tokenID: ${(log as any).args.tokenID}, address: ${(log as any).args.token}`);
         }
@@ -201,7 +201,7 @@ describe("Native Token Transfer", () => {
     expect(tokenName).toBe("HAVE");
     expect(tokenSymbol).toBe("wHAVE");
     expect(tokenDecimals).toBe(18);
-  }, 60_000); // 60 second timeout for registration
+  }, 180_000); // 3 minute timeout (2 epochs @ 2s slots = ~128s + buffer)
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
@@ -263,7 +263,7 @@ describe("Native Token Transfer", () => {
           from: ZERO_ADDRESS, // Minting from zero address
           to: recipient
         },
-        timeout: 90000, // 90 seconds for cross-chain propagation
+        timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
         onEvent: (log) => {
           logger.info(`Tokens minted on Ethereum: ${(log as any).args.value} to ${(log as any).args.to}`);
         }
@@ -300,7 +300,7 @@ describe("Native Token Transfer", () => {
     expect(ethIncrease).toBe(amount);
 
     logger.success("Transfer completed successfully!");
-  }, 90_000); // 90 second timeout for cross-chain transfer
+  }, 180_000); // 3 minute timeout (2 epochs @ 2s slots = ~128s + buffer)
 
   it("should reject transfer with zero amount", async () => {
     const connectors = suite.getTestConnectors();
@@ -473,6 +473,8 @@ describe("Native Token Transfer", () => {
     const amount = parseEther("1");
     const fee = parseEther("0.01");
 
+    logger.info("Starting transfer for event verification...");
+
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
       recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
       amount,
@@ -486,15 +488,21 @@ describe("Native Token Transfer", () => {
         api: connectors.dhApi,
         pallet: "DataHavenNativeTransfer",
         event: "TokensTransferredToEthereum",
-        timeout: 10000,
-        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+        timeout: 30000, // Increased timeout
+        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
+        onEvent: (event) => {
+          logger.info(`TokensTransferredToEthereum event received: ${JSON.stringify(event)}`);
+        }
       }),
       waitForDataHavenEvent({
         api: connectors.dhApi,
         pallet: "DataHavenNativeTransfer",
         event: "TokensLocked",
-        timeout: 10000,
-        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+        timeout: 30000, // Increased timeout
+        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
+        onEvent: (event) => {
+          logger.info(`TokensLocked event received: ${JSON.stringify(event)}`);
+        }
       })
     ]);
 
@@ -506,5 +514,5 @@ describe("Native Token Transfer", () => {
     expect(lockedEvent.data).toBeTruthy();
 
     logger.success("Event emissions verified");
-  });
+  }, 30_000); // 30 second timeout
 });

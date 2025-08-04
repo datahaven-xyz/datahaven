@@ -21,12 +21,7 @@ node:
   chainKeystore:
     mountInMemory:
       enabled: true
-  # perNodeServices:
-  #   relayP2pService:
-  #     enabled: true
-  # to generate new key run: docker run moonsonglabs/datahaven key generate-node-key
-  # 12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk
-  customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238
+  persistGeneratedNodeKey: true
   flags:
     - "--allow-private-ipv4"
     - "--discover-local"

@@ -513,7 +513,7 @@ impl pallet_identity::Config for Runtime {
         let public = sp_io::crypto::ecdsa_generate(0.into(), None);
         let eth_signer: Self::SigningPublicKey = public.into();
         let hash_msg = sp_io::hashing::keccak_256(message);
-        let signature = Self::EthereumSignature::new(
+        let signature = Self::OffchainSignature::new(
             sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
         );
 

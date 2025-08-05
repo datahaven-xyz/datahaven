@@ -170,14 +170,15 @@ describe("Native Token Transfer", () => {
     registeredTokenId = tokenId;
 
     // Verify the Ethereum event was received
-    expect(ethEventResult.log).toBeDefined();
+    expect(ethEventResult.log).not.toBeNull();
+
     const eventArgs = (ethEventResult.log as any)?.args;
     expect(eventArgs?.tokenID).toBe(tokenId);
-    
+
     // Get the deployed token address from the event
     deployedERC20Address = eventArgs?.token as `0x${string}`;
     expect(deployedERC20Address).not.toBe(ZERO_ADDRESS);
-    
+
     logger.info(`ERC20 token deployed at: ${deployedERC20Address}`);
 
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
@@ -271,7 +272,7 @@ describe("Native Token Transfer", () => {
     ]);
 
     logger.info(`Transfer transaction submitted, hash: ${txResult.txHash}`);
-    
+
     // Verify DataHaven event was received
     expect(tokenTransferEvent.data).toBeDefined();
     expect(tokenMintEvent.log).toBeDefined();
@@ -367,12 +368,12 @@ describe("Native Token Transfer", () => {
       const unpauseTx = connectors.dhApi.tx.DataHavenNativeTransfer.unpause();
       const sudoUnpauseTx = connectors.dhApi.tx.Sudo.sudo({ call: unpauseTx.decodedCall });
       const result = await sudoUnpauseTx.signAndSubmit(alithSigner);
-      
+
       // Verify transaction succeeded and check events
       expect(result.ok).toBe(true);
       const sudoEvent = result.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
       expect(sudoEvent).toBeDefined();
-      
+
       const unpausedEvent = result.events.find(
         (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Unpaused"
       );
@@ -385,12 +386,12 @@ describe("Native Token Transfer", () => {
     const sudoPauseTx = connectors.dhApi.tx.Sudo.sudo({ call: pauseTx.decodedCall });
 
     const pauseResult = await sudoPauseTx.signAndSubmit(alithSigner);
-    
+
     // Verify transaction succeeded and check events
     expect(pauseResult.ok).toBe(true);
     const pauseSudoEvent = pauseResult.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
     expect(pauseSudoEvent).toBeDefined();
-    
+
     const pausedEvent = pauseResult.events.find(
       (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Paused"
     );
@@ -422,12 +423,12 @@ describe("Native Token Transfer", () => {
     const sudoUnpauseTx = connectors.dhApi.tx.Sudo.sudo({ call: unpauseTx.decodedCall });
 
     const unpauseResult = await sudoUnpauseTx.signAndSubmit(alithSigner);
-    
+
     // Verify transaction succeeded and check events
     expect(unpauseResult.ok).toBe(true);
     const unpauseSudoEvent = unpauseResult.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
     expect(unpauseSudoEvent).toBeDefined();
-    
+
     const finalUnpausedEvent = unpauseResult.events.find(
       (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Unpaused"
     );

@@ -508,6 +508,18 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = ();
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
+        let public = sp_io::crypto::ecdsa_generate(0.into(), None);
+        let eth_signer: Self::SigningPublicKey = public.into();
+        let hash_msg = sp_io::hashing::keccak_256(message);
+        let signature = Self::OffchainSignature::new(
+            sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
+        );
+
+        (eth_signer.encode(), signature.encode())
+    }
 }
 
 parameter_types! {

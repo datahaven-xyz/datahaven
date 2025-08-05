@@ -511,9 +511,9 @@ impl pallet_identity::Config for Runtime {
     #[cfg(feature = "runtime-benchmarks")]
     fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
         let public = sp_io::crypto::ecdsa_generate(0.into(), None);
-        let eth_signer: fp_account::EthereumSigner = public.into();
+        let eth_signer: Self::SigningPublicKey = public.into();
         let hash_msg = sp_io::hashing::keccak_256(message);
-        let signature = fp_account::EthereumSignature::new(
+        let signature = Self::EthereumSignature::new(
             sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
         );
 

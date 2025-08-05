@@ -211,8 +211,6 @@ describe("Native Token Transfer", () => {
     expect(registeredTokenId).toBeDefined();
     expect(deployedERC20Address).toBeDefined();
 
-
-
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
     const fee = parseEther("1");
@@ -221,7 +219,7 @@ describe("Native Token Transfer", () => {
       SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
-    const initialEthBalance = (await connectors.publicClient.readContract({
+    const initialWrappedHaveBalance = (await connectors.publicClient.readContract({
       address: deployedERC20Address!,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
@@ -230,7 +228,7 @@ describe("Native Token Transfer", () => {
 
     logger.info("Initial balances:");
     logger.info(`  DataHaven: ${initialDHBalance.data.free}`);
-    logger.info(`  Ethereum: ${initialEthBalance}`);
+    logger.info(`  wHAVE on Ethereum: ${initialWrappedHaveBalance}`);
 
     // Perform transfer
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
@@ -251,7 +249,7 @@ describe("Native Token Transfer", () => {
         filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
         timeout: 30000,
         onEvent: (event) => {
-          logger.info(`Tokens transferred on DataHaven: ${JSON.stringify(event)}`);
+          logger.info(`Tokens transferred on DataHaven - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`);
         }
       }),
       // Wait for ERC20 Transfer event on Ethereum (minting to recipient)
@@ -280,7 +278,7 @@ describe("Native Token Transfer", () => {
       SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
-    const finalEthBalance = (await connectors.publicClient.readContract({
+    const finalWrappedHaveBalance = (await connectors.publicClient.readContract({
       address: deployedERC20Address!,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
@@ -289,16 +287,16 @@ describe("Native Token Transfer", () => {
 
     logger.info("Final balances:");
     logger.info(`  DataHaven: ${finalDHBalance.data.free}`);
-    logger.info(`  Ethereum: ${finalEthBalance}`);
+    logger.info(`  wHAVE on Ethereum: ${finalWrappedHaveBalance}`);
 
     expect(finalDHBalance.data.free).toBeLessThan(initialDHBalance.data.free);
-    expect(finalEthBalance).toBeGreaterThan(initialEthBalance);
+    expect(finalWrappedHaveBalance).toBeGreaterThan(initialWrappedHaveBalance);
 
     const dhDecrease = initialDHBalance.data.free - finalDHBalance.data.free;
-    const ethIncrease = finalEthBalance - initialEthBalance;
+    const wrappedHaveIncrease = finalWrappedHaveBalance - initialWrappedHaveBalance;
 
     expect(dhDecrease).toBe(amount + fee);
-    expect(ethIncrease).toBe(amount);
+    expect(wrappedHaveIncrease).toBe(amount);
 
     logger.success("Transfer completed successfully!");
   }, 180_000); // 3 minute timeout (2 epochs @ 2s slots = ~128s + buffer)
@@ -492,7 +490,7 @@ describe("Native Token Transfer", () => {
         timeout: 30000, // Increased timeout
         filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
         onEvent: (event) => {
-          logger.info(`TokensTransferredToEthereum event received: ${JSON.stringify(event)}`);
+          logger.info(`TokensTransferredToEthereum event received - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`);
         }
       }),
       waitForDataHavenEvent({
@@ -502,7 +500,7 @@ describe("Native Token Transfer", () => {
         timeout: 30000, // Increased timeout
         filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
         onEvent: (event) => {
-          logger.info(`TokensLocked event received: ${JSON.stringify(event)}`);
+          logger.info(`TokensLocked event received - from: ${event.from}, amount: ${event.amount?.toString()}`);
         }
       })
     ]);

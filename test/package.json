@@ -60,6 +60,8 @@
     "polkadot-api": "^1.15.1",
     "tiny-invariant": "^1.3.3",
     "viem": "^2.31.3",
+    "@polkadot/types": "^12.1.2",
+    "@polkadot/util-crypto": "^12.1.2",
     "wagmi": "^2.15.6",
     "yaml": "^2.8.0",
     "zod": "^3.25.67"

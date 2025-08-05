@@ -12,6 +12,8 @@
  */
 
 import { describe, expect, it } from "bun:test";
+import { TypeRegistry } from "@polkadot/types";
+import { blake2AsHex } from "@polkadot/util-crypto";
 import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
@@ -78,6 +80,44 @@ const ERC20_METADATA_ABI = [
     ]
   }
 ] as const;
+
+// Helper to derive the native token ID and (if registered) its ERC-20 address.
+async function getNativeERC20Address(
+  connectors: any,
+  gatewayAddress: `0x${string}`
+): Promise<{ tokenId: string; tokenAddress: `0x${string}` } | null> {
+  try {
+    const chainId = await connectors.publicClient.getChainId();
+
+    const registry = new TypeRegistry();
+    const location = registry.createType("XcmV5Location", {
+      parents: 1,
+      interior: {
+        X1: {
+          GlobalConsensus: {
+            Ethereum: { chainId }
+          }
+        }
+      }
+    });
+
+    const tokenId = blake2AsHex(location.toU8a()) as `0x${string}`;
+
+    const tokenAddress = (await connectors.publicClient.readContract({
+      address: gatewayAddress,
+      abi: gatewayAbi,
+      functionName: "tokenAddressOf",
+      args: [tokenId]
+    })) as `0x${string}`;
+
+    return {
+      tokenId,
+      tokenAddress
+    };
+  } catch (error: any) {
+    return null;
+  }
+}
 
 let registeredTokenId: string | undefined;
 let deployedERC20Address: `0x${string}` | undefined;

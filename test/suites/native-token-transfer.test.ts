@@ -20,8 +20,8 @@ import {
   logger,
   parseDeploymentsFile,
   SUBSTRATE_FUNDED_ACCOUNTS,
-  waitForEthereumEvent,
-  waitForDataHavenEvent
+  waitForDataHavenEvent,
+  waitForEthereumEvent
 } from "utils";
 import { getContract, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
@@ -82,7 +82,6 @@ const ERC20_METADATA_ABI = [
 let registeredTokenId: string | undefined;
 let deployedERC20Address: `0x${string}` | undefined;
 
-
 class NativeTokenTransferTestSuite extends BaseTestSuite {
   constructor() {
     super({
@@ -141,7 +140,9 @@ describe("Native Token Transfer", () => {
         eventName: "ForeignTokenRegistered",
         timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
         onEvent: (log) => {
-          logger.info(`Token registered on Ethereum - tokenID: ${(log as any).args.tokenID}, address: ${(log as any).args.token}`);
+          logger.info(
+            `Token registered on Ethereum - tokenID: ${(log as any).args.tokenID}, address: ${(log as any).args.token}`
+          );
         }
       })
     ]);
@@ -249,7 +250,9 @@ describe("Native Token Transfer", () => {
         filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
         timeout: 30000,
         onEvent: (event) => {
-          logger.info(`Tokens transferred on DataHaven - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`);
+          logger.info(
+            `Tokens transferred on DataHaven - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`
+          );
         }
       }),
       // Wait for ERC20 Transfer event on Ethereum (minting to recipient)
@@ -264,7 +267,9 @@ describe("Native Token Transfer", () => {
         },
         timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
         onEvent: (log) => {
-          logger.info(`Tokens minted on Ethereum: ${(log as any).args.value} to ${(log as any).args.to}`);
+          logger.info(
+            `Tokens minted on Ethereum: ${(log as any).args.value} to ${(log as any).args.to}`
+          );
         }
       })
     ]);
@@ -369,7 +374,9 @@ describe("Native Token Transfer", () => {
 
       // Verify transaction succeeded and check events
       expect(result.ok).toBe(true);
-      const sudoEvent = result.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+      const sudoEvent = result.events.find(
+        (e: any) => e.type === "Sudo" && e.value.type === "Sudid"
+      );
       expect(sudoEvent).toBeDefined();
 
       const unpausedEvent = result.events.find(
@@ -387,7 +394,9 @@ describe("Native Token Transfer", () => {
 
     // Verify transaction succeeded and check events
     expect(pauseResult.ok).toBe(true);
-    const pauseSudoEvent = pauseResult.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+    const pauseSudoEvent = pauseResult.events.find(
+      (e: any) => e.type === "Sudo" && e.value.type === "Sudid"
+    );
     expect(pauseSudoEvent).toBeDefined();
 
     const pausedEvent = pauseResult.events.find(
@@ -424,7 +433,9 @@ describe("Native Token Transfer", () => {
 
     // Verify transaction succeeded and check events
     expect(unpauseResult.ok).toBe(true);
-    const unpauseSudoEvent = unpauseResult.events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
+    const unpauseSudoEvent = unpauseResult.events.find(
+      (e: any) => e.type === "Sudo" && e.value.type === "Sudid"
+    );
     expect(unpauseSudoEvent).toBeDefined();
 
     const finalUnpausedEvent = unpauseResult.events.find(
@@ -440,8 +451,6 @@ describe("Native Token Transfer", () => {
 
     expect(registeredTokenId).toBeDefined();
     expect(deployedERC20Address).toBeDefined();
-
-
 
     const totalSupply = (await connectors.publicClient.readContract({
       address: deployedERC20Address!,
@@ -490,7 +499,9 @@ describe("Native Token Transfer", () => {
         timeout: 30000, // Increased timeout
         filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
         onEvent: (event) => {
-          logger.info(`TokensTransferredToEthereum event received - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`);
+          logger.info(
+            `TokensTransferredToEthereum event received - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`
+          );
         }
       }),
       waitForDataHavenEvent({
@@ -500,7 +511,9 @@ describe("Native Token Transfer", () => {
         timeout: 30000, // Increased timeout
         filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
         onEvent: (event) => {
-          logger.info(`TokensLocked event received - from: ${event.from}, amount: ${event.amount?.toString()}`);
+          logger.info(
+            `TokensLocked event received - from: ${event.from}, amount: ${event.amount?.toString()}`
+          );
         }
       })
     ]);

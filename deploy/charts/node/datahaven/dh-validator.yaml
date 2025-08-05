@@ -42,8 +42,8 @@ node:
       extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Alice" || echo "//Bob")'
   persistGeneratedNodeKey: true
   flags:
-    - "--bootnodes /dns/dh-bootnode-0/tcp/30333/p2p/12D3KooWRpzRTivvJ5ySvgbFnPeEE6rDhitQKL1fFJvvBGhnenSk"
     - "--network-backend libp2p"
+    # Note: Bootnode discovery will happen automatically via the chainspec downloaded from customChainspecUrl
   enableOffchainIndexing: true
 
 ingress:

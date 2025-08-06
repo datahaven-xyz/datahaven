@@ -493,7 +493,6 @@ impl pallet_identity::Config for Runtime {
     type MaxSubAccounts = MaxSubAccounts;
     type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
     type MaxRegistrars = MaxRegistrars;
-    type Slashed = ();
     type Slashed = Treasury;
     type ForceOrigin = IdentityForceOrigin;
     type RegistrarOrigin = IdentityRegistrarOrigin;

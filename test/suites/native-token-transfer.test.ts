@@ -82,11 +82,9 @@ const ERC20_METADATA_ABI = [
 ] as const;
 
 // Helper to get the ERC-20 address of the registered native token.
-async function getNativeERC20Address(
-  connectors: any,
-  gatewayAddress: `0x${string}`
-): Promise<`0x${string}` | null> {
+async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | null> {
   try {
+    const deployments = await parseDeploymentsFile();
     const chainId = await connectors.publicClient.getChainId();
 
     const registry = new TypeRegistry();
@@ -104,7 +102,7 @@ async function getNativeERC20Address(
     const tokenId = blake2AsHex(location.toU8a()) as `0x${string}`;
 
     const tokenAddress = await connectors.publicClient.readContract({
-      address: gatewayAddress,
+      address: deployments.Gateway,
       abi: gatewayAbi,
       functionName: "tokenAddressOf",
       args: [tokenId]
@@ -144,10 +142,11 @@ describe("Native Token Transfer", () => {
   it("should register DataHaven native token on Ethereum", async () => {
     const connectors = suite.getTestConnectors();
     const alithSigner = getPapiSigner("ALITH");
-    const deployments = await parseDeploymentsFile();
-
     // First, check if token is already registered
-    const existingTokenAddress = await getNativeERC20Address(connectors, deployments.Gateway);
+    const existingTokenAddress = await getNativeERC20Address(connectors);
+    
+    // Get deployments for later use in the test
+    const deployments = await parseDeploymentsFile();
     
     // Skip registration if token already exists
     if (existingTokenAddress) {
@@ -250,10 +249,9 @@ describe("Native Token Transfer", () => {
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
-    const deployments = await parseDeploymentsFile();
 
     // Get the deployed token address
-    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    const deployedERC20Address = await getNativeERC20Address(connectors);
     expect(deployedERC20Address).not.toBeNull();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
@@ -353,10 +351,9 @@ describe("Native Token Transfer", () => {
   it("should reject transfer with zero amount", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
-    const deployments = await parseDeploymentsFile();
 
     // Verify token is registered
-    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    const deployedERC20Address = await getNativeERC20Address(connectors);
     expect(deployedERC20Address).not.toBeNull();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
@@ -382,10 +379,9 @@ describe("Native Token Transfer", () => {
   it("should reject transfer with zero fee", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
-    const deployments = await parseDeploymentsFile();
 
     // Verify token is registered
-    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    const deployedERC20Address = await getNativeERC20Address(connectors);
     expect(deployedERC20Address).not.toBeNull();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
@@ -498,10 +494,9 @@ describe("Native Token Transfer", () => {
 
   it("should maintain 1:1 backing ratio", async () => {
     const connectors = suite.getTestConnectors();
-    const deployments = await parseDeploymentsFile();
 
     // Get the deployed token address
-    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    const deployedERC20Address = await getNativeERC20Address(connectors);
     expect(deployedERC20Address).not.toBeNull();
 
     const totalSupply = (await connectors.publicClient.readContract({
@@ -525,10 +520,9 @@ describe("Native Token Transfer", () => {
   it("should emit transfer events", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
-    const deployments = await parseDeploymentsFile();
 
     // Verify token is registered
-    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    const deployedERC20Address = await getNativeERC20Address(connectors);
     expect(deployedERC20Address).not.toBeNull();
 
     // Perform small transfer

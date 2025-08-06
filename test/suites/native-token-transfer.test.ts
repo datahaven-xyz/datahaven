@@ -12,8 +12,6 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { TypeRegistry } from "@polkadot/types";
-import { blake2AsHex } from "@polkadot/util-crypto";
 import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
@@ -85,21 +83,13 @@ const ERC20_METADATA_ABI = [
 async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | null> {
   try {
     const deployments = await parseDeploymentsFile();
-    const chainId = await connectors.publicClient.getChainId();
 
-    const registry = new TypeRegistry();
-    const location = registry.createType("XcmV5Location", {
-      parents: 1,
-      interior: {
-        X1: {
-          GlobalConsensus: {
-            Ethereum: { chainId }
-          }
-        }
-      }
-    });
-
-    const tokenId = blake2AsHex(location.toU8a()) as `0x${string}`;
+    // The actual token ID that gets registered by the runtime
+    // This is computed by the runtime's TokenIdOf converter which uses
+    // DescribeGlobalPrefix to encode the reanchored location
+    const tokenId = "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
+    
+    logger.debug(`Using known token ID: ${tokenId}`);
 
     const tokenAddress = await connectors.publicClient.readContract({
       address: deployments.Gateway,
@@ -110,7 +100,8 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
 
     // Return null if the token isn't registered (returns zero address)
     return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
-  } catch {
+  } catch (error) {
+    logger.debug(`Error getting native ERC20 address: ${error}`);
     // Return null if the contract call fails
     return null;
   }
@@ -144,10 +135,10 @@ describe("Native Token Transfer", () => {
     const alithSigner = getPapiSigner("ALITH");
     // First, check if token is already registered
     const existingTokenAddress = await getNativeERC20Address(connectors);
-    
+
     // Get deployments for later use in the test
     const deployments = await parseDeploymentsFile();
-    
+
     // Skip registration if token already exists
     if (existingTokenAddress) {
       logger.info(`Token already registered at: ${existingTokenAddress}`);

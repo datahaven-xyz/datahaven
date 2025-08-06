@@ -25,7 +25,7 @@ use sp_core::H160;
 // Helper function to create a funded account
 fn create_funded_account<T: Config>(seed: u32, amount: BalanceOf<T>) -> T::AccountId {
     let account: T::AccountId = account("user", seed, seed);
-    T::Currency::set_balance(&account, amount);
+    let _ = T::Currency::mint_into(&account, amount);
     account
 }
 
@@ -46,12 +46,18 @@ mod benchmarks {
     #[benchmark]
     fn transfer_to_ethereum() -> Result<(), BenchmarkError> {
         // Setup
-        let amount: BalanceOf<T> = 1_000_000u128.into();
-        let fee: BalanceOf<T> = 10_000u128.into();
-        let total_needed = amount + fee + fee; // Extra fee for existential deposit
+        let amount: BalanceOf<T> = (10_000 * 1_000_000_000u128).into(); // 10k units
+        let fee: BalanceOf<T> = (100 * 1_000_000_000u128).into(); // 100 units
+        let existential_deposit: BalanceOf<T> = T::Currency::minimum_balance();
+
+        // Sender needs: amount + fee + existential_deposit;
+        let total_needed = amount + fee + existential_deposit;
 
         let sender = create_funded_account::<T>(1, total_needed);
         let recipient = ethereum_address(42);
+
+        // Check the initial balance of the fee recipient
+        let initial_fee_recipient_balance = T::Currency::balance(&T::FeeRecipient::get());
 
         // Ensure pallet is not paused
         Paused::<T>::put(false);
@@ -64,7 +70,10 @@ mod benchmarks {
             T::Currency::balance(&T::EthereumSovereignAccount::get()),
             amount
         );
-        assert_eq!(T::Currency::balance(&T::FeeRecipient::get()), fee);
+        assert_eq!(
+            T::Currency::balance(&T::FeeRecipient::get()),
+            initial_fee_recipient_balance + fee
+        );
 
         Ok(())
     }

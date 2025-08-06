@@ -88,7 +88,7 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
     // This is computed by the runtime's TokenIdOf converter which uses
     // DescribeGlobalPrefix to encode the reanchored location
     const tokenId = "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
-    
+
     logger.debug(`Using known token ID: ${tokenId}`);
 
     const tokenAddress = await connectors.publicClient.readContract({
@@ -261,8 +261,8 @@ describe("Native Token Transfer", () => {
     })) as bigint;
 
     logger.info("Initial balances:");
-    logger.info(`  DataHaven: ${initialDHBalance.data.free}`);
-    logger.info(`  wHAVE on Ethereum: ${initialWrappedHaveBalance}`);
+    logger.info(`DataHaven: ${initialDHBalance.data.free}`);
+    logger.info(`wHAVE on Ethereum: ${initialWrappedHaveBalance}`);
 
     // Perform transfer
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
@@ -280,11 +280,19 @@ describe("Native Token Transfer", () => {
         api: connectors.dhApi,
         pallet: "DataHavenNativeTransfer",
         event: "TokensTransferredToEthereum",
-        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
+        filter: (event: any) => {
+          // The event data is typically nested in a structure like event.value or event.data
+          // Try to access the actual event data
+          const eventData = event?.value || event?.data || event;
+          logger.debug(`Event structure received:`, JSON.stringify(event, null, 2));
+          return eventData?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+        },
         timeout: 30000,
         onEvent: (event) => {
+          // Access the actual event data
+          const eventData = event?.value || event?.data || event;
           logger.info(
-            `Tokens transferred on DataHaven - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`
+            `Tokens transferred on DataHaven - from: ${eventData?.from}, to: ${eventData?.to}, amount: ${eventData?.amount?.toString()}`
           );
         }
       }),
@@ -537,10 +545,14 @@ describe("Native Token Transfer", () => {
         pallet: "DataHavenNativeTransfer",
         event: "TokensTransferredToEthereum",
         timeout: 30000, // Increased timeout
-        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
+        filter: (event: any) => {
+          const eventData = event?.value || event?.data || event;
+          return eventData?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+        },
         onEvent: (event) => {
+          const eventData = event?.value || event?.data || event;
           logger.info(
-            `TokensTransferredToEthereum event received - from: ${event.from}, to: ${event.to}, amount: ${event.amount?.toString()}`
+            `TokensTransferredToEthereum event received - from: ${eventData?.from}, to: ${eventData?.to}, amount: ${eventData?.amount?.toString()}`
           );
         }
       }),
@@ -549,10 +561,15 @@ describe("Native Token Transfer", () => {
         pallet: "DataHavenNativeTransfer",
         event: "TokensLocked",
         timeout: 30000, // Increased timeout
-        filter: (event: any) => event.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey,
+        filter: (event: any) => {
+          const eventData = event?.value || event?.data || event;
+          // TokensLocked event has 'account' field, not 'from'
+          return eventData?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+        },
         onEvent: (event) => {
+          const eventData = event?.value || event?.data || event;
           logger.info(
-            `TokensLocked event received - from: ${event.from}, amount: ${event.amount?.toString()}`
+            `TokensLocked event received - account: ${eventData?.account}, amount: ${eventData?.amount?.toString()}`
           );
         }
       })

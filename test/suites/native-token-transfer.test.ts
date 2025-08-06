@@ -25,7 +25,7 @@ import {
   waitForDataHavenEvent,
   waitForEthereumEvent
 } from "utils";
-import { getContract, parseEther } from "viem";
+import { parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
@@ -118,8 +118,6 @@ async function getNativeERC20Address(
   }
 }
 
-let registeredTokenId: string | undefined;
-let deployedERC20Address: `0x${string}` | undefined;
 
 class NativeTokenTransferTestSuite extends BaseTestSuite {
   constructor() {
@@ -148,8 +146,14 @@ describe("Native Token Transfer", () => {
     const alithSigner = getPapiSigner("ALITH");
     const deployments = await parseDeploymentsFile();
 
-    // Check if token is already registered (use stored ID if available)
-    expect(registeredTokenId).toBeUndefined();
+    // First, check if token is already registered
+    const existingTokenAddress = await getNativeERC20Address(connectors, deployments.Gateway);
+    
+    // Skip registration if token already exists
+    if (existingTokenAddress) {
+      logger.info(`Token already registered at: ${existingTokenAddress}`);
+      return;
+    }
 
     // Register token via sudo
     const registerTx = connectors.dhApi.tx.SnowbridgeSystemV2.register_token({
@@ -207,7 +211,6 @@ describe("Native Token Transfer", () => {
     const tokenId = tokenIdRaw.asHex();
 
     logger.debug(`Token registered on DataHaven with ID: ${tokenId}`);
-    registeredTokenId = tokenId;
 
     // Verify the Ethereum event was received
     expect(ethEventResult.log).not.toBeNull();
@@ -216,24 +219,24 @@ describe("Native Token Transfer", () => {
     expect(eventArgs?.tokenID).toBe(tokenId);
 
     // Get the deployed token address from the event
-    deployedERC20Address = eventArgs?.token as `0x${string}`;
+    const deployedERC20Address = eventArgs?.token as `0x${string}`;
     expect(deployedERC20Address).not.toBe(ZERO_ADDRESS);
 
     logger.info(`ERC20 token deployed at: ${deployedERC20Address}`);
 
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       connectors.publicClient.readContract({
-        address: deployedERC20Address!,
+        address: deployedERC20Address,
         abi: ERC20_METADATA_ABI,
         functionName: "name"
       }) as Promise<string>,
       connectors.publicClient.readContract({
-        address: deployedERC20Address!,
+        address: deployedERC20Address,
         abi: ERC20_METADATA_ABI,
         functionName: "symbol"
       }) as Promise<string>,
       connectors.publicClient.readContract({
-        address: deployedERC20Address!,
+        address: deployedERC20Address,
         abi: ERC20_METADATA_ABI,
         functionName: "decimals"
       }) as Promise<number>
@@ -247,9 +250,11 @@ describe("Native Token Transfer", () => {
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
+    const deployments = await parseDeploymentsFile();
 
-    expect(registeredTokenId).toBeDefined();
-    expect(deployedERC20Address).toBeDefined();
+    // Get the deployed token address
+    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    expect(deployedERC20Address).not.toBeNull();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
@@ -348,8 +353,11 @@ describe("Native Token Transfer", () => {
   it("should reject transfer with zero amount", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
+    const deployments = await parseDeploymentsFile();
 
-    expect(registeredTokenId).toBeDefined();
+    // Verify token is registered
+    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    expect(deployedERC20Address).not.toBeNull();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = 0n;
@@ -374,8 +382,11 @@ describe("Native Token Transfer", () => {
   it("should reject transfer with zero fee", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
+    const deployments = await parseDeploymentsFile();
 
-    expect(registeredTokenId).toBeDefined();
+    // Verify token is registered
+    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    expect(deployedERC20Address).not.toBeNull();
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
@@ -487,9 +498,11 @@ describe("Native Token Transfer", () => {
 
   it("should maintain 1:1 backing ratio", async () => {
     const connectors = suite.getTestConnectors();
+    const deployments = await parseDeploymentsFile();
 
-    expect(registeredTokenId).toBeDefined();
-    expect(deployedERC20Address).toBeDefined();
+    // Get the deployed token address
+    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    expect(deployedERC20Address).not.toBeNull();
 
     const totalSupply = (await connectors.publicClient.readContract({
       address: deployedERC20Address!,
@@ -512,8 +525,11 @@ describe("Native Token Transfer", () => {
   it("should emit transfer events", async () => {
     const connectors = suite.getTestConnectors();
     const baltatharSigner = getPapiSigner("BALTATHAR");
+    const deployments = await parseDeploymentsFile();
 
-    expect(registeredTokenId).toBeDefined();
+    // Verify token is registered
+    const deployedERC20Address = await getNativeERC20Address(connectors, deployments.Gateway);
+    expect(deployedERC20Address).not.toBeNull();
 
     // Perform small transfer
     const recipient = ANVIL_FUNDED_ACCOUNTS[2].publicKey;

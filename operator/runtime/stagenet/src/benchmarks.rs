@@ -24,10 +24,17 @@
 // For more information, please refer to <http://unlicense.org>
 
 frame_benchmarking::define_benchmarks!(
-    [frame_benchmarking, BaselineBench::<Runtime>]
+    // System benchmarks
     [frame_system, SystemBench::<Runtime>]
+
+    // Consensus pallets
+    [pallet_mmr, Mmr]
+    [pallet_beefy_mmr, BeefyMmrLeaf]
+
+    // Substrate pallets
     [pallet_balances, Balances]
-    [pallet_identity, Identity]
+    // FIXME: benchmarking identity fail
+    // [pallet_identity, Identity]
     [pallet_im_online, ImOnline]
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]
@@ -36,4 +43,22 @@ frame_benchmarking::define_benchmarks!(
     [pallet_timestamp, Timestamp]
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]
+    [pallet_transaction_payment, TransactionPayment]
+    [pallet_parameters, Parameters]
+    [pallet_message_queue, MessageQueue]
+
+    // EVM pallets
+    [pallet_evm, Evm]
+
+    // DataHaven custom pallets
+    [pallet_external_validators, ExternalValidators]
+    [pallet_external_validators_rewards, ExternalValidatorsRewards]
+    [pallet_datahaven_native_transfer, DataHavenNativeTransfer]
+
+    // Snowbridge pallets
+    [snowbridge_pallet_ethereum_client, EthereumBeaconClient]
+    [snowbridge_pallet_inbound_queue_v2, EthereumInboundQueueV2]
+    [snowbridge_pallet_outbound_queue_v2, EthereumOutboundQueueV2]
+    [snowbridge_pallet_system, SnowbridgeSystem]
+    [snowbridge_pallet_system_v2, SnowbridgeSystemV2]
 );

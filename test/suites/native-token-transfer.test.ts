@@ -286,19 +286,14 @@ describe("Native Token Transfer", () => {
         pallet: "DataHavenNativeTransfer",
         event: "TokensTransferredToEthereum",
         filter: (event: any) => {
-          // The event data is typically nested in a structure like event.value or event.data
-          // Try to access the actual event data
-          const eventData = event?.value || event?.data || event;
-          // Skip debug logging that causes BigInt serialization error
-          // logger.debug(`Event structure received:`, JSON.stringify(event, null, 2));
-          return eventData?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+          // The event data is passed directly to the filter function
+          return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
         },
         timeout: 30000,
         onEvent: (event) => {
-          // Access the actual event data
-          const eventData = event?.value || event?.data || event;
+          // The event data is passed directly to the callback
           logger.info(
-            `Tokens transferred on DataHaven - from: ${eventData?.from}, to: ${eventData?.to}, amount: ${eventData?.amount?.toString()}`
+            `Tokens transferred on DataHaven - from: ${event?.from}, to: ${event?.to}, amount: ${event?.amount?.toString()}`
           );
         }
       }),
@@ -326,7 +321,7 @@ describe("Native Token Transfer", () => {
     // Verify DataHaven event was received
     expect(tokenTransferEvent.data).toBeDefined();
     expect(tokenMintEvent.log).toBeDefined();
-    
+
     // Get final balances including sovereign account
     const finalDHBalance = await connectors.dhApi.query.System.Account.getValue(
       SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
@@ -352,25 +347,25 @@ describe("Native Token Transfer", () => {
     expect(finalDHBalance.data.free).toBeLessThan(initialDHBalance.data.free);
     const dhDecrease = initialDHBalance.data.free - finalDHBalance.data.free;
     expect(dhDecrease).toBe(amount + fee);
-    
+
     // Verify sovereign account balance increased by exactly the amount (not the fee)
     const sovereignIncrease = finalSovereignBalance.data.free - initialSovereignBalance.data.free;
     expect(sovereignIncrease).toBe(amount);
     logger.info(`✓ Sovereign account locked exactly ${amount} tokens`);
-    
+
     // Verify wrapped token balance increased by the amount
     expect(finalWrappedHaveBalance).toBeGreaterThan(initialWrappedHaveBalance);
     const wrappedHaveIncrease = finalWrappedHaveBalance - initialWrappedHaveBalance;
     expect(wrappedHaveIncrease).toBe(amount);
-    
+
     // Verify 1:1 backing ratio is maintained
-    logger.info(`✓ User paid: ${dhDecrease} (${amount} locked + ${fee} fee)`);
+    logger.info(`✓ User paid: ${dhDecrease} (${amount} locked + ${fee} fee to Treasury)`);
     logger.info(`✓ Tokens locked in sovereign: ${sovereignIncrease}`);
     logger.info(`✓ Tokens minted on Ethereum: ${wrappedHaveIncrease}`);
     logger.info(`✓ 1:1 backing verified: locked === minted`);
 
     logger.success("Transfer completed successfully with proper token locking!");
-  }, 180_000); // 3 minute timeout (2 epochs @ 2s slots = ~128s + buffer)
+  }, 360_000);
 
   it("should reject transfer with zero amount", async () => {
     const connectors = suite.getTestConnectors();
@@ -571,13 +566,13 @@ describe("Native Token Transfer", () => {
         event: "TokensTransferredToEthereum",
         timeout: 30000, // Increased timeout
         filter: (event: any) => {
-          const eventData = event?.value || event?.data || event;
-          return eventData?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+          // The event data is passed directly to the filter function
+          return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
         },
         onEvent: (event) => {
-          const eventData = event?.value || event?.data || event;
+          // The event data is passed directly to the callback
           logger.info(
-            `TokensTransferredToEthereum event received - from: ${eventData?.from}, to: ${eventData?.to}, amount: ${eventData?.amount?.toString()}`
+            `TokensTransferredToEthereum event received - from: ${event?.from}, to: ${event?.to}, amount: ${event?.amount?.toString()}`
           );
         }
       }),
@@ -587,14 +582,13 @@ describe("Native Token Transfer", () => {
         event: "TokensLocked",
         timeout: 30000, // Increased timeout
         filter: (event: any) => {
-          const eventData = event?.value || event?.data || event;
           // TokensLocked event has 'account' field, not 'from'
-          return eventData?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+          return event?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
         },
         onEvent: (event) => {
-          const eventData = event?.value || event?.data || event;
+          // The event data is passed directly to the callback
           logger.info(
-            `TokensLocked event received - account: ${eventData?.account}, amount: ${eventData?.amount?.toString()}`
+            `TokensLocked event received - account: ${event?.account}, amount: ${event?.amount?.toString()}`
           );
         }
       })

@@ -1,4 +1,4 @@
-{{- if .Values.relayData.storagePath }}
+{{- if and .Values.relayData.storagePath .Values.relayData.volumeSize }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

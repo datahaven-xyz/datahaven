@@ -81,11 +81,11 @@ const ERC20_METADATA_ABI = [
   }
 ] as const;
 
-// Helper to derive the native token ID and (if registered) its ERC-20 address.
+// Helper to get the ERC-20 address of the registered native token.
 async function getNativeERC20Address(
   connectors: any,
   gatewayAddress: `0x${string}`
-): Promise<{ tokenId: string; tokenAddress: `0x${string}` } | null> {
+): Promise<`0x${string}` | null> {
   try {
     const chainId = await connectors.publicClient.getChainId();
 
@@ -103,18 +103,17 @@ async function getNativeERC20Address(
 
     const tokenId = blake2AsHex(location.toU8a()) as `0x${string}`;
 
-    const tokenAddress = (await connectors.publicClient.readContract({
+    const tokenAddress = await connectors.publicClient.readContract({
       address: gatewayAddress,
       abi: gatewayAbi,
       functionName: "tokenAddressOf",
       args: [tokenId]
-    })) as `0x${string}`;
+    }) as `0x${string}`;
 
-    return {
-      tokenId,
-      tokenAddress
-    };
-  } catch (error: any) {
+    // Return null if the token isn't registered (returns zero address)
+    return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
+  } catch {
+    // Return null if the contract call fails
     return null;
   }
 }

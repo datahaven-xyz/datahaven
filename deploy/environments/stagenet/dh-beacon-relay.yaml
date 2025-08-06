@@ -10,4 +10,4 @@ image:
 
 relayData:
   storagePath: "/relay-data"
-  volumeSize: 10Gi 
+  volumeSize: 10Gi

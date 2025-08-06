@@ -18,7 +18,7 @@ existingSecretName: "dh-execution-relay-substrate-key"
 relayData:
   storagePath: "/relay-data"
   storageClass: "gp2"
-  volumeSize: 10Gi 
+  volumeSize: 10Gi
 
 extraArgs: [
   "run",

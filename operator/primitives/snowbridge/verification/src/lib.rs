@@ -5,7 +5,7 @@
 use codec::{Decode, Encode};
 use frame_support::PalletError;
 use scale_info::TypeInfo;
-use snowbridge_beacon_primitives::ExecutionProof;
+use snowbridge_beacon_primitives::{BeaconHeader, ExecutionProof};
 use sp_core::{RuntimeDebug, H160, H256};
 use sp_std::prelude::*;
 
@@ -69,4 +69,11 @@ pub struct Proof {
     pub receipt_proof: (Vec<Vec<u8>>, Vec<Vec<u8>>),
     // Proof that an execution header was finalized by the beacon chain
     pub execution_proof: ExecutionProof,
+}
+
+#[derive(Clone, RuntimeDebug)]
+pub struct EventFixture {
+    pub event: EventProof,
+    pub finalized_header: BeaconHeader,
+    pub block_roots_root: H256,
 }

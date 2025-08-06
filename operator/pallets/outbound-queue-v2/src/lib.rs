@@ -64,6 +64,9 @@ mod mock;
 #[cfg(test)]
 mod test;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod fixture;
+
 use alloy_core::{
     primitives::{Bytes, FixedBytes},
     sol_types::SolValue,
@@ -95,6 +98,9 @@ pub use types::{OnNewCommitment, PendingOrder, ProcessMessageOriginOf};
 pub use weights::WeightInfo;
 use xcm::latest::{Location, NetworkId};
 type DeliveryReceiptOf<T> = DeliveryReceipt<<T as frame_system::Config>::AccountId>;
+
+#[cfg(feature = "runtime-benchmarks")]
+use snowbridge_beacon_primitives::BeaconHeader;
 
 pub use pallet::*;
 
@@ -153,6 +159,8 @@ pub mod pallet {
         /// Ethereum NetworkId
         type EthereumNetwork: Get<NetworkId>;
         type ConvertAssetId: MaybeEquivalence<TokenId, Location>;
+        #[cfg(feature = "runtime-benchmarks")]
+        type Helper: BenchmarkHelper<Self>;
     }
 
     #[pallet::event]
@@ -245,6 +253,11 @@ pub mod pallet {
         fn on_finalize(_: BlockNumberFor<T>) {
             Self::commit();
         }
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    pub trait BenchmarkHelper<T> {
+        fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256);
     }
 
     #[pallet::call]

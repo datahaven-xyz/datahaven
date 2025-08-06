@@ -37,6 +37,7 @@ pallet-babe = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-beefy = { workspace = true }
 pallet-beefy-mmr = { workspace = true }
+pallet-datahaven-native-transfer = { workspace = true }
 pallet-ethereum = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-chain-id = { workspace = true }
@@ -51,7 +52,6 @@ pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
-pallet-datahaven-native-transfer = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -89,6 +89,7 @@ sp-consensus-grandpa = { workspace = true, features = ["serde"] }
 sp-core = { workspace = true, features = ["serde"] }
 sp-genesis-builder = { workspace = true }
 sp-inherents = { workspace = true }
+sp-io = { workspace = true }
 sp-keyring = { workspace = true }
 sp-offchain = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }
@@ -113,12 +114,11 @@ sp-tracing = { workspace = true }
 
 # Snowbridge testing
 snowbridge-core = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 snowbridge-pallet-system = { workspace = true }
 snowbridge-pallet-system-v2 = { workspace = true }
-snowbridge-outbound-queue-primitives = { workspace = true }
 
 [features]
-storage-hub = []
 default = ["std"]
 std = [
     "codec/std",

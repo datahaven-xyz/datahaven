@@ -161,6 +161,10 @@ describe("Native Token Transfer", () => {
       call: registerTx.decodedCall
     });
 
+    // Capture starting block to avoid missing early events
+    const startRegistrationBlock = await connectors.publicClient.getBlockNumber();
+    const registrationFromBlock = startRegistrationBlock > 0n ? startRegistrationBlock - 1n : startRegistrationBlock;
+
     // Submit transaction and wait for both DataHaven confirmation and Ethereum event
     const [dhTxResult, ethEventResult] = await Promise.all([
       // Submit and wait for transaction on DataHaven
@@ -171,7 +175,7 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        fromBlock: 0n,
+        fromBlock: registrationFromBlock,
         timeout: 180000 // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
       })
     ]);
@@ -300,6 +304,8 @@ describe("Native Token Transfer", () => {
 
     // Now wait for Ethereum event with extended timeout
     logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
+    const startTransferBlock = await connectors.publicClient.getBlockNumber();
+    const transferFromBlock = startTransferBlock > 0n ? startTransferBlock - 1n : startTransferBlock;
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
       address: deployedERC20Address!,
@@ -309,7 +315,7 @@ describe("Native Token Transfer", () => {
         from: ZERO_ADDRESS, // Minting from zero address
         to: recipient
       },
-      fromBlock: 0n,
+      fromBlock: transferFromBlock,
       timeout: 300000 // 5 minutes - longer timeout for cross-chain
     });
 

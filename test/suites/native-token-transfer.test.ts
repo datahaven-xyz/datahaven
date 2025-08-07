@@ -117,7 +117,7 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
     this.setupHooks();
   }
 
-  override async onSetup(): Promise<void> {}
+  override async onSetup(): Promise<void> { }
 }
 
 // Create the test suite instance

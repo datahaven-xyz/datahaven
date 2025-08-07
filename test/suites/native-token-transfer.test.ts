@@ -117,9 +117,7 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
     this.setupHooks();
   }
 
-  override async onSetup(): Promise<void> {
-    logger.info("Test setup complete");
-  }
+  override async onSetup(): Promise<void> {}
 }
 
 // Create the test suite instance
@@ -143,7 +141,7 @@ describe("Native Token Transfer", () => {
 
     // Skip registration if token already exists
     if (existingTokenAddress) {
-      logger.info(`Token already registered at: ${existingTokenAddress}`);
+      logger.debug(`Token already registered at: ${existingTokenAddress}`);
       return;
     }
 
@@ -174,12 +172,7 @@ describe("Native Token Transfer", () => {
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
         fromBlock: 0n,
-        timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
-        onEvent: (log) => {
-          logger.info(
-            `Token registered on Ethereum - tokenID: ${(log as any).args.tokenID}, address: ${(log as any).args.token}`
-          );
-        }
+        timeout: 180000 // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
       })
     ]);
 
@@ -213,7 +206,7 @@ describe("Native Token Transfer", () => {
     const deployedERC20Address = eventArgs?.token as `0x${string}`;
     expect(deployedERC20Address).not.toBe(ZERO_ADDRESS);
 
-    logger.info(`ERC20 token deployed at: ${deployedERC20Address}`);
+    logger.debug(`ERC20 token deployed at: ${deployedERC20Address}`);
 
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       connectors.publicClient.readContract({
@@ -297,16 +290,16 @@ describe("Native Token Transfer", () => {
     // Verify DataHaven event was received
     expect(tokenTransferEvent).toBeDefined();
     expect(tokenTransferEvent?.value?.value).toBeDefined();
-    logger.info("✅ DataHaven event confirmed, message should be queued for relayers");
+    logger.debug("DataHaven event confirmed, message should be queued for relayers");
 
     // Check sovereign account balance after block finalization
     const intermediateBalance = await connectors.dhApi.query.System.Account.getValue(
       ETHEREUM_SOVEREIGN_ACCOUNT
     );
-    logger.info(`📊 Sovereign balance after events: ${intermediateBalance.data.free}`);
+    logger.debug(`Sovereign balance after events: ${intermediateBalance.data.free}`);
 
     // Now wait for Ethereum event with extended timeout
-    logger.info("⏳ Waiting for Ethereum minting event (this may take several minutes)...");
+    logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
       address: deployedERC20Address!,

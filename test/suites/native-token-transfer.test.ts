@@ -87,14 +87,15 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
     // The actual token ID that gets registered by the runtime
     // This is computed by the runtime's TokenIdOf converter which uses
     // DescribeGlobalPrefix to encode the reanchored location
-    const tokenId = "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
+    const tokenId =
+      "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
 
-    const tokenAddress = await connectors.publicClient.readContract({
+    const tokenAddress = (await connectors.publicClient.readContract({
       address: deployments.Gateway,
       abi: gatewayAbi,
       functionName: "tokenAddressOf",
       args: [tokenId]
-    }) as `0x${string}`;
+    })) as `0x${string}`;
 
     // Return null if the token isn't registered (returns zero address)
     return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
@@ -103,7 +104,6 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
     return null;
   }
 }
-
 
 class NativeTokenTransferTestSuite extends BaseTestSuite {
   constructor() {
@@ -275,15 +275,17 @@ describe("Native Token Transfer", () => {
 
     // Extract events directly from transaction result instead of waiting
     const tokenTransferEvent = txResult.events.find(
-      (e: any) => e.type === "DataHavenNativeTransfer" && 
-          e.value?.type === "TokensTransferredToEthereum" &&
-          e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      (e: any) =>
+        e.type === "DataHavenNativeTransfer" &&
+        e.value?.type === "TokensTransferredToEthereum" &&
+        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
     const tokensLockedEvent = txResult.events.find(
-      (e: any) => e.type === "DataHavenNativeTransfer" && 
-          e.value?.type === "TokensLocked" &&
-          e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      (e: any) =>
+        e.type === "DataHavenNativeTransfer" &&
+        e.value?.type === "TokensLocked" &&
+        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
     // Verify DataHaven event was received
@@ -298,7 +300,7 @@ describe("Native Token Transfer", () => {
     logger.info(`📊 Sovereign balance after events: ${intermediateBalance.data.free}`);
 
     // Now wait for Ethereum event with extended timeout
-    logger.info("⏳ Waiting for Ethereum minting event (this may take several minutes)...")
+    logger.info("⏳ Waiting for Ethereum minting event (this may take several minutes)...");
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
       address: deployedERC20Address!,
@@ -404,8 +406,10 @@ describe("Native Token Transfer", () => {
       // Check if transaction succeeded but had runtime errors
       if (result.ok) {
         // Look for error events in the transaction
-        const errorEvents = result.events.filter((e: any) =>
-          e.type === "System" && (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+        const errorEvents = result.events.filter(
+          (e: any) =>
+            e.type === "System" &&
+            (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
         );
 
         if (errorEvents.length === 0) {
@@ -441,8 +445,10 @@ describe("Native Token Transfer", () => {
       // Check if transaction succeeded but had runtime errors
       if (result.ok) {
         // Look for error events in the transaction
-        const errorEvents = result.events.filter((e: any) =>
-          e.type === "System" && (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+        const errorEvents = result.events.filter(
+          (e: any) =>
+            e.type === "System" &&
+            (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
         );
 
         if (errorEvents.length === 0) {
@@ -514,8 +520,10 @@ describe("Native Token Transfer", () => {
       // Check if transaction succeeded but had runtime errors
       if (result.ok) {
         // Look for error events in the transaction
-        const errorEvents = result.events.filter((e: any) =>
-          e.type === "System" && (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+        const errorEvents = result.events.filter(
+          (e: any) =>
+            e.type === "System" &&
+            (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
         );
 
         if (errorEvents.length === 0) {
@@ -596,15 +604,17 @@ describe("Native Token Transfer", () => {
 
     // Extract events directly from transaction result instead of waiting
     const transferredEvent = txResult.events.find(
-      (e: any) => e.type === "DataHavenNativeTransfer" && 
-          e.value?.type === "TokensTransferredToEthereum" &&
-          e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      (e: any) =>
+        e.type === "DataHavenNativeTransfer" &&
+        e.value?.type === "TokensTransferredToEthereum" &&
+        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
     const lockedEvent = txResult.events.find(
-      (e: any) => e.type === "DataHavenNativeTransfer" && 
-          e.value?.type === "TokensLocked" &&
-          e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      (e: any) =>
+        e.type === "DataHavenNativeTransfer" &&
+        e.value?.type === "TokensLocked" &&
+        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
     );
 
     // Verify transaction succeeded

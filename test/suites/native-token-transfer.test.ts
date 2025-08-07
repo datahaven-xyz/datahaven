@@ -11,7 +11,7 @@
  * - Sudo access for token registration
  */
 
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
@@ -125,10 +125,18 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
 // Create the test suite instance
 const suite = new NativeTokenTransferTestSuite();
 
+// Create shared signer instances to maintain nonce tracking across tests
+let alithSigner: ReturnType<typeof getPapiSigner>;
+let baltatharSigner: ReturnType<typeof getPapiSigner>;
+
 describe("Native Token Transfer", () => {
+  // Initialize signers once before all tests
+  beforeAll(() => {
+    alithSigner = getPapiSigner("ALITH");
+    baltatharSigner = getPapiSigner("BALTATHAR");
+  });
   it("should register DataHaven native token on Ethereum", async () => {
     const connectors = suite.getTestConnectors();
-    const alithSigner = getPapiSigner("ALITH");
     // First, check if token is already registered
     const existingTokenAddress = await getNativeERC20Address(connectors);
 
@@ -233,7 +241,6 @@ describe("Native Token Transfer", () => {
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
-    const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Get the deployed token address
     const deployedERC20Address = await getNativeERC20Address(connectors);
@@ -384,7 +391,6 @@ describe("Native Token Transfer", () => {
 
   it("should reject transfer with zero amount", async () => {
     const connectors = suite.getTestConnectors();
-    const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Verify token is registered
     const deployedERC20Address = await getNativeERC20Address(connectors);
@@ -403,27 +409,28 @@ describe("Native Token Transfer", () => {
     try {
       const result = await tx.signAndSubmit(baltatharSigner);
 
-      // Check if transaction succeeded but had runtime errors
-      if (result.ok) {
-        // Look for error events in the transaction
-        const errorEvents = result.events.filter(
-          (e: any) =>
-            e.type === "System" &&
-            (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
-        );
+      // We expect the runtime to reject the call, so `ok` must be false
+      expect(result.ok).toBe(false);
 
-        if (errorEvents.length === 0) {
-          throw new Error("Transfer should have failed but succeeded without errors");
-        }
-      }
+      // A failure should emit System.ExtrinsicFailed / DispatchError
+      const errorEvents = result.events.filter(
+        (e: any) =>
+          e.type === "System" &&
+          (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+      );
+      expect(errorEvents.length).toBeGreaterThan(0);
     } catch (error: any) {
-      // Expected behavior - transaction should fail
+      // If the transaction fails at submission level (not runtime level), check it's the expected error
+      if (error.message && error.message.includes("AmountZero")) {
+        // This is expected - the pallet correctly rejected zero amount
+        return;
+      }
+      throw error;
     }
   });
 
   it("should reject transfer with zero fee", async () => {
     const connectors = suite.getTestConnectors();
-    const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Verify token is registered
     const deployedERC20Address = await getNativeERC20Address(connectors);
@@ -457,13 +464,12 @@ describe("Native Token Transfer", () => {
       }
     } catch (error: any) {
       // Expected behavior - transaction should fail
+      // Could be either a submission error or runtime error
     }
   });
 
   it("should pause and unpause transfers", async () => {
     const connectors = suite.getTestConnectors();
-    const alithSigner = getPapiSigner("ALITH");
-    const baltatharSigner = getPapiSigner("BALTATHAR");
 
     const initialPaused = await connectors.dhApi.query.DataHavenNativeTransfer.Paused.getValue();
 
@@ -582,7 +588,6 @@ describe("Native Token Transfer", () => {
 
   it("should emit transfer events", async () => {
     const connectors = suite.getTestConnectors();
-    const baltatharSigner = getPapiSigner("BALTATHAR");
 
     // Verify token is registered
     const deployedERC20Address = await getNativeERC20Address(connectors);

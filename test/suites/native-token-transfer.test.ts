@@ -20,7 +20,6 @@ import {
   logger,
   parseDeploymentsFile,
   SUBSTRATE_FUNDED_ACCOUNTS,
-  waitForDataHavenEvent,
   waitForEthereumEvent
 } from "utils";
 import { parseEther } from "viem";
@@ -274,30 +273,22 @@ describe("Native Token Transfer", () => {
       throw new Error("Transaction failed");
     }
 
-    // Wait for DataHaven event first (this should be fast)
-    const tokenTransferEvent = await waitForDataHavenEvent({
-      api: connectors.dhApi,
-      pallet: "DataHavenNativeTransfer",
-      event: "TokensTransferredToEthereum",
-      filter: (event: any) => {
-        return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-      },
-      timeout: 30000
-    });
+    // Extract events directly from transaction result instead of waiting
+    const tokenTransferEvent = txResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && 
+          e.value?.type === "TokensTransferredToEthereum" &&
+          e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+    );
 
-    // Check for TokensLocked event which should happen in the same transaction
-    const tokensLockedEvent = await waitForDataHavenEvent({
-      api: connectors.dhApi,
-      pallet: "DataHavenNativeTransfer",
-      event: "TokensLocked",
-      filter: (event: any) => {
-        return event?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-      },
-      timeout: 15000
-    });
+    const tokensLockedEvent = txResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && 
+          e.value?.type === "TokensLocked" &&
+          e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+    );
 
     // Verify DataHaven event was received
-    expect(tokenTransferEvent.data).toBeDefined();
+    expect(tokenTransferEvent).toBeDefined();
+    expect(tokenTransferEvent?.value?.value).toBeDefined();
     logger.info("✅ DataHaven event confirmed, message should be queued for relayers");
 
     // Check sovereign account balance after block finalization
@@ -603,33 +594,26 @@ describe("Native Token Transfer", () => {
     // Submit transaction first, then wait for events sequentially
     const txResult = await tx.signAndSubmit(baltatharSigner);
 
-    // Wait for DataHaven events sequentially with better error handling
-    const [transferredEvent, lockedEvent] = await Promise.all([
-      waitForDataHavenEvent({
-        api: connectors.dhApi,
-        pallet: "DataHavenNativeTransfer",
-        event: "TokensTransferredToEthereum",
-        timeout: 30000,
-        filter: (event: any) => {
-          return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-        }
-      }),
-      waitForDataHavenEvent({
-        api: connectors.dhApi,
-        pallet: "DataHavenNativeTransfer",
-        event: "TokensLocked",
-        timeout: 30000,
-        filter: (event: any) => {
-          return event?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-        }
-      })
-    ]);
+    // Extract events directly from transaction result instead of waiting
+    const transferredEvent = txResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && 
+          e.value?.type === "TokensTransferredToEthereum" &&
+          e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+    );
+
+    const lockedEvent = txResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && 
+          e.value?.type === "TokensLocked" &&
+          e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+    );
 
     // Verify transaction succeeded
     expect(txResult.ok).toBe(true);
 
     // Verify events were received
-    expect(transferredEvent.data).toBeTruthy();
-    expect(lockedEvent.data).toBeTruthy();
+    expect(transferredEvent).toBeTruthy();
+    expect(transferredEvent?.value?.value).toBeTruthy();
+    expect(lockedEvent).toBeTruthy();
+    expect(lockedEvent?.value?.value).toBeTruthy();
   }, 30_000); // 30 second timeout
 });

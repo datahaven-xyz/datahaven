@@ -548,100 +548,69 @@ parameter_types! {
     // One storage item; key size 32 (AccountId), value overhead ~8 bytes (BoundedVec metadata)
     pub const AnnouncementDepositBase: Balance = deposit(1, 8);
     // Additional storage item size of 56 bytes:
-	// - 20 bytes AccountId
-	// - 32 bytes Hasher (Blake2256)
-	// - 4 bytes BlockNumber (u32)
+    // - 20 bytes AccountId
+    // - 32 bytes Hasher (Blake2256)
+    // - 4 bytes BlockNumber (u32)
     pub const AnnouncementDepositFactor: Balance = deposit(0, 56);
     pub const MaxPending: u16 = 32;
 }
 
-// Implement the proxy filter logic specific to the mainnet runtime
+// Implement the proxy filter logic specific to the stagenet runtime
 impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
     fn filter(&self, c: &RuntimeCall) -> bool {
         match self {
             ProxyType::Any => true,
-            ProxyType::NonTransfer => {
-                matches!(
-                    c,
-                    RuntimeCall::System(..) |
-                    RuntimeCall::Babe(..) |
-                    RuntimeCall::Timestamp(..) |
-                    RuntimeCall::Session(..) |
-                    RuntimeCall::Grandpa(..) |
-                    RuntimeCall::ImOnline(..) |
-                    RuntimeCall::Identity(..) |
-                    RuntimeCall::Utility(..) |
-                    RuntimeCall::Multisig(..) |
-                    RuntimeCall::Proxy(..) |
-                    RuntimeCall::Parameters(..) |
-                    RuntimeCall::Scheduler(..) |
-                    RuntimeCall::Preimage(..)
-                )
+            ProxyType::NonTransfer => match c {
+                RuntimeCall::Identity(
+                    pallet_identity::Call::add_sub { .. } | pallet_identity::Call::set_subs { .. },
+                ) => false,
+                call => {
+                    matches!(
+                        call,
+                        RuntimeCall::Timestamp(..)
+                            | RuntimeCall::Identity(..)
+                            | RuntimeCall::Utility(..)
+                            | RuntimeCall::Proxy(..)
+                            | RuntimeCall::Preimage(..)
+                    )
+                }
             },
             ProxyType::Governance => {
-                matches!(
-                    c,
-                    RuntimeCall::Treasury(..) |
-                    RuntimeCall::Utility(..) |
-                    RuntimeCall::Multisig(..) |
-                    RuntimeCall::Proxy(..) |
-                    RuntimeCall::Scheduler(..) |
-                    RuntimeCall::Preimage(..) |
-                    RuntimeCall::Parameters(..)
-                )
-            },
+                // Todo: Add additional governance calls when available
+                matches!(c, RuntimeCall::Utility(..) | RuntimeCall::Preimage(..))
+            }
             ProxyType::Staking => {
-                matches!(
-                    c,
-                    RuntimeCall::ExternalValidators(..) |
-                    RuntimeCall::Session(..) |
-                    RuntimeCall::Utility(..) |
-                    RuntimeCall::Proxy(..)
-                )
-            },
-            ProxyType::Identity => {
-                matches!(
-                    c,
-                    RuntimeCall::Identity(..) |
-                    RuntimeCall::Utility(..) |
-                    RuntimeCall::Proxy(..)
-                )
-            },
+                // Todo: Add additional staking calls when available
+                matches!(c, RuntimeCall::Utility(..))
+            }
             ProxyType::CancelProxy => {
                 matches!(
                     c,
-                    RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-                    RuntimeCall::Proxy(pallet_proxy::Call::remove_announcement { .. })
+                    RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })
                 )
-            },
+            }
             ProxyType::Balances => {
+                matches!(c, RuntimeCall::Balances(..) | RuntimeCall::Utility(..))
+            }
+            ProxyType::IdentityJudgement => {
                 matches!(
                     c,
-                    RuntimeCall::Balances(..) |
-                    RuntimeCall::Utility(..) |
-                    RuntimeCall::Proxy(..)
+                    RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
+                        | RuntimeCall::Utility(..)
                 )
-            },
+            }
             ProxyType::SudoOnly => {
-                matches!(
-                    c,
-                    RuntimeCall::Sudo(..) |
-                    RuntimeCall::Utility(..) |
-                    RuntimeCall::Proxy(..)
-                )
-            },
+                matches!(c, RuntimeCall::Sudo(..))
+            }
         }
     }
 
     fn is_superset(&self, o: &Self) -> bool {
         match (self, o) {
-            // Any proxy type can do everything
+            (x, y) if x == y => true,
             (ProxyType::Any, _) => true,
-            // NonTransfer can do Identity and CancelProxy operations
-            (ProxyType::NonTransfer, ProxyType::Identity) => true,
-            (ProxyType::NonTransfer, ProxyType::CancelProxy) => true,
-            // Same types are supersets of themselves
-            _ => self == o,
+            (_, ProxyType::Any) => false,
+            _ => false,
         }
     }
 }

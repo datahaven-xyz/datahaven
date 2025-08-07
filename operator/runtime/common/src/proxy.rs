@@ -1,19 +1,3 @@
-// Copyright 2019-2025 PureStake Inc.
-// This file is part of Moonbeam.
-
-// Moonbeam is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Moonbeam is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
-
 //! Custom proxy types for DataHaven runtimes
 
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -44,12 +28,12 @@ pub enum ProxyType {
     Governance = 2,
     /// Allow only staking and validator-related calls
     Staking = 3,
-    /// Allow only identity-related calls
-    Identity = 4,
     /// Allow only calls that cancel proxy announcements and reject announcements
-    CancelProxy = 5,
+    CancelProxy = 4,
     /// Allow only Balances calls (transfers, set_balance, force_transfer, etc.)
-    Balances = 6,
+    Balances = 5,
+    /// Allow only identity judgement calls
+    IdentityJudgement = 6,
     /// Allow only calls to the Sudo pallet - useful for multisig -> sudo proxy chains
     SudoOnly = 7,
 }

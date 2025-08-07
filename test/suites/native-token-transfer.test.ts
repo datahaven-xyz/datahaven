@@ -315,10 +315,7 @@ describe("Native Token Transfer", () => {
         from: ZERO_ADDRESS, // Minting from zero address
         to: recipient
       },
-      fromBlock: await (async () => {
-        const n: bigint = await connectors.publicClient.getBlockNumber();
-        return n > 0n ? n - 1n : n;
-      })(),
+      fromBlock: await headMinusOne(),
       timeout: 300000
     });
 

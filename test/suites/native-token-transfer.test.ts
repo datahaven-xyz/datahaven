@@ -361,30 +361,14 @@ describe("Native Token Transfer", () => {
       const wrappedHaveIncrease = finalWrappedHaveBalance - initialWrappedHaveBalance;
       expect(wrappedHaveIncrease).toBe(amount);
     } else {
-      // Test fails but with detailed diagnostics
-      logger.error("❌ DIAGNOSTIC: Ethereum event not received within timeout");
-      logger.error("❌ Cross-chain transfer appears to have failed");
-
+      // Compact diagnostics and fail the test with a helpful message
       const dhDecrease = initialDHBalance.data.free - finalDHBalance.data.free;
       const sovereignIncrease = finalSovereignBalance.data.free - initialSovereignBalance.data.free;
       const ethBalanceChange = finalWrappedHaveBalance - initialWrappedHaveBalance;
 
-      logger.error("📊 Current state analysis:");
-      logger.error(`   - DataHaven balance decreased: ${dhDecrease}`);
-      logger.error(`   - Sovereign balance increased: ${sovereignIncrease}`);
-      logger.error(`   - Ethereum balance changed: ${ethBalanceChange}`);
-
-      if (sovereignIncrease > 0n) {
-        logger.error("✅ Tokens were locked in sovereign account");
-        logger.error("❌ But relayers failed to process the cross-chain message");
-        logger.error("💡 This suggests a relayer synchronization issue");
-        logger.error("💡 Check relayer logs for 'block header not found' errors");
-      } else {
-        logger.error("❌ Tokens were not locked in sovereign account");
-        logger.error("❌ The transfer function did not execute properly");
-      }
-
-      expect(tokenMintEvent.log).toBeDefined();
+      const summary = `Ethereum mint event not observed within timeout. DHΔ=${dhDecrease}, SovereignΔ=${sovereignIncrease}, ERC20Δ=${ethBalanceChange}`;
+      logger.warn(summary);
+      throw new Error(summary);
     }
   }, 360_000);
 

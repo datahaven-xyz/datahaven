@@ -116,8 +116,6 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
 
     this.setupHooks();
   }
-
-  override async onSetup(): Promise<void> { }
 }
 
 // Create the test suite instance
@@ -161,9 +159,11 @@ describe("Native Token Transfer", () => {
       call: registerTx.decodedCall
     });
 
-    // Capture starting block to avoid missing early events
-    const startRegistrationBlock = await connectors.publicClient.getBlockNumber();
-    const registrationFromBlock = startRegistrationBlock > 0n ? startRegistrationBlock - 1n : startRegistrationBlock;
+    // Helper to get a safe starting block for event watches
+    const headMinusOne = async (): Promise<bigint> => {
+      const n: bigint = await connectors.publicClient.getBlockNumber();
+      return n > 0n ? n - 1n : n;
+    };
 
     // Submit transaction and wait for both DataHaven confirmation and Ethereum event
     const [dhTxResult, ethEventResult] = await Promise.all([
@@ -175,8 +175,8 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        fromBlock: registrationFromBlock,
-        timeout: 180000 // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
+        fromBlock: await headMinusOne(),
+        timeout: 180000
       })
     ]);
 
@@ -291,9 +291,11 @@ describe("Native Token Transfer", () => {
         e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
-    // Verify DataHaven event was received
+    // Verify DataHaven events were received
     expect(tokenTransferEvent).toBeDefined();
     expect(tokenTransferEvent?.value?.value).toBeDefined();
+    expect(tokensLockedEvent).toBeDefined();
+    expect(tokensLockedEvent?.value?.value).toBeDefined();
     logger.debug("DataHaven event confirmed, message should be queued for relayers");
 
     // Check sovereign account balance after block finalization
@@ -304,8 +306,6 @@ describe("Native Token Transfer", () => {
 
     // Now wait for Ethereum event with extended timeout
     logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
-    const startTransferBlock = await connectors.publicClient.getBlockNumber();
-    const transferFromBlock = startTransferBlock > 0n ? startTransferBlock - 1n : startTransferBlock;
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
       address: deployedERC20Address!,
@@ -315,8 +315,11 @@ describe("Native Token Transfer", () => {
         from: ZERO_ADDRESS, // Minting from zero address
         to: recipient
       },
-      fromBlock: transferFromBlock,
-      timeout: 300000 // 5 minutes - longer timeout for cross-chain
+      fromBlock: await (async () => {
+        const n: bigint = await connectors.publicClient.getBlockNumber();
+        return n > 0n ? n - 1n : n;
+      })(),
+      timeout: 300000
     });
 
     // Get final balances including sovereign account

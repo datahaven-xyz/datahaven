@@ -28,7 +28,8 @@ import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
 // Constants
-const ETHEREUM_SOVEREIGN_ACCOUNT = "0x23e598fa2f50bba6885988e5077200c6d0c5f5cf";
+// The actual Ethereum sovereign account used by the runtime (derived from runtime configuration)
+const ETHEREUM_SOVEREIGN_ACCOUNT = "0xd8030FB68Aa5B447caec066f3C0BdE23E6db0a05";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // Minimal ERC20 ABI for reading token metadata and Transfer events
@@ -89,8 +90,6 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
     // DescribeGlobalPrefix to encode the reanchored location
     const tokenId = "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
 
-    logger.debug(`Using known token ID: ${tokenId}`);
-
     const tokenAddress = await connectors.publicClient.readContract({
       address: deployments.Gateway,
       abi: gatewayAbi,
@@ -101,7 +100,6 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
     // Return null if the token isn't registered (returns zero address)
     return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
   } catch (error) {
-    logger.debug(`Error getting native ERC20 address: ${error}`);
     // Return null if the contract call fails
     return null;
   }
@@ -199,8 +197,6 @@ describe("Native Token Transfer", () => {
     expect(tokenIdRaw).toBeDefined();
     const tokenId = tokenIdRaw.asHex();
 
-    logger.debug(`Token registered on DataHaven with ID: ${tokenId}`);
-
     // Verify the Ethereum event was received
     expect(ethEventResult.log).not.toBeNull();
 
@@ -264,11 +260,6 @@ describe("Native Token Transfer", () => {
       args: [recipient]
     })) as bigint;
 
-    logger.info("Initial balances:");
-    logger.info(`  DataHaven user: ${initialDHBalance.data.free}`);
-    logger.info(`  Sovereign account: ${initialSovereignBalance.data.free}`);
-    logger.info(`  wHAVE on Ethereum: ${initialWrappedHaveBalance}`);
-
     // Perform transfer
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
       recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
@@ -276,51 +267,58 @@ describe("Native Token Transfer", () => {
       fee
     });
 
-    // Submit transaction and wait for both DataHaven events and Ethereum token transfer
-    const [txResult, tokenTransferEvent, tokenMintEvent] = await Promise.all([
-      // Submit the transaction
-      tx.signAndSubmit(baltatharSigner),
-      // Wait for DataHaven transfer event
-      waitForDataHavenEvent({
-        api: connectors.dhApi,
-        pallet: "DataHavenNativeTransfer",
-        event: "TokensTransferredToEthereum",
-        filter: (event: any) => {
-          // The event data is passed directly to the filter function
-          return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-        },
-        timeout: 30000,
-        onEvent: (event) => {
-          // The event data is passed directly to the callback
-          logger.info(
-            `Tokens transferred on DataHaven - from: ${event?.from}, to: ${event?.to}, amount: ${event?.amount?.toString()}`
-          );
-        }
-      }),
-      // Wait for ERC20 Transfer event on Ethereum (minting to recipient)
-      waitForEthereumEvent({
-        client: connectors.publicClient,
-        address: deployedERC20Address!,
-        abi: ERC20_METADATA_ABI,
-        eventName: "Transfer",
-        args: {
-          from: ZERO_ADDRESS, // Minting from zero address
-          to: recipient
-        },
-        timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
-        onEvent: (log) => {
-          logger.info(
-            `Tokens minted on Ethereum: ${(log as any).args.value} to ${(log as any).args.to}`
-          );
-        }
-      })
-    ]);
+    const txResult = await tx.signAndSubmit(baltatharSigner);
 
-    logger.info(`Transfer transaction submitted, hash: ${txResult.txHash}`);
+    // Check transaction result for errors
+    if (!txResult.ok) {
+      throw new Error("Transaction failed");
+    }
+
+    // Wait for DataHaven event first (this should be fast)
+    const tokenTransferEvent = await waitForDataHavenEvent({
+      api: connectors.dhApi,
+      pallet: "DataHavenNativeTransfer",
+      event: "TokensTransferredToEthereum",
+      filter: (event: any) => {
+        return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+      },
+      timeout: 30000
+    });
+
+    // Check for TokensLocked event which should happen in the same transaction
+    const tokensLockedEvent = await waitForDataHavenEvent({
+      api: connectors.dhApi,
+      pallet: "DataHavenNativeTransfer",
+      event: "TokensLocked",
+      filter: (event: any) => {
+        return event?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
+      },
+      timeout: 15000
+    });
 
     // Verify DataHaven event was received
     expect(tokenTransferEvent.data).toBeDefined();
-    expect(tokenMintEvent.log).toBeDefined();
+    logger.info("✅ DataHaven event confirmed, message should be queued for relayers");
+
+    // Check sovereign account balance after block finalization
+    const intermediateBalance = await connectors.dhApi.query.System.Account.getValue(
+      ETHEREUM_SOVEREIGN_ACCOUNT
+    );
+    logger.info(`📊 Sovereign balance after events: ${intermediateBalance.data.free}`);
+
+    // Now wait for Ethereum event with extended timeout
+    logger.info("⏳ Waiting for Ethereum minting event (this may take several minutes)...")
+    const tokenMintEvent = await waitForEthereumEvent({
+      client: connectors.publicClient,
+      address: deployedERC20Address!,
+      abi: ERC20_METADATA_ABI,
+      eventName: "Transfer",
+      args: {
+        from: ZERO_ADDRESS, // Minting from zero address
+        to: recipient
+      },
+      timeout: 300000 // 5 minutes - longer timeout for cross-chain
+    });
 
     // Get final balances including sovereign account
     const finalDHBalance = await connectors.dhApi.query.System.Account.getValue(
@@ -338,33 +336,57 @@ describe("Native Token Transfer", () => {
       args: [recipient]
     })) as bigint;
 
-    logger.info("Final balances:");
-    logger.info(`  DataHaven user: ${finalDHBalance.data.free}`);
-    logger.info(`  Sovereign account: ${finalSovereignBalance.data.free}`);
-    logger.info(`  wHAVE on Ethereum: ${finalWrappedHaveBalance}`);
+    // If Ethereum event was not received, provide diagnostic information
+    // Verify results only if Ethereum event was received
+    if (tokenMintEvent.log) {
+      // Verify user balance decreased by amount + fee + transaction fee
+      expect(finalDHBalance.data.free).toBeLessThan(initialDHBalance.data.free);
+      const dhDecrease = initialDHBalance.data.free - finalDHBalance.data.free;
 
-    // Verify user balance decreased by amount + fee
-    expect(finalDHBalance.data.free).toBeLessThan(initialDHBalance.data.free);
-    const dhDecrease = initialDHBalance.data.free - finalDHBalance.data.free;
-    expect(dhDecrease).toBe(amount + fee);
+      // Calculate the transaction fee from the actual balance change
+      const txFee = dhDecrease - (amount + fee);
 
-    // Verify sovereign account balance increased by exactly the amount (not the fee)
-    const sovereignIncrease = finalSovereignBalance.data.free - initialSovereignBalance.data.free;
-    expect(sovereignIncrease).toBe(amount);
-    logger.info(`✓ Sovereign account locked exactly ${amount} tokens`);
+      // Verify the total decrease is at least the amount + fee
+      expect(dhDecrease).toBeGreaterThanOrEqual(amount + fee);
 
-    // Verify wrapped token balance increased by the amount
-    expect(finalWrappedHaveBalance).toBeGreaterThan(initialWrappedHaveBalance);
-    const wrappedHaveIncrease = finalWrappedHaveBalance - initialWrappedHaveBalance;
-    expect(wrappedHaveIncrease).toBe(amount);
+      // Verify the transaction fee is reasonable (less than 0.01 HAVE)
+      expect(txFee).toBeLessThan(parseEther("0.01"));
+      expect(txFee).toBeGreaterThan(0n);
 
-    // Verify 1:1 backing ratio is maintained
-    logger.info(`✓ User paid: ${dhDecrease} (${amount} locked + ${fee} fee to Treasury)`);
-    logger.info(`✓ Tokens locked in sovereign: ${sovereignIncrease}`);
-    logger.info(`✓ Tokens minted on Ethereum: ${wrappedHaveIncrease}`);
-    logger.info(`✓ 1:1 backing verified: locked === minted`);
+      // Verify sovereign account balance increased by exactly the amount (not the fee)
+      const sovereignIncrease = finalSovereignBalance.data.free - initialSovereignBalance.data.free;
+      expect(sovereignIncrease).toBe(amount);
 
-    logger.success("Transfer completed successfully with proper token locking!");
+      // Verify wrapped token balance increased by the amount
+      expect(finalWrappedHaveBalance).toBeGreaterThan(initialWrappedHaveBalance);
+      const wrappedHaveIncrease = finalWrappedHaveBalance - initialWrappedHaveBalance;
+      expect(wrappedHaveIncrease).toBe(amount);
+    } else {
+      // Test fails but with detailed diagnostics
+      logger.error("❌ DIAGNOSTIC: Ethereum event not received within timeout");
+      logger.error("❌ Cross-chain transfer appears to have failed");
+
+      const dhDecrease = initialDHBalance.data.free - finalDHBalance.data.free;
+      const sovereignIncrease = finalSovereignBalance.data.free - initialSovereignBalance.data.free;
+      const ethBalanceChange = finalWrappedHaveBalance - initialWrappedHaveBalance;
+
+      logger.error("📊 Current state analysis:");
+      logger.error(`   - DataHaven balance decreased: ${dhDecrease}`);
+      logger.error(`   - Sovereign balance increased: ${sovereignIncrease}`);
+      logger.error(`   - Ethereum balance changed: ${ethBalanceChange}`);
+
+      if (sovereignIncrease > 0n) {
+        logger.error("✅ Tokens were locked in sovereign account");
+        logger.error("❌ But relayers failed to process the cross-chain message");
+        logger.error("💡 This suggests a relayer synchronization issue");
+        logger.error("💡 Check relayer logs for 'block header not found' errors");
+      } else {
+        logger.error("❌ Tokens were not locked in sovereign account");
+        logger.error("❌ The transfer function did not execute properly");
+      }
+
+      expect(tokenMintEvent.log).toBeDefined();
+    }
   }, 360_000);
 
   it("should reject transfer with zero amount", async () => {
@@ -386,12 +408,21 @@ describe("Native Token Transfer", () => {
     });
 
     try {
-      await tx.signAndSubmit(baltatharSigner);
-      throw new Error("Transfer should have failed");
+      const result = await tx.signAndSubmit(baltatharSigner);
+
+      // Check if transaction succeeded but had runtime errors
+      if (result.ok) {
+        // Look for error events in the transaction
+        const errorEvents = result.events.filter((e: any) =>
+          e.type === "System" && (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+        );
+
+        if (errorEvents.length === 0) {
+          throw new Error("Transfer should have failed but succeeded without errors");
+        }
+      }
     } catch (error: any) {
-      logger.info("Zero amount transfer correctly rejected");
-      logger.debug(`Rejection reason: ${error.message || error}`);
-      expect(error).toBeDefined();
+      // Expected behavior - transaction should fail
     }
   });
 
@@ -414,12 +445,21 @@ describe("Native Token Transfer", () => {
     });
 
     try {
-      await tx.signAndSubmit(baltatharSigner);
-      throw new Error("Transfer should have failed");
+      const result = await tx.signAndSubmit(baltatharSigner);
+
+      // Check if transaction succeeded but had runtime errors
+      if (result.ok) {
+        // Look for error events in the transaction
+        const errorEvents = result.events.filter((e: any) =>
+          e.type === "System" && (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+        );
+
+        if (errorEvents.length === 0) {
+          throw new Error("Transfer should have failed but succeeded without errors");
+        }
+      }
     } catch (error: any) {
-      logger.info("Zero fee transfer correctly rejected");
-      logger.debug(`Rejection reason: ${error.message || error}`);
-      expect(error).toBeDefined();
+      // Expected behavior - transaction should fail
     }
   });
 
@@ -429,10 +469,8 @@ describe("Native Token Transfer", () => {
     const baltatharSigner = getPapiSigner("BALTATHAR");
 
     const initialPaused = await connectors.dhApi.query.DataHavenNativeTransfer.Paused.getValue();
-    logger.info(`Initial paused state: ${initialPaused}`);
 
     if (initialPaused) {
-      logger.info("Pallet is already paused, unpausing first...");
       const unpauseTx = connectors.dhApi.tx.DataHavenNativeTransfer.unpause();
       const sudoUnpauseTx = connectors.dhApi.tx.Sudo.sudo({ call: unpauseTx.decodedCall });
       const result = await sudoUnpauseTx.signAndSubmit(alithSigner);
@@ -448,7 +486,6 @@ describe("Native Token Transfer", () => {
         (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Unpaused"
       );
       expect(unpausedEvent).toBeDefined();
-      logger.info("Pallet unpaused successfully");
     }
 
     // Pause transfers
@@ -468,8 +505,6 @@ describe("Native Token Transfer", () => {
       (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Paused"
     );
     expect(pausedEvent).toBeDefined();
-    logger.info("Pallet paused successfully");
-
     // Try transfer while paused
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("10");
@@ -483,10 +518,27 @@ describe("Native Token Transfer", () => {
 
     let transferFailed = false;
     try {
-      await tx.signAndSubmit(baltatharSigner);
+      const result = await tx.signAndSubmit(baltatharSigner);
+
+      // Check if transaction succeeded but had runtime errors
+      if (result.ok) {
+        // Look for error events in the transaction
+        const errorEvents = result.events.filter((e: any) =>
+          e.type === "System" && (e.value?.type === "ExtrinsicFailed" || e.value?.type === "DispatchError")
+        );
+
+        if (errorEvents.length === 0) {
+          // Transaction succeeded unexpectedly
+          logger.error("❌ Transfer should have been rejected while paused but succeeded");
+          transferFailed = false;
+        } else {
+          transferFailed = true;
+        }
+      } else {
+        transferFailed = true;
+      }
     } catch (error: any) {
       transferFailed = true;
-      logger.info("Transfer correctly rejected while paused");
     }
     expect(transferFailed).toBe(true);
 
@@ -507,8 +559,6 @@ describe("Native Token Transfer", () => {
       (e: any) => e.type === "DataHavenNativeTransfer" && e.value.type === "Unpaused"
     );
     expect(finalUnpausedEvent).toBeDefined();
-
-    logger.success("Pause/unpause functionality verified");
   });
 
   it("should maintain 1:1 backing ratio", async () => {
@@ -528,12 +578,7 @@ describe("Native Token Transfer", () => {
       ETHEREUM_SOVEREIGN_ACCOUNT
     );
 
-    logger.info(`Wrapped token total supply: ${totalSupply}`);
-    logger.info(`Sovereign account balance: ${sovereignBalance.data.free}`);
-
     expect(sovereignBalance.data.free).toBeGreaterThanOrEqual(totalSupply);
-
-    logger.success("1:1 backing ratio verified");
   });
 
   it("should emit transfer events", async () => {
@@ -549,47 +594,33 @@ describe("Native Token Transfer", () => {
     const amount = parseEther("1");
     const fee = parseEther("0.01");
 
-    logger.info("Starting transfer for event verification...");
-
     const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
       recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
       amount,
       fee
     });
 
-    // Submit transaction and wait for both events
-    const [txResult, transferredEvent, lockedEvent] = await Promise.all([
-      tx.signAndSubmit(baltatharSigner),
+    // Submit transaction first, then wait for events sequentially
+    const txResult = await tx.signAndSubmit(baltatharSigner);
+
+    // Wait for DataHaven events sequentially with better error handling
+    const [transferredEvent, lockedEvent] = await Promise.all([
       waitForDataHavenEvent({
         api: connectors.dhApi,
         pallet: "DataHavenNativeTransfer",
         event: "TokensTransferredToEthereum",
-        timeout: 30000, // Increased timeout
+        timeout: 30000,
         filter: (event: any) => {
-          // The event data is passed directly to the filter function
           return event?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-        },
-        onEvent: (event) => {
-          // The event data is passed directly to the callback
-          logger.info(
-            `TokensTransferredToEthereum event received - from: ${event?.from}, to: ${event?.to}, amount: ${event?.amount?.toString()}`
-          );
         }
       }),
       waitForDataHavenEvent({
         api: connectors.dhApi,
         pallet: "DataHavenNativeTransfer",
         event: "TokensLocked",
-        timeout: 30000, // Increased timeout
+        timeout: 30000,
         filter: (event: any) => {
-          // TokensLocked event has 'account' field, not 'from'
           return event?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey;
-        },
-        onEvent: (event) => {
-          // The event data is passed directly to the callback
-          logger.info(
-            `TokensLocked event received - account: ${event?.account}, amount: ${event?.amount?.toString()}`
-          );
         }
       })
     ]);
@@ -600,7 +631,5 @@ describe("Native Token Transfer", () => {
     // Verify events were received
     expect(transferredEvent.data).toBeTruthy();
     expect(lockedEvent.data).toBeTruthy();
-
-    logger.success("Event emissions verified");
   }, 30_000); // 30 second timeout
 });

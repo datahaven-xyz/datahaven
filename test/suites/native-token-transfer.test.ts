@@ -160,8 +160,8 @@ describe("Native Token Transfer", () => {
     });
 
     // Helper to get a safe starting block for event watches
-    const headMinusOne = async (): Promise<bigint> => {
-      const n: bigint = await connectors.publicClient.getBlockNumber();
+    const headMinusOne = async () => {
+      const n = await connectors.publicClient.getBlockNumber();
       return n > 0n ? n - 1n : n;
     };
 

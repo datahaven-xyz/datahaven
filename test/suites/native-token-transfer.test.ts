@@ -99,7 +99,7 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
 
     // Return null if the token isn't registered (returns zero address)
     return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
-  } catch (error) {
+  } catch (_error) {
     // Return null if the contract call fails
     return null;
   }
@@ -240,7 +240,9 @@ describe("Native Token Transfer", () => {
 
     // Get the deployed token address
     const deployedERC20Address = await getNativeERC20Address(connectors);
-    expect(deployedERC20Address).not.toBeNull();
+    if (!deployedERC20Address) {
+      throw new Error("Native token ERC20 address not found");
+    }
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
@@ -256,7 +258,7 @@ describe("Native Token Transfer", () => {
     );
 
     const initialWrappedHaveBalance = (await connectors.publicClient.readContract({
-      address: deployedERC20Address!,
+      address: deployedERC20Address,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -308,7 +310,7 @@ describe("Native Token Transfer", () => {
     logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
-      address: deployedERC20Address!,
+      address: deployedERC20Address,
       abi: ERC20_METADATA_ABI,
       eventName: "Transfer",
       args: {
@@ -329,7 +331,7 @@ describe("Native Token Transfer", () => {
     );
 
     const finalWrappedHaveBalance = (await connectors.publicClient.readContract({
-      address: deployedERC20Address!,
+      address: deployedERC20Address,
       abi: ERC20_METADATA_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -377,10 +379,12 @@ describe("Native Token Transfer", () => {
 
     // Get the deployed token address
     const deployedERC20Address = await getNativeERC20Address(connectors);
-    expect(deployedERC20Address).not.toBeNull();
+    if (!deployedERC20Address) {
+      throw new Error("Native token ERC20 address not found");
+    }
 
     const totalSupply = (await connectors.publicClient.readContract({
-      address: deployedERC20Address!,
+      address: deployedERC20Address,
       abi: ERC20_METADATA_ABI,
       functionName: "totalSupply"
     })) as bigint;
@@ -397,7 +401,9 @@ describe("Native Token Transfer", () => {
 
     // Verify token is registered
     const deployedERC20Address = await getNativeERC20Address(connectors);
-    expect(deployedERC20Address).not.toBeNull();
+    if (!deployedERC20Address) {
+      throw new Error("Native token ERC20 address not found");
+    }
 
     // Perform small transfer
     const recipient = ANVIL_FUNDED_ACCOUNTS[2].publicKey;

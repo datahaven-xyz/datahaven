@@ -127,13 +127,11 @@ const suite = new NativeTokenTransferTestSuite();
 
 // Create shared signer instances to maintain nonce tracking across tests
 let alithSigner: ReturnType<typeof getPapiSigner>;
-let baltatharSigner: ReturnType<typeof getPapiSigner>;
 
 describe("Native Token Transfer", () => {
   // Initialize signers once before all tests
   beforeAll(() => {
     alithSigner = getPapiSigner("ALITH");
-    baltatharSigner = getPapiSigner("BALTATHAR");
   });
   it("should register DataHaven native token on Ethereum", async () => {
     const connectors = suite.getTestConnectors();
@@ -175,6 +173,7 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
+        fromBlock: 0n,
         timeout: 180000, // 3 minutes (2 epochs @ 2s slots = ~128s + buffer for propagation)
         onEvent: (log) => {
           logger.info(
@@ -252,7 +251,7 @@ describe("Native Token Transfer", () => {
 
     // Get initial balances including sovereign account
     const initialDHBalance = await connectors.dhApi.query.System.Account.getValue(
-      SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
     const initialSovereignBalance = await connectors.dhApi.query.System.Account.getValue(
@@ -273,7 +272,7 @@ describe("Native Token Transfer", () => {
       fee
     });
 
-    const txResult = await tx.signAndSubmit(baltatharSigner);
+    const txResult = await tx.signAndSubmit(alithSigner);
 
     // Check transaction result for errors
     if (!txResult.ok) {
@@ -285,14 +284,14 @@ describe("Native Token Transfer", () => {
       (e: any) =>
         e.type === "DataHavenNativeTransfer" &&
         e.value?.type === "TokensTransferredToEthereum" &&
-        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
     const tokensLockedEvent = txResult.events.find(
       (e: any) =>
         e.type === "DataHavenNativeTransfer" &&
         e.value?.type === "TokensLocked" &&
-        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
     // Verify DataHaven event was received
@@ -317,12 +316,13 @@ describe("Native Token Transfer", () => {
         from: ZERO_ADDRESS, // Minting from zero address
         to: recipient
       },
+      fromBlock: 0n,
       timeout: 300000 // 5 minutes - longer timeout for cross-chain
     });
 
     // Get final balances including sovereign account
     const finalDHBalance = await connectors.dhApi.query.System.Account.getValue(
-      SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+      SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
     const finalSovereignBalance = await connectors.dhApi.query.System.Account.getValue(
@@ -428,21 +428,21 @@ describe("Native Token Transfer", () => {
     });
 
     // Submit transaction first, then wait for events sequentially
-    const txResult = await tx.signAndSubmit(baltatharSigner);
+    const txResult = await tx.signAndSubmit(alithSigner);
 
     // Extract events directly from transaction result instead of waiting
     const transferredEvent = txResult.events.find(
       (e: any) =>
         e.type === "DataHavenNativeTransfer" &&
         e.value?.type === "TokensTransferredToEthereum" &&
-        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
     const lockedEvent = txResult.events.find(
       (e: any) =>
         e.type === "DataHavenNativeTransfer" &&
         e.value?.type === "TokensLocked" &&
-        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.publicKey
+        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
     );
 
     // Verify transaction succeeded

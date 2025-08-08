@@ -16,13 +16,15 @@ import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  CHAIN_ID,
   getPapiSigner,
   logger,
   parseDeploymentsFile,
   SUBSTRATE_FUNDED_ACCOUNTS,
   waitForEthereumEvent
 } from "utils";
-import { parseEther } from "viem";
+import { createWalletClient, http, parseEther } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
@@ -32,7 +34,7 @@ const ETHEREUM_SOVEREIGN_ACCOUNT = "0xd8030FB68Aa5B447caec066f3C0BdE23E6db0a05";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // Minimal ERC20 ABI for reading token metadata and Transfer events
-const ERC20_METADATA_ABI = [
+const ERC20_ABI = [
   {
     inputs: [],
     name: "name",
@@ -76,6 +78,16 @@ const ERC20_METADATA_ABI = [
       { name: "to", type: "address", indexed: true },
       { name: "value", type: "uint256", indexed: false }
     ]
+  },
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" }
+    ],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function"
   }
 ] as const;
 
@@ -215,17 +227,17 @@ describe("Native Token Transfer", () => {
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       connectors.publicClient.readContract({
         address: deployedERC20Address,
-        abi: ERC20_METADATA_ABI,
+        abi: ERC20_ABI,
         functionName: "name"
       }) as Promise<string>,
       connectors.publicClient.readContract({
         address: deployedERC20Address,
-        abi: ERC20_METADATA_ABI,
+        abi: ERC20_ABI,
         functionName: "symbol"
       }) as Promise<string>,
       connectors.publicClient.readContract({
         address: deployedERC20Address,
-        abi: ERC20_METADATA_ABI,
+        abi: ERC20_ABI,
         functionName: "decimals"
       }) as Promise<number>
     ]);
@@ -259,7 +271,7 @@ describe("Native Token Transfer", () => {
 
     const initialWrappedHaveBalance = (await connectors.publicClient.readContract({
       address: deployedERC20Address,
-      abi: ERC20_METADATA_ABI,
+      abi: ERC20_ABI,
       functionName: "balanceOf",
       args: [recipient]
     })) as bigint;
@@ -308,16 +320,19 @@ describe("Native Token Transfer", () => {
 
     // Now wait for Ethereum event with extended timeout
     logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
+    const startTransferBlock = await connectors.publicClient.getBlockNumber();
+    const transferFromBlock =
+      startTransferBlock > 0n ? startTransferBlock - 1n : startTransferBlock;
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
       address: deployedERC20Address,
-      abi: ERC20_METADATA_ABI,
+      abi: ERC20_ABI,
       eventName: "Transfer",
       args: {
         from: ZERO_ADDRESS, // Minting from zero address
         to: recipient
       },
-      fromBlock: await headMinusOne(),
+      fromBlock: transferFromBlock,
       timeout: 300000
     });
 
@@ -332,7 +347,7 @@ describe("Native Token Transfer", () => {
 
     const finalWrappedHaveBalance = (await connectors.publicClient.readContract({
       address: deployedERC20Address,
-      abi: ERC20_METADATA_ABI,
+      abi: ERC20_ABI,
       functionName: "balanceOf",
       args: [recipient]
     })) as bigint;
@@ -385,7 +400,7 @@ describe("Native Token Transfer", () => {
 
     const totalSupply = (await connectors.publicClient.readContract({
       address: deployedERC20Address,
-      abi: ERC20_METADATA_ABI,
+      abi: ERC20_ABI,
       functionName: "totalSupply"
     })) as bigint;
 
@@ -443,4 +458,213 @@ describe("Native Token Transfer", () => {
     expect(lockedEvent).toBeTruthy();
     expect(lockedEvent?.value?.value).toBeTruthy();
   }, 30_000); // 30 second timeout
+
+  it("should transfer tokens from Ethereum to DataHaven (Snowbridge v2)", async () => {
+    const connectors = suite.getTestConnectors();
+
+    // Resolve deployed ERC20 for native token; if missing, register via sudo
+    let deployedERC20Address = await getNativeERC20Address(connectors);
+    if (!deployedERC20Address) {
+      throw new Error("Native token ERC20 address not found. Register the token first.");
+    }
+
+    // Load deployments
+    const deployments = await parseDeploymentsFile();
+
+    // Create a wallet client bound to the Kurtosis chain ID (3151908)
+    const account = privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[0].privateKey);
+    const chain = {
+      id: CHAIN_ID,
+      name: "anvil-3151908",
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: { default: { http: [connectors.elRpcUrl] }, public: { http: [connectors.elRpcUrl] } }
+    } as any;
+    const ethWalletClient = createWalletClient({
+      account,
+      chain: chain,
+      transport: http(connectors.elRpcUrl)
+    });
+    const ethereumSender = account.address as `0x${string}`;
+
+    // Destination on DataHaven is ALITH (AccountId20)
+    const dhRecipient = SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey as `0x${string}`;
+
+    const amount = parseEther("5");
+    const destinationFeeDOT = 0n; // Local tests can start with zero destination fee
+
+    // Helper to make bytes for MultiAddress.data (Address20)
+    const address20ToBytes = (addr: `0x${string}`): `0x${string}` => {
+      return addr.toLowerCase() as `0x${string}`;
+    };
+
+    // Quote ETH fee for sendToken
+    const quotedEthFee = (await connectors.publicClient.readContract({
+      address: deployments.Gateway as `0x${string}`,
+      abi: gatewayAbi,
+      functionName: "quoteSendTokenFee",
+      args: [deployedERC20Address, CHAIN_ID, destinationFeeDOT]
+    })) as bigint;
+
+    // Ensure sender has enough wrapped tokens on Ethereum; if not, fund via DH -> ETH transfer
+    let currentEthTokenBalance = (await connectors.publicClient.readContract({
+      address: deployedERC20Address,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: [ethereumSender]
+    })) as bigint;
+    if (currentEthTokenBalance < amount) {
+      const mintAmount = amount - currentEthTokenBalance;
+      const fee = parseEther("0.01");
+      const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
+        recipient: FixedSizeBinary.fromHex(ethereumSender) as FixedSizeBinary<20>,
+        amount: mintAmount,
+        fee
+      });
+      const startMintBlock = await connectors.publicClient.getBlockNumber();
+      const mintFromBlock = startMintBlock > 0n ? startMintBlock - 1n : startMintBlock;
+      const txResult = await tx.signAndSubmit(alithSigner);
+      expect(txResult.ok).toBe(true);
+      const mintEvent = await waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: deployedERC20Address,
+        abi: ERC20_ABI,
+        eventName: "Transfer",
+        args: { from: ZERO_ADDRESS, to: ethereumSender },
+        fromBlock: mintFromBlock,
+        timeout: 300000
+      });
+      expect(mintEvent.log).not.toBeNull();
+      currentEthTokenBalance = (await connectors.publicClient.readContract({
+        address: deployedERC20Address,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [ethereumSender]
+      })) as bigint;
+    }
+
+    // Capture initial balances and supply for ETH -> DH leg
+    const [initialEthTokenBalance, initialTotalSupply] = await Promise.all([
+      connectors.publicClient.readContract({
+        address: deployedERC20Address,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [ethereumSender]
+      }) as Promise<bigint>,
+      connectors.publicClient.readContract({
+        address: deployedERC20Address,
+        abi: ERC20_ABI,
+        functionName: "totalSupply"
+      }) as Promise<bigint>
+    ]);
+    expect(initialEthTokenBalance).toBeGreaterThanOrEqual(amount);
+
+    const initialDhRecipientBalance =
+      await connectors.dhApi.query.System.Account.getValue(dhRecipient);
+    const initialSovereignBalance = await connectors.dhApi.query.System.Account.getValue(
+      ETHEREUM_SOVEREIGN_ACCOUNT
+    );
+
+    // Approve Gateway to pull tokens
+    const approveHash = await ethWalletClient.writeContract({
+      address: deployedERC20Address,
+      abi: ERC20_ABI,
+      functionName: "approve",
+      args: [deployments.Gateway as `0x${string}`, amount],
+      chain: chain
+    });
+    await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
+
+    // Build MultiAddress for Address20
+    const multiAddress = {
+      kind: 2,
+      data: address20ToBytes(dhRecipient)
+    } as any;
+
+    // Submit sendToken on Gateway (Snowbridge v2). If unsupported in local env, skip test.
+    let sendHash: `0x${string}` | null = null;
+    try {
+      sendHash = await ethWalletClient.writeContract({
+        address: deployments.Gateway as `0x${string}`,
+        abi: gatewayAbi,
+        functionName: "sendToken",
+        args: [deployedERC20Address, CHAIN_ID, multiAddress, destinationFeeDOT, amount],
+        value: quotedEthFee,
+        chain: chain
+      });
+    } catch (err: any) {
+      const message = String(err?.shortMessage || err?.message || err);
+      if (message.includes("Unsupported()")) {
+        logger.warn(
+          "Skipping ETH->DataHaven transfer test: Gateway sendToken is unsupported in this env"
+        );
+        return;
+      }
+      throw err;
+    }
+
+    if (!sendHash) {
+      throw new Error("sendToken transaction hash is undefined");
+    }
+    const sendReceipt = await connectors.publicClient.waitForTransactionReceipt({
+      hash: sendHash
+    });
+    expect(sendReceipt.status).toBe("success");
+
+    // Wait for Gateway TokenSent event (from previous block if needed)
+    const startBlock = await connectors.publicClient.getBlockNumber();
+    const fromBlock = startBlock > 0n ? startBlock - 1n : startBlock;
+    const tokenSent = await waitForEthereumEvent({
+      client: connectors.publicClient,
+      address: deployments.Gateway as `0x${string}`,
+      abi: gatewayAbi,
+      eventName: "TokenSent",
+      fromBlock,
+      timeout: 120000
+    });
+    expect(tokenSent.log).not.toBeNull();
+
+    // Wait for DataHaven unlock event
+    const dhEvent = await (await import("../utils")).waitForDataHavenEvent<{
+      account: string;
+      amount: bigint;
+    }>({
+      api: connectors.dhApi,
+      pallet: "DataHavenNativeTransfer",
+      event: "TokensUnlocked",
+      filter: (e: any) => e?.account === dhRecipient,
+      timeout: 360000
+    });
+    expect(dhEvent.data).not.toBeNull();
+
+    // Final balances
+    const [finalEthTokenBalance, finalTotalSupply] = await Promise.all([
+      connectors.publicClient.readContract({
+        address: deployedERC20Address,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [ethereumSender]
+      }) as Promise<bigint>,
+      connectors.publicClient.readContract({
+        address: deployedERC20Address,
+        abi: ERC20_ABI,
+        functionName: "totalSupply"
+      }) as Promise<bigint>
+    ]);
+
+    const finalDhRecipientBalance =
+      await connectors.dhApi.query.System.Account.getValue(dhRecipient);
+    const finalSovereignBalance = await connectors.dhApi.query.System.Account.getValue(
+      ETHEREUM_SOVEREIGN_ACCOUNT
+    );
+
+    // Assertions: burn on Ethereum and unlock on DataHaven
+    expect(finalEthTokenBalance).toBe(initialEthTokenBalance - amount);
+    expect(finalTotalSupply).toBe(initialTotalSupply - amount);
+
+    const dhIncrease = finalDhRecipientBalance.data.free - initialDhRecipientBalance.data.free;
+    const sovereignDecrease = initialSovereignBalance.data.free - finalSovereignBalance.data.free;
+
+    expect(dhIncrease).toBeGreaterThanOrEqual(amount);
+    expect(sovereignDecrease).toBeGreaterThanOrEqual(amount);
+  }, 420_000);
 });

@@ -171,9 +171,8 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
           }
         },
         onError: (error: unknown) => {
+          // Log and continue; transient watcher errors shouldn't abort the wait
           logger.debug(`Error watching Ethereum event ${eventName}: ${error}`);
-          cleanup();
-          resolve(null);
         }
       });
     } catch (error) {

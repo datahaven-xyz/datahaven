@@ -16,7 +16,6 @@ import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  CHAIN_ID,
   getPapiSigner,
   logger,
   parseDeploymentsFile,
@@ -170,12 +169,6 @@ describe("Native Token Transfer", () => {
       call: registerTx.decodedCall
     });
 
-    // Helper to get a safe starting block for event watches
-    const headMinusOne = async () => {
-      const n = await connectors.publicClient.getBlockNumber();
-      return n > 0n ? n - 1n : n;
-    };
-
     // Submit transaction and wait for both DataHaven confirmation and Ethereum event
     const [dhTxResult, ethEventResult] = await Promise.all([
       // Submit and wait for transaction on DataHaven
@@ -186,7 +179,7 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        fromBlock: await headMinusOne(),
+        fromBlock: 0n,
         timeout: 180000
       })
     ]);

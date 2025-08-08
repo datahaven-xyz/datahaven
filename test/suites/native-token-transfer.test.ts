@@ -31,6 +31,8 @@ import { BaseTestSuite } from "../framework";
 const ETHEREUM_SOVEREIGN_ACCOUNT = "0xd8030FB68Aa5B447caec066f3C0BdE23E6db0a05";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+let deployments: any;
+
 // Minimal ERC20 ABI for reading token metadata and Transfer events
 const ERC20_ABI = [
   {
@@ -89,10 +91,9 @@ const ERC20_ABI = [
   }
 ] as const;
 
-// Helper to get the ERC-20 address of the registered native token.
 async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | null> {
   try {
-    const deployments = await parseDeploymentsFile();
+    if (!deployments) throw new Error("Global deployments not initialized");
 
     // The actual token ID that gets registered by the runtime
     // This is computed by the runtime's TokenIdOf converter which uses
@@ -107,10 +108,8 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
       args: [tokenId]
     })) as `0x${string}`;
 
-    // Return null if the token isn't registered (returns zero address)
     return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
   } catch (_error) {
-    // Return null if the contract call fails
     return null;
   }
 }
@@ -135,17 +134,14 @@ const suite = new NativeTokenTransferTestSuite();
 let alithSigner: ReturnType<typeof getPapiSigner>;
 
 describe("Native Token Transfer", () => {
-  // Initialize signers once before all tests
-  beforeAll(() => {
+  beforeAll(async () => {
     alithSigner = getPapiSigner("ALITH");
+    deployments = await parseDeploymentsFile();
   });
   it("should register DataHaven native token on Ethereum", async () => {
     const connectors = suite.getTestConnectors();
     // First, check if token is already registered
     const existingTokenAddress = await getNativeERC20Address(connectors);
-
-    // Get deployments for later use in the test
-    const deployments = await parseDeploymentsFile();
 
     // Skip registration if token already exists
     if (existingTokenAddress) {
@@ -179,7 +175,6 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        fromBlock: 0n,
         timeout: 180000
       })
     ]);
@@ -190,7 +185,6 @@ describe("Native Token Transfer", () => {
     // Check for events in the DataHaven transaction result
     const { events } = dhTxResult;
 
-    // Find Sudo.Sudid event (indicates sudo execution succeeded)
     const sudoEvent = events.find((e: any) => e.type === "Sudo" && e.value.type === "Sudid");
     expect(sudoEvent).toBeDefined();
 
@@ -460,8 +454,6 @@ describe("Native Token Transfer", () => {
       throw new Error("Native token ERC20 address not found. Register the token first.");
     }
 
-    // Load deployments
-    const deployments = await parseDeploymentsFile();
 
     // Use shared wallet client from connectors
     const ethWalletClient = connectors.walletClient;

@@ -23,8 +23,7 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS,
   waitForEthereumEvent
 } from "utils";
-import { createWalletClient, encodeAbiParameters, http, parseEther } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { encodeAbiParameters, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
@@ -471,20 +470,9 @@ describe("Native Token Transfer", () => {
     // Load deployments
     const deployments = await parseDeploymentsFile();
 
-    // Create a wallet client bound to the Kurtosis chain ID (3151908)
-    const account = privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[0].privateKey);
-    const chain = {
-      id: CHAIN_ID,
-      name: "anvil-3151908",
-      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      rpcUrls: { default: { http: [connectors.elRpcUrl] }, public: { http: [connectors.elRpcUrl] } }
-    } as any;
-    const ethWalletClient = createWalletClient({
-      account,
-      chain: chain,
-      transport: http(connectors.elRpcUrl)
-    });
-    const ethereumSender = account.address as `0x${string}`;
+    // Use shared wallet client from connectors
+    const ethWalletClient = connectors.walletClient;
+    const ethereumSender = ethWalletClient.account.address as `0x${string}`;
 
     // Destination on DataHaven is ALITH (AccountId20)
     const dhRecipient = SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey as `0x${string}`;
@@ -493,13 +481,6 @@ describe("Native Token Transfer", () => {
     // v2 fees in ETH
     const executionFee = parseEther("0.1");
     const relayerFee = parseEther("0.4");
-
-    // Helper to make bytes for MultiAddress.data (Address20)
-    const address20ToBytes = (addr: `0x${string}`): `0x${string}` => {
-      return addr.toLowerCase() as `0x${string}`;
-    };
-
-    // No v1 fee quoting in v2 path
 
     // Ensure sender has enough wrapped tokens on Ethereum; if not, fund via DH -> ETH transfer
     let currentEthTokenBalance = (await connectors.publicClient.readContract({
@@ -566,7 +547,7 @@ describe("Native Token Transfer", () => {
       abi: ERC20_ABI,
       functionName: "approve",
       args: [deployments.Gateway as `0x${string}`, amount],
-      chain: chain
+      chain: null
     });
     await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
 
@@ -578,7 +559,7 @@ describe("Native Token Transfer", () => {
           { name: "token", type: "address" },
           { name: "value", type: "uint128" }
         ],
-        [0n, deployedERC20Address, amount]
+        [0, deployedERC20Address, amount]
       )
     ];
     const claimer = "0x" as `0x${string}`;
@@ -593,7 +574,7 @@ describe("Native Token Transfer", () => {
         functionName: "v2_sendMessage",
         args: [xcm, assets as any, claimer, executionFee, relayerFee],
         value: executionFee + relayerFee,
-        chain: chain
+        chain: null
       });
     } catch (err: any) {
       const message = String(err?.shortMessage || err?.message || err);

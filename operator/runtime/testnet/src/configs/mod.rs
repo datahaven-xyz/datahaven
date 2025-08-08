@@ -493,9 +493,7 @@ impl pallet_identity::Config for Runtime {
     type MaxSubAccounts = MaxSubAccounts;
     type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
     type MaxRegistrars = MaxRegistrars;
-    type Slashed = ();
-    // TODO: Slashed funds should be sent to the treasury (when added to the runtime)
-    // type Slashed = Treasury;
+    type Slashed = Treasury;
     type ForceOrigin = IdentityForceOrigin;
     type RegistrarOrigin = IdentityRegistrarOrigin;
     type OffchainSignature = Signature;

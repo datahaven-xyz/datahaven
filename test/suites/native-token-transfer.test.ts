@@ -23,7 +23,7 @@ import {
   SUBSTRATE_FUNDED_ACCOUNTS,
   waitForEthereumEvent
 } from "utils";
-import { createWalletClient, http, parseEther } from "viem";
+import { createWalletClient, encodeAbiParameters, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
@@ -459,11 +459,11 @@ describe("Native Token Transfer", () => {
     expect(lockedEvent?.value?.value).toBeTruthy();
   }, 30_000); // 30 second timeout
 
-  it("should transfer tokens from Ethereum to DataHaven (Snowbridge v2)", async () => {
+  it("should transfer tokens from Ethereum to DataHaven", async () => {
     const connectors = suite.getTestConnectors();
 
     // Resolve deployed ERC20 for native token; if missing, register via sudo
-    let deployedERC20Address = await getNativeERC20Address(connectors);
+    const deployedERC20Address = await getNativeERC20Address(connectors);
     if (!deployedERC20Address) {
       throw new Error("Native token ERC20 address not found. Register the token first.");
     }
@@ -490,20 +490,16 @@ describe("Native Token Transfer", () => {
     const dhRecipient = SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey as `0x${string}`;
 
     const amount = parseEther("5");
-    const destinationFeeDOT = 0n; // Local tests can start with zero destination fee
+    // v2 fees in ETH
+    const executionFee = parseEther("0.1");
+    const relayerFee = parseEther("0.4");
 
     // Helper to make bytes for MultiAddress.data (Address20)
     const address20ToBytes = (addr: `0x${string}`): `0x${string}` => {
       return addr.toLowerCase() as `0x${string}`;
     };
 
-    // Quote ETH fee for sendToken
-    const quotedEthFee = (await connectors.publicClient.readContract({
-      address: deployments.Gateway as `0x${string}`,
-      abi: gatewayAbi,
-      functionName: "quoteSendTokenFee",
-      args: [deployedERC20Address, CHAIN_ID, destinationFeeDOT]
-    })) as bigint;
+    // No v1 fee quoting in v2 path
 
     // Ensure sender has enough wrapped tokens on Ethereum; if not, fund via DH -> ETH transfer
     let currentEthTokenBalance = (await connectors.publicClient.readContract({
@@ -574,28 +570,36 @@ describe("Native Token Transfer", () => {
     });
     await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
 
-    // Build MultiAddress for Address20
-    const multiAddress = {
-      kind: 2,
-      data: address20ToBytes(dhRecipient)
-    } as any;
+    // Build Snowbridge v2 send payload
+    const assets = [
+      encodeAbiParameters(
+        [
+          { name: "kind", type: "uint8" },
+          { name: "token", type: "address" },
+          { name: "value", type: "uint128" }
+        ],
+        [0n, deployedERC20Address, amount]
+      )
+    ];
+    const claimer = "0x" as `0x${string}`;
+    const xcm = "0x" as `0x${string}`;
 
-    // Submit sendToken on Gateway (Snowbridge v2). If unsupported in local env, skip test.
+    // Submit v2_sendMessage on Gateway. If unsupported in local env, skip test.
     let sendHash: `0x${string}` | null = null;
     try {
       sendHash = await ethWalletClient.writeContract({
         address: deployments.Gateway as `0x${string}`,
         abi: gatewayAbi,
-        functionName: "sendToken",
-        args: [deployedERC20Address, CHAIN_ID, multiAddress, destinationFeeDOT, amount],
-        value: quotedEthFee,
+        functionName: "v2_sendMessage",
+        args: [xcm, assets as any, claimer, executionFee, relayerFee],
+        value: executionFee + relayerFee,
         chain: chain
       });
     } catch (err: any) {
       const message = String(err?.shortMessage || err?.message || err);
-      if (message.includes("Unsupported()")) {
+      if (message.includes("Unsupported()") || message.includes("v2_sendMessage")) {
         logger.warn(
-          "Skipping ETH->DataHaven transfer test: Gateway sendToken is unsupported in this env"
+          "Skipping ETH->DataHaven transfer test: v2_sendMessage unsupported in this env"
         );
         return;
       }
@@ -610,14 +614,14 @@ describe("Native Token Transfer", () => {
     });
     expect(sendReceipt.status).toBe("success");
 
-    // Wait for Gateway TokenSent event (from previous block if needed)
+    // Wait for Gateway v2 OutboundMessageAccepted event (from previous block if needed)
     const startBlock = await connectors.publicClient.getBlockNumber();
     const fromBlock = startBlock > 0n ? startBlock - 1n : startBlock;
     const tokenSent = await waitForEthereumEvent({
       client: connectors.publicClient,
       address: deployments.Gateway as `0x${string}`,
       abi: gatewayAbi,
-      eventName: "TokenSent",
+      eventName: "OutboundMessageAccepted",
       fromBlock,
       timeout: 120000
     });

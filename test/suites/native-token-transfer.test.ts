@@ -20,9 +20,10 @@ import {
   logger,
   parseDeploymentsFile,
   SUBSTRATE_FUNDED_ACCOUNTS,
-  waitForEthereumEvent
+  waitForEthereumEvent,
+  waitForDataHavenEvent
 } from "utils";
-import { encodeAbiParameters, parseEther } from "viem";
+import { decodeEventLog, encodeAbiParameters, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
@@ -237,10 +238,9 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
 
     // Get the deployed token address
-    const deployedERC20Address = await getNativeERC20Address(connectors);
-    if (!deployedERC20Address) {
-      throw new Error("Native token ERC20 address not found");
-    }
+    const maybeErc20 = await getNativeERC20Address(connectors);
+    expect(maybeErc20).not.toBeNull();
+    const erc20Address = maybeErc20 as `0x${string}`;
 
     const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
     const amount = parseEther("100");
@@ -256,7 +256,7 @@ describe("Native Token Transfer", () => {
     );
 
     const initialWrappedHaveBalance = (await connectors.publicClient.readContract({
-      address: deployedERC20Address,
+      address: erc20Address,
       abi: ERC20_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -311,7 +311,7 @@ describe("Native Token Transfer", () => {
       startTransferBlock > 0n ? startTransferBlock - 1n : startTransferBlock;
     const tokenMintEvent = await waitForEthereumEvent({
       client: connectors.publicClient,
-      address: deployedERC20Address,
+      address: erc20Address,
       abi: ERC20_ABI,
       eventName: "Transfer",
       args: {
@@ -332,7 +332,7 @@ describe("Native Token Transfer", () => {
     );
 
     const finalWrappedHaveBalance = (await connectors.publicClient.readContract({
-      address: deployedERC20Address,
+      address: erc20Address,
       abi: ERC20_ABI,
       functionName: "balanceOf",
       args: [recipient]
@@ -449,10 +449,9 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
 
     // Resolve deployed ERC20 for native token; if missing, register via sudo
-    const deployedERC20Address = await getNativeERC20Address(connectors);
-    if (!deployedERC20Address) {
-      throw new Error("Native token ERC20 address not found. Register the token first.");
-    }
+    const maybeErc20 = await getNativeERC20Address(connectors);
+    expect(maybeErc20).not.toBeNull();
+    const erc20Address = maybeErc20 as `0x${string}`;
 
 
     // Use shared wallet client from connectors
@@ -469,7 +468,7 @@ describe("Native Token Transfer", () => {
 
     // Ensure sender has enough wrapped tokens on Ethereum; if not, fund via DH -> ETH transfer
     let currentEthTokenBalance = (await connectors.publicClient.readContract({
-      address: deployedERC20Address,
+      address: erc20Address,
       abi: ERC20_ABI,
       functionName: "balanceOf",
       args: [ethereumSender]
@@ -482,22 +481,24 @@ describe("Native Token Transfer", () => {
         amount: mintAmount,
         fee
       });
-      const startMintBlock = await connectors.publicClient.getBlockNumber();
-      const mintFromBlock = startMintBlock > 0n ? startMintBlock - 1n : startMintBlock;
-      const txResult = await tx.signAndSubmit(alithSigner);
+
+      const [mintEvent, txResult] = await Promise.all([
+        waitForEthereumEvent({
+          client: connectors.publicClient,
+          address: erc20Address,
+          abi: ERC20_ABI,
+          eventName: "Transfer",
+          args: { from: ZERO_ADDRESS, to: ethereumSender },
+          timeout: 300000
+        }),
+        tx.signAndSubmit(alithSigner)
+      ]);
+
       expect(txResult.ok).toBe(true);
-      const mintEvent = await waitForEthereumEvent({
-        client: connectors.publicClient,
-        address: deployedERC20Address,
-        abi: ERC20_ABI,
-        eventName: "Transfer",
-        args: { from: ZERO_ADDRESS, to: ethereumSender },
-        fromBlock: mintFromBlock,
-        timeout: 300000
-      });
       expect(mintEvent.log).not.toBeNull();
+
       currentEthTokenBalance = (await connectors.publicClient.readContract({
-        address: deployedERC20Address,
+        address: erc20Address,
         abi: ERC20_ABI,
         functionName: "balanceOf",
         args: [ethereumSender]
@@ -507,13 +508,13 @@ describe("Native Token Transfer", () => {
     // Capture initial balances and supply for ETH -> DH leg
     const [initialEthTokenBalance, initialTotalSupply] = await Promise.all([
       connectors.publicClient.readContract({
-        address: deployedERC20Address,
+        address: erc20Address,
         abi: ERC20_ABI,
         functionName: "balanceOf",
         args: [ethereumSender]
       }) as Promise<bigint>,
       connectors.publicClient.readContract({
-        address: deployedERC20Address,
+        address: erc20Address,
         abi: ERC20_ABI,
         functionName: "totalSupply"
       }) as Promise<bigint>
@@ -528,7 +529,7 @@ describe("Native Token Transfer", () => {
 
     // Approve Gateway to pull tokens
     const approveHash = await ethWalletClient.writeContract({
-      address: deployedERC20Address,
+      address: erc20Address,
       abi: ERC20_ABI,
       functionName: "approve",
       args: [deployments.Gateway as `0x${string}`, amount],
@@ -544,78 +545,60 @@ describe("Native Token Transfer", () => {
           { name: "token", type: "address" },
           { name: "value", type: "uint128" }
         ],
-        [0, deployedERC20Address, amount]
+        [0, erc20Address, amount]
       )
     ];
     const claimer = "0x" as `0x${string}`;
     const xcm = "0x" as `0x${string}`;
 
-    // Submit v2_sendMessage on Gateway. If unsupported in local env, skip test.
-    let sendHash: `0x${string}` | null = null;
-    try {
-      sendHash = await ethWalletClient.writeContract({
-        address: deployments.Gateway as `0x${string}`,
-        abi: gatewayAbi,
-        functionName: "v2_sendMessage",
-        args: [xcm, assets as any, claimer, executionFee, relayerFee],
-        value: executionFee + relayerFee,
-        chain: null
-      });
-    } catch (err: any) {
-      const message = String(err?.shortMessage || err?.message || err);
-      if (message.includes("Unsupported()") || message.includes("v2_sendMessage")) {
-        logger.warn(
-          "Skipping ETH->DataHaven transfer test: v2_sendMessage unsupported in this env"
-        );
-        return;
-      }
-      throw err;
-    }
-
-    if (!sendHash) {
-      throw new Error("sendToken transaction hash is undefined");
-    }
-    const sendReceipt = await connectors.publicClient.waitForTransactionReceipt({
-      hash: sendHash
-    });
-    expect(sendReceipt.status).toBe("success");
-
-    // Wait for Gateway v2 OutboundMessageAccepted event (from previous block if needed)
-    const startBlock = await connectors.publicClient.getBlockNumber();
-    const fromBlock = startBlock > 0n ? startBlock - 1n : startBlock;
-    const tokenSent = await waitForEthereumEvent({
-      client: connectors.publicClient,
+    // Send v2_sendMessage and assert hash before awaiting all
+    const sendHash = await ethWalletClient.writeContract({
       address: deployments.Gateway as `0x${string}`,
       abi: gatewayAbi,
-      eventName: "OutboundMessageAccepted",
-      fromBlock,
-      timeout: 120000
+      functionName: "v2_sendMessage",
+      args: [xcm, assets as any, claimer, executionFee, relayerFee],
+      value: executionFee + relayerFee,
+      chain: null
     });
-    expect(tokenSent.log).not.toBeNull();
+    expect(sendHash).toMatch(/^0x[0-9a-fA-F]{64}$/);
 
-    // Wait for DataHaven unlock event
-    const dhEvent = await (await import("../utils")).waitForDataHavenEvent<{
-      account: string;
-      amount: bigint;
-    }>({
-      api: connectors.dhApi,
-      pallet: "DataHavenNativeTransfer",
-      event: "TokensUnlocked",
-      filter: (e: any) => e?.account === dhRecipient,
-      timeout: 360000
+    const [sendReceipt, dhEvent] = await Promise.all([
+      connectors.publicClient.waitForTransactionReceipt({ hash: sendHash }),
+      waitForDataHavenEvent<{
+        account: string;
+        amount: bigint;
+      }>({
+        api: connectors.dhApi,
+        pallet: "DataHavenNativeTransfer",
+        event: "TokensUnlocked",
+        filter: (e: any) => e?.account === dhRecipient,
+        timeout: 360000
+      })
+    ]);
+    expect(sendReceipt.status).toBe("success");
+
+    // Assert OutboundMessageAccepted from receipt logs
+    const hasOutboundAccepted = (sendReceipt.logs ?? []).some((log: any) => {
+      try {
+        const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+        return decoded.eventName === "OutboundMessageAccepted";
+      } catch {
+        return false;
+      }
     });
+    expect(hasOutboundAccepted).toBe(true);
     expect(dhEvent.data).not.toBeNull();
 
     // Final balances
     const [finalEthTokenBalance, finalTotalSupply] = await Promise.all([
       connectors.publicClient.readContract({
-        address: deployedERC20Address,
+        address: erc20Address,
         abi: ERC20_ABI,
         functionName: "balanceOf",
         args: [ethereumSender]
       }) as Promise<bigint>,
       connectors.publicClient.readContract({
-        address: deployedERC20Address,
+        address: erc20Address,
         abi: ERC20_ABI,
         functionName: "totalSupply"
       }) as Promise<bigint>

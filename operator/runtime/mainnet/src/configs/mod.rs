@@ -555,7 +555,7 @@ parameter_types! {
     pub const MaxPending: u16 = 32;
 }
 
-// Implement the proxy filter logic specific to the stagenet runtime
+// Implement the proxy filter logic specific to the mainnet runtime
 impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
     fn filter(&self, c: &RuntimeCall) -> bool {
         match self {

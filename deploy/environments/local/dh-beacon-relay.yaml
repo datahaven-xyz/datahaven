@@ -11,4 +11,4 @@ image:
 relayData:
   storageClass: "hostpath"
   storagePath: "/tmp/relay-data"
-  volumeSize: 10Gi 
+  volumeSize: 10Gi

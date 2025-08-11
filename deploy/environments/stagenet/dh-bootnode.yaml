@@ -52,7 +52,6 @@ node:
     limits:
       memory: "1Gi"
       cpu: "500m"
-  customNodeKey: 80c30ac6ba927c6e5c0c9681aa9674f1d181d180853bcd3485cee9d18e931238
   enableOffchainIndexing: true
   perNodeServices:
     apiService:

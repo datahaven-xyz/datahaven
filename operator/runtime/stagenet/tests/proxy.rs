@@ -7,7 +7,8 @@ use codec::Encode;
 use common::*;
 use datahaven_stagenet_runtime::{
     configs::{MaxProxies, ProxyDepositBase, ProxyDepositFactor},
-    Balances, Multisig, Proxy, RuntimeCall, RuntimeEvent, RuntimeOrigin, System, UNIT,
+    Balances, Identity, Multisig, Proxy, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Sudo,
+    System, UNIT,
 };
 use frame_support::{assert_noop, assert_ok, traits::InstanceFilter};
 use pallet_proxy::Event as ProxyEvent;
@@ -352,7 +353,9 @@ fn test_proxy_call_with_governance_type() {
                 0
             ));
 
-            // Test that governance proxy can execute utility calls
+            // Test that governance proxy can execute governance operations
+            // TODO: Replace with actual governance call once implemented
+            // For now, we use a utility call as a placeholder
             assert_ok!(Proxy::proxy(
                 RuntimeOrigin::signed(bob.clone()),
                 alice.clone(),
@@ -396,7 +399,7 @@ fn test_proxy_call_with_nontransfer_type() {
                 ))
             ));
 
-            // But Bob cannot execute Balances transfers
+            // But Bob cannot execute Balances transfers - the proxy call succeeds but the inner call is filtered
             assert_ok!(Proxy::proxy(
                 RuntimeOrigin::signed(bob.clone()),
                 alice.clone(),
@@ -408,6 +411,16 @@ fn test_proxy_call_with_nontransfer_type() {
                     }
                 ))
             ));
+
+            // Check that the call was filtered by looking for the CallFiltered event
+            System::assert_last_event(RuntimeEvent::Proxy(ProxyEvent::ProxyExecuted {
+                result: Err(
+                    frame_system::Error::<datahaven_stagenet_runtime::Runtime>::CallFiltered.into(),
+                ),
+            }));
+
+            // Verify that Charlie's balance didn't change (transfer was filtered)
+            assert_eq!(Balances::free_balance(&charlie), 1_000 * UNIT); // Original balance unchanged
         });
 }
 
@@ -431,7 +444,9 @@ fn test_proxy_call_with_staking_type() {
                 0
             ));
 
-            // Test that staking proxy can execute utility calls (placeholder for staking operations)
+            // Test that staking proxy can execute staking operations
+            // TODO: Replace with actual staking call once implemented
+            // For now, we use a utility call as a placeholder
             assert_ok!(Proxy::proxy(
                 RuntimeOrigin::signed(bob.clone()),
                 alice.clone(),
@@ -449,11 +464,44 @@ fn test_proxy_call_with_identity_judgement_type() {
         .with_balances(vec![
             (account_id(ALICE), 10_000 * UNIT),
             (account_id(BOB), 1_000 * UNIT),
+            (account_id(CHARLIE), 1_000 * UNIT), // Charlie needs balance for identity deposit
         ])
         .build()
         .execute_with(|| {
             let alice = account_id(ALICE);
             let bob = account_id(BOB);
+
+            // First, add Alice as a registrar in the Identity pallet
+            // This requires root origin
+            assert_ok!(Identity::add_registrar(
+                RuntimeOrigin::root(),
+                alice.clone().into()
+            ));
+
+            // Set registrar fee for Alice
+            assert_ok!(Identity::set_fee(
+                RuntimeOrigin::signed(alice.clone()),
+                0,        // registrar index
+                1 * UNIT, // fee
+            ));
+
+            // Charlie needs to have an identity set to receive judgement
+            // First, Charlie needs to request judgement
+            let info = pallet_identity::legacy::IdentityInfo {
+                display: pallet_identity::Data::Raw(b"Charlie".to_vec().try_into().unwrap()),
+                ..Default::default()
+            };
+            assert_ok!(Identity::set_identity(
+                RuntimeOrigin::signed(account_id(CHARLIE)),
+                Box::new(info.clone())
+            ));
+
+            // Charlie requests judgement from registrar 0 (Alice)
+            assert_ok!(Identity::request_judgement(
+                RuntimeOrigin::signed(account_id(CHARLIE)),
+                0,         // registrar index
+                10 * UNIT, // max fee
+            ));
 
             // Add Bob as IdentityJudgement proxy for Alice
             assert_ok!(Proxy::add_proxy(
@@ -464,7 +512,11 @@ fn test_proxy_call_with_identity_judgement_type() {
             ));
 
             // IdentityJudgement proxy can execute judgement-related calls
-            assert_ok!(Proxy::proxy(
+            // Use the hash of the identity info
+            use sp_runtime::traits::Hash;
+            let identity_hash = sp_runtime::traits::BlakeTwo256::hash_of(&info);
+
+            let result = Proxy::proxy(
                 RuntimeOrigin::signed(bob.clone()),
                 alice.clone(),
                 None,
@@ -473,9 +525,19 @@ fn test_proxy_call_with_identity_judgement_type() {
                         reg_index: 0,
                         target: account_id(CHARLIE).into(),
                         judgement: pallet_identity::Judgement::Reasonable,
-                        identity: blake2_256(b"test").into(),
-                    }
-                ))
+                        identity: identity_hash,
+                    },
+                )),
+            );
+
+            assert_ok!(result);
+
+            // Verify IdentityJudgement event
+            System::assert_has_event(RuntimeEvent::Identity(
+                pallet_identity::Event::JudgementGiven {
+                    target: account_id(CHARLIE).into(),
+                    registrar_index: 0,
+                },
             ));
         });
 }
@@ -525,6 +587,7 @@ fn test_proxy_call_with_sudo_only_type() {
             (account_id(BOB), 1_000 * UNIT),
             (account_id(CHARLIE), 1_000 * UNIT),
         ])
+        .with_sudo(account_id(ALICE)) // Set Alice as the sudo key
         .build()
         .execute_with(|| {
             let alice = account_id(ALICE);
@@ -553,6 +616,14 @@ fn test_proxy_call_with_sudo_only_type() {
                     ))
                 }))
             ));
+
+            // Check that the sudo call was executed successfully
+            System::assert_has_event(RuntimeEvent::Sudo(pallet_sudo::Event::Sudid {
+                sudo_result: Ok(()),
+            }));
+
+            // Verify that Charlie's balance was forcibly set
+            assert_eq!(Balances::free_balance(&charlie), 2_000 * UNIT);
         });
 }
 
@@ -578,7 +649,7 @@ fn test_proxy_call_with_wrong_proxy_type() {
                 0
             ));
 
-            // Bob tries to execute a Balances call but should succeed (no filtering in current implementation)
+            // Bob tries to execute a Balances call - the proxy call succeeds but the inner call is filtered
             assert_ok!(Proxy::proxy(
                 RuntimeOrigin::signed(bob.clone()),
                 alice.clone(),
@@ -590,6 +661,16 @@ fn test_proxy_call_with_wrong_proxy_type() {
                     }
                 ))
             ));
+
+            // Check that the call was filtered by looking for the CallFiltered event
+            System::assert_last_event(RuntimeEvent::Proxy(ProxyEvent::ProxyExecuted {
+                result: Err(
+                    frame_system::Error::<datahaven_stagenet_runtime::Runtime>::CallFiltered.into(),
+                ),
+            }));
+
+            // Verify that Charlie's balance didn't change (transfer was filtered)
+            assert_eq!(Balances::free_balance(&charlie), 1_000 * UNIT); // Original balance unchanged
         });
 }
 
@@ -998,6 +1079,7 @@ fn test_multisig_to_anonymous_proxy_to_sudo() {
             (account_id(CHARLIE), 10_000 * UNIT),
             (account_id(DAVE), 5_000 * UNIT),
         ])
+        .with_sudo(account_id(ALICE)) // Set Alice as the sudo key initially
         .build()
         .execute_with(|| {
             let alice = account_id(ALICE);
@@ -1053,15 +1135,14 @@ fn test_multisig_to_anonymous_proxy_to_sudo() {
                 }))
             ));
 
-            // Fund the multisig account
-            assert_ok!(Balances::transfer_allow_death(
-                RuntimeOrigin::signed(alice.clone()),
-                multisig_account.clone(),
-                1_000 * UNIT
-            ));
-
             // Add the multisig as the controller of the anonymous proxy
             // The multisig is now set up as a proxy for the anonymous proxy
+
+            // First, transfer sudo key from Alice to the anonymous proxy
+            assert_ok!(Sudo::set_key(
+                RuntimeOrigin::signed(alice.clone()),
+                anonymous_proxy.clone().into()
+            ));
 
             // Create a sudo call to set Alice's balance (as an example privileged operation)
             let alice_initial_balance = Balances::free_balance(&alice);
@@ -1083,9 +1164,13 @@ fn test_multisig_to_anonymous_proxy_to_sudo() {
                 Box::new(sudo_call)
             ));
 
-            // The proxy -> sudo call chain executed successfully
-            // The main goal was demonstrating that proxy calls can execute sudo operations
-            // The fact that assert_ok! succeeded above proves the call chain worked
+            // Check that the sudo call was executed successfully
+            System::assert_has_event(RuntimeEvent::Sudo(pallet_sudo::Event::Sudid {
+                sudo_result: Ok(()),
+            }));
+
+            // Verify that Alice's balance was forcibly set
+            assert_eq!(Balances::free_balance(&alice), 11_000 * UNIT);
 
             // This test successfully demonstrates:
             // 1. Anonymous proxy creation

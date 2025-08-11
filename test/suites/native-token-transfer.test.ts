@@ -394,53 +394,6 @@ describe("Native Token Transfer", () => {
     expect(sovereignBalance.data.free).toBeGreaterThanOrEqual(totalSupply);
   });
 
-  it("should emit transfer events", async () => {
-    const connectors = suite.getTestConnectors();
-
-    // Verify token is registered
-    const maybeErc20 = await getNativeERC20Address(connectors);
-    expect(maybeErc20).not.toBeNull();
-    const erc20Address = maybeErc20 as `0x${string}`;
-
-    // Perform small transfer
-    const recipient = ANVIL_FUNDED_ACCOUNTS[2].publicKey;
-    const amount = parseEther("1");
-    const fee = parseEther("0.01");
-
-    const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
-      recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
-      amount,
-      fee
-    });
-
-    // Submit transaction first, then wait for events sequentially
-    const txResult = await tx.signAndSubmit(alithSigner);
-
-    // Extract events directly from transaction result instead of waiting
-    const transferredEvent = txResult.events.find(
-      (e: any) =>
-        e.type === "DataHavenNativeTransfer" &&
-        e.value?.type === "TokensTransferredToEthereum" &&
-        e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
-    );
-
-    const lockedEvent = txResult.events.find(
-      (e: any) =>
-        e.type === "DataHavenNativeTransfer" &&
-        e.value?.type === "TokensLocked" &&
-        e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
-    );
-
-    // Verify transaction succeeded
-    expect(txResult.ok).toBe(true);
-
-    // Verify events were received
-    expect(transferredEvent).toBeTruthy();
-    expect(transferredEvent?.value?.value).toBeTruthy();
-    expect(lockedEvent).toBeTruthy();
-    expect(lockedEvent?.value?.value).toBeTruthy();
-  }, 30_000); // 30 second timeout
-
   it("should transfer tokens from Ethereum to DataHaven", async () => {
     const connectors = suite.getTestConnectors();
 

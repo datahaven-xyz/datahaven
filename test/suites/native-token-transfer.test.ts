@@ -290,9 +290,7 @@ describe("Native Token Transfer", () => {
     ]);
 
     // Check transaction result for errors
-    if (!txResult.ok) {
-      throw new Error("Transaction failed");
-    }
+    expect(txResult.ok).toBe(true);
 
     // Extract events directly from transaction result
     const tokenTransferEvent = txResult.events.find(
@@ -371,7 +369,7 @@ describe("Native Token Transfer", () => {
 
       const summary = `Ethereum mint event not observed within timeout. DHΔ=${dhDecrease}, SovereignΔ=${sovereignIncrease}, ERC20Δ=${ethBalanceChange}`;
       logger.warn(summary);
-      throw new Error(summary);
+      expect(tokenMintEvent.log).not.toBeNull();
     }
   }, 420_000); // 7 minute timeout
 
@@ -379,13 +377,12 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
 
     // Get the deployed token address
-    const deployedERC20Address = await getNativeERC20Address(connectors);
-    if (!deployedERC20Address) {
-      throw new Error("Native token ERC20 address not found");
-    }
+    const maybeErc20 = await getNativeERC20Address(connectors);
+    expect(maybeErc20).not.toBeNull();
+    const erc20Address = maybeErc20 as `0x${string}`;
 
     const totalSupply = (await connectors.publicClient.readContract({
-      address: deployedERC20Address,
+      address: erc20Address,
       abi: ERC20_ABI,
       functionName: "totalSupply"
     })) as bigint;
@@ -401,10 +398,9 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
 
     // Verify token is registered
-    const deployedERC20Address = await getNativeERC20Address(connectors);
-    if (!deployedERC20Address) {
-      throw new Error("Native token ERC20 address not found");
-    }
+    const maybeErc20 = await getNativeERC20Address(connectors);
+    expect(maybeErc20).not.toBeNull();
+    const erc20Address = maybeErc20 as `0x${string}`;
 
     // Perform small transfer
     const recipient = ANVIL_FUNDED_ACCOUNTS[2].publicKey;
@@ -605,10 +601,8 @@ describe("Native Token Transfer", () => {
     });
 
     // Check if we actually got the event
-    if (!dhEvent || !dhEvent.data) {
-      logger.error("TokensUnlocked event not received or has no data");
-      throw new Error("Failed to receive TokensUnlocked event on DataHaven");
-    }
+    expect(dhEvent).toBeDefined();
+    expect(dhEvent?.data).toBeDefined();
 
     expect(dhEvent.data).toBeDefined();
     expect(dhEvent.data.account).toBe(dhRecipient);

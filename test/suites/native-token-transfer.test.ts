@@ -89,6 +89,15 @@ const ERC20_ABI = [
     outputs: [{ name: "", type: "bool" }],
     stateMutability: "nonpayable",
     type: "function"
+  },
+  {
+    type: "event",
+    name: "Approval",
+    inputs: [
+      { name: "owner", type: "address", indexed: true },
+      { name: "spender", type: "address", indexed: true },
+      { name: "value", type: "uint256", indexed: false }
+    ]
   }
 ] as const;
 
@@ -531,7 +540,19 @@ describe("Native Token Transfer", () => {
       args: [deployments.Gateway as `0x${string}`, amount],
       chain: null
     });
-    await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
+    const approveReceipt = await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
+    expect(approveReceipt.status).toBe("success");
+    
+    // Assert Approval event from receipt logs
+    const hasApproval = (approveReceipt.logs ?? []).some((log: any) => {
+      try {
+        const decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
+        return decoded.eventName === "Approval";
+      } catch {
+        return false;
+      }
+    });
+    expect(hasApproval).toBe(true);
 
     // Build Snowbridge v2 send payload
     const assets = [

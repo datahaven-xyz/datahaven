@@ -512,6 +512,30 @@ describe("Native Token Transfer", () => {
     // The Snowbridge system will handle the token unlock to the claimer address
     const xcm = "0x" as `0x${string}`;
 
+    // Start DH event watcher BEFORE sending Ethereum tx to avoid missing the event
+    logger.debug("Starting TokensUnlocked watcher on DataHaven before sending Ethereum tx...");
+    const dhEventPromise = waitForDataHavenEvent<{
+      account: any;
+      amount: any;
+    }>({
+      api: connectors.dhApi,
+      pallet: "DataHavenNativeTransfer",
+      event: "TokensUnlocked",
+      filter: (e: any) => {
+        const acct =
+          typeof e?.account === "string"
+            ? e.account
+            : e?.account?.asHex?.() ?? e?.account?.toString?.();
+        const amt = typeof e?.amount === "bigint" ? e.amount : BigInt(e?.amount ?? 0);
+        const isMatch = acct?.toLowerCase?.() === dhRecipient.toLowerCase() && amt === amount;
+        if (isMatch) {
+          logger.debug(`Matched TokensUnlocked: account=${acct}, amount=${amt}`);
+        }
+        return Boolean(isMatch);
+      },
+      timeout: 600_000
+    });
+
     // Send v2_sendMessage and assert hash before awaiting all
     logger.info(`🚀 Submitting Ethereum transaction: ${amount} tokens to DataHaven recipient ${dhRecipient}`);
     const sendHash = await ethWalletClient.writeContract({
@@ -523,9 +547,11 @@ describe("Native Token Transfer", () => {
       chain: null
     });
     expect(sendHash).toMatch(/^0x[0-9a-fA-F]{64}$/);
-
-    // First submit the Ethereum transaction and wait for receipt
-    const sendReceipt = await connectors.publicClient.waitForTransactionReceipt({ hash: sendHash });
+    // Await both Ethereum receipt and DH TokensUnlocked event together
+    const [sendReceipt, dhEvent] = await Promise.all([
+      connectors.publicClient.waitForTransactionReceipt({ hash: sendHash }),
+      dhEventPromise
+    ]);
     expect(sendReceipt.status).toBe("success");
 
     // Assert OutboundMessageAccepted from receipt logs
@@ -539,31 +565,8 @@ describe("Native Token Transfer", () => {
     });
     expect(hasOutboundAccepted).toBe(true);
 
-    // Now wait for the DataHaven event separately with better error handling
-    logger.debug("Waiting for TokensUnlocked event on DataHaven...");
-    const dhEvent = await waitForDataHavenEvent<{
-      account: string;
-      amount: bigint;
-    }>({
-      api: connectors.dhApi,
-      pallet: "DataHavenNativeTransfer",
-      event: "TokensUnlocked",
-      filter: (e: any) => {
-        const isMatch = e.value?.value?.account === dhRecipient;
-        if (isMatch) {
-          logger.debug(`Found matching TokensUnlocked event for account ${e.value.value.account}`);
-        }
-        return isMatch;
-      },
-      timeout: 600000
-    });
-
-    // Check if we actually got the event
-    expect(dhEvent).toBeDefined();
+    // Event must exist (filter already matched account and amount)
     expect(dhEvent?.data).toBeDefined();
-    const unlocked = dhEvent!.data!;
-    expect(unlocked.account).toBe(dhRecipient);
-    expect(unlocked.amount).toBeGreaterThan(0n);
 
     // Final balances
     const [finalEthTokenBalance, finalTotalSupply] = await Promise.all([
@@ -593,7 +596,7 @@ describe("Native Token Transfer", () => {
     const dhIncrease = finalDhRecipientBalance.data.free - initialDhRecipientBalance.data.free;
     const sovereignDecrease = initialSovereignBalance.data.free - finalSovereignBalance.data.free;
 
-    expect(dhIncrease).toBeGreaterThanOrEqual(amount);
-    expect(sovereignDecrease).toBeGreaterThanOrEqual(amount);
+    expect(dhIncrease).toBe(amount);
+    expect(sovereignDecrease).toBe(amount);
   }, 900_000); // 15 minute timeout for cross-chain transfers
 });

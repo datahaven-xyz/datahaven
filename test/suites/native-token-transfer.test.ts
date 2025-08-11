@@ -20,8 +20,8 @@ import {
   logger,
   parseDeploymentsFile,
   SUBSTRATE_FUNDED_ACCOUNTS,
-  waitForEthereumEvent,
-  waitForDataHavenEvent
+  waitForDataHavenEvent,
+  waitForEthereumEvent
 } from "utils";
 import { decodeEventLog, encodeAbiParameters, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
@@ -174,7 +174,7 @@ describe("Native Token Transfer", () => {
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        timeout: 300_000      // set appropriately
+        timeout: 300_000 // set appropriately
       }),
       // Submit and wait for transaction on DataHaven
       sudoTx.signAndSubmit(alithSigner)
@@ -402,7 +402,6 @@ describe("Native Token Transfer", () => {
     expect(maybeErc20).not.toBeNull();
     const erc20Address = maybeErc20 as `0x${string}`;
 
-
     // Use shared wallet client from connectors
     const ethWalletClient = connectors.walletClient;
     const ethereumSender = ethWalletClient.account.address as `0x${string}`;
@@ -488,7 +487,9 @@ describe("Native Token Transfer", () => {
       args: [deployments.Gateway as `0x${string}`, amount],
       chain: null
     });
-    const approveReceipt = await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
+    const approveReceipt = await connectors.publicClient.waitForTransactionReceipt({
+      hash: approveHash
+    });
     expect(approveReceipt.status).toBe("success");
 
     // Build Snowbridge v2 send payload
@@ -525,7 +526,7 @@ describe("Native Token Transfer", () => {
         const acct =
           typeof e?.account === "string"
             ? e.account
-            : e?.account?.asHex?.() ?? e?.account?.toString?.();
+            : (e?.account?.asHex?.() ?? e?.account?.toString?.());
         const amt = typeof e?.amount === "bigint" ? e.amount : BigInt(e?.amount ?? 0);
         const isMatch = acct?.toLowerCase?.() === dhRecipient.toLowerCase() && amt === amount;
         if (isMatch) {
@@ -537,7 +538,9 @@ describe("Native Token Transfer", () => {
     });
 
     // Send v2_sendMessage and assert hash before awaiting all
-    logger.info(`🚀 Submitting Ethereum transaction: ${amount} tokens to DataHaven recipient ${dhRecipient}`);
+    logger.info(
+      `🚀 Submitting Ethereum transaction: ${amount} tokens to DataHaven recipient ${dhRecipient}`
+    );
     const sendHash = await ethWalletClient.writeContract({
       address: deployments.Gateway as `0x${string}`,
       abi: gatewayAbi,

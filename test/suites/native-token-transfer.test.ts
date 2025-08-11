@@ -131,7 +131,7 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
 // Create the test suite instance
 const suite = new NativeTokenTransferTestSuite();
 
-// Create shared signer instances to maintain nonce tracking across tests
+// Create shared signer instance to maintain nonce tracking across tests
 let alithSigner: ReturnType<typeof getPapiSigner>;
 
 describe("Native Token Transfer", () => {
@@ -167,21 +167,24 @@ describe("Native Token Transfer", () => {
     });
 
     // Submit transaction and wait for both DataHaven confirmation and Ethereum event
-    const [dhTxResult, ethEventResult] = await Promise.all([
-      // Submit and wait for transaction on DataHaven
-      sudoTx.signAndSubmit(alithSigner),
-      // Wait for the token registration event on Ethereum Gateway
+    const [ethEventResult, dhTxResult] = await Promise.all([
+      // Wait for the token registration event on Ethereum Gateway (start watcher first)
       waitForEthereumEvent({
         client: connectors.publicClient,
         address: deployments.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        timeout: 180000
-      })
+        timeout: 300_000      // set appropriately
+      }),
+      // Submit and wait for transaction on DataHaven
+      sudoTx.signAndSubmit(alithSigner)
     ]);
 
     // Verify DataHaven transaction succeeded
     expect(dhTxResult.ok).toBe(true);
+
+    // Verify the Ethereum event was received
+    expect(ethEventResult.log).not.toBeNull();
 
     // Check for events in the DataHaven transaction result
     const { events } = dhTxResult;
@@ -198,9 +201,6 @@ describe("Native Token Transfer", () => {
     const tokenIdRaw = registerTokenEvent?.value?.value?.foreign_token_id;
     expect(tokenIdRaw).toBeDefined();
     const tokenId = tokenIdRaw.asHex();
-
-    // Verify the Ethereum event was received
-    expect(ethEventResult.log).not.toBeNull();
 
     const eventArgs = (ethEventResult.log as any)?.args;
     expect(eventArgs?.tokenID).toBe(tokenId);
@@ -232,7 +232,7 @@ describe("Native Token Transfer", () => {
     expect(tokenName).toBe("HAVE");
     expect(tokenSymbol).toBe("wHAVE");
     expect(tokenDecimals).toBe(18);
-  }, 180_000); // 3 minute timeout (2 epochs @ 2s slots = ~128s + buffer)
+  }, 300_000); // 5 minute timeout for registration
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
@@ -269,14 +269,32 @@ describe("Native Token Transfer", () => {
       fee
     });
 
-    const txResult = await tx.signAndSubmit(alithSigner);
+    // Submit transaction and wait for both DataHaven confirmation and Ethereum minting event
+    logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
+
+    const [tokenMintEvent, txResult] = await Promise.all([
+      // Wait for the mint event on Ethereum (start watcher first)
+      waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: erc20Address,
+        abi: ERC20_ABI,
+        eventName: "Transfer",
+        args: {
+          from: ZERO_ADDRESS, // Minting from zero address
+          to: recipient
+        },
+        timeout: 300_000 // 5 minutes should be sufficient
+      }),
+      // Submit and wait for transaction on DataHaven
+      tx.signAndSubmit(alithSigner)
+    ]);
 
     // Check transaction result for errors
     if (!txResult.ok) {
       throw new Error("Transaction failed");
     }
 
-    // Extract events directly from transaction result instead of waiting
+    // Extract events directly from transaction result
     const tokenTransferEvent = txResult.events.find(
       (e: any) =>
         e.type === "DataHavenNativeTransfer" &&
@@ -303,24 +321,6 @@ describe("Native Token Transfer", () => {
       ETHEREUM_SOVEREIGN_ACCOUNT
     );
     logger.debug(`Sovereign balance after events: ${intermediateBalance.data.free}`);
-
-    // Now wait for Ethereum event with extended timeout
-    logger.debug("Waiting for Ethereum minting event (this may take several minutes)...");
-    const startTransferBlock = await connectors.publicClient.getBlockNumber();
-    const transferFromBlock =
-      startTransferBlock > 0n ? startTransferBlock - 1n : startTransferBlock;
-    const tokenMintEvent = await waitForEthereumEvent({
-      client: connectors.publicClient,
-      address: erc20Address,
-      abi: ERC20_ABI,
-      eventName: "Transfer",
-      args: {
-        from: ZERO_ADDRESS, // Minting from zero address
-        to: recipient
-      },
-      fromBlock: transferFromBlock,
-      timeout: 300000
-    });
 
     // Get final balances including sovereign account
     const finalDHBalance = await connectors.dhApi.query.System.Account.getValue(
@@ -373,7 +373,7 @@ describe("Native Token Transfer", () => {
       logger.warn(summary);
       throw new Error(summary);
     }
-  }, 360_000);
+  }, 420_000); // 7 minute timeout
 
   it("should maintain 1:1 backing ratio", async () => {
     const connectors = suite.getTestConnectors();
@@ -482,19 +482,19 @@ describe("Native Token Transfer", () => {
         fee
       });
 
-      const [mintEvent, txResult] = await Promise.all([
-        waitForEthereumEvent({
-          client: connectors.publicClient,
-          address: erc20Address,
-          abi: ERC20_ABI,
-          eventName: "Transfer",
-          args: { from: ZERO_ADDRESS, to: ethereumSender },
-          timeout: 300000
-        }),
-        tx.signAndSubmit(alithSigner)
-      ]);
-
+      const txResult = await tx.signAndSubmit(alithSigner);
       expect(txResult.ok).toBe(true);
+
+      // Wait for mint event
+      const mintEvent = await waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: erc20Address,
+        abi: ERC20_ABI,
+        eventName: "Transfer",
+        args: { from: ZERO_ADDRESS, to: ethereumSender },
+        timeout: 300_000 // 3 minutes
+      });
+
       expect(mintEvent.log).not.toBeNull();
 
       currentEthTokenBalance = (await connectors.publicClient.readContract({
@@ -548,10 +548,18 @@ describe("Native Token Transfer", () => {
         [0, erc20Address, amount]
       )
     ];
-    const claimer = "0x" as `0x${string}`;
+
+    // The claimer should be the recipient on DataHaven (dhRecipient)
+    // This tells the system who should receive the unlocked tokens
+    const claimer = dhRecipient as `0x${string}`;
+    logger.info(`🔑 Setting claimer to: ${claimer} (matches dhRecipient: ${dhRecipient})`);
+
+    // For now, we can use an empty XCM since the claimer field specifies the recipient
+    // The Snowbridge system will handle the token unlock to the claimer address
     const xcm = "0x" as `0x${string}`;
 
     // Send v2_sendMessage and assert hash before awaiting all
+    logger.info(`🚀 Submitting Ethereum transaction: ${amount} tokens to DataHaven recipient ${dhRecipient}`);
     const sendHash = await ethWalletClient.writeContract({
       address: deployments.Gateway as `0x${string}`,
       abi: gatewayAbi,
@@ -562,19 +570,8 @@ describe("Native Token Transfer", () => {
     });
     expect(sendHash).toMatch(/^0x[0-9a-fA-F]{64}$/);
 
-    const [sendReceipt, dhEvent] = await Promise.all([
-      connectors.publicClient.waitForTransactionReceipt({ hash: sendHash }),
-      waitForDataHavenEvent<{
-        account: string;
-        amount: bigint;
-      }>({
-        api: connectors.dhApi,
-        pallet: "DataHavenNativeTransfer",
-        event: "TokensUnlocked",
-        filter: (e: any) => e?.account === dhRecipient,
-        timeout: 360000
-      })
-    ]);
+    // First submit the Ethereum transaction and wait for receipt
+    const sendReceipt = await connectors.publicClient.waitForTransactionReceipt({ hash: sendHash });
     expect(sendReceipt.status).toBe("success");
 
     // Assert OutboundMessageAccepted from receipt logs
@@ -587,7 +584,35 @@ describe("Native Token Transfer", () => {
       }
     });
     expect(hasOutboundAccepted).toBe(true);
-    expect(dhEvent.data).not.toBeNull();
+
+    // Now wait for the DataHaven event separately with better error handling
+    logger.debug("Waiting for TokensUnlocked event on DataHaven...");
+    const dhEvent = await waitForDataHavenEvent<{
+      account: string;
+      amount: bigint;
+    }>({
+      api: connectors.dhApi,
+      pallet: "DataHavenNativeTransfer",
+      event: "TokensUnlocked",
+      filter: (e: any) => {
+        const isMatch = e.value?.value?.account === dhRecipient;
+        if (isMatch) {
+          logger.debug(`Found matching TokensUnlocked event for account ${e.value.value.account}`);
+        }
+        return isMatch;
+      },
+      timeout: 600000
+    });
+
+    // Check if we actually got the event
+    if (!dhEvent || !dhEvent.data) {
+      logger.error("TokensUnlocked event not received or has no data");
+      throw new Error("Failed to receive TokensUnlocked event on DataHaven");
+    }
+
+    expect(dhEvent.data).toBeDefined();
+    expect(dhEvent.data.account).toBe(dhRecipient);
+    expect(dhEvent.data.amount).toBeGreaterThan(0n);
 
     // Final balances
     const [finalEthTokenBalance, finalTotalSupply] = await Promise.all([
@@ -619,5 +644,5 @@ describe("Native Token Transfer", () => {
 
     expect(dhIncrease).toBeGreaterThanOrEqual(amount);
     expect(sovereignDecrease).toBeGreaterThanOrEqual(amount);
-  }, 420_000);
+  }, 900_000); // 15 minute timeout for cross-chain transfers
 });

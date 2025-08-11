@@ -622,7 +622,7 @@ impl pallet_proxy::Config for Runtime {
     type ProxyDepositBase = ProxyDepositBase;
     type ProxyDepositFactor = ProxyDepositFactor;
     type MaxProxies = MaxProxies;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_proxy::WeightInfo<Runtime>;
     type MaxPending = MaxPending;
     type CallHasher = sp_runtime::traits::BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;

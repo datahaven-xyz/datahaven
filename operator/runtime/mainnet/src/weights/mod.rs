@@ -38,6 +38,7 @@ pub mod pallet_message_queue;
 pub mod pallet_mmr;
 pub mod pallet_multisig;
 pub mod pallet_parameters;
+pub mod pallet_proxy;
 pub mod pallet_preimage;
 pub mod pallet_scheduler;
 pub mod pallet_sudo;

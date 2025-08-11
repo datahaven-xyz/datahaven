@@ -1,0 +1,13 @@
+# Beacon relay-specific settings for stagenet
+
+global:
+  environment: stagenet
+  namespace: kt-datahaven-stagenet
+
+image:
+  tag: latest
+  pullPolicy: Always
+
+relayData:
+  storagePath: "/relay-data"
+  volumeSize: 10Gi

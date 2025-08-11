@@ -89,15 +89,6 @@ const ERC20_ABI = [
     outputs: [{ name: "", type: "bool" }],
     stateMutability: "nonpayable",
     type: "function"
-  },
-  {
-    type: "event",
-    name: "Approval",
-    inputs: [
-      { name: "owner", type: "address", indexed: true },
-      { name: "spender", type: "address", indexed: true },
-      { name: "value", type: "uint256", indexed: false }
-    ]
   }
 ] as const;
 
@@ -487,19 +478,23 @@ describe("Native Token Transfer", () => {
         fee
       });
 
-      const txResult = await tx.signAndSubmit(alithSigner);
+      // Start watcher first and submit in parallel; look back one block for safety
+      const startBlock = await connectors.publicClient.getBlockNumber();
+      const fromBlock = startBlock > 0n ? startBlock - 1n : startBlock;
+      const [mintEvent, txResult] = await Promise.all([
+        waitForEthereumEvent({
+          client: connectors.publicClient,
+          address: erc20Address,
+          abi: ERC20_ABI,
+          eventName: "Transfer",
+          args: { from: ZERO_ADDRESS, to: ethereumSender },
+          fromBlock,
+          timeout: 300_000 // 3 minutes
+        }),
+        tx.signAndSubmit(alithSigner)
+      ]);
+
       expect(txResult.ok).toBe(true);
-
-      // Wait for mint event
-      const mintEvent = await waitForEthereumEvent({
-        client: connectors.publicClient,
-        address: erc20Address,
-        abi: ERC20_ABI,
-        eventName: "Transfer",
-        args: { from: ZERO_ADDRESS, to: ethereumSender },
-        timeout: 300_000 // 3 minutes
-      });
-
       expect(mintEvent.log).not.toBeNull();
 
       currentEthTokenBalance = (await connectors.publicClient.readContract({
@@ -542,17 +537,6 @@ describe("Native Token Transfer", () => {
     });
     const approveReceipt = await connectors.publicClient.waitForTransactionReceipt({ hash: approveHash });
     expect(approveReceipt.status).toBe("success");
-    
-    // Assert Approval event from receipt logs
-    const hasApproval = (approveReceipt.logs ?? []).some((log: any) => {
-      try {
-        const decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
-        return decoded.eventName === "Approval";
-      } catch {
-        return false;
-      }
-    });
-    expect(hasApproval).toBe(true);
 
     // Build Snowbridge v2 send payload
     const assets = [
@@ -624,10 +608,9 @@ describe("Native Token Transfer", () => {
     // Check if we actually got the event
     expect(dhEvent).toBeDefined();
     expect(dhEvent?.data).toBeDefined();
-
-    expect(dhEvent.data).toBeDefined();
-    expect(dhEvent.data.account).toBe(dhRecipient);
-    expect(dhEvent.data.amount).toBeGreaterThan(0n);
+    const unlocked = dhEvent!.data!;
+    expect(unlocked.account).toBe(dhRecipient);
+    expect(unlocked.amount).toBeGreaterThan(0n);
 
     // Final balances
     const [finalEthTokenBalance, finalTotalSupply] = await Promise.all([

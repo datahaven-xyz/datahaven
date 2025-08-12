@@ -1,5 +1,5 @@
-import path from "node:path";
 import { existsSync } from "node:fs";
+import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
@@ -74,59 +74,53 @@ export const deployDataHavenSolochain = async (
   // Deploy DataHaven bootnode and validators with helm chart.
   logger.info("🚀 Deploying DataHaven bootnode with helm chart...");
   const bootnodeTimeout = "5m"; // 5 minutes
-  
+
   // Build helm command arguments
   const bootnodeArgs = [
-    "upgrade", "--install", "dh-bootnode", "charts/node",
-    "-f", "charts/node/datahaven/dh-bootnode.yaml",
-    "-f", `environments/${options.environment}/dh-bootnode.yaml`
+    "upgrade",
+    "--install",
+    "dh-bootnode",
+    "charts/node",
+    "-f",
+    "charts/node/datahaven/dh-bootnode.yaml",
+    "-f",
+    `environments/${options.environment}/dh-bootnode.yaml`
   ];
-  
+
   // Add custom chainspec configuration if provided
   if (options.chainspec) {
     logger.info(`🔗 Using custom chainspec: ${options.chainspec}`);
     bootnodeArgs.push("--set-file", `customChainspecContent=${options.chainspec}`);
   }
-  
-  bootnodeArgs.push(
-    "-n", launchedNetwork.kubeNamespace,
-    "--wait",
-    "--timeout", bootnodeTimeout
-  );
-  
-  logger.debug(
-    await $`helm ${bootnodeArgs}`
-      .cwd(path.join(process.cwd(), "../deploy"))
-      .text()
-  );
+
+  bootnodeArgs.push("-n", launchedNetwork.kubeNamespace, "--wait", "--timeout", bootnodeTimeout);
+
+  logger.debug(await $`helm ${bootnodeArgs}`.cwd(path.join(process.cwd(), "../deploy")).text());
   logger.success("DataHaven bootnode deployed successfully");
 
   logger.info("🚀 Deploying DataHaven validators with helm chart...");
   const validatorTimeout = "5m"; // 5 minutes
-  
+
   // Build helm command arguments
   const validatorArgs = [
-    "upgrade", "--install", "dh-validator", "charts/node",
-    "-f", "charts/node/datahaven/dh-validator.yaml",
-    "-f", `environments/${options.environment}/dh-validator.yaml`
+    "upgrade",
+    "--install",
+    "dh-validator",
+    "charts/node",
+    "-f",
+    "charts/node/datahaven/dh-validator.yaml",
+    "-f",
+    `environments/${options.environment}/dh-validator.yaml`
   ];
-  
+
   // Add custom chainspec configuration if provided
   if (options.chainspec) {
     validatorArgs.push("--set-file", `customChainspecContent=${options.chainspec}`);
   }
-  
-  validatorArgs.push(
-    "-n", launchedNetwork.kubeNamespace,
-    "--wait",
-    "--timeout", validatorTimeout
-  );
-  
-  logger.debug(
-    await $`helm ${validatorArgs}`
-      .cwd(path.join(process.cwd(), "../deploy"))
-      .text()
-  );
+
+  validatorArgs.push("-n", launchedNetwork.kubeNamespace, "--wait", "--timeout", validatorTimeout);
+
+  logger.debug(await $`helm ${validatorArgs}`.cwd(path.join(process.cwd(), "../deploy")).text());
   logger.success("DataHaven validators deployed successfully");
 
   // Forward port from validator to localhost, to interact with the network.

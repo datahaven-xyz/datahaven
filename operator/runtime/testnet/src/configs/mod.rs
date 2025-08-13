@@ -26,13 +26,13 @@
 pub mod runtime_params;
 
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
+    currency::*, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit,
+    ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
+    Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
     RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
+    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -45,6 +45,7 @@ use datahaven_runtime_common::{
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
+    dispatch::DispatchClass,
     pallet_prelude::TransactionPriority,
     parameter_types,
     traits::{
@@ -53,16 +54,10 @@ use frame_support::{
         ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
-    weights::{
-        constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, RuntimeDbWeight, Weight,
-    },
+    weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    unique, EnsureRoot, EnsureRootWithSuccess,
-};
+use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -117,18 +112,6 @@ use datahaven_runtime_common::benchmarking::BenchmarkHelper;
 const EVM_CHAIN_ID: u64 = 1288;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 
-// TODO: We need to define what do we want here as max PoV size
-pub const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
-
-// Todo: import all currency constants from moonbeam
-pub const WEIGHT_FEE: Balance = 50_000 / 4;
-
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND, u64::MAX)
-    .saturating_mul(2)
-    .set_proof_size(MAX_POV_SIZE);
-
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 //║                                             COMMON PARAMETERS                                                 ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
@@ -144,15 +127,30 @@ parameter_types! {
 //║                                      SYSTEM AND CONSENSUS PALLETS                                             ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
+pub struct BlockWeights;
+impl Get<frame_system::limits::BlockWeights> for BlockWeights {
+    fn get() -> frame_system::limits::BlockWeights {
+        frame_system::limits::BlockWeights::builder()
+            .for_class(DispatchClass::Normal, |weights| {
+                weights.base_extrinsic = EXTRINSIC_BASE_WEIGHT;
+                weights.max_total = NORMAL_BLOCK_WEIGHT.into();
+            })
+            .for_class(DispatchClass::Operational, |weights| {
+                weights.max_total = MAXIMUM_BLOCK_WEIGHT.into();
+                weights.reserved = (MAXIMUM_BLOCK_WEIGHT - NORMAL_BLOCK_WEIGHT).into();
+            })
+            .avg_block_initialization(Perbill::from_percent(10))
+            .build()
+            .expect("Provided BlockWeight definitions are valid, qed")
+    }
+}
+
 parameter_types! {
-    pub const BlockHashCount: BlockNumber = 2400;
+    pub const BlockHashCount: BlockNumber = BLOCK_HASH_COUNT;
     pub const Version: RuntimeVersion = VERSION;
 
-    /// We allow for 2 seconds of compute with a 6 second average block time.
-    pub RuntimeBlockWeights: BlockWeights = BlockWeights::with_sensible_defaults(
-        Weight::from_parts(2u64 * WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
-        NORMAL_DISPATCH_RATIO,
-    );
+    pub RuntimeBlockWeights: frame_system::limits::BlockWeights = BlockWeights::get();
+    /// We allow for 5 MB blocks.
     pub RuntimeBlockLength: BlockLength = BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
@@ -238,7 +236,7 @@ impl pallet_balances::Config for Runtime {
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
-    type ExistentialDeposit = ConstU128<EXISTENTIAL_DEPOSIT>;
+    type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = testnet_weights::pallet_balances::WeightInfo<Runtime>;
     type FreezeIdentifier = RuntimeFreezeReason;
@@ -667,7 +665,15 @@ parameter_types! {
     // pub PrecompilesValue: TemplatePrecompiles<Runtime> = TemplatePrecompiles::<_>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
-    pub GasLimitPovSizeRatio: u32 = 16;
+    /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
+    /// it with the pov_size for a block. E.g.
+    /// ceil(
+    ///     (max_extrinsic.ref_time() / max_extrinsic.proof_size()) / WEIGHT_PER_GAS
+    /// )
+    /// We should re-check `xcm_config::Erc20XcmBridgeTransferGasLimit` when changing this value
+    pub const GasLimitPovSizeRatio: u64 = 16;
+    /// The amount of gas per storage (in bytes): BLOCK_GAS_LIMIT / BLOCK_STORAGE_LIMIT
+    /// (60_000_000 / 160 kb)
     pub GasLimitStorageGrowthRatio: u64 = 366;
 }
 
@@ -697,7 +703,7 @@ impl pallet_evm::Config for Runtime {
     type OnCreate = ();
     type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
-    type GasLimitStorageGrowthRatio = ();
+    type GasLimitStorageGrowthRatio = GasLimitStorageGrowthRatio;
     type Timestamp = Timestamp;
     type WeightInfo = testnet_weights::pallet_evm::WeightInfo<Runtime>;
 }

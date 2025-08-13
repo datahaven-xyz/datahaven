@@ -17,8 +17,9 @@ use fp_rpc::TransactionStatus;
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::{TransactionValidity, TransactionValidityError},
+    parameter_types,
     traits::{KeyOwnerProofSystem, OnFinalize},
-    weights::Weight,
+    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -41,7 +42,7 @@ use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{Block as BlockT, DispatchInfoOf, Dispatchable, PostDispatchInfoOf},
     transaction_validity::TransactionSource,
-    ApplyExtrinsicResult, Permill,
+    ApplyExtrinsicResult, Perbill, Permill,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -49,8 +50,8 @@ use sp_version::RuntimeVersion;
 use xcm::VersionedLocation;
 
 pub use datahaven_runtime_common::{
-    time::EpochDurationInBlocks, AccountId, Address, Balance, BlockNumber, Hash, Header, Nonce,
-    Signature,
+    gas::WEIGHT_PER_GAS, time::EpochDurationInBlocks, AccountId, Address, Balance, BlockNumber,
+    Hash, Header, Nonce, Signature,
 };
 
 pub mod genesis_config_presets;
@@ -125,29 +126,59 @@ pub use block_times::*;
 pub const MINUTES: BlockNumber = 60_000 / (MILLI_SECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
+pub const WEEKS: BlockNumber = DAYS * 7;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
-// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
-pub const SUPPLY_FACTOR: Balance = 1;
+/// UNIT, the native token, uses 18 decimals of precision.
+pub mod currency {
+    use super::Balance;
 
-// Unit = the base number of indivisible units for balances
-pub const UNIT: Balance = 1_000_000_000_000;
-pub const MILLI_UNIT: Balance = 1_000_000_000;
-pub const MICRO_UNIT: Balance = 1_000_000;
+    // Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
+    pub const SUPPLY_FACTOR: Balance = 100;
 
-pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+    pub const WEI: Balance = 1;
+    pub const KILOWEI: Balance = 1_000;
+    pub const MEGAWEI: Balance = 1_000_000;
+    pub const GIGAWEI: Balance = 1_000_000_000;
+    pub const MICROUNIT: Balance = 1_000_000_000_000;
+    pub const MILLIUNIT: Balance = 1_000_000_000_000_000;
+    pub const UNIT: Balance = 1_000_000_000_000_000_000;
+    pub const KILOUNIT: Balance = 1_000_000_000_000_000_000_000;
 
-/// Existential deposit.
+    pub const TRANSACTION_BYTE_FEE: Balance = 1 * GIGAWEI * SUPPLY_FACTOR;
+    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROUNIT * SUPPLY_FACTOR;
+    pub const WEIGHT_FEE: Balance = 50 * KILOWEI * SUPPLY_FACTOR / 4;
+
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 100 * MILLIUNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+    }
+}
+
+pub const MAX_POV_SIZE: u32 = 5 * 1024 * 1024;
+
+/// Maximum weight per block
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+    WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+    MAX_POV_SIZE as u64,
+);
+
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+pub const NORMAL_BLOCK_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_mul(3).saturating_div(4);
+// Here we assume Ethereum's base fee of 21000 gas and convert to weight, but we
+// subtract roughly the cost of a balance transfer from it (about 1/3 the cost)
+// and some cost to account for per-byte-fee.
+// TODO: we should use benchmarking's overhead feature to measure this
+pub const EXTRINSIC_BASE_WEIGHT: Weight = Weight::from_parts(10000 * WEIGHT_PER_GAS, 0);
+
+// Existential deposit.
 #[cfg(not(feature = "runtime-benchmarks"))]
-pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
-// NOTE: pallet_treasury benchmark creates spends of 100 to a random beneficiary and the payout()
-// benchmark will fail if `ExistentialDeposit` is greater than that
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 0;
+}
 #[cfg(feature = "runtime-benchmarks")]
-pub const EXISTENTIAL_DEPOSIT: Balance = 1;
-
-pub const fn deposit(items: u32, bytes: u32) -> Balance {
-    items as Balance * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 1;
 }
 
 /// The version information used to identify this runtime when compiled natively.
@@ -1108,5 +1139,92 @@ impl_runtime_apis! {
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
         }
+    }
+}
+
+// Shorthand for a Get field of a pallet Config.
+#[macro_export]
+macro_rules! get {
+    ($pallet:ident, $name:ident, $type:ty) => {
+        <<$crate::Runtime as $pallet::Config>::$name as $crate::Get<$type>>::get()
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+
+    use super::{
+        configs::{BlockGasLimit, WeightPerGas},
+        currency::*,
+        *,
+    };
+
+    #[test]
+    fn currency_constants_are_correct() {
+        assert_eq!(SUPPLY_FACTOR, 100);
+
+        // txn fees
+        assert_eq!(TRANSACTION_BYTE_FEE, Balance::from(100 * GIGAWEI));
+        assert_eq!(
+            get!(pallet_transaction_payment, OperationalFeeMultiplier, u8),
+            5_u8
+        );
+        assert_eq!(STORAGE_BYTE_FEE, Balance::from(10 * MILLIUNIT));
+
+        // pallet_identity deposits
+        assert_eq!(
+            get!(pallet_identity, BasicDeposit, u128),
+            Balance::from(10 * UNIT + 2580 * MILLIUNIT)
+        );
+        assert_eq!(
+            get!(pallet_identity, ByteDeposit, u128),
+            Balance::from(10 * MILLIUNIT)
+        );
+        assert_eq!(
+            get!(pallet_identity, SubAccountDeposit, u128),
+            Balance::from(10 * UNIT + 530 * MILLIUNIT)
+        );
+
+        // TODO: Uncomment when pallet_proxy is enabled
+        // proxy deposits
+        // assert_eq!(
+        // 	get!(pallet_proxy, ProxyDepositBase, u128),
+        // 	Balance::from(10 * UNIT + 80 * MILLIUNIT)
+        // );
+        // assert_eq!(
+        // 	get!(pallet_proxy, ProxyDepositFactor, u128),
+        // 	Balance::from(210 * MILLIUNIT)
+        // );
+        // assert_eq!(
+        // 	get!(pallet_proxy, AnnouncementDepositBase, u128),
+        // 	Balance::from(10 * UNIT + 80 * MILLIUNIT)
+        // );
+        // assert_eq!(
+        // 	get!(pallet_proxy, AnnouncementDepositFactor, u128),
+        // 	Balance::from(560 * MILLIUNIT)
+        // );
+    }
+
+    #[test]
+    fn configured_base_extrinsic_weight_is_evm_compatible() {
+        let min_ethereum_transaction_weight = WeightPerGas::get() * 21_000;
+        let base_extrinsic = <Runtime as frame_system::Config>::BlockWeights::get()
+            .get(frame_support::dispatch::DispatchClass::Normal)
+            .base_extrinsic;
+        assert!(base_extrinsic.ref_time() <= min_ethereum_transaction_weight.ref_time());
+    }
+
+    #[test]
+    fn test_storage_growth_ratio_is_correct() {
+        let expected_storage_growth_ratio = BlockGasLimit::get()
+            .low_u64()
+            .saturating_div(BLOCK_STORAGE_LIMIT);
+        let actual_storage_growth_ratio: u64 =
+            <Runtime as pallet_evm::Config>::GasLimitStorageGrowthRatio::get();
+        assert_eq!(
+            expected_storage_growth_ratio, actual_storage_growth_ratio,
+            "Storage growth ratio is not correct"
+        );
     }
 }

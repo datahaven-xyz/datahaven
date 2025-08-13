@@ -4,7 +4,7 @@
 //! Common test utilities for DataHaven mainnet runtime tests
 
 use datahaven_mainnet_runtime::{
-    AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System, UNIT,
+    currency::UNIT, AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System,
 };
 use frame_support::traits::Hooks;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -137,6 +137,7 @@ pub fn root_origin() -> RuntimeOrigin {
     RuntimeOrigin::root()
 }
 
+#[allow(dead_code)]
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
     snowbridge_core::AssetMetadata {
         name: b"HAVE".to_vec().try_into().unwrap(),
@@ -147,6 +148,7 @@ pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
 
 /// Get validator AccountId by index (for testing)
 /// Index 0: Charlie, Index 1: Dave
+#[allow(dead_code)]
 pub fn get_validator_by_index(index: u32) -> AccountId {
     match index {
         0 => account_id(CHARLIE),
@@ -156,6 +158,7 @@ pub fn get_validator_by_index(index: u32) -> AccountId {
 }
 
 /// Set block author directly in authorship pallet storage (for testing)
+#[allow(dead_code)]
 pub fn set_block_author(author: AccountId) {
     // Use direct storage access since the Author storage is private
     frame_support::storage::unhashed::put(
@@ -165,6 +168,7 @@ pub fn set_block_author(author: AccountId) {
 }
 
 /// Set block author by validator index (for testing)
+#[allow(dead_code)]
 pub fn set_block_author_by_index(validator_index: u32) {
     let author = get_validator_by_index(validator_index);
     set_block_author(author);

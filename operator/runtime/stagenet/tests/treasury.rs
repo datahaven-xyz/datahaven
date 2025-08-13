@@ -25,8 +25,9 @@ use datahaven_stagenet_runtime::{
         runtime_params::dynamic_params::runtime_config::FeesTreasuryProportion,
         TransactionPaymentAsGasPrice,
     },
-    AccountId, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, System, Treasury,
-    EXISTENTIAL_DEPOSIT, MILLI_UNIT, UNIT,
+    currency::*,
+    AccountId, Balances, ExistentialDeposit, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+    System, Treasury,
 };
 use fp_evm::FeeCalculator;
 use frame_support::{
@@ -36,11 +37,11 @@ use frame_support::{
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
 
-const BASE_FEE_GENESIS: u128 = 10 * MILLI_UNIT / 4;
+const BASE_FEE_GENESIS: u128 = 10 * MILLIUNIT / 4;
 
 /// Helper function to get existential deposit (specific to this test file)
 fn existential_deposit() -> Balance {
-    EXISTENTIAL_DEPOSIT
+    ExistentialDeposit::get()
 }
 
 #[test]
@@ -48,7 +49,7 @@ fn author_does_receive_priority_fee() {
     ExtBuilder::default()
         .with_balances(vec![(
             AccountId::from(BOB),
-            (1 * UNIT) + (21_000 * (500 * MILLI_UNIT)),
+            (1 * UNIT) + (21_000 * (500 * MILLIUNIT)),
         )])
         .build()
         .execute_with(|| {
@@ -68,14 +69,14 @@ fn author_does_receive_priority_fee() {
                 input: Vec::new(),
                 value: (1 * UNIT).into(),
                 gas_limit: 21_000u64,
-                max_fee_per_gas: U256::from(300 * MILLI_UNIT),
-                max_priority_fee_per_gas: Some(U256::from(200 * MILLI_UNIT)),
+                max_fee_per_gas: U256::from(300 * MILLIUNIT),
+                max_priority_fee_per_gas: Some(U256::from(200 * MILLIUNIT)),
                 nonce: Some(U256::from(0)),
                 access_list: Vec::new(),
             })
             .dispatch(<Runtime as frame_system::Config>::RuntimeOrigin::root()));
 
-            let priority_fee = 200 * MILLI_UNIT * 21_000;
+            let priority_fee = 200 * MILLIUNIT * 21_000;
             // Author free balance increased by priority fee.
             assert_eq!(Balances::free_balance(author), 100 * UNIT + priority_fee,);
         });
@@ -101,7 +102,7 @@ fn total_issuance_after_evm_transaction_with_priority_fee() {
 
             // Set Charlie (validator index 0) as the block author
             set_block_author_by_index(0);
-            let author = get_validator_by_index(0);
+            let _author = get_validator_by_index(0);
 
             // EVM transfer.
             assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
@@ -334,7 +335,7 @@ fn fees_burned_when_block_author_not_set() {
 
             let total_supply_before = Balances::total_issuance();
 
-            // Expected supply: issued fee (100) + issued tip (1000) + 1 existential deposit
+            // Expected supply: issued fee (100) + issued tip (1000) + existential deposit
             let expected_supply = 1_100 + existential_deposit();
             assert_eq!(total_supply_before, expected_supply);
 
@@ -352,22 +353,22 @@ fn fees_burned_when_block_author_not_set() {
                 existential_deposit() + treasury_fee_part,
             );
 
-            // When block author is not set, the tip should be burned along with the fee portion
-            // Total burned = burnt_fee_part + tip (1000)
+            // When block author is not set and ExistentialDeposit is 0,
+            // the tip goes to the default account (zero account) instead of being burned
             let total_supply_after = Balances::total_issuance();
-            let expected_burned = burnt_fee_part + 1000;
+            let expected_burned = burnt_fee_part; // Only the fee portion is burned
             assert_eq!(
                 total_supply_before - total_supply_after,
                 expected_burned,
-                "Both fee portion and tip should be burned when block author is not set"
+                "Only fee portion should be burned when block author is not set"
             );
 
-            // Verify that the default account (from BlockAuthorAccountId) received nothing
+            // With ExistentialDeposit = 0, the default account can now hold the tip
             let default_account: AccountId = Default::default();
             assert_eq!(
                 Balances::free_balance(&default_account),
-                0,
-                "Default account should have zero balance when no block author is set"
+                1000,
+                "Default account should receive the tip when ExistentialDeposit is 0"
             );
         });
 }

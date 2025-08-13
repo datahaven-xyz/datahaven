@@ -7,8 +7,8 @@ mod common;
 use codec::Encode;
 use common::*;
 use datahaven_mainnet_runtime::{
-    configs::EthereumSovereignAccount, AccountId, Balance, Balances, DataHavenNativeTransfer,
-    Runtime, RuntimeEvent, RuntimeOrigin, SnowbridgeSystemV2, System, UNIT,
+    configs::EthereumSovereignAccount, currency::UNIT, AccountId, Balance, Balances,
+    DataHavenNativeTransfer, Runtime, RuntimeEvent, RuntimeOrigin, SnowbridgeSystemV2, System,
 };
 use dhp_bridge::NativeTokenTransferMessageProcessor;
 use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};

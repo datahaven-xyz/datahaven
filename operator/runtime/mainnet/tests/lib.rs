@@ -7,7 +7,7 @@ pub mod common;
 mod native_token_transfer;
 
 use common::*;
-use datahaven_mainnet_runtime::{Balances, System, UNIT, VERSION};
+use datahaven_mainnet_runtime::{currency::UNIT, Balances, System, VERSION};
 
 // Runtime Tests
 #[test]

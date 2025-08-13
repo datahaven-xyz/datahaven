@@ -35,7 +35,7 @@ log = { workspace = true }
 num-bigint = { workspace = true, optional = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
-pallet-balances = { workspace = true }
+pallet-balances = { workspace = true, features = ["insecure_zero_ed"]}
 pallet-beefy = { workspace = true }
 pallet-beefy-mmr = { workspace = true }
 pallet-ethereum = { workspace = true }

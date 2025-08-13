@@ -1247,4 +1247,79 @@ mod tests {
             "Different chain IDs must produce different sovereign accounts"
         );
     }
+
+    #[test]
+    fn test_rewards_send_adapter_with_zero_address() {
+        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use sp_io::TestExternalities;
+
+        TestExternalities::default().execute_with(|| {
+            // Create test rewards utils
+            let rewards_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::random(),
+                leaves: vec![H256::random()],
+                leaf_index: Some(1),
+                total_points: 1000,
+            };
+
+            // By default, RewardsRegistryAddress is zero (H160::repeat_byte(0x0))
+            // So the adapter should return None
+            let message = RewardsSendAdapter::build(&rewards_utils);
+            assert!(
+                message.is_none(),
+                "Should return None when RewardsRegistryAddress is zero"
+            );
+        });
+    }
+
+    #[test]
+    fn test_rewards_send_adapter_with_valid_address() {
+        use frame_support::assert_ok;
+        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use sp_io::TestExternalities;
+
+        TestExternalities::default().execute_with(|| {
+            // Set a valid (non-zero) rewards registry address
+            let valid_address = H160::from_low_u64_be(0x1234567890abcdef);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::RewardsRegistryAddress(
+                        runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress,
+                        Some(valid_address),
+                    ),
+                ),
+            ));
+
+            // Create test rewards utils
+            let rewards_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::random(),
+                leaves: vec![H256::random()],
+                leaf_index: Some(1),
+                total_points: 1000,
+            };
+
+            // Now the adapter should return a valid message
+            let message = RewardsSendAdapter::build(&rewards_utils);
+            assert!(
+                message.is_some(),
+                "Should return Some(message) when RewardsRegistryAddress is non-zero"
+            );
+
+            // Verify the message contains the correct target address
+            if let Some(msg) = message {
+                // Check that the first command has the correct target
+                let command = &msg.commands[0];
+                match command {
+                    Command::CallContract { target, .. } => {
+                        assert_eq!(
+                            *target, valid_address,
+                            "Message should target the configured address"
+                        );
+                    }
+                    _ => panic!("Expected CallContract command"),
+                }
+            }
+        });
+    }
 }

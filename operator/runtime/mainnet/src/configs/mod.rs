@@ -567,7 +567,8 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
                 call => {
                     matches!(
                         call,
-                        RuntimeCall::Timestamp(..)
+                        RuntimeCall::System(..)
+                            | RuntimeCall::Timestamp(..)
                             | RuntimeCall::Identity(..)
                             | RuntimeCall::Utility(..)
                             | RuntimeCall::Proxy(..)

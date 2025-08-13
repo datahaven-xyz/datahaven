@@ -543,6 +543,96 @@ fn test_proxy_call_with_identity_judgement_type() {
 }
 
 #[test]
+fn test_batch_call_with_nontransfer_proxy_filtered() {
+    ExtBuilder::default()
+        .with_balances(vec![
+            (account_id(ALICE), 10_000 * UNIT),
+            (account_id(BOB), 1_000 * UNIT),
+            (account_id(CHARLIE), 1_000 * UNIT),
+        ])
+        .build()
+        .execute_with(|| {
+            let alice = account_id(ALICE);
+            let bob = account_id(BOB);
+            let charlie = account_id(CHARLIE);
+
+            // Add Bob as NonTransfer proxy for Alice
+            assert_ok!(Proxy::add_proxy(
+                RuntimeOrigin::signed(alice.clone()),
+                bob.clone(),
+                ProxyType::NonTransfer,
+                0
+            ));
+
+            // Create a batch call that includes a balance transfer
+            let batch_call = RuntimeCall::Utility(pallet_utility::Call::batch {
+                calls: vec![
+                    // This should be allowed (system remark - now allowed by NonTransfer)
+                    RuntimeCall::System(frame_system::Call::remark {
+                        remark: b"test remark".to_vec(),
+                    }),
+                    // This should be filtered (balance transfer - not allowed by NonTransfer)
+                    RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive {
+                        dest: charlie.clone(),
+                        value: 100 * UNIT,
+                    }),
+                    // Another allowed operation (another system remark)
+                    RuntimeCall::System(frame_system::Call::remark {
+                        remark: b"another remark".to_vec(),
+                    }),
+                ],
+            });
+
+            // Attempt to execute batch call through NonTransfer proxy
+            // The proxy call itself will succeed (batch is allowed), but the inner transfer should be filtered
+            let initial_charlie_balance = Balances::free_balance(&charlie);
+
+            assert_ok!(Proxy::proxy(
+                RuntimeOrigin::signed(bob.clone()),
+                alice.clone(),
+                None,
+                Box::new(batch_call)
+            ));
+
+            // Check for BatchInterrupted event indicating the transfer was filtered
+            System::assert_has_event(RuntimeEvent::Utility(
+                pallet_utility::Event::BatchInterrupted {
+                    index: 1, // The second call (transfer) was filtered
+                    error: frame_system::Error::<Runtime>::CallFiltered.into(),
+                },
+            ));
+
+            // Verify that the filtered transfer didn't execute - Charlie's balance should be unchanged
+            assert_eq!(Balances::free_balance(&charlie), initial_charlie_balance);
+
+            // Verify that a batch with only allowed operations works
+            let allowed_batch_call = RuntimeCall::Utility(pallet_utility::Call::batch {
+                calls: vec![
+                    RuntimeCall::System(frame_system::Call::remark {
+                        remark: b"allowed remark 1".to_vec(),
+                    }),
+                    RuntimeCall::System(frame_system::Call::remark {
+                        remark: b"allowed remark 2".to_vec(),
+                    }),
+                ],
+            });
+
+            // This should succeed
+            assert_ok!(Proxy::proxy(
+                RuntimeOrigin::signed(bob.clone()),
+                alice.clone(),
+                None,
+                Box::new(allowed_batch_call)
+            ));
+
+            // Verify ProxyExecuted event was emitted for the successful batch
+            System::assert_has_event(RuntimeEvent::Proxy(ProxyEvent::ProxyExecuted {
+                result: Ok(()),
+            }));
+        });
+}
+
+#[test]
 fn test_proxy_call_with_cancelproxy_type() {
     ExtBuilder::default()
         .with_balances(vec![

@@ -7,6 +7,8 @@ import {console} from "forge-std/console.sol";
 import {DeployParams} from "./DeployParams.s.sol";
 import {Logging} from "../utils/Logging.sol";
 import {Accounts} from "../utils/Accounts.sol";
+import {ValidatorsUtils} from "../utils/ValidatorsUtils.sol";
+
 // Snowbridge imports
 import {Gateway} from "snowbridge/src/Gateway.sol";
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
@@ -54,7 +56,6 @@ import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.s
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
@@ -591,26 +592,14 @@ contract Deploy is Script, DeployParams, Accounts {
         return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
     }
 
-    function _buildValidatorSet(
-        uint128 id,
-        bytes32[] memory validators
-    ) internal pure returns (BeefyClient.ValidatorSet memory) {
-        // Calculate the merkle root from the validators array using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRootUnsorted(validators);
-
-        // Create and return the validator set with the calculated merkle root
-        return
-            BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
-    }
-
     function _deployBeefyClient(
         SnowbridgeConfig memory config
     ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
         BeefyClient.ValidatorSet memory validatorSet =
-            _buildValidatorSet(0, config.initialValidators);
+            ValidatorsUtils._buildValidatorSet(0, config.initialValidatorHashes);
         BeefyClient.ValidatorSet memory nextValidatorSet =
-            _buildValidatorSet(1, config.nextValidators);
+            ValidatorsUtils._buildValidatorSet(1, config.nextValidatorHashes);
 
         // Deploy BeefyClient
         vm.broadcast(_deployerPrivateKey);

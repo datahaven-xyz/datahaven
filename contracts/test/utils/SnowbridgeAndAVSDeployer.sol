@@ -12,10 +12,11 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {AVSDeployer} from "./AVSDeployer.sol";
-import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
+import {TestUtils} from "./TestUtils.sol";
 import {IAllocationManagerTypes} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
 import "forge-std/Test.sol";
 
@@ -47,32 +48,10 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
     address[] public mspsAllowlist;
 
     // Snowbridge contracts params
-    // The addresses of the initial (current) Validators in the DataHaven solochain.
-    bytes32[] public initialValidators = [
-        keccak256(abi.encodePacked("validator1")),
-        keccak256(abi.encodePacked("validator2")),
-        keccak256(abi.encodePacked("validator3")),
-        keccak256(abi.encodePacked("validator4")),
-        keccak256(abi.encodePacked("validator5")),
-        keccak256(abi.encodePacked("validator6")),
-        keccak256(abi.encodePacked("validator7")),
-        keccak256(abi.encodePacked("validator8")),
-        keccak256(abi.encodePacked("validator9")),
-        keccak256(abi.encodePacked("validator10"))
-    ];
-    // The addresses of the next Validators in the DataHaven solochain.
-    bytes32[] public nextValidators = [
-        keccak256(abi.encodePacked("validator11")),
-        keccak256(abi.encodePacked("validator12")),
-        keccak256(abi.encodePacked("validator13")),
-        keccak256(abi.encodePacked("validator14")),
-        keccak256(abi.encodePacked("validator15")),
-        keccak256(abi.encodePacked("validator16")),
-        keccak256(abi.encodePacked("validator17")),
-        keccak256(abi.encodePacked("validator18")),
-        keccak256(abi.encodePacked("validator19")),
-        keccak256(abi.encodePacked("validator20"))
-    ];
+    // The hashes of the initial (current) Validators in the DataHaven solochain.
+    bytes32[] public initialValidatorHashes;
+    // The hashes of the next Validators in the DataHaven solochain.
+    bytes32[] public nextValidatorHashes;
     // In reality this should be set to MAX_SEED_LOOKAHEAD (4 epochs = 128 blocks/slots)
     // https://eth2book.info/capella/part3/config/preset/#time-parameters
     uint256 public constant RANDAO_COMMIT_DELAY = 4;
@@ -111,8 +90,14 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
     }
 
     function _deployMockSnowbridge() internal {
-        BeefyClient.ValidatorSet memory validatorSet = _buildValidatorSet(0, initialValidators);
-        BeefyClient.ValidatorSet memory nextValidatorSet = _buildValidatorSet(1, nextValidators);
+        // Generate validator arrays using the generator functions
+        initialValidatorHashes = TestUtils.generateMockValidators(10);
+        nextValidatorHashes = TestUtils.generateMockValidators(10, 10);
+
+        BeefyClient.ValidatorSet memory validatorSet =
+            ValidatorsUtils._buildValidatorSet(0, initialValidatorHashes);
+        BeefyClient.ValidatorSet memory nextValidatorSet =
+            ValidatorsUtils._buildValidatorSet(1, nextValidatorHashes);
 
         cheats.prank(regularDeployer);
         beefyClient = new BeefyClient(
@@ -229,31 +214,12 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
                 .RegisterParams({
                 avs: address(serviceManager),
                 operatorSetIds: operatorSetIds,
-                data: abi.encodePacked(initialValidators[i])
+                data: abi.encodePacked(address(uint160(uint256(initialValidatorHashes[i]))))
             });
             allocationManager.registerForOperatorSets(validatorsAllowlist[i], registerParams);
             cheats.stopPrank();
 
             console.log("Validator %s setup as operator", validatorsAllowlist[i]);
         }
-    }
-
-    function _buildValidatorSet(
-        uint128 id,
-        bytes32[] memory validators
-    ) internal pure returns (BeefyClient.ValidatorSet memory) {
-        // Calculate the merkle root from the validators array using the shared library
-        bytes32 merkleRoot = MerkleUtils.calculateMerkleRoot(validators);
-
-        // Create and return the validator set with the calculated merkle root
-        return
-            BeefyClient.ValidatorSet({id: id, length: uint128(validators.length), root: merkleRoot});
-    }
-
-    function _buildMerkleProof(
-        bytes32[] memory leaves,
-        uint256 leafIndex
-    ) internal pure returns (bytes32[] memory) {
-        return MerkleUtils.buildMerkleProof(leaves, leafIndex);
     }
 }

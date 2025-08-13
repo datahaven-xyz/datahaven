@@ -1,8 +1,10 @@
 import type { Command } from "@commander-js/extra-typings";
-import { getPortFromKurtosis, logger } from "utils";
+import { logger } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { createParameterCollection } from "utils/parameters";
+import { getBlockscoutUrl } from "../../../launcher/kurtosis";
+import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { checkBaseDependencies } from "../common/checks";
-import { LaunchedNetwork } from "../common/launchedNetwork";
 import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
@@ -11,8 +13,21 @@ import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
 
+export const NETWORK_ID = "cli-launch";
+
+export interface NetworkOptions {
+  networkId: string;
+  dhInternalPort?: number;
+}
+
+export const CLI_NETWORK_OPTIONS: NetworkOptions = {
+  networkId: NETWORK_ID,
+  dhInternalPort: DEFAULT_SUBSTRATE_WS_PORT
+};
+
 // Non-optional properties should have default values set by the CLI
 export interface LaunchOptions {
+  all?: boolean;
   datahaven?: boolean;
   buildDatahaven?: boolean;
   datahavenBuildExtraArgs: string;
@@ -54,12 +69,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
   let blockscoutBackendUrl: string | undefined;
 
   if (options.blockscout === true) {
-    const blockscoutPublicPort = await getPortFromKurtosis(
-      "blockscout",
-      "http",
-      options.kurtosisEnclaveName
-    );
-    blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPublicPort}`;
+    blockscoutBackendUrl = await getBlockscoutUrl(options.kurtosisEnclaveName);
     logger.trace("Blockscout backend URL:", blockscoutBackendUrl);
   } else if (options.verified) {
     logger.warn(
@@ -101,7 +111,53 @@ export const launch = async (options: LaunchOptions) => {
 export const launchPreActionHook = (
   thisCmd: Command<[], LaunchOptions & { [key: string]: any }>
 ) => {
-  const { blockscout, verified, fundValidators, setupValidators, deployContracts } = thisCmd.opts();
+  const {
+    all,
+    blockscout,
+    verified,
+    fundValidators,
+    setupValidators,
+    deployContracts,
+    datahaven,
+    buildDatahaven,
+    launchKurtosis,
+    relayer,
+    setParameters,
+    updateValidatorSet
+  } = thisCmd.opts();
+
+  // Check for conflicts with --all flag
+  if (
+    all &&
+    (datahaven === false ||
+      buildDatahaven === false ||
+      launchKurtosis === false ||
+      deployContracts === false ||
+      fundValidators === false ||
+      setupValidators === false ||
+      updateValidatorSet === false ||
+      setParameters === false ||
+      relayer === false)
+  ) {
+    thisCmd.error(
+      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, or --no-relayer"
+    );
+  }
+
+  // If --all is set, enable all components
+  if (all) {
+    thisCmd.setOptionValue("datahaven", true);
+    thisCmd.setOptionValue("buildDatahaven", true);
+    thisCmd.setOptionValue("launchKurtosis", true);
+    thisCmd.setOptionValue("deployContracts", true);
+    thisCmd.setOptionValue("fundValidators", true);
+    thisCmd.setOptionValue("setupValidators", true);
+    thisCmd.setOptionValue("updateValidatorSet", true);
+    thisCmd.setOptionValue("setParameters", true);
+    thisCmd.setOptionValue("relayer", true);
+    thisCmd.setOptionValue("cleanNetwork", true);
+  }
+
   if (verified && !blockscout) {
     thisCmd.error("--verified requires --blockscout to be set");
   }

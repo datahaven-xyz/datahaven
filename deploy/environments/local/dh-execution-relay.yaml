@@ -1,0 +1,14 @@
+# Execution relay-specific settings for local development
+
+global:
+  environment: local
+  namespace: kt-datahaven-local
+
+image:
+  tag: local
+  pullPolicy: IfNotPresent
+
+relayData:
+  storageClass: "hostpath"
+  storagePath: "/tmp/relay-data"
+  volumeSize: 10Gi

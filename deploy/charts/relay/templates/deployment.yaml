@@ -81,6 +81,10 @@ spec:
             subPath: pvk
             readOnly: true
           {{- end }}
+          {{- if .Values.relayData.storagePath }}
+          - name: relay-data
+            mountPath: {{ .Values.relayData.storagePath }}
+          {{- end }}
       volumes:
       {{- if .Values.config }}
       - name: config
@@ -92,6 +96,11 @@ spec:
         secret:
           secretName: {{ include "bridges-common-relay.secretName" . }}
           optional: false
+      {{- end }}
+      {{- if .Values.relayData.storagePath }}
+      - name: relay-data
+        persistentVolumeClaim:
+          claimName: {{ include "bridges-common-relay.fullname" . }}-data
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

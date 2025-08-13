@@ -9,6 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks;
 pub mod configs;
+pub mod weights;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -138,7 +139,12 @@ pub const MICRO_UNIT: Balance = 1_000_000;
 pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
 
 /// Existential deposit.
+#[cfg(not(feature = "runtime-benchmarks"))]
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+// NOTE: pallet_treasury benchmark creates spends of 100 to a random beneficiary and the payout()
+// benchmark will fail if `ExistentialDeposit` is greater than that
+#[cfg(feature = "runtime-benchmarks")]
+pub const EXISTENTIAL_DEPOSIT: Balance = 1;
 
 pub const fn deposit(items: u32, bytes: u32) -> Balance {
     items as Balance * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
@@ -1101,96 +1107,6 @@ impl_runtime_apis! {
             UncheckedExtrinsic::new_bare(
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use codec::Encode;
-    use dhp_bridge::InboundCommand;
-    use dhp_bridge::{Message, Payload, EL_MESSAGE_ID};
-    use snowbridge_inbound_queue_primitives::v2::{Message as SnowbridgeMessage, MessageProcessor};
-    use sp_core::H256;
-
-    const MOCK_NONCE: u64 = 12345u64;
-    const MOCK_VALIDATORS_HEX: [&str; 2] = [
-        "0000000000000000000000000000000000000000000000000000000000000001",
-        "0000000000000000000000000000000000000000000000000000000000000002",
-    ];
-    const MOCK_EXTERNAL_INDEX: u64 = 0u64;
-
-    fn hex_to_bytes32(hex_str: &str) -> [u8; 32] {
-        let mut arr = [0u8; 32];
-        hex::decode_to_slice(hex_str, &mut arr).expect("Failed to decode hex string to bytes32");
-        arr
-    }
-
-    #[test]
-    fn test_eigenlayer_message_processor() {
-        // Create mock validators
-        let validators: Vec<AccountId> = MOCK_VALIDATORS_HEX
-            .iter()
-            .map(|s| hex_to_bytes32(s).into())
-            .collect();
-
-        // Create a mock message payload
-        let message = Message::V1(dhp_bridge::InboundCommand::ReceiveValidators {
-            validators: validators.clone(),
-            external_index: MOCK_EXTERNAL_INDEX,
-        });
-
-        let payload = Payload::<Runtime> {
-            message,
-            message_id: EL_MESSAGE_ID,
-        };
-
-        // Create a mock Snowbridge message
-        let snowbridge_message = SnowbridgeMessage {
-            xcm: snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload.encode()),
-            gateway: H160::default(),
-            nonce: MOCK_NONCE,
-            origin: H160::default(),
-            assets: vec![],
-            claimer: None,
-            value: 0u128,
-            execution_fee: 0u128,
-            relayer_fee: 0u128,
-        };
-
-        // Test can_process_message
-        let mock_account = H256::from_slice(&[1u8; 32]);
-        assert!(
-            dhp_bridge::EigenLayerMessageProcessor::<Runtime>::can_process_message(
-                &mock_account,
-                &snowbridge_message
-            ),
-            "Message should be processable"
-        );
-
-        let payload = match &snowbridge_message.xcm {
-            snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,
-            _ => panic!("Invalid Message"),
-        };
-
-        let decoded_result =
-            dhp_bridge::EigenLayerMessageProcessor::<Runtime>::decode_message(payload.as_slice());
-
-        let message = if let Ok(payload) = decoded_result {
-            payload.message
-        } else {
-            panic!("unable to parse the message payload");
-        };
-
-        match message {
-            Message::V1(InboundCommand::ReceiveValidators {
-                validators,
-                external_index,
-            }) => {
-                assert_eq!(validators, validators);
-                assert_eq!(external_index, MOCK_EXTERNAL_INDEX);
-            }
         }
     }
 }

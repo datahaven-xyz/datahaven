@@ -6,7 +6,7 @@ use sp_runtime::{BoundedVec, Perbill};
 use sp_std::vec;
 
 #[cfg(feature = "storage-hub")]
-use crate::currency::{HAVE, GIGAWEI, Balance};
+use crate::currency::{Balance, GIGAWEI, HAVE};
 
 #[cfg(feature = "storage-hub")]
 use crate::configs::storagehub::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};

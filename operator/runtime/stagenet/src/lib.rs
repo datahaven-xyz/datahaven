@@ -57,8 +57,8 @@ use frame_support::weights::{
 };
 
 pub use datahaven_runtime_common::{
-    gas::WEIGHT_PER_GAS, time::EpochDurationInBlocks, AccountId, Address, Balance, BlockNumber,
-    Hash, Header, Nonce, Signature,
+    gas::WEIGHT_PER_GAS, time::EpochDurationInBlocks, time::*, AccountId, Address, Balance,
+    BlockNumber, Hash, Header, Nonce, Signature,
 };
 
 pub mod genesis_config_presets;
@@ -114,29 +114,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     system_version: 1,
 };
 
-mod block_times {
-    /// This determines the average expected block time that we are targeting. Blocks will be
-    /// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-    /// `pallet_timestamp` which is in turn picked up by `pallet_babe` to implement `fn
-    /// slot_duration()`.
-    ///
-    /// Change this to adjust the block time.
-    pub const MILLI_SECS_PER_BLOCK: u64 = 6000;
-
-    // NOTE: Currently it is not possible to change the slot duration after the chain has started.
-    // Attempting to do so will brick block production.
-    pub const SLOT_DURATION: u64 = MILLI_SECS_PER_BLOCK;
-}
-pub use block_times::*;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLI_SECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-pub const WEEKS: BlockNumber = DAYS * 7;
-
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
-
 /// HAVE, the native token, uses 18 decimals of precision.
 pub mod currency {
     use super::Balance;

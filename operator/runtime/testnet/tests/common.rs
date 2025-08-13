@@ -4,7 +4,7 @@
 //! Common test utilities for DataHaven testnet runtime tests
 
 use datahaven_testnet_runtime::{
-    currency::UNIT, AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System,
+    currency::HAVE, AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System,
 };
 use frame_support::traits::Hooks;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -26,7 +26,7 @@ pub fn account_id(account: [u8; 20]) -> AccountId {
 }
 
 /// Default balance for test accounts (1M DH tokens)
-pub const DEFAULT_BALANCE: Balance = 1_000_000 * UNIT;
+pub const DEFAULT_BALANCE: Balance = 1_000_000 * HAVE;
 
 /// Generate test session keys for a given account
 pub fn generate_session_keys(account: AccountId) -> SessionKeys {

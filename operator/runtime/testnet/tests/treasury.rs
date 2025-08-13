@@ -37,7 +37,7 @@ use frame_support::{
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
 
-const BASE_FEE_GENESIS: u128 = 10 * MILLIUNIT / 4;
+const BASE_FEE_GENESIS: u128 = 10 * MILLIHAVE / 4;
 
 /// Helper function to get existential deposit (specific to this test file)
 fn existential_deposit() -> Balance {
@@ -49,7 +49,7 @@ fn author_does_receive_priority_fee() {
     ExtBuilder::default()
         .with_balances(vec![(
             AccountId::from(BOB),
-            (1 * UNIT) + (21_000 * (500 * MILLIUNIT)),
+            (1 * HAVE) + (21_000 * (500 * MILLIHAVE)),
         )])
         .build()
         .execute_with(|| {
@@ -60,25 +60,25 @@ fn author_does_receive_priority_fee() {
             // Currently the default impl of the evm uses `deposit_into_existing`.
             // If we were to use this implementation, and for an author to receive eventual tips,
             // the account needs to be somehow initialized, otherwise the deposit would fail.
-            Balances::make_free_balance_be(&author, 100 * UNIT);
+            Balances::make_free_balance_be(&author, 100 * HAVE);
 
             // EVM transfer.
             assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
-                value: (1 * UNIT).into(),
+                value: (1 * HAVE).into(),
                 gas_limit: 21_000u64,
-                max_fee_per_gas: U256::from(300 * MILLIUNIT),
-                max_priority_fee_per_gas: Some(U256::from(200 * MILLIUNIT)),
+                max_fee_per_gas: U256::from(300 * MILLIHAVE),
+                max_priority_fee_per_gas: Some(U256::from(200 * MILLIHAVE)),
                 nonce: Some(U256::from(0)),
                 access_list: Vec::new(),
             })
             .dispatch(<Runtime as frame_system::Config>::RuntimeOrigin::root()));
 
-            let priority_fee = 200 * MILLIUNIT * 21_000;
+            let priority_fee = 200 * MILLIHAVE * 21_000;
             // Author free balance increased by priority fee.
-            assert_eq!(Balances::free_balance(author), 100 * UNIT + priority_fee,);
+            assert_eq!(Balances::free_balance(author), 100 * HAVE + priority_fee,);
         });
 }
 
@@ -88,7 +88,7 @@ fn total_issuance_after_evm_transaction_with_priority_fee() {
         .with_balances(vec![
             (
                 AccountId::from(BOB),
-                (1 * UNIT) + (21_000 * (2 * BASE_FEE_GENESIS) + existential_deposit()),
+                (1 * HAVE) + (21_000 * (2 * BASE_FEE_GENESIS) + existential_deposit()),
             ),
             (AccountId::from(ALICE), existential_deposit()),
             (
@@ -109,7 +109,7 @@ fn total_issuance_after_evm_transaction_with_priority_fee() {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
-                value: (1 * UNIT).into(),
+                value: (1 * HAVE).into(),
                 gas_limit: 21_000u64,
                 max_fee_per_gas: U256::from(2 * BASE_FEE_GENESIS),
                 max_priority_fee_per_gas: Some(U256::from(BASE_FEE_GENESIS)),
@@ -161,7 +161,7 @@ fn total_issuance_after_evm_transaction_without_priority_fee() {
         .with_balances(vec![
             (
                 AccountId::from(BOB),
-                (1 * UNIT) + (21_000 * (2 * BASE_FEE_GENESIS)),
+                (1 * HAVE) + (21_000 * (2 * BASE_FEE_GENESIS)),
             ),
             (AccountId::from(ALICE), existential_deposit()),
             (
@@ -179,7 +179,7 @@ fn total_issuance_after_evm_transaction_without_priority_fee() {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
-                value: (1 * UNIT).into(),
+                value: (1 * HAVE).into(),
                 gas_limit: 21_000u64,
                 max_fee_per_gas: U256::from(BASE_FEE_GENESIS),
                 max_priority_fee_per_gas: None,
@@ -403,15 +403,15 @@ mod treasury_tests {
 
     #[test]
     fn test_treasury_spend_local_with_root_origin() {
-        let initial_treasury_balance = 1_000 * UNIT;
+        let initial_treasury_balance = 1_000 * HAVE;
         ExtBuilder::default()
             .with_balances(vec![
-                (AccountId::from(ALICE), 2_000 * UNIT),
+                (AccountId::from(ALICE), 2_000 * HAVE),
                 (Treasury::account_id(), initial_treasury_balance),
             ])
             .build()
             .execute_with(|| {
-                let spend_amount = 100u128 * UNIT;
+                let spend_amount = 100u128 * HAVE;
                 let spend_beneficiary = AccountId::from(BOB);
 
                 next_block();
@@ -468,15 +468,15 @@ mod treasury_tests {
     // TODO: Uncomment this test when the Treasury Council Collective is implemented
     // #[test]
     // fn test_treasury_spend_local_with_council_origin() {
-    // 	let initial_treasury_balance = 1_000 * UNIT;
+    // 	let initial_treasury_balance = 1_000 * HAVE;
     // 	ExtBuilder::default()
     // 		.with_balances(vec![
-    // 			(AccountId::from(ALICE), 2_000 * UNIT),
+    // 			(AccountId::from(ALICE), 2_000 * HAVE),
     // 			(Treasury::account_id(), initial_treasury_balance),
     // 		])
     // 		.build()
     // 		.execute_with(|| {
-    // 			let spend_amount = 100u128 * UNIT;
+    // 			let spend_amount = 100u128 * HAVE;
     // 			let spend_beneficiary = AccountId::from(BOB);
 
     // 			next_block();

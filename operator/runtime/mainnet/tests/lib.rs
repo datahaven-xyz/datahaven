@@ -7,7 +7,7 @@ pub mod common;
 mod native_token_transfer;
 
 use common::*;
-use datahaven_mainnet_runtime::{currency::UNIT, Balances, System, VERSION};
+use datahaven_mainnet_runtime::{currency::HAVE, Balances, System, VERSION};
 
 // Runtime Tests
 #[test]
@@ -22,9 +22,9 @@ fn test_runtime_version_and_metadata() {
 #[test]
 fn test_balances_functionality() {
     ExtBuilder::default()
-        .with_balances(vec![(account_id(ALICE), 2_000_000 * UNIT)])
+        .with_balances(vec![(account_id(ALICE), 2_000_000 * HAVE)])
         .build()
         .execute_with(|| {
-            assert_eq!(Balances::free_balance(&account_id(ALICE)), 2_000_000 * UNIT);
+            assert_eq!(Balances::free_balance(&account_id(ALICE)), 2_000_000 * HAVE);
         });
 }

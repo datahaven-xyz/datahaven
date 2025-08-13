@@ -1,5 +1,5 @@
 use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, UNIT,
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, HAVE,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
@@ -58,10 +58,10 @@ impl Get<AccountId> for TreasuryAccount {
 
 /****** NFTs pallet ******/
 parameter_types! {
-    pub const CollectionDeposit: Balance = 100 * UNIT;
-    pub const ItemDeposit: Balance = 1 * UNIT;
-    pub const MetadataDepositBase: Balance = 10 * UNIT;
-    pub const MetadataDepositPerByte: Balance = 1 * UNIT;
+    pub const CollectionDeposit: Balance = 100 * HAVE;
+    pub const ItemDeposit: Balance = 1 * HAVE;
+    pub const MetadataDepositBase: Balance = 10 * HAVE;
+    pub const MetadataDepositPerByte: Balance = 1 * HAVE;
     pub const ApprovalsLimit: u32 = 20;
     pub const ItemAttributesApprovalsLimit: u32 = 20;
     pub const MaxTips: u32 = 10;
@@ -133,8 +133,8 @@ impl sp_runtime::traits::BlockNumberProvider for BlockNumberGetter {
 
 /****** Storage Providers pallet ******/
 parameter_types! {
-    pub const SpMinDeposit: Balance = 100 * UNIT;
-    pub const BucketDeposit: Balance = 100 * UNIT;
+    pub const SpMinDeposit: Balance = 100 * HAVE;
+    pub const BucketDeposit: Balance = 100 * HAVE;
     pub const BspSignUpLockPeriod: BlockNumber = 90 * DAYS; // ~3 months
     pub const MaxBlocksForRandomness: BlockNumber = prod_or_fast!(2 * HOURS, 2 * MINUTES);
     // TODO: If the next line is uncommented (which should be eventually, replacing the line above), compilation breaks (most likely because of mismatched dependency issues)
@@ -267,7 +267,7 @@ parameter_types! {
     pub const TargetTicksStorageOfSubmitters: u32 = 3;
     pub const ChallengeHistoryLength: BlockNumber = 100;
     pub const ChallengesQueueLength: u32 = 100;
-    pub const ChallengesFee: Balance = 1 * UNIT;
+    pub const ChallengesFee: Balance = 1 * HAVE;
     pub const ChallengeTicksTolerance: u32 = 50;
 }
 
@@ -430,8 +430,8 @@ type ThresholdType = u32;
 pub type ReplicationTargetType = u32;
 
 parameter_types! {
-    pub const BaseStorageRequestCreationDeposit: Balance = 1 * UNIT;
-    pub const FileDeletionRequestCreationDeposit: Balance = 1 * UNIT;
+    pub const BaseStorageRequestCreationDeposit: Balance = 1 * HAVE;
+    pub const FileDeletionRequestCreationDeposit: Balance = 1 * HAVE;
     pub const FileSystemStorageRequestCreationHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::StorageRequestCreationHold);
     pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
 }

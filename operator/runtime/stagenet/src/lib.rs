@@ -137,7 +137,7 @@ pub const WEEKS: BlockNumber = DAYS * 7;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
-/// UNIT, the native token, uses 18 decimals of precision.
+/// HAVE, the native token, uses 18 decimals of precision.
 pub mod currency {
     use super::Balance;
 
@@ -148,17 +148,17 @@ pub mod currency {
     pub const KILOWEI: Balance = 1_000;
     pub const MEGAWEI: Balance = 1_000_000;
     pub const GIGAWEI: Balance = 1_000_000_000;
-    pub const MICROUNIT: Balance = 1_000_000_000_000;
-    pub const MILLIUNIT: Balance = 1_000_000_000_000_000;
-    pub const UNIT: Balance = 1_000_000_000_000_000_000;
-    pub const KILOUNIT: Balance = 1_000_000_000_000_000_000_000;
+    pub const MICROHAVE: Balance = 1_000_000_000_000;
+    pub const MILLIHAVE: Balance = 1_000_000_000_000_000;
+    pub const HAVE: Balance = 1_000_000_000_000_000_000;
+    pub const KILOHAVE: Balance = 1_000_000_000_000_000_000_000;
 
     pub const TRANSACTION_BYTE_FEE: Balance = 1 * GIGAWEI * SUPPLY_FACTOR;
-    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROUNIT * SUPPLY_FACTOR;
+    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROHAVE * SUPPLY_FACTOR;
     pub const WEIGHT_FEE: Balance = 50 * KILOWEI * SUPPLY_FACTOR / 4;
 
     pub const fn deposit(items: u32, bytes: u32) -> Balance {
-        items as Balance * 1 * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+        items as Balance * 1 * HAVE * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
     }
 }
 
@@ -270,9 +270,9 @@ pub struct WeightToFee;
 impl WeightToFeePolynomial for WeightToFee {
     type Balance = Balance;
     fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
-        // in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
-        let p = currency::MILLIUNIT / 10;
+        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIHAVE:
+        // in our template, we map to 1/10 of that, or 1/10 MILLIHAVE
+        let p = currency::MILLIHAVE / 10;
         let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
         smallvec![WeightToFeeCoefficient {
             degree: 1,
@@ -1391,39 +1391,39 @@ mod tests {
             get!(pallet_transaction_payment, OperationalFeeMultiplier, u8),
             5_u8
         );
-        assert_eq!(STORAGE_BYTE_FEE, Balance::from(100 * MICROUNIT));
+        assert_eq!(STORAGE_BYTE_FEE, Balance::from(100 * MICROHAVE));
 
         // pallet_identity deposits
         assert_eq!(
             get!(pallet_identity, BasicDeposit, u128),
-            Balance::from(1 * UNIT + 25800 * MICROUNIT)
+            Balance::from(1 * HAVE + 25800 * MICROHAVE)
         );
         assert_eq!(
             get!(pallet_identity, ByteDeposit, u128),
-            Balance::from(100 * MICROUNIT)
+            Balance::from(100 * MICROHAVE)
         );
         assert_eq!(
             get!(pallet_identity, SubAccountDeposit, u128),
-            Balance::from(1 * UNIT + 5300 * MICROUNIT)
+            Balance::from(1 * HAVE + 5300 * MICROHAVE)
         );
 
         // TODO: Uncomment when pallet_proxy is enabled
         // proxy deposits
         // assert_eq!(
         //     get!(pallet_proxy, ProxyDepositBase, u128),
-        //     Balance::from(1 * UNIT + 800 * MICROUNIT)
+        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
         // );
         // assert_eq!(
         //     get!(pallet_proxy, ProxyDepositFactor, u128),
-        //     Balance::from(2100 * MICROUNIT)
+        //     Balance::from(2100 * MICROHAVE)
         // );
         // assert_eq!(
         //     get!(pallet_proxy, AnnouncementDepositBase, u128),
-        //     Balance::from(1 * UNIT + 800 * MICROUNIT)
+        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
         // );
         // assert_eq!(
         //     get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        //     Balance::from(5600 * MICROUNIT)
+        //     Balance::from(5600 * MICROHAVE)
         // );
     }
 

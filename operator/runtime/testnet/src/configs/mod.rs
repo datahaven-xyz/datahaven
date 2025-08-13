@@ -443,7 +443,7 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PreimageBaseDeposit: Balance = 5 * UNIT * SUPPLY_FACTOR ;
+    pub const PreimageBaseDeposit: Balance = 5 * HAVE * SUPPLY_FACTOR ;
     pub const PreimageByteDeposit: Balance = STORAGE_BYTE_FEE;
     pub const PreimageHoldReason: RuntimeHoldReason =
         RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
@@ -726,7 +726,7 @@ parameter_types! {
     pub Parameters: PricingParameters<u128> = PricingParameters {
         exchange_rate: FixedU128::from_rational(1, 400),
         fee_per_gas: gwei(20),
-        rewards: Rewards { local: UNIT, remote: meth(1) },
+        rewards: Rewards { local: HAVE, remote: meth(1) },
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());

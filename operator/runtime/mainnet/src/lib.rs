@@ -130,7 +130,7 @@ pub const WEEKS: BlockNumber = DAYS * 7;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
-/// UNIT, the native token, uses 18 decimals of precision.
+/// HAVE, the native token, uses 18 decimals of precision.
 pub mod currency {
     use super::Balance;
 
@@ -141,17 +141,17 @@ pub mod currency {
     pub const KILOWEI: Balance = 1_000;
     pub const MEGAWEI: Balance = 1_000_000;
     pub const GIGAWEI: Balance = 1_000_000_000;
-    pub const MICROUNIT: Balance = 1_000_000_000_000;
-    pub const MILLIUNIT: Balance = 1_000_000_000_000_000;
-    pub const UNIT: Balance = 1_000_000_000_000_000_000;
-    pub const KILOUNIT: Balance = 1_000_000_000_000_000_000_000;
+    pub const MICROHAVE: Balance = 1_000_000_000_000;
+    pub const MILLIHAVE: Balance = 1_000_000_000_000_000;
+    pub const HAVE: Balance = 1_000_000_000_000_000_000;
+    pub const KILOHAVE: Balance = 1_000_000_000_000_000_000_000;
 
     pub const TRANSACTION_BYTE_FEE: Balance = 1 * GIGAWEI * SUPPLY_FACTOR;
-    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROUNIT * SUPPLY_FACTOR;
+    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROHAVE * SUPPLY_FACTOR;
     pub const WEIGHT_FEE: Balance = 50 * KILOWEI * SUPPLY_FACTOR / 4;
 
     pub const fn deposit(items: u32, bytes: u32) -> Balance {
-        items as Balance * 100 * MILLIUNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+        items as Balance * 100 * MILLIHAVE * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
     }
 }
 
@@ -1170,39 +1170,39 @@ mod tests {
             get!(pallet_transaction_payment, OperationalFeeMultiplier, u8),
             5_u8
         );
-        assert_eq!(STORAGE_BYTE_FEE, Balance::from(10 * MILLIUNIT));
+        assert_eq!(STORAGE_BYTE_FEE, Balance::from(10 * MILLIHAVE));
 
         // pallet_identity deposits
         assert_eq!(
             get!(pallet_identity, BasicDeposit, u128),
-            Balance::from(10 * UNIT + 2580 * MILLIUNIT)
+            Balance::from(10 * HAVE + 2580 * MILLIHAVE)
         );
         assert_eq!(
             get!(pallet_identity, ByteDeposit, u128),
-            Balance::from(10 * MILLIUNIT)
+            Balance::from(10 * MILLIHAVE)
         );
         assert_eq!(
             get!(pallet_identity, SubAccountDeposit, u128),
-            Balance::from(10 * UNIT + 530 * MILLIUNIT)
+            Balance::from(10 * HAVE + 530 * MILLIHAVE)
         );
 
         // TODO: Uncomment when pallet_proxy is enabled
         // proxy deposits
         // assert_eq!(
         // 	get!(pallet_proxy, ProxyDepositBase, u128),
-        // 	Balance::from(10 * UNIT + 80 * MILLIUNIT)
+        // 	Balance::from(10 * HAVE + 80 * MILLIHAVE)
         // );
         // assert_eq!(
         // 	get!(pallet_proxy, ProxyDepositFactor, u128),
-        // 	Balance::from(210 * MILLIUNIT)
+        // 	Balance::from(210 * MILLIHAVE)
         // );
         // assert_eq!(
         // 	get!(pallet_proxy, AnnouncementDepositBase, u128),
-        // 	Balance::from(10 * UNIT + 80 * MILLIUNIT)
+        // 	Balance::from(10 * HAVE + 80 * MILLIHAVE)
         // );
         // assert_eq!(
         // 	get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        // 	Balance::from(560 * MILLIUNIT)
+        // 	Balance::from(560 * MILLIHAVE)
         // );
     }
 

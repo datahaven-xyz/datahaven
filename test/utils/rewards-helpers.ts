@@ -1,7 +1,7 @@
-import type { DataHavenApi } from "./papi";
+import { parseRewardsInfoFile } from "./contracts";
 import { waitForDataHavenEvent } from "./events";
 import { logger } from "./logger";
-import { parseRewardsInfoFile } from "./contracts";
+import type { DataHavenApi } from "./papi";
 
 // Era tracking utilities
 export async function getCurrentEra(dhApi: DataHavenApi): Promise<number> {
@@ -10,12 +10,20 @@ export async function getCurrentEra(dhApi: DataHavenApi): Promise<number> {
   return 0;
 }
 
+export function getEraLengthInBlocks(dhApi: DataHavenApi): number {
+  // Read constants directly from runtime metadata
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const consts: any = (dhApi as unknown as { consts?: unknown }).consts ?? {};
+  const epochDuration = Number(consts?.Babe?.EpochDuration ?? 10); // blocks per session
+  const sessionsPerEra = Number(consts?.ExternalValidators?.SessionsPerEra ?? 1);
+  return epochDuration * sessionsPerEra;
+}
+
 export async function getBlocksUntilEraEnd(dhApi: DataHavenApi): Promise<number> {
   const currentBlock = await dhApi.query.System.Number.getValue();
-  // TODO: Get era length from constants
-  const eraLength = 100; // Default for testing
-  const blocksUntilEnd = eraLength - (currentBlock % eraLength);
-  return blocksUntilEnd;
+  const eraLength = getEraLengthInBlocks(dhApi) || 10;
+  const mod = currentBlock % eraLength;
+  return mod === 0 ? eraLength : eraLength - mod;
 }
 
 export async function waitForEraEnd(dhApi: DataHavenApi): Promise<void> {
@@ -33,10 +41,7 @@ export async function getValidatorPoints(
   return new Map();
 }
 
-export async function getBlockAuthor(
-  dhApi: DataHavenApi,
-  blockNumber: number
-): Promise<string> {
+export async function getBlockAuthor(dhApi: DataHavenApi, blockNumber: number): Promise<string> {
   // TODO: Get block author from block header
   return "";
 }
@@ -55,7 +60,7 @@ export async function trackBlockProduction(
 export async function waitForSnowbridgeMessage(
   dhApi: DataHavenApi,
   messageId: string,
-  timeout: number = 120000
+  timeout = 120000
 ): Promise<any> {
   return waitForDataHavenEvent({
     api: dhApi,
@@ -86,9 +91,7 @@ export async function generateMerkleProof(
   };
 }
 
-export function verifyMerkleProof(
-  proof: MerkleProof
-): boolean {
+export function verifyMerkleProof(proof: MerkleProof): boolean {
   // TODO: Implement merkle proof verification
   return false;
 }
@@ -107,7 +110,7 @@ export function calculateExpectedRewards(
 export async function waitForRewardsMessageSent(
   dhApi: DataHavenApi,
   era?: number,
-  timeout: number = 120000
+  timeout = 120000
 ): Promise<any> {
   return waitForDataHavenEvent({
     api: dhApi,
@@ -119,15 +122,12 @@ export async function waitForRewardsMessageSent(
 }
 
 // Block utilities
-export async function waitForBlocks(
-  dhApi: DataHavenApi,
-  numberOfBlocks: number
-): Promise<void> {
+export async function waitForBlocks(dhApi: DataHavenApi, numberOfBlocks: number): Promise<void> {
   const startBlock = await dhApi.query.System.Number.getValue();
   const targetBlock = startBlock + numberOfBlocks;
-  
+
   logger.info(`Waiting for ${numberOfBlocks} blocks (${startBlock} -> ${targetBlock})`);
-  
+
   // Poll for block number changes
   return new Promise((resolve) => {
     const interval = setInterval(async () => {

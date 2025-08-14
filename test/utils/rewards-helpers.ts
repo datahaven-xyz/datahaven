@@ -1,6 +1,7 @@
 import type { DataHavenApi } from "./papi";
 import { waitForDataHavenEvent } from "./events";
 import { logger } from "./logger";
+import { parseRewardsInfoFile } from "./contracts";
 
 // Era tracking utilities
 export async function getCurrentEra(dhApi: DataHavenApi): Promise<number> {

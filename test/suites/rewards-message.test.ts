@@ -1,6 +1,8 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { BaseTestSuite } from "../framework";
 import { logger } from "utils";
+import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
+import { waitForEthereumEvent, waitForDataHavenEvent } from "../utils/events";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {

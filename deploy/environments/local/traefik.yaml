@@ -1,0 +1,31 @@
+# Install Traefik as ingress controller into local k8S cluster
+# helm repo add traefik https://traefik.github.io/charts
+# helm repo update
+# helm install traefik --values ./deploy/environments/local/traefik.yaml traefik/traefik -n kube-system
+
+# Enable the Kubernetes CRD provider
+providers:
+  kubernetesIngress:
+    enabled: true
+  kubernetesCRD:
+    enabled: true
+
+# Enable the web entrypoint on port 80
+entryPoints:
+  web:
+    address: ":80"
+
+# Expose the Traefik dashboard (optional)
+api:
+  dashboard: true
+  insecure: true
+
+# Service configuration
+service:
+  type: NodePort
+  ports:
+    web:
+      nodePort: 30080
+    dashboard:
+      port: 8080
+      nodePort: 30081

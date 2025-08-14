@@ -65,7 +65,7 @@ export const deployDataHavenSolochain = async (
   logger.debug(
     await $`helm upgrade --install dh-bootnode charts/node \
         -f charts/node/datahaven/dh-bootnode.yaml \
-        -f environments/${options.environment}/values.yaml \
+        -f environments/"${options.environment}"/dh-bootnode.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${bootnodeTimeout}`
@@ -79,7 +79,7 @@ export const deployDataHavenSolochain = async (
   logger.debug(
     await $`helm upgrade --install dh-validator charts/node \
         -f charts/node/datahaven/dh-validator.yaml \
-        -f environments/${options.environment}/values.yaml \
+        -f environments/"${options.environment}"/dh-validator.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${validatorTimeout}`

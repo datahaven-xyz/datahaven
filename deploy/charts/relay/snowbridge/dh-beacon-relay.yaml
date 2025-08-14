@@ -15,6 +15,11 @@ config:
 
 existingSecretName: "dh-beacon-relay-substrate-key"
 
+relayData:
+  storagePath: "/relay-data"
+  storageClass: "gp2"
+  volumeSize: 10Gi
+
 extraArgs:
   [
     "run",

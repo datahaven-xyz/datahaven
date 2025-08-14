@@ -1,7 +1,7 @@
 {
     "source": {
         "polkadot": {
-            "endpoint": "ws://dh-validator-0:9944"
+            "endpoint": "ws://dh-bootnode-0:9944"
         }
     },
     "sink": {

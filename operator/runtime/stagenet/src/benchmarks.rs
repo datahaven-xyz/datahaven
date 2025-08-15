@@ -47,6 +47,13 @@ frame_benchmarking::define_benchmarks!(
     [pallet_parameters, Parameters]
     [pallet_message_queue, MessageQueue]
 
+    // Governance pallets
+    [pallet_collective::<Instance1>, TechnicalCommittee]
+    [pallet_collective::<Instance2>, TreasuryCouncil]
+    [pallet_conviction_voting, ConvictionVoting]
+    [pallet_referenda, Referenda]
+    [pallet_whitelist, Whitelist]
+
     // EVM pallets
     [pallet_evm, Evm]
 

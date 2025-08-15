@@ -221,10 +221,10 @@ fn combined_origins_practical_usage() {
         // GeneralAdminOrRoot should accept both GeneralAdmin and Root
         let root = RuntimeOrigin::root();
         let general_admin = RuntimeOrigin::from(custom_origins::Origin::GeneralAdmin);
-        
+
         assert!(GeneralAdminOrRoot::try_origin(root.clone()).is_ok());
         assert!(GeneralAdminOrRoot::try_origin(general_admin.clone()).is_ok());
-        
+
         // But not other origins
         let canceller = RuntimeOrigin::from(custom_origins::Origin::ReferendumCanceller);
         assert!(GeneralAdminOrRoot::try_origin(canceller.clone()).is_err());
@@ -234,7 +234,7 @@ fn combined_origins_practical_usage() {
         assert!(FastGeneralAdminOrRoot::try_origin(root.clone()).is_ok());
         assert!(FastGeneralAdminOrRoot::try_origin(general_admin.clone()).is_ok());
         assert!(FastGeneralAdminOrRoot::try_origin(fast_admin.clone()).is_ok());
-        
+
         // But not unrelated origins
         assert!(FastGeneralAdminOrRoot::try_origin(canceller.clone()).is_err());
     });
@@ -245,8 +245,8 @@ fn combined_origins_practical_usage() {
 fn origin_to_track_conversion() {
     ExtBuilder::default().build().execute_with(|| {
         use datahaven_stagenet_runtime::governance::{custom_origins, TracksInfo};
-        use pallet_referenda::TracksInfo as TracksInfoTrait;
         use frame_support::traits::OriginTrait;
+        use pallet_referenda::TracksInfo as TracksInfoTrait;
 
         // Root origin maps to track 0
         let root_origin = RuntimeOrigin::root();

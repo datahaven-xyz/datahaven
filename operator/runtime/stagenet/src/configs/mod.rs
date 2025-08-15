@@ -29,7 +29,6 @@ mod storagehub;
 pub mod governance;
 pub mod runtime_params;
 
-use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
     EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
@@ -47,6 +46,7 @@ use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
+use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
     pallet_prelude::TransactionPriority,

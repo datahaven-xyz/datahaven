@@ -6,8 +6,8 @@
 use crate::common::*;
 use codec::Encode;
 use datahaven_stagenet_runtime::{
-    governance::TracksInfo, AccountId, Balances, ConvictionVoting, Preimage, Referenda, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeOrigin, SUPPLY_FACTOR, UNIT,
+    governance::TracksInfo, AccountId, Balances, ConvictionVoting, Preimage, Referenda, Runtime,
+    RuntimeCall, RuntimeEvent, RuntimeOrigin, SUPPLY_FACTOR, UNIT,
 };
 use frame_support::traits::schedule::DispatchTime;
 use frame_support::{
@@ -611,22 +611,22 @@ fn decision_deposit_mechanics_work() {
 fn track_capacity_limits_enforced() {
     ExtBuilder::default().build().execute_with(|| {
         use datahaven_stagenet_runtime::governance::custom_origins;
-        
+
         // Use root track which has max_deciding of 5 (more reasonable for testing)
         let track_info = &TracksInfo::tracks()[0].1; // root track
         let max_deciding = track_info.max_deciding.min(5); // Use smaller number for testing
-        
+
         // Submit max_deciding referenda (but cap at 5 for scheduler limits)
         for i in 0..max_deciding {
             let proposal = RuntimeCall::System(frame_system::Call::set_storage {
                 items: vec![(format!(":test{}", i).as_bytes().to_vec(), b"value".to_vec())],
             });
-            
+
             assert_ok!(Preimage::note_preimage(
                 RuntimeOrigin::signed(alice()),
                 proposal.encode()
             ));
-            
+
             let bounded_proposal = <Preimage as StorePreimage>::bound(proposal).unwrap();
             assert_ok!(Referenda::submit(
                 RuntimeOrigin::signed(alice()),
@@ -635,10 +635,10 @@ fn track_capacity_limits_enforced() {
                 DispatchTime::After(10)
             ));
         }
-        
+
         // Advance through prepare period
         advance_referendum_time(track_info.prepare_period + 1);
-        
+
         // Place decision deposits for all
         for i in 0..max_deciding {
             assert_ok!(Referenda::place_decision_deposit(
@@ -646,7 +646,7 @@ fn track_capacity_limits_enforced() {
                 i
             ));
         }
-        
+
         // All should be in deciding phase
         for i in 0..max_deciding {
             let referendum_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(i).unwrap();
@@ -654,17 +654,17 @@ fn track_capacity_limits_enforced() {
                 assert!(status.deciding.is_some());
             }
         }
-        
+
         // Try to submit and move another referendum to deciding - should queue
         let extra_proposal = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":extra".to_vec(), b"value".to_vec())],
         });
-        
+
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(bob()),
             extra_proposal.encode()
         ));
-        
+
         let bounded_extra = <Preimage as StorePreimage>::bound(extra_proposal).unwrap();
         assert_ok!(Referenda::submit(
             RuntimeOrigin::signed(bob()),
@@ -672,13 +672,13 @@ fn track_capacity_limits_enforced() {
             bounded_extra,
             DispatchTime::After(10)
         ));
-        
+
         // Place deposit for the extra referendum
         assert_ok!(Referenda::place_decision_deposit(
             RuntimeOrigin::signed(bob()),
             max_deciding
         ));
-        
+
         // Should still be preparing (queued) since track is at capacity
         let extra_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(max_deciding).unwrap();
         if let ReferendumInfo::Ongoing(status) = extra_info {
@@ -693,21 +693,21 @@ fn track_capacity_limits_enforced() {
 fn insufficient_balance_for_deposits() {
     ExtBuilder::default().build().execute_with(|| {
         let poor_account = AccountId::from([99u8; 32]);
-        
+
         // Give poor_account enough for submission deposit and preimage, but not decision deposit
         use datahaven_stagenet_runtime::configs::governance::referenda::SubmissionDeposit;
         let submission_deposit = SubmissionDeposit::get();
         // Give enough for submission deposit + preimage costs, but not enough for decision deposit
         let _ = Balances::make_free_balance_be(&poor_account, submission_deposit + 1000 * UNIT);
-        
+
         let proposal = make_simple_proposal();
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(poor_account),
             proposal.encode()
         ));
-        
+
         let bounded_proposal = <Preimage as StorePreimage>::bound(proposal).unwrap();
-        
+
         // Should be able to submit with just submission deposit
         assert_ok!(Referenda::submit(
             RuntimeOrigin::signed(poor_account),
@@ -715,17 +715,14 @@ fn insufficient_balance_for_deposits() {
             bounded_proposal,
             DispatchTime::After(10)
         ));
-        
+
         // Advance through prepare period
         let track_info = &TracksInfo::tracks()[0].1;
         advance_referendum_time(track_info.prepare_period + 1);
-        
+
         // Should fail to place decision deposit due to insufficient balance
         assert_noop!(
-            Referenda::place_decision_deposit(
-                RuntimeOrigin::signed(poor_account),
-                0
-            ),
+            Referenda::place_decision_deposit(RuntimeOrigin::signed(poor_account), 0),
             pallet_balances::Error::<Runtime>::InsufficientBalance
         );
     });
@@ -736,12 +733,12 @@ fn insufficient_balance_for_deposits() {
 fn referendum_confirmation_period_works() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        
+
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(alice()),
             proposal.encode()
         ));
-        
+
         let bounded_proposal = <Preimage as StorePreimage>::bound(proposal).unwrap();
         assert_ok!(Referenda::submit(
             RuntimeOrigin::signed(alice()),
@@ -749,18 +746,18 @@ fn referendum_confirmation_period_works() {
             bounded_proposal,
             DispatchTime::After(10)
         ));
-        
+
         let track_info = &TracksInfo::tracks()[0].1; // Root track
-        
+
         // Advance through prepare period
         advance_referendum_time(track_info.prepare_period + 1);
-        
+
         // Place decision deposit
         assert_ok!(Referenda::place_decision_deposit(
             RuntimeOrigin::signed(alice()),
             0
         ));
-        
+
         // Vote with overwhelming support to meet approval threshold
         let vote_amount = 1000 * UNIT;
         for i in 0..10 {
@@ -778,20 +775,20 @@ fn referendum_confirmation_period_works() {
                 }
             ));
         }
-        
+
         // Advance time but not through full confirm period
         advance_referendum_time(track_info.confirm_period - 1);
-        
+
         // Should still be ongoing, not confirmed yet
         let referendum_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
         if let ReferendumInfo::Ongoing(status) = referendum_info {
             assert!(status.deciding.is_some());
             // Should be in confirmation phase but not approved yet
         }
-        
+
         // Advance through confirm period
         advance_referendum_time(2);
-        
+
         // Now should be approved/confirmed
         let referendum_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0);
         // May be approved or executed depending on enactment period
@@ -803,12 +800,12 @@ fn referendum_confirmation_period_works() {
 fn split_votes_with_conviction() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        
+
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(alice()),
             proposal.encode()
         ));
-        
+
         let bounded_proposal = <Preimage as StorePreimage>::bound(proposal).unwrap();
         assert_ok!(Referenda::submit(
             RuntimeOrigin::signed(alice()),
@@ -816,7 +813,7 @@ fn split_votes_with_conviction() {
             bounded_proposal,
             DispatchTime::After(10)
         ));
-        
+
         // Place decision deposit after prepare period
         let track_info = &TracksInfo::tracks()[0].1;
         advance_referendum_time(track_info.prepare_period + 1);
@@ -824,11 +821,11 @@ fn split_votes_with_conviction() {
             RuntimeOrigin::signed(alice()),
             0
         ));
-        
+
         // Split vote from same account
         let split_voter = AccountId::from([50u8; 32]);
         let _ = Balances::make_free_balance_be(&split_voter, 1000 * UNIT);
-        
+
         assert_ok!(ConvictionVoting::vote(
             RuntimeOrigin::signed(split_voter),
             0,
@@ -837,7 +834,7 @@ fn split_votes_with_conviction() {
                 nay: 400 * UNIT
             }
         ));
-        
+
         // Standard votes with different convictions
         let convictions = vec![
             Conviction::None,
@@ -848,11 +845,11 @@ fn split_votes_with_conviction() {
             Conviction::Locked5x,
             Conviction::Locked6x,
         ];
-        
+
         for (i, conviction) in convictions.iter().enumerate() {
             let voter = AccountId::from([(100 + i) as u8; 32]);
             let _ = Balances::make_free_balance_be(&voter, 100 * UNIT);
-            
+
             assert_ok!(ConvictionVoting::vote(
                 RuntimeOrigin::signed(voter),
                 0,

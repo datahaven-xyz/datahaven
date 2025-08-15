@@ -9,7 +9,8 @@ use datahaven_stagenet_runtime::{
     configs::governance::council::{
         TechnicalCommitteeInstance, TechnicalMotionDuration, TreasuryCouncilInstance,
     },
-    AccountId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, System, TechnicalCommittee, TreasuryCouncil,
+    AccountId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, System, TechnicalCommittee,
+    TreasuryCouncil,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::GetDispatchInfo, weights::Weight};
 use pallet_collective::Event as CollectiveEvent;
@@ -430,7 +431,7 @@ fn proposal_close_after_timeout_works() {
 fn prime_member_tiebreaking_works() {
     ExtBuilder::governance().build().execute_with(|| {
         let members = vec![alice(), bob(), charlie(), dave()];
-        
+
         // Set up with dave as prime
         assert_ok!(TechnicalCommittee::set_members(
             RuntimeOrigin::root(),
@@ -480,7 +481,8 @@ fn prime_member_tiebreaking_works() {
         ));
 
         // With prime's vote, the proposal should pass (prime breaks the tie)
-        let voting = pallet_collective::Voting::<Runtime, TechnicalCommitteeInstance>::get(&proposal_hash);
+        let voting =
+            pallet_collective::Voting::<Runtime, TechnicalCommitteeInstance>::get(&proposal_hash);
         assert!(voting.is_some());
         // Note: votes fields are private, but we can test that voting exists
 
@@ -520,7 +522,7 @@ fn concurrent_proposals_from_same_member() {
         let proposal2 = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":test2".to_vec(), b"value2".to_vec())],
         });
-        
+
         let hash1 = make_proposal_hash(&proposal1);
         let hash2 = make_proposal_hash(&proposal2);
         let len1 = proposal1.encoded_size() as u32;
@@ -533,7 +535,7 @@ fn concurrent_proposals_from_same_member() {
             Box::new(proposal1),
             len1,
         ));
-        
+
         assert_ok!(TechnicalCommittee::propose(
             RuntimeOrigin::signed(alice()),
             2,
@@ -542,9 +544,13 @@ fn concurrent_proposals_from_same_member() {
         ));
 
         // Both proposals should exist
-        assert!(pallet_collective::Voting::<Runtime, TechnicalCommitteeInstance>::get(&hash1).is_some());
-        assert!(pallet_collective::Voting::<Runtime, TechnicalCommitteeInstance>::get(&hash2).is_some());
-        
+        assert!(
+            pallet_collective::Voting::<Runtime, TechnicalCommitteeInstance>::get(&hash1).is_some()
+        );
+        assert!(
+            pallet_collective::Voting::<Runtime, TechnicalCommitteeInstance>::get(&hash2).is_some()
+        );
+
         // Proposal count should be 2
         assert_eq!(
             pallet_collective::ProposalCount::<Runtime, TechnicalCommitteeInstance>::get(),
@@ -563,7 +569,7 @@ fn treasury_council_emergency_decision() {
         let emergency_proposal = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":emergency:treasury".to_vec(), b"urgent_action".to_vec())],
         });
-        
+
         let proposal_hash = make_proposal_hash(&emergency_proposal);
         let proposal_len = emergency_proposal.encoded_size() as u32;
 
@@ -582,7 +588,7 @@ fn treasury_council_emergency_decision() {
             0,
             true,
         ));
-        
+
         assert_ok!(TreasuryCouncil::vote(
             RuntimeOrigin::signed(bob()),
             proposal_hash,
@@ -622,7 +628,7 @@ fn max_members_limit_enforced() {
         let many_members: Vec<_> = (0..max_members)
             .map(|i| AccountId::from([i as u8; 32]))
             .collect();
-        
+
         // Setting many members should work
         assert_ok!(TechnicalCommittee::set_members(
             RuntimeOrigin::root(),
@@ -630,7 +636,7 @@ fn max_members_limit_enforced() {
             None,
             2
         ));
-        
+
         assert_eq!(
             pallet_collective::Members::<Runtime, TechnicalCommitteeInstance>::get().len(),
             max_members

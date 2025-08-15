@@ -118,10 +118,10 @@ fn complete_governance_workflow_works() {
                     AccountVote::Standard {
                         vote: Vote {
                             aye: true,
-                            conviction: Conviction::Locked3x
+                            conviction: Conviction::Locked3x,
                         },
-                        balance: voting_balance
-                    }
+                        balance: voting_balance,
+                    },
                 );
 
                 let bob_vote_result = ConvictionVoting::vote(
@@ -130,10 +130,10 @@ fn complete_governance_workflow_works() {
                     AccountVote::Standard {
                         vote: Vote {
                             aye: true,
-                            conviction: Conviction::Locked1x
+                            conviction: Conviction::Locked1x,
                         },
-                        balance: voting_balance
-                    }
+                        balance: voting_balance,
+                    },
                 );
 
                 let eve_vote_result = ConvictionVoting::vote(
@@ -142,21 +142,26 @@ fn complete_governance_workflow_works() {
                     AccountVote::Standard {
                         vote: Vote {
                             aye: false,
-                            conviction: Conviction::None
+                            conviction: Conviction::None,
                         },
-                        balance: voting_balance / 2
-                    }
+                        balance: voting_balance / 2,
+                    },
                 );
 
                 // At least some voting should work
-                assert!(alice_vote_result.is_ok() || bob_vote_result.is_ok() || eve_vote_result.is_ok(),
-                    "At least one vote should succeed");
+                assert!(
+                    alice_vote_result.is_ok() || bob_vote_result.is_ok() || eve_vote_result.is_ok(),
+                    "At least one vote should succeed"
+                );
 
                 // 10. Verify referendum is still ongoing (deciding phase optional for this test)
-                let final_referendum_status = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
-                assert!(matches!(final_referendum_status, ReferendumInfo::Ongoing(_)),
-                    "Referendum should still be ongoing");
-            },
+                let final_referendum_status =
+                    pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
+                assert!(
+                    matches!(final_referendum_status, ReferendumInfo::Ongoing(_)),
+                    "Referendum should still be ongoing"
+                );
+            }
             _ => panic!("Referendum should be ongoing"),
         }
     });
@@ -264,14 +269,14 @@ fn emergency_cancellation_workflow_works() {
         match referendum_info {
             Some(pallet_referenda::ReferendumInfo::Cancelled(..)) => {
                 // Successfully cancelled - ideal outcome
-            },
+            }
             None => {
                 // Also acceptable - referendum was removed after cancellation
-            },
+            }
             Some(pallet_referenda::ReferendumInfo::Ongoing(_)) => {
                 // Still ongoing - committee may not have proper cancellation permissions
                 // This is still a valid test outcome as it tests the workflow
-            },
+            }
             Some(other) => {
                 // Any other state (Approved, Rejected, etc.) is also valid
                 // The key is testing that the governance workflow executed without panicking
@@ -383,10 +388,10 @@ fn treasury_spending_workflow_works() {
                     AccountVote::Standard {
                         vote: Vote {
                             aye: true,
-                            conviction: Conviction::Locked2x
+                            conviction: Conviction::Locked2x,
                         },
-                        balance: 200 * UNIT
-                    }
+                        balance: 200 * UNIT,
+                    },
                 );
 
                 // Voting should succeed if referendum is in correct phase
@@ -395,9 +400,13 @@ fn treasury_spending_workflow_works() {
                 }
 
                 // Final verification - referendum should still be ongoing
-                let final_referendum_status = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
-                assert!(matches!(final_referendum_status, ReferendumInfo::Ongoing(_)));
-            },
+                let final_referendum_status =
+                    pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
+                assert!(matches!(
+                    final_referendum_status,
+                    ReferendumInfo::Ongoing(_)
+                ));
+            }
             _ => {
                 // Referendum might be in other valid states depending on timing
                 // The key is that the workflow completed without errors
@@ -710,10 +719,10 @@ fn multi_track_parallel_governance_works() {
         match referendum_info {
             Some(pallet_referenda::ReferendumInfo::Cancelled(..)) => {
                 // Successfully cancelled - ideal outcome
-            },
+            }
             None => {
                 // Also acceptable - referendum was removed after cancellation
-            },
+            }
             Some(_) => {
                 // Still in some other state - committee may not have proper cancellation permissions
                 // This is still a valid test outcome as it tests the workflow
@@ -819,7 +828,7 @@ fn governance_self_upgrade_workflow_works() {
 
         // Verify if referendum was created by the technical committee proposal
         let referendum_exists = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).is_some();
-        
+
         if referendum_exists {
             // Wait for prepare period (1 DAY for root track)
             advance_referendum_time(1 * DAYS + 1);
@@ -861,7 +870,7 @@ fn governance_self_upgrade_workflow_works() {
             ReferendumInfo::Ongoing(status) => {
                 // Referendum is ongoing - may or may not be in deciding phase depending on timing
                 // The key is that the governance workflow executed successfully
-            },
+            }
             _ => {
                 // Referendum might be in other valid states depending on timing and vote outcomes
                 // This is acceptable as long as the workflow completed without errors

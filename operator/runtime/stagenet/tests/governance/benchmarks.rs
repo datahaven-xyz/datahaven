@@ -8,18 +8,18 @@
 
 use crate::common::*;
 use datahaven_stagenet_runtime::{
-    governance::TracksInfo,
     configs::governance::council::{TechnicalMaxMembers, TechnicalMaxProposals},
+    governance::TracksInfo,
     AccountId, Balance, Balances, ConvictionVoting, Preimage, Referenda, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeOrigin, System, TechnicalCommittee, TreasuryCouncil, UNIT, DAYS,
+    RuntimeEvent, RuntimeOrigin, System, TechnicalCommittee, TreasuryCouncil, DAYS, UNIT,
 };
+use frame_support::traits::schedule::DispatchTime;
 use frame_support::{
     assert_ok,
-    traits::{Get, StorePreimage},
     dispatch::GetDispatchInfo,
+    traits::{Get, StorePreimage},
 };
 use pallet_conviction_voting::{AccountVote, Conviction, Vote};
-use frame_support::traits::schedule::DispatchTime;
 use sp_std::vec::Vec;
 
 /// Benchmark council proposal creation with varying member counts
@@ -116,10 +116,10 @@ fn benchmark_mass_voting_performance() {
                                 Conviction::Locked3x
                             } else {
                                 Conviction::Locked1x
-                            }
+                            },
                         },
-                        balance: 10 * UNIT
-                    }
+                        balance: 10 * UNIT,
+                    },
                 );
             }
 

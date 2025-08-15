@@ -4,21 +4,41 @@
 //! Common test utilities for DataHaven testnet runtime tests
 
 use datahaven_testnet_runtime::{
-    AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System, UNIT,
+    AccountId,
+    Balance,
+    Runtime,
+    RuntimeCall,
+    RuntimeEvent,
+    RuntimeOrigin,
+    Session,
+    SessionKeys,
+    System,
+    // Import governance pallets for common helpers
+    TechnicalCommittee,
+    TreasuryCouncil,
+    UNIT,
 };
-use frame_support::traits::Hooks;
+use frame_support::{
+    assert_ok,
+    traits::{OnFinalize, OnInitialize},
+};
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_core::{crypto::UncheckedFrom, H160};
-use sp_runtime::BuildStorage;
+use sp_core::{crypto::UncheckedFrom, H160, H256};
+use sp_runtime::{
+    traits::{BlakeTwo256, Hash},
+    BuildStorage,
+};
 
 /// Test account constants
 pub const ALICE: [u8; 20] = [1u8; 20];
 pub const BOB: [u8; 20] = [2u8; 20];
 pub const CHARLIE: [u8; 20] = [3u8; 20];
 pub const DAVE: [u8; 20] = [4u8; 20];
+pub const EVE: [u8; 20] = [5u8; 20];
 
 /// Helper function to convert account constants to AccountId
 pub fn account_id(account: [u8; 20]) -> AccountId {
@@ -27,6 +47,11 @@ pub fn account_id(account: [u8; 20]) -> AccountId {
 
 /// Default balance for test accounts (1M DH tokens)
 pub const DEFAULT_BALANCE: Balance = 1_000_000 * UNIT;
+
+/// Governance test specific balances - increased for stagenet's higher decision deposits
+pub const INITIAL_BALANCE: Balance = 1_000_000 * UNIT; // 1M DH tokens for governance tests
+pub const PROPOSAL_BOND: Balance = 100 * UNIT;
+pub const VOTING_BALANCE: Balance = 10 * UNIT;
 
 /// Generate test session keys for a given account
 pub fn generate_session_keys(account: AccountId) -> SessionKeys {
@@ -74,6 +99,22 @@ impl ExtBuilder {
         self
     }
 
+    /// Alternative constructor for governance tests with smaller balances
+    pub fn governance() -> Self {
+        Self {
+            balances: vec![
+                (alice(), INITIAL_BALANCE),
+                (bob(), INITIAL_BALANCE),
+                (charlie(), INITIAL_BALANCE),
+                (dave(), INITIAL_BALANCE),
+                (eve(), INITIAL_BALANCE),
+            ],
+            with_default_balances: false,
+            validators: vec![],
+            with_default_validators: true,
+        }
+    }
+
     pub fn build(self) -> sp_io::TestExternalities {
         let mut balances = self.balances;
         let mut validators = self.validators;
@@ -84,6 +125,7 @@ impl ExtBuilder {
                 (account_id(BOB), DEFAULT_BALANCE),
                 (account_id(CHARLIE), DEFAULT_BALANCE),
                 (account_id(DAVE), DEFAULT_BALANCE),
+                (account_id(EVE), DEFAULT_BALANCE),
                 // Fund the treasury account (fee recipient) with initial balance
                 (
                     datahaven_testnet_runtime::configs::TreasuryAccount::get(),
@@ -127,7 +169,7 @@ impl ExtBuilder {
         ext.execute_with(|| {
             System::set_block_number(1);
             // Initialize session
-            Session::on_initialize(1);
+            <Session as OnInitialize<BlockNumberFor<Runtime>>>::on_initialize(1);
         });
         ext
     }
@@ -168,4 +210,90 @@ pub fn set_block_author(author: AccountId) {
 pub fn set_block_author_by_index(validator_index: u32) {
     let author = get_validator_by_index(validator_index);
     set_block_author(author);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Governance-specific helper functions
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// Helper function to get accounts as AccountId (governance naming convention)
+pub fn alice() -> AccountId {
+    account_id(ALICE)
+}
+
+pub fn bob() -> AccountId {
+    account_id(BOB)
+}
+
+pub fn charlie() -> AccountId {
+    account_id(CHARLIE)
+}
+
+pub fn dave() -> AccountId {
+    account_id(DAVE)
+}
+
+pub fn eve() -> AccountId {
+    account_id(EVE)
+}
+
+/// Helper function to run to block
+pub fn run_to_block(n: BlockNumberFor<Runtime>) {
+    while System::block_number() < n {
+        if System::block_number() > 1 {
+            <System as OnFinalize<BlockNumberFor<Runtime>>>::on_finalize(System::block_number());
+        }
+        System::set_block_number(System::block_number() + 1);
+        <System as OnInitialize<BlockNumberFor<Runtime>>>::on_initialize(System::block_number());
+    }
+}
+
+/// Helper function to make a proposal hash
+pub fn make_proposal_hash(proposal: &RuntimeCall) -> H256 {
+    BlakeTwo256::hash_of(proposal)
+}
+
+/// Helper to get last event
+pub fn last_event() -> RuntimeEvent {
+    System::events().pop().expect("Event expected").event
+}
+
+/// Helper to check if event exists
+pub fn has_event(event: RuntimeEvent) -> bool {
+    System::events().iter().any(|record| record.event == event)
+}
+
+/// Helper to setup technical committee members
+#[allow(dead_code)]
+pub fn setup_technical_committee(members: Vec<AccountId>) {
+    assert_ok!(TechnicalCommittee::set_members(
+        RuntimeOrigin::root(),
+        members,
+        None,
+        3
+    ));
+}
+
+/// Helper to setup treasury council members
+#[allow(dead_code)]
+pub fn setup_treasury_council(members: Vec<AccountId>) {
+    assert_ok!(TreasuryCouncil::set_members(
+        RuntimeOrigin::root(),
+        members,
+        None,
+        3
+    ));
+}
+
+/// Helper to create a simple proposal
+pub fn make_simple_proposal() -> RuntimeCall {
+    RuntimeCall::System(frame_system::Call::set_storage {
+        items: vec![(b":test".to_vec(), b"value".to_vec())],
+    })
+}
+
+/// Helper to advance time for voting
+pub fn advance_referendum_time(blocks: BlockNumberFor<Runtime>) {
+    let current_block = System::block_number();
+    run_to_block(current_block + blocks);
 }

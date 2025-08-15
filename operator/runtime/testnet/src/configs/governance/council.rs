@@ -1,4 +1,4 @@
-//! Council and Collective configurations for DataHaven Stagenet Runtime
+//! Council and Collective configurations for DataHaven Testnet Runtime
 //!
 //! This module configures the collective pallets that form the governance councils,
 //! similar to Moonbeam's Technical Committee and Treasury Council.

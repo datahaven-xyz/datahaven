@@ -10,6 +10,8 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod benchmarks;
 pub mod configs;
 pub mod weights;
+// Re-export governance for tests
+pub use configs::governance;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -133,8 +135,12 @@ pub const SUPPLY_FACTOR: Balance = 1;
 
 // Unit = the base number of indivisible units for balances
 pub const UNIT: Balance = 1_000_000_000_000;
+pub const CENTS: Balance = UNIT / 100;
 pub const MILLI_UNIT: Balance = 1_000_000_000;
 pub const MICRO_UNIT: Balance = 1_000_000;
+pub const NANO_UNIT: Balance = 1_000;
+pub const PICO_UNIT: Balance = 1;
+pub const KILO_UNIT: Balance = UNIT * 1000;
 
 pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
 
@@ -310,6 +316,26 @@ mod runtime {
 
     #[runtime::pallet_index(37)]
     pub type Treasury = pallet_treasury;
+
+    // ╔═════════════════════════ Governance Pallets ═════════════════════════╗
+    #[runtime::pallet_index(38)]
+    pub type TechnicalCommittee = pallet_collective<Instance1>;
+
+    #[runtime::pallet_index(39)]
+    pub type TreasuryCouncil = pallet_collective<Instance2>;
+
+    #[runtime::pallet_index(40)]
+    pub type ConvictionVoting = pallet_conviction_voting;
+
+    #[runtime::pallet_index(41)]
+    pub type Referenda = pallet_referenda;
+
+    #[runtime::pallet_index(42)]
+    pub type Whitelist = pallet_whitelist;
+
+    #[runtime::pallet_index(43)]
+    pub type Origins = governance::custom_origins;
+    // ╚═════════════════════════ Governance Pallets ═════════════════════════╝
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
@@ -821,10 +847,9 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -841,7 +866,6 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}

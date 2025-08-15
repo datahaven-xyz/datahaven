@@ -8,34 +8,34 @@ pub use custom_origins::*;
 
 #[frame_support::pallet]
 pub mod custom_origins {
-	use frame_support::pallet_prelude::*;
-	use strum_macros::EnumString;
+    use frame_support::pallet_prelude::*;
+    use strum_macros::EnumString;
 
-	#[pallet::config]
-	pub trait Config: frame_system::Config {}
+    #[pallet::config]
+    pub trait Config: frame_system::Config {}
 
-	#[pallet::pallet]
-	pub struct Pallet<T>(_);
+    #[pallet::pallet]
+    pub struct Pallet<T>(_);
 
-	#[derive(
-		PartialEq, Eq, Clone, MaxEncodedLen, Encode, Decode, TypeInfo, RuntimeDebug, EnumString,
-	)]
-	#[strum(serialize_all = "snake_case")]
-	#[pallet::origin]
-	pub enum Origin {
-		/// Origin able to dispatch a whitelisted call.
-		WhitelistedCaller,
-		/// General admin
-		GeneralAdmin,
-		/// Origin able to cancel referenda.
-		ReferendumCanceller,
-		/// Origin able to kill referenda.
-		ReferendumKiller,
-		/// Fast General Admin
-		FastGeneralAdmin,
-	}
+    #[derive(
+        PartialEq, Eq, Clone, MaxEncodedLen, Encode, Decode, TypeInfo, RuntimeDebug, EnumString,
+    )]
+    #[strum(serialize_all = "snake_case")]
+    #[pallet::origin]
+    pub enum Origin {
+        /// Origin able to dispatch a whitelisted call.
+        WhitelistedCaller,
+        /// General admin
+        GeneralAdmin,
+        /// Origin able to cancel referenda.
+        ReferendumCanceller,
+        /// Origin able to kill referenda.
+        ReferendumKiller,
+        /// Fast General Admin
+        FastGeneralAdmin,
+    }
 
-	macro_rules! decl_unit_ensures {
+    macro_rules! decl_unit_ensures {
 		( $name:ident: $success_type:ty = $success:expr ) => {
 			pub struct $name;
 			impl<O: Into<Result<Origin, O>> + From<Origin>>
@@ -65,11 +65,11 @@ pub mod custom_origins {
 		};
 		() => {}
 	}
-	decl_unit_ensures!(
-		ReferendumCanceller,
-		ReferendumKiller,
-		WhitelistedCaller,
-		GeneralAdmin,
-		FastGeneralAdmin,
-	);
+    decl_unit_ensures!(
+        ReferendumCanceller,
+        ReferendumKiller,
+        WhitelistedCaller,
+        GeneralAdmin,
+        FastGeneralAdmin,
+    );
 }

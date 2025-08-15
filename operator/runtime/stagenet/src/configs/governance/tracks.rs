@@ -6,8 +6,8 @@
 use super::*;
 use crate::{KILO_UNIT, SUPPLY_FACTOR, UNIT};
 use datahaven_runtime_common::time::*;
-use sp_std::str::FromStr;
 use pallet_referenda::Curve;
+use sp_std::str::FromStr;
 
 const fn percent(x: i32) -> sp_runtime::FixedI64 {
     sp_runtime::FixedI64::from_rational(x as u128, 100)

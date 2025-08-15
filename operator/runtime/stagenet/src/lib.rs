@@ -163,7 +163,9 @@ parameter_types! {
 }
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
+    // TODO: Change ED to 1 after upgrade to Polkadot SDK stable2503
+    // cfr. https://github.com/paritytech/polkadot-sdk/pull/7379
+    pub const ExistentialDeposit: Balance = 100;
 }
 
 /// The version information used to identify this runtime when compiled natively.

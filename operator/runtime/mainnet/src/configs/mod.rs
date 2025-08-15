@@ -23,16 +23,17 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+pub mod governance;
 pub mod runtime_params;
 
 use super::{
     deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
     EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
+    Session, SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT,
+    SLOT_DURATION, STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{

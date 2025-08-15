@@ -50,6 +50,13 @@ frame_benchmarking::define_benchmarks!(
     // EVM pallets
     [pallet_evm, Evm]
 
+    // Governance pallets
+    [pallet_collective::<Instance1>, TechnicalCommittee]
+    [pallet_collective::<Instance2>, TreasuryCouncil]
+    [pallet_conviction_voting, ConvictionVoting]
+    [pallet_referenda, Referenda]
+    [pallet_whitelist, Whitelist]
+
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]
     [pallet_external_validators_rewards, ExternalValidatorsRewards]

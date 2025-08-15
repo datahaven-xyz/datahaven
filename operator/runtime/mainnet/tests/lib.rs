@@ -4,6 +4,7 @@
 //! Integration tests for DataHaven mainnet runtime
 
 pub mod common;
+pub mod governance;
 mod native_token_transfer;
 
 use common::*;

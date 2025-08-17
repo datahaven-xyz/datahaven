@@ -20,6 +20,16 @@ fullnameOverride: ""
 # -- Additional common labels on pods and services
 extraLabels: {}
 
+relayData:
+  # -- (string) Path on the volume to store relay data
+  storagePath: "/relay-data"
+  # -- Storage class to use for persistent volume
+  storageClass: ""
+  # -- Size of the volume for relay data
+  volumeSize: 10Gi
+  # -- Annotations to add to the volumeClaimTemplates
+  annotations: {}
+
 # -- Service account for the node to use.
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
 serviceAccount:

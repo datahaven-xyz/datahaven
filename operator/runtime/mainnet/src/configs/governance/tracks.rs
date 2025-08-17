@@ -48,7 +48,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         pallet_referenda::TrackInfo {
             name: "whitelisted_caller",
             max_deciding: 100,
-            decision_deposit: 2 * KILOGLMR * SUPPLY_FACTOR,
+            decision_deposit: 2 * KILO_UNIT * SUPPLY_FACTOR,
             prepare_period: 10 * MINUTES,
             decision_period: 14 * DAYS,
             confirm_period: 10 * MINUTES,

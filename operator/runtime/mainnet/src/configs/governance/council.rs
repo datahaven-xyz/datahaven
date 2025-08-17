@@ -28,7 +28,7 @@ impl pallet_collective::Config<TechnicalCommitteeInstance> for Runtime {
     type MaxMembers = ConstU32<100>;
     type DefaultVote = pallet_collective::MoreThanMajorityThenPrimeDefaultVote;
     type SetMembersOrigin = GeneralAdminOrRoot;
-    type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
+    type WeightInfo = mainnet_weights::pallet_collective_technical_committee::WeightInfo<Runtime>;
     type MaxProposalWeight = MaxProposalWeight;
     type DisapproveOrigin = FastGeneralAdminOrRoot;
     type KillOrigin = FastGeneralAdminOrRoot;
@@ -50,7 +50,7 @@ impl pallet_collective::Config<TreasuryCouncilInstance> for Runtime {
     type MaxMembers = ConstU32<9>;
     type DefaultVote = pallet_collective::MoreThanMajorityThenPrimeDefaultVote;
     type SetMembersOrigin = GeneralAdminOrRoot;
-    type WeightInfo = weights::pallet_collective::WeightInfo<Runtime>;
+    type WeightInfo = mainnet_weights::pallet_collective_treasury_council::WeightInfo<Runtime>;
     type MaxProposalWeight = MaxProposalWeight;
     type DisapproveOrigin = FastGeneralAdminOrRoot;
     type KillOrigin = FastGeneralAdminOrRoot;

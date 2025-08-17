@@ -51,7 +51,7 @@ use frame_support::{
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
+        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{
@@ -474,13 +474,10 @@ parameter_types! {
     pub const MaxUsernameLength: u32 = 32;
 }
 
-type IdentityForceOrigin = EnsureRoot<AccountId>;
-type IdentityRegistrarOrigin = EnsureRoot<AccountId>;
-// TODO: Add governance origin when available
-// type IdentityForceOrigin =
-// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
-// type IdentityRegistrarOrigin =
-// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+type IdentityForceOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+type IdentityRegistrarOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
 
 impl pallet_identity::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;

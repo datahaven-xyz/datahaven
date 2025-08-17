@@ -33,7 +33,7 @@ impl custom_origins::Config for Runtime {}
 
 // Conviction Voting Implementation
 impl pallet_conviction_voting::Config for Runtime {
-    type WeightInfo = ();
+    type WeightInfo = stagenet_weights::pallet_conviction_voting::WeightInfo<Runtime>;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type VoteLockingPeriod = VoteLockingPeriod;
@@ -60,14 +60,14 @@ impl pallet_whitelist::Config for Runtime {
     >;
     type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
     type Preimages = Preimage;
-    type WeightInfo = ();
+    type WeightInfo = stagenet_weights::pallet_whitelist::WeightInfo<Runtime>;
 }
 
 pallet_referenda::impl_tracksinfo_get!(TracksInfo, Balance, BlockNumber);
 
 // Referenda Implementation
 impl pallet_referenda::Config for Runtime {
-    type WeightInfo = ();
+    type WeightInfo = stagenet_weights::pallet_referenda::WeightInfo<Runtime>;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;

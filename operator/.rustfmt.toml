@@ -1,0 +1,10 @@
+# These formatting rules to try conform the Substrate style guidelines:
+# >   https://wiki.parity.io/Substrate-Style-Guide
+
+reorder_imports = true
+hard_tabs = true
+max_width = 100
+
+# TODO: add template for license checking.
+#       this will still fail for some licenses where e.g. Parity's license is used
+# license_template_path = "FILE_TEMPLATE"

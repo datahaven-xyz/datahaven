@@ -362,19 +362,19 @@ fn benchmark_council_maximum_load() {
         let members: Vec<AccountId> = (0..max_members)
             .map(|i| AccountId::from([(i % 255) as u8; 20]))
             .collect();
-        
+
         setup_technical_committee(members.clone());
-        
+
         // Test maximum concurrent proposals
         let max_proposals = TechnicalMaxProposals::get() as usize;
         let start_block = System::block_number();
-        
+
         for i in 0..max_proposals {
             let proposal = RuntimeCall::System(frame_system::Call::set_storage {
                 items: vec![(format!(":max_test:{}", i).into_bytes(), b"value".to_vec())],
             });
             let proposal_len = proposal.encoded_size() as u32;
-            
+
             assert_ok!(TechnicalCommittee::propose(
                 RuntimeOrigin::signed(members[i % members.len()]),
                 (members.len() as u32 + 1) / 2,
@@ -382,18 +382,18 @@ fn benchmark_council_maximum_load() {
                 proposal_len,
             ));
         }
-        
+
         let proposals_end = System::block_number();
-        
+
         // Vote on all proposals with all members
         let vote_start = System::block_number();
-        
+
         for proposal_index in 0..max_proposals {
             let proposal = RuntimeCall::System(frame_system::Call::set_storage {
                 items: vec![(format!(":max_test:{}", proposal_index).into_bytes(), b"value".to_vec())],
             });
             let proposal_hash = make_proposal_hash(&proposal);
-            
+
             // Each member votes
             for (member_index, member) in members.iter().enumerate() {
                 if member_index < (members.len() + 1) / 2 { // Majority votes yes
@@ -406,9 +406,9 @@ fn benchmark_council_maximum_load() {
                 }
             }
         }
-        
+
         let vote_end = System::block_number();
-        
+
         println!(
             "Maximum load test: {} members, {} proposals created in {} blocks, {} votes processed in {} blocks",
             max_members,
@@ -417,7 +417,7 @@ fn benchmark_council_maximum_load() {
             max_proposals * ((members.len() + 1) / 2),
             vote_end - vote_start
         );
-        
+
         // All proposals should be executed due to majority approval
         assert_eq!(TechnicalCommittee::proposal_count(), 0);
     });

@@ -1,10 +1,8 @@
-// Copyright 2025 Moonbeam Foundation.
-// This file is part of DataHaven.
-
 //! Integration tests for DataHaven stagenet runtime
 
 pub mod common;
 mod native_token_transfer;
+mod proxy;
 
 use common::*;
 use datahaven_stagenet_runtime::{currency::HAVE, Balances, System, VERSION};

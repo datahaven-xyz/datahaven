@@ -48,6 +48,7 @@ pub struct ExtBuilder {
     with_default_balances: bool,
     validators: Vec<AccountId>,
     with_default_validators: bool,
+    sudo_key: Option<AccountId>,
 }
 
 impl ExtBuilder {
@@ -57,6 +58,7 @@ impl ExtBuilder {
             with_default_balances: true,
             validators: vec![],
             with_default_validators: true,
+            sudo_key: None,
         }
     }
 
@@ -71,6 +73,12 @@ impl ExtBuilder {
     pub fn with_validators(mut self, validators: Vec<AccountId>) -> Self {
         self.validators = validators;
         self.with_default_validators = false;
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_sudo(mut self, sudo_key: AccountId) -> Self {
+        self.sudo_key = Some(sudo_key);
         self
     }
 
@@ -122,6 +130,15 @@ impl ExtBuilder {
         }
         .assimilate_storage(&mut t)
         .expect("Session genesis config can be assimilated");
+
+        // Configure Sudo if specified
+        if let Some(sudo_key) = self.sudo_key {
+            pallet_sudo::GenesisConfig::<Runtime> {
+                key: Some(sudo_key),
+            }
+            .assimilate_storage(&mut t)
+            .expect("Sudo genesis config can be assimilated");
+        }
 
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {

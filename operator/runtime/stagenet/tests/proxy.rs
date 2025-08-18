@@ -7,8 +7,9 @@ use codec::Encode;
 use common::*;
 use datahaven_stagenet_runtime::{
     configs::{MaxProxies, ProxyDepositBase, ProxyDepositFactor},
+    currency::HAVE,
     Balances, Identity, Multisig, Proxy, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Sudo,
-    System, UNIT,
+    System,
 };
 use frame_support::{assert_noop, assert_ok, traits::InstanceFilter};
 use pallet_proxy::Event as ProxyEvent;
@@ -25,8 +26,8 @@ type ProxyType = datahaven_runtime_common::proxy::ProxyType;
 fn test_add_proxy_with_any_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -62,9 +63,9 @@ fn test_add_proxy_with_any_type() {
 fn test_add_multiple_proxies() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -101,8 +102,8 @@ fn test_add_multiple_proxies() {
 fn test_remove_proxy() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -142,9 +143,9 @@ fn test_remove_proxy() {
 fn test_remove_all_proxies() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -183,7 +184,7 @@ fn test_remove_all_proxies() {
 #[test]
 fn test_max_proxies_limit() {
     ExtBuilder::default()
-        .with_balances(vec![(account_id(ALICE), 100_000 * UNIT)])
+        .with_balances(vec![(account_id(ALICE), 100_000 * HAVE)])
         .build()
         .execute_with(|| {
             let alice = account_id(ALICE);
@@ -217,8 +218,8 @@ fn test_max_proxies_limit() {
 fn test_duplicate_proxy_prevention() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -255,9 +256,9 @@ fn test_duplicate_proxy_prevention() {
 fn test_proxy_call_with_any_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -283,13 +284,13 @@ fn test_proxy_call_with_any_type() {
                 Box::new(RuntimeCall::Balances(
                     pallet_balances::Call::transfer_allow_death {
                         dest: charlie.clone(),
-                        value: 500 * UNIT,
+                        value: 500 * HAVE,
                     }
                 ))
             ));
 
             let charlie_balance_after = Balances::free_balance(&charlie);
-            assert_eq!(charlie_balance_after - charlie_balance_before, 500 * UNIT);
+            assert_eq!(charlie_balance_after - charlie_balance_before, 500 * HAVE);
         });
 }
 
@@ -297,9 +298,9 @@ fn test_proxy_call_with_any_type() {
 fn test_proxy_call_with_balances_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -323,13 +324,13 @@ fn test_proxy_call_with_balances_type() {
                 Box::new(RuntimeCall::Balances(
                     pallet_balances::Call::transfer_allow_death {
                         dest: charlie.clone(),
-                        value: 100 * UNIT,
+                        value: 100 * HAVE,
                     }
                 ))
             ));
 
             let charlie_balance = Balances::free_balance(&charlie);
-            assert_eq!(charlie_balance, 1_100 * UNIT);
+            assert_eq!(charlie_balance, 1_100 * HAVE);
         });
 }
 
@@ -337,8 +338,8 @@ fn test_proxy_call_with_balances_type() {
 fn test_proxy_call_with_governance_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -371,9 +372,9 @@ fn test_proxy_call_with_governance_type() {
 fn test_proxy_call_with_nontransfer_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -407,7 +408,7 @@ fn test_proxy_call_with_nontransfer_type() {
                 Box::new(RuntimeCall::Balances(
                     pallet_balances::Call::transfer_allow_death {
                         dest: charlie.clone(),
-                        value: 100 * UNIT,
+                        value: 100 * HAVE,
                     }
                 ))
             ));
@@ -420,7 +421,7 @@ fn test_proxy_call_with_nontransfer_type() {
             }));
 
             // Verify that Charlie's balance didn't change (transfer was filtered)
-            assert_eq!(Balances::free_balance(&charlie), 1_000 * UNIT); // Original balance unchanged
+            assert_eq!(Balances::free_balance(&charlie), 1_000 * HAVE); // Original balance unchanged
         });
 }
 
@@ -428,8 +429,8 @@ fn test_proxy_call_with_nontransfer_type() {
 fn test_proxy_call_with_staking_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -462,9 +463,9 @@ fn test_proxy_call_with_staking_type() {
 fn test_proxy_call_with_identity_judgement_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT), // Charlie needs balance for identity deposit
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE), // Charlie needs balance for identity deposit
         ])
         .build()
         .execute_with(|| {
@@ -482,7 +483,7 @@ fn test_proxy_call_with_identity_judgement_type() {
             assert_ok!(Identity::set_fee(
                 RuntimeOrigin::signed(alice.clone()),
                 0,        // registrar index
-                1 * UNIT, // fee
+                1 * HAVE, // fee
             ));
 
             // Charlie needs to have an identity set to receive judgement
@@ -500,7 +501,7 @@ fn test_proxy_call_with_identity_judgement_type() {
             assert_ok!(Identity::request_judgement(
                 RuntimeOrigin::signed(account_id(CHARLIE)),
                 0,         // registrar index
-                10 * UNIT, // max fee
+                10 * HAVE, // max fee
             ));
 
             // Add Bob as IdentityJudgement proxy for Alice
@@ -546,9 +547,9 @@ fn test_proxy_call_with_identity_judgement_type() {
 fn test_batch_call_with_nontransfer_proxy_filtered() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -574,7 +575,7 @@ fn test_batch_call_with_nontransfer_proxy_filtered() {
                     // This should be filtered (balance transfer - not allowed by NonTransfer)
                     RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive {
                         dest: charlie.clone(),
-                        value: 100 * UNIT,
+                        value: 100 * HAVE,
                     }),
                     // Another allowed operation (another system remark)
                     RuntimeCall::System(frame_system::Call::remark {
@@ -636,9 +637,9 @@ fn test_batch_call_with_nontransfer_proxy_filtered() {
 fn test_proxy_call_with_cancelproxy_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -673,9 +674,9 @@ fn test_proxy_call_with_cancelproxy_type() {
 fn test_proxy_call_with_sudo_only_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .with_sudo(account_id(ALICE)) // Set Alice as the sudo key
         .build()
@@ -701,7 +702,7 @@ fn test_proxy_call_with_sudo_only_type() {
                     call: Box::new(RuntimeCall::Balances(
                         pallet_balances::Call::force_set_balance {
                             who: charlie.clone(),
-                            new_free: 2_000 * UNIT,
+                            new_free: 2_000 * HAVE,
                         }
                     ))
                 }))
@@ -713,7 +714,7 @@ fn test_proxy_call_with_sudo_only_type() {
             }));
 
             // Verify that Charlie's balance was forcibly set
-            assert_eq!(Balances::free_balance(&charlie), 2_000 * UNIT);
+            assert_eq!(Balances::free_balance(&charlie), 2_000 * HAVE);
         });
 }
 
@@ -721,9 +722,9 @@ fn test_proxy_call_with_sudo_only_type() {
 fn test_proxy_call_with_wrong_proxy_type() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -747,7 +748,7 @@ fn test_proxy_call_with_wrong_proxy_type() {
                 Box::new(RuntimeCall::Balances(
                     pallet_balances::Call::transfer_allow_death {
                         dest: charlie.clone(),
-                        value: 100 * UNIT,
+                        value: 100 * HAVE,
                     }
                 ))
             ));
@@ -760,7 +761,7 @@ fn test_proxy_call_with_wrong_proxy_type() {
             }));
 
             // Verify that Charlie's balance didn't change (transfer was filtered)
-            assert_eq!(Balances::free_balance(&charlie), 1_000 * UNIT); // Original balance unchanged
+            assert_eq!(Balances::free_balance(&charlie), 1_000 * HAVE); // Original balance unchanged
         });
 }
 
@@ -768,9 +769,9 @@ fn test_proxy_call_with_wrong_proxy_type() {
 fn test_proxy_call_without_permission() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -789,7 +790,7 @@ fn test_proxy_call_without_permission() {
                     Box::new(RuntimeCall::Balances(
                         pallet_balances::Call::transfer_allow_death {
                             dest: charlie.clone(),
-                            value: 100 * UNIT,
+                            value: 100 * HAVE,
                         }
                     ))
                 ),
@@ -820,7 +821,7 @@ fn test_proxy_type_hierarchy() {
 #[test]
 fn test_create_anonymous_proxy() {
     ExtBuilder::default()
-        .with_balances(vec![(account_id(ALICE), 10_000 * UNIT)])
+        .with_balances(vec![(account_id(ALICE), 10_000 * HAVE)])
         .build()
         .execute_with(|| {
             let alice = account_id(ALICE);
@@ -852,8 +853,8 @@ fn test_create_anonymous_proxy() {
 fn test_anonymous_proxy_usage() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -874,7 +875,7 @@ fn test_anonymous_proxy_usage() {
             assert_ok!(Balances::transfer_allow_death(
                 RuntimeOrigin::signed(alice.clone()),
                 pure_proxy.clone(),
-                1_000 * UNIT
+                1_000 * HAVE
             ));
 
             let bob_balance_before = Balances::free_balance(&bob);
@@ -887,20 +888,20 @@ fn test_anonymous_proxy_usage() {
                 Box::new(RuntimeCall::Balances(
                     pallet_balances::Call::transfer_allow_death {
                         dest: bob.clone(),
-                        value: 500 * UNIT,
+                        value: 500 * HAVE,
                     }
                 ))
             ));
 
             let bob_balance_after = Balances::free_balance(&bob);
-            assert_eq!(bob_balance_after - bob_balance_before, 500 * UNIT);
+            assert_eq!(bob_balance_after - bob_balance_before, 500 * HAVE);
         });
 }
 
 #[test]
 fn test_kill_anonymous_proxy() {
     ExtBuilder::default()
-        .with_balances(vec![(account_id(ALICE), 10_000 * UNIT)])
+        .with_balances(vec![(account_id(ALICE), 10_000 * HAVE)])
         .build()
         .execute_with(|| {
             let alice = account_id(ALICE);
@@ -950,7 +951,7 @@ fn test_kill_anonymous_proxy() {
             assert_ok!(Balances::transfer_allow_death(
                 RuntimeOrigin::signed(alice.clone()),
                 pure_account.clone(),
-                100 * UNIT
+                100 * HAVE
             ));
 
             // Kill the anonymous proxy - must be called by the proxy account itself
@@ -964,9 +965,9 @@ fn test_kill_anonymous_proxy() {
                 0  // ext_index (extrinsic index)
             ));
 
-            // Check that deposit was returned (minus the 100 UNIT sent to proxy)
+            // Check that deposit was returned (minus the 100 HAVE sent to proxy)
             let alice_balance_after_kill = Balances::free_balance(&alice);
-            assert_eq!(alice_balance_before - 100 * UNIT, alice_balance_after_kill);
+            assert_eq!(alice_balance_before - 100 * HAVE, alice_balance_after_kill);
 
             // Verify proxy relationship no longer exists
             let proxies = Proxy::proxies(pure_account);
@@ -983,9 +984,9 @@ fn test_kill_anonymous_proxy() {
 fn test_proxy_announcement_system() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -1004,7 +1005,7 @@ fn test_proxy_announcement_system() {
             // Bob announces a future proxy call
             let call = RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
                 dest: charlie.clone(),
-                value: 500 * UNIT,
+                value: 500 * HAVE,
             });
 
             assert_ok!(Proxy::announce(
@@ -1045,7 +1046,7 @@ fn test_proxy_announcement_system() {
             ));
 
             // Verify the transfer occurred
-            assert_eq!(Balances::free_balance(&charlie), 1_500 * UNIT);
+            assert_eq!(Balances::free_balance(&charlie), 1_500 * HAVE);
         });
 }
 
@@ -1053,10 +1054,10 @@ fn test_proxy_announcement_system() {
 fn test_utility_batch_with_proxy() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
-            (account_id(DAVE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
+            (account_id(DAVE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -1077,11 +1078,11 @@ fn test_utility_batch_with_proxy() {
             let batch_calls = vec![
                 RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
                     dest: charlie.clone(),
-                    value: 200 * UNIT,
+                    value: 200 * HAVE,
                 }),
                 RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
                     dest: dave.clone(),
-                    value: 300 * UNIT,
+                    value: 300 * HAVE,
                 }),
             ];
 
@@ -1095,8 +1096,8 @@ fn test_utility_batch_with_proxy() {
             ));
 
             // Check both transfers were executed
-            assert_eq!(Balances::free_balance(&charlie), 1_200 * UNIT);
-            assert_eq!(Balances::free_balance(&dave), 1_300 * UNIT);
+            assert_eq!(Balances::free_balance(&charlie), 1_200 * HAVE);
+            assert_eq!(Balances::free_balance(&dave), 1_300 * HAVE);
         });
 }
 
@@ -1104,10 +1105,10 @@ fn test_utility_batch_with_proxy() {
 fn test_proxy_chain() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 1_000 * UNIT),
-            (account_id(CHARLIE), 1_000 * UNIT),
-            (account_id(DAVE), 1_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 1_000 * HAVE),
+            (account_id(CHARLIE), 1_000 * HAVE),
+            (account_id(DAVE), 1_000 * HAVE),
         ])
         .build()
         .execute_with(|| {
@@ -1144,14 +1145,14 @@ fn test_proxy_chain() {
                     call: Box::new(RuntimeCall::Balances(
                         pallet_balances::Call::transfer_allow_death {
                             dest: dave.clone(),
-                            value: 400 * UNIT,
+                            value: 400 * HAVE,
                         }
                     ))
                 }))
             ));
 
             let dave_balance_after = Balances::free_balance(&dave);
-            assert_eq!(dave_balance_after - dave_balance_before, 400 * UNIT);
+            assert_eq!(dave_balance_after - dave_balance_before, 400 * HAVE);
         });
 }
 
@@ -1164,10 +1165,10 @@ fn test_proxy_chain() {
 fn test_multisig_to_anonymous_proxy_to_sudo() {
     ExtBuilder::default()
         .with_balances(vec![
-            (account_id(ALICE), 10_000 * UNIT),
-            (account_id(BOB), 10_000 * UNIT),
-            (account_id(CHARLIE), 10_000 * UNIT),
-            (account_id(DAVE), 5_000 * UNIT),
+            (account_id(ALICE), 10_000 * HAVE),
+            (account_id(BOB), 10_000 * HAVE),
+            (account_id(CHARLIE), 10_000 * HAVE),
+            (account_id(DAVE), 5_000 * HAVE),
         ])
         .with_sudo(account_id(ALICE)) // Set Alice as the sudo key initially
         .build()
@@ -1185,7 +1186,7 @@ fn test_multisig_to_anonymous_proxy_to_sudo() {
             assert_ok!(Balances::transfer_allow_death(
                 RuntimeOrigin::signed(dave.clone()),
                 multisig_account.clone(),
-                2_000 * UNIT
+                2_000 * HAVE
             ));
 
             // Create anonymous proxy with SudoOnly permissions
@@ -1240,7 +1241,7 @@ fn test_multisig_to_anonymous_proxy_to_sudo() {
                 call: Box::new(RuntimeCall::Balances(
                     pallet_balances::Call::force_set_balance {
                         who: alice.clone(),
-                        new_free: alice_initial_balance + 1_000 * UNIT, // Increase Alice's balance
+                        new_free: alice_initial_balance + 1_000 * HAVE, // Increase Alice's balance
                     },
                 )),
             });
@@ -1260,7 +1261,7 @@ fn test_multisig_to_anonymous_proxy_to_sudo() {
             }));
 
             // Verify that Alice's balance was forcibly set
-            assert_eq!(Balances::free_balance(&alice), 11_000 * UNIT);
+            assert_eq!(Balances::free_balance(&alice), 11_000 * HAVE);
 
             // This test successfully demonstrates:
             // 1. Anonymous proxy creation

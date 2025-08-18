@@ -26,13 +26,13 @@
 pub mod runtime_params;
 
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
+    currency::*, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
+    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit,
+    ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
+    Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
     RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
+    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -40,11 +40,13 @@ use datahaven_runtime_common::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
+    proxy::ProxyType,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
+    dispatch::DispatchClass,
     pallet_prelude::TransactionPriority,
     parameter_types,
     traits::{
@@ -53,16 +55,10 @@ use frame_support::{
         ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
-    weights::{
-        constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, RuntimeDbWeight, Weight,
-    },
+    weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    unique, EnsureRoot, EnsureRootWithSuccess,
-};
+use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -117,18 +113,6 @@ pub(crate) use crate::weights as mainnet_weights;
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 
-// TODO: We need to define what do we want here as max PoV size
-pub const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
-
-// Todo: import all currency constants from moonbeam
-pub const WEIGHT_FEE: Balance = 50_000 / 4;
-
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND, u64::MAX)
-    .saturating_mul(2)
-    .set_proof_size(MAX_POV_SIZE);
-
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 //║                                             COMMON PARAMETERS                                                 ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
@@ -144,15 +128,30 @@ parameter_types! {
 //║                                      SYSTEM AND CONSENSUS PALLETS                                             ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
+pub struct BlockWeights;
+impl Get<frame_system::limits::BlockWeights> for BlockWeights {
+    fn get() -> frame_system::limits::BlockWeights {
+        frame_system::limits::BlockWeights::builder()
+            .for_class(DispatchClass::Normal, |weights| {
+                weights.base_extrinsic = EXTRINSIC_BASE_WEIGHT;
+                weights.max_total = NORMAL_BLOCK_WEIGHT.into();
+            })
+            .for_class(DispatchClass::Operational, |weights| {
+                weights.max_total = MAXIMUM_BLOCK_WEIGHT.into();
+                weights.reserved = (MAXIMUM_BLOCK_WEIGHT - NORMAL_BLOCK_WEIGHT).into();
+            })
+            .avg_block_initialization(Perbill::from_percent(10))
+            .build()
+            .expect("Provided BlockWeight definitions are valid, qed")
+    }
+}
+
 parameter_types! {
-    pub const BlockHashCount: BlockNumber = 2400;
+    pub const BlockHashCount: BlockNumber = BLOCK_HASH_COUNT;
     pub const Version: RuntimeVersion = VERSION;
 
-    /// We allow for 2 seconds of compute with a 6 second average block time.
-    pub RuntimeBlockWeights: BlockWeights = BlockWeights::with_sensible_defaults(
-        Weight::from_parts(2u64 * WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
-        NORMAL_DISPATCH_RATIO,
-    );
+    pub RuntimeBlockWeights: frame_system::limits::BlockWeights = BlockWeights::get();
+    /// We allow for 5 MB blocks.
     pub RuntimeBlockLength: BlockLength = BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
@@ -238,7 +237,7 @@ impl pallet_balances::Config for Runtime {
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
-    type ExistentialDeposit = ConstU128<EXISTENTIAL_DEPOSIT>;
+    type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = mainnet_weights::pallet_balances::WeightInfo<Runtime>;
     type FreezeIdentifier = RuntimeFreezeReason;
@@ -446,7 +445,7 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PreimageBaseDeposit: Balance = 5 * UNIT * SUPPLY_FACTOR ;
+    pub const PreimageBaseDeposit: Balance = 5 * HAVE * SUPPLY_FACTOR ;
     pub const PreimageByteDeposit: Balance = STORAGE_BYTE_FEE;
     pub const PreimageHoldReason: RuntimeHoldReason =
         RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
@@ -536,6 +535,98 @@ impl pallet_multisig::Config for Runtime {
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = mainnet_weights::pallet_multisig::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    // One storage item; key size 32 (AccountId), value overhead ~8 bytes (Vec metadata)
+    pub const ProxyDepositBase: Balance = deposit(1, 8);
+    // Additional storage item size of 21 bytes (20 bytes AccountId + 1 byte sizeof(ProxyType)).
+    pub const ProxyDepositFactor: Balance = deposit(0, 21);
+    pub const MaxProxies: u16 = 32;
+    // One storage item; key size 32 (AccountId), value overhead ~8 bytes (BoundedVec metadata)
+    pub const AnnouncementDepositBase: Balance = deposit(1, 8);
+    // Additional storage item size of 56 bytes:
+    // - 20 bytes AccountId
+    // - 32 bytes Hasher (Blake2256)
+    // - 4 bytes BlockNumber (u32)
+    pub const AnnouncementDepositFactor: Balance = deposit(0, 56);
+    pub const MaxPending: u16 = 32;
+}
+
+// Implement the proxy filter logic specific to the mainnet runtime
+impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
+    fn filter(&self, c: &RuntimeCall) -> bool {
+        match self {
+            ProxyType::Any => true,
+            ProxyType::NonTransfer => match c {
+                RuntimeCall::Identity(
+                    pallet_identity::Call::add_sub { .. } | pallet_identity::Call::set_subs { .. },
+                ) => false,
+                call => {
+                    matches!(
+                        call,
+                        RuntimeCall::System(..)
+                            | RuntimeCall::Timestamp(..)
+                            | RuntimeCall::Identity(..)
+                            | RuntimeCall::Utility(..)
+                            | RuntimeCall::Proxy(..)
+                            | RuntimeCall::Preimage(..)
+                    )
+                }
+            },
+            ProxyType::Governance => {
+                // Todo: Add additional governance calls when available
+                matches!(c, RuntimeCall::Utility(..) | RuntimeCall::Preimage(..))
+            }
+            ProxyType::Staking => {
+                // Todo: Add additional staking calls when available
+                matches!(c, RuntimeCall::Utility(..))
+            }
+            ProxyType::CancelProxy => {
+                matches!(
+                    c,
+                    RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })
+                )
+            }
+            ProxyType::Balances => {
+                matches!(c, RuntimeCall::Balances(..) | RuntimeCall::Utility(..))
+            }
+            ProxyType::IdentityJudgement => {
+                matches!(
+                    c,
+                    RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
+                        | RuntimeCall::Utility(..)
+                )
+            }
+            ProxyType::SudoOnly => {
+                matches!(c, RuntimeCall::Sudo(..))
+            }
+        }
+    }
+
+    fn is_superset(&self, o: &Self) -> bool {
+        match (self, o) {
+            (x, y) if x == y => true,
+            (ProxyType::Any, _) => true,
+            (_, ProxyType::Any) => false,
+            _ => false,
+        }
+    }
+}
+
+impl pallet_proxy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type Currency = Balances;
+    type ProxyType = ProxyType;
+    type ProxyDepositBase = ProxyDepositBase;
+    type ProxyDepositFactor = ProxyDepositFactor;
+    type MaxProxies = MaxProxies;
+    type WeightInfo = mainnet_weights::pallet_proxy::WeightInfo<Runtime>;
+    type MaxPending = MaxPending;
+    type CallHasher = sp_runtime::traits::BlakeTwo256;
+    type AnnouncementDepositBase = AnnouncementDepositBase;
+    type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
 impl pallet_parameters::Config for Runtime {
@@ -667,7 +758,15 @@ parameter_types! {
     // pub PrecompilesValue: TemplatePrecompiles<Runtime> = TemplatePrecompiles::<_>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
-    pub GasLimitPovSizeRatio: u32 = 16;
+    /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
+    /// it with the pov_size for a block. E.g.
+    /// ceil(
+    ///     (max_extrinsic.ref_time() / max_extrinsic.proof_size()) / WEIGHT_PER_GAS
+    /// )
+    /// We should re-check `xcm_config::Erc20XcmBridgeTransferGasLimit` when changing this value
+    pub const GasLimitPovSizeRatio: u64 = 16;
+    /// The amount of gas per storage (in bytes): BLOCK_GAS_LIMIT / BLOCK_STORAGE_LIMIT
+    /// (60_000_000 / 160 kb)
     pub GasLimitStorageGrowthRatio: u64 = 366;
 }
 
@@ -697,7 +796,7 @@ impl pallet_evm::Config for Runtime {
     type OnCreate = ();
     type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
-    type GasLimitStorageGrowthRatio = ();
+    type GasLimitStorageGrowthRatio = GasLimitStorageGrowthRatio;
     type Timestamp = Timestamp;
     type WeightInfo = mainnet_weights::pallet_evm::WeightInfo<Runtime>;
 }
@@ -720,7 +819,7 @@ parameter_types! {
     pub Parameters: PricingParameters<u128> = PricingParameters {
         exchange_rate: FixedU128::from_rational(1, 400),
         fee_per_gas: gwei(20),
-        rewards: Rewards { local: UNIT, remote: meth(1) },
+        rewards: Rewards { local: HAVE, remote: meth(1) },
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
@@ -1091,6 +1190,18 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
+        let rewards_registry_address =
+            runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get();
+
+        // Skip sending message if RewardsRegistryAddress is zero (invalid)
+        if rewards_registry_address == H160::zero() {
+            log::warn!(
+                target: "rewards_send_adapter",
+                "Skipping rewards message: RewardsRegistryAddress is zero"
+            );
+            return None;
+        }
+
         let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
 
         let mut calldata = Vec::new();
@@ -1098,7 +1209,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
 
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
+            target: rewards_registry_address,
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
@@ -1216,5 +1327,80 @@ mod tests {
             EthereumSovereignAccount::get(),
             "Computed account must match hardcoded value"
         );
+    }
+
+    #[test]
+    fn test_rewards_send_adapter_with_zero_address() {
+        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use sp_io::TestExternalities;
+
+        TestExternalities::default().execute_with(|| {
+            // Create test rewards utils
+            let rewards_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::random(),
+                leaves: vec![H256::random()],
+                leaf_index: Some(1),
+                total_points: 1000,
+            };
+
+            // By default, RewardsRegistryAddress is zero (H160::repeat_byte(0x0))
+            // So the adapter should return None
+            let message = RewardsSendAdapter::build(&rewards_utils);
+            assert!(
+                message.is_none(),
+                "Should return None when RewardsRegistryAddress is zero"
+            );
+        });
+    }
+
+    #[test]
+    fn test_rewards_send_adapter_with_valid_address() {
+        use frame_support::assert_ok;
+        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use sp_io::TestExternalities;
+
+        TestExternalities::default().execute_with(|| {
+            // Set a valid (non-zero) rewards registry address
+            let valid_address = H160::from_low_u64_be(0x1234567890abcdef);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::RewardsRegistryAddress(
+                        runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress,
+                        Some(valid_address),
+                    ),
+                ),
+            ));
+
+            // Create test rewards utils
+            let rewards_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::random(),
+                leaves: vec![H256::random()],
+                leaf_index: Some(1),
+                total_points: 1000,
+            };
+
+            // Now the adapter should return a valid message
+            let message = RewardsSendAdapter::build(&rewards_utils);
+            assert!(
+                message.is_some(),
+                "Should return Some(message) when RewardsRegistryAddress is non-zero"
+            );
+
+            // Verify the message contains the correct target address
+            if let Some(msg) = message {
+                // Check that the first command has the correct target
+                let command = &msg.commands[0];
+                match command {
+                    Command::CallContract { target, .. } => {
+                        assert_eq!(
+                            *target, valid_address,
+                            "Message should target the configured address"
+                        );
+                    }
+                    _ => panic!("Expected CallContract command"),
+                }
+            }
+        });
     }
 }

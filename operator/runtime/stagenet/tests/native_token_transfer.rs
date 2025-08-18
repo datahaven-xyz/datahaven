@@ -7,8 +7,8 @@ mod common;
 use codec::Encode;
 use common::*;
 use datahaven_stagenet_runtime::{
-    configs::EthereumSovereignAccount, AccountId, Balance, Balances, DataHavenNativeTransfer,
-    Runtime, RuntimeEvent, RuntimeOrigin, SnowbridgeSystemV2, System, UNIT,
+    configs::EthereumSovereignAccount, currency::HAVE, AccountId, Balance, Balances,
+    DataHavenNativeTransfer, Runtime, RuntimeEvent, RuntimeOrigin, SnowbridgeSystemV2, System,
 };
 use dhp_bridge::NativeTokenTransferMessageProcessor;
 use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};
@@ -25,8 +25,8 @@ use sp_runtime::DispatchError;
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 
-const TRANSFER_AMOUNT: Balance = 1000 * UNIT;
-const FEE_AMOUNT: Balance = 10 * UNIT;
+const TRANSFER_AMOUNT: Balance = 1000 * HAVE;
+const FEE_AMOUNT: Balance = 10 * HAVE;
 const ETH_ALICE: H160 = H160([0x11; 20]);
 const ETH_BOB: H160 = H160([0x22; 20]);
 
@@ -191,8 +191,8 @@ fn treasury_collects_fees_from_multiple_transfers() {
         let treasury_account = datahaven_stagenet_runtime::configs::TreasuryAccount::get();
         let initial_treasury_balance = Balances::balance(&treasury_account);
 
-        let fee1 = 5 * UNIT;
-        let fee2 = 10 * UNIT;
+        let fee1 = 5 * HAVE;
+        let fee2 = 10 * HAVE;
 
         assert_ok!(DataHavenNativeTransfer::transfer_to_ethereum(
             RuntimeOrigin::signed(alice),
@@ -298,26 +298,26 @@ fn multiple_assets_processing_sums_amounts() {
         message.assets = vec![
             EthereumAsset::ForeignTokenERC20 {
                 token_id,
-                value: 300 * UNIT,
+                value: 300 * HAVE,
             },
             EthereumAsset::ForeignTokenERC20 {
                 token_id,
-                value: 200 * UNIT,
+                value: 200 * HAVE,
             },
             EthereumAsset::ForeignTokenERC20 {
                 token_id,
-                value: 500 * UNIT,
+                value: 500 * HAVE,
             },
         ];
 
-        setup_sovereign_balance(2000 * UNIT);
+        setup_sovereign_balance(2000 * HAVE);
 
         assert_ok!(
             snowbridge_pallet_inbound_queue_v2::Pallet::<Runtime>::process_message(alice, message)
         );
 
         let recipient: AccountId = ETH_ALICE.into();
-        let total_amount = 1000 * UNIT;
+        let total_amount = 1000 * HAVE;
         assert_eq!(Balances::balance(&recipient), total_amount);
     });
 }

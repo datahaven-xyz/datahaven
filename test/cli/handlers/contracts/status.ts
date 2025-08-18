@@ -97,12 +97,7 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
 
     for (const contract of contracts) {
       const address = deployments[contract.key];
-      await printContractStatus(
-        { name: contract.name, address },
-        etherscanApiKey,
-        "560048",
-        rpcUrl
-      );
+      await printContractStatus({ name: contract.name, address }, etherscanApiKey, chain, rpcUrl);
     }
   } catch (error) {
     logger.warn(`⚠️ Could not check contract status: ${error}`);

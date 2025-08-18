@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { logger } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
-import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
+import { CHAIN_CONFIGS, getChainConfig } from "../../../configs/contracts/config";
 
 interface ContractsVerifyOptions {
   chain: string;
@@ -65,7 +65,7 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
       name: "RewardsRegistry",
       address: deployments.RewardsRegistry,
       artifactName: "RewardsRegistry",
-      constructorArgs: [deployments.RewardsCoordinator, deployments.RewardsAgent],
+      constructorArgs: [deployments.ServiceManager, deployments.RewardsAgent],
       constructorArgTypes: ["address", "address"]
     },
     {
@@ -96,9 +96,8 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
     contractsToVerify.forEach((contract) => {
       logger.info(`  • ${contract.name}: ${contract.address}`);
     });
-
-    logger.info("🔗 View contracts on Hoodi block explorer:");
-    logger.info("  • https://hoodi.etherscan.io/");
+    logger.info(`🔗 View contracts on ${options.chain} block explorer:`);
+    logger.info(`  • ${getChainConfig(options.chain).BLOCK_EXPLORER}`);
 
     // Verify each contract with delay to respect rate limits
     for (const contract of contractsToVerify) {

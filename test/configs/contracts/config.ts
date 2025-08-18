@@ -43,6 +43,12 @@ export const CHAIN_CONFIGS = {
   }
 };
 
+export type ChainConfigType = typeof CHAIN_CONFIGS;
+
+export const getChainConfig = (chain: string) => {
+  return CHAIN_CONFIGS[chain as keyof ChainConfigType];
+};
+
 export const loadChainConfig = async (chain: string) => {
   try {
     const configPath = `../contracts/config/${chain}.json`;

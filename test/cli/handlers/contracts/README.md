@@ -65,13 +65,6 @@ bun cli contracts deploy --chain hoodi --rpc-url https://your-rpc-url.com
 bun cli contracts status --chain hoodi
 ```
 
-## Contract Verification
-
-Verification happens automatically if `ETHERSCAN_API_KEY` is set. To skip verification:
-```bash
-bun cli contracts deploy --chain hoodi --skip-verification
-```
-
 ## Deployment Files
 
 Successful deployments create:

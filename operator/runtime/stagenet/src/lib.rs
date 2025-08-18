@@ -349,6 +349,9 @@ mod runtime {
 
     #[runtime::pallet_index(37)]
     pub type Treasury = pallet_treasury;
+
+    #[runtime::pallet_index(38)]
+    pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
@@ -516,6 +519,9 @@ mod runtime {
 
     #[runtime::pallet_index(36)]
     pub type Sudo = pallet_sudo;
+
+    #[runtime::pallet_index(38)]
+    pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗

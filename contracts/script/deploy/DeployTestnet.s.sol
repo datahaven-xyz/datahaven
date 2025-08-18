@@ -22,6 +22,7 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {PermissionController} from
     "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
@@ -128,8 +129,8 @@ contract DeployTestnet is DeployBase {
             DataHavenServiceManager.initialise.selector,
             params.avsOwner,
             params.rewardsInitiator,
-            [], // FIXME remove when BSPs and MSPs are removed
-            [], // FIXME remove when BSPs and MSPs are removed
+            new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
+            new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
             params.gateway
         );
 

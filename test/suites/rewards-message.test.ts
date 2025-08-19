@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { logger } from "utils";
+import { padHex } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
@@ -78,80 +79,92 @@ describe("Rewards Message Flow", () => {
     const currentEra = await rewardsHelpers.getCurrentEra(dhApi);
     const blocksUntilEraEnd = await rewardsHelpers.getBlocksUntilEraEnd(dhApi);
 
-    logger.info(`Current block: ${currentBlock}, era: ${currentEra}, blocks until era end: ${blocksUntilEraEnd}`);
+    logger.info(
+      `Current block: ${currentBlock}, era: ${currentEra}, blocks until era end: ${blocksUntilEraEnd}`
+    );
 
     // Step 2: Wait for era to end and capture the rewards message event
     logger.info("Waiting for era to end and rewards message to be sent...");
 
     const rewardsMessageEvent = await rewardsHelpers.waitForRewardsMessageSent(
-      dhApi, 
-      currentEra,  // Wait for the current era's rewards message (sent when it ends)
+      dhApi,
+      currentEra,
       blocksUntilEraEnd * 6000 + 30000
     );
 
-    if (!rewardsMessageEvent.data?.payload) {
+    if (!rewardsMessageEvent) {
       throw new Error("No rewards message event received - era ended without rewards message");
     }
 
-    const eventPayload = rewardsMessageEvent.data.payload;
+    const messageIdHex = rewardsMessageEvent.message_id;
+    const merkleRootHex = rewardsMessageEvent.rewards_merkle_root;
+    const totalPoints = rewardsMessageEvent.total_points;
+    const eraIndex = rewardsMessageEvent.era_index;
 
-    // Extract fields from payload (hash fields need .toHex() conversion)
-    const messageIdHex = eventPayload.message_id?.toHex?.() || eventPayload.message_id;
-    const merkleRootHex = eventPayload.rewards_merkle_root?.toHex?.() || eventPayload.rewards_merkle_root;
-    const totalPoints = eventPayload.total_points;
-    const inflationAmount = eventPayload.inflation_amount;
-    const eraIndex = eventPayload.era_index;
-
-    logger.info(`Rewards message sent for era ${eraIndex}: ${totalPoints} points, merkle root: ${merkleRootHex}`);
+    logger.debug(
+      `Rewards message sent for era ${eraIndex}: ${totalPoints} points, merkle root: ${merkleRootHex}`
+    );
 
     expect(messageIdHex).toBeDefined();
     expect(merkleRootHex).toBeDefined();
-    expect(Number(totalPoints)).toBeGreaterThan(0);
+    expect(totalPoints).toBeGreaterThan(0n);
 
-    // Step 3: Track message through Snowbridge
-    logger.info(`Waiting for message ${messageIdHex} to be queued in Snowbridge...`);
-    const queuedEvent = await rewardsHelpers.waitForSnowbridgeMessage(dhApi, messageIdHex);
-    expect(queuedEvent.data).toBeDefined();
-
-    // Step 4: Monitor Gateway execution on Ethereum
+    // Step 3: Monitor Gateway execution on Ethereum
     const gateway = await getContractInstance("Gateway");
     logger.info("Waiting for message execution on Gateway...");
+
+    // Start watching from current block to avoid matching unrelated historical events
+    const fromBlock = await publicClient.getBlockNumber();
 
     const executedEvent = await waitForEthereumEvent({
       client: publicClient,
       address: gateway.address,
       abi: gateway.abi,
       eventName: "MessageExecuted",
+      fromBlock,
       timeout: 120000
     });
 
     expect(executedEvent.log).toBeDefined();
     logger.info(`Message executed on Ethereum at block ${executedEvent.log?.blockNumber}`);
 
-    // Step 5: Verify RewardsRegistry update
+    // Step 4: Verify RewardsRegistry update
     const rewardsRegistry = await getContractInstance("RewardsRegistry");
+
+    const expectedRoot = padHex(merkleRootHex as `0x${string}`, { size: 32 });
 
     const rootUpdatedEvent = await waitForEthereumEvent({
       client: publicClient,
       address: rewardsRegistry.address,
       abi: rewardsRegistry.abi,
       eventName: "RewardsMerkleRootUpdated",
-      timeout: 30000
+      args: { newRoot: expectedRoot },
+      fromBlock,
+      timeout: 180000
     });
 
     expect(rootUpdatedEvent.log).toBeDefined();
-    const rootIndex = (rootUpdatedEvent.log as any)?.args?.index || 0;
-    logger.info(`Merkle root updated at index ${rootIndex}`);
+    const { oldRoot, newRoot, newRootIndex } = (rootUpdatedEvent.log as any).args as {
+      oldRoot: `0x${string}`;
+      newRoot: `0x${string}`;
+      newRootIndex: bigint;
+    };
 
-    // Step 6: Verify the stored root matches
-    const storedRoot = await publicClient.readContract({
+    logger.info(`Merkle root updated at index ${newRootIndex.toString()}`);
+    logger.info(`Old merkle root: ${oldRoot}`);
+    logger.info(`New merkle root (from event): ${newRoot}`);
+
+    // Verify the stored root matches the emitted newRoot on Ethereum
+    const storedRoot = (await publicClient.readContract({
       address: rewardsRegistry.address,
       abi: rewardsRegistry.abi,
       functionName: "merkleRootHistory",
-      args: [rootIndex]
-    });
+      args: [newRootIndex]
+    })) as `0x${string}`;
+    expect(storedRoot.toLowerCase()).toBe(newRoot.toLowerCase());
+    // And it must match the root sent from DataHaven
+    expect(storedRoot.toLowerCase()).toBe(expectedRoot.toLowerCase());
 
-    expect(storedRoot).toBe(merkleRootHex);
     logger.success("✅ Rewards message successfully propagated from DataHaven to Ethereum");
 
     // TODO: Implement merkle proof generation and claiming

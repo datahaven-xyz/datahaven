@@ -143,12 +143,7 @@ describe("Native Token Transfer", () => {
     const connectors = suite.getTestConnectors();
     // First, check if token is already registered
     const existingTokenAddress = await getNativeERC20Address(connectors);
-
-    // Skip registration if token already exists
-    if (existingTokenAddress) {
-      logger.debug(`Token already registered at: ${existingTokenAddress}`);
-      return;
-    }
+    expect(existingTokenAddress).toBeNull();
 
     // Register token via sudo
     const registerTx = connectors.dhApi.tx.SnowbridgeSystemV2.register_token({

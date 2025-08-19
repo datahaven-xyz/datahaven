@@ -166,7 +166,36 @@ describe("Rewards Message Flow", () => {
 
     logger.success("✅ Rewards message successfully propagated from DataHaven to Ethereum");
 
-    // TODO: Implement merkle proof generation and claiming
-    // This requires validator point data and merkle tree library
+    // Step 8: Generate Merkle Proofs
+    logger.info("Generating merkle proofs for validators...");
+
+    // Get era reward points
+    const eraPoints = await rewardsHelpers.getEraRewardPoints(dhApi, eraIndex);
+    expect(eraPoints).toBeDefined();
+    expect(eraPoints?.total).toBeGreaterThan(0);
+
+    logger.info(`Era ${eraIndex} points distribution:`);
+    logger.info(`  Total points: ${eraPoints?.total}`);
+    logger.info(`  Validators with points: ${eraPoints?.individual.size}`);
+
+    // Generate merkle proofs for all validators
+    const validatorProofs = await rewardsHelpers.generateMerkleProofsForEra(dhApi, eraIndex);
+
+    // Verify we have at least one validator with proofs
+    expect(validatorProofs.size).toBeGreaterThan(0);
+
+    // Log proof details for debugging
+    for (const [operatorAddress, proofData] of validatorProofs) {
+      logger.debug("Validator proof generated:");
+      logger.debug(`  Operator: ${operatorAddress}`);
+      logger.debug(`  Points: ${proofData.points}`);
+      logger.debug(`  Proof elements: ${proofData.proof.length}`);
+      logger.debug(`  Leaf: ${proofData.leaf}`);
+    }
+
+    logger.success(`✅ Generated merkle proofs for ${validatorProofs.size} validators`);
+
+    // TODO: Implement Step 9-11 (claiming rewards and verification)
+    // This requires Service Manager interaction and token balance checks
   }, 300000);
 });

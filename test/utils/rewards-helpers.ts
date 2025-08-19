@@ -46,14 +46,38 @@ export async function waitForEraEnd(dhApi: DataHavenApi): Promise<void> {
   await waitForBlocks(dhApi, blocksToWait);
 }
 
-// Validator monitoring
-export async function getValidatorPoints(
+// Validator monitoring and rewards data
+export interface EraRewardPoints {
+  total: number;
+  individual: Map<string, number>;
+}
+
+export async function getEraRewardPoints(
   dhApi: DataHavenApi,
-  era: number
-): Promise<Map<string, number>> {
-  // TODO: Get era points from correct storage
-  // const eraPoints = await dhApi.query.RewardPointsForEra?
-  return new Map();
+  eraIndex: number
+): Promise<EraRewardPoints | null> {
+  try {
+    const rewardPoints =
+      await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
+
+    if (!rewardPoints) {
+      return null;
+    }
+
+    // Convert the storage format to our interface
+    const individual = new Map<string, number>();
+    for (const [account, points] of rewardPoints.individual) {
+      individual.set(account.toString(), points);
+    }
+
+    return {
+      total: rewardPoints.total,
+      individual
+    };
+  } catch (error) {
+    logger.error(`Failed to get era reward points for era ${eraIndex}: ${error}`);
+    return null;
+  }
 }
 
 export async function getBlockAuthor(dhApi: DataHavenApi, blockNumber: number): Promise<string> {
@@ -86,29 +110,96 @@ export async function waitForSnowbridgeMessage(
   });
 }
 
-// Merkle proof generation
-export interface MerkleProof {
-  leaf: string;
+// Merkle proof generation using DataHaven runtime API
+export interface ValidatorProofData {
+  validatorAccount: string;
+  operatorAddress: string;
+  points: number;
   proof: string[];
-  root: string;
+  leaf: string;
 }
 
-export async function generateMerkleProof(
-  validatorPoints: Map<string, number>,
-  operator: string
-): Promise<MerkleProof> {
-  // TODO: Implement merkle tree generation
-  // Will need to use keccak256 and proper encoding
-  return {
-    leaf: "",
-    proof: [],
-    root: ""
+export async function generateMerkleProofForValidator(
+  dhApi: DataHavenApi,
+  validatorAccount: string,
+  eraIndex: number
+): Promise<{ proof: string[]; leaf: string } | null> {
+  try {
+    // Call the runtime API to generate merkle proof
+    const merkleProof = await dhApi.apis.ExternalValidatorsRewardsApi.generate_rewards_merkle_proof(
+      validatorAccount,
+      eraIndex
+    );
+
+    if (!merkleProof) {
+      logger.debug(
+        `No merkle proof available for validator ${validatorAccount} in era ${eraIndex}`
+      );
+      return null;
+    }
+
+    // Convert the proof to hex strings
+    const proof = merkleProof.proof.map((node: any) =>
+      node.asHex ? node.asHex() : `0x${node.toString()}`
+    );
+
+    const leaf = merkleProof.leaf.asHex
+      ? merkleProof.leaf.asHex()
+      : `0x${merkleProof.leaf.toString()}`;
+
+    return { proof, leaf };
+  } catch (error) {
+    logger.error(`Failed to generate merkle proof for validator ${validatorAccount}: ${error}`);
+    return null;
+  }
+}
+
+// Map validator account to operator address
+// In a real scenario, this would query the validator registry
+export async function getOperatorAddress(validatorAccount: string): Promise<string> {
+  // For testing, we'll use a simple mapping
+  // In production, this should query the actual validator registry
+  const mapping: Record<string, string> = {
+    // Add test mappings here as needed
   };
+
+  // If no mapping exists, use the validator account as-is (for testing)
+  // This assumes the validator account is already an Ethereum address
+  return mapping[validatorAccount] || validatorAccount;
 }
 
-export function verifyMerkleProof(proof: MerkleProof): boolean {
-  // TODO: Implement merkle proof verification
-  return false;
+// Generate merkle proofs for all validators in an era
+export async function generateMerkleProofsForEra(
+  dhApi: DataHavenApi,
+  eraIndex: number
+): Promise<Map<string, ValidatorProofData>> {
+  const proofs = new Map<string, ValidatorProofData>();
+
+  // Get era reward points
+  const eraPoints = await getEraRewardPoints(dhApi, eraIndex);
+  if (!eraPoints) {
+    logger.warn(`No reward points found for era ${eraIndex}`);
+    return proofs;
+  }
+
+  // Generate proofs for each validator
+  for (const [validatorAccount, points] of eraPoints.individual) {
+    const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
+    if (!merkleData) continue;
+
+    const operatorAddress = await getOperatorAddress(validatorAccount);
+
+    proofs.set(operatorAddress, {
+      validatorAccount,
+      operatorAddress,
+      points,
+      proof: merkleData.proof,
+      leaf: merkleData.leaf
+    });
+  }
+
+  logger.info(`Generated ${proofs.size} merkle proofs for era ${eraIndex}`);
+  return proofs;
 }
 
 // Rewards validation
@@ -141,8 +232,7 @@ export async function waitForRewardsMessageSent(
     api: dhApi,
     pallet: "ExternalValidatorsRewards",
     event: "RewardsMessageSent",
-    filter:
-      expectedEra !== undefined ? (event) => event.era_index === expectedEra : undefined,
+    filter: expectedEra !== undefined ? (event) => event.era_index === expectedEra : undefined,
     timeout
   });
 

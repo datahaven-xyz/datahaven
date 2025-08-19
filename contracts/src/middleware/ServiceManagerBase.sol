@@ -22,7 +22,6 @@ import {IPermissionController} from
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
 import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
-import {IVetoableSlasher} from "../interfaces/IVetoableSlasher.sol";
 import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
 
 /**
@@ -56,17 +55,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     ) internal virtual onlyInitializing {
         _transferOwnership(initialOwner);
         _setRewardsInitiator(_rewardsInitiator);
-    }
-
-    /**
-     * @notice Sets the slasher contract
-     * @param slasher The slasher contract address
-     * @dev Only callable by the owner
-     */
-    function setSlasher(
-        IVetoableSlasher slasher
-    ) external virtual onlyOwner {
-        _slasher = slasher;
     }
 
     /**

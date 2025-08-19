@@ -1,7 +1,7 @@
 [package]
-name = "pallet-external-validators"
+name = "pallet-external-validators-slashes"
 authors = { workspace = true }
-description = "Simple pallet to store external validators."
+description = "External validator info slashes"
 edition = "2021"
 license = "GPL-3.0-only"
 version = "0.1.0"
@@ -13,27 +13,26 @@ targets = [ "x86_64-unknown-linux-gnu" ]
 workspace = true
 
 [dependencies]
-log = { workspace = true }
-parity-scale-codec = { workspace = true }
-rand = { workspace = true, optional = true }
-scale-info = { workspace = true, features = [ "derive" ] }
-macro_rules_attribute = { workspace = true }
-
+frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
-impl-trait-for-tuples = { workspace = true }
+log = { workspace = true }
+pallet-session = { workspace = true }
+pallet-staking = { workspace = true }
+parity-scale-codec = { workspace = true, features = [ "derive", "max-encoded-len" ] }
+scale-info = { workspace = true }
+snowbridge-core = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 sp-staking = { workspace = true }
 sp-std = { workspace = true }
+pallet-external-validators = { workspace = true }
 
-frame-benchmarking = { workspace = true }
-
-pallet-balances = { workspace = true, optional = true }
-pallet-session = { workspace = true, features = [ "historical" ] }
 
 [dev-dependencies]
-pallet-timestamp = { workspace = true }
+pallet-timestamp = { workspace = true, features = [ "std" ] }
+sp-core = { workspace = true }
 sp-io = { workspace = true }
 
 [features]
@@ -43,33 +42,34 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
-	"pallet-balances/std",
 	"pallet-session/std",
+	"pallet-staking/std",
 	"pallet-timestamp/std",
 	"parity-scale-codec/std",
-	"rand?/std",
 	"scale-info/std",
+	"snowbridge-core/std",
+	"snowbridge-outbound-queue-primitives/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-staking/std",
-	"sp-std/std",
+	"pallet-external-validators/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"pallet-balances/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
-	"rand",
+	"pallet-staking/runtime-benchmarks",
+	"snowbridge-core/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
+	"pallet-external-validators/runtime-benchmarks",
 ]
 
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
-	"pallet-balances?/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"sp-runtime/try-runtime",

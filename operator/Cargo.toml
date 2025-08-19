@@ -27,6 +27,7 @@ dhp-bridge = { path = "./primitives/bridge", default-features = false }
 pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
 pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
 pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
+pallet-external-validators-slashes = { path = "./pallets/external-validators-slashes", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-datahaven-native-transfer = { path = "./pallets/datahaven-native-transfer", default-features = false }
 
@@ -52,6 +53,7 @@ impl-trait-for-tuples = { version = "0.2.2" }
 jsonrpsee = { version = "0.24.3" }
 libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
+macro_rules_attribute = { version = "0.2.0" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
 openssl-sys = { version = "0.9", features = [
     "vendored",
@@ -104,6 +106,7 @@ pallet-preimage = { git = "https://github.com/paritytech/polkadot-sdk", branch =
 pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
+pallet-staking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2412", default-features = false }

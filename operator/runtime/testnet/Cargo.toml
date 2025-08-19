@@ -44,6 +44,7 @@ pallet-evm-chain-id = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
+pallet-external-validators-slashes = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -199,6 +200,7 @@ std = [
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
     "pallet-datahaven-native-transfer/std",
+    "pallet-external-validators-slashes/std",
 ]
 
 runtime-benchmarks = [
@@ -240,6 +242,7 @@ runtime-benchmarks = [
     "pallet-external-validators/runtime-benchmarks",
     "pallet-external-validators-rewards/runtime-benchmarks",
     "pallet-datahaven-native-transfer/runtime-benchmarks",
+    "pallet-external-validators-slashes/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -283,6 +286,7 @@ try-runtime = [
     "pallet-external-validators/try-runtime",
     "pallet-external-validators-rewards/try-runtime",
     "pallet-datahaven-native-transfer/try-runtime",
+    "pallet-external-validators-slashes/try-runtime",
 ]
 
 fast-runtime = ["datahaven-runtime-common/fast-runtime"]

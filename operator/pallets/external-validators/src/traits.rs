@@ -3,6 +3,33 @@ use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 
+pub use macro_rules_attribute::apply;
+
+pub mod __reexports {
+    pub use {
+        frame_support::{CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound},
+        parity_scale_codec::DecodeWithMemTracking,
+        scale_info::TypeInfo,
+        sp_core::{Decode, Encode, RuntimeDebug},
+    };
+}
+
+#[macro_export]
+macro_rules! derive_storage_traits {
+    ( $( $tt:tt )* ) => {
+        #[derive(
+            $crate::traits::__reexports::RuntimeDebug,
+            ::core::cmp::PartialEq,
+            ::core::cmp::Eq,
+            ::core::clone::Clone,
+            $crate::traits::__reexports::Encode,
+            $crate::traits::__reexports::Decode,
+            $crate::traits::__reexports::TypeInfo,
+        )]
+        $($tt)*
+    }
+}
+
 /// Information regarding the active era (era in used in session).
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct ActiveEraInfo {

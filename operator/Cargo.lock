@@ -2378,6 +2378,7 @@ dependencies = [
  "pallet-outbound-commitment-store",
  "pallet-parameters",
  "pallet-preimage",
+ "pallet-proxy",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
@@ -2589,6 +2590,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proofs-dealer",
  "pallet-proofs-dealer-runtime-api",
+ "pallet-proxy",
  "pallet-randomness",
  "pallet-referenda",
  "pallet-scheduler",
@@ -2703,6 +2705,7 @@ dependencies = [
  "pallet-outbound-commitment-store",
  "pallet-parameters",
  "pallet-preimage",
+ "pallet-proxy",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
@@ -8276,6 +8279,16 @@ dependencies = [
  "sp-api",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-proxy"
+version = "39.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#247f2e4641f8039ceb58827ff2f8a562217f298d"
+dependencies = [
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
 ]
 
 [[package]]

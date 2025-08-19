@@ -20,8 +20,9 @@ use fp_rpc::TransactionStatus;
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::{TransactionValidity, TransactionValidityError},
+    parameter_types,
     traits::{KeyOwnerProofSystem, OnFinalize},
-    weights::Weight,
+    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -30,6 +31,7 @@ use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner}
 use pallet_external_validators::traits::EraIndex;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 pub use pallet_timestamp::Call as TimestampCall;
+use smallvec::smallvec;
 use snowbridge_core::AgentId;
 use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
@@ -44,7 +46,7 @@ use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{Block as BlockT, DispatchInfoOf, Dispatchable, PostDispatchInfoOf},
     transaction_validity::TransactionSource,
-    ApplyExtrinsicResult, Permill,
+    ApplyExtrinsicResult, Perbill, Permill,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -56,12 +58,10 @@ use frame_support::weights::{
     constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
     WeightToFeePolynomial,
 };
-use smallvec::smallvec;
-use sp_runtime::Perbill;
 
 pub use datahaven_runtime_common::{
-    time::EpochDurationInBlocks, AccountId, Address, Balance, BlockNumber, Hash, Header, Nonce,
-    Signature,
+    gas::WEIGHT_PER_GAS, time::EpochDurationInBlocks, time::*, AccountId, Address, Balance,
+    BlockNumber, Hash, Header, Nonce, Signature,
 };
 
 pub mod genesis_config_presets;
@@ -117,52 +117,58 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     system_version: 1,
 };
 
-mod block_times {
-    /// This determines the average expected block time that we are targeting. Blocks will be
-    /// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-    /// `pallet_timestamp` which is in turn picked up by `pallet_babe` to implement `fn
-    /// slot_duration()`.
-    ///
-    /// Change this to adjust the block time.
-    pub const MILLI_SECS_PER_BLOCK: u64 = 6000;
-
-    // NOTE: Currently it is not possible to change the slot duration after the chain has started.
-    // Attempting to do so will brick block production.
-    pub const SLOT_DURATION: u64 = MILLI_SECS_PER_BLOCK;
-}
-pub use block_times::*;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLI_SECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
+/// HAVE, the native token, uses 18 decimals of precision.
+pub mod currency {
+    use super::Balance;
 
-// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
-pub const SUPPLY_FACTOR: Balance = 1;
+    // Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
+    pub const SUPPLY_FACTOR: Balance = 1;
 
-// Unit = the base number of indivisible units for balances
-pub const UNIT: Balance = 1_000_000_000_000;
-pub const CENTS: Balance = UNIT / 100;
-pub const MILLI_UNIT: Balance = 1_000_000_000;
-pub const MICRO_UNIT: Balance = 1_000_000;
-pub const NANO_UNIT: Balance = 1_000;
-pub const PICO_UNIT: Balance = 1;
-pub const KILO_UNIT: Balance = UNIT * 1000;
+    pub const WEI: Balance = 1;
+    pub const KILOWEI: Balance = 1_000;
+    pub const MEGAWEI: Balance = 1_000_000;
+    pub const GIGAWEI: Balance = 1_000_000_000;
+    pub const MICROHAVE: Balance = 1_000_000_000_000;
+    pub const MILLIHAVE: Balance = 1_000_000_000_000_000;
+    pub const HAVE: Balance = 1_000_000_000_000_000_000;
+    pub const KILOHAVE: Balance = 1_000_000_000_000_000_000_000;
 
-pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+    pub const TRANSACTION_BYTE_FEE: Balance = 1 * GIGAWEI * SUPPLY_FACTOR;
+    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROHAVE * SUPPLY_FACTOR;
+    pub const WEIGHT_FEE: Balance = 50 * KILOWEI * SUPPLY_FACTOR / 4;
 
-/// Existential deposit.
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 1 * HAVE * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+    }
+}
+
+pub const MAX_POV_SIZE: u32 = 5 * 1024 * 1024;
+
+/// Maximum weight per block
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+    WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+    MAX_POV_SIZE as u64,
+);
+
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+pub const NORMAL_BLOCK_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_mul(3).saturating_div(4);
+// Here we assume Ethereum's base fee of 21000 gas and convert to weight, but we
+// subtract roughly the cost of a balance transfer from it (about 1/3 the cost)
+// and some cost to account for per-byte-fee.
+// TODO: we should use benchmarking's overhead feature to measure this
+pub const EXTRINSIC_BASE_WEIGHT: Weight = Weight::from_parts(10000 * WEIGHT_PER_GAS, 0);
+
+// Existential deposit.
 #[cfg(not(feature = "runtime-benchmarks"))]
-pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
-// NOTE: pallet_treasury benchmark creates spends of 100 to a random beneficiary and the payout()
-// benchmark will fail if `ExistentialDeposit` is greater than that
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 0;
+}
 #[cfg(feature = "runtime-benchmarks")]
-pub const EXISTENTIAL_DEPOSIT: Balance = 1;
-
-pub const fn deposit(items: u32, bytes: u32) -> Balance {
-    items as Balance * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+parameter_types! {
+    // TODO: Change ED to 1 after upgrade to Polkadot SDK stable2503
+    // cfr. https://github.com/paritytech/polkadot-sdk/pull/7379
+    pub const ExistentialDeposit: Balance = 100;
 }
 
 /// The version information used to identify this runtime when compiled natively.
@@ -247,9 +253,9 @@ pub struct WeightToFee;
 impl WeightToFeePolynomial for WeightToFee {
     type Balance = Balance;
     fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
-        // in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
-        let p = MILLI_UNIT / 10;
+        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIHAVE:
+        // in our template, we map to 1/10 of that, or 1/10 MILLIHAVE
+        let p = currency::MILLIHAVE / 10;
         let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
         smallvec![WeightToFeeCoefficient {
             degree: 1,
@@ -354,26 +360,29 @@ mod runtime {
     #[runtime::pallet_index(37)]
     pub type Treasury = pallet_treasury;
 
-    // ╔═════════════════════════ Governance Pallets ═════════════════════════╗
     #[runtime::pallet_index(38)]
+    pub type Proxy = pallet_proxy;
+    // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+
+    // ╔═════════════════════════ Governance Pallets ════════════════════╗
+    #[runtime::pallet_index(40)]
     pub type TechnicalCommittee = pallet_collective<Instance1>;
 
-    #[runtime::pallet_index(39)]
+    #[runtime::pallet_index(41)]
     pub type TreasuryCouncil = pallet_collective<Instance2>;
 
-    #[runtime::pallet_index(40)]
+    #[runtime::pallet_index(42)]
     pub type ConvictionVoting = pallet_conviction_voting;
 
-    #[runtime::pallet_index(41)]
+    #[runtime::pallet_index(43)]
     pub type Referenda = pallet_referenda;
 
-    #[runtime::pallet_index(42)]
+    #[runtime::pallet_index(44)]
     pub type Whitelist = pallet_whitelist;
 
-    #[runtime::pallet_index(43)]
+    #[runtime::pallet_index(45)]
     pub type Origins = governance::custom_origins;
-    // ╚═════════════════════════ Governance Pallets ═════════════════════════╝
-    // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+    // ╚═════════════════════════ Governance Pallets ════════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
     #[runtime::pallet_index(50)]
@@ -540,6 +549,9 @@ mod runtime {
 
     #[runtime::pallet_index(36)]
     pub type Sudo = pallet_sudo;
+
+    #[runtime::pallet_index(38)]
+    pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
@@ -1355,5 +1367,92 @@ impl_runtime_apis! {
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
         }
+    }
+}
+
+// Shorthand for a Get field of a pallet Config.
+#[macro_export]
+macro_rules! get {
+    ($pallet:ident, $name:ident, $type:ty) => {
+        <<$crate::Runtime as $pallet::Config>::$name as $crate::Get<$type>>::get()
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+
+    use super::{
+        configs::{BlockGasLimit, WeightPerGas},
+        currency::*,
+        *,
+    };
+
+    #[test]
+    fn currency_constants_are_correct() {
+        assert_eq!(SUPPLY_FACTOR, 1);
+
+        // txn fees
+        assert_eq!(TRANSACTION_BYTE_FEE, Balance::from(1 * GIGAWEI));
+        assert_eq!(
+            get!(pallet_transaction_payment, OperationalFeeMultiplier, u8),
+            5_u8
+        );
+        assert_eq!(STORAGE_BYTE_FEE, Balance::from(100 * MICROHAVE));
+
+        // pallet_identity deposits
+        assert_eq!(
+            get!(pallet_identity, BasicDeposit, u128),
+            Balance::from(1 * HAVE + 25800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_identity, ByteDeposit, u128),
+            Balance::from(100 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_identity, SubAccountDeposit, u128),
+            Balance::from(1 * HAVE + 5300 * MICROHAVE)
+        );
+
+        // TODO: Uncomment when pallet_proxy is enabled
+        // proxy deposits
+        // assert_eq!(
+        //     get!(pallet_proxy, ProxyDepositBase, u128),
+        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
+        // );
+        // assert_eq!(
+        //     get!(pallet_proxy, ProxyDepositFactor, u128),
+        //     Balance::from(2100 * MICROHAVE)
+        // );
+        // assert_eq!(
+        //     get!(pallet_proxy, AnnouncementDepositBase, u128),
+        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
+        // );
+        // assert_eq!(
+        //     get!(pallet_proxy, AnnouncementDepositFactor, u128),
+        //     Balance::from(5600 * MICROHAVE)
+        // );
+    }
+
+    #[test]
+    fn configured_base_extrinsic_weight_is_evm_compatible() {
+        let min_ethereum_transaction_weight = WeightPerGas::get() * 21_000;
+        let base_extrinsic = <Runtime as frame_system::Config>::BlockWeights::get()
+            .get(frame_support::dispatch::DispatchClass::Normal)
+            .base_extrinsic;
+        assert!(base_extrinsic.ref_time() <= min_ethereum_transaction_weight.ref_time());
+    }
+
+    #[test]
+    fn test_storage_growth_ratio_is_correct() {
+        let expected_storage_growth_ratio = BlockGasLimit::get()
+            .low_u64()
+            .saturating_div(BLOCK_STORAGE_LIMIT);
+        let actual_storage_growth_ratio: u64 =
+            <Runtime as pallet_evm::Config>::GasLimitStorageGrowthRatio::get();
+        assert_eq!(
+            expected_storage_growth_ratio, actual_storage_growth_ratio,
+            "Storage growth ratio is not correct"
+        );
     }
 }

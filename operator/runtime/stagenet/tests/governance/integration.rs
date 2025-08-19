@@ -7,8 +7,8 @@
 use crate::common::*;
 use codec::Encode;
 use datahaven_stagenet_runtime::{
-    Balance, ConvictionVoting, Preimage, Referenda, Runtime, RuntimeCall, RuntimeOrigin,
-    TechnicalCommittee, TreasuryCouncil, DAYS, HOURS, UNIT,
+    currency::HAVE, Balance, ConvictionVoting, Preimage, Referenda, Runtime, RuntimeCall,
+    RuntimeOrigin, TechnicalCommittee, TreasuryCouncil, DAYS, HOURS,
 };
 use frame_support::traits::schedule::DispatchTime;
 use frame_support::{assert_ok, dispatch::GetDispatchInfo, traits::StorePreimage};
@@ -109,7 +109,7 @@ fn complete_governance_workflow_works() {
         match referendum_status {
             ReferendumInfo::Ongoing(status) => {
                 // 9. Community members vote if referendum allows voting
-                let voting_balance = 100 * UNIT;
+                let voting_balance = 100 * HAVE;
 
                 // Try to vote - if referendum isn't in deciding phase yet, these may queue
                 let alice_vote_result = ConvictionVoting::vote(
@@ -211,7 +211,7 @@ fn emergency_cancellation_workflow_works() {
                     aye: true,
                     conviction: Conviction::Locked1x
                 },
-                balance: 50 * UNIT
+                balance: 50 * HAVE
             }
         ));
 
@@ -373,7 +373,7 @@ fn treasury_spending_workflow_works() {
         //     ReferendaEvent::DecisionDepositPlaced {
         //         index: 0,
         //         who: dave(),                        // Last voter who triggered execution
-        //         amount: 500 * UNIT * SUPPLY_FACTOR  // General admin track deposit (updated amount)
+        //         amount: 500 * HAVE * SUPPLY_FACTOR  // General admin track deposit (updated amount)
         //     }
         // )));
 
@@ -390,7 +390,7 @@ fn treasury_spending_workflow_works() {
                             aye: true,
                             conviction: Conviction::Locked2x,
                         },
-                        balance: 200 * UNIT,
+                        balance: 200 * HAVE,
                     },
                 );
 
@@ -445,7 +445,7 @@ fn delegation_governance_workflow_works() {
         ));
 
         // 2. Bob and Charlie delegate to Alice (trusted governance expert)
-        let delegation_amount = 150 * UNIT;
+        let delegation_amount = 150 * HAVE;
         let track_class = 0u16; // Root track
 
         assert_ok!(ConvictionVoting::delegate(
@@ -473,7 +473,7 @@ fn delegation_governance_workflow_works() {
                     aye: true,
                     conviction: Conviction::Locked1x
                 },
-                balance: 100 * UNIT
+                balance: 100 * HAVE
             }
         ));
 
@@ -486,7 +486,7 @@ fn delegation_governance_workflow_works() {
                     aye: false,
                     conviction: Conviction::Locked2x
                 },
-                balance: 200 * UNIT
+                balance: 200 * HAVE
             }
         ));
 
@@ -505,7 +505,7 @@ fn delegation_governance_workflow_works() {
                     aye: false,
                     conviction: Conviction::None
                 },
-                balance: 75 * UNIT
+                balance: 75 * HAVE
             }
         ));
 
@@ -620,7 +620,7 @@ fn multi_track_parallel_governance_works() {
                     aye: true,
                     conviction: Conviction::Locked6x
                 },
-                balance: 500 * UNIT
+                balance: 500 * HAVE
             }
         ));
 
@@ -633,7 +633,7 @@ fn multi_track_parallel_governance_works() {
                     aye: true,
                     conviction: Conviction::Locked2x
                 },
-                balance: 200 * UNIT
+                balance: 200 * HAVE
             }
         ));
 
@@ -646,7 +646,7 @@ fn multi_track_parallel_governance_works() {
                     aye: true,
                     conviction: Conviction::Locked1x
                 },
-                balance: 150 * UNIT
+                balance: 150 * HAVE
             }
         ));
 
@@ -658,7 +658,7 @@ fn multi_track_parallel_governance_works() {
                     aye: false,
                     conviction: Conviction::Locked2x
                 },
-                balance: 100 * UNIT
+                balance: 100 * HAVE
             }
         ));
 
@@ -859,7 +859,7 @@ fn governance_self_upgrade_workflow_works() {
                             Conviction::Locked1x
                         }
                     },
-                    balance: (100 + i * 50) as Balance * UNIT
+                    balance: (100 + i * 50) as Balance * HAVE
                 }
             ));
         }

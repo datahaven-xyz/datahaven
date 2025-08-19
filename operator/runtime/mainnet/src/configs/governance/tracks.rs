@@ -4,7 +4,7 @@
 //! types of governance decisions, inspired by Moonbeam's governance structure.
 
 use super::*;
-use crate::{KILO_UNIT, SUPPLY_FACTOR, UNIT};
+use crate::currency::{HAVE, KILOHAVE, SUPPLY_FACTOR};
 use datahaven_runtime_common::time::*;
 use pallet_referenda::Curve;
 use sp_std::str::FromStr;
@@ -26,7 +26,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             // For Root origin this should generally be just one.
             max_deciding: 5,
             // Amount that must be placed on deposit before a decision can be made.
-            decision_deposit: 20 * KILO_UNIT * SUPPLY_FACTOR,
+            decision_deposit: 20 * KILOHAVE * SUPPLY_FACTOR,
             // Amount of time this must be submitted for before a decision can be made.
             prepare_period: 1 * DAYS,
             // Amount of time that a decision may take to be approved prior to cancellation.
@@ -48,7 +48,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         pallet_referenda::TrackInfo {
             name: "whitelisted_caller",
             max_deciding: 100,
-            decision_deposit: 2 * KILO_UNIT * SUPPLY_FACTOR,
+            decision_deposit: 2 * KILOHAVE * SUPPLY_FACTOR,
             prepare_period: 10 * MINUTES,
             decision_period: 14 * DAYS,
             confirm_period: 10 * MINUTES,
@@ -62,7 +62,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         pallet_referenda::TrackInfo {
             name: "general_admin",
             max_deciding: 10,
-            decision_deposit: 100 * UNIT * SUPPLY_FACTOR,
+            decision_deposit: 100 * HAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
             decision_period: 14 * DAYS,
             confirm_period: 1 * DAYS,
@@ -76,7 +76,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         pallet_referenda::TrackInfo {
             name: "referendum_canceller",
             max_deciding: 20,
-            decision_deposit: 2 * KILO_UNIT * SUPPLY_FACTOR,
+            decision_deposit: 2 * KILOHAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
             decision_period: 14 * DAYS,
             confirm_period: 3 * HOURS,
@@ -90,7 +90,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         pallet_referenda::TrackInfo {
             name: "referendum_killer",
             max_deciding: 100,
-            decision_deposit: 4 * KILO_UNIT * SUPPLY_FACTOR,
+            decision_deposit: 4 * KILOHAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
             decision_period: 14 * DAYS,
             confirm_period: 3 * HOURS,
@@ -104,7 +104,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         pallet_referenda::TrackInfo {
             name: "fast_general_admin",
             max_deciding: 10,
-            decision_deposit: 100 * UNIT * SUPPLY_FACTOR,
+            decision_deposit: 100 * HAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
             decision_period: 14 * DAYS,
             confirm_period: 3 * HOURS,

@@ -6,8 +6,10 @@
 use crate::common::*;
 use codec::Encode;
 use datahaven_stagenet_runtime::{
-    governance::TracksInfo, AccountId, Balances, ConvictionVoting, Preimage, Referenda, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeOrigin, SUPPLY_FACTOR, UNIT,
+    currency::{HAVE, SUPPLY_FACTOR},
+    governance::TracksInfo,
+    AccountId, Balances, ConvictionVoting, Preimage, Referenda, Runtime, RuntimeCall, RuntimeEvent,
+    RuntimeOrigin,
 };
 use frame_support::traits::schedule::DispatchTime;
 use frame_support::{
@@ -47,13 +49,13 @@ fn tracks_info_configured_correctly() {
         let (root_id, root_info) = &tracks[0];
         assert_eq!(*root_id, 0u16);
         assert_eq!(root_info.max_deciding, 5);
-        assert_eq!(root_info.decision_deposit, 100000 * UNIT * SUPPLY_FACTOR); // 100 * KILO_UNIT
+        assert_eq!(root_info.decision_deposit, 100000 * HAVE * SUPPLY_FACTOR); // 100 * KILO_HAVE
 
         // Verify general admin track
         let (admin_id, admin_info) = &tracks[2];
         assert_eq!(*admin_id, 2u16);
         assert_eq!(admin_info.max_deciding, 10);
-        assert_eq!(admin_info.decision_deposit, 500 * UNIT * SUPPLY_FACTOR);
+        assert_eq!(admin_info.decision_deposit, 500 * HAVE * SUPPLY_FACTOR);
     });
 }
 
@@ -144,7 +146,7 @@ fn conviction_voting_works() {
         ));
 
         // Vote with different conviction levels
-        let vote_balance = 100 * UNIT;
+        let vote_balance = 100 * HAVE;
 
         // Alice votes with 6x conviction
         assert_ok!(ConvictionVoting::vote(
@@ -407,7 +409,7 @@ fn vote_delegation_works() {
             DispatchTime::After(10)
         ));
 
-        let delegation_balance = 100 * UNIT;
+        let delegation_balance = 100 * HAVE;
         let class = 0u16; // Root track class
 
         // Bob delegates to Alice
@@ -438,7 +440,7 @@ fn vote_delegation_works() {
                     aye: true,
                     conviction: Conviction::Locked1x
                 },
-                balance: 50 * UNIT
+                balance: 50 * HAVE
             }
         ));
 
@@ -485,7 +487,7 @@ fn referendum_insufficient_support_fails() {
                     aye: true,
                     conviction: Conviction::None
                 },
-                balance: 1 * UNIT // Very small vote
+                balance: 1 * HAVE // Very small vote
             }
         ));
 
@@ -698,7 +700,7 @@ fn insufficient_balance_for_deposits() {
         use datahaven_stagenet_runtime::configs::governance::referenda::SubmissionDeposit;
         let submission_deposit = SubmissionDeposit::get();
         // Give enough for submission deposit + preimage costs, but not enough for decision deposit
-        let _ = Balances::make_free_balance_be(&poor_account, submission_deposit + 1000 * UNIT);
+        let _ = Balances::make_free_balance_be(&poor_account, submission_deposit + 1000 * HAVE);
 
         let proposal = make_simple_proposal();
         assert_ok!(Preimage::note_preimage(
@@ -759,7 +761,7 @@ fn referendum_confirmation_period_works() {
         ));
 
         // Vote with overwhelming support to meet approval threshold
-        let vote_amount = 1000 * UNIT;
+        let vote_amount = 1000 * HAVE;
         for i in 0..10 {
             let voter = AccountId::from([i as u8; 32]);
             let _ = Balances::make_free_balance_be(&voter, vote_amount * 2);
@@ -824,14 +826,14 @@ fn split_votes_with_conviction() {
 
         // Split vote from same account
         let split_voter = AccountId::from([50u8; 32]);
-        let _ = Balances::make_free_balance_be(&split_voter, 1000 * UNIT);
+        let _ = Balances::make_free_balance_be(&split_voter, 1000 * HAVE);
 
         assert_ok!(ConvictionVoting::vote(
             RuntimeOrigin::signed(split_voter),
             0,
             AccountVote::Split {
-                aye: 600 * UNIT,
-                nay: 400 * UNIT
+                aye: 600 * HAVE,
+                nay: 400 * HAVE
             }
         ));
 
@@ -848,7 +850,7 @@ fn split_votes_with_conviction() {
 
         for (i, conviction) in convictions.iter().enumerate() {
             let voter = AccountId::from([(100 + i) as u8; 32]);
-            let _ = Balances::make_free_balance_be(&voter, 100 * UNIT);
+            let _ = Balances::make_free_balance_be(&voter, 100 * HAVE);
 
             assert_ok!(ConvictionVoting::vote(
                 RuntimeOrigin::signed(voter),
@@ -858,7 +860,7 @@ fn split_votes_with_conviction() {
                         aye: i % 2 == 0,
                         conviction: *conviction
                     },
-                    balance: 100 * UNIT
+                    balance: 100 * HAVE
                 }
             ));
         }

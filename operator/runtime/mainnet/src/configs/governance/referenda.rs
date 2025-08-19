@@ -14,7 +14,7 @@ use sp_runtime::traits::Replace;
 // Referenda configuration parameters
 parameter_types! {
     pub const AlarmInterval: BlockNumber = 1;
-    pub const SubmissionDeposit: Balance = 10 * UNIT * SUPPLY_FACTOR;
+    pub const SubmissionDeposit: Balance = 10 * HAVE * SUPPLY_FACTOR;
     pub const UndecidingTimeout: BlockNumber = 21 * DAYS;
 }
 

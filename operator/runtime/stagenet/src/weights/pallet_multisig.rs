@@ -86,7 +86,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(116), added: 2591, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[2, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
-	fn as_multi_complete(s: u32, z: u32, ) -> Weight {
+	fn as_multi_complete(s: u32, _z: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `260 + s * (21 ±0)`
 		//  Estimated: `5587`
@@ -95,7 +95,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 			// Standard Error: 59_499
 			.saturating_add(Weight::from_parts(122_448, 0).saturating_mul(s.into()))
 			// Standard Error: 583
-			.saturating_add(Weight::from_parts(1_200, 0).saturating_mul(z.into()))
+			.saturating_add(Weight::from_parts(1_200, 0).saturating_mul(_z.into()))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
@@ -116,14 +116,14 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// Storage: `Multisig::Multisigs` (r:1 w:1)
 	/// Proof: `Multisig::Multisigs` (`max_values`: None, `max_size`: Some(2122), added: 4597, mode: `MaxEncodedLen`)
 	/// The range of component `s` is `[2, 100]`.
-	fn approve_as_multi_approve(s: u32, ) -> Weight {
+	fn approve_as_multi_approve(_s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `212`
 		//  Estimated: `5587`
 		// Minimum execution time: 14_000_000 picoseconds.
 		Weight::from_parts(14_438_775, 5587)
 			// Standard Error: 7_215
-			.saturating_add(Weight::from_parts(30_612, 0).saturating_mul(s.into()))
+			.saturating_add(Weight::from_parts(30_612, 0).saturating_mul(_s.into()))
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}

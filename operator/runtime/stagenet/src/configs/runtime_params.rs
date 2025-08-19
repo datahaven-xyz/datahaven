@@ -6,6 +6,9 @@ use sp_runtime::{BoundedVec, Perbill};
 use sp_std::vec;
 
 #[cfg(feature = "storage-hub")]
+use crate::currency::{Balance, GIGAWEI, HAVE};
+
+#[cfg(feature = "storage-hub")]
 use crate::configs::storagehub::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};
 
 #[cfg(not(feature = "storage-hub"))]
@@ -100,23 +103,23 @@ pub mod dynamic_params {
 
         #[codec(index = 4)]
         #[allow(non_upper_case_globals)]
-        /// 20 UNITs
-        pub static SlashAmountPerMaxFileSize: Balance = 20 * UNIT;
+        /// 20 HAVEs
+        pub static SlashAmountPerMaxFileSize: Balance = 20 * HAVE;
 
         #[codec(index = 5)]
         #[allow(non_upper_case_globals)]
-        /// 10k UNITs * [`MinChallengePeriod`] = 10k UNITs * 30 = 300k UNITs
+        /// 10k HAVEs * [`MinChallengePeriod`] = 10k HAVEs * 30 = 300k HAVEs
         ///
-        ///  This can be interpreted as "a Provider with 10k UNITs of stake would get the minimum challenge period".
+        ///  This can be interpreted as "a Provider with 10k HAVEs of stake would get the minimum challenge period".
         pub static StakeToChallengePeriod: Balance =
-            10_000 * UNIT * Into::<u128>::into(MinChallengePeriod::get());
+            10_000 * HAVE * Into::<u128>::into(MinChallengePeriod::get());
 
         #[codec(index = 6)]
         #[allow(non_upper_case_globals)]
         /// The [`CheckpointChallengePeriod`] is set to be equal to the longest possible challenge period
         /// (i.e. the [`StakeToChallengePeriod`] divided by the [`SpMinDeposit`]).
         ///
-        // 300k UNITs / 100 UNITs + 50 + 1 = ~3k ticks (i.e. ~5 hours with 6 seconds per tick)
+        // 300k HAVEs / 100 HAVEs + 50 + 1 = ~3k ticks (i.e. ~5 hours with 6 seconds per tick)
         pub static CheckpointChallengePeriod: BlockNumber = (StakeToChallengePeriod::get()
             / SpMinDeposit::get()).saturating_add(ChallengeTicksTolerance::get() as u128).saturating_add(1)
         .try_into()
@@ -141,20 +144,20 @@ pub mod dynamic_params {
 
         #[codec(index = 10)]
         #[allow(non_upper_case_globals)]
-        /// 50 [`NANOUNIT`]s is the price per GB of data, per tick.
+        /// 50 [`GIGAWEI`]s is the price per GB of data, per tick.
         ///
         /// With 6 seconds per tick, this means that over a month, the price of 1 GB is:
-        /// 50e-9 [`UNIT`]s * 10 ticks/min * 60 min/h * 24 h/day * 30 days/month = 21.6e-3 [`UNIT`]s
-        pub static MostlyStablePrice: Balance = 50 * NANO_UNIT;
+        /// 50e-9 [`HAVE`]s * 10 ticks/min * 60 min/h * 24 h/day * 30 days/month = 21.6e-3 [`HAVE`]s
+        pub static MostlyStablePrice: Balance = 50 * GIGAWEI;
 
         #[codec(index = 11)]
         #[allow(non_upper_case_globals)]
-        /// [`MostlyStablePrice`] * 10 = 500 [`NANOUNIT`]s
+        /// [`MostlyStablePrice`] * 10 = 500 [`GIGAWEI`]s
         pub static MaxPrice: Balance = MostlyStablePrice::get() * 10;
 
         #[codec(index = 12)]
         #[allow(non_upper_case_globals)]
-        /// [`MostlyStablePrice`] / 5 = 10 [`NANOUNIT`]s
+        /// [`MostlyStablePrice`] / 5 = 10 [`GIGAWEI`]s
         pub static MinPrice: Balance = MostlyStablePrice::get() / 5;
 
         #[codec(index = 13)]
@@ -184,7 +187,7 @@ pub mod dynamic_params {
         /// 0-size bucket fixed rate payment stream representing the price for 1 GB of data.
         ///
         /// Base rate for a new fixed payment stream established between an MSP and a user.
-        pub static ZeroSizeBucketFixedRate: Balance = 50 * NANO_UNIT;
+        pub static ZeroSizeBucketFixedRate: Balance = 50 * GIGAWEI;
 
         #[codec(index = 16)]
         #[allow(non_upper_case_globals)]
@@ -335,11 +338,11 @@ pub mod dynamic_params {
 
         #[codec(index = 32)]
         #[allow(non_upper_case_globals)]
-        /// 10k UNITs * [`MinSeedPeriod`] = 10k UNITs * 20 = 200k UNITs
+        /// 10k HAVEs * [`MinSeedPeriod`] = 10k HAVEs * 20 = 200k HAVEs
         ///
-        ///  This can be interpreted as "a Provider with 10k UNITs of stake would get the minimum seed period".
+        ///  This can be interpreted as "a Provider with 10k HAVEs of stake would get the minimum seed period".
         pub static StakeToSeedPeriod: Balance =
-            10_000 * UNIT * Into::<u128>::into(MinSeedPeriod::get());
+            10_000 * HAVE * Into::<u128>::into(MinSeedPeriod::get());
 
         #[codec(index = 33)]
         #[allow(non_upper_case_globals)]
@@ -351,10 +354,10 @@ pub mod dynamic_params {
         /// This means that a user must pay for 5 days of storage upfront, which gets transferred to the
         /// treasury. Governance can then decide what to do with the accumulated funds.
         ///
-        /// With a stable price (defined as `MostlyStablePrice` in this file) of 50 NANOUNITs per gigabyte
+        /// With a stable price (defined as `MostlyStablePrice` in this file) of 50 GIGAWEIs per gigabyte
         /// per tick and a standard replication target (`StandardReplicationTarget`) of 12 BSPs, the upfront
         /// cost for the user to issue a storage request for a 1 GB file would be:
-        /// 50 NANOUNITs per gigabyte per tick * 12 BSPs * 72k ticks * 1 GB = 0.0432 UNITs
+        /// 50 GIGAWEIs per gigabyte per tick * 12 BSPs * 72k ticks * 1 GB = 0.0432 HAVEs
         pub static UpfrontTicksToPay: BlockNumber = 72_000;
         // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
     }

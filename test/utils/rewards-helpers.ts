@@ -3,13 +3,13 @@ import { waitForDataHavenEvent } from "./events";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
 
-// External Validators Rewards Events - normalized with string hex values
+// External Validators Rewards Events
 export interface RewardsMessageSentEvent {
-  message_id: string; // Always a hex string
+  message_id: string;
   era_index: number;
   total_points: bigint;
   inflation_amount: bigint;
-  rewards_merkle_root: string; // Always a hex string
+  rewards_merkle_root: string;
 }
 
 // Era tracking utilities
@@ -121,22 +121,6 @@ export function calculateExpectedRewards(
   return (inflation * points) / totalPoints;
 }
 
-// Helper to normalize hex values from polkadot-api
-function normalizeHex(value: any): string {
-  if (typeof value === "string") {
-    return value.startsWith("0x") ? value : `0x${value}`;
-  }
-  if (value && typeof value === "object") {
-    if (typeof value.toHex === "function") return value.toHex();
-    if (typeof value.asHex === "function") return value.asHex();
-    if (typeof value.toString === "function") {
-      const str = value.toString();
-      return str.startsWith("0x") ? str : `0x${str}`;
-    }
-  }
-  return String(value);
-}
-
 // Wait for rewards message sent event
 export async function waitForRewardsMessageSent(
   dhApi: DataHavenApi,
@@ -153,16 +137,16 @@ export async function waitForRewardsMessageSent(
 
   if (!result?.data) return null;
 
-  // Normalize the data to ensure hex fields are always strings
-  const normalized: RewardsMessageSentEvent = {
-    message_id: normalizeHex(result.data.message_id),
-    era_index: result.data.era_index,
-    total_points: result.data.total_points,
-    inflation_amount: result.data.inflation_amount,
-    rewards_merkle_root: normalizeHex(result.data.rewards_merkle_root)
-  };
-
-  return normalized;
+  // Assume event payload already provides hex strings; pass through unchanged
+  // Use polkadot-api FixedSizeBinary.asHex() for H256 fields
+  const data: any = result.data;
+  return {
+    message_id: (data.message_id as { asHex: () => `0x${string}` }).asHex(),
+    era_index: data.era_index,
+    total_points: data.total_points,
+    inflation_amount: data.inflation_amount,
+    rewards_merkle_root: (data.rewards_merkle_root as { asHex: () => `0x${string}` }).asHex()
+  } satisfies RewardsMessageSentEvent;
 }
 
 // Block utilities

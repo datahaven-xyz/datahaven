@@ -162,7 +162,6 @@ describe("Rewards Message Flow", () => {
       args: [newRootIndex]
     })) as `0x${string}`;
     expect(storedRoot.toLowerCase()).toBe(newRoot.toLowerCase());
-    // And it must match the root sent from DataHaven
     expect(storedRoot.toLowerCase()).toBe(expectedRoot.toLowerCase());
 
     logger.success("✅ Rewards message successfully propagated from DataHaven to Ethereum");

@@ -6,7 +6,7 @@
 use crate::common::*;
 use codec::Encode;
 use datahaven_mainnet_runtime::{
-    currency::{HAVE, SUPPLY_FACTOR},
+    currency::{HAVE, KILOHAVE, SUPPLY_FACTOR},
     governance::TracksInfo,
     AccountId, Balances, ConvictionVoting, Preimage, Referenda, Runtime, RuntimeCall, RuntimeEvent,
     RuntimeOrigin,
@@ -49,13 +49,13 @@ fn tracks_info_configured_correctly() {
         let (root_id, root_info) = &tracks[0];
         assert_eq!(*root_id, 0u16);
         assert_eq!(root_info.max_deciding, 5);
-        assert_eq!(root_info.decision_deposit, 100000 * HAVE * SUPPLY_FACTOR); // 100 * KILO_HAVE
+        assert_eq!(root_info.decision_deposit, 20 * KILOHAVE * SUPPLY_FACTOR); // 20 * KILO_HAVE
 
         // Verify general admin track
         let (admin_id, admin_info) = &tracks[2];
         assert_eq!(*admin_id, 2u16);
         assert_eq!(admin_info.max_deciding, 10);
-        assert_eq!(admin_info.decision_deposit, 500 * HAVE * SUPPLY_FACTOR);
+        assert_eq!(admin_info.decision_deposit, 100 * HAVE * SUPPLY_FACTOR);
     });
 }
 
@@ -612,8 +612,6 @@ fn decision_deposit_mechanics_work() {
 #[test]
 fn track_capacity_limits_enforced() {
     ExtBuilder::default().build().execute_with(|| {
-        use datahaven_mainnet_runtime::governance::custom_origins;
-
         // Use root track which has max_deciding of 5 (more reasonable for testing)
         let track_info = &TracksInfo::tracks()[0].1; // root track
         let max_deciding = track_info.max_deciding.min(5); // Use smaller number for testing

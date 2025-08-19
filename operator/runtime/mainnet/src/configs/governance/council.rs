@@ -5,7 +5,6 @@
 
 use super::*;
 use crate::governance::referenda::{FastGeneralAdminOrRoot, GeneralAdminOrRoot};
-use crate::weights;
 use frame_support::parameter_types;
 
 parameter_types! {

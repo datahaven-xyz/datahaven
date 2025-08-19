@@ -4,7 +4,7 @@
 //! Common test utilities for DataHaven testnet runtime tests
 
 use datahaven_testnet_runtime::{
-    currency::HAVE, AccountId, Balance, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Session,
+    currency::{HAVE, SUPPLY_FACTOR}, AccountId, Balance, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Session,
     SessionKeys, System, TechnicalCommittee, TreasuryCouncil,
 };
 use frame_support::{
@@ -35,12 +35,12 @@ pub fn account_id(account: [u8; 20]) -> AccountId {
 }
 
 /// Default balance for test accounts (1M DH tokens)
-pub const DEFAULT_BALANCE: Balance = 1_000_000 * HAVE;
+pub const DEFAULT_BALANCE: Balance = 1_000_000 * HAVE * SUPPLY_FACTOR;
 
-/// Governance test specific balances - increased for stagenet's higher decision deposits
-pub const INITIAL_BALANCE: Balance = 1_000_000 * HAVE; // 1M DH tokens for governance tests
-pub const PROPOSAL_BOND: Balance = 100 * HAVE;
-pub const VOTING_BALANCE: Balance = 10 * HAVE;
+/// Governance test specific balances
+pub const INITIAL_BALANCE: Balance = 1_000_000 * HAVE * SUPPLY_FACTOR; // 1M DH tokens for governance tests
+pub const PROPOSAL_BOND: Balance = 100 * HAVE * SUPPLY_FACTOR;
+pub const VOTING_BALANCE: Balance = 10 * HAVE * SUPPLY_FACTOR;
 
 /// Generate test session keys for a given account
 pub fn generate_session_keys(account: AccountId) -> SessionKeys {

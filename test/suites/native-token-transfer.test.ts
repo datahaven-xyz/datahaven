@@ -93,26 +93,22 @@ const ERC20_ABI = [
 ] as const;
 
 async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | null> {
-  try {
-    if (!deployments) throw new Error("Global deployments not initialized");
+  if (!deployments) throw new Error("Global deployments not initialized");
 
-    // The actual token ID that gets registered by the runtime
-    // This is computed by the runtime's TokenIdOf converter which uses
-    // DescribeGlobalPrefix to encode the reanchored location
-    const tokenId =
-      "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
+  // The actual token ID that gets registered by the runtime
+  // This is computed by the runtime's TokenIdOf converter which uses
+  // DescribeGlobalPrefix to encode the reanchored location
+  const tokenId =
+    "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
 
-    const tokenAddress = (await connectors.publicClient.readContract({
-      address: deployments.Gateway,
-      abi: gatewayAbi,
-      functionName: "tokenAddressOf",
-      args: [tokenId]
-    })) as `0x${string}`;
+  const tokenAddress = (await connectors.publicClient.readContract({
+    address: deployments.Gateway,
+    abi: gatewayAbi,
+    functionName: "tokenAddressOf",
+    args: [tokenId]
+  })) as `0x${string}`;
 
-    return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
-  } catch (_error) {
-    return null;
-  }
+  return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
 }
 
 class NativeTokenTransferTestSuite extends BaseTestSuite {

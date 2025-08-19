@@ -195,7 +195,128 @@ describe("Rewards Message Flow", () => {
 
     logger.success(`✅ Generated merkle proofs for ${validatorProofs.size} validators`);
 
-    // TODO: Implement Step 9-11 (claiming rewards and verification)
-    // This requires Service Manager interaction and token balance checks
+    // Step 9: Claim Rewards
+    logger.info("Claiming rewards for first validator...");
+
+    // Get wallet client for transactions
+    const { walletClient } = suite.getTestConnectors();
+
+    // Get Service Manager contract
+    const serviceManager = await getContractInstance("ServiceManager");
+
+    // Select first validator to claim
+    const firstEntry = validatorProofs.entries().next();
+    if (!firstEntry.value) {
+      throw new Error("No validator proofs available for claiming");
+    }
+    const [operatorAddress, proofData] = firstEntry.value;
+
+    logger.info(`Claiming rewards for operator: ${operatorAddress}`);
+    logger.info(`  Points: ${proofData.points}`);
+    logger.info(`  Root index: ${newRootIndex}`);
+
+    // Record initial ETH balance
+    const balanceBefore = await publicClient.getBalance({
+      address: operatorAddress as `0x${string}`
+    });
+
+    // Important: For testing, we assume the operator address is one of the funded accounts
+    // In production, the operator would sign their own transaction
+    // Here we use the first funded account which should match the operator setup
+    const claimTx = await walletClient.writeContract({
+      address: serviceManager.address as `0x${string}`,
+      abi: serviceManager.abi,
+      functionName: "claimOperatorRewards",
+      chain: null,
+      args: [
+        0, // operatorSetId (default to 0)
+        newRootIndex,
+        BigInt(proofData.points),
+        proofData.proof as readonly `0x${string}`[]
+      ]
+      // Note: account defaults to walletClient's account (first funded account)
+      // In production, this should be signed by the actual operator
+    });
+
+    logger.info(`Claim transaction submitted: ${claimTx}`);
+
+    // Wait for transaction receipt
+    const claimReceipt = await publicClient.waitForTransactionReceipt({
+      hash: claimTx
+    });
+
+    expect(claimReceipt.status).toBe("success");
+    logger.info(`Claim transaction confirmed in block ${claimReceipt.blockNumber}`);
+
+    // Get the claim event from RewardsRegistry
+    const claimEvent = await waitForEthereumEvent({
+      client: publicClient,
+      address: rewardsRegistry.address,
+      abi: rewardsRegistry.abi,
+      eventName: "RewardsClaimedForIndex",
+      fromBlock: claimReceipt.blockNumber - 1n,
+      timeout: 10000
+    });
+
+    expect(claimEvent.log).toBeDefined();
+    const claimArgs = (claimEvent.log as any).args as {
+      operatorAddress: `0x${string}`;
+      rootIndex: bigint;
+      operatorPoints: bigint;
+      rewardsAmount: bigint;
+    };
+
+    // Verify event data
+    expect(claimArgs.operatorAddress.toLowerCase()).toBe(operatorAddress.toLowerCase());
+    expect(claimArgs.rootIndex).toBe(newRootIndex);
+    expect(claimArgs.operatorPoints).toBe(BigInt(proofData.points));
+    expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
+
+    logger.success("✅ Rewards claimed successfully");
+    logger.info(`  Rewards amount: ${claimArgs.rewardsAmount} wei`);
+
+    // Step 10: Validate Token Transfer
+    logger.info("Validating reward transfer...");
+
+    // Check ETH balance after claim
+    const balanceAfter = await publicClient.getBalance({
+      address: operatorAddress as `0x${string}`
+    });
+
+    // Calculate expected rewards
+    const expectedRewards = rewardsHelpers.calculateExpectedRewards(
+      BigInt(proofData.points),
+      totalPoints,
+      rewardsMessageEvent.inflation_amount
+    );
+
+    // Account for gas costs - the actual balance increase might be less due to gas
+    // For the test account that sent the tx
+    const actualBalanceIncrease = balanceAfter - balanceBefore;
+
+    // If the operator is the same as the transaction sender, they pay gas
+    // Otherwise, they should receive the full amount
+    if (operatorAddress.toLowerCase() === walletClient.account.address.toLowerCase()) {
+      // Operator paid for gas, so balance increase will be less than rewards
+      const gasUsed = claimReceipt.gasUsed * claimReceipt.effectiveGasPrice;
+      const netRewards = claimArgs.rewardsAmount - gasUsed;
+
+      // Allow small difference due to rounding
+      expect(actualBalanceIncrease).toBeGreaterThanOrEqual(netRewards - 100n);
+      expect(actualBalanceIncrease).toBeLessThanOrEqual(netRewards + 100n);
+    } else {
+      // Different account claimed, operator should receive full rewards
+      expect(actualBalanceIncrease).toBe(claimArgs.rewardsAmount);
+    }
+
+    // Verify rewards amount matches expected calculation
+    expect(claimArgs.rewardsAmount).toBe(expectedRewards);
+
+    logger.success("✅ Reward transfer validated successfully");
+    logger.info(`  Expected rewards: ${expectedRewards} wei`);
+    logger.info(`  Actual rewards: ${claimArgs.rewardsAmount} wei`);
+    logger.info(`  Balance increase: ${actualBalanceIncrease} wei`);
+
+    // TODO: Implement Step 11 (double-claim prevention verification)
   }, 300000);
 });

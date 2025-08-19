@@ -4,8 +4,9 @@
 //! Common test utilities for DataHaven testnet runtime tests
 
 use datahaven_testnet_runtime::{
-    currency::{HAVE, SUPPLY_FACTOR}, AccountId, Balance, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Session,
-    SessionKeys, System, TechnicalCommittee, TreasuryCouncil,
+    currency::{HAVE, SUPPLY_FACTOR},
+    AccountId, Balance, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Session, SessionKeys,
+    System, TechnicalCommittee, TreasuryCouncil,
 };
 use frame_support::{
     assert_ok,

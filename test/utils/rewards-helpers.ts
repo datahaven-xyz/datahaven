@@ -122,31 +122,39 @@ export function calculateExpectedRewards(
 }
 
 // Wait for rewards message sent event
+// Typed payload from polkadot-api for the RewardsMessageSent event
+type H256 = { asHex(): `0x${string}` };
+interface RewardsMessageSentPayload {
+  message_id: H256;
+  rewards_merkle_root: H256;
+  era_index: number;
+  total_points: bigint;
+  inflation_amount: bigint;
+}
+
 export async function waitForRewardsMessageSent(
   dhApi: DataHavenApi,
   expectedEra?: number,
   timeout = 120000
 ): Promise<RewardsMessageSentEvent | null> {
-  const result = await waitForDataHavenEvent({
+  const result = await waitForDataHavenEvent<RewardsMessageSentPayload>({
     api: dhApi,
     pallet: "ExternalValidatorsRewards",
     event: "RewardsMessageSent",
-    filter: expectedEra !== undefined ? (event: any) => event.era_index === expectedEra : undefined,
+    filter:
+      expectedEra !== undefined ? (event) => event.era_index === expectedEra : undefined,
     timeout
   });
 
   if (!result?.data) return null;
 
-  // Assume event payload already provides hex strings; pass through unchanged
-  // Use polkadot-api FixedSizeBinary.asHex() for H256 fields
-  const data: any = result.data;
   return {
-    message_id: (data.message_id as { asHex: () => `0x${string}` }).asHex(),
-    era_index: data.era_index,
-    total_points: data.total_points,
-    inflation_amount: data.inflation_amount,
-    rewards_merkle_root: (data.rewards_merkle_root as { asHex: () => `0x${string}` }).asHex()
-  } satisfies RewardsMessageSentEvent;
+    message_id: result.data.message_id.asHex(),
+    rewards_merkle_root: result.data.rewards_merkle_root.asHex(),
+    era_index: result.data.era_index,
+    total_points: result.data.total_points,
+    inflation_amount: result.data.inflation_amount
+  };
 }
 
 // Block utilities

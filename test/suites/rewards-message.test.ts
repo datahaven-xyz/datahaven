@@ -102,7 +102,7 @@ describe("Rewards Message Flow", () => {
     const eraIndex = rewardsMessageEvent.era_index;
 
     logger.debug(
-      `Rewards message sent for era ${eraIndex}: ${totalPoints} points, merkle root: ${merkleRootHex}`
+      `Rewards message sent for era ${eraIndex}: ${totalPoints} points, merkle root: ${merkleRootHex}, inflation amount: ${rewardsMessageEvent.inflation_amount}`
     );
 
     expect(messageIdHex).toBeDefined();
@@ -164,7 +164,7 @@ describe("Rewards Message Flow", () => {
     expect(storedRoot.toLowerCase()).toBe(newRoot.toLowerCase());
     expect(storedRoot.toLowerCase()).toBe(expectedRoot.toLowerCase());
 
-    logger.success("✅ Rewards message successfully propagated from DataHaven to Ethereum");
+    logger.success("Rewards message successfully propagated from DataHaven to Ethereum");
 
     // Step 8: Generate Merkle Proofs
     logger.info("Generating merkle proofs for validators...");
@@ -198,8 +198,15 @@ describe("Rewards Message Flow", () => {
     // Step 9: Claim Rewards
     logger.info("Claiming rewards for first validator...");
 
-    // Get wallet client for transactions
-    const { walletClient } = suite.getTestConnectors();
+    // Before claiming, fund the RewardsRegistry with the era inflation amount so it can pay out rewards
+    logger.info("Funding RewardsRegistry with era inflation amount for payouts...");
+    const { walletClient: fundingWallet } = suite.getTestConnectors();
+    const fundingTx = await fundingWallet.sendTransaction({
+      chain: null,
+      to: rewardsRegistry.address as `0x${string}`,
+      value: rewardsMessageEvent.inflation_amount
+    });
+    await publicClient.waitForTransactionReceipt({ hash: fundingTx });
 
     // Get Service Manager contract
     const serviceManager = await getContractInstance("ServiceManager");
@@ -215,27 +222,35 @@ describe("Rewards Message Flow", () => {
     logger.info(`  Points: ${proofData.points}`);
     logger.info(`  Root index: ${newRootIndex}`);
 
-    // Record initial ETH balance
-    const balanceBefore = await publicClient.getBalance({
-      address: operatorAddress as `0x${string}`
-    });
+    // Get validator credentials to create operator signer
+    const factory = suite.getConnectorFactory();
+    const credentials = rewardsHelpers.getValidatorCredentials(proofData.validatorAccount);
 
-    // Important: For testing, we assume the operator address is one of the funded accounts
-    // In production, the operator would sign their own transaction
-    // Here we use the first funded account which should match the operator setup
-    const claimTx = await walletClient.writeContract({
+    if (!credentials.privateKey) {
+      throw new Error(
+        `Unable to find private key for validator ${proofData.validatorAccount} (operator: ${operatorAddress})`
+      );
+    }
+
+    logger.debug(`Using operator credentials for ${credentials.operatorAddress}`);
+    const operatorWallet = factory.createWalletClient(credentials.privateKey);
+    const resolvedOperator = operatorWallet.account.address as `0x${string}`;
+
+    // Record initial ETH balance
+    const balanceBefore = await publicClient.getBalance({ address: resolvedOperator });
+
+    // Sign and send as the operator so ServiceManager derives the correct msg.sender
+    const claimTx = await operatorWallet.writeContract({
       address: serviceManager.address as `0x${string}`,
       abi: serviceManager.abi,
       functionName: "claimOperatorRewards",
       chain: null,
       args: [
-        0, // operatorSetId (default to 0)
+        0,
         newRootIndex,
         BigInt(proofData.points),
         proofData.proof as readonly `0x${string}`[]
       ]
-      // Note: account defaults to walletClient's account (first funded account)
-      // In production, this should be signed by the actual operator
     });
 
     logger.info(`Claim transaction submitted: ${claimTx}`);
@@ -267,7 +282,7 @@ describe("Rewards Message Flow", () => {
     };
 
     // Verify event data
-    expect(claimArgs.operatorAddress.toLowerCase()).toBe(operatorAddress.toLowerCase());
+    expect(claimArgs.operatorAddress.toLowerCase()).toBe(resolvedOperator.toLowerCase());
     expect(claimArgs.rootIndex).toBe(newRootIndex);
     expect(claimArgs.operatorPoints).toBe(BigInt(proofData.points));
     expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
@@ -279,9 +294,7 @@ describe("Rewards Message Flow", () => {
     logger.info("Validating reward transfer...");
 
     // Check ETH balance after claim
-    const balanceAfter = await publicClient.getBalance({
-      address: operatorAddress as `0x${string}`
-    });
+    const balanceAfter = await publicClient.getBalance({ address: resolvedOperator });
 
     // Calculate expected rewards
     const expectedRewards = rewardsHelpers.calculateExpectedRewards(
@@ -296,7 +309,10 @@ describe("Rewards Message Flow", () => {
 
     // If the operator is the same as the transaction sender, they pay gas
     // Otherwise, they should receive the full amount
-    if (operatorAddress.toLowerCase() === walletClient.account.address.toLowerCase()) {
+    if (
+      operatorWallet.account &&
+      resolvedOperator.toLowerCase() === operatorWallet.account.address.toLowerCase()
+    ) {
       // Operator paid for gas, so balance increase will be less than rewards
       const gasUsed = claimReceipt.gasUsed * claimReceipt.effectiveGasPrice;
       const netRewards = claimArgs.rewardsAmount - gasUsed;

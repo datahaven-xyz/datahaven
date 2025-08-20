@@ -1,4 +1,4 @@
-import { parseRewardsInfoFile } from "./contracts";
+import validatorSet from "../configs/validator-set.json";
 import { waitForDataHavenEvent } from "./events";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
@@ -154,18 +154,40 @@ export async function generateMerkleProofForValidator(
   }
 }
 
-// Map validator account to operator address
-// In a real scenario, this would query the validator registry
-export async function getOperatorAddress(validatorAccount: string): Promise<string> {
-  // For testing, we'll use a simple mapping
-  // In production, this should query the actual validator registry
-  const mapping: Record<string, string> = {
-    // Add test mappings here as needed
-  };
+/**
+ * Validator credentials containing operator address and private key
+ */
+export interface ValidatorCredentials {
+  operatorAddress: `0x${string}`;
+  privateKey: `0x${string}` | null;
+}
 
-  // If no mapping exists, use the validator account as-is (for testing)
-  // This assumes the validator account is already an Ethereum address
-  return mapping[validatorAccount] || validatorAccount;
+/**
+ * Gets validator credentials (operator address and private key) by solochain address
+ * @param validatorAccount The validator's solochain address
+ * @returns The validator's credentials including operator address and private key
+ */
+export function getValidatorCredentials(validatorAccount: string): ValidatorCredentials {
+  const normalizedAccount = validatorAccount.toLowerCase();
+
+  // Find matching validator by solochain address
+  const match = validatorSet.validators.find(
+    (v) => v.solochainAddress.toLowerCase() === normalizedAccount
+  );
+
+  if (match) {
+    return {
+      operatorAddress: match.publicKey as `0x${string}`,
+      privateKey: match.privateKey as `0x${string}`
+    };
+  }
+
+  // Fallback: assume the input is already an Ethereum address, but no private key available
+  logger.debug(`No mapping found for ${validatorAccount}, using as-is without private key`);
+  return {
+    operatorAddress: validatorAccount as `0x${string}`,
+    privateKey: null
+  };
 }
 
 // Generate merkle proofs for all validators in an era
@@ -187,11 +209,11 @@ export async function generateMerkleProofsForEra(
     const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
     if (!merkleData) continue;
 
-    const operatorAddress = await getOperatorAddress(validatorAccount);
+    const credentials = getValidatorCredentials(validatorAccount);
 
-    proofs.set(operatorAddress, {
+    proofs.set(credentials.operatorAddress, {
       validatorAccount,
-      operatorAddress,
+      operatorAddress: credentials.operatorAddress,
       points,
       proof: merkleData.proof,
       leaf: merkleData.leaf

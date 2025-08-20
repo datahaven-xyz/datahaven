@@ -129,6 +129,7 @@ contract DeployTestnet is DeployBase {
             DataHavenServiceManager.initialise.selector,
             params.avsOwner,
             params.rewardsInitiator,
+            params.validatorsStrategies,
             new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
             new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
             params.gateway

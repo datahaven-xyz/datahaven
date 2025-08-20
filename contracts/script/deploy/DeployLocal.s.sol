@@ -183,6 +183,8 @@ contract DeployLocal is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
+            new IStrategy[](0), // FIXME remove when BSPs are removed
+            new IStrategy[](0), // FIXME remove when MSPs are removed
             params.gateway
         );
 

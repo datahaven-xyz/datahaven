@@ -1,4 +1,5 @@
 import { $ } from "bun";
+import { CHAIN_CONFIGS } from "configs/contracts/config";
 import invariant from "tiny-invariant";
 import {
   logger,
@@ -9,7 +10,9 @@ import {
 import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
-  rpcUrl: string;
+  chain?: string;
+  rpcUrl?: string;
+  privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
 }
@@ -48,9 +51,21 @@ export const buildContracts = async () => {
  * Constructs the deployment command
  */
 export const constructDeployCommand = (options: ContractDeploymentOptions): string => {
-  const { rpcUrl, verified, blockscoutBackendUrl } = options;
+  const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
 
-  let deployCommand = `forge script script/deploy/DeployLocal.s.sol --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+  const deploymentScript =
+    !chain || chain === "anvil" || chain === "local"
+      ? "script/deploy/DeployLocal.s.sol"
+      : "script/deploy/DeployTestnet.s.sol";
+
+  logger.info(`🚀 Deploying contracts to ${chain} using ${deploymentScript}`);
+
+  let deployCommand = `forge script ${deploymentScript} --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
+
+  // Add environment variable for chain if specified
+  if (chain) {
+    deployCommand = `NETWORK=${chain} ${deployCommand}`;
+  }
 
   if (verified && blockscoutBackendUrl) {
     // TODO: Allow for other verifiers like Etherscan.
@@ -63,10 +78,12 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
 
 /**
  * Executes contract deployment
+ * Supports multiple calling patterns for backwards compatibility:
  */
 export const executeDeployment = async (
   deployCommand: string,
-  parameterCollection?: ParameterCollection
+  parameterCollection?: ParameterCollection,
+  chain?: string
 ) => {
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
@@ -81,8 +98,8 @@ export const executeDeployment = async (
   // and add it to parameters if collection is provided
   if (parameterCollection) {
     try {
-      const deployments = await parseDeploymentsFile();
-      const rewardsInfo = await parseRewardsInfoFile();
+      const deployments = await parseDeploymentsFile(chain);
+      const rewardsInfo = await parseRewardsInfoFile(chain);
       const gatewayAddress = deployments.Gateway;
       const rewardsRegistryAddress = deployments.RewardsRegistry;
       const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
@@ -138,6 +155,46 @@ export const executeDeployment = async (
   logger.success("Contracts deployed successfully");
 };
 
+/**
+ * Main function to deploy contracts with simplified interface
+ * This is the main entry point for CLI handlers
+ */
+export const deployContracts = async (options: {
+  chain: string;
+  rpcUrl?: string;
+  privateKey?: string | undefined;
+  verified?: boolean;
+  blockscoutBackendUrl?: string;
+}) => {
+  const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
+
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${options.chain}`);
+  }
+
+  const finalRpcUrl = options.rpcUrl || chainConfig.RPC_URL;
+
+  const deploymentOptions: ContractDeploymentOptions = {
+    chain: options.chain,
+    rpcUrl: finalRpcUrl,
+    privateKey: options.privateKey,
+    verified: options.verified,
+    blockscoutBackendUrl: options.blockscoutBackendUrl
+  };
+
+  // Validate parameters
+  validateDeploymentParams(deploymentOptions);
+
+  // Build contracts
+  await buildContracts();
+
+  // Construct and execute deployment
+  const deployCommand = constructDeployCommand(deploymentOptions);
+  await executeDeployment(deployCommand);
+
+  logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
+};
+
 // Allow script to be run directly with CLI arguments
 if (import.meta.main) {
   const args = process.argv.slice(2);
@@ -147,12 +204,19 @@ if (import.meta.main) {
   invariant(rpcUrlIndex !== -1, "❌ --rpc-url flag is required");
   invariant(rpcUrlIndex + 1 < args.length, "❌ --rpc-url flag requires an argument");
 
+  // Extract private key
+  const privateKeyIndex = args.indexOf("--private-key");
+  invariant(privateKeyIndex !== -1, "❌ --private-key flag is required");
+  invariant(privateKeyIndex + 1 < args.length, "❌ --private-key flag requires an argument");
+
   const options: {
     rpcUrl: string;
+    privateKey: string;
     verified: boolean;
     blockscoutBackendUrl?: string;
   } = {
     rpcUrl: args[rpcUrlIndex + 1],
+    privateKey: args[privateKeyIndex + 1],
     verified: args.includes("--verified")
   };
 

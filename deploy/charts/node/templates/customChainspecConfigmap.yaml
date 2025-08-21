@@ -1,0 +1,12 @@
+{{- if .Values.customChainspecContent }}
+{{- $fullname := include "node.fullname" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-custom-chainspec
+  labels:
+    {{- include "node.labels" . | nindent 4 }}
+data:
+  chainspec.json: |
+{{ .Values.customChainspecContent | indent 4 }}
+{{- end }}

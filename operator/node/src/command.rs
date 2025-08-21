@@ -238,7 +238,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     partials.client.clone(),
                                     datahaven_stagenet_runtime::genesis_config_presets::alith(),
                                     // Assume the existential deposit is the same for all runtimes
-                                    datahaven_stagenet_runtime::EXISTENTIAL_DEPOSIT,
+                                    datahaven_stagenet_runtime::ExistentialDeposit::get(),
                                 )),
                             ]);
 

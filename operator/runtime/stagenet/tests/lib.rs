@@ -5,7 +5,7 @@ mod native_token_transfer;
 mod proxy;
 
 use common::*;
-use datahaven_stagenet_runtime::{Balances, System, UNIT, VERSION};
+use datahaven_stagenet_runtime::{currency::HAVE, Balances, System, VERSION};
 
 // Runtime Tests
 #[test]
@@ -20,9 +20,9 @@ fn test_runtime_version_and_metadata() {
 #[test]
 fn test_balances_functionality() {
     ExtBuilder::default()
-        .with_balances(vec![(account_id(ALICE), 2_000_000 * UNIT)])
+        .with_balances(vec![(account_id(ALICE), 2_000_000 * HAVE)])
         .build()
         .execute_with(|| {
-            assert_eq!(Balances::free_balance(&account_id(ALICE)), 2_000_000 * UNIT);
+            assert_eq!(Balances::free_balance(&account_id(ALICE)), 2_000_000 * HAVE);
         });
 }

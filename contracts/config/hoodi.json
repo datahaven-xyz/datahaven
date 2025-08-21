@@ -1,0 +1,55 @@
+{
+  "eigenLayer": {
+    "pausers": [
+      "0x64D78399B0fa32EA72959f33edCF313159F3c13D"
+    ],
+    "unpauser": "0xE3328cb5068924119d6170496c4AB2dD12c12d15",
+    "rewardsUpdater": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
+    "calculationIntervalSeconds": 86400,
+    "maxRewardsDuration": 6048000,
+    "maxRetroactiveLength": 7776000,
+    "maxFutureLength": 2592000,
+    "genesisRewardsTimestamp": 1710979200,
+    "activationDelay": 7200,
+    "globalCommissionBips": 1000,
+    "executorMultisig": "0xE3328cb5068924119d6170496c4AB2dD12c12d15",
+    "operationsMultisig": "0xE7f4E30D2619273468afe9EC0Acf805E55532257",
+    "minWithdrawalDelayBlocks": 50,
+    "delegationInitPausedStatus": 0,
+    "eigenPodManagerInitPausedStatus": 0,
+    "rewardsCoordinatorInitPausedStatus": 0,
+    "allocationManagerInitPausedStatus": 0,
+    "deallocationDelay": 50,
+    "allocationConfigurationDelay": 75,
+    "beaconChainGenesisTimestamp": 1710666600,
+    "delegationManager": "0x867837a9722C512e0862d8c2E15b8bE220E8b87d",
+    "strategyManager": "0xeE45e76ddbEDdA2918b8C7E3035cd37Eab3b5D41",
+    "eigenPodManager": "0xcd1442415Fc5C29Aa848A49d2e232720BE07976c",
+    "avsDirectory": "0xD58f6844f79eB1fbd9f7091d05f7cb30d3363926",
+    "rewardsCoordinator": "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
+    "allocationManager": "0x95a7431400F362F3647a69535C5666cA0133CAA0",  
+    "permissionController": "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2"
+  },
+  "avs": {
+    "avsOwner": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
+    "rewardsInitiator": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
+    "vetoCommitteeMember": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
+    "vetoWindowBlocks": 100,
+    "validatorsStrategies": []
+  },
+  "snowbridge": {
+    "randaoCommitDelay": 4,
+    "randaoCommitExpiration": 24,
+    "minNumRequiredSignatures": 2,
+    "startBlock": 1,
+    "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "initialValidatorHashes": [
+      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
+      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
+    ],
+    "nextValidatorHashes": [
+      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
+      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
+    ]
+  }
+} 

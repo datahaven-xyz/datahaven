@@ -80,36 +80,6 @@ export async function getEraRewardPoints(
   }
 }
 
-export async function getBlockAuthor(dhApi: DataHavenApi, blockNumber: number): Promise<string> {
-  // TODO: Get block author from block header
-  return "";
-}
-
-export async function trackBlockProduction(
-  dhApi: DataHavenApi,
-  startBlock: number,
-  endBlock: number
-): Promise<Map<string, number>> {
-  const production = new Map<string, number>();
-  // TODO: Subscribe to blocks and track authors
-  return production;
-}
-
-// Message tracking
-export async function waitForSnowbridgeMessage(
-  dhApi: DataHavenApi,
-  messageId: string,
-  timeout = 120000
-): Promise<any> {
-  return waitForDataHavenEvent({
-    api: dhApi,
-    pallet: "SnowbridgeOutboundQueueV2",
-    event: "MessageQueued",
-    filter: (event: any) => event.id === messageId,
-    timeout
-  });
-}
-
 // Merkle proof generation using DataHaven runtime API
 export interface ValidatorProofData {
   validatorAccount: string;

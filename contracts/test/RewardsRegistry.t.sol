@@ -179,7 +179,7 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
 
         // Verify state changes
         assertTrue(
@@ -201,7 +201,7 @@ contract RewardsRegistryTest is AVSDeployer {
 
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.OnlyAVS.selector));
 
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimLatestRewards_AlreadyClaimed() public {
@@ -214,14 +214,14 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
 
         // Second claim fails
         vm.prank(address(serviceManager));
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimLatestRewards_InvalidProof() public {
@@ -230,7 +230,7 @@ contract RewardsRegistryTest is AVSDeployer {
 
         vm.prank(address(serviceManager));
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleProof.selector));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, invalidProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, invalidProof);
     }
 
     function test_claimLatestRewards_NoMerkleRoot() public {
@@ -239,7 +239,7 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsMerkleRootNotSet.selector)
         );
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimLatestRewards_DifferentRoot() public {
@@ -252,7 +252,7 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
 
         // Update to new merkle root
         vm.prank(mockRewardsAgent);
@@ -265,7 +265,7 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Operator can claim again with new merkle root
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, newProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, newProof);
 
         // Verify both indices are now claimed
         assertTrue(
@@ -290,7 +290,7 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsTransferFailed.selector)
         );
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, validProof);
+        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, 2, 0, validProof);
     }
 
     function test_receive() public {
@@ -426,7 +426,7 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, 2, 0, validProof);
 
         // Verify state changes
         assertTrue(
@@ -447,7 +447,7 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleRootIndex.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimRewards_AlreadyClaimed() public {
@@ -459,14 +459,14 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, 2, 0, validProof);
 
         // Second claim fails
         vm.prank(address(serviceManager));
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, 2, 0, validProof);
     }
 
     function test_hasClaimedByIndex() public {
@@ -484,7 +484,7 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Claim
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, 2, 0, validProof);
 
         // Now claimed
         assertTrue(
@@ -529,11 +529,17 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Batch claim
         vm.prank(address(serviceManager));
-
         vm.expectEmit(true, true, true, true);
         emit RewardsBatchClaimedForIndices(operatorAddress, rootIndices, points, operatorPoints * 2);
-
-        rewardsRegistry.claimRewardsBatch(operatorAddress, rootIndices, points, proofs);
+        uint256[] memory widths = new uint256[](2);
+        widths[0] = 2;
+        widths[1] = 2;
+        uint256[] memory leafIdxs = new uint256[](2);
+        leafIdxs[0] = 0;
+        leafIdxs[1] = 0;
+        rewardsRegistry.claimRewardsBatch(
+            operatorAddress, rootIndices, points, widths, leafIdxs, proofs
+        );
 
         // Verify both indices are claimed
         assertTrue(
@@ -560,7 +566,11 @@ contract RewardsRegistryTest is AVSDeployer {
 
         vm.prank(address(serviceManager));
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.ArrayLengthMismatch.selector));
-        rewardsRegistry.claimRewardsBatch(operatorAddress, rootIndices, points, proofs);
+        uint256[] memory widths = new uint256[](2);
+        uint256[] memory leafIdxs = new uint256[](2);
+        rewardsRegistry.claimRewardsBatch(
+            operatorAddress, rootIndices, points, widths, leafIdxs, proofs
+        );
     }
 
     function test_claimRewardsBatch_PartialClaimFailure() public {
@@ -575,7 +585,7 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Claim from index 0 first
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, validProof);
+        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, 2, 0, validProof);
 
         // Now try batch claim that includes already claimed index 0
         uint256[] memory rootIndices = new uint256[](2);
@@ -599,6 +609,14 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        rewardsRegistry.claimRewardsBatch(operatorAddress, rootIndices, points, proofs);
+        uint256[] memory widths = new uint256[](2);
+        widths[0] = 2;
+        widths[1] = 2;
+        uint256[] memory leafIdxs = new uint256[](2);
+        leafIdxs[0] = 0;
+        leafIdxs[1] = 0;
+        rewardsRegistry.claimRewardsBatch(
+            operatorAddress, rootIndices, points, widths, leafIdxs, proofs
+        );
     }
 }

@@ -303,79 +303,65 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * @notice Claim rewards for an operator from a specific merkle root index
-     * @param operatorSetId The ID of the operator set
-     * @param rootIndex Index of the merkle root to claim from
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
+     * @notice Claim rewards for an operator from a specific merkle root index (Substrate positional proof)
      */
     function claimOperatorRewards(
         uint32 operatorSetId,
         uint256 rootIndex,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) external virtual override {
-        // Get the rewards registry for this operator set
         IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
         if (address(rewardsRegistry) == address(0)) {
             revert NoRewardsRegistryForOperatorSet();
         }
-
-        // Ensure the operator is part of the operator set
         _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-
-        // Forward the claim to the rewards registry
-        rewardsRegistry.claimRewards(msg.sender, rootIndex, operatorPoints, proof);
+        rewardsRegistry.claimRewards(
+            msg.sender, rootIndex, operatorPoints, numberOfLeaves, leafIndex, proof
+        );
     }
 
     /**
-     * @notice Claim rewards for an operator from the latest merkle root
-     * @param operatorSetId The ID of the operator set
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
+     * @notice Claim rewards for an operator from the latest merkle root (Substrate positional proof)
      */
     function claimLatestOperatorRewards(
         uint32 operatorSetId,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) external virtual override {
-        // Get the rewards registry for this operator set
         IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
         if (address(rewardsRegistry) == address(0)) {
             revert NoRewardsRegistryForOperatorSet();
         }
-
-        // Ensure the operator is part of the operator set
         _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-
-        // Forward the claim to the rewards registry
-        rewardsRegistry.claimLatestRewards(msg.sender, operatorPoints, proof);
+        rewardsRegistry.claimLatestRewards(
+            msg.sender, operatorPoints, numberOfLeaves, leafIndex, proof
+        );
     }
 
     /**
-     * @notice Claim rewards for an operator from multiple merkle root indices
-     * @param operatorSetId The ID of the operator set
-     * @param rootIndices Array of merkle root indices to claim from
-     * @param operatorPoints Array of points earned by the operator for each root
-     * @param proofs Array of merkle proofs to validate the operator's rewards
+     * @notice Claim rewards for an operator from multiple merkle root indices (Substrate positional proof)
      */
     function claimOperatorRewardsBatch(
         uint32 operatorSetId,
         uint256[] calldata rootIndices,
         uint256[] calldata operatorPoints,
+        uint256[] calldata numberOfLeaves,
+        uint256[] calldata leafIndices,
         bytes32[][] calldata proofs
     ) external virtual override {
-        // Get the rewards registry for this operator set
         IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
         if (address(rewardsRegistry) == address(0)) {
             revert NoRewardsRegistryForOperatorSet();
         }
-
-        // Ensure the operator is part of the operator set
         _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-
-        // Forward the claim to the rewards registry
-        rewardsRegistry.claimRewardsBatch(msg.sender, rootIndices, operatorPoints, proofs);
+        rewardsRegistry.claimRewardsBatch(
+            msg.sender, rootIndices, operatorPoints, numberOfLeaves, leafIndices, proofs
+        );
     }
 
     /**
@@ -419,14 +405,13 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * @notice Returns the list of strategies that the operator has potentially restaked on the AVS
-     * @param operator The address of the operator to get restaked strategies for
+     * @notice Returns the list of strategies that an operator has potentially restaked on the AVS
      * @dev This function is intended to be called off-chain
      * @dev No guarantee is made on whether the operator has shares for a strategy in a quorum or uniqueness
      *      of each element in the returned array. The off-chain service should do that validation separately
      */
     function getOperatorRestakedStrategies(
-        address operator
+        address /* operator */
     ) external view virtual returns (address[] memory) {
         // TODO: Implement this
         return new address[](0);
@@ -446,7 +431,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     /// as it would use the deprecated `IAVSRegistrar` interface.
     /// Calling this function will revert.
     function deregisterOperatorFromAVS(
-        address // operator
+        address /* operator */
     ) external virtual override {
         revert("ServiceManagerBase: deregisterOperatorFromAVS is deprecated");
     }

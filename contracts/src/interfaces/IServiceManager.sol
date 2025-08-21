@@ -144,6 +144,8 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
         uint32 operatorSetId,
         uint256 rootIndex,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) external;
 
@@ -156,6 +158,8 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
     function claimLatestOperatorRewards(
         uint32 operatorSetId,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) external;
 
@@ -170,6 +174,8 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
         uint32 operatorSetId,
         uint256[] calldata rootIndices,
         uint256[] calldata operatorPoints,
+        uint256[] calldata numberOfLeaves,
+        uint256[] calldata leafIndices,
         bytes32[][] calldata proofs
     ) external;
 

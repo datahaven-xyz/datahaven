@@ -162,7 +162,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         emit RewardsClaimedForIndex(operatorAddress, 2, thirdOperatorPoints, thirdOperatorPoints);
 
         serviceManager.claimLatestOperatorRewards(
-            operatorSetId, thirdOperatorPoints, thirdValidProof
+            operatorSetId, thirdOperatorPoints, 2, 0, thirdValidProof
         );
 
         assertEq(
@@ -180,7 +180,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodeWithSelector(IServiceManagerErrors.NoRewardsRegistryForOperatorSet.selector)
         );
 
-        serviceManager.claimLatestOperatorRewards(invalidSetId, operatorPoints, validProof);
+        serviceManager.claimLatestOperatorRewards(invalidSetId, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimLatestOperatorRewards_AlreadyClaimed() public {
@@ -193,7 +193,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         // First claim (uses latest merkle root - index 2)
         vm.prank(operatorAddress);
         serviceManager.claimLatestOperatorRewards(
-            operatorSetId, thirdOperatorPoints, thirdValidProof
+            operatorSetId, thirdOperatorPoints, 2, 0, thirdValidProof
         );
 
         // Second claim should fail
@@ -203,7 +203,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         );
 
         serviceManager.claimLatestOperatorRewards(
-            operatorSetId, thirdOperatorPoints, thirdValidProof
+            operatorSetId, thirdOperatorPoints, 2, 0, thirdValidProof
         );
     }
 
@@ -220,7 +220,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, validProof);
+        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, 2, 0, validProof);
 
         assertEq(
             operatorAddress.balance,
@@ -241,7 +241,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         // Claim from index 1 (second merkle root)
         vm.prank(operatorAddress);
         serviceManager.claimOperatorRewards(
-            operatorSetId, 1, secondOperatorPoints, secondValidProof
+            operatorSetId, 1, secondOperatorPoints, 2, 0, secondValidProof
         );
 
         assertEq(
@@ -252,7 +252,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         // Claim from index 2 (third merkle root)
         vm.prank(operatorAddress);
-        serviceManager.claimOperatorRewards(operatorSetId, 2, thirdOperatorPoints, thirdValidProof);
+        serviceManager.claimOperatorRewards(
+            operatorSetId, 2, thirdOperatorPoints, 2, 0, thirdValidProof
+        );
 
         assertEq(
             operatorAddress.balance,
@@ -283,7 +285,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleRootIndex.selector)
         );
-        serviceManager.claimOperatorRewards(operatorSetId, 999, operatorPoints, validProof);
+        serviceManager.claimOperatorRewards(operatorSetId, 999, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimOperatorRewards_AlreadyClaimed() public {
@@ -295,14 +297,21 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         // First claim
         vm.prank(operatorAddress);
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, validProof);
+        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, 2, 0, validProof);
 
         // Second claim should fail
         vm.prank(operatorAddress);
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, validProof);
+        serviceManager.claimOperatorRewards(
+            operatorSetId,
+            0,
+            operatorPoints,
+            2, // numberOfLeaves (operator + sibling)
+            0, // leafIndex (assuming operator leaf comes first)
+            validProof
+        );
     }
 
     function test_claimOperatorRewardsBatch() public {
@@ -337,7 +346,18 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             operatorAddress, rootIndices, points, expectedTotalRewards
         );
 
-        serviceManager.claimOperatorRewardsBatch(operatorSetId, rootIndices, points, proofs);
+        uint256[] memory widths = new uint256[](3);
+        widths[0] = 2;
+        widths[1] = 2;
+        widths[2] = 2;
+        uint256[] memory leafIdxs = new uint256[](3);
+        leafIdxs[0] = 0;
+        leafIdxs[1] = 0;
+        leafIdxs[2] = 0;
+
+        serviceManager.claimOperatorRewardsBatch(
+            operatorSetId, rootIndices, points, widths, leafIdxs, proofs
+        );
 
         // Verify final balance includes all rewards
         assertEq(
@@ -385,7 +405,15 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         );
 
         vm.prank(operatorAddress);
-        serviceManager.claimOperatorRewardsBatch(operatorSetId, rootIndices, points, proofs);
+        uint256[] memory widths2 = new uint256[](2);
+        widths2[0] = 2;
+        widths2[1] = 2;
+        uint256[] memory leafIdxs2 = new uint256[](2);
+        leafIdxs2[0] = 0;
+        leafIdxs2[1] = 0;
+        serviceManager.claimOperatorRewardsBatch(
+            operatorSetId, rootIndices, points, widths2, leafIdxs2, proofs
+        );
 
         // Verify balance and claim status
         assertEq(
@@ -421,7 +449,20 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         vm.prank(operatorAddress);
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.ArrayLengthMismatch.selector));
-        serviceManager.claimOperatorRewardsBatch(operatorSetId, rootIndices, points, proofs);
+
+        uint256[] memory numberOfLeaves = new uint256[](3);
+        numberOfLeaves[0] = 2;
+        numberOfLeaves[1] = 2;
+        numberOfLeaves[2] = 2;
+
+        uint256[] memory leafIndices = new uint256[](3);
+        leafIndices[0] = 0;
+        leafIndices[1] = 0;
+        leafIndices[2] = 0;
+
+        serviceManager.claimOperatorRewardsBatch(
+            operatorSetId, rootIndices, points, numberOfLeaves, leafIndices, proofs
+        );
     }
 
     function test_claimOperatorRewardsBatch_AlreadyClaimedIndex() public {
@@ -434,7 +475,12 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         vm.prank(operatorAddress);
         serviceManager.claimOperatorRewards(
-            operatorSetId, 1, secondOperatorPoints, secondValidProof
+            operatorSetId,
+            1,
+            secondOperatorPoints,
+            2, // numberOfLeaves (operator + sibling)
+            0, // leafIndex (assuming operator leaf comes first)
+            secondValidProof
         );
 
         // Now try to batch claim including the already claimed index 1
@@ -454,7 +500,18 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        serviceManager.claimOperatorRewardsBatch(operatorSetId, rootIndices, points, proofs);
+
+        uint256[] memory numberOfLeaves = new uint256[](2);
+        numberOfLeaves[0] = 2;
+        numberOfLeaves[1] = 2;
+
+        uint256[] memory leafIndices = new uint256[](2);
+        leafIndices[0] = 0;
+        leafIndices[1] = 0;
+
+        serviceManager.claimOperatorRewardsBatch(
+            operatorSetId, rootIndices, points, numberOfLeaves, leafIndices, proofs
+        );
     }
 
     function test_claimOperatorRewardsBatch_EmptyBatch() public {
@@ -470,8 +527,13 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         uint256 initialBalance = operatorAddress.balance;
 
+        uint256[] memory numberOfLeaves = new uint256[](0);
+        uint256[] memory leafIndices = new uint256[](0);
+
         vm.prank(operatorAddress);
-        serviceManager.claimOperatorRewardsBatch(operatorSetId, rootIndices, points, proofs);
+        serviceManager.claimOperatorRewardsBatch(
+            operatorSetId, rootIndices, points, numberOfLeaves, leafIndices, proofs
+        );
 
         // Balance should remain unchanged
         assertEq(
@@ -521,7 +583,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         );
         vm.prank(operatorAddress);
         serviceManager.claimLatestOperatorRewards(
-            operatorSetId, thirdOperatorPoints, thirdValidProof
+            operatorSetId, thirdOperatorPoints, 2, 0, thirdValidProof
         ); // Use latest root
 
         // Verify balance after first claim
@@ -534,7 +596,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         // Claim from second registry
         uint256 balanceAfterFirstClaim = operatorAddress.balance;
         vm.prank(operatorAddress);
-        serviceManager.claimLatestOperatorRewards(secondOperatorSetId, operatorPoints, secondProof);
+        serviceManager.claimLatestOperatorRewards(
+            secondOperatorSetId, operatorPoints, 2, 0, secondProof
+        );
 
         // Verify balance after second claim
         assertEq(
@@ -555,7 +619,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IServiceManagerErrors.OperatorNotInOperatorSet.selector)
         );
-        serviceManager.claimLatestOperatorRewards(operatorSetId, operatorPoints, validProof);
+        serviceManager.claimLatestOperatorRewards(operatorSetId, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimOperatorRewards_NotInOperatorSet() public {
@@ -569,7 +633,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IServiceManagerErrors.OperatorNotInOperatorSet.selector)
         );
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, validProof);
+        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, 2, 0, validProof);
     }
 
     function test_claimOperatorRewardsBatch_NotInOperatorSet() public {
@@ -590,6 +654,12 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IServiceManagerErrors.OperatorNotInOperatorSet.selector)
         );
-        serviceManager.claimOperatorRewardsBatch(operatorSetId, rootIndices, points, proofs);
+        uint256[] memory widths3 = new uint256[](1);
+        widths3[0] = 2;
+        uint256[] memory leafIdxs3 = new uint256[](1);
+        leafIdxs3[0] = 0;
+        serviceManager.claimOperatorRewardsBatch(
+            operatorSetId, rootIndices, points, widths3, leafIdxs3, proofs
+        );
     }
 }

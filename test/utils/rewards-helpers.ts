@@ -117,13 +117,15 @@ export interface ValidatorProofData {
   points: number;
   proof: string[];
   leaf: string;
+  numberOfLeaves: number;
+  leafIndex: number;
 }
 
 export async function generateMerkleProofForValidator(
   dhApi: DataHavenApi,
   validatorAccount: string,
   eraIndex: number
-): Promise<{ proof: string[]; leaf: string } | null> {
+): Promise<{ proof: string[]; leaf: string; numberOfLeaves: number; leafIndex: number } | null> {
   try {
     // Call the runtime API to generate merkle proof
     const merkleProof = await dhApi.apis.ExternalValidatorsRewardsApi.generate_rewards_merkle_proof(
@@ -147,7 +149,10 @@ export async function generateMerkleProofForValidator(
       ? merkleProof.leaf.asHex()
       : `0x${merkleProof.leaf.toString()}`;
 
-    return { proof, leaf };
+    const numberOfLeaves = Number(merkleProof.number_of_leaves as bigint);
+    const leafIndex = Number(merkleProof.leaf_index as bigint);
+
+    return { proof, leaf, numberOfLeaves, leafIndex };
   } catch (error) {
     logger.error(`Failed to generate merkle proof for validator ${validatorAccount}: ${error}`);
     return null;
@@ -216,7 +221,9 @@ export async function generateMerkleProofsForEra(
       operatorAddress: credentials.operatorAddress,
       points,
       proof: merkleData.proof,
-      leaf: merkleData.leaf
+      leaf: merkleData.leaf,
+      numberOfLeaves: merkleData.numberOfLeaves,
+      leafIndex: merkleData.leafIndex
     });
   }
 

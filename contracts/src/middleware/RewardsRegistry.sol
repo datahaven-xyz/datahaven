@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.27;
 
-import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import {SubstrateMerkleProof} from "snowbridge/src/utils/SubstrateMerkleProof.sol";
+import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
+import {IDataHavenServiceManager} from "../interfaces/IDataHavenServiceManager.sol";
 import {RewardsRegistryStorage} from "./RewardsRegistryStorage.sol";
 
 /**
@@ -76,19 +78,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @param proof Merkle proof to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
-    function claimRewards(
-        address operatorAddress,
-        uint256 rootIndex,
-        uint256 operatorPoints,
-        bytes32[] calldata proof
-    ) external override onlyAVS {
-        // Validate the claim and calculate rewards
-        uint256 rewardsAmount = _validateClaim(operatorAddress, rootIndex, operatorPoints, proof);
-        _transferRewards(operatorAddress, rewardsAmount);
-
-        // Emit the corresponding event
-        emit RewardsClaimedForIndex(operatorAddress, rootIndex, operatorPoints, rewardsAmount);
-    }
+    // Removed OZ claim with sorted proof
 
     /**
      * @notice Claim rewards for an operator from the latest merkle root
@@ -97,24 +87,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @param proof Merkle proof to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
-    function claimLatestRewards(
-        address operatorAddress,
-        uint256 operatorPoints,
-        bytes32[] calldata proof
-    ) external override onlyAVS {
-        // Check that we have at least one merkle root
-        if (merkleRootHistory.length == 0) {
-            revert RewardsMerkleRootNotSet();
-        }
-
-        // Claim from the latest root index
-        uint256 latestIndex = merkleRootHistory.length - 1;
-        uint256 rewardsAmount = _validateClaim(operatorAddress, latestIndex, operatorPoints, proof);
-        _transferRewards(operatorAddress, rewardsAmount);
-
-        // Emit the corresponding event
-        emit RewardsClaimedForIndex(operatorAddress, latestIndex, operatorPoints, rewardsAmount);
-    }
+    // Removed OZ latest-claim with sorted proof
 
     /**
      * @notice Claim rewards for an operator from multiple merkle root indices
@@ -124,32 +97,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @param proofs Array of merkle proofs to validate the operator's rewards
      * @dev Only callable by the AVS (Service Manager)
      */
-    function claimRewardsBatch(
-        address operatorAddress,
-        uint256[] calldata rootIndices,
-        uint256[] calldata operatorPoints,
-        bytes32[][] calldata proofs
-    ) external override onlyAVS {
-        // Check that the arrays have the same length
-        if (rootIndices.length != operatorPoints.length || rootIndices.length != proofs.length) {
-            revert ArrayLengthMismatch();
-        }
-
-        // Validate all claims and accumulate the total rewards
-        uint256 totalRewards = 0;
-        for (uint256 i = 0; i < rootIndices.length; i++) {
-            totalRewards +=
-                _validateClaim(operatorAddress, rootIndices[i], operatorPoints[i], proofs[i]);
-        }
-
-        // Transfer the total rewards in a single transaction
-        _transferRewards(operatorAddress, totalRewards);
-
-        // Emit the corresponding event
-        emit RewardsBatchClaimedForIndices(
-            operatorAddress, rootIndices, operatorPoints, totalRewards
-        );
-    }
+    // Removed OZ batch claim with sorted proof
 
     /**
      * @notice Internal function to validate a claim and calculate rewards
@@ -159,33 +107,124 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @param proof Merkle proof to validate the operator's rewards
      * @return rewardsAmount The amount of rewards calculated
      */
+    // Removed OZ validator; all validation is through _validateClaim
+
+    /**
+     * @notice Claim rewards using Substrate/Snowbridge positional Merkle proofs (compatibility with DataHaven runtime).
+     */
+    function claimRewards(
+        address operatorAddress,
+        uint256 rootIndex,
+        uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
+        bytes32[] calldata proof
+    ) external override onlyAVS {
+        uint256 rewardsAmount = _validateClaim(
+            operatorAddress, rootIndex, operatorPoints, numberOfLeaves, leafIndex, proof
+        );
+        _transferRewards(operatorAddress, rewardsAmount);
+
+        emit RewardsClaimedForIndex(operatorAddress, rootIndex, operatorPoints, rewardsAmount);
+    }
+
+    /**
+     * @notice Claim latest rewards using Substrate/Snowbridge positional Merkle proofs (compatibility with DataHaven runtime).
+     */
+    function claimLatestRewards(
+        address operatorAddress,
+        uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
+        bytes32[] calldata proof
+    ) external override onlyAVS {
+        if (merkleRootHistory.length == 0) {
+            revert RewardsMerkleRootNotSet();
+        }
+        uint256 latestIndex = merkleRootHistory.length - 1;
+        uint256 rewardsAmount = _validateClaim(
+            operatorAddress, latestIndex, operatorPoints, numberOfLeaves, leafIndex, proof
+        );
+        _transferRewards(operatorAddress, rewardsAmount);
+
+        emit RewardsClaimedForIndex(operatorAddress, latestIndex, operatorPoints, rewardsAmount);
+    }
+
+    /**
+     * @notice Batch claim using Substrate/Snowbridge positional Merkle proofs.
+     */
+    function claimRewardsBatch(
+        address operatorAddress,
+        uint256[] calldata rootIndices,
+        uint256[] calldata operatorPoints,
+        uint256[] calldata numberOfLeaves,
+        uint256[] calldata leafIndices,
+        bytes32[][] calldata proofs
+    ) external override onlyAVS {
+        if (
+            rootIndices.length != operatorPoints.length || rootIndices.length != proofs.length
+                || rootIndices.length != numberOfLeaves.length
+                || rootIndices.length != leafIndices.length
+        ) {
+            revert ArrayLengthMismatch();
+        }
+
+        uint256 totalRewards = 0;
+        for (uint256 i = 0; i < rootIndices.length; i++) {
+            totalRewards += _validateClaim(
+                operatorAddress,
+                rootIndices[i],
+                operatorPoints[i],
+                numberOfLeaves[i],
+                leafIndices[i],
+                proofs[i]
+            );
+        }
+
+        _transferRewards(operatorAddress, totalRewards);
+
+        emit RewardsBatchClaimedForIndices(
+            operatorAddress, rootIndices, operatorPoints, totalRewards
+        );
+    }
+
+    /**
+     * @notice Internal validation for Substrate/Snowbridge positional Merkle proof flow.
+     */
     function _validateClaim(
         address operatorAddress,
         uint256 rootIndex,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) internal returns (uint256 rewardsAmount) {
-        // Check that the root index to claim from exists
         if (rootIndex >= merkleRootHistory.length) {
             revert InvalidMerkleRootIndex();
         }
 
-        // Check if operator has already claimed for this merkle root index
         if (operatorClaimedByIndex[operatorAddress][rootIndex]) {
             revert RewardsAlreadyClaimedForIndex();
         }
 
-        // Verify the merkle proof
-        bytes32 leaf = keccak256(abi.encode(operatorAddress, operatorPoints));
-        if (!MerkleProof.verify(proof, merkleRootHistory[rootIndex], leaf)) {
-            revert InvalidMerkleProof();
+        // Compute Substrate-compatible leaf: keccak256(SCALE(accountId || u32LE points))
+        // For DataHaven, AccountId comes from the AVS mapping (validatorEthAddressToSolochainAddress) if set.
+        address leafAccount = operatorAddress;
+        address mappedSolochain =
+            IDataHavenServiceManager(avs).validatorEthAddressToSolochainAddress(operatorAddress);
+        if (mappedSolochain != address(0)) {
+            leafAccount = mappedSolochain;
         }
+        bytes memory preimage =
+            abi.encodePacked(leafAccount, ScaleCodec.encodeU32(uint32(operatorPoints)));
+        bytes32 substrateLeaf = keccak256(preimage);
 
-        // Calculate rewards - currently 1 point = 1 wei (placeholder)
-        // TODO: Update the reward calculation formula with the proper relationship
+        bool ok = SubstrateMerkleProof.verify(
+            merkleRootHistory[rootIndex], substrateLeaf, leafIndex, numberOfLeaves, proof
+        );
+        if (!ok) revert InvalidMerkleProof();
+
         rewardsAmount = operatorPoints;
-
-        // Mark as claimed for this specific index
         operatorClaimedByIndex[operatorAddress][rootIndex] = true;
     }
 

@@ -357,7 +357,8 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         bytes32[] memory leaves = new bytes32[](validators.length);
         for (uint256 i = 0; i < validators.length; i++) {
             // Use SCALE encoding for Substrate compatibility
-            bytes memory preimage = abi.encodePacked(validators[i], ScaleCodec.encodeU32(uint32(points[i])));
+            bytes memory preimage =
+                abi.encodePacked(validators[i], ScaleCodec.encodeU32(uint32(points[i])));
             leaves[i] = keccak256(preimage);
         }
 
@@ -378,7 +379,8 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         bytes32[] memory leaves = new bytes32[](validators.length);
         for (uint256 i = 0; i < validators.length; i++) {
             // Use SCALE encoding for Substrate compatibility
-            bytes memory preimage = abi.encodePacked(validators[i], ScaleCodec.encodeU32(uint32(points[i])));
+            bytes memory preimage =
+                abi.encodePacked(validators[i], ScaleCodec.encodeU32(uint32(points[i])));
             leaves[i] = keccak256(preimage);
         }
 

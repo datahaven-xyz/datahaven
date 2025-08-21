@@ -52,11 +52,13 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // For Substrate-compatible Merkle proofs, we need to use SCALE encoding
         // Our leaf (the one we want to prove exists in the tree)
-        bytes memory preimage = abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
+        bytes memory preimage =
+            abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
         bytes32 leaf = keccak256(preimage);
 
         // Sibling leaf (another element in the Merkle tree)
-        bytes memory siblingPreimage = abi.encodePacked(address(0x1234), ScaleCodec.encodeU32(uint32(50)));
+        bytes memory siblingPreimage =
+            abi.encodePacked(address(0x1234), ScaleCodec.encodeU32(uint32(50)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
 
         // For Substrate positional merkle proof, we construct the root based on position
@@ -68,7 +70,8 @@ contract RewardsRegistryTest is AVSDeployer {
         validProof[0] = siblingLeaf;
 
         // For tests that need a second Merkle root
-        bytes memory newSiblingPreimage = abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
+        bytes memory newSiblingPreimage =
+            abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
         bytes32 newSiblingLeaf = keccak256(newSiblingPreimage);
         newMerkleRoot = keccak256(abi.encodePacked(leaf, newSiblingLeaf));
 
@@ -82,13 +85,15 @@ contract RewardsRegistryTest is AVSDeployer {
         // Test that our proof construction is valid using the contract's internal validation
         vm.prank(mockRewardsAgent);
         rewardsRegistry.updateRewardsMerkleRoot(merkleRoot);
-        
+
         vm.deal(address(rewardsRegistry), 1000 ether);
-        
+
         vm.prank(address(serviceManager));
         // This should not revert if the proof is valid
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
-        
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
+
         assertTrue(
             rewardsRegistry.hasClaimedByIndex(operatorAddress, 0),
             "Proof verification should succeed"
@@ -191,7 +196,9 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Verify state changes
         assertTrue(
@@ -213,7 +220,9 @@ contract RewardsRegistryTest is AVSDeployer {
 
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.OnlyAVS.selector));
 
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimLatestRewards_AlreadyClaimed() public {
@@ -226,14 +235,18 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Second claim fails
         vm.prank(address(serviceManager));
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimLatestRewards_InvalidProof() public {
@@ -242,7 +255,9 @@ contract RewardsRegistryTest is AVSDeployer {
 
         vm.prank(address(serviceManager));
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleProof.selector));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, invalidProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, invalidProof
+        );
     }
 
     function test_claimLatestRewards_NoMerkleRoot() public {
@@ -251,7 +266,9 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsMerkleRootNotSet.selector)
         );
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimLatestRewards_DifferentRoot() public {
@@ -264,7 +281,9 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Update to new merkle root
         vm.prank(mockRewardsAgent);
@@ -272,13 +291,16 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Create a new valid proof for the new root
         bytes32[] memory newProof = new bytes32[](1);
-        bytes memory newSiblingPreimage = abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
+        bytes memory newSiblingPreimage =
+            abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
         bytes32 newSiblingLeaf = keccak256(newSiblingPreimage);
         newProof[0] = newSiblingLeaf;
 
         // Operator can claim again with new merkle root
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, newProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, newProof
+        );
 
         // Verify both indices are now claimed
         assertTrue(
@@ -303,7 +325,9 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsTransferFailed.selector)
         );
-        rewardsRegistry.claimLatestRewards(operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimLatestRewards(
+            operatorAddress, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_receive() public {
@@ -439,7 +463,9 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimRewards(
+            operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Verify state changes
         assertTrue(
@@ -460,7 +486,9 @@ contract RewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleRootIndex.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimRewards(
+            operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimRewards_AlreadyClaimed() public {
@@ -472,14 +500,18 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // First claim succeeds
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimRewards(
+            operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Second claim fails
         vm.prank(address(serviceManager));
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimRewards(
+            operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_hasClaimedByIndex() public {
@@ -497,7 +529,9 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Claim
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimRewards(
+            operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Now claimed
         assertTrue(
@@ -534,7 +568,8 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Create proof for second root
         bytes32[] memory newProof = new bytes32[](1);
-        bytes memory newSiblingPreimage = abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
+        bytes memory newSiblingPreimage =
+            abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
         bytes32 newSiblingLeaf = keccak256(newSiblingPreimage);
         newProof[0] = newSiblingLeaf;
         proofs[1] = newProof;
@@ -599,7 +634,9 @@ contract RewardsRegistryTest is AVSDeployer {
 
         // Claim from index 0 first
         vm.prank(address(serviceManager));
-        rewardsRegistry.claimRewards(operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        rewardsRegistry.claimRewards(
+            operatorAddress, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Now try batch claim that includes already claimed index 0
         uint256[] memory rootIndices = new uint256[](2);
@@ -614,7 +651,8 @@ contract RewardsRegistryTest is AVSDeployer {
         proofs[0] = validProof;
 
         bytes32[] memory newProof = new bytes32[](1);
-        bytes memory newSiblingPreimage = abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
+        bytes memory newSiblingPreimage =
+            abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
         bytes32 newSiblingLeaf = keccak256(newSiblingPreimage);
         newProof[0] = newSiblingLeaf;
         proofs[1] = newProof;

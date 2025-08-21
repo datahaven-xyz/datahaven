@@ -88,12 +88,14 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
     function _createFirstMerkleTree() internal {
         // Create first merkle tree with Substrate-compatible SCALE encoding
-        bytes memory preimage = abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
+        bytes memory preimage =
+            abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
         bytes32 leaf = keccak256(preimage);
-        
-        bytes memory siblingPreimage = abi.encodePacked(address(0x1111), ScaleCodec.encodeU32(uint32(50)));
+
+        bytes memory siblingPreimage =
+            abi.encodePacked(address(0x1111), ScaleCodec.encodeU32(uint32(50)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
-        
+
         // For Substrate positional merkle proof, we construct the root based on position
         // Since leafIndex = 0, our leaf is on the left
         merkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
@@ -103,12 +105,14 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
     function _createSecondMerkleTree() internal {
         // Create second merkle tree with different points using SCALE encoding
-        bytes memory preimage = abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(secondOperatorPoints)));
+        bytes memory preimage =
+            abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(secondOperatorPoints)));
         bytes32 leaf = keccak256(preimage);
-        
-        bytes memory siblingPreimage = abi.encodePacked(address(0x2222), ScaleCodec.encodeU32(uint32(75)));
+
+        bytes memory siblingPreimage =
+            abi.encodePacked(address(0x2222), ScaleCodec.encodeU32(uint32(75)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
-        
+
         // Since leafIndex = 0, our leaf is on the left
         secondMerkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
         secondValidProof = new bytes32[](1);
@@ -117,12 +121,14 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
     function _createThirdMerkleTree() internal {
         // Create third merkle tree with different points using SCALE encoding
-        bytes memory preimage = abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(thirdOperatorPoints)));
+        bytes memory preimage =
+            abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(thirdOperatorPoints)));
         bytes32 leaf = keccak256(preimage);
-        
-        bytes memory siblingPreimage = abi.encodePacked(address(0x3333), ScaleCodec.encodeU32(uint32(60)));
+
+        bytes memory siblingPreimage =
+            abi.encodePacked(address(0x3333), ScaleCodec.encodeU32(uint32(60)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
-        
+
         // Since leafIndex = 0, our leaf is on the left
         thirdMerkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
         thirdValidProof = new bytes32[](1);
@@ -194,7 +200,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodeWithSelector(IServiceManagerErrors.NoRewardsRegistryForOperatorSet.selector)
         );
 
-        serviceManager.claimLatestOperatorRewards(invalidSetId, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        serviceManager.claimLatestOperatorRewards(
+            invalidSetId, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimLatestOperatorRewards_AlreadyClaimed() public {
@@ -234,7 +242,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectEmit(true, true, true, true);
         emit RewardsClaimedForIndex(operatorAddress, 0, operatorPoints, operatorPoints);
 
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        serviceManager.claimOperatorRewards(
+            operatorSetId, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         assertEq(
             operatorAddress.balance,
@@ -299,7 +309,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IRewardsRegistryErrors.InvalidMerkleRootIndex.selector)
         );
-        serviceManager.claimOperatorRewards(operatorSetId, 999, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        serviceManager.claimOperatorRewards(
+            operatorSetId, 999, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimOperatorRewards_AlreadyClaimed() public {
@@ -311,7 +323,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         // First claim
         vm.prank(operatorAddress);
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        serviceManager.claimOperatorRewards(
+            operatorSetId, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
 
         // Second claim should fail
         vm.prank(operatorAddress);
@@ -570,14 +584,17 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         );
 
         // Create a different merkle root for the second registry using SCALE encoding
-        bytes memory secondLeafPreimage = abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
+        bytes memory secondLeafPreimage =
+            abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
         bytes32 secondLeaf = keccak256(secondLeafPreimage);
-        
-        bytes memory secondSiblingPreimage = abi.encodePacked(address(0x4444), ScaleCodec.encodeU32(uint32(80)));
+
+        bytes memory secondSiblingPreimage =
+            abi.encodePacked(address(0x4444), ScaleCodec.encodeU32(uint32(80)));
         bytes32 secondSiblingLeaf = keccak256(secondSiblingPreimage);
-        
+
         // Since leafIndex = 0, our leaf is on the left
-        bytes32 secondRegistryMerkleRoot = keccak256(abi.encodePacked(secondLeaf, secondSiblingLeaf));
+        bytes32 secondRegistryMerkleRoot =
+            keccak256(abi.encodePacked(secondLeaf, secondSiblingLeaf));
 
         // Set the merkle root in the second registry
         vm.prank(mockRewardsAgent);
@@ -635,7 +652,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IServiceManagerErrors.OperatorNotInOperatorSet.selector)
         );
-        serviceManager.claimLatestOperatorRewards(operatorSetId, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        serviceManager.claimLatestOperatorRewards(
+            operatorSetId, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimOperatorRewards_NotInOperatorSet() public {
@@ -649,7 +668,9 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.expectRevert(
             abi.encodeWithSelector(IServiceManagerErrors.OperatorNotInOperatorSet.selector)
         );
-        serviceManager.claimOperatorRewards(operatorSetId, 0, operatorPoints, numberOfLeaves, leafIndex, validProof);
+        serviceManager.claimOperatorRewards(
+            operatorSetId, 0, operatorPoints, numberOfLeaves, leafIndex, validProof
+        );
     }
 
     function test_claimOperatorRewardsBatch_NotInOperatorSet() public {

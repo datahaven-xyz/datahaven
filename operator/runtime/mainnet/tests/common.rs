@@ -4,7 +4,7 @@
 //! Common test utilities for DataHaven mainnet runtime tests
 
 use datahaven_mainnet_runtime::{
-    AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System, UNIT,
+    currency::HAVE, AccountId, Balance, Runtime, RuntimeOrigin, Session, SessionKeys, System,
 };
 use frame_support::traits::Hooks;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -26,7 +26,7 @@ pub fn account_id(account: [u8; 20]) -> AccountId {
 }
 
 /// Default balance for test accounts (1M DH tokens)
-pub const DEFAULT_BALANCE: Balance = 1_000_000 * UNIT;
+pub const DEFAULT_BALANCE: Balance = 1_000_000 * HAVE;
 
 /// Generate test session keys for a given account
 pub fn generate_session_keys(account: AccountId) -> SessionKeys {
@@ -48,6 +48,7 @@ pub struct ExtBuilder {
     with_default_balances: bool,
     validators: Vec<AccountId>,
     with_default_validators: bool,
+    sudo_key: Option<AccountId>,
 }
 
 impl ExtBuilder {
@@ -57,6 +58,7 @@ impl ExtBuilder {
             with_default_balances: true,
             validators: vec![],
             with_default_validators: true,
+            sudo_key: None,
         }
     }
 
@@ -71,6 +73,12 @@ impl ExtBuilder {
     pub fn with_validators(mut self, validators: Vec<AccountId>) -> Self {
         self.validators = validators;
         self.with_default_validators = false;
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_sudo(mut self, sudo_key: AccountId) -> Self {
+        self.sudo_key = Some(sudo_key);
         self
     }
 
@@ -123,6 +131,15 @@ impl ExtBuilder {
         .assimilate_storage(&mut t)
         .expect("Session genesis config can be assimilated");
 
+        // Configure Sudo if specified
+        if let Some(sudo_key) = self.sudo_key {
+            pallet_sudo::GenesisConfig::<Runtime> {
+                key: Some(sudo_key),
+            }
+            .assimilate_storage(&mut t)
+            .expect("Sudo genesis config can be assimilated");
+        }
+
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {
             System::set_block_number(1);
@@ -137,6 +154,7 @@ pub fn root_origin() -> RuntimeOrigin {
     RuntimeOrigin::root()
 }
 
+#[allow(dead_code)]
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
     snowbridge_core::AssetMetadata {
         name: b"HAVE".to_vec().try_into().unwrap(),
@@ -147,6 +165,7 @@ pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
 
 /// Get validator AccountId by index (for testing)
 /// Index 0: Charlie, Index 1: Dave
+#[allow(dead_code)]
 pub fn get_validator_by_index(index: u32) -> AccountId {
     match index {
         0 => account_id(CHARLIE),
@@ -156,6 +175,7 @@ pub fn get_validator_by_index(index: u32) -> AccountId {
 }
 
 /// Set block author directly in authorship pallet storage (for testing)
+#[allow(dead_code)]
 pub fn set_block_author(author: AccountId) {
     // Use direct storage access since the Author storage is private
     frame_support::storage::unhashed::put(
@@ -165,6 +185,7 @@ pub fn set_block_author(author: AccountId) {
 }
 
 /// Set block author by validator index (for testing)
+#[allow(dead_code)]
 pub fn set_block_author_by_index(validator_index: u32) {
     let author = get_validator_by_index(validator_index);
     set_block_author(author);

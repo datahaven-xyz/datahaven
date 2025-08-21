@@ -30,6 +30,7 @@ const RELAYER_CONFIG_DIR = "../deploy/charts/relay/configs";
 const RELAYER_CONFIG_PATHS = {
   BEACON: path.join(RELAYER_CONFIG_DIR, "beacon-relay.json"),
   BEEFY: path.join(RELAYER_CONFIG_DIR, "beefy-relay.json"),
+  EXECUTION: path.join(RELAYER_CONFIG_DIR, "execution-relay.json"),
   SOLOCHAIN: path.join(RELAYER_CONFIG_DIR, "solochain-relay.json")
 };
 
@@ -69,15 +70,17 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
   const gatewayAddress = anvilDeployments.Gateway;
+  const rewardsRegistryAddress = anvilDeployments.RewardsRegistry;
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
+  invariant(rewardsRegistryAddress, "❌ RewardsRegistry address not found in anvil.json");
 
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
 
   const ethElRpcEndpoint = `ws://el-1-reth-lodestar:${ETH_EL_RPC_PORT}`;
   const ethClEndpoint = `http://cl-1-lodestar-reth:${ETH_CL_HTTP_PORT}`;
-  const substrateWsEndpoint = `ws://${substrateNodeId}:${substrateWsPort}`;
+  const substrateWsEndpoint = `ws://dh-bootnode-0:${substrateWsPort}`;
 
   const relayersToStart: RelayerSpec[] = [
     {
@@ -105,39 +108,38 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       pk: {
         substrate: SUBSTRATE_FUNDED_ACCOUNTS.BALTATHAR.privateKey
       }
+    },
+    {
+      name: "relayer-⛓️",
+      configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
+      config: {
+        type: "solochain",
+        ethElRpcEndpoint,
+        substrateWsEndpoint,
+        beefyClientAddress,
+        gatewayAddress,
+        rewardsRegistryAddress,
+        ethClEndpoint
+      },
+      pk: {
+        ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
+      }
+    },
+    {
+      name: "relayer-⚙️",
+      configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
+      config: {
+        type: "execution",
+        ethElRpcEndpoint,
+        ethClEndpoint,
+        substrateWsEndpoint,
+        gatewayAddress
+      },
+      pk: {
+        substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
+      }
     }
-    // TODO: Add solochain relayer
-    // {
-    //   name: "relayer-⛓️",
-    //   configFilePath: RELAYER_CONFIG_PATHS.SOLOCHAIN,
-    //   config: {
-    //     type: "solochain",
-    //     ethElRpcEndpoint,
-    //     substrateWsEndpoint,
-    //     beefyClientAddress,
-    //     gatewayAddress,
-    //     ethClEndpoint
-    //   },
-    //   pk: {
-    //     ethereum: ANVIL_FUNDED_ACCOUNTS[1].privateKey,
-    //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey
-    //   }
-    // },
-    // TODO: Add execution relayer
-    // {
-    //   name: "relayer-⚙️",
-    //   configFilePath: RELAYER_CONFIG_PATHS.EXECUTION,
-    //   config: {
-    //     type: "execution",
-    //     ethElRpcEndpoint,
-    //     ethClEndpoint,
-    //     substrateWsEndpoint,
-    //     gatewayAddress
-    //   },
-    //   pk: {
-    //     substrate: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey
-    //   }
-    // }
   ];
 
   for (const relayerSpec of relayersToStart) {
@@ -229,7 +231,7 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
       logger.debug(
         await $`helm upgrade --install ${containerName} charts/relay \
         -f charts/relay/snowbridge/${containerName}.yaml \
-        -f environments/${options.environment}/values.yaml \
+        -f environments/${options.environment}/${containerName}.yaml \
         -n ${launchedNetwork.kubeNamespace} \
         --wait \
         --timeout ${relayerTimeout}`

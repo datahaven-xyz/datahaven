@@ -1,0 +1,32 @@
+# Validator-specific settings for testnet
+
+global:
+  environment: testnet
+  namespace: datahaven-pretestnet
+
+image:
+  tag: main
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+ingress:
+  enabled: false
+
+node:
+  chain: testnet-local
+  chainData:
+    persistence:
+      size: 20Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort

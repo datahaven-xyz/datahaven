@@ -1,0 +1,21 @@
+{{- if and .Values.relayData.storagePath .Values.relayData.volumeSize }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bridges-common-relay.fullname" . }}-data
+  labels:
+    {{- include "bridges-common-relay.labels" . | nindent 4 }}
+  {{- with .Values.relayData.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.relayData.storageClass }}
+  storageClassName: {{ .Values.relayData.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.relayData.volumeSize }}
+{{- end }} 

@@ -43,6 +43,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_timestamp, Timestamp]
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]
+    [pallet_proxy, Proxy]
     [pallet_transaction_payment, TransactionPayment]
     [pallet_parameters, Parameters]
     [pallet_message_queue, MessageQueue]

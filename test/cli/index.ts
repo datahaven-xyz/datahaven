@@ -89,6 +89,7 @@ program
   .option("--docker-username <value>", "Docker Hub username")
   .option("--docker-password <value>", "Docker Hub password")
   .option("--docker-email <value>", "Docker Hub email")
+  .option("--chainspec <value>", "Absolute path to custom chainspec file")
   .option("--skip-cleanup", "Skip cleaning up the network", false)
   .option("--skip-kurtosis", "Skip deploying Kurtosis Ethereum private network", false)
   .option("--skip-datahaven-solochain", "Skip deploying DataHaven solochain validators", false)

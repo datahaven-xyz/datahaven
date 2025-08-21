@@ -299,23 +299,22 @@ describe("Rewards Message Flow", () => {
     // For the test account that sent the tx
     const actualBalanceIncrease = balanceAfter - balanceBefore;
 
-    // If the operator is the same as the transaction sender, they pay gas
-    // Otherwise, they should receive the full amount
-    if (
+    // Gas details and unified validation
+    const gasUsedWei = claimReceipt.gasUsed * claimReceipt.effectiveGasPrice;
+    const sameSender =
       operatorWallet.account &&
-      resolvedOperator.toLowerCase() === operatorWallet.account.address.toLowerCase()
-    ) {
-      // Operator paid for gas, so balance increase will be less than rewards
-      const gasUsed = claimReceipt.gasUsed * claimReceipt.effectiveGasPrice;
-      const netRewards = claimArgs.rewardsAmount - gasUsed;
+      resolvedOperator.toLowerCase() === operatorWallet.account.address.toLowerCase();
 
-      // Allow small difference due to rounding
-      expect(actualBalanceIncrease).toBeGreaterThanOrEqual(netRewards - 100n);
-      expect(actualBalanceIncrease).toBeLessThanOrEqual(netRewards + 100n);
-    } else {
-      // Different account claimed, operator should receive full rewards
-      expect(actualBalanceIncrease).toBe(claimArgs.rewardsAmount);
-    }
+    // Adjust the observed increase by adding back gas if the operator paid for it
+    const adjustedIncrease = actualBalanceIncrease + (sameSender ? gasUsedWei : 0n);
+
+    // Logs to clarify payout vs gas
+    logger.info(`  Gas used: ${gasUsedWei} wei`);
+    logger.info(`  Same sender paid gas: ${sameSender}`);
+    logger.info(`  Adjusted balance change (+gas if paid): ${adjustedIncrease} wei`);
+
+    // Regardless of who paid for gas, the operator should net receive `rewardsAmount`
+    expect(adjustedIncrease).toBe(claimArgs.rewardsAmount);
 
     // Verify rewards amount matches expected calculation
     expect(claimArgs.rewardsAmount).toBe(expectedRewards);

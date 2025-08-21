@@ -434,7 +434,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     /// as it would use the deprecated `IAVSRegistrar` interface.
     /// Calling this function will revert.
     function deregisterOperatorFromAVS(
-        address operator
+        address // operator
     ) external virtual override {
         revert("ServiceManagerBase: deregisterOperatorFromAVS is deprecated");
     }

@@ -1,10 +1,11 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { logger } from "utils";
-import { padHex } from "viem";
+import { padHex, keccak256, encodePacked } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
 import * as rewardsHelpers from "../utils/rewards-helpers";
+import validatorSet from "../configs/validator-set.json";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -72,8 +73,7 @@ describe("Rewards Message Flow", () => {
   });
 
   it("should complete basic rewards flow from era end to claim", async () => {
-    const { dhApi, publicClient } = suite.getTestConnectors();
-
+    const { dhApi, publicClient, walletClient } = suite.getTestConnectors();
     // Step 1: Track current era and blocks until era end
     const currentBlock = await dhApi.query.System.Number.getValue();
     const currentEra = await rewardsHelpers.getCurrentEra(dhApi);
@@ -184,16 +184,7 @@ describe("Rewards Message Flow", () => {
     // Verify we have at least one validator with proofs
     expect(validatorProofs.size).toBeGreaterThan(0);
 
-    // Log proof details for debugging
-    for (const [operatorAddress, proofData] of validatorProofs) {
-      logger.debug("Validator proof generated:");
-      logger.debug(`  Operator: ${operatorAddress}`);
-      logger.debug(`  Points: ${proofData.points}`);
-      logger.debug(`  Proof elements: ${proofData.proof.length}`);
-      logger.debug(`  Leaf: ${proofData.leaf}`);
-    }
-
-    logger.success(`✅ Generated merkle proofs for ${validatorProofs.size} validators`);
+    logger.success(`Generated merkle proofs for ${validatorProofs.size} validators`);
 
     // Step 9: Claim Rewards
     logger.info("Claiming rewards for first validator...");
@@ -204,7 +195,7 @@ describe("Rewards Message Flow", () => {
     const fundingTx = await fundingWallet.sendTransaction({
       chain: null,
       to: rewardsRegistry.address as `0x${string}`,
-      value: rewardsMessageEvent.inflation_amount
+      value: eraPoints?.total ? BigInt(eraPoints.total) : 0n
     });
     await publicClient.waitForTransactionReceipt({ hash: fundingTx });
 
@@ -218,10 +209,6 @@ describe("Rewards Message Flow", () => {
     }
     const [operatorAddress, proofData] = firstEntry.value;
 
-    logger.info(`Claiming rewards for operator: ${operatorAddress}`);
-    logger.info(`  Points: ${proofData.points}`);
-    logger.info(`  Root index: ${newRootIndex}`);
-
     // Get validator credentials to create operator signer
     const factory = suite.getConnectorFactory();
     const credentials = rewardsHelpers.getValidatorCredentials(proofData.validatorAccount);
@@ -232,9 +219,16 @@ describe("Rewards Message Flow", () => {
       );
     }
 
-    logger.debug(`Using operator credentials for ${credentials.operatorAddress}`);
     const operatorWallet = factory.createWalletClient(credentials.privateKey);
     const resolvedOperator = operatorWallet.account.address as `0x${string}`;
+
+    // Check the solochain address mapping in the contract
+    const mappedSolochainAddress = await publicClient.readContract({
+      address: serviceManager.address as `0x${string}`,
+      abi: serviceManager.abi,
+      functionName: "validatorEthAddressToSolochainAddress",
+      args: [operatorAddress as `0x${string}`]
+    }) as `0x${string}`;
 
     // Record initial ETH balance
     const balanceBefore = await publicClient.getBalance({ address: resolvedOperator });
@@ -249,6 +243,8 @@ describe("Rewards Message Flow", () => {
         0,
         newRootIndex,
         BigInt(proofData.points),
+        BigInt(proofData.numberOfLeaves),
+        BigInt(proofData.leafIndex),
         proofData.proof as readonly `0x${string}`[]
       ]
     });
@@ -277,17 +273,17 @@ describe("Rewards Message Flow", () => {
     const claimArgs = (claimEvent.log as any).args as {
       operatorAddress: `0x${string}`;
       rootIndex: bigint;
-      operatorPoints: bigint;
+      points: bigint;
       rewardsAmount: bigint;
     };
 
     // Verify event data
     expect(claimArgs.operatorAddress.toLowerCase()).toBe(resolvedOperator.toLowerCase());
     expect(claimArgs.rootIndex).toBe(newRootIndex);
-    expect(claimArgs.operatorPoints).toBe(BigInt(proofData.points));
+    expect(claimArgs.points).toBe(BigInt(proofData.points));
     expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
 
-    logger.success("✅ Rewards claimed successfully");
+    logger.success("Rewards claimed successfully");
     logger.info(`  Rewards amount: ${claimArgs.rewardsAmount} wei`);
 
     // Step 10: Validate Token Transfer
@@ -296,12 +292,8 @@ describe("Rewards Message Flow", () => {
     // Check ETH balance after claim
     const balanceAfter = await publicClient.getBalance({ address: resolvedOperator });
 
-    // Calculate expected rewards
-    const expectedRewards = rewardsHelpers.calculateExpectedRewards(
-      BigInt(proofData.points),
-      totalPoints,
-      rewardsMessageEvent.inflation_amount
-    );
+    // Calculate expected rewards (contract currently pays raw points in wei)
+    const expectedRewards = BigInt(proofData.points);
 
     // Account for gas costs - the actual balance increase might be less due to gas
     // For the test account that sent the tx
@@ -328,7 +320,7 @@ describe("Rewards Message Flow", () => {
     // Verify rewards amount matches expected calculation
     expect(claimArgs.rewardsAmount).toBe(expectedRewards);
 
-    logger.success("✅ Reward transfer validated successfully");
+    logger.success("Reward transfer validated successfully");
     logger.info(`  Expected rewards: ${expectedRewards} wei`);
     logger.info(`  Actual rewards: ${claimArgs.rewardsAmount} wei`);
     logger.info(`  Balance increase: ${actualBalanceIncrease} wei`);

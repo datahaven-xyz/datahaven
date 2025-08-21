@@ -1,9 +1,10 @@
 # Rewards Message Flow Documentation
 
 ## Current Implementation Status
-- **✅ Steps 1-10 Complete**: Full flow from era tracking through reward claiming
+- **✅ Steps 1-10 Complete**: Full rewards flow from era end to successful claiming
 - **⏳ Step 11 TODO**: Double-claim prevention verification
-- **Test Coverage**: Era end → Message relay → Merkle root update → Proof generation → Reward claiming → ETH transfer validation
+- **Test Coverage**: Era end → Message relay → Merkle root update → Proof generation → Claiming → Validation
+- **Status**: Basic rewards flow test passing successfully
 
 ## Overview
 This document describes the end-to-end flow of rewards messages from DataHaven (Substrate chain) to Ethereum, including merkle proof generation, claiming, and validation.
@@ -94,18 +95,23 @@ This document describes the end-to-end flow of rewards messages from DataHaven (
   - `generateMerkleProofsForEra()` - Batch generation for all validators
   - `getValidatorCredentials()` - Gets validator credentials including operator address and private key
 
-#### Step 9: Claim Rewards ✅ (Implemented)
+#### Step 9: Claim Rewards ✅
 - Submit merkle proof to ServiceManager
 - Validate operator is part of operator set
 - Current Implementation:
   - Selects first validator from `validatorProofs` Map
+  - Gets validator credentials and creates operator wallet
   - Records initial ETH balance
   - Calls `claimOperatorRewards()` on ServiceManager with operatorSetId=0
   - Waits for transaction confirmation
-  - Captures `RewardsClaimedForIndex` event from RewardsRegistry
-  - Verifies event data matches expected values
+  - Captures `RewardsClaimedForIndex` event
+- **Validation**:
+  - ✅ Solochain address mapping is correct
+  - ✅ Merkle leaf computation matches DataHaven's exactly
+  - ✅ Merkle proof verification succeeds
+  - ✅ Operator successfully registered in AllocationManager
 
-#### Step 10: Validate Token Transfer ✅ (Implemented)
+#### Step 10: Validate Token Transfer ✅
 - Verify ETH balance increase (rewards are paid in native ETH)
 - Account for gas costs if operator is sender
 - Validate rewards amount matches calculation

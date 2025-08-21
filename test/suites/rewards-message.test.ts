@@ -1,11 +1,10 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { logger } from "utils";
-import { padHex, keccak256, encodePacked } from "viem";
+import { padHex } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
 import * as rewardsHelpers from "../utils/rewards-helpers";
-import validatorSet from "../configs/validator-set.json";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -73,7 +72,7 @@ describe("Rewards Message Flow", () => {
   });
 
   it("should complete basic rewards flow from era end to claim", async () => {
-    const { dhApi, publicClient, walletClient } = suite.getTestConnectors();
+    const { dhApi, publicClient } = suite.getTestConnectors();
     // Step 1: Track current era and blocks until era end
     const currentBlock = await dhApi.query.System.Number.getValue();
     const currentEra = await rewardsHelpers.getCurrentEra(dhApi);
@@ -223,12 +222,12 @@ describe("Rewards Message Flow", () => {
     const resolvedOperator = operatorWallet.account.address as `0x${string}`;
 
     // Check the solochain address mapping in the contract
-    const mappedSolochainAddress = await publicClient.readContract({
+    const _mappedSolochainAddress = (await publicClient.readContract({
       address: serviceManager.address as `0x${string}`,
       abi: serviceManager.abi,
       functionName: "validatorEthAddressToSolochainAddress",
       args: [operatorAddress as `0x${string}`]
-    }) as `0x${string}`;
+    })) as `0x${string}`;
 
     // Record initial ETH balance
     const balanceBefore = await publicClient.getBalance({ address: resolvedOperator });

@@ -24,6 +24,7 @@ import {
     IRewardsRegistryEvents, IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
+import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 import "forge-std/Test.sol";
 
 contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
@@ -105,7 +106,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             _validatorAddresses[0], 0, _validatorPoints[0], uint256(_validatorPoints[0])
         );
         serviceManager.claimLatestOperatorRewards(
-            0, _validatorPoints[0], 2, 0, rewardsProofFirstValidator
+            0, _validatorPoints[0], 10, 0, rewardsProofFirstValidator
         );
         vm.stopPrank();
 
@@ -127,7 +128,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             _validatorAddresses[9], 0, _validatorPoints[9], uint256(_validatorPoints[9])
         );
         serviceManager.claimLatestOperatorRewards(
-            0, _validatorPoints[9], 2, 0, rewardsProofLastValidator
+            0, _validatorPoints[9], 10, 9, rewardsProofLastValidator
         );
         vm.stopPrank();
 
@@ -355,11 +356,13 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
         bytes32[] memory leaves = new bytes32[](validators.length);
         for (uint256 i = 0; i < validators.length; i++) {
-            leaves[i] = keccak256(abi.encode(validators[i], points[i]));
+            // Use SCALE encoding for Substrate compatibility
+            bytes memory preimage = abi.encodePacked(validators[i], ScaleCodec.encodeU32(uint32(points[i])));
+            leaves[i] = keccak256(preimage);
         }
 
-        // We calculate the merkle root by sorting the pair before hashing (See Open Zeppelin Merkle Tree lib).
-        return MerkleUtils.calculateMerkleRoot(leaves, true);
+        // We calculate the merkle root without sorting for Substrate positional merkle tree.
+        return MerkleUtils.calculateMerkleRoot(leaves, false);
     }
 
     function _buildValidatorPointsProof(
@@ -374,10 +377,12 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
         bytes32[] memory leaves = new bytes32[](validators.length);
         for (uint256 i = 0; i < validators.length; i++) {
-            leaves[i] = keccak256(abi.encode(validators[i], points[i]));
+            // Use SCALE encoding for Substrate compatibility
+            bytes memory preimage = abi.encodePacked(validators[i], ScaleCodec.encodeU32(uint32(points[i])));
+            leaves[i] = keccak256(preimage);
         }
 
-        return MerkleUtils.buildMerkleProof(leaves, leafIndex, true);
+        return MerkleUtils.buildMerkleProof(leaves, leafIndex, false);
     }
 
     function _buildMessagesMerkleTree(

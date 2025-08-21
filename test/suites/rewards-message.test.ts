@@ -91,17 +91,15 @@ describe("Rewards Message Flow", () => {
       blocksUntilEraEnd * 6000 + 30000
     );
 
-    if (!rewardsMessageEvent) {
-      throw new Error("No rewards message event received - era ended without rewards message");
-    }
-
-    const messageIdHex = rewardsMessageEvent.message_id;
-    const merkleRootHex = rewardsMessageEvent.rewards_merkle_root;
-    const totalPoints = rewardsMessageEvent.total_points;
-    const eraIndex = rewardsMessageEvent.era_index;
+    expect(rewardsMessageEvent).toBeDefined();
+    const event = rewardsMessageEvent!;
+    const messageIdHex = event.message_id;
+    const merkleRootHex = event.rewards_merkle_root;
+    const totalPoints = event.total_points;
+    const eraIndex = event.era_index;
 
     logger.debug(
-      `Rewards message sent for era ${eraIndex}: ${totalPoints} points, merkle root: ${merkleRootHex}, inflation amount: ${rewardsMessageEvent.inflation_amount}`
+      `Rewards message sent for era ${eraIndex}: ${totalPoints} points, merkle root: ${merkleRootHex}, inflation amount: ${event.inflation_amount}`
     );
 
     expect(messageIdHex).toBeDefined();
@@ -203,22 +201,16 @@ describe("Rewards Message Flow", () => {
 
     // Select first validator to claim
     const firstEntry = validatorProofs.entries().next();
-    if (!firstEntry.value) {
-      throw new Error("No validator proofs available for claiming");
-    }
-    const [operatorAddress, proofData] = firstEntry.value;
+    expect(firstEntry.value).toBeDefined();
+    const [operatorAddress, proofData] = firstEntry.value!;
 
     // Get validator credentials to create operator signer
     const factory = suite.getConnectorFactory();
     const credentials = rewardsHelpers.getValidatorCredentials(proofData.validatorAccount);
 
-    if (!credentials.privateKey) {
-      throw new Error(
-        `Unable to find private key for validator ${proofData.validatorAccount} (operator: ${operatorAddress})`
-      );
-    }
+    expect(credentials.privateKey).toBeDefined();
 
-    const operatorWallet = factory.createWalletClient(credentials.privateKey);
+    const operatorWallet = factory.createWalletClient(credentials.privateKey!);
     const resolvedOperator = operatorWallet.account.address as `0x${string}`;
 
     // Check the solochain address mapping in the contract

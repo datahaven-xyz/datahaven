@@ -411,7 +411,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      *      of each element in the returned array. The off-chain service should do that validation separately
      */
     function getOperatorRestakedStrategies(
-        address /* operator */
+        address operator
     ) external view virtual returns (address[] memory) {
         // TODO: Implement this
         return new address[](0);
@@ -431,7 +431,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     /// as it would use the deprecated `IAVSRegistrar` interface.
     /// Calling this function will revert.
     function deregisterOperatorFromAVS(
-        address /* operator */
+        address operator
     ) external virtual override {
         revert("ServiceManagerBase: deregisterOperatorFromAVS is deprecated");
     }

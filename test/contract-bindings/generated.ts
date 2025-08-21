@@ -2282,7 +2282,7 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
     name: 'getOperatorRestakedStrategies',
     outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
     stateMutability: 'view',

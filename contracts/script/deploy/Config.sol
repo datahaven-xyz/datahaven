@@ -48,5 +48,12 @@ contract Config {
         uint32 deallocationDelay;
         uint32 allocationConfigurationDelay;
         uint64 beaconChainGenesisTimestamp;
+        // Hoodi-specific contract addresses (existing deployed contracts)
+        address delegationManager;
+        address strategyManager;
+        address avsDirectory;
+        address rewardsCoordinator;
+        address allocationManager;
+        address permissionController;
     }
 }

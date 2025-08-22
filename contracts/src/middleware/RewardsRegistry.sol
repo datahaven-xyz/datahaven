@@ -70,8 +70,6 @@ contract RewardsRegistry is RewardsRegistryStorage {
         rewardsAgent = _rewardsAgent;
     }
 
-    
-
     /**
      * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs.
      * @param operatorAddress Address of the operator to receive rewards

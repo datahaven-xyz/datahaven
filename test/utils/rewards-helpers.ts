@@ -9,7 +9,7 @@ const toHex = (x: unknown): `0x${string}` => {
   const anyX: any = x as any;
   if (anyX?.asHex) return anyX.asHex();
   const s = anyX?.toString?.() ?? "";
-  return (`0x${s}`) as `0x${string}`;
+  return `0x${s}` as `0x${string}`;
 };
 
 // External Validators Rewards Events (normalized)

@@ -70,44 +70,7 @@ contract RewardsRegistry is RewardsRegistryStorage {
         rewardsAgent = _rewardsAgent;
     }
 
-    /**
-     * @notice Claim rewards for an operator from a specific merkle root index
-     * @param operatorAddress Address of the operator to receive rewards
-     * @param rootIndex Index of the merkle root to claim from
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     * @dev Only callable by the AVS (Service Manager)
-     */
-    // Removed OZ claim with sorted proof
-
-    /**
-     * @notice Claim rewards for an operator from the latest merkle root
-     * @param operatorAddress Address of the operator to receive rewards
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     * @dev Only callable by the AVS (Service Manager)
-     */
-    // Removed OZ latest-claim with sorted proof
-
-    /**
-     * @notice Claim rewards for an operator from multiple merkle root indices
-     * @param operatorAddress Address of the operator to receive rewards
-     * @param rootIndices Array of merkle root indices to claim from
-     * @param operatorPoints Array of points earned by the operator for each root
-     * @param proofs Array of merkle proofs to validate the operator's rewards
-     * @dev Only callable by the AVS (Service Manager)
-     */
-    // Removed OZ batch claim with sorted proof
-
-    /**
-     * @notice Internal function to validate a claim and calculate rewards
-     * @param operatorAddress Address of the operator to receive rewards
-     * @param rootIndex Index of the merkle root to claim from
-     * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
-     * @return rewardsAmount The amount of rewards calculated
-     */
-    // Removed OZ validator; all validation is through _validateClaim
+    
 
     /**
      * @notice Claim rewards using Substrate/Snowbridge positional Merkle proofs (compatibility with DataHaven runtime).

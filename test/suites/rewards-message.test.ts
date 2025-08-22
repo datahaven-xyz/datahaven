@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { logger } from "utils";
-import { padHex, isAddressEqual, decodeEventLog, type Address, type Hex, BaseError, ContractFunctionRevertedError } from "viem";
+import { padHex, isAddressEqual, decodeEventLog, decodeErrorResult, type Address, type Hex, BaseError, ContractFunctionRevertedError } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
@@ -43,6 +43,11 @@ let merkleRoot!: Hex;
 let totalPoints!: bigint;
 let newRootIndex!: bigint;
 let validatorProofs!: Map<string, rewardsHelpers.ValidatorProofData>;
+// Persisted state from first successful claim for double-claim test
+let claimedOperatorAddress!: Address;
+let claimedProofData!: rewardsHelpers.ValidatorProofData;
+let firstClaimGasUsed!: bigint;
+let firstClaimBlockNumber!: bigint;
 
 describe("Rewards Message Flow", () => {
   beforeAll(async () => {
@@ -329,6 +334,12 @@ describe("Rewards Message Flow", () => {
       const claimReceipt = await publicClient.waitForTransactionReceipt({ hash: claimTx });
       expect(claimReceipt.status).toBe("success");
 
+      // Persist state for the double-claim test
+      claimedOperatorAddress = resolvedOperator;
+      claimedProofData = proofData;
+      firstClaimGasUsed = claimReceipt.gasUsed;
+      firstClaimBlockNumber = claimReceipt.blockNumber;
+
       // Wait for and validate claim event
       const claimEvent = await waitForEthereumEvent({
         client: publicClient,
@@ -375,39 +386,91 @@ describe("Rewards Message Flow", () => {
     }, TEST_CONFIG.TIMEOUTS.CLAIM_EVENT);
 
     it("should prevent double claiming of rewards", async () => {
+      logger.info("🚫 Testing double-claim prevention (on-chain revert)...");
 
-      logger.info("🚫 Testing double-claim prevention...");
-
-      // Use the same validator from the previous claim
-      const firstEntry = validatorProofs.entries().next();
-      expect(firstEntry.value).toBeDefined();
-      const entry2 = firstEntry.value!;
-      const [, proofData] = entry2;
+      // Preconditions from previous test
+      expect(claimedProofData).toBeDefined();
+      expect(claimedOperatorAddress).toBeDefined();
+      expect(firstClaimGasUsed).toBeDefined();
+      expect(firstClaimBlockNumber).toBeDefined();
+      expect(newRootIndex).toBeDefined();
+      if (newRootIndex === undefined) throw new Error("Merkle root not updated yet");
 
       const factory = suite.getConnectorFactory();
-      const credentials = rewardsHelpers.getValidatorCredentials(proofData.validatorAccount);
-      expect(credentials.privateKey).toBeDefined();
+      const credentials = rewardsHelpers.getValidatorCredentials(claimedProofData.validatorAccount);
       if (!credentials.privateKey) throw new Error("missing validator private key");
       const operatorWallet = factory.createWalletClient(credentials.privateKey as `0x${string}`);
 
-      // Attempt second claim - this should fail
-      await expect(
-        operatorWallet.writeContract({
+      // Send a real transaction expected to revert. Provide explicit gas to avoid estimation/simulation.
+      const gasLimit = firstClaimGasUsed + 100_000n;
+
+      const revertTxHash = await operatorWallet.writeContract({
+        address: serviceManager.address as Address,
+        abi: serviceManager.abi,
+        functionName: "claimOperatorRewards",
+        args: [
+          0,
+          newRootIndex,
+          BigInt(claimedProofData.points),
+          BigInt(claimedProofData.numberOfLeaves),
+          BigInt(claimedProofData.leafIndex),
+          claimedProofData.proof as readonly Hex[]
+        ],
+        gas: gasLimit,
+        chain: null
+      });
+
+      const revertReceipt = await publicClient.waitForTransactionReceipt({ hash: revertTxHash });
+      expect(revertReceipt.status).toBe("reverted");
+
+      // Verify custom error using eth_call at the same block
+      let decodedErrorName = "";
+      try {
+        await publicClient.simulateContract({
+          account: operatorWallet.account,
           address: serviceManager.address as Address,
           abi: serviceManager.abi,
           functionName: "claimOperatorRewards",
-          chain: null,
           args: [
             0,
             newRootIndex,
-            BigInt(proofData.points),
-            BigInt(proofData.numberOfLeaves),
-            BigInt(proofData.leafIndex),
-            proofData.proof as readonly Hex[]
-          ]
-        })
-      ).rejects.toThrow();
-      logger.success("Double-claim prevention verified - second claim properly rejected");
+            BigInt(claimedProofData.points),
+            BigInt(claimedProofData.numberOfLeaves),
+            BigInt(claimedProofData.leafIndex),
+            claimedProofData.proof as readonly Hex[]
+          ],
+          blockNumber: revertReceipt.blockNumber
+        });
+        throw new Error("Expected simulateContract to revert");
+      } catch (err: any) {
+        if (err instanceof BaseError) {
+          const revertError = err.walk(e => e instanceof ContractFunctionRevertedError);
+          if (revertError instanceof ContractFunctionRevertedError) {
+            // First try viem's decoded data (only works if ABI included the error)
+            decodedErrorName = revertError.data?.errorName ?? "";
+            // Fallback: decode the raw revert data using an ABI that includes the custom error
+            if (!decodedErrorName) {
+              const rawData = revertError.raw as Hex | undefined;
+              if (rawData) {
+                try {
+                  const unionAbi = [...(serviceManager.abi as any[]), ...(rewardsRegistry.abi as any[])];
+                  const decoded = decodeErrorResult({ abi: unionAbi as any, data: rawData });
+                  decodedErrorName = decoded.errorName;
+                } catch (_e) {
+                  // ignore secondary decode errors
+                }
+              }
+            }
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
+      expect(decodedErrorName).toBe("RewardsAlreadyClaimedForIndex");
+
+      logger.success("Double-claim prevention verified (on-chain revert and correct custom error)");
     }, TEST_CONFIG.TIMEOUTS.CLAIM_EVENT);
   });
 });

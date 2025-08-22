@@ -3,13 +3,22 @@ import { waitForDataHavenEvent } from "./events";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
 
-// External Validators Rewards Events
-export interface RewardsMessageSentEvent {
-  message_id: string;
-  era_index: number;
-  total_points: bigint;
-  inflation_amount: bigint;
-  rewards_merkle_root: string;
+// Small hex helper
+const toHex = (x: unknown): `0x${string}` => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyX: any = x as any;
+  if (anyX?.asHex) return anyX.asHex();
+  const s = anyX?.toString?.() ?? "";
+  return (`0x${s}`) as `0x${string}`;
+};
+
+// External Validators Rewards Events (normalized)
+export interface RewardsMessageSent {
+  messageId: `0x${string}`;
+  merkleRoot: `0x${string}`;
+  eraIndex: number;
+  totalPoints: bigint;
+  inflation: bigint;
 }
 
 // Era tracking utilities
@@ -27,7 +36,6 @@ export async function getCurrentEra(dhApi: DataHavenApi): Promise<number> {
 
 export function getEraLengthInBlocks(dhApi: DataHavenApi): number {
   // Read constants directly from runtime metadata
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const consts: any = (dhApi as unknown as { consts?: unknown }).consts ?? {};
   const epochDuration = Number(consts?.Babe?.EpochDuration ?? 10); // blocks per session
   const sessionsPerEra = Number(consts?.ExternalValidators?.SessionsPerEra ?? 1);
@@ -39,11 +47,6 @@ export async function getBlocksUntilEraEnd(dhApi: DataHavenApi): Promise<number>
   const eraLength = getEraLengthInBlocks(dhApi) || 10;
   const mod = currentBlock % eraLength;
   return mod === 0 ? eraLength : eraLength - mod;
-}
-
-export async function waitForEraEnd(dhApi: DataHavenApi): Promise<void> {
-  const blocksToWait = await getBlocksUntilEraEnd(dhApi);
-  await waitForBlocks(dhApi, blocksToWait);
 }
 
 // Validator monitoring and rewards data
@@ -111,13 +114,9 @@ export async function generateMerkleProofForValidator(
     }
 
     // Convert the proof to hex strings
-    const proof = merkleProof.proof.map((node: any) =>
-      node.asHex ? node.asHex() : `0x${node.toString()}`
-    );
+    const proof = merkleProof.proof.map((node: unknown) => toHex(node));
 
-    const leaf = merkleProof.leaf.asHex
-      ? merkleProof.leaf.asHex()
-      : `0x${merkleProof.leaf.toString()}`;
+    const leaf = toHex(merkleProof.leaf);
 
     const numberOfLeaves = Number(merkleProof.number_of_leaves as bigint);
     const leafIndex = Number(merkleProof.leaf_index as bigint);
@@ -170,97 +169,60 @@ export async function generateMerkleProofsForEra(
   dhApi: DataHavenApi,
   eraIndex: number
 ): Promise<Map<string, ValidatorProofData>> {
-  const proofs = new Map<string, ValidatorProofData>();
-
   // Get era reward points
   const eraPoints = await getEraRewardPoints(dhApi, eraIndex);
   if (!eraPoints) {
     logger.warn(`No reward points found for era ${eraIndex}`);
-    return proofs;
+    return new Map();
   }
 
-  // Generate proofs for each validator
-  for (const [validatorAccount, points] of eraPoints.individual) {
-    const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
-    if (!merkleData) continue;
+  const entries = await Promise.all(
+    [...eraPoints.individual].map(async ([validatorAccount, points]) => {
+      const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
+      if (!merkleData) return null;
+      const credentials = getValidatorCredentials(validatorAccount);
+      const value: ValidatorProofData = {
+        validatorAccount,
+        operatorAddress: credentials.operatorAddress,
+        points,
+        proof: merkleData.proof,
+        leaf: merkleData.leaf,
+        numberOfLeaves: merkleData.numberOfLeaves,
+        leafIndex: merkleData.leafIndex
+      };
+      return [credentials.operatorAddress, value] as const;
+    })
+  );
 
-    const credentials = getValidatorCredentials(validatorAccount);
-
-    proofs.set(credentials.operatorAddress, {
-      validatorAccount,
-      operatorAddress: credentials.operatorAddress,
-      points,
-      proof: merkleData.proof,
-      leaf: merkleData.leaf,
-      numberOfLeaves: merkleData.numberOfLeaves,
-      leafIndex: merkleData.leafIndex
-    });
-  }
-
+  const filtered = entries.filter(Boolean) as [string, ValidatorProofData][];
+  const proofs = new Map(filtered);
   logger.info(`Generated ${proofs.size} merkle proofs for era ${eraIndex}`);
   return proofs;
 }
 
-// Rewards validation
-export function calculateExpectedRewards(
-  points: bigint,
-  totalPoints: bigint,
-  inflation: bigint
-): bigint {
-  if (totalPoints === 0n) return 0n;
-  return (inflation * points) / totalPoints;
-}
-
-// Wait for rewards message sent event
-// Typed payload from polkadot-api for the RewardsMessageSent event
-type H256 = { asHex(): `0x${string}` };
-interface RewardsMessageSentPayload {
-  message_id: H256;
-  rewards_merkle_root: H256;
-  era_index: number;
-  total_points: bigint;
-  inflation_amount: bigint;
-}
+// Rewards message event -> normalized return
 
 export async function waitForRewardsMessageSent(
   dhApi: DataHavenApi,
   expectedEra?: number,
   timeout = 120000
-): Promise<RewardsMessageSentEvent | null> {
-  const result = await waitForDataHavenEvent<RewardsMessageSentPayload>({
+): Promise<RewardsMessageSent | null> {
+  const result = await waitForDataHavenEvent({
     api: dhApi,
     pallet: "ExternalValidatorsRewards",
     event: "RewardsMessageSent",
-    filter: expectedEra !== undefined ? (event) => event.era_index === expectedEra : undefined,
+    filter: expectedEra !== undefined ? (event: any) => event.era_index === expectedEra : undefined,
     timeout
   });
 
   if (!result?.data) return null;
 
+  const data: any = result.data;
   return {
-    message_id: result.data.message_id.asHex(),
-    rewards_merkle_root: result.data.rewards_merkle_root.asHex(),
-    era_index: result.data.era_index,
-    total_points: result.data.total_points,
-    inflation_amount: result.data.inflation_amount
+    messageId: data.message_id.asHex(),
+    merkleRoot: data.rewards_merkle_root.asHex(),
+    eraIndex: data.era_index,
+    totalPoints: data.total_points,
+    inflation: data.inflation_amount
   };
-}
-
-// Block utilities
-export async function waitForBlocks(dhApi: DataHavenApi, numberOfBlocks: number): Promise<void> {
-  const startBlock = await dhApi.query.System.Number.getValue();
-  const targetBlock = startBlock + numberOfBlocks;
-
-  logger.info(`Waiting for ${numberOfBlocks} blocks (${startBlock} -> ${targetBlock})`);
-
-  // Poll for block number changes
-  return new Promise((resolve) => {
-    const interval = setInterval(async () => {
-      const currentBlock = await dhApi.query.System.Number.getValue();
-      if (currentBlock >= targetBlock) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 1000); // Check every second
-  });
 }

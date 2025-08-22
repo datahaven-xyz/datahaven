@@ -303,7 +303,13 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * @notice Claim rewards for an operator from a specific merkle root index (Substrate positional proof)
+     * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs
+     * @param operatorSetId The ID of the operator set
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
      */
     function claimOperatorRewards(
         uint32 operatorSetId,
@@ -324,7 +330,12 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * @notice Claim rewards for an operator from the latest merkle root (Substrate positional proof)
+     * @notice Claim rewards for an operator from the latest merkle root using Substrate/Snowbridge positional Merkle proofs
+     * @param operatorSetId The ID of the operator set
+     * @param operatorPoints Points earned by the operator
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
      */
     function claimLatestOperatorRewards(
         uint32 operatorSetId,
@@ -344,7 +355,13 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /**
-     * @notice Claim rewards for an operator from multiple merkle root indices (Substrate positional proof)
+     * @notice Claim rewards for an operator from multiple merkle root indices using Substrate/Snowbridge positional Merkle proofs
+     * @param operatorSetId The ID of the operator set
+     * @param rootIndices Array of merkle root indices to claim from
+     * @param operatorPoints Array of points earned by the operator for each root
+     * @param numberOfLeaves Array with the total number of leaves for each Merkle tree
+     * @param leafIndices Array of leaf indices for the operator in each Merkle tree
+     * @param proofs Array of positional Merkle proofs for each claim
      */
     function claimOperatorRewardsBatch(
         uint32 operatorSetId,
@@ -406,6 +423,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
 
     /**
      * @notice Returns the list of strategies that an operator has potentially restaked on the AVS
+     * @param operator The address of the operator to get restaked strategies for
      * @dev This function is intended to be called off-chain
      * @dev No guarantee is made on whether the operator has shares for a strategy in a quorum or uniqueness
      *      of each element in the returned array. The off-chain service should do that validation separately

@@ -73,7 +73,14 @@ contract RewardsRegistry is RewardsRegistryStorage {
     
 
     /**
-     * @notice Claim rewards using Substrate/Snowbridge positional Merkle proofs (compatibility with DataHaven runtime).
+     * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs.
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
+     * @dev Only callable by the AVS (Service Manager)
      */
     function claimRewards(
         address operatorAddress,
@@ -92,7 +99,13 @@ contract RewardsRegistry is RewardsRegistryStorage {
     }
 
     /**
-     * @notice Claim latest rewards using Substrate/Snowbridge positional Merkle proofs (compatibility with DataHaven runtime).
+     * @notice Claim rewards for an operator from the latest merkle root using Substrate/Snowbridge positional Merkle proofs.
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param operatorPoints Points earned by the operator
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
+     * @dev Only callable by the AVS (Service Manager)
      */
     function claimLatestRewards(
         address operatorAddress,
@@ -114,7 +127,14 @@ contract RewardsRegistry is RewardsRegistryStorage {
     }
 
     /**
-     * @notice Batch claim using Substrate/Snowbridge positional Merkle proofs.
+     * @notice Claim rewards for an operator from multiple merkle root indices using Substrate/Snowbridge positional Merkle proofs.
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndices Array of merkle root indices to claim from
+     * @param operatorPoints Array of points earned by the operator for each root
+     * @param numberOfLeaves Array with the total number of leaves for each Merkle tree
+     * @param leafIndices Array of leaf indices for the operator in each Merkle tree
+     * @param proofs Array of positional Merkle proofs for each claim
+     * @dev Only callable by the AVS (Service Manager)
      */
     function claimRewardsBatch(
         address operatorAddress,
@@ -152,7 +172,14 @@ contract RewardsRegistry is RewardsRegistryStorage {
     }
 
     /**
-     * @notice Internal validation for Substrate/Snowbridge positional Merkle proof flow.
+     * @notice Internal function to validate a claim and calculate rewards using Substrate/Snowbridge positional Merkle proofs.
+     * @param operatorAddress Address of the operator to receive rewards
+     * @param rootIndex Index of the merkle root to claim from
+     * @param operatorPoints Points earned by the operator
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
+     * @return rewardsAmount The amount of rewards calculated
      */
     function _validateClaim(
         address operatorAddress,

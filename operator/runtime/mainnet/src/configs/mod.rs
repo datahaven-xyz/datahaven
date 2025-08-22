@@ -569,13 +569,24 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
                             | RuntimeCall::Identity(..)
                             | RuntimeCall::Utility(..)
                             | RuntimeCall::Proxy(..)
+                            | RuntimeCall::Referenda(..)
                             | RuntimeCall::Preimage(..)
+                            | RuntimeCall::ConvictionVoting(..)
+                            | RuntimeCall::TreasuryCouncil(..)
+                            | RuntimeCall::TechnicalCommittee(..)
                     )
                 }
             },
             ProxyType::Governance => {
-                // Todo: Add additional governance calls when available
-                matches!(c, RuntimeCall::Utility(..) | RuntimeCall::Preimage(..))
+                matches!(
+                    c,
+                    RuntimeCall::Referenda(..)
+                        | RuntimeCall::Preimage(..)
+                        | RuntimeCall::ConvictionVoting(..)
+                        | RuntimeCall::TreasuryCouncil(..)
+                        | RuntimeCall::TechnicalCommittee(..)
+                        | RuntimeCall::Utility(..)
+                )
             }
             ProxyType::Staking => {
                 // Todo: Add additional staking calls when available

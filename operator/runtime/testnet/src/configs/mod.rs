@@ -32,9 +32,9 @@ use super::{
     ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
     Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime,
     RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Scheduler, Session, SessionKeys, Signature, System, TechnicalCommittee, Timestamp, Treasury,
-    TreasuryCouncil, Whitelist, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT,
-    NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
+    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{

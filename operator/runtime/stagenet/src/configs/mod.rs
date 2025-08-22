@@ -35,9 +35,9 @@ use super::{
     ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
     Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime,
     RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Scheduler, Session, SessionKeys, Signature, System, TechnicalCommittee, Timestamp, Treasury,
-    TreasuryCouncil, Whitelist, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT,
-    NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
+    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -571,13 +571,24 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
                             | RuntimeCall::Identity(..)
                             | RuntimeCall::Utility(..)
                             | RuntimeCall::Proxy(..)
+                            | RuntimeCall::Referenda(..)
                             | RuntimeCall::Preimage(..)
+                            | RuntimeCall::ConvictionVoting(..)
+                            | RuntimeCall::TreasuryCouncil(..)
+                            | RuntimeCall::TechnicalCommittee(..)
                     )
                 }
             },
             ProxyType::Governance => {
-                // Todo: Add additional governance calls when available
-                matches!(c, RuntimeCall::Utility(..) | RuntimeCall::Preimage(..))
+                matches!(
+                    c,
+                    RuntimeCall::Referenda(..)
+                        | RuntimeCall::Preimage(..)
+                        | RuntimeCall::ConvictionVoting(..)
+                        | RuntimeCall::TreasuryCouncil(..)
+                        | RuntimeCall::TechnicalCommittee(..)
+                        | RuntimeCall::Utility(..)
+                )
             }
             ProxyType::Staking => {
                 // Todo: Add additional staking calls when available

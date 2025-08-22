@@ -138,12 +138,13 @@ describe("Rewards Message Flow", () => {
         );
 
         expect(rewardsMessageEvent).not.toBeNull();
+        if (!rewardsMessageEvent) throw new Error("Expected rewards message event to be defined");
 
         // Store event data
-        messageId = rewardsMessageEvent?.messageId as Hex;
-        merkleRoot = rewardsMessageEvent?.merkleRoot as Hex;
-        totalPoints = rewardsMessageEvent?.totalPoints;
-        eraIndex = rewardsMessageEvent?.eraIndex;
+        messageId = rewardsMessageEvent.messageId as Hex;
+        merkleRoot = rewardsMessageEvent.merkleRoot as Hex;
+        totalPoints = rewardsMessageEvent.totalPoints;
+        eraIndex = rewardsMessageEvent.eraIndex;
 
         // Validate event data
         expect(messageId).toBeDefined();
@@ -255,7 +256,8 @@ describe("Rewards Message Flow", () => {
       ]);
 
       expect(eraPoints).toBeDefined();
-      expect(eraPoints?.total > 0).toBe(true);
+      if (!eraPoints) throw new Error("Expected era points to be defined");
+      expect(eraPoints.total > 0).toBe(true);
       expect(proofMap.size > 0).toBe(true);
 
       // Store proofs for claiming tests

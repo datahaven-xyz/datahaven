@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { logger } from "utils";
-import { padHex } from "viem";
+import { padHex, isAddressEqual, decodeEventLog, type Address, type Hex, type GetEventArgs } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
@@ -30,35 +30,34 @@ describe("Rewards Message Flow", () => {
   it("should have rewards infrastructure ready", async () => {
     const { publicClient, dhApi } = suite.getTestConnectors();
 
-    // Verify RewardsRegistry is deployed
-    const rewardsRegistry = await getContractInstance("RewardsRegistry");
+    // Parallelize contract fetching and rewards info parsing
+    const [rewardsRegistry, serviceManager, gateway, rewardsInfo] = await Promise.all([
+      getContractInstance("RewardsRegistry"),
+      getContractInstance("ServiceManager"),
+      getContractInstance("Gateway"),
+      parseRewardsInfoFile()
+    ]);
+
     expect(rewardsRegistry.address).toBeDefined();
-
-    // Verify rewards agent is set
-    const rewardsInfo = await parseRewardsInfoFile();
     expect(rewardsInfo.RewardsAgent).toBeDefined();
-
-    // Read rewards agent from contract
-    const agentAddress = await publicClient.readContract({
-      address: rewardsRegistry.address,
-      abi: rewardsRegistry.abi,
-      functionName: "rewardsAgent"
-    });
-
-    expect(agentAddress).toBe(rewardsInfo.RewardsAgent);
-
-    // Check ServiceManager is set
-    const serviceManager = await getContractInstance("ServiceManager");
-    const avsAddress = await publicClient.readContract({
-      address: rewardsRegistry.address,
-      abi: rewardsRegistry.abi,
-      functionName: "avs"
-    });
-    expect(avsAddress).toBe(serviceManager.address);
-
-    // Check Gateway is deployed
-    const gateway = await getContractInstance("Gateway");
     expect(gateway.address).toBeDefined();
+
+    // Parallelize contract reads
+    const [agentAddress, avsAddress] = await Promise.all([
+      publicClient.readContract({
+        address: rewardsRegistry.address,
+        abi: rewardsRegistry.abi,
+        functionName: "rewardsAgent"
+      }) as Promise<Address>,
+      publicClient.readContract({
+        address: rewardsRegistry.address,
+        abi: rewardsRegistry.abi,
+        functionName: "avs"
+      }) as Promise<Address>
+    ]);
+
+    expect(isAddressEqual(agentAddress, rewardsInfo.RewardsAgent as Address)).toBe(true);
+    expect(isAddressEqual(avsAddress, serviceManager.address as Address)).toBe(true);
 
     // Check current block on DataHaven
     const currentBlock = await dhApi.query.System.Number.getValue();
@@ -92,7 +91,8 @@ describe("Rewards Message Flow", () => {
     );
 
     expect(rewardsMessageEvent).toBeDefined();
-    const event = rewardsMessageEvent!;
+    if (!rewardsMessageEvent) return;
+    const event = rewardsMessageEvent;
     const messageIdHex = event.message_id;
     const merkleRootHex = event.rewards_merkle_root;
     const totalPoints = event.total_points;
@@ -128,7 +128,7 @@ describe("Rewards Message Flow", () => {
     // Step 4: Verify RewardsRegistry update
     const rewardsRegistry = await getContractInstance("RewardsRegistry");
 
-    const expectedRoot = padHex(merkleRootHex as `0x${string}`, { size: 32 });
+    const expectedRoot: Hex = padHex(merkleRootHex as Hex, { size: 32 });
 
     const rootUpdatedEvent = await waitForEthereumEvent({
       client: publicClient,
@@ -141,9 +141,12 @@ describe("Rewards Message Flow", () => {
     });
 
     expect(rootUpdatedEvent.log).toBeDefined();
+    if (!rootUpdatedEvent.log) return;
+
+    // Extract event args with type safety
     const { oldRoot, newRoot, newRootIndex } = (rootUpdatedEvent.log as any).args as {
-      oldRoot: `0x${string}`;
-      newRoot: `0x${string}`;
+      oldRoot: Hex;
+      newRoot: Hex;
       newRootIndex: bigint;
     };
 
@@ -152,14 +155,14 @@ describe("Rewards Message Flow", () => {
     logger.info(`New merkle root (from event): ${newRoot}`);
 
     // Verify the stored root matches the emitted newRoot on Ethereum
-    const storedRoot = (await publicClient.readContract({
+    const storedRoot: Hex = await publicClient.readContract({
       address: rewardsRegistry.address,
       abi: rewardsRegistry.abi,
       functionName: "merkleRootHistory",
       args: [newRootIndex]
-    })) as `0x${string}`;
-    expect(storedRoot.toLowerCase()).toBe(newRoot.toLowerCase());
-    expect(storedRoot.toLowerCase()).toBe(expectedRoot.toLowerCase());
+    }) as Hex;
+    expect(storedRoot.toLowerCase()).toEqual(newRoot.toLowerCase());
+    expect(storedRoot.toLowerCase()).toEqual(expectedRoot.toLowerCase());
 
     logger.success("Rewards message successfully propagated from DataHaven to Ethereum");
 
@@ -169,11 +172,12 @@ describe("Rewards Message Flow", () => {
     // Get era reward points
     const eraPoints = await rewardsHelpers.getEraRewardPoints(dhApi, eraIndex);
     expect(eraPoints).toBeDefined();
-    expect(eraPoints?.total).toBeGreaterThan(0);
+    if (!eraPoints) return;
+    expect(eraPoints.total).toBeGreaterThan(0);
 
     logger.info(`Era ${eraIndex} points distribution:`);
-    logger.info(`  Total points: ${eraPoints?.total}`);
-    logger.info(`  Validators with points: ${eraPoints?.individual.size}`);
+    logger.info(`  Total points: ${eraPoints.total}`);
+    logger.info(`  Validators with points: ${eraPoints.individual.size}`);
 
     // Generate merkle proofs for all validators
     const validatorProofs = await rewardsHelpers.generateMerkleProofsForEra(dhApi, eraIndex);
@@ -190,9 +194,9 @@ describe("Rewards Message Flow", () => {
     logger.info("Funding RewardsRegistry with era inflation amount for payouts...");
     const { walletClient: fundingWallet } = suite.getTestConnectors();
     const fundingTx = await fundingWallet.sendTransaction({
-      chain: null,
-      to: rewardsRegistry.address as `0x${string}`,
-      value: eraPoints?.total ? BigInt(eraPoints.total) : 0n
+      to: rewardsRegistry.address as Address,
+      value: BigInt(eraPoints.total),
+      chain: null
     });
     await publicClient.waitForTransactionReceipt({ hash: fundingTx });
 
@@ -202,31 +206,25 @@ describe("Rewards Message Flow", () => {
     // Select first validator to claim
     const firstEntry = validatorProofs.entries().next();
     expect(firstEntry.value).toBeDefined();
-    const [operatorAddress, proofData] = firstEntry.value!;
+    if (!firstEntry.value) return;
+    const [, proofData] = firstEntry.value;
 
     // Get validator credentials to create operator signer
     const factory = suite.getConnectorFactory();
     const credentials = rewardsHelpers.getValidatorCredentials(proofData.validatorAccount);
 
     expect(credentials.privateKey).toBeDefined();
+    if (!credentials.privateKey) return;
 
-    const operatorWallet = factory.createWalletClient(credentials.privateKey!);
-    const resolvedOperator = operatorWallet.account.address as `0x${string}`;
-
-    // Check the solochain address mapping in the contract
-    const _mappedSolochainAddress = (await publicClient.readContract({
-      address: serviceManager.address as `0x${string}`,
-      abi: serviceManager.abi,
-      functionName: "validatorEthAddressToSolochainAddress",
-      args: [operatorAddress as `0x${string}`]
-    })) as `0x${string}`;
+    const operatorWallet = factory.createWalletClient(credentials.privateKey);
+    const resolvedOperator: Address = operatorWallet.account.address;
 
     // Record initial ETH balance
     const balanceBefore = await publicClient.getBalance({ address: resolvedOperator });
 
     // Sign and send as the operator so ServiceManager derives the correct msg.sender
     const claimTx = await operatorWallet.writeContract({
-      address: serviceManager.address as `0x${string}`,
+      address: serviceManager.address as Address,
       abi: serviceManager.abi,
       functionName: "claimOperatorRewards",
       chain: null,
@@ -236,7 +234,7 @@ describe("Rewards Message Flow", () => {
         BigInt(proofData.points),
         BigInt(proofData.numberOfLeaves),
         BigInt(proofData.leafIndex),
-        proofData.proof as readonly `0x${string}`[]
+        proofData.proof as readonly Hex[]
       ]
     });
 
@@ -261,17 +259,19 @@ describe("Rewards Message Flow", () => {
     });
 
     expect(claimEvent.log).toBeDefined();
+
+    // Extract event args with type safety
     const claimArgs = (claimEvent.log as any).args as {
-      operatorAddress: `0x${string}`;
+      operatorAddress: Address;
       rootIndex: bigint;
       points: bigint;
       rewardsAmount: bigint;
     };
 
     // Verify event data
-    expect(claimArgs.operatorAddress.toLowerCase()).toBe(resolvedOperator.toLowerCase());
-    expect(claimArgs.rootIndex).toBe(newRootIndex);
-    expect(claimArgs.points).toBe(BigInt(proofData.points));
+    expect(isAddressEqual(claimArgs.operatorAddress as Address, resolvedOperator)).toBe(true);
+    expect(claimArgs.rootIndex).toEqual(newRootIndex);
+    expect(claimArgs.points).toEqual(BigInt(proofData.points));
     expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
 
     logger.success("Rewards claimed successfully");
@@ -292,9 +292,7 @@ describe("Rewards Message Flow", () => {
 
     // Gas details and unified validation
     const gasUsedWei = claimReceipt.gasUsed * claimReceipt.effectiveGasPrice;
-    const sameSender =
-      operatorWallet.account &&
-      resolvedOperator.toLowerCase() === operatorWallet.account.address.toLowerCase();
+    const sameSender = operatorWallet.account && isAddressEqual(resolvedOperator, operatorWallet.account.address);
 
     // Adjust the observed increase by adding back gas if the operator paid for it
     const adjustedIncrease = actualBalanceIncrease + (sameSender ? gasUsedWei : 0n);
@@ -305,10 +303,10 @@ describe("Rewards Message Flow", () => {
     logger.info(`  Adjusted balance change (+gas if paid): ${adjustedIncrease} wei`);
 
     // Regardless of who paid for gas, the operator should net receive `rewardsAmount`
-    expect(adjustedIncrease).toBe(claimArgs.rewardsAmount);
+    expect(adjustedIncrease).toEqual(claimArgs.rewardsAmount);
 
     // Verify rewards amount matches expected calculation
-    expect(claimArgs.rewardsAmount).toBe(expectedRewards);
+    expect(claimArgs.rewardsAmount).toEqual(expectedRewards);
 
     logger.success("Reward transfer validated successfully");
     logger.info(`  Expected rewards: ${expectedRewards} wei`);

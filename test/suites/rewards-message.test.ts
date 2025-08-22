@@ -175,7 +175,8 @@ describe("Rewards Message Flow", () => {
         });
 
         expect(executedEvent.log).not.toBeNull();
-        const log = executedEvent.log!;
+        if (!executedEvent.log) throw new Error("Expected log to be defined");
+        const log = executedEvent.log;
         const _decoded = decodeEventLog({
           abi: gateway.abi,
           data: log.data,
@@ -211,7 +212,8 @@ describe("Rewards Message Flow", () => {
         });
 
         expect(rootUpdatedEvent.log).not.toBeNull();
-        const rootLog = rootUpdatedEvent.log!;
+        if (!rootUpdatedEvent.log) throw new Error("Expected log to be defined");
+        const rootLog = rootUpdatedEvent.log;
         const rootDecoded = decodeEventLog({
           abi: rewardsRegistry.abi,
           data: rootLog.data,
@@ -264,7 +266,8 @@ describe("Rewards Message Flow", () => {
       // Validate proof data structure (spot check)
       const firstProofMaybe = validatorProofs.values().next().value;
       expect(firstProofMaybe).toBeDefined();
-      const firstProof = firstProofMaybe!;
+      if (!firstProofMaybe) throw new Error("Expected first proof to be defined");
+      const firstProof = firstProofMaybe;
       expect(firstProof.proof).toBeDefined();
       expect(firstProof.points > 0).toBe(true);
       expect(firstProof.numberOfLeaves > 0).toBe(true);
@@ -315,7 +318,8 @@ describe("Rewards Message Flow", () => {
         // Select first validator to claim
         const firstEntry = validatorProofs.entries().next();
         expect(firstEntry.value).toBeDefined();
-        const entry = firstEntry.value!;
+        if (!firstEntry.value) throw new Error("Expected entry to be defined");
+        const entry = firstEntry.value;
         const [, proofData] = entry;
 
         // Get validator credentials and create operator wallet
@@ -368,7 +372,8 @@ describe("Rewards Message Flow", () => {
         });
 
         expect(claimEvent.log).toBeDefined();
-        const claimLog = claimEvent.log!;
+        if (!claimEvent.log) throw new Error("Expected log to be defined");
+        const claimLog = claimEvent.log;
         const claimDecoded = decodeEventLog({
           abi: rewardsRegistry.abi,
           data: claimLog.data,

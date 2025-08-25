@@ -281,7 +281,7 @@ contract AVSDeployer is Test {
 
         // Set the slasher in the ServiceManager
         cheats.prank(avsOwner);
-        serviceManager.setSlasher(vetoableSlasher);
+        // serviceManager.setSlasher(vetoableSlasher); // remove all the "vetoableSlasher" ref
 
         console.log("VetoableSlasher deployed and configured");
 

@@ -102,24 +102,24 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      * @param params Parameters defining the slashing request
      * @dev Can only be called by the owner
      */
-    function queueSlashingRequest(
-        IAllocationManager.SlashingParams calldata params
-    ) external virtual onlyOwner {
-        require(address(_slasher) != address(0), "Slasher not set");
-        _slasher.queueSlashingRequest(params);
-    }
+    // function queueSlashingRequest(
+    //     IAllocationManager.SlashingParams calldata params
+    // ) external virtual onlyOwner {
+    //     require(address(_slasher) != address(0), "Slasher not set");
+    //     _slasher.queueSlashingRequest(params);
+    // }
 
     /**
      * fulfils a slashing request that has passed the veto period
      * @param requestId The ID of the slashing request to fulfil
      * @dev Can be called by anyone
      */
-    function fulfilSlashingRequest(
-        uint256 requestId
-    ) external virtual {
-        require(address(_slasher) != address(0), "Slasher not set");
-        _slasher.fulfilSlashingRequest(requestId);
-    }
+    // function fulfilSlashingRequest(
+    //     uint256 requestId
+    // ) external virtual {
+    //     require(address(_slasher) != address(0), "Slasher not set");
+    //     _slasher.fulfilSlashingRequest(requestId);
+    // }
 
     /**
      * @dev DEPRECATED ❗️ This function is not used. This contract distributes rewards directly to operators

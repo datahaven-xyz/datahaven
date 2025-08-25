@@ -58,6 +58,12 @@ pub mod dynamic_params {
         #[codec(index = 4)]
         #[allow(non_upper_case_globals)]
         pub static FeesTreasuryProportion: Perbill = Perbill::from_percent(20);
+
+        #[codec(index = 5)]
+        #[allow(non_upper_case_globals)]
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashOperator()")
+        pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
+            BoundedVec::truncate_from(vec![0x89, 0x01, 0xc0, 0x7b]);
     }
 }
 

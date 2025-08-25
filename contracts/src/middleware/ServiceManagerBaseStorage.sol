@@ -38,7 +38,7 @@ abstract contract ServiceManagerBaseStorage is IServiceManager, OwnableUpgradeab
      */
 
     /// @notice The slasher contract that handles operator slashing
-    IVetoableSlasher internal _slasher;
+    // IVetoableSlasher internal _slasher;
 
     /// @notice The address of the entity that can initiate rewards
     address public rewardsInitiator;

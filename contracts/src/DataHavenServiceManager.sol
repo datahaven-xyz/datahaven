@@ -51,6 +51,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
+    // TMP: only for testing
+    event OperatorSlashedTest();
+
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
@@ -356,5 +359,12 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             strategies: mspsStrategies
         });
         _allocationManager.createOperatorSets(address(this), operatorSets);
+    }
+
+    function slashOperator() external onlyOwner() {
+
+        // _allocationManager.slashOperator(address(this), params);
+
+        emit OperatorSlashedTest();
     }
 }

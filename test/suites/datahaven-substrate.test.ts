@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
-import { getPapiSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
+import { getPapiSigner, isValidatorNodeRunning, launchDatahavenValidator, logger, SUBSTRATE_FUNDED_ACCOUNTS, TestAccounts } from "utils";
 import { isAddress } from "viem";
 import { BaseTestSuite } from "../framework";
 
@@ -11,6 +11,17 @@ class DataHavenSubstrateTestSuite extends BaseTestSuite {
     });
 
     this.setupHooks();
+  }
+  
+  override async onSetup(): Promise<void> {
+    await launchDatahavenValidator(TestAccounts.Charlie, {
+      datahavenImageTag: "moonsonglabs/datahaven:local",
+      launchedNetwork: this.getConnectors().launchedNetwork
+    });
+  }
+
+  public getNetworkId(): string {
+    return this.getConnectors().launchedNetwork.networkId;
   }
 }
 
@@ -67,5 +78,11 @@ describe("DataHaven Substrate Operations", () => {
     expect(blockHeader.number).toBeGreaterThan(0);
 
     logger.info(`Current block #${blockHeader.number}`);
+  });
+
+
+  it("should see Charlie running", async () => {
+    const isRunning = await isValidatorNodeRunning(TestAccounts.Charlie, suite.getNetworkId());
+    expect(isRunning).toBe(true);
   });
 });

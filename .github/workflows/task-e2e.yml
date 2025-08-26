@@ -47,9 +47,19 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
       - name: Install Kurtosis
         run: |
-          echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
-          sudo apt update
-          sudo apt install kurtosis-cli
+          # Install Kurtosis locally without sudo
+          KURTOSIS_VERSION="1.6.0"
+          if ! command -v kurtosis &> /dev/null; then
+            echo "Installing Kurtosis $KURTOSIS_VERSION locally"
+            mkdir -p ~/.local/bin
+            wget -q -O kurtosis.tar.gz "https://github.com/kurtosis-tech/kurtosis/releases/download/${KURTOSIS_VERSION}/kurtosis_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
+            tar -xzf kurtosis.tar.gz -C ~/.local/bin
+            rm kurtosis.tar.gz
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            echo "Kurtosis is already installed: $(kurtosis version)"
+          fi
           kurtosis analytics disable
       - run: kurtosis version
       - uses: actions/cache@v4

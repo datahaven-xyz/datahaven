@@ -38,7 +38,13 @@ jobs:
           install-deps: false  # Self-hosted runners have deps pre-installed
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        run: |
+          if ! command -v cargo-nextest &> /dev/null; then
+            echo "Installing cargo-nextest"
+            cargo install cargo-nextest --locked
+          else
+            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
+          fi
       - name: Build and archive tests
         run: cargo nextest archive --archive-file nextest-archive.tar.zst
       - name: Upload archive to workflow
@@ -64,7 +70,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        run: |
+          if ! command -v cargo-nextest &> /dev/null; then
+            echo "Installing cargo-nextest"
+            cargo install cargo-nextest --locked
+          else
+            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
+          fi
       - name: Download archive
         uses: actions/download-artifact@v4
         with:

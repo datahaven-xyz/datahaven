@@ -50,7 +50,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/datahavenxyz/datahaven/datahaven
+          images: ghcr.io/datahaven-xyz/datahaven/datahaven
           flavor: |
             latest=auto
           tags: |

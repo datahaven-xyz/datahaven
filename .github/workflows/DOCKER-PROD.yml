@@ -42,7 +42,7 @@ jobs:
         id: meta-dispatch
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven
+          images: datahavenzyx/datahaven
           flavor: |
             latest=false
           tags: |
@@ -53,7 +53,7 @@ jobs:
         id: meta-main
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven
+          images: datahavenzyx/datahaven
           flavor: |
             latest=true
           tags: |

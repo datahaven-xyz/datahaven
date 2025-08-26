@@ -44,9 +44,9 @@ export abstract class BaseTestSuite {
         this.connectors = await launchNetwork({
           networkId: this.networkId,
           datahavenImageTag:
-            this.options.networkOptions?.datahavenImageTag || "moonsonglabs/datahaven:local",
+            this.options.networkOptions?.datahavenImageTag || "datahavenzyx/datahaven:local",
           relayerImageTag:
-            this.options.networkOptions?.relayerImageTag || "moonsonglabs/snowbridge-relay:latest",
+            this.options.networkOptions?.relayerImageTag || "datahavenzyx/snowbridge-relay:latest",
           buildDatahaven: false, // default to false in the test suite so we can speed up the CI
           ...this.options.networkOptions
         });

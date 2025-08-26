@@ -46,7 +46,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven
+          images: datahavenzyx/datahaven
           flavor: |
             latest=auto
           tags: |

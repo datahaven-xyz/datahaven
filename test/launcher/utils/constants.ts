@@ -20,12 +20,12 @@ export const BASE_SERVICES = [
 
 export const COMPONENTS = {
   datahaven: {
-    imageName: "moonsonglabs/datahaven",
+    imageName: "datahavenzyx/datahaven",
     componentName: "Datahaven Network",
     optionName: "datahaven"
   },
   snowbridge: {
-    imageName: "snowbridge-relay",
+    imageName: "datahavenzyx/snowbridge-relay",
     componentName: "Snowbridge Relayers",
     optionName: "relayer"
   }

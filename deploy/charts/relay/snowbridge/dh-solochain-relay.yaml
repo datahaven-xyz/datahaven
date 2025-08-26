@@ -3,7 +3,7 @@ description: Datahaven Solochain Relay
 fullnameOverride: dh-solochain-relay
 
 image:
-  repository: moonsonglabs/snowbridge-relay
+  repository: datahavenzyx/snowbridge-relay
   pullPolicy: Always
   tag: latest
 

@@ -31,7 +31,7 @@ To launch the network, follow the instructions in the [test README](./test/READM
 
 ## Docker
 
-This repo publishes images to [DockerHub](https://hub.docker.com/r/moonsonglabs/datahaven).
+This repo publishes images to [DockerHub](https://hub.docker.com/r/datahavenzyx/datahaven).
 
 > [!TIP]
 >
@@ -44,7 +44,7 @@ To aid with speed it employs the following:
 - [buildx cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts): Using buildx's new feature to mount an externally restored cache into a container.
 - [cache dance](https://github.com/reproducible-containers/buildkit-cache-dance): Weird workaround (endorsed by docker themselves) to inject caches into containers and return the result back to the CI.
 
-To run a docker image locally (`moonsonglabs/datahaven:local`), from the `/test` folder run:
+To run a docker image locally (`datahavenzyx/datahaven:local`), from the `/test` folder run:
 
 ```sh
 bun build:docker:operator

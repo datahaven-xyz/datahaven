@@ -297,7 +297,7 @@ This is to be able to pull from the DockerHub private repo, and it's a temporary
 docker login -u <username>
 
 # Check you can access the datahaven image's manifest
-docker manifest inspect moonsonglabs/datahaven:main
+docker manifest inspect datahavenzyx/datahaven:main
 ```
 
 ### Remote deployment
@@ -375,7 +375,7 @@ If you have a similar error to this :
 ```
 ▶ Deploying DataHaven Network
 ──────────────────────────────
-[22:45:21.779] INFO (248627): ✅ Image moonsonglabs/datahaven:main found on Docker Hub
+[22:45:21.779] INFO (248627): ✅ Image datahavenzyx/datahaven:main found on Docker Hub
 [22:45:21.780] INFO (248627): 🔍 Checking if Kubernetes namespace "kt-datahaven-local" exists...
 [22:45:21.858] INFO (248627): ✅ Namespace "kt-datahaven-local" already exists
 [22:45:21.858] INFO (248627): 🔐 Creating Docker Hub secret...

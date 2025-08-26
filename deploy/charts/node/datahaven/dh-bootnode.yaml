@@ -44,6 +44,12 @@ extraInitContainers:
     args:
       - -c
       - |
+        {{- if .Values.customChainspecContent }}
+        # Custom chainspec provided, just copy it
+        echo "Using custom chainspec provided via CLI"
+        cp {{ .Values.node.customChainspecPath }} /chain-data/chainspec.json
+        {{- else }}
+        # Generate chainspec dynamically
         apt update || true
         apt install -y jq
         
@@ -67,6 +73,7 @@ extraInitContainers:
         cut -c -256 plain.json
         {{ .Values.node.command }} build-spec --chain plain.json --raw  > chainspec.json
         cp chainspec.json {{ .Values.node.customChainspecPath }}
+        {{- end }}
     volumeMounts:
       - mountPath: /chain-data
         name: chain-data

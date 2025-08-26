@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+# Local CLAUDE configuration
+CLAUDE.local.md

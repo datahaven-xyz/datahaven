@@ -49,6 +49,15 @@ export enum TestAccounts {
   Ferdie = "ferdie"
 }
 
+export interface ValidatorInfo {
+  publicKey: string;
+  privateKey: string;
+  solochainAddress: string;
+  solochainPrivateKey: string;
+  solochainAuthorityName: string;
+  isActive: boolean;
+}
+
 /**
  * Information about a launched DataHaven validator node
  */
@@ -189,3 +198,18 @@ const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
   // Docker will assign a random external port
   return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}`];
 };
+
+/**
+ * Get node info by account name from validator set JSON
+ * @param validatorSetJson - Validator set JSON
+ * @param account - Test account name
+ * @returns Node info
+ */
+export const getValidatorInfoByName = (validatorSetJson: any, account: TestAccounts): ValidatorInfo => {
+  const validatorsRaw = validatorSetJson.validators as Array<ValidatorInfo>;
+  const node = validatorsRaw.find((v) => v.solochainAuthorityName === account.toLowerCase());
+  if (!node) {
+    throw new Error(`Node ${account} not found in validator set`);
+  }
+  return node;
+}

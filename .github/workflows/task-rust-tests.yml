@@ -36,7 +36,7 @@ jobs:
         with:
           cache-key: "TEST"
           install-deps: false  # Self-hosted runners have deps pre-installed
-      - uses: ./.github/workflows/actions/cleanup-runner
+      # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
         uses: taiki-e/install-action@nextest
       - name: Build and archive tests

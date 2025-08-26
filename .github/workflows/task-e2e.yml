@@ -28,7 +28,8 @@ env:
 
 jobs:
   kurtosis:
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: bare-metal
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:

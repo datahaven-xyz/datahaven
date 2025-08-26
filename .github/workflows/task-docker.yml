@@ -24,7 +24,8 @@ concurrency:
 
 jobs:
   build-test-push:
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: bare-metal
     outputs:
       image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
 

@@ -16,7 +16,8 @@ jobs:
 
   prepare:
     name: Prepare artifacts for Rust tests
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: bare-metal
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -49,7 +50,8 @@ jobs:
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: bare-metal
     strategy:
       fail-fast: false
       matrix:
@@ -76,7 +78,8 @@ jobs:
   tests-result-checker:
     name: Check tests were successful
     needs: [all-rust-tests]
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: bare-metal
     steps:
       - name: Validate test results
         run: |

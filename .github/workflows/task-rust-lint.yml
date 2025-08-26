@@ -71,9 +71,22 @@ jobs:
     steps:
       - name: Check out the repository to the runner
         uses: actions/checkout@v4
-      - uses: uncenter/setup-taplo@v1
-        with:
-          version: "0.8.1"
+      
+      - name: Install taplo locally
+        run: |
+          # Install taplo in user space without sudo
+          TAPLO_VERSION="0.8.1"
+          if ! command -v taplo &> /dev/null || [[ $(taplo --version | grep -oP '\d+\.\d+\.\d+' | head -1) != "$TAPLO_VERSION" ]]; then
+            echo "Installing taplo $TAPLO_VERSION in ~/.local/bin"
+            mkdir -p ~/.local/bin
+            curl -Ls "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-full-linux-x86_64.gz" | \
+              gzip -d > ~/.local/bin/taplo
+            chmod +x ~/.local/bin/taplo
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            echo "taplo is already installed: $(taplo --version)"
+          fi
 
       - run: taplo fmt --check
       - run: taplo lint

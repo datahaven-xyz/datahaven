@@ -48,13 +48,13 @@ jobs:
       - name: Install Kurtosis
         run: |
           # Install Kurtosis locally without sudo
-          KURTOSIS_VERSION="1.6.0"
+          KURTOSIS_VERSION="1.10.3"
           if ! command -v kurtosis &> /dev/null; then
             echo "Installing Kurtosis $KURTOSIS_VERSION locally"
             mkdir -p ~/.local/bin
-            wget -q -O kurtosis.tar.gz "https://github.com/kurtosis-tech/kurtosis/releases/download/${KURTOSIS_VERSION}/kurtosis_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
-            tar -xzf kurtosis.tar.gz -C ~/.local/bin
-            rm kurtosis.tar.gz
+            wget -q -O kurtosis-cli.tar.gz "https://github.com/kurtosis-tech/kurtosis-cli-release-artifacts/releases/download/${KURTOSIS_VERSION}/kurtosis-cli_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
+            tar -xzf kurtosis-cli.tar.gz -C ~/.local/bin
+            rm kurtosis-cli.tar.gz
             echo "$HOME/.local/bin" >> $GITHUB_PATH
             export PATH="$HOME/.local/bin:$PATH"
           else

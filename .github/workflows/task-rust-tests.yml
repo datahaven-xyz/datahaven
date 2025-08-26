@@ -40,8 +40,8 @@ jobs:
       - name: Install nextest
         run: |
           if ! command -v cargo-nextest &> /dev/null; then
-            echo "Installing cargo-nextest"
-            cargo install cargo-nextest --locked
+            echo "Installing cargo-nextest version 0.9.100"
+            cargo install cargo-nextest --version 0.9.100 --locked
           else
             echo "cargo-nextest is already installed: $(cargo-nextest --version)"
           fi
@@ -72,8 +72,8 @@ jobs:
       - name: Install nextest
         run: |
           if ! command -v cargo-nextest &> /dev/null; then
-            echo "Installing cargo-nextest"
-            cargo install cargo-nextest --locked
+            echo "Installing cargo-nextest version 0.9.100"
+            cargo install cargo-nextest --version 0.9.100 --locked
           else
             echo "cargo-nextest is already installed: $(cargo-nextest --version)"
           fi

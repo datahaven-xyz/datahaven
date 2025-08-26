@@ -71,7 +71,7 @@ program
   .option(
     "--dit, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
-    "datahavenzyx/datahaven:main"
+    "datahavenxyz/datahaven:main"
   )
   .option(
     "--el-rpc-url <value>",
@@ -84,7 +84,7 @@ program
   .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer image to use",
-    "datahavenzyx/snowbridge-relay:latest"
+    "datahavenxyz/snowbridge-relay:latest"
   )
   .option("--docker-username <value>", "Docker Hub username")
   .option("--docker-password <value>", "Docker Hub password")
@@ -151,12 +151,12 @@ program
   .option(
     "--dit, --datahaven-image-tag <value>",
     "Tag of the datahaven image to use",
-    "datahavenzyx/datahaven:local"
+    "datahavenxyz/datahaven:local"
   )
   .option(
     "--rit, --relayer-image-tag <value>",
     "Tag of the relayer",
-    "datahavenzyx/snowbridge-relay:latest"
+    "datahavenxyz/snowbridge-relay:latest"
   )
   .hook("preAction", launchPreActionHook)
   .action(launch);

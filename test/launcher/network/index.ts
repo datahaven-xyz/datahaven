@@ -169,8 +169,8 @@ export const launchNetwork = async (
     await launchLocalDataHavenSolochain(
       {
         networkId,
-        datahavenImageTag: options.datahavenImageTag || "datahavenzyx/datahaven:local",
-        relayerImageTag: options.relayerImageTag || "datahavenzyx/snowbridge-relay:latest",
+        datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
+        relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
         authorityIds: TEST_AUTHORITY_IDS,
         buildDatahaven: options.buildDatahaven ?? true,
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"

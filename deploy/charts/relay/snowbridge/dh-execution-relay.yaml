@@ -3,7 +3,7 @@ description: Datahaven Execution Relay
 fullnameOverride: dh-execution-relay
 
 image:
-  repository: datahavenzyx/snowbridge-relay
+  repository: datahavenxyz/snowbridge-relay
   pullPolicy: Always
   tag: latest
 

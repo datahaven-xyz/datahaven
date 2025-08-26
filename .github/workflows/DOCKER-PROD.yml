@@ -43,7 +43,7 @@ jobs:
         id: meta-dispatch
         uses: docker/metadata-action@v5
         with:
-          images: datahavenzyx/datahaven
+          images: datahavenxyz/datahaven
           flavor: |
             latest=false
           tags: |
@@ -54,7 +54,7 @@ jobs:
         id: meta-main
         uses: docker/metadata-action@v5
         with:
-          images: datahavenzyx/datahaven
+          images: datahavenxyz/datahaven
           flavor: |
             latest=true
           tags: |

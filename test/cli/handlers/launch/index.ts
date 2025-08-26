@@ -95,8 +95,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
-
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);

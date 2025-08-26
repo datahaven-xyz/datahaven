@@ -18,6 +18,10 @@ on:
         description: "The tag of the docker image"
         value: ${{ jobs.build-test-push.outputs.image-tag }}
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: docker-build-${{ github.ref }}
   cancel-in-progress: true

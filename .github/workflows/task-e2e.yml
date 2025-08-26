@@ -22,6 +22,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug

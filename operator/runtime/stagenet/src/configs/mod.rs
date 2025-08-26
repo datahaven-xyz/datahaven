@@ -64,6 +64,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
+use governance::councils::*;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -688,10 +689,15 @@ parameter_types! {
     pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
 }
 
+type RootOrTreasuryCouncilOrigin = EitherOfDiverse<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<AccountId, TreasuryCouncilInstance, 1, 2>,
+>;
+
 impl pallet_treasury::Config for Runtime {
     type PalletId = TreasuryId;
     type Currency = Balances;
-    type RejectOrigin = EnsureRoot<AccountId>;
+    type RejectOrigin = RootOrTreasuryCouncilOrigin;
     type RuntimeEvent = RuntimeEvent;
     type SpendPeriod = ConstU32<{ 6 * DAYS }>;
     type Burn = ();
@@ -700,7 +706,7 @@ impl pallet_treasury::Config for Runtime {
     type WeightInfo = stagenet_weights::pallet_treasury::WeightInfo<Runtime>;
     type SpendFunds = ();
     type SpendOrigin =
-        frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;
+        frame_system::EnsureWithSuccess<RootOrTreasuryCouncilOrigin, AccountId, MaxSpendBalance>;
     type AssetKind = ();
     type Beneficiary = AccountId;
     type BeneficiaryLookup = IdentityLookup<AccountId>;

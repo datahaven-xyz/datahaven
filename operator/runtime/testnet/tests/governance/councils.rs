@@ -6,7 +6,7 @@
 use crate::common::*;
 use codec::Encode;
 use datahaven_testnet_runtime::{
-    configs::governance::council::{
+    configs::governance::councils::{
         TechnicalCommitteeInstance, TechnicalMotionDuration, TreasuryCouncilInstance,
     },
     AccountId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, System, TechnicalCommittee,

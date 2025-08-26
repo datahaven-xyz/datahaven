@@ -6,7 +6,7 @@
 use crate::common::*;
 use datahaven_testnet_runtime::{
     configs::governance::{
-        council::{TechnicalCommitteeInstance, TreasuryCouncilInstance},
+        councils::{TechnicalCommitteeInstance, TreasuryCouncilInstance},
         referenda::{FastGeneralAdminOrRoot, GeneralAdminOrRoot},
         GeneralAdmin, ReferendumCanceller, ReferendumKiller, WhitelistedCaller,
     },

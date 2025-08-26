@@ -1157,7 +1157,8 @@ macro_rules! get {
 
 #[cfg(test)]
 mod tests {
-    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+    use codec::Decode;
+    use datahaven_runtime_common::{gas::BLOCK_STORAGE_LIMIT, proxy::ProxyType};
 
     use super::{
         configs::{BlockGasLimit, WeightPerGas},
@@ -1191,24 +1192,48 @@ mod tests {
             Balance::from(10 * HAVE + 530 * MILLIHAVE)
         );
 
-        // TODO: Uncomment when pallet_proxy is enabled
-        // proxy deposits
-        // assert_eq!(
-        // 	get!(pallet_proxy, ProxyDepositBase, u128),
-        // 	Balance::from(10 * HAVE + 80 * MILLIHAVE)
-        // );
-        // assert_eq!(
-        // 	get!(pallet_proxy, ProxyDepositFactor, u128),
-        // 	Balance::from(210 * MILLIHAVE)
-        // );
-        // assert_eq!(
-        // 	get!(pallet_proxy, AnnouncementDepositBase, u128),
-        // 	Balance::from(10 * HAVE + 80 * MILLIHAVE)
-        // );
-        // assert_eq!(
-        // 	get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        // 	Balance::from(560 * MILLIHAVE)
-        // );
+        // Proxy deposits
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositBase, u128),
+            Balance::from(10 * HAVE + 80 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositFactor, u128),
+            Balance::from(210 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositBase, u128),
+            Balance::from(10 * HAVE + 80 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositFactor, u128),
+            Balance::from(560 * MILLIHAVE)
+        );
+    }
+
+    #[test]
+    fn test_proxy_type_can_be_decoded_from_valid_values() {
+        let test_cases = vec![
+            // (input, expected)
+            (0u8, ProxyType::Any),
+            (1, ProxyType::NonTransfer),
+            (2, ProxyType::Governance),
+            (3, ProxyType::Staking),
+            (4, ProxyType::CancelProxy),
+            (5, ProxyType::Balances),
+            (6, ProxyType::IdentityJudgement),
+            (7, ProxyType::SudoOnly),
+        ];
+
+        for (input, expected) in test_cases {
+            let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+            assert_eq!(
+                Ok(expected),
+                actual,
+                "failed decoding ProxyType for value '{}'",
+                input
+            );
+        }
     }
 
     #[test]

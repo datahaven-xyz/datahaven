@@ -5,7 +5,7 @@
 //! OpenGov implementation.
 
 use super::*;
-use crate::governance::council::TechnicalCommitteeInstance;
+use crate::governance::councils::TechnicalCommitteeInstance;
 use frame_support::traits::{EitherOf, MapSuccess};
 use frame_system::EnsureRootWithSuccess;
 use sp_core::ConstU16;

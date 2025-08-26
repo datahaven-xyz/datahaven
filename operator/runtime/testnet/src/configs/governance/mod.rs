@@ -4,7 +4,7 @@
 //! following Moonbeam's approach with separate councils, custom origins,
 //! and OpenGov referenda with tracks.
 
-pub mod council;
+pub mod councils;
 pub mod referenda;
 
 use super::*;

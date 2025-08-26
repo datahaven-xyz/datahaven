@@ -7,7 +7,7 @@
 #[cfg(all(test, feature = "runtime-benchmarks"))]
 pub mod benchmarks;
 #[cfg(test)]
-pub mod council;
+pub mod councils;
 #[cfg(test)]
 pub mod integration;
 #[cfg(test)]

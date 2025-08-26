@@ -36,6 +36,7 @@ jobs:
         with:
           cache-key: FMT
           cache-targets: false
+          install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
@@ -53,6 +54,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: LINT
+          install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Run cargo clippy
         run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --release

@@ -38,7 +38,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: BUILD-RELEASE
-          install-deps: true
+          install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Build node binary
         run: |

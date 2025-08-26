@@ -46,10 +46,11 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: datahavenzyx/datahaven
+          images: ghcr.io/datahavenzyx/datahaven/datahaven
           flavor: |
             latest=auto
           tags: |
+            type=raw,value=ci-${{ github.run_id }}
             type=sha,format=short,prefix=sha-
             type=ref,event=tag
             type=ref,event=branch
@@ -76,10 +77,12 @@ jobs:
             --allow-insecure-entitlement network.host
             --allow-insecure-entitlement security.insecure
             
-      - uses: docker/login-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         id: build

@@ -237,6 +237,7 @@ contractsCommand
   .description("Update AVS metadata URI for the DataHaven Service Manager")
   .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
   .option("--uri <value>", "New metadata URI (required)")
+  .option("--reset", "Use if you want to reset the metadata URI")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .action(async (options: any, command: any) => {
     // Try to get chain from options or command
@@ -247,9 +248,11 @@ contractsCommand
     if (!chain) {
       chain = command.getOptionValue("chain");
     }
-
-    if (!options.uri) {
+    if (!options.uri && !options.reset) {
       throw new Error("--uri parameter is required");
+    }
+    if (options.reset) {
+      options.uri = "";
     }
     if (!chain) {
       throw new Error("--chain parameter is required");

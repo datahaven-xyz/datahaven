@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-// Testing imports
-import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
-import {DeployParams} from "./DeployParams.s.sol";
+import {DeployBase, StrategyInfo, ServiceManagerInitParams} from "./DeployBase.s.sol";
+
+// Snowbridge imports for function signatures
+import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
+import {AgentExecutor} from "snowbridge/src/AgentExecutor.sol";
+import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
+
+// Logging import
 import {Logging} from "../utils/Logging.sol";
 import {Accounts} from "../utils/Accounts.sol";
 import {ValidatorsUtils} from "../utils/ValidatorsUtils.sol";
@@ -20,7 +24,11 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
-// OpenZeppelin imports
+// DataHaven imports for function signatures
+import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
+import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
+
+// Additional imports specific to local deployment
 import {ERC20PresetFixedSupply} from
     "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -31,12 +39,15 @@ import {TransparentUpgradeableProxy} from
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 
-// EigenLayer imports
+// EigenLayer core contract imports for implementation declarations
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+
 import {IAllocationManagerTypes} from
     "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
@@ -45,8 +56,6 @@ import {
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {PermissionController} from
-    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {EigenPod} from "eigenlayer-contracts/src/contracts/pods/EigenPod.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
@@ -54,75 +63,50 @@ import {StrategyBaseTVLLimits} from
     "eigenlayer-contracts/src/contracts/strategies/StrategyBaseTVLLimits.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
-// DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
-struct ServiceManagerInitParams {
-    address avsOwner;
-    address rewardsInitiator;
-    address[] validatorsStrategies;
-    address[] bspsStrategies;
-    address[] mspsStrategies;
-    address gateway;
-}
-
-// Struct to store more detailed strategy information
-struct StrategyInfo {
-    address address_;
-    address underlyingToken;
-    address tokenCreator;
-}
-
-contract Deploy is Script, DeployParams, Accounts {
-    // Progress indicator
-    uint16 public deploymentStep = 0;
-    uint16 public totalSteps = 4; // Total major deployment steps
-
-    // EigenLayer Contract declarations
+/**
+ * @title DeployLocal
+ * @notice Deployment script for local development (anvil) - deploys full EigenLayer infrastructure
+ */
+contract DeployLocal is DeployBase {
+    // Local-specific EigenLayer Contract declarations
     EmptyContract public emptyContract;
-    RewardsCoordinator public rewardsCoordinator;
     RewardsCoordinator public rewardsCoordinatorImplementation;
-    PermissionController public permissionController;
     PermissionController public permissionControllerImplementation;
-    AllocationManager public allocationManager;
     AllocationManager public allocationManagerImplementation;
-    DelegationManager public delegation;
     DelegationManager public delegationImplementation;
-    StrategyManager public strategyManager;
     StrategyManager public strategyManagerImplementation;
-    AVSDirectory public avsDirectory;
     AVSDirectory public avsDirectoryImplementation;
-    EigenPodManager public eigenPodManager;
     EigenPodManager public eigenPodManagerImplementation;
     UpgradeableBeacon public eigenPodBeacon;
     EigenPod public eigenPodImplementation;
     StrategyBaseTVLLimits public baseStrategyImplementation;
     StrategyInfo[] public deployedStrategies;
-    IETHPOSDeposit public ethPOSDeposit;
 
     // EigenLayer required semver
     string public constant SEMVER = "v1.0.0";
 
-    function _logProgress() internal {
-        deploymentStep++;
-        Logging.logProgress(deploymentStep, totalSteps);
+    function run() public {
+        totalSteps = 4; // Total major deployment steps for local
+        _executeSharedDeployment();
     }
 
-    function run() public {
-        Logging.logHeader("DATAHAVEN DEPLOYMENT SCRIPT");
-        console.log("|  Network: %s", vm.envOr("NETWORK", string("anvil")));
-        console.log("|  Timestamp: %s", vm.toString(block.timestamp));
-        Logging.logFooter();
+    // Implementation of abstract functions from DeployBase
+    function _getNetworkName() internal pure override returns (string memory) {
+        return "anvil";
+    }
 
-        // Load configurations
-        SnowbridgeConfig memory snowbridgeConfig = getSnowbridgeConfig();
-        AVSConfig memory avsConfig = getAVSConfig();
-        EigenLayerConfig memory eigenLayerConfig = getEigenLayerConfig();
+    function _getDeploymentMode() internal pure override returns (string memory) {
+        return "LOCAL";
+    }
 
-        // Deploy EigenLayer core contracts
+    function _setupEigenLayerContracts(
+        EigenLayerConfig memory eigenLayerConfig
+    ) internal override returns (ProxyAdmin) {
         Logging.logHeader("EIGENLAYER CORE CONTRACTS DEPLOYMENT");
         Logging.logInfo("Deploying core infrastructure contracts");
 
@@ -182,106 +166,184 @@ contract Deploy is Script, DeployParams, Accounts {
         Logging.logStep("Ownership transferred to multisig");
 
         Logging.logFooter();
-        _logProgress();
-
-        // Deploy Snowbridge and configure Agent
-        Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
-
-        (
-            BeefyClient beefyClient,
-            AgentExecutor agentExecutor,
-            IGatewayV2 gateway,
-            address payable rewardsAgentAddress
-        ) = _deploySnowbridge(snowbridgeConfig);
-
-        Logging.logFooter();
-        _logProgress();
-
-        // Deploy DataHaven custom contracts
-        (
-            DataHavenServiceManager serviceManager,
-            VetoableSlasher vetoableSlasher,
-            RewardsRegistry rewardsRegistry,
-            bytes4 updateRewardsMerkleRootSelector
-        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
-
-        Logging.logFooter();
-        _logProgress();
-
-        // Set the Agent in the RewardsRegistry
-        Logging.logHeader("FINAL CONFIGURATION");
-        // This needs to be executed by the AVS owner
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
-        Logging.logStep("Agent set in RewardsRegistry");
-        Logging.logContractDeployed("Agent Address", rewardsAgentAddress);
-
-        Logging.logFooter();
-        _logProgress();
-
-        // Output all deployed contract addresses
-        _outputDeployedAddresses(
-            beefyClient,
-            agentExecutor,
-            gateway,
-            serviceManager,
-            vetoableSlasher,
-            rewardsRegistry,
-            rewardsAgentAddress
-        );
-
-        // Output rewards info (Rewards agent address and origin, updateRewardsMerkleRoot function selector)
-        _outputRewardsInfo(
-            rewardsAgentAddress,
-            snowbridgeConfig.rewardsMessageOrigin,
-            updateRewardsMerkleRootSelector
-        );
+        return proxyAdmin;
     }
 
-    function _deploySnowbridge(
-        SnowbridgeConfig memory config
-    ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
-        Logging.logSection("Deploying Snowbridge Core Components");
-
-        BeefyClient beefyClient = _deployBeefyClient(config);
-        Logging.logContractDeployed("BeefyClient", address(beefyClient));
-
-        vm.broadcast(_deployerPrivateKey);
-        AgentExecutor agentExecutor = new AgentExecutor();
-        Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
+    function _createServiceManagerProxy(
+        DataHavenServiceManager implementation,
+        ProxyAdmin proxyAdmin,
+        ServiceManagerInitParams memory params
+    ) internal override returns (DataHavenServiceManager) {
+        // Prepare strategies for service manager (local deployment has deployed strategies)
+        _prepareStrategiesForServiceManager(params);
 
         vm.broadcast(_deployerPrivateKey);
-        Gateway gatewayImplementation = new Gateway(address(beefyClient), address(agentExecutor));
-        Logging.logContractDeployed("Gateway Implementation", address(gatewayImplementation));
-
-        // Configure and deploy Gateway proxy
-        OperatingMode defaultOperatingMode = OperatingMode.Normal;
-        Initializer.Config memory gatewayConfig = Initializer.Config({
-            mode: defaultOperatingMode,
-            deliveryCost: 1,
-            registerTokenFee: 1,
-            assetHubCreateAssetFee: 1,
-            assetHubReserveTransferFee: 1,
-            exchangeRate: ud60x18(1),
-            multiplier: ud60x18(1),
-            foreignTokenDecimals: 18,
-            maxDestinationFee: 1
-        });
-
-        vm.broadcast(_deployerPrivateKey);
-        IGatewayV2 gateway = IGatewayV2(
-            address(new GatewayProxy(address(gatewayImplementation), abi.encode(gatewayConfig)))
+        bytes memory initData = abi.encodeWithSelector(
+            DataHavenServiceManager.initialise.selector,
+            params.avsOwner,
+            params.rewardsInitiator,
+            params.validatorsStrategies,
+            new IStrategy[](0), // FIXME remove when BSPs are removed
+            new IStrategy[](0), // FIXME remove when MSPs are removed
+            params.gateway
         );
-        Logging.logContractDeployed("Gateway Proxy", address(gateway));
 
-        // Create Agent
-        Logging.logSection("Creating Snowbridge Agent");
-        vm.broadcast(_deployerPrivateKey);
-        gateway.v2_createAgent(config.rewardsMessageOrigin);
-        address payable rewardsAgentAddress = payable(gateway.agentOf(config.rewardsMessageOrigin));
-        Logging.logContractDeployed("Rewards Agent", rewardsAgentAddress);
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(address(implementation), address(proxyAdmin), initData);
 
-        return (beefyClient, agentExecutor, gateway, rewardsAgentAddress);
+        return DataHavenServiceManager(address(proxy));
+    }
+
+    function _outputDeployedAddresses(
+        BeefyClient beefyClient,
+        AgentExecutor agentExecutor,
+        IGatewayV2 gateway,
+        DataHavenServiceManager serviceManager,
+        DataHavenServiceManager serviceManagerImplementation,
+        VetoableSlasher vetoableSlasher,
+        RewardsRegistry rewardsRegistry,
+        address rewardsAgent
+    ) internal override {
+        Logging.logHeader("DEPLOYMENT SUMMARY");
+
+        Logging.logSection("Snowbridge Contracts + Rewards Agent");
+        Logging.logContractDeployed("BeefyClient", address(beefyClient));
+        Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
+        Logging.logContractDeployed("Gateway", address(gateway));
+        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
+
+        Logging.logSection("DataHaven Contracts");
+        Logging.logContractDeployed("ServiceManager", address(serviceManager));
+        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
+        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
+
+        Logging.logSection("EigenLayer Core Contracts");
+        Logging.logContractDeployed("DelegationManager", address(delegation));
+        Logging.logContractDeployed("StrategyManager", address(strategyManager));
+        Logging.logContractDeployed("AVSDirectory", address(avsDirectory));
+        Logging.logContractDeployed("EigenPodManager", address(eigenPodManager));
+        Logging.logContractDeployed("EigenPodBeacon", address(eigenPodBeacon));
+        Logging.logContractDeployed("RewardsCoordinator", address(rewardsCoordinator));
+        Logging.logContractDeployed("AllocationManager", address(allocationManager));
+        Logging.logContractDeployed("PermissionController", address(permissionController));
+        Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
+
+        Logging.logSection("Strategy Contracts");
+        Logging.logContractDeployed(
+            "BaseStrategyImplementation", address(baseStrategyImplementation)
+        );
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            Logging.logContractDeployed(
+                string.concat("DeployedStrategy", vm.toString(i)), deployedStrategies[i].address_
+            );
+        }
+
+        Logging.logFooter();
+
+        // Write to deployment file for future reference
+        string memory network = _getNetworkName();
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
+
+        // Create directory if it doesn't exist
+        vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
+
+        // Create JSON with deployed addresses
+        string memory json = "{";
+        json = string.concat(json, '"network": "', network, '",');
+
+        // Snowbridge contracts
+        json = string.concat(json, '"BeefyClient": "', vm.toString(address(beefyClient)), '",');
+        json = string.concat(json, '"AgentExecutor": "', vm.toString(address(agentExecutor)), '",');
+        json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
+        json =
+            string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
+        json = string.concat(
+            json,
+            '"ServiceManagerImplementation": "',
+            vm.toString(address(serviceManagerImplementation)),
+            '",'
+        );
+        json =
+            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
+        json =
+            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
+
+        // EigenLayer contracts
+        json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
+        json =
+            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
+        json =
+            string.concat(json, '"EigenPodManager": "', vm.toString(address(eigenPodManager)), '",');
+        json =
+            string.concat(json, '"EigenPodBeacon": "', vm.toString(address(eigenPodBeacon)), '",');
+        json = string.concat(
+            json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
+        );
+        json = string.concat(
+            json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
+        );
+        json = string.concat(
+            json, '"PermissionController": "', vm.toString(address(permissionController)), '",'
+        );
+        json = string.concat(json, '"ETHPOSDeposit": "', vm.toString(address(ethPOSDeposit)), '",');
+        json = string.concat(
+            json,
+            '"BaseStrategyImplementation": "',
+            vm.toString(address(baseStrategyImplementation)),
+            '"'
+        );
+
+        // Add strategies with token information
+        if (deployedStrategies.length > 0) {
+            json = string.concat(json, ",");
+            json = string.concat(json, '"DeployedStrategies": [');
+
+            for (uint256 i = 0; i < deployedStrategies.length; i++) {
+                json = string.concat(json, "{");
+                json = string.concat(
+                    json, '"address": "', vm.toString(deployedStrategies[i].address_), '",'
+                );
+                json = string.concat(
+                    json,
+                    '"underlyingToken": "',
+                    vm.toString(deployedStrategies[i].underlyingToken),
+                    '",'
+                );
+                json = string.concat(
+                    json, '"tokenCreator": "', vm.toString(deployedStrategies[i].tokenCreator), '"'
+                );
+                json = string.concat(json, "}");
+
+                // Add comma if not the last element
+                if (i < deployedStrategies.length - 1) {
+                    json = string.concat(json, ",");
+                }
+            }
+
+            json = string.concat(json, "]");
+        }
+
+        json = string.concat(json, "}");
+
+        // Write to file
+        vm.writeFile(deploymentPath, json);
+        Logging.logInfo(string.concat("Deployment info saved to: ", deploymentPath));
+    }
+
+    // LOCAL-SPECIFIC FUNCTIONS
+
+    function _prepareStrategiesForServiceManager(
+        ServiceManagerInitParams memory params
+    ) internal view {
+        if (params.validatorsStrategies.length == 0) {
+            params.validatorsStrategies = new address[](deployedStrategies.length);
+            for (uint256 i = 0; i < deployedStrategies.length; i++) {
+                params.validatorsStrategies[i] = deployedStrategies[i].address_;
+            }
+        }
     }
 
     function _deployProxies(
@@ -579,303 +641,12 @@ contract Deploy is Script, DeployParams, Accounts {
         strategyManager.addStrategiesToDepositWhitelist(strategies);
     }
 
-    function _deployProxyAdmin() internal returns (ProxyAdmin) {
-        ProxyAdmin proxyAdmin = new ProxyAdmin();
-        return proxyAdmin;
-    }
-
     function _deployPauserRegistry(
         EigenLayerConfig memory config
     ) internal returns (PauserRegistry) {
         // Use the array of pauser addresses directly from the config
         vm.broadcast(_deployerPrivateKey);
         return new PauserRegistry(config.pauserAddresses, config.unpauserAddress);
-    }
-
-    function _deployBeefyClient(
-        SnowbridgeConfig memory config
-    ) internal returns (BeefyClient) {
-        // Create validator sets using the MerkleUtils library
-        BeefyClient.ValidatorSet memory validatorSet =
-            ValidatorsUtils._buildValidatorSet(0, config.initialValidatorHashes);
-        BeefyClient.ValidatorSet memory nextValidatorSet =
-            ValidatorsUtils._buildValidatorSet(1, config.nextValidatorHashes);
-
-        // Deploy BeefyClient
-        vm.broadcast(_deployerPrivateKey);
-        return new BeefyClient(
-            config.randaoCommitDelay,
-            config.randaoCommitExpiration,
-            config.minNumRequiredSignatures,
-            config.startBlock,
-            validatorSet,
-            nextValidatorSet
-        );
-    }
-
-    function _outputDeployedAddresses(
-        BeefyClient beefyClient,
-        AgentExecutor agentExecutor,
-        IGatewayV2 gateway,
-        DataHavenServiceManager serviceManager,
-        VetoableSlasher vetoableSlasher,
-        RewardsRegistry rewardsRegistry,
-        address rewardsAgent
-    ) internal {
-        Logging.logHeader("DEPLOYMENT SUMMARY");
-
-        Logging.logSection("Snowbridge Contracts + Rewards Agent");
-        Logging.logContractDeployed("BeefyClient", address(beefyClient));
-        Logging.logContractDeployed("AgentExecutor", address(agentExecutor));
-        Logging.logContractDeployed("Gateway", address(gateway));
-        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
-
-        Logging.logSection("DataHaven Contracts");
-        Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
-
-        Logging.logSection("EigenLayer Core Contracts");
-        Logging.logContractDeployed("DelegationManager", address(delegation));
-        Logging.logContractDeployed("StrategyManager", address(strategyManager));
-        Logging.logContractDeployed("AVSDirectory", address(avsDirectory));
-        Logging.logContractDeployed("EigenPodManager", address(eigenPodManager));
-        Logging.logContractDeployed("EigenPodBeacon", address(eigenPodBeacon));
-        Logging.logContractDeployed("RewardsCoordinator", address(rewardsCoordinator));
-        Logging.logContractDeployed("AllocationManager", address(allocationManager));
-        Logging.logContractDeployed("PermissionController", address(permissionController));
-        Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
-
-        Logging.logSection("Strategy Contracts");
-        Logging.logContractDeployed(
-            "BaseStrategyImplementation", address(baseStrategyImplementation)
-        );
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            Logging.logContractDeployed(
-                string.concat("DeployedStrategy", vm.toString(i)), deployedStrategies[i].address_
-            );
-        }
-
-        Logging.logFooter();
-
-        // Write to deployment file for future reference
-        string memory network = vm.envOr("NETWORK", string("anvil"));
-        string memory deploymentPath =
-            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
-
-        // Create directory if it doesn't exist
-        vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
-
-        // Create JSON with deployed addresses
-        string memory json = "{";
-        json = string.concat(json, '"network": "', network, '",');
-
-        // Snowbridge contracts
-        json = string.concat(json, '"BeefyClient": "', vm.toString(address(beefyClient)), '",');
-        json = string.concat(json, '"AgentExecutor": "', vm.toString(address(agentExecutor)), '",');
-        json = string.concat(json, '"Gateway": "', vm.toString(address(gateway)), '",');
-        json =
-            string.concat(json, '"ServiceManager": "', vm.toString(address(serviceManager)), '",');
-        json =
-            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
-        json =
-            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
-        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
-
-        // EigenLayer contracts
-        json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
-        json =
-            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
-        json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
-        json =
-            string.concat(json, '"EigenPodManager": "', vm.toString(address(eigenPodManager)), '",');
-        json =
-            string.concat(json, '"EigenPodBeacon": "', vm.toString(address(eigenPodBeacon)), '",');
-        json = string.concat(
-            json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
-        );
-        json = string.concat(
-            json, '"AllocationManager": "', vm.toString(address(allocationManager)), '",'
-        );
-        json = string.concat(
-            json, '"PermissionController": "', vm.toString(address(permissionController)), '",'
-        );
-        json = string.concat(json, '"ETHPOSDeposit": "', vm.toString(address(ethPOSDeposit)), '",');
-        json = string.concat(
-            json,
-            '"BaseStrategyImplementation": "',
-            vm.toString(address(baseStrategyImplementation)),
-            '"'
-        );
-
-        // Add strategies with token information
-        if (deployedStrategies.length > 0) {
-            json = string.concat(json, ",");
-            json = string.concat(json, '"DeployedStrategies": [');
-
-            for (uint256 i = 0; i < deployedStrategies.length; i++) {
-                json = string.concat(json, "{");
-                json = string.concat(
-                    json, '"address": "', vm.toString(deployedStrategies[i].address_), '",'
-                );
-                json = string.concat(
-                    json,
-                    '"underlyingToken": "',
-                    vm.toString(deployedStrategies[i].underlyingToken),
-                    '",'
-                );
-                json = string.concat(
-                    json, '"tokenCreator": "', vm.toString(deployedStrategies[i].tokenCreator), '"'
-                );
-                json = string.concat(json, "}");
-
-                // Add comma if not the last element
-                if (i < deployedStrategies.length - 1) {
-                    json = string.concat(json, ",");
-                }
-            }
-
-            json = string.concat(json, "]");
-        }
-
-        json = string.concat(json, "}");
-
-        // Write to file
-        vm.writeFile(deploymentPath, json);
-        Logging.logInfo(string.concat("Deployment info saved to: ", deploymentPath));
-    }
-
-    function _outputRewardsInfo(
-        address rewardsAgent,
-        bytes32 rewardsAgentOrigin,
-        bytes4 updateRewardsMerkleRootSelector
-    ) internal {
-        Logging.logHeader("REWARDS AGENT INFO");
-        Logging.logContractDeployed("RewardsAgent", rewardsAgent);
-        Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
-        Logging.logFunctionSelector(
-            "updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector)
-        );
-        Logging.logFooter();
-
-        // Write to deployment file for future reference
-        string memory network = vm.envOr("NETWORK", string("anvil"));
-        string memory rewardsInfoPath =
-            string.concat(vm.projectRoot(), "/deployments/", network, "-rewards-info.json");
-
-        // Create directory if it doesn't exist
-        vm.createDir(string.concat(vm.projectRoot(), "/deployments"), true);
-
-        // Create JSON with rewards info
-        string memory json = "{";
-        json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
-        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '",');
-        json = string.concat(
-            json,
-            '"updateRewardsMerkleRootSelector": "',
-            _trimToBytes4(vm.toString(updateRewardsMerkleRootSelector)),
-            '"'
-        );
-        json = string.concat(json, "}");
-
-        // Write to file
-        vm.writeFile(rewardsInfoPath, json);
-        Logging.logInfo(string.concat("Rewards info saved to: ", rewardsInfoPath));
-    }
-
-    function _deployDataHavenContracts(
-        AVSConfig memory avsConfig,
-        ProxyAdmin proxyAdmin,
-        IGatewayV2 gateway
-    ) internal returns (DataHavenServiceManager, VetoableSlasher, RewardsRegistry, bytes4) {
-        Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
-
-        // Deploy the Service Manager
-        vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation =
-            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
-        Logging.logContractDeployed(
-            "ServiceManager Implementation", address(serviceManagerImplementation)
-        );
-
-        // Extract strategies logic to a helper function to reduce local variables
-        _prepareStrategiesForServiceManager(avsConfig, deployedStrategies);
-
-        // Create service manager initialisation parameters struct to reduce stack variables
-        ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
-            avsOwner: avsConfig.avsOwner,
-            rewardsInitiator: avsConfig.rewardsInitiator,
-            validatorsStrategies: avsConfig.validatorsStrategies,
-            bspsStrategies: avsConfig.bspsStrategies,
-            mspsStrategies: avsConfig.mspsStrategies,
-            gateway: address(gateway)
-        });
-
-        // Create the service manager proxy
-        DataHavenServiceManager serviceManager =
-            _createServiceManagerProxy(serviceManagerImplementation, proxyAdmin, initParams);
-        Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
-
-        // Deploy VetoableSlasher
-        vm.broadcast(_deployerPrivateKey);
-        VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager,
-            serviceManager,
-            avsConfig.vetoCommitteeMember,
-            avsConfig.vetoWindowBlocks
-        );
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
-
-        // Deploy RewardsRegistry
-        vm.broadcast(_deployerPrivateKey);
-        RewardsRegistry rewardsRegistry = new RewardsRegistry(
-            address(serviceManager),
-            address(0) // Will be set to the Agent address after creation
-        );
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
-        bytes4 updateRewardsMerkleRootSelector = IRewardsRegistry.updateRewardsMerkleRoot.selector;
-
-        Logging.logSection("Configuring Service Manager");
-
-        // Register the DataHaven service in the AllocationManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.updateAVSMetadataURI("");
-        Logging.logStep("DataHaven service registered in AllocationManager");
-
-        // Set the slasher in the ServiceManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setSlasher(vetoableSlasher);
-        Logging.logStep("Slasher set in ServiceManager");
-
-        // Set the RewardsRegistry in the ServiceManager
-        uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
-        Logging.logStep("RewardsRegistry set in ServiceManager");
-
-        return (serviceManager, vetoableSlasher, rewardsRegistry, updateRewardsMerkleRootSelector);
-    }
-
-    function _createServiceManagerProxy(
-        DataHavenServiceManager implementation,
-        ProxyAdmin proxyAdmin,
-        ServiceManagerInitParams memory params
-    ) internal returns (DataHavenServiceManager) {
-        vm.broadcast(_deployerPrivateKey);
-        bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialise.selector,
-            params.avsOwner,
-            params.rewardsInitiator,
-            params.validatorsStrategies,
-            params.bspsStrategies,
-            params.mspsStrategies,
-            params.gateway
-        );
-
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy(address(implementation), address(proxyAdmin), initData);
-
-        return DataHavenServiceManager(address(proxy));
     }
 
     function _prepareStrategiesForServiceManager(
@@ -892,23 +663,5 @@ contract Deploy is Script, DeployParams, Accounts {
                 config.mspsStrategies[i] = strategies[i].address_;
             }
         }
-    }
-
-    /**
-     * @dev Helper function to trim a padded hex string to only the first 4 bytes (10 characters: 0x + 8 hex digits)
-     * @param paddedHex The padded hex string from vm.toString()
-     * @return A hex string with only the first 4 bytes (e.g., "0x12345678")
-     */
-    function _trimToBytes4(
-        string memory paddedHex
-    ) internal pure returns (string memory) {
-        bytes memory data = bytes(paddedHex);
-        bytes memory trimmed = new bytes(10); // 0x + 8 hex chars = 10 total chars
-
-        for (uint256 i = 0; i < 10; i++) {
-            trimmed[i] = data[i];
-        }
-
-        return string(trimmed);
     }
 }

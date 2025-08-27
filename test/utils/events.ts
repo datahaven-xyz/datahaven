@@ -169,9 +169,7 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
       if (unwatch) {
         unwatch();
       }
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
     };
 
     // Set up timeout
@@ -234,6 +232,7 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
           // If no selected log matched, keep watching until timeout
         },
         onError: (error: unknown) => {
+          // Log and continue; transient watcher errors shouldn't abort the wait
           logger.error(`Error watching Ethereum event ${eventName}: ${error}`);
           cleanup();
           resolve(null);

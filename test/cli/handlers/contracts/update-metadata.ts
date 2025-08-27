@@ -1,9 +1,8 @@
-import { logger, printDivider } from "utils";
+import { logger, parseDeploymentsFile, printDivider } from "utils";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getChainDeploymentParams } from "../../../configs/contracts/config";
 import { dataHavenServiceManagerAbi } from "../../../contract-bindings/generated";
-import { getContractInstance } from "../../../utils/contracts";
 
 /**
  * Updates the AVS metadata URI for the DataHaven Service Manager
@@ -37,18 +36,20 @@ export const updateAVSMetadataURI = async (chain: string, uri: string) => {
 
     logger.info(`Using account: ${account.address}`);
 
-    // Get the ServiceManager contract instance
-    const serviceManager = await getContractInstance("ServiceManager", walletClient, chain);
-    logger.info(`ServiceManager contract address: ${serviceManager.address}`);
+    const deployments = await parseDeploymentsFile(chain);
+    const serviceManagerAddress = deployments.ServiceManager;
+
+    logger.info(`ServiceManager contract address: ${serviceManagerAddress}`);
 
     // Call the updateAVSMetadataURI function
     logger.info("📝 Calling updateAVSMetadataURI...");
 
     const hash = await walletClient.writeContract({
-      address: serviceManager.address,
+      address: serviceManagerAddress,
       abi: dataHavenServiceManagerAbi,
       functionName: "updateAVSMetadataURI",
-      args: [uri]
+      args: [uri],
+      chain: null
     });
 
     logger.info("✅ Transaction submitted successfully!");

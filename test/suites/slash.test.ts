@@ -36,18 +36,16 @@ describe("Should slash an operator", () => {
     // need operator address to slash
     const validator = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
-    dhApi.tx.ExternalValidatorsSlashes.set_slashing_mode({
-      mode: "LogOnly",
-    });
+    dhApi.tx.ExternalValidatorsSlashes.force_inject_slash
 
-    const slashCall = dhApi.tx.ExternalValidatorsSlashes.force_inject_slash({
+    const sudoSlashCall = dhApi.tx.ExternalValidatorsSlashes.force_inject_slash({
       validator,
       era: activeEra?.index || 0,
       percentage: 75,
       external_idx: BigInt(1),
     });
     const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
-    let result = await slashCall.signAndSubmit(signer);
+    let result = await sudoSlashCall.signAndSubmit(signer);
 
     expect(result.ok).toBeTruthy();
 

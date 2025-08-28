@@ -48,6 +48,17 @@ pub mod dynamic_params {
         #[codec(index = 4)]
         #[allow(non_upper_case_globals)]
         pub static FeesTreasuryProportion: Perbill = Perbill::from_percent(20);
+
+        #[codec(index = 5)]
+        #[allow(non_upper_case_globals)]
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
+        pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
+            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+
+        #[codec(index = 6)]
+        #[allow(non_upper_case_globals)]
+        // TODO: get the right address
+        pub static DatahavenAddress: H160 = H160::repeat_byte(0x0);
     }
 }
 

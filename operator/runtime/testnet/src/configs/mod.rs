@@ -28,11 +28,12 @@ pub mod runtime_params;
 use super::{
     currency::*, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
     EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit,
-    ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
-    Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
-    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    ExternalValidators, ExternalValidatorsRewards, ExternalValidatorsSlashes, Hash, Historical,
+    ImOnline, MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo,
+    Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -1168,7 +1169,7 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = testnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
@@ -1309,11 +1310,11 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
 
 // Stub SendMessage implementation for slash pallet
 pub struct SlashesSendAdapter;
-impl pallet_external_validators_slashes::types::SendMessage for SlashesSendAdapter {
+impl pallet_external_validators_slashes::types::SendMessage<AccountId> for SlashesSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
     fn build(
-        _slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils,
+        _slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils<AccountId>,
     ) -> Option<Self::Message> {
         let mut calldata = Vec::new();
 

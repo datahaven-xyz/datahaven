@@ -28,7 +28,7 @@ sp-runtime = { workspace = true }
 sp-staking = { workspace = true }
 sp-std = { workspace = true }
 pallet-external-validators = { workspace = true }
-
+fp-account = { workspace = true }
 
 [dev-dependencies]
 pallet-timestamp = { workspace = true, features = [ "std" ] }
@@ -54,6 +54,7 @@ std = [
 	"sp-runtime/std",
 	"sp-staking/std",
 	"pallet-external-validators/std",
+	"fp-account/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

@@ -31,11 +31,12 @@ pub mod runtime_params;
 use super::{
     currency::*, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
     EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit,
-    ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
-    Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
-    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    ExternalValidators, ExternalValidatorsRewards, ExternalValidatorsSlashes, Hash, Historical,
+    ImOnline, MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo,
+    Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    RuntimeOrigin, RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -103,8 +104,8 @@ use sp_std::{
     prelude::*,
 };
 use sp_version::RuntimeVersion;
-use xcm::latest::NetworkId;
 use xcm::prelude::*;
+use xcm::{latest::NetworkId, v3::Junction::AccountId32};
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
@@ -1172,7 +1173,7 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = stagenet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
@@ -1313,22 +1314,31 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
 
 // Stub SendMessage implementation for slash pallet
 pub struct SlashesSendAdapter;
-impl pallet_external_validators_slashes::types::SendMessage for SlashesSendAdapter {
+impl pallet_external_validators_slashes::types::SendMessage<AccountId> for SlashesSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
+
     fn build(
-        _slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils,
+        slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils<AccountId>,
     ) -> Option<Self::Message> {
         let mut calldata = Vec::new();
 
+        let selector = runtime_params::dynamic_params::runtime_config::SlashOperatorSelector::get();
+        calldata.extend_from_slice(&selector);
+
+        // FIXME: we need to encoded as rlp array
+        for slash in slashes_utils.0.clone() {
+            calldata.extend_from_slice(slash.validator.as_ref());
+        }
+
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(), // TODO: get the slash registry address
+            target: runtime_params::dynamic_params::runtime_config::DatahavenAddress::get(),
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
         };
         let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the right origin address
             // TODO: Determine appropriate id value
             id: unique(1).into(),
             fee: 0,

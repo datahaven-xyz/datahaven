@@ -7948,6 +7948,7 @@ dependencies = [
 name = "pallet-external-validators-slashes"
 version = "0.1.0"
 dependencies = [
+ "fp-account",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

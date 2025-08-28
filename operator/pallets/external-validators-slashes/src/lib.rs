@@ -31,7 +31,7 @@ extern crate alloc;
 
 use crate::types::SlashDataUtils;
 use {
-    crate::types::SendMessage,
+    crate::types::{SendMessage, SlashData},
     alloc::{collections::vec_deque::VecDeque, vec, vec::Vec},
     frame_support::{pallet_prelude::*, traits::DefensiveSaturating},
     frame_system::pallet_prelude::*,
@@ -150,7 +150,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// How to send messages via Snowbridge Outbound Queue V2.
-        type SendMessage: SendMessage;
+        type SendMessage: SendMessage<Self::AccountId>;
     }
 
     #[pallet::error]
@@ -538,7 +538,7 @@ impl<T: Config> Pallet<T> {
 
     /// Returns number of slashes that were sent to ethereum.
     fn process_slashes_queue(amount: u32) -> u32 {
-        let mut slashes_to_send: Vec<alloc::string::String> = vec![]; // TODO: Slashes are not going to be String
+        let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![]; // FIXME
         let era_index = T::EraIndexProvider::active_era().index;
 
         UnreportedSlashesQueue::<T>::mutate(|queue| {
@@ -548,11 +548,10 @@ impl<T: Config> Pallet<T> {
                     break;
                 };
 
-                // slashes_to_send.push(SlashData {
-                //     encoded_validator_id: slash.validator.clone().encode(),
-                //     slash_fraction: slash.percentage.deconstruct(),
-                //     external_idx: slash.external_idx,
-                // });
+                slashes_to_send.push(SlashData {
+                    validator: slash.validator,
+                    amount_to_slash: 1000, // TODO: need to compute how much we slash
+                });
             }
         });
 
@@ -562,15 +561,7 @@ impl<T: Config> Pallet<T> {
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        // Build command with slashes.
-        // let command = Command::ReportSlashes {
-        //     era_index,
-        //     slashes: slashes_to_send,
-        // };
-
-        // let channel_id: ChannelId = snowbridge_core::PRIMARY_GOVERNANCE_CHANNEL;
-
-        let outbound = match T::SendMessage::build(&SlashDataUtils()) {
+        let outbound = match T::SendMessage::build(&SlashDataUtils(slashes_to_send)) {
             Some(send_msg) => send_msg,
             None => {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
@@ -590,7 +581,7 @@ impl<T: Config> Pallet<T> {
             })
             .unwrap();
 
-        T::SendMessage::deliver(ticket)
+        let message_id = T::SendMessage::deliver(ticket)
             .map_err(|e| {
                 log::error!(
                     target: "ext_validators_rewards",
@@ -601,6 +592,8 @@ impl<T: Config> Pallet<T> {
             })
             .unwrap();
 
+        Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
+
         slashes_count
     }
 }
@@ -609,7 +602,7 @@ impl<T: Config> Pallet<T> {
 /// rather deferred for several eras.
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo, Clone, PartialEq)]
 pub struct Slash<AccountId, SlashId> {
-    /// external index identifying a given set of validators
+    /// external index identifying a given set of validators. FIXME: we probably dont need this.
     pub external_idx: u64,
     /// The stash ID of the offending validator.
     pub validator: AccountId,

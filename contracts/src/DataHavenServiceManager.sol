@@ -51,9 +51,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-    // TMP: only for testing
-    event OperatorSlashedTest();
-
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
@@ -361,10 +358,26 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }
 
-    function slashOperator() external onlyOwner() {
 
-        // _allocationManager.slashOperator(address(this), params);
+    function slashValidatorsOperator(address[] validators) external onlyOwner() {
+        uint len = validators.length;
 
-        emit OperatorSlashedTest();
+        for (uint i; i < len; ++i) {
+            
+            address  validator = validators[i];
+            
+            IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
+                operator: validator,
+                operatorSetId: VALIDATORS_SET_ID,
+                strategies: validatorsStrategies,
+                wadsToSlash: 25e16.toArrayU256(), // TODO: need to calculate how much to slash
+                description: "validator slashed"
+            });
+
+            _allocationManager.slashOperator(address(this), params);
+
+        }
+
+
     }
 }

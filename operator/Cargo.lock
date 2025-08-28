@@ -2393,6 +2393,7 @@ dependencies = [
  "pallet-evm-chain-id",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -2600,6 +2601,7 @@ dependencies = [
  "pallet-evm-chain-id",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -2724,6 +2726,7 @@ dependencies = [
  "pallet-evm-chain-id",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -8100,6 +8103,28 @@ dependencies = [
  "fp-evm",
  "sp-core 35.0.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
  "substrate-bn",
+]
+
+[[package]]
+name = "pallet-evm-precompile-call-permit"
+version = "0.1.0"
+dependencies = [
+ "evm",
+ "fp-evm",
+ "frame-support 39.1.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
+ "frame-system 39.1.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
+ "hex-literal 0.3.4",
+ "libsecp256k1",
+ "pallet-balances 40.1.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core 35.0.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
+ "sp-io 39.0.1 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
+ "sp-runtime 40.1.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
 ]
 
 [[package]]

@@ -112,6 +112,7 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # DataHaven precompiles
+pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 [build-dependencies]
@@ -154,6 +155,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-registry/std",
     "pallet-grandpa/std",
     "pallet-identity/std",

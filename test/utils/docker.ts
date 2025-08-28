@@ -5,42 +5,48 @@ import invariant from "tiny-invariant";
 import { logger, type ServiceInfo, StandardServiceMappings } from "utils";
 
 function createDockerConnection(): Docker {
-  const dockerHost = process.env.DOCKER_HOST;
+  // const dockerHost = process.env.DOCKER_HOST;
 
-  if (dockerHost) {
-    logger.debug(`Using DOCKER_HOST: ${dockerHost}`);
-    if (dockerHost.startsWith("unix://")) {
-      return new Docker({ socketPath: dockerHost.replace("unix://", "") });
-    }
-    if (dockerHost.startsWith("tcp://")) {
-      const url = new URL(dockerHost);
-      return new Docker({
-        host: url.hostname,
-        port: Number.parseInt(url.port) || 2375,
-        protocol: "http"
-      });
-    }
+  // if (dockerHost) {
+  //   logger.debug(`Using DOCKER_HOST: ${dockerHost}`);
+  //   if (dockerHost.startsWith("unix://")) {
+  //     return new Docker({ socketPath: dockerHost.replace("unix://", "") });
+  //   }
+  //   if (dockerHost.startsWith("tcp://")) {
+  //     const url = new URL(dockerHost);
+  //     return new Docker({
+  //       host: url.hostname,
+  //       port: Number.parseInt(url.port) || 2375,
+  //       protocol: "http"
+  //     });
+  //   }
+  // }
+
+  // const socketPaths = [
+  //   "/var/run/docker.sock",
+  //   "/run/user/1000/docker.sock",
+  //   `${process.env.HOME}/.docker/run/docker.sock`
+  // ];
+
+  // for (const socketPath of socketPaths) {
+  //   try {
+  //     if (existsSync(socketPath)) {
+  //       logger.debug(`Using Docker socket: ${socketPath}`);
+  //       return new Docker({ socketPath });
+  //     }
+  //   } catch (error) {
+  //     logger.debug(`Failed to access socket ${socketPath}:`, error);
+  //   }
+  // }
+
+
+  if (process.platform === 'win32') {
+    return new Docker({});
   }
 
-  const socketPaths = [
-    "/var/run/docker.sock",
-    "/run/user/1000/docker.sock",
-    `${process.env.HOME}/.docker/run/docker.sock`
-  ];
+  logger.info("Using unix socket");
+  return new Docker({ socketPath: "/var/run/docker.sock" }); // use default socket for `linux` and `darwin`
 
-  for (const socketPath of socketPaths) {
-    try {
-      if (existsSync(socketPath)) {
-        logger.debug(`Using Docker socket: ${socketPath}`);
-        return new Docker({ socketPath });
-      }
-    } catch (error) {
-      logger.debug(`Failed to access socket ${socketPath}:`, error);
-    }
-  }
-
-  logger.debug("Falling back to default Docker configuration");
-  return new Docker({});
 }
 
 const docker = createDockerConnection();

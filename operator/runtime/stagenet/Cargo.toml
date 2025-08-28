@@ -114,6 +114,7 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # DataHaven precompiles
+pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -201,6 +202,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-evm-precompile-batch/std",
 	"pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",

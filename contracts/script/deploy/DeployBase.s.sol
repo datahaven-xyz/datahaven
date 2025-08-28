@@ -302,9 +302,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         Logging.logStep("DataHaven service registered in AllocationManager");
 
         // Set the slasher in the ServiceManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setSlasher(vetoableSlasher);
-        Logging.logStep("Slasher set in ServiceManager");
+        // vm.broadcast(_avsOwnerPrivateKey);
+        // serviceManager.setSlasher(vetoableSlasher);
+        // Logging.logStep("Slasher set in ServiceManager");
 
         // Set the RewardsRegistry in the ServiceManager
         uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();

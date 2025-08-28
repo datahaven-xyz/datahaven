@@ -359,8 +359,10 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
 
-    function slashValidatorsOperator(address[] validators) external onlyOwner() {
+    function slashValidatorsOperator(address[] calldata validators) external onlyOwner() {
         uint len = validators.length;
+        IStrategy[] memory validatorsStrategies = new IStrategy[](0);
+        uint256[] memory wadsToSlash = new uint256[](0); // This need to have the same length as the number of strategies to slash
 
         for (uint i; i < len; ++i) {
             
@@ -370,7 +372,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
                 operator: validator,
                 operatorSetId: VALIDATORS_SET_ID,
                 strategies: validatorsStrategies,
-                wadsToSlash: 25e16.toArrayU256(), // TODO: need to calculate how much to slash
+                wadsToSlash: wadsToSlash,
                 description: "validator slashed"
             });
 

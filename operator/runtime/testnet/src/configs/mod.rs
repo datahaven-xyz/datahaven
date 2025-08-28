@@ -26,13 +26,14 @@
 pub mod runtime_params;
 
 use super::{
-    currency::*, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit,
-    ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
-    Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
-    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    currency::*, precompiles::DataHavenPrecompiles, AccountId, Babe, Balance, Balances,
+    BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId,
+    ExistentialDeposit, ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline,
+    MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
+    RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
+    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -755,7 +756,7 @@ datahaven_runtime_common::impl_on_charge_evm_transaction!();
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    // pub PrecompilesValue: TemplatePrecompiles<Runtime> = TemplatePrecompiles::<_>::new();
+    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
     /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
@@ -781,8 +782,8 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = ();
-    type PrecompilesValue = ();
+    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;

@@ -264,54 +264,58 @@ pub fn run() -> sc_cli::Result<()> {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
                 match config.network.network_backend {
-                    sc_network::config::NetworkBackendType::Libp2p => match config.chain_spec {
-                        ref spec if spec.is_mainnet() => {
-                            service::new_full::<
-                                datahaven_mainnet_runtime::RuntimeApi,
-                                sc_network::NetworkWorker<_, _>,
-                            >(config, cli.eth)
-                            .await
+                    Some(sc_network::config::NetworkBackendType::Libp2p) | None => {
+                        match config.chain_spec {
+                            ref spec if spec.is_mainnet() => {
+                                service::new_full::<
+                                    datahaven_mainnet_runtime::RuntimeApi,
+                                    sc_network::NetworkWorker<_, _>,
+                                >(config, cli.eth)
+                                .await
+                            }
+                            ref spec if spec.is_testnet() => {
+                                service::new_full::<
+                                    datahaven_testnet_runtime::RuntimeApi,
+                                    sc_network::NetworkWorker<_, _>,
+                                >(config, cli.eth)
+                                .await
+                            }
+                            _ => {
+                                service::new_full::<
+                                    datahaven_stagenet_runtime::RuntimeApi,
+                                    sc_network::NetworkWorker<_, _>,
+                                >(config, cli.eth)
+                                .await
+                            }
                         }
-                        ref spec if spec.is_testnet() => {
-                            service::new_full::<
-                                datahaven_testnet_runtime::RuntimeApi,
-                                sc_network::NetworkWorker<_, _>,
-                            >(config, cli.eth)
-                            .await
-                        }
-                        _ => {
-                            service::new_full::<
-                                datahaven_stagenet_runtime::RuntimeApi,
-                                sc_network::NetworkWorker<_, _>,
-                            >(config, cli.eth)
-                            .await
-                        }
+                        .map_err(sc_cli::Error::Service)
                     }
-                    .map_err(sc_cli::Error::Service),
-                    sc_network::config::NetworkBackendType::Litep2p => match config.chain_spec {
-                        ref spec if spec.is_mainnet() => {
-                            service::new_full::<
-                                datahaven_mainnet_runtime::RuntimeApi,
-                                sc_network::Litep2pNetworkBackend,
-                            >(config, cli.eth)
-                            .await
+                    Some(sc_network::config::NetworkBackendType::Litep2p) => {
+                        match config.chain_spec {
+                            ref spec if spec.is_mainnet() => {
+                                service::new_full::<
+                                    datahaven_mainnet_runtime::RuntimeApi,
+                                    sc_network::Litep2pNetworkBackend,
+                                >(config, cli.eth)
+                                .await
+                            }
+                            ref spec if spec.is_testnet() => {
+                                service::new_full::<
+                                    datahaven_testnet_runtime::RuntimeApi,
+                                    sc_network::Litep2pNetworkBackend,
+                                >(config, cli.eth)
+                                .await
+                            }
+                            _ => {
+                                service::new_full::<
+                                    datahaven_stagenet_runtime::RuntimeApi,
+                                    sc_network::Litep2pNetworkBackend,
+                                >(config, cli.eth)
+                                .await
+                            }
                         }
-                        ref spec if spec.is_testnet() => {
-                            service::new_full::<
-                                datahaven_testnet_runtime::RuntimeApi,
-                                sc_network::Litep2pNetworkBackend,
-                            >(config, cli.eth)
-                            .await
-                        }
-                        _ => {
-                            service::new_full::<
-                                datahaven_stagenet_runtime::RuntimeApi,
-                                sc_network::Litep2pNetworkBackend,
-                            >(config, cli.eth)
-                            .await
-                        }
+                        .map_err(sc_cli::Error::Service)
                     }
-                    .map_err(sc_cli::Error::Service),
                 }
             })
         }

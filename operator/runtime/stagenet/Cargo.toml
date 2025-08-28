@@ -33,14 +33,20 @@ hex = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
 num-bigint = { workspace = true, optional = true }
+num_enum = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
 pallet-balances = { workspace = true, features = ["insecure_zero_ed"]}
 pallet-beefy = { workspace = true }
 pallet-beefy-mmr = { workspace = true }
-pallet-ethereum = { workspace = true }
-pallet-evm = { workspace = true }
+pallet-ethereum = { workspace = true, features = ["forbid-evm-reentrancy"] }
+pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
 pallet-evm-chain-id = { workspace = true }
+pallet-evm-precompile-blake2 = { workspace = true }
+pallet-evm-precompile-bn128 = { workspace = true }
+pallet-evm-precompile-modexp = { workspace = true }
+pallet-evm-precompile-sha3fips = { workspace = true }
+pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
@@ -64,6 +70,7 @@ pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
+precompile-utils = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
@@ -106,6 +113,9 @@ xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
+# DataHaven precompiles
+pallet-evm-precompile-registry = { workspace = true }
+
 # StorageHub
 pallet-bucket-nfts = { workspace = true, optional = true }
 pallet-nfts = { workspace = true, optional = true }
@@ -136,6 +146,8 @@ substrate-wasm-builder = { workspace = true, optional = true, default-features =
 frame-support-test = { workspace = true }
 sp-io = { workspace = true }
 sp-tracing = { workspace = true }
+
+precompile-utils = { workspace = true, features = ["std", "testing"] }
 
 # Snowbridge testing
 snowbridge-core = { workspace = true }
@@ -172,6 +184,7 @@ std = [
     "codec/std",
     "datahaven-runtime-common/std",
     "fp-account/std",
+    "fp-evm/std",
     "frame-benchmarking?/std",
     "frame-executive/std",
     "frame-metadata-hash-extension/std",
@@ -188,6 +201,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+	"pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
@@ -209,6 +223,7 @@ std = [
     "pallet-transaction-payment/std",
     "pallet-treasury/std",
     "pallet-utility/std",
+    "precompile-utils/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "scale-info/std",

@@ -106,6 +106,8 @@ jobs:
           docker tag ${{ inputs.image-tag }} datahavenxyz/datahaven:local
           docker images
       - run: bun install
+      - run: docker info
+      - run: bun --version
       - run: bun test:e2e
       # Try to collect all docker logs and upload it
       - name: Collect docker logs

@@ -48,7 +48,7 @@ jobs:
       - name: Install Kurtosis
         run: |
           # Install Kurtosis locally without sudo
-          KURTOSIS_VERSION="1.10.3"
+          KURTOSIS_VERSION="1.11.1"
           if ! command -v kurtosis &> /dev/null; then
             echo "Installing Kurtosis $KURTOSIS_VERSION locally"
             mkdir -p ~/.local/bin

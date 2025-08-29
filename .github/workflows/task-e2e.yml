@@ -29,7 +29,6 @@ permissions:
 env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
-  # DOCKER_HOST: unix:///run/user/1000/docker.sock
 
 jobs:
   kurtosis:
@@ -87,11 +86,58 @@ jobs:
           key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol') }}
           restore-keys: |
             ${{ runner.os }}-foundry-build-
+      - name: Detect container socket and set DOCKER_HOST
+        run: |
+          echo "Detecting container socket..."
+          UID=$(id -u)
+          CANDIDATES=(
+            "/var/run/docker.sock"
+            "/run/user/${UID}/docker.sock"
+            "/run/user/${UID}/podman/podman.sock"
+          )
+          if [ -n "${XDG_RUNTIME_DIR}" ]; then
+            CANDIDATES+=("${XDG_RUNTIME_DIR}/podman/podman.sock")
+          fi
+          for s in "${CANDIDATES[@]}"; do
+            if [ -S "$s" ]; then
+              echo "Found socket: $s"
+              echo "DOCKER_HOST=unix://$s" >> $GITHUB_ENV
+              break
+            fi
+          done
+          echo "DOCKER_HOST is set to: ${DOCKER_HOST:-"(will be set via GITHUB_ENV)"}"
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:master
+            network=host
+          buildkitd-flags: |
+            --allow-insecure-entitlement network.host
+            --allow-insecure-entitlement security.insecure
+
+      - name: Check Docker connectivity
+        run: |
+          echo "Checking Docker connectivity..."
+          docker version
+          docker info
+          echo "Docker socket info:"
+          ls -la /var/run/docker.sock || echo "Docker socket not found at /var/run/docker.sock"
+          echo "Current user: $(whoami)"
+          echo "Docker group membership:"
+          groups || echo "Could not check groups"
+
+      - name: Test Docker with simple command
+        run: |
+          echo "Testing Docker with simple command..."
+          docker run --rm hello-world || echo "Docker test failed, but continuing..."
 
       - name: Download snowbridge binary
         run: |

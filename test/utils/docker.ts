@@ -5,48 +5,51 @@ import invariant from "tiny-invariant";
 import { logger, type ServiceInfo, StandardServiceMappings } from "utils";
 
 function createDockerConnection(): Docker {
-  // const dockerHost = process.env.DOCKER_HOST;
+  const dockerHost = process.env.DOCKER_HOST;
 
-  // if (dockerHost) {
-  //   logger.debug(`Using DOCKER_HOST: ${dockerHost}`);
-  //   if (dockerHost.startsWith("unix://")) {
-  //     return new Docker({ socketPath: dockerHost.replace("unix://", "") });
-  //   }
-  //   if (dockerHost.startsWith("tcp://")) {
-  //     const url = new URL(dockerHost);
-  //     return new Docker({
-  //       host: url.hostname,
-  //       port: Number.parseInt(url.port) || 2375,
-  //       protocol: "http"
-  //     });
-  //   }
-  // }
+  if (dockerHost) {
+    logger.debug(`Using DOCKER_HOST: ${dockerHost}`);
+    if (dockerHost.startsWith("unix://")) {
+      return new Docker({ socketPath: dockerHost.replace("unix://", "") });
+    }
+    if (dockerHost.startsWith("tcp://")) {
+      const url = new URL(dockerHost);
+      return new Docker({
+        host: url.hostname,
+        port: Number.parseInt(url.port) || 2375,
+        protocol: "http"
+      });
+    }
+  }
 
-  // const socketPaths = [
-  //   "/var/run/docker.sock",
-  //   "/run/user/1000/docker.sock",
-  //   `${process.env.HOME}/.docker/run/docker.sock`
-  // ];
+  const uid = typeof process.getuid === "function" ? process.getuid() : 1000;
+  const xdgRuntimeDir = process.env.XDG_RUNTIME_DIR;
+  const socketPaths = [
+    "/var/run/docker.sock",
+    `/run/user/${uid}/docker.sock`,
+    xdgRuntimeDir ? `${xdgRuntimeDir}/podman/podman.sock` : "",
+    `/run/user/${uid}/podman/podman.sock`,
+    "/run/podman/podman.sock",
+    `${process.env.HOME}/.docker/run/docker.sock`
+  ].filter(Boolean) as string[];
 
-  // for (const socketPath of socketPaths) {
-  //   try {
-  //     if (existsSync(socketPath)) {
-  //       logger.debug(`Using Docker socket: ${socketPath}`);
-  //       return new Docker({ socketPath });
-  //     }
-  //   } catch (error) {
-  //     logger.debug(`Failed to access socket ${socketPath}:`, error);
-  //   }
-  // }
+  for (const socketPath of socketPaths) {
+    try {
+      if (existsSync(socketPath)) {
+        logger.info(`Using container socket: ${socketPath}`);
+        return new Docker({ socketPath });
+      }
+    } catch (error) {
+      logger.debug(`Failed to access socket ${socketPath}:`, error);
+    }
+  }
 
-
-  if (process.platform === 'win32') {
+  if (process.platform === "win32") {
     return new Docker({});
   }
 
-  logger.info("Using unix socket");
+  logger.info("Defaulting to unix socket /var/run/docker.sock");
   return new Docker({ socketPath: "/var/run/docker.sock" }); // use default socket for `linux` and `darwin`
-
 }
 
 const docker = createDockerConnection();
@@ -107,19 +110,20 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
         );
         services.push({
           service: mapping.service,
-          port: "Not found",
+          port: "No port mapping",
           url: "N/A"
         });
         continue;
       }
 
+      const url = `${mapping.protocol}://127.0.0.1:${selectedMapping.PublicPort}`;
       services.push({
         service: mapping.service,
         port: selectedMapping.PublicPort.toString(),
-        url: `http://127.0.0.1:${selectedMapping.PublicPort}`
+        url
       });
     } catch (error) {
-      logger.error(`Error getting info for ${mapping.service}:`, error);
+      logger.error(`Error processing service mapping for ${mapping.service}:`, error);
       services.push({
         service: mapping.service,
         port: "Error",
@@ -132,35 +136,142 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
 };
 
 export const getContainersMatchingImage = async (imageName: string) => {
-  const containers = await docker.listContainers({ all: true });
-  const matches = containers.filter((container) => container.Image.includes(imageName));
-  return matches;
+  try {
+    const containers = await docker.listContainers({ all: true });
+    const matches = containers.filter((container) => container.Image.includes(imageName));
+    return matches;
+  } catch (error) {
+    logger.warn("Docker client library failed, trying shell fallback:", error);
+
+    // Fallback to shell command if Docker client library fails
+    try {
+      const { $ } = await import("bun");
+      const output =
+        await $`docker ps -a --filter "ancestor=${imageName}" --format "{{.ID}}\t{{.Image}}\t{{.Names}}"`.text();
+
+      if (!output.trim()) {
+        return [];
+      }
+
+      // Parse the output and create mock container objects
+      const lines = output.trim().split("\n");
+      return lines.map((line) => {
+        const [id, image, ...names] = line.split("\t");
+        return {
+          Id: id,
+          Image: image,
+          Names: names.map((name) => `/${name}`),
+          // Add other required properties with default values
+          State: "unknown",
+          Status: "unknown",
+          Created: 0,
+          Ports: [],
+          Labels: {},
+          NetworkSettings: { Networks: {} }
+        };
+      });
+    } catch (shellError) {
+      logger.error("Both Docker client library and shell fallback failed:", {
+        clientError: error,
+        shellError
+      });
+      throw error; // Re-throw the original error
+    }
+  }
 };
 
 export const getContainersByPrefix = async (prefix: string) => {
-  const containers = await docker.listContainers({ all: true });
-  const matches = containers.filter((container) =>
-    container.Names.some((name) => name.startsWith(`/${prefix}`))
-  );
-  return matches;
+  try {
+    const containers = await docker.listContainers({ all: true });
+    const matches = containers.filter((container) =>
+      container.Names.some((name) => name.startsWith(`/${prefix}`))
+    );
+    return matches;
+  } catch (error) {
+    logger.warn("Docker client library failed, trying shell fallback:", error);
+
+    // Fallback to shell command if Docker client library fails
+    try {
+      const { $ } = await import("bun");
+      const output =
+        await $`docker ps -a --filter "name=^${prefix}" --format "{{.ID}}\t{{.Image}}\t{{.Names}}"`.text();
+
+      if (!output.trim()) {
+        return [];
+      }
+
+      // Parse the output and create mock container objects
+      const lines = output.trim().split("\n");
+      return lines.map((line) => {
+        const [id, image, ...names] = line.split("\t");
+        return {
+          Id: id,
+          Image: image,
+          Names: names.map((name) => `/${name}`),
+          // Add other required properties with default values
+          State: "unknown",
+          Status: "unknown",
+          Created: 0,
+          Ports: [],
+          Labels: {},
+          NetworkSettings: { Networks: {} }
+        };
+      });
+    } catch (shellError) {
+      logger.error("Both Docker client library and shell fallback failed:", {
+        clientError: error,
+        shellError
+      });
+      throw error; // Re-throw the original error
+    }
+  }
 };
 
 export const getPublicPort = async (
   containerName: string,
   internalPort: number
 ): Promise<number> => {
-  const containers = await docker.listContainers();
-  const container = containers.find((container) =>
-    container.Names.some((name) => name.includes(containerName))
-  );
-  invariant(container, `❌ container ${container} cannot be found  in running container list`);
+  try {
+    const containers = await docker.listContainers();
+    const container = containers.find((container) =>
+      container.Names.some((name) => name.includes(containerName))
+    );
+    invariant(container, `❌ container ${container} cannot be found  in running container list`);
 
-  const portMappings = container.Ports.find(
-    (port) => port.PrivatePort === internalPort && port.Type === "tcp"
-  );
-  logger.debug(`Port mappings for ${containerName}:${internalPort}`, portMappings);
-  invariant(portMappings, `❌ port mapping not found for ${containerName}:${internalPort}`);
-  return portMappings.PublicPort;
+    const portMappings = container.Ports.find(
+      (port) => port.PrivatePort === internalPort && port.Type === "tcp"
+    );
+    logger.debug(`Port mappings for ${containerName}:${internalPort}`, portMappings);
+    invariant(portMappings, `❌ port mapping not found for ${containerName}:${internalPort}`);
+    return portMappings.PublicPort;
+  } catch (error) {
+    logger.warn("Docker client library failed, trying shell fallback:", error);
+
+    // Fallback to shell command if Docker client library fails
+    try {
+      const { $ } = await import("bun");
+      const output = await $`docker port ${containerName} ${internalPort}/tcp`.text();
+
+      if (!output.trim()) {
+        throw new Error(`Port mapping not found for ${containerName}:${internalPort}`);
+      }
+
+      // Parse the output to extract the public port
+      // Output format: "0.0.0.0:12345" or ":::12345"
+      const match = output.trim().match(/:(\d+)$/);
+      if (!match) {
+        throw new Error(`Could not parse port from output: ${output}`);
+      }
+
+      return Number.parseInt(match[1], 10);
+    } catch (shellError) {
+      logger.error("Both Docker client library and shell fallback failed:", {
+        clientError: error,
+        shellError
+      });
+      throw error; // Re-throw the original error
+    }
+  }
 };
 
 export async function waitForLog(opts: {
@@ -168,61 +279,104 @@ export async function waitForLog(opts: {
   containerName: string;
   timeoutSeconds?: number;
 }): Promise<string> {
-  const container = docker.getContainer(opts.containerName);
-  await container.inspect();
-  const timeoutMs = (opts.timeoutSeconds ?? 10) * 1_000;
-
-  const rawStream = (await container.logs({
-    stdout: true,
-    stderr: true,
-    follow: true,
-    since: 0
-  })) as Duplex;
-  const pass = new PassThrough();
-  container.modem.demuxStream(rawStream, pass, pass);
-
-  const { readable } = Transform.toWeb(pass);
-  const decoder = new TextDecoder();
-  const timer = setTimeout(
-    () =>
-      pass.destroy(
-        new Error(
-          `Timed out after ${timeoutMs} ms waiting for "${opts.search}" in ${opts.containerName}`
-        )
-      ),
-    timeoutMs
-  );
-
   try {
-    for await (const chunk of readable) {
-      const text = decoder.decode(chunk as Uint8Array, { stream: false });
+    const container = docker.getContainer(opts.containerName);
+    await container.inspect();
+    const timeoutMs = (opts.timeoutSeconds ?? 10) * 1_000;
 
-      const hit =
-        typeof opts.search === "string" ? text.includes(opts.search) : opts.search.test(text);
+    const rawStream = (await container.logs({
+      stdout: true,
+      stderr: true,
+      follow: true,
+      since: 0
+    })) as Duplex;
+    const pass = new PassThrough();
+    container.modem.demuxStream(rawStream, pass, pass);
 
-      if (hit) return text.trim();
-    }
-
-    throw new Error(
-      `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`
+    const { readable } = Transform.toWeb(pass);
+    const decoder = new TextDecoder();
+    const timer = setTimeout(
+      () =>
+        pass.destroy(
+          new Error(
+            `Timed out after ${timeoutMs} ms waiting for "${opts.search}" in ${opts.containerName}`
+          )
+        ),
+      timeoutMs
     );
-  } finally {
-    if (timer) {
-      clearTimeout(timer);
-    }
 
-    if (pass && typeof pass.destroy === "function" && !pass.destroyed) {
-      pass.destroy();
-    }
+    try {
+      for await (const chunk of readable) {
+        const text = decoder.decode(chunk as Uint8Array, { stream: false });
 
-    if (rawStream) {
-      if (typeof rawStream.destroy === "function" && !rawStream.destroyed) {
-        rawStream.destroy();
+        const hit =
+          typeof opts.search === "string" ? text.includes(opts.search) : opts.search.test(text);
+
+        if (hit) return text.trim();
       }
-      const socket = (rawStream as any).socket;
-      if (socket && typeof socket.destroy === "function" && !socket.destroyed) {
-        socket.destroy();
+
+      throw new Error(
+        `Log stream ended before "${opts.search}" appeared for container ${opts.containerName}`
+      );
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
       }
+
+      if (pass && typeof pass.destroy === "function" && !pass.destroyed) {
+        pass.destroy();
+      }
+
+      if (rawStream) {
+        if (typeof rawStream.destroy === "function" && !rawStream.destroyed) {
+          rawStream.destroy();
+        }
+        const socket = (rawStream as any).socket;
+        if (socket && typeof socket.destroy === "function" && !socket.destroyed) {
+          socket.destroy();
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn("Docker client library failed, trying shell fallback:", error);
+
+    // Fallback to shell command if Docker client library fails
+    try {
+      const { $ } = await import("bun");
+      const timeoutMs = (opts.timeoutSeconds ?? 10) * 1_000;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < timeoutMs) {
+        try {
+          const output = await $`docker logs ${opts.containerName} --tail 100`.text();
+
+          if (typeof opts.search === "string") {
+            if (output.includes(opts.search)) {
+              return output.trim();
+            }
+          } else {
+            if (opts.search.test(output)) {
+              return output.trim();
+            }
+          }
+
+          // Wait a bit before checking again
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } catch {
+          // Container might not be running yet, continue waiting
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      throw new Error(
+        `Timed out after ${timeoutMs} ms waiting for "${opts.search}" in ${opts.containerName}`
+      );
+    } catch (shellError) {
+      logger.error("Both Docker client library and shell fallback failed:", {
+        clientError: error,
+        shellError
+      });
+      throw error; // Re-throw the original error
     }
   }
 }

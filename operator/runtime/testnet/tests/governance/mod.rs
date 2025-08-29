@@ -13,4 +13,6 @@ pub mod integration;
 #[cfg(test)]
 pub mod origins;
 #[cfg(test)]
+pub mod proxy;
+#[cfg(test)]
 pub mod referenda;

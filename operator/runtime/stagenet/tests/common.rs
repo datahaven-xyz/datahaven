@@ -1,7 +1,7 @@
 // Copyright 2025 Moonbeam Foundation.
 // This file is part of DataHaven.
 
-//! Common test utilities for DataHaven testnet runtime tests
+//! Common test utilities for DataHaven stagenet runtime tests
 
 use datahaven_stagenet_runtime::{
     currency::{HAVE, SUPPLY_FACTOR},
@@ -193,6 +193,7 @@ impl ExtBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub fn root_origin() -> RuntimeOrigin {
     RuntimeOrigin::root()
 }
@@ -239,22 +240,27 @@ pub fn set_block_author_by_index(validator_index: u32) {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// Helper function to get accounts as AccountId (governance naming convention)
+#[allow(dead_code)]
 pub fn alice() -> AccountId {
     account_id(ALICE)
 }
 
+#[allow(dead_code)]
 pub fn bob() -> AccountId {
     account_id(BOB)
 }
 
+#[allow(dead_code)]
 pub fn charlie() -> AccountId {
     account_id(CHARLIE)
 }
 
+#[allow(dead_code)]
 pub fn dave() -> AccountId {
     account_id(DAVE)
 }
 
+#[allow(dead_code)]
 pub fn eve() -> AccountId {
     account_id(EVE)
 }
@@ -271,16 +277,19 @@ pub fn run_to_block(n: BlockNumberFor<Runtime>) {
 }
 
 /// Helper function to make a proposal hash
+#[allow(dead_code)]
 pub fn make_proposal_hash(proposal: &RuntimeCall) -> H256 {
     BlakeTwo256::hash_of(proposal)
 }
 
 /// Helper to get last event
+#[allow(dead_code)]
 pub fn last_event() -> RuntimeEvent {
     System::events().pop().expect("Event expected").event
 }
 
 /// Helper to check if event exists
+#[allow(dead_code)]
 pub fn has_event(event: RuntimeEvent) -> bool {
     System::events().iter().any(|record| record.event == event)
 }
@@ -308,12 +317,14 @@ pub fn setup_treasury_council(members: Vec<AccountId>) {
 }
 
 /// Helper to create a simple proposal
+#[allow(dead_code)]
 pub fn make_simple_proposal() -> RuntimeCall {
     RuntimeCall::System(frame_system::Call::set_storage {
         items: vec![(b":test".to_vec(), b"value".to_vec())],
     })
 }
 
+#[allow(dead_code)]
 /// Helper to advance time for voting
 pub fn advance_referendum_time(blocks: BlockNumberFor<Runtime>) {
     let current_block = System::block_number();

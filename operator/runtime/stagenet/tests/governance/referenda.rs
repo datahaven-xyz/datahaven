@@ -612,8 +612,6 @@ fn decision_deposit_mechanics_work() {
 #[test]
 fn track_capacity_limits_enforced() {
     ExtBuilder::default().build().execute_with(|| {
-        use datahaven_stagenet_runtime::governance::custom_origins;
-
         // Use root track which has max_deciding of 5 (more reasonable for testing)
         let track_info = &TracksInfo::tracks()[0].1; // root track
         let max_deciding = track_info.max_deciding.min(5); // Use smaller number for testing

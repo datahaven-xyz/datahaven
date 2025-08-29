@@ -107,6 +107,7 @@ jobs:
           docker images
       - run: bun install
       - run: docker info
+      - run: podman info --debug
       - run: bun --version
       - run: bun test:e2e
       # Try to collect all docker logs and upload it

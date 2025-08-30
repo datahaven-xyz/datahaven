@@ -153,16 +153,20 @@ jobs:
           docker images
       - run: bun install
       - run: bun test:e2e
-      # Try to collect all docker logs and upload it
+      # Collect logs only on failure and compress them; ignore quota errors
       - name: Collect docker logs
-        if: always()
+        if: failure()
         run: |
-          mkdir ./logs
-          for name in `docker ps -a --format '{{.Names}}'`; do docker logs $name > ./logs/$name.log 2>&1; done
-      - name: Upload logs to GitHub
-        if: always()
+          mkdir -p logs
+          for name in $(docker ps -a --format '{{.Names}}'); do
+            docker logs "$name" > "logs/${name}.log" 2>&1 || true
+          done
+          tar -czf logs.tar.gz logs || true
+      - name: Upload logs to GitHub (best-effort)
+        if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: logs
-          path: logs/
+          name: logs-${{ github.run_id }}
+          path: logs.tar.gz
           retention-days: 1

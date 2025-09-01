@@ -118,7 +118,7 @@ jobs:
     needs: [prepare, all-rust-tests, tests-result-checker]
     if: always()
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     timeout-minutes: 5
     permissions:
       actions: write

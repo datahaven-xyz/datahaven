@@ -12,10 +12,6 @@ on:
   workflow_dispatch:
   workflow_call:
 
-permissions:
-  contents: read
-  actions: write
-
 jobs:
 
   prepare:
@@ -99,6 +95,7 @@ jobs:
       group: DH-runners
     steps:
       - name: Cleanup test artifacts
+        continue-on-error: true
         uses: geekyeggo/delete-artifact@v5
         with:
           name: nextest-archive
@@ -120,9 +117,6 @@ jobs:
     runs-on:
       group: DH-runners
     timeout-minutes: 5
-    permissions:
-      actions: write
-      contents: read
     steps:
       - name: Wait for artifact finalization
         run: sleep 20

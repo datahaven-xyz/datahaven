@@ -17,7 +17,7 @@ jobs:
   prepare:
     name: Prepare artifacts for Rust tests
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -57,7 +57,7 @@ jobs:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     strategy:
       fail-fast: false
       matrix:
@@ -91,7 +91,7 @@ jobs:
     name: Check tests were successful
     needs: [all-rust-tests]
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     steps:
       - name: Cleanup test artifacts
         uses: geekyeggo/delete-artifact@v5

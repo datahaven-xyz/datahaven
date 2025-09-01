@@ -32,7 +32,8 @@ env:
 
 jobs:
   kurtosis:
-    runs-on: deo-dh-github-runner-3
+    runs-on:
+      group: DH-Testing
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:

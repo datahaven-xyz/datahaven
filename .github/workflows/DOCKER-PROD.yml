@@ -23,7 +23,7 @@ on:
 jobs:
   build-test-push:
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     outputs:
       image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
     defaults:

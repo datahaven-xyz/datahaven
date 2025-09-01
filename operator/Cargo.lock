@@ -2366,6 +2366,7 @@ dependencies = [
  "pallet-external-validators",
  "pallet-external-validators-rewards",
  "pallet-external-validators-rewards-runtime-api",
+ "pallet-external-validators-slashes",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",

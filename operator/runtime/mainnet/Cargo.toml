@@ -43,6 +43,7 @@ pallet-evm-chain-id = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
+pallet-external-validators-slashes = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -144,6 +145,7 @@ std = [
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
+    "pallet-external-validators-slashes/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
@@ -214,6 +216,7 @@ runtime-benchmarks = [
     "pallet-evm/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
     "pallet-external-validators-rewards/runtime-benchmarks",
+    "pallet-external-validators-slashes/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
@@ -257,6 +260,7 @@ try-runtime = [
     "pallet-evm/try-runtime",
     "pallet-external-validators/try-runtime",
     "pallet-external-validators-rewards/try-runtime",
+    "pallet-external-validators-slashes/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",

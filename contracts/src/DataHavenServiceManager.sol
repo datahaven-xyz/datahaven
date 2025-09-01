@@ -51,6 +51,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
+    // TODO: remove this. This is just for testing.
+    event SlashOperatorTest();
+
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
@@ -359,27 +362,28 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
 
-    function slashValidatorsOperator(address[] calldata validators) external onlyOwner() {
-        uint len = validators.length;
-        IStrategy[] memory validatorsStrategies = new IStrategy[](0);
-        uint256[] memory wadsToSlash = new uint256[](0); // This need to have the same length as the number of strategies to slash
+    function slashValidatorsOperator() external onlyOwner() {
+        // uint len = validators.length;
+        // IStrategy[] memory validatorsStrategies = new IStrategy[](0);
+        // uint256[] memory wadsToSlash = new uint256[](0); // This need to have the same length as the number of strategies to slash
 
-        for (uint i; i < len; ++i) {
+        // for (uint i; i < len; ++i) {
             
-            address  validator = validators[i];
+        //     address  validator = validators[i];
             
-            IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
-                operator: validator,
-                operatorSetId: VALIDATORS_SET_ID,
-                strategies: validatorsStrategies,
-                wadsToSlash: wadsToSlash,
-                description: "validator slashed"
-            });
+        //     IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
+        //         operator: validator,
+        //         operatorSetId: VALIDATORS_SET_ID,
+        //         strategies: validatorsStrategies,
+        //         wadsToSlash: wadsToSlash,
+        //         description: "validator slashed"
+        //     });
 
-            _allocationManager.slashOperator(address(this), params);
+        //     NOTE: Does Eigen Layer allow batch slashing ?
+        //     _allocationManager.slashOperator(address(this), params);
 
-        }
+        // }
 
-
+        emit SlashOperatorTest();
     }
 }

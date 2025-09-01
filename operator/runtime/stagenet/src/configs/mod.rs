@@ -1327,9 +1327,9 @@ impl pallet_external_validators_slashes::types::SendMessage<AccountId> for Slash
         calldata.extend_from_slice(&selector);
 
         // FIXME: we need to encoded as rlp array
-        for slash in slashes_utils.0.clone() {
-            calldata.extend_from_slice(slash.validator.as_ref());
-        }
+        // for slash in slashes_utils.0.clone() {
+        //     calldata.extend_from_slice(slash.validator.as_ref());
+        // }
 
         let command = Command::CallContract {
             target: runtime_params::dynamic_params::runtime_config::DatahavenAddress::get(),

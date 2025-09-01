@@ -61,14 +61,14 @@ pub mod dynamic_params {
 
         #[codec(index = 5)]
         #[allow(non_upper_case_globals)]
-        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator()")
         pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
-            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+            BoundedVec::truncate_from(vec![0xb3, 0x45, 0x13, 0xdc]);
 
         #[codec(index = 6)]
         #[allow(non_upper_case_globals)]
-        // TODO: get the right address
-        pub static DatahavenAddress: H160 = H160::repeat_byte(0x0);
+        pub static DatahavenAddress: H160 =
+            H160::from_slice(&hex!("36C02dA8a0983159322a80FFE9F24b1acfF8B570"));
     }
 }
 

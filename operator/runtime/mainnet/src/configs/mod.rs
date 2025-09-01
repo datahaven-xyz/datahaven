@@ -1307,6 +1307,69 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type WeightInfo = mainnet_weights::pallet_datahaven_native_transfer::WeightInfo<Runtime>;
 }
 
+// Stub SendMessage implementation for slash pallet
+pub struct SlashesSendAdapter;
+impl pallet_external_validators_slashes::types::SendMessage<AccountId> for SlashesSendAdapter {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(
+        _slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils<AccountId>,
+    ) -> Option<Self::Message> {
+        let mut calldata = Vec::new();
+
+        let command = Command::CallContract {
+            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(), // TODO: get the slash registry address
+            calldata,
+            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
+            // TODO: Determine appropriate id value
+            id: unique(1).into(),
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => {
+                    log::error!(
+                        target: "slashes_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        EthereumOutboundQueueV2::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        EthereumOutboundQueueV2::deliver(message)
+    }
+}
+
+impl pallet_external_validators_slashes::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type SlashDeferDuration = SlashDeferDuration;
+    type BondingDuration = BondingDuration;
+    type SlashId = u32;
+    type SessionInterface = (); // FIXME
+    type EraIndexProvider = ExternalValidators;
+    type InvulnerablesProvider = ExternalValidators;
+    type ExternalIndexProvider = ExternalValidators;
+    type QueuedSlashesProcessedPerBlock = ConstU32<10>;
+    type WeightInfo = (); // TODO: calculate weights
+    type SendMessage = SlashesSendAdapter;
+}
+
+parameter_types! {
+    pub const SlashDeferDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(0, 0);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

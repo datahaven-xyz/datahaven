@@ -34,7 +34,7 @@ env:
 jobs:
   kurtosis:
     runs-on:
-      labels: bare-metal
+      group: DH-Testing
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:

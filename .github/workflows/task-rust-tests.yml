@@ -12,6 +12,10 @@ on:
   workflow_dispatch:
   workflow_call:
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
 
   prepare:
@@ -52,6 +56,7 @@ jobs:
         with:
           name: nextest-archive
           path: ./operator/nextest-archive.tar.zst
+          retention-days: 1
 
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
@@ -103,4 +108,29 @@ jobs:
           else
             echo "Rust tests passed"
           fi
+
+  cleanup-artifacts:
+    name: Cleanup nextest artifacts
+    needs: [prepare, all-rust-tests, tests-result-checker]
+    if: always()
+    runs-on:
+      labels: bare-metal
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Delete nextest-archive artifacts for this run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run_id = context.runId;
+            const { owner, repo } = context.repo;
+            const res = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id });
+            const artifacts = res.data.artifacts || [];
+            const targets = artifacts.filter(a => a.name && a.name.startsWith('nextest-archive'));
+            core.info(`Found ${targets.length} artifact(s) to delete`);
+            for (const a of targets) {
+              core.info(`Deleting artifact ${a.id} (${a.name})`);
+              await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+            }
 

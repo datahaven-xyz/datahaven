@@ -6,7 +6,7 @@
 # 2. All Rust Tests: Executes the full suite of Rust tests across two partitions to
 #    to reduce total execution time.
 
-name: DataHave Operator Rust Tests
+name: DataHaven Operator Rust Tests
 
 on:
   workflow_dispatch:
@@ -37,27 +37,19 @@ jobs:
           cache-key: "TEST"
           install-deps: false  # Self-hosted runners have deps pre-installed
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
-      - name: Install nextest
-        run: |
-          if ! command -v cargo-nextest &> /dev/null; then
-            echo "Installing cargo-nextest version 0.9.100"
-            cargo install cargo-nextest --version 0.9.100 --locked
-          else
-            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
-          fi
-      - name: Build and archive tests
-        run: cargo nextest archive --archive-file nextest-archive.tar.zst
-      - name: Upload archive to workflow
-        uses: actions/upload-artifact@v4
-        with:
-          name: nextest-archive
-          path: ./operator/nextest-archive.tar.zst
+
 
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
     runs-on:
       labels: bare-metal
+    env:
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+      SCCACHE_GHA_ENABLED: "true"
     strategy:
       fail-fast: false
       matrix:
@@ -69,22 +61,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Install nextest
-        run: |
-          if ! command -v cargo-nextest &> /dev/null; then
-            echo "Installing cargo-nextest version 0.9.100"
-            cargo install cargo-nextest --version 0.9.100 --locked
-          else
-            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
-          fi
-      - name: Download archive
-        uses: actions/download-artifact@v4
+      - uses: ./.github/workflows/actions/setup-env
         with:
-          name: nextest-archive
+          cache-key: "TEST"
+          install-deps: false  # Self-hosted runners have deps pre-installed
       - name: Run Tests for All Projects!
         run: |
           ~/.cargo/bin/cargo-nextest nextest run \
-            --archive-file ../nextest-archive.tar.zst \
             --partition count:${{ matrix.partition }}/2
 
   tests-result-checker:

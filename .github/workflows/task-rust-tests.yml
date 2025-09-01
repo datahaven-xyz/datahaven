@@ -115,11 +115,15 @@ jobs:
     if: always()
     runs-on:
       labels: bare-metal
+    timeout-minutes: 5
     permissions:
       actions: write
       contents: read
     steps:
+      - name: Wait for artifact finalization
+        run: sleep 20
       - name: Delete nextest-archive artifacts for this run
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
@@ -129,8 +133,21 @@ jobs:
             const artifacts = res.data.artifacts || [];
             const targets = artifacts.filter(a => a.name && a.name.startsWith('nextest-archive'));
             core.info(`Found ${targets.length} artifact(s) to delete`);
+            const withTimeout = async (promise, ms) => {
+              return await Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+              ]);
+            };
             for (const a of targets) {
-              core.info(`Deleting artifact ${a.id} (${a.name})`);
-              await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+              try {
+                core.info(`Deleting artifact ${a.id} (${a.name})`);
+                await withTimeout(
+                  github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id }),
+                  10000
+                );
+              } catch (err) {
+                core.warning(`Skip deleting ${a.id}: ${err?.message || err}`);
+              }
             }
 

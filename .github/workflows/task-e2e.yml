@@ -113,16 +113,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Docker
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            image=moby/buildkit:master
-            network=host
-          buildkitd-flags: |
-            --allow-insecure-entitlement network.host
-            --allow-insecure-entitlement security.insecure
-
       - name: Check Docker connectivity
         run: |
           echo "Checking Docker connectivity..."

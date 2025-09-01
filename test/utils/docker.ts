@@ -45,7 +45,7 @@ function createDockerConnection(): Docker {
   }
 
   logger.info("Using unix socket");
-  return new Docker({ }); // use default socket for `linux` and `darwin`
+  return new Docker({ socketPath: "unix:///run/user/1000/docker.sock" }); // use default socket for `linux` and `darwin`
 
 }
 

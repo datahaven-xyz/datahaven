@@ -45,7 +45,7 @@ function createDockerConnection(): Docker {
   }
 
   logger.info("Using unix socket");
-  return new Docker({ socketPath: "/run/user/1020/podman/podman.sock" }); // use default socket for `linux` and `darwin`
+  return new Docker({ }); // use default socket for `linux` and `darwin`
 
 }
 

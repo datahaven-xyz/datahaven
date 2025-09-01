@@ -63,6 +63,23 @@ jobs:
           fi
           kurtosis analytics disable
       - run: kurtosis version
+      - name: Configure Kurtosis cluster = podman
+        run: |
+          # Get the config path from Kurtosis itself (portable)
+          CFG_PATH="$(kurtosis config path)"
+          mkdir -p "$(dirname "$CFG_PATH")"
+          # Create/update config with a podman cluster entry
+          cat > "$CFG_PATH" <<'YML'
+          config-version: 6
+          should-send-metrics: true
+          kurtosis-clusters:
+            podman:
+              type: "podman"
+            docker:
+              type: "docker"
+          YML
+          kurtosis cluster set podman
+          kurtosis cluster status
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -106,23 +123,6 @@ jobs:
           docker tag ${{ inputs.image-tag }} datahavenxyz/datahaven:local
           docker images
       - run: bun install
-      - name: Configure Kurtosis cluster = podman
-        run: |
-          # Get the config path from Kurtosis itself (portable)
-          CFG_PATH="$(kurtosis config path)"
-          mkdir -p "$(dirname "$CFG_PATH")"
-          # Create/update config with a podman cluster entry
-          cat > "$CFG_PATH" <<'YML'
-          config-version: 6
-          should-send-metrics: true
-          kurtosis-clusters:
-            podman:
-              type: "podman"
-            docker:
-              type: "docker"
-          YML
-          kurtosis cluster set podman
-          kurtosis cluster status
       - run: podman info --debug
       - run: bun --version
       - run: bun test:e2e

@@ -33,7 +33,7 @@ env:
 jobs:
   kurtosis:
     runs-on:
-      labels: DH-Testing
+      labels: deo-dh-github-runner-3
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:

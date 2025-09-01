@@ -63,6 +63,24 @@ jobs:
           fi
           kurtosis analytics disable
       - run: kurtosis version
+      - name: Configure Kurtosis cluster = podman
+        run: |
+          # Get the config path from Kurtosis itself (portable)
+          CFG_PATH="$(kurtosis config path)"
+          mkdir -p "$(dirname "$CFG_PATH")"
+          # Create/update config with a podman cluster entry
+          cat > "$CFG_PATH" <<'YML'
+          config-version: 6
+          should-send-metrics: true
+          kurtosis-clusters:
+            podman:
+              type: "podman"
+            docker:
+              type: "docker"
+          YML
+          kurtosis cluster set podman
+          kurtosis cluster status
+
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache

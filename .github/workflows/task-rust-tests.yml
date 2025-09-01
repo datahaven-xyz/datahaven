@@ -93,6 +93,10 @@ jobs:
     runs-on:
       labels: bare-metal
     steps:
+      - name: Cleanup test artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: nextest-archive
       - name: Validate test results
         run: |
           echo "matrix result: ${{ needs.all-rust-tests.result }}"

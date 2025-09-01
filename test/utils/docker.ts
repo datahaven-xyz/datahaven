@@ -1,12 +1,72 @@
+import { existsSync } from "node:fs";
 import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
 import { logger, type ServiceInfo, StandardServiceMappings } from "utils";
 
-const docker = new Docker({});
+function createDockerConnection(): Docker {
+  const dockerHost = process.env.DOCKER_HOST;
+
+  if (dockerHost) {
+    logger.debug(`Using DOCKER_HOST: ${dockerHost}`);
+    if (dockerHost.startsWith("unix://")) {
+      return new Docker({ socketPath: dockerHost.replace("unix://", "") });
+    }
+    if (dockerHost.startsWith("tcp://")) {
+      const url = new URL(dockerHost);
+      return new Docker({
+        host: url.hostname,
+        port: Number.parseInt(url.port) || 2375,
+        protocol: "http"
+      });
+    }
+  }
+
+  const socketPaths = [
+    "/var/run/docker.sock",
+    "/run/user/1000/docker.sock",
+    `${process.env.HOME}/.docker/run/docker.sock`
+  ];
+
+  for (const socketPath of socketPaths) {
+    try {
+      if (existsSync(socketPath)) {
+        logger.debug(`Using Docker socket: ${socketPath}`);
+        return new Docker({ socketPath });
+      }
+    } catch (error) {
+      logger.debug(`Failed to access socket ${socketPath}:`, error);
+    }
+  }
+
+  logger.debug("Falling back to default Docker configuration");
+  return new Docker({});
+}
+
+const docker = createDockerConnection();
+
+async function testDockerConnection(): Promise<void> {
+  try {
+    await docker.ping();
+    logger.debug("Docker connection successful");
+  } catch (error) {
+    logger.error("Docker connection failed:", error);
+    throw new Error(
+      `Failed to connect to Docker daemon: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
 
 export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
-  const containers = await docker.listContainers();
+  let containers: Docker.ContainerInfo[];
+  try {
+    containers = await docker.listContainers();
+  } catch (error) {
+    logger.error("Failed to list containers:", error);
+    await testDockerConnection();
+    throw error;
+  }
+
   const services: ServiceInfo[] = [];
 
   for (const mapping of StandardServiceMappings) {
@@ -83,7 +143,6 @@ export const getPublicPort = async (
   containerName: string,
   internalPort: number
 ): Promise<number> => {
-  const docker = new Docker();
   const containers = await docker.listContainers();
   const container = containers.find((container) =>
     container.Names.some((name) => name.includes(containerName))
@@ -167,7 +226,6 @@ export const waitForContainerToStart = async (
   options?: { timeoutSeconds?: number }
 ) => {
   logger.debug(`Waiting for container ${containerName} to start...`);
-  const docker = new Docker();
   const seconds = options?.timeoutSeconds ?? 30;
 
   for (let i = 0; i < seconds; i++) {

@@ -106,7 +106,8 @@ jobs:
           docker tag ${{ inputs.image-tag }} datahavenxyz/datahaven:local
           docker images
       - run: bun install
-      - run: docker info
+      - run: systemctl enable podman.socket && systemctl start podman.socket
+      - run: systemctl status --user podman.socket
       - run: podman info --debug
       - run: bun --version
       - run: bun test:e2e

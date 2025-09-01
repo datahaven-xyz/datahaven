@@ -89,11 +89,11 @@ jobs:
       - name: Detect container socket and set DOCKER_HOST
         run: |
           echo "Detecting container socket..."
-          UID=$(id -u)
+          USER_ID=$(id -u)
           CANDIDATES=(
             "/var/run/docker.sock"
-            "/run/user/${UID}/docker.sock"
-            "/run/user/${UID}/podman/podman.sock"
+            "/run/user/${USER_ID}/docker.sock"
+            "/run/user/${USER_ID}/podman/podman.sock"
           )
           if [ -n "${XDG_RUNTIME_DIR}" ]; then
             CANDIDATES+=("${XDG_RUNTIME_DIR}/podman/podman.sock")

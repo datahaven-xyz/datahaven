@@ -25,7 +25,7 @@ jobs:
   cargo-fmt:
     name: "Check format with rustfmt"
     runs-on:
-      label: bare-metal
+      labels: bare-metal
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -44,7 +44,7 @@ jobs:
   check-rust-lint:
     name: "Check lint with clippy"
     runs-on:
-      label: bare-metal
+      labels: bare-metal
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -62,7 +62,7 @@ jobs:
   check-cargo-sort:
     name: "Check Cargo sort"
     runs-on:
-      label: bare-metal
+      labels: bare-metal
 
     defaults:
       run:

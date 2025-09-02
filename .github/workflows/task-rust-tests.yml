@@ -6,7 +6,7 @@
 # 2. All Rust Tests: Executes the full suite of Rust tests across two partitions to
 #    to reduce total execution time.
 
-name: DataHave Operator Rust Tests
+name: DataHaven Operator Rust Tests
 
 on:
   workflow_dispatch:
@@ -16,7 +16,8 @@ jobs:
 
   prepare:
     name: Prepare artifacts for Rust tests
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -34,10 +35,16 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: true
-      - uses: ./.github/workflows/actions/cleanup-runner
+          install-deps: false  # Self-hosted runners have deps pre-installed
+      # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        run: |
+          if ! command -v cargo-nextest &> /dev/null; then
+            echo "Installing cargo-nextest version 0.9.100"
+            cargo install cargo-nextest --version 0.9.100 --locked
+          else
+            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
+          fi
       - name: Build and archive tests
         run: cargo nextest archive --archive-file nextest-archive.tar.zst
       - name: Upload archive to workflow
@@ -49,7 +56,8 @@ jobs:
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +70,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        run: |
+          if ! command -v cargo-nextest &> /dev/null; then
+            echo "Installing cargo-nextest version 0.9.100"
+            cargo install cargo-nextest --version 0.9.100 --locked
+          else
+            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
+          fi
       - name: Download archive
         uses: actions/download-artifact@v4
         with:
@@ -76,8 +90,13 @@ jobs:
   tests-result-checker:
     name: Check tests were successful
     needs: [all-rust-tests]
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     steps:
+      - name: Cleanup test artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: nextest-archive
       - name: Validate test results
         run: |
           echo "matrix result: ${{ needs.all-rust-tests.result }}"

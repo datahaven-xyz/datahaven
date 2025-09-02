@@ -58,7 +58,9 @@ jobs:
       - name: Extract last tag for job output
         id: last_tag_extractor
         run: |
-          echo "last_tag_value=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')" >> $GITHUB_OUTPUT
+          FULL_TAG=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')
+          TAG_ONLY=$(echo "$FULL_TAG" | sed 's|^[^/]*/||')
+          echo "last_tag_value=datahavenxyz/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
 
       - name: Log Docker Metadata
         run: |

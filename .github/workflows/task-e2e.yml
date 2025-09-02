@@ -29,7 +29,7 @@ permissions:
 env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
-  # DOCKER_HOST: unix:///run/user/1000/docker.sock
+  DOCKER_HOST: unix:///run/user/1020/podman/podman.sock
 
 jobs:
   kurtosis:

@@ -81,7 +81,7 @@ jobs:
           YML
           kurtosis cluster set podman
           kurtosis cluster status
-
+      - run: kurtosis engine start
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache

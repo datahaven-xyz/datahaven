@@ -21,7 +21,10 @@ use frame_support::{
     pallet_prelude::{TransactionValidity, TransactionValidityError},
     parameter_types,
     traits::{KeyOwnerProofSystem, OnFinalize},
-    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
+    weights::{
+        constants::ExtrinsicBaseWeight, constants::WEIGHT_REF_TIME_PER_SECOND, Weight,
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+    },
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -30,6 +33,7 @@ use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner}
 use pallet_external_validators::traits::EraIndex;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 pub use pallet_timestamp::Call as TimestampCall;
+use smallvec::smallvec;
 use snowbridge_core::AgentId;
 use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
@@ -232,8 +236,36 @@ where
     }
 }
 
+/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+/// node's balance type.
+///
+/// This should typically create a mapping between the following ranges:
+///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
+///   - `[Balance::min, Balance::max]`
+///
+/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+///   - Setting it to `0` will essentially disable the weight fee.
+///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+    type Balance = Balance;
+    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIHAVE:
+        // in our template, we map to 1/10 of that, or 1/10 MILLIHAVE
+        let p = currency::MILLIHAVE / 10;
+        let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+        smallvec![WeightToFeeCoefficient {
+            degree: 1,
+            negative: false,
+            coeff_frac: Perbill::from_rational(p % q, q),
+            coeff_integer: p / q,
+        }]
+    }
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
+#[cfg(not(feature = "storage-hub"))]
 mod runtime {
     #[runtime::runtime]
     #[runtime::derive(
@@ -389,6 +421,179 @@ mod runtime {
 
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
     // Start with index 80
+    // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
+
+    // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
+    // Start with index 100
+    #[runtime::pallet_index(100)]
+    pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
+
+    #[runtime::pallet_index(101)]
+    pub type ExternalValidatorsRewards = pallet_external_validators_rewards;
+
+    #[runtime::pallet_index(102)]
+    pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
+
+    // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
+}
+
+#[frame_support::runtime]
+#[cfg(feature = "storage-hub")]
+mod runtime {
+    #[runtime::runtime]
+    #[runtime::derive(
+        RuntimeCall,
+        RuntimeEvent,
+        RuntimeError,
+        RuntimeOrigin,
+        RuntimeFreezeReason,
+        RuntimeHoldReason,
+        RuntimeSlashReason,
+        RuntimeLockId,
+        RuntimeTask
+    )]
+    pub struct Runtime;
+
+    // ╔══════════════════ System and Consensus Pallets ═════════════════╗
+    #[runtime::pallet_index(0)]
+    pub type System = frame_system;
+
+    // Babe must be before session.
+    #[runtime::pallet_index(1)]
+    pub type Babe = pallet_babe;
+
+    #[runtime::pallet_index(2)]
+    pub type Timestamp = pallet_timestamp;
+
+    #[runtime::pallet_index(3)]
+    pub type Balances = pallet_balances;
+
+    // Consensus support.
+    // Authorship must be before session in order to note author in the correct session and era.
+    #[runtime::pallet_index(4)]
+    pub type Authorship = pallet_authorship;
+
+    #[runtime::pallet_index(5)]
+    pub type Offences = pallet_offences;
+
+    #[runtime::pallet_index(6)]
+    pub type Historical = pallet_session::historical;
+
+    // External Validators must be before Session.
+    #[runtime::pallet_index(7)]
+    pub type ExternalValidators = pallet_external_validators;
+
+    #[runtime::pallet_index(8)]
+    pub type Session = pallet_session;
+
+    #[runtime::pallet_index(9)]
+    pub type ImOnline = pallet_im_online;
+
+    #[runtime::pallet_index(10)]
+    pub type Grandpa = pallet_grandpa;
+
+    #[runtime::pallet_index(11)]
+    pub type TransactionPayment = pallet_transaction_payment;
+
+    #[runtime::pallet_index(12)]
+    pub type Beefy = pallet_beefy;
+
+    #[runtime::pallet_index(13)]
+    pub type Mmr = pallet_mmr;
+
+    #[runtime::pallet_index(14)]
+    pub type BeefyMmrLeaf = pallet_beefy_mmr;
+    // ╚═════════════════ System and Consensus Pallets ══════════════════╝
+
+    // ╔═════════════════ Polkadot SDK Utility Pallets ══════════════════╗
+    #[runtime::pallet_index(30)]
+    pub type Utility = pallet_utility;
+
+    #[runtime::pallet_index(31)]
+    pub type Scheduler = pallet_scheduler;
+
+    #[runtime::pallet_index(32)]
+    pub type Preimage = pallet_preimage;
+
+    #[runtime::pallet_index(33)]
+    pub type Identity = pallet_identity;
+
+    #[runtime::pallet_index(34)]
+    pub type Multisig = pallet_multisig;
+
+    #[runtime::pallet_index(35)]
+    pub type Parameters = pallet_parameters;
+
+    #[runtime::pallet_index(36)]
+    pub type Sudo = pallet_sudo;
+
+    #[runtime::pallet_index(37)]
+    pub type Treasury = pallet_treasury;
+
+    #[runtime::pallet_index(38)]
+    pub type Proxy = pallet_proxy;
+    // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+
+    // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
+    #[runtime::pallet_index(50)]
+    pub type Ethereum = pallet_ethereum;
+
+    #[runtime::pallet_index(51)]
+    pub type Evm = pallet_evm;
+
+    #[runtime::pallet_index(52)]
+    pub type EvmChainId = pallet_evm_chain_id;
+    // ╚════════════════════ Frontier (EVM) Pallets ═════════════════════╝
+
+    // ╔══════════════════════ Snowbridge Pallets ═══════════════════════╗
+    #[runtime::pallet_index(60)]
+    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+
+    #[runtime::pallet_index(61)]
+    pub type EthereumInboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+
+    #[runtime::pallet_index(62)]
+    pub type EthereumOutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
+
+    #[runtime::pallet_index(63)]
+    pub type SnowbridgeSystem = snowbridge_pallet_system;
+
+    #[runtime::pallet_index(64)]
+    pub type SnowbridgeSystemV2 = snowbridge_pallet_system_v2;
+    // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
+
+    // ╔════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╗
+    // The Message Queue pallet has to be after the Snowbridge Outbound
+    // Queue V2 pallet since the former processes messages in its
+    // `on_initialize` hook and the latter clears up messages in
+    // its `on_initialize` hook, so otherwise messages will be cleared
+    // up before they are processed.
+    #[runtime::pallet_index(70)]
+    pub type MessageQueue = pallet_message_queue;
+    // ╚════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╝
+
+    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
+    // Start with index 80
+    #[runtime::pallet_index(80)]
+    pub type Providers = pallet_storage_providers;
+
+    #[runtime::pallet_index(81)]
+    pub type FileSystem = pallet_file_system;
+
+    #[runtime::pallet_index(82)]
+    pub type ProofsDealer = pallet_proofs_dealer;
+
+    #[runtime::pallet_index(83)]
+    pub type Randomness = pallet_randomness;
+
+    #[runtime::pallet_index(84)]
+    pub type PaymentStreams = pallet_payment_streams;
+
+    #[runtime::pallet_index(85)]
+    pub type BucketNfts = pallet_bucket_nfts;
+
+    #[runtime::pallet_index(90)]
+    pub type Nfts = pallet_nfts;
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗

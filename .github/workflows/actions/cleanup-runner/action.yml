@@ -48,7 +48,7 @@ runs:
         echo "Overall disk space after cleanup (df -h /):"
         df -h /
         echo "-------------------------------------------"
-        echo "Detailed breakdown for /usr/ before cleanup:"
+        echo "Detailed breakdown for /usr/ after cleanup:"
         sudo du -h --max-depth=1 /usr/ | sort -rh | head -n 10
         echo "-------------------------------------------"
         echo "Detailed breakdown for /usr/local/lib after cleanup:"

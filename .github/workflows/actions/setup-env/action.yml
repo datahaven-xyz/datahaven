@@ -8,7 +8,7 @@ inputs:
     default: "cache"
   
   install-deps:
-    description: "Whether to install system dependencies (libpq-dev, libclang-dev)"
+    description: "Whether to install system dependencies. Set to false for self-hosted runners with pre-installed deps"
     required: false
     default: "true"
 
@@ -40,12 +40,35 @@ runs:
       with:
         components: rustfmt, clippy
     
-    - uses: rui314/setup-mold@v1
+    # Install mold - always install locally to avoid sudo requirements
+    - name: Install mold
+      shell: bash
+      run: |
+        # Check if mold is already available and the right version
+        MOLD_VERSION="2.40.4"
+        if ! command -v mold &> /dev/null || [[ $(mold --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1) != "$MOLD_VERSION" ]]; then
+          echo "Installing mold $MOLD_VERSION in ~/.local"
+          mkdir -p ~/.local/bin
+          wget -q -O- "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/mold-${MOLD_VERSION}-$(uname -m)-linux.tar.gz" | \
+            tar -xzf - -C ~/.local --strip-components=1
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/bin:$PATH"
+        else
+          echo "mold is already installed: $(mold --version)"
+        fi
+        
+        # Export the mold path for use in RUSTFLAGS
+        MOLD_PATH=$(which mold)
+        echo "MOLD_PATH=${MOLD_PATH}" >> $GITHUB_ENV
+        echo "Mold installed at: ${MOLD_PATH}"
     
+    # Install system dependencies only when install-deps is true
     - name: Install system dependencies
       if: inputs.install-deps == 'true'
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
+    
+    # Install protoc only when install-deps is true
     - name: Install Protoc
       if: inputs.install-deps == 'true'
       uses: arduino/setup-protoc@v3

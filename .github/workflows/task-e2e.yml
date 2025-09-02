@@ -78,9 +78,7 @@ jobs:
               type: "podman"
           YML
           kurtosis cluster set podman
-          kurtosis cluster status
-      - run: kurtosis context add podman --type podman
-      - run: kurtosis context set podman && kurtosis context ls
+          kurtosis cluster get
       - run: kurtosis engine start --cli-log-level debug
       - run: kurtosis engine status
       - run: cat /home/gh-actions/.config/kurtosis/kurtosis-config.yml

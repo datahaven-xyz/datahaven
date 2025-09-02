@@ -125,6 +125,7 @@ jobs:
       - run: bun install
       - run: podman info --debug
       - run: whoami
+      - run: sudo usermod -aG docker $USER
       - run: bun --version
       - run: bun test:e2e
       # Try to collect all docker logs and upload it

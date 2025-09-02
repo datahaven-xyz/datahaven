@@ -16,7 +16,7 @@ jobs:
       binary-hash: ${{ steps.hash-binary.outputs.datahaven-node-hash }}
     name: Build operator binary
     runs-on:
-      group: DH-runners
+      label: bare-metal
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"

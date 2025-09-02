@@ -6,7 +6,7 @@
 # 2. All Rust Tests: Executes the full suite of Rust tests across two partitions to
 #    to reduce total execution time.
 
-name: DataHave Operator Rust Tests
+name: DataHaven Operator Rust Tests
 
 on:
   workflow_dispatch:

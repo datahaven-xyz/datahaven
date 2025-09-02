@@ -396,7 +396,7 @@ ShellError: Failed with exit code 1
       at new ShellError (13:16)
       at new ShellPromise (75:16)
       at BunShell (191:35)
-      at <anonymous> (/home/lola/Workspace/Moonsonglabs/datahaven/test/cli/handlers/deploy/datahaven.ts:67:11)
+      at <anonymous> (/home/lola/Workspace/datahavenxyz/datahaven/test/cli/handlers/deploy/datahaven.ts:67:11)
 
 Bun v1.2.17 (Linux x64)
 error: script "cli" exited with code 1

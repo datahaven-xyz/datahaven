@@ -81,7 +81,6 @@ jobs:
           YML
           kurtosis cluster set podman
           kurtosis cluster status
-      - run: kurtosis clean
       - run: kurtosis engine start --cli-log-level debug
       - uses: actions/cache@v4
         with:

@@ -75,11 +75,7 @@
     /// The number of blocks that the Veto Committee will have to submit a veto.
     "vetoWindowBlocks": 100,
     /// The EigenLayer strategy addresses for the Validators to stake into.
-    "validatorsStrategies": [],
-    /// The EigenLayer strategy addresses for the Backup Storage Providers to stake into.
-    "bspsStrategies": [],
-    /// The EigenLayer strategy addresses for the Main Storage Providers to stake into.
-    "mspsStrategies": []
+    "validatorsStrategies": []
   },
 
   "snowbridge": {

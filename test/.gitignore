@@ -36,3 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Test files
 tmp/*
+
+# Local CLAUDE configuration
+CLAUDE.local.md

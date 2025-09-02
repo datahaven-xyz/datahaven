@@ -16,7 +16,7 @@ on:
     outputs:
       image-tag:
         description: "The tag of the docker image"
-        value: ${{ jobs.build-test-push.outputs.image-tag }}
+        value: "${{ jobs.build-test-push.outputs.image-tag }}"
 
 concurrency:
   group: docker-build-${{ github.ref }}

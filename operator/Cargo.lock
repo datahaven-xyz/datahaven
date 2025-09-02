@@ -2361,6 +2361,8 @@ dependencies = [
  "pallet-beefy",
  "pallet-beefy-mmr",
  "pallet-bucket-nfts",
+ "pallet-collective",
+ "pallet-conviction-voting",
  "pallet-cr-randomness",
  "pallet-datahaven-native-transfer",
  "pallet-ethereum",
@@ -2388,6 +2390,7 @@ dependencies = [
  "pallet-proofs-dealer-runtime-api",
  "pallet-proxy",
  "pallet-randomness",
+ "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
@@ -2398,6 +2401,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-utility",
+ "pallet-whitelist",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -2447,6 +2451,8 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+ "strum 0.26.3",
+ "strum_macros 0.24.3",
  "substrate-wasm-builder",
 ]
 
@@ -2579,6 +2585,8 @@ dependencies = [
  "pallet-beefy",
  "pallet-beefy-mmr",
  "pallet-bucket-nfts",
+ "pallet-collective",
+ "pallet-conviction-voting",
  "pallet-cr-randomness",
  "pallet-datahaven-native-transfer",
  "pallet-ethereum",
@@ -2606,6 +2614,7 @@ dependencies = [
  "pallet-proofs-dealer-runtime-api",
  "pallet-proxy",
  "pallet-randomness",
+ "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
@@ -2616,6 +2625,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-utility",
+ "pallet-whitelist",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -2665,6 +2675,8 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+ "strum 0.26.3",
+ "strum_macros 0.24.3",
  "substrate-wasm-builder",
 ]
 
@@ -2698,6 +2710,8 @@ dependencies = [
  "pallet-beefy",
  "pallet-beefy-mmr",
  "pallet-bucket-nfts",
+ "pallet-collective",
+ "pallet-conviction-voting",
  "pallet-cr-randomness",
  "pallet-datahaven-native-transfer",
  "pallet-ethereum",
@@ -2725,6 +2739,7 @@ dependencies = [
  "pallet-proofs-dealer-runtime-api",
  "pallet-proxy",
  "pallet-randomness",
+ "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
@@ -2735,6 +2750,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-utility",
+ "pallet-whitelist",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -2784,6 +2800,8 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
+ "strum 0.26.3",
+ "strum_macros 0.24.3",
  "substrate-wasm-builder",
 ]
 
@@ -7779,6 +7797,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-collective"
+version = "39.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#247f2e4641f8039ceb58827ff2f8a562217f298d"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-conviction-voting"
+version = "39.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#247f2e4641f8039ceb58827ff2f8a562217f298d"
+dependencies = [
+ "assert_matches",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-cr-randomness"
 version = "0.1.0"
 source = "git+https://github.com/Moonsong-Labs/storage-hub.git?rev=e32b6a8fbbdf241d19d211c3325be7329869b85d#e32b6a8fbbdf241d19d211c3325be7329869b85d"
@@ -8304,6 +8355,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-referenda"
+version = "39.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#247f2e4641f8039ceb58827ff2f8a562217f298d"
+dependencies = [
+ "assert_matches",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-scheduler"
 version = "40.2.2"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#247f2e4641f8039ceb58827ff2f8a562217f298d"
@@ -8528,6 +8597,20 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-whitelist"
+version = "38.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2412#247f2e4641f8039ceb58827ff2f8a562217f298d"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api",
  "sp-runtime",
 ]
 

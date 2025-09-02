@@ -11,6 +11,9 @@ mod benchmarks;
 pub mod configs;
 pub mod weights;
 
+// Re-export governance for tests
+pub use configs::governance;
+
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
 use fp_rpc::TransactionStatus;
@@ -358,6 +361,26 @@ mod runtime {
     #[runtime::pallet_index(38)]
     pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+
+    // ╔═════════════════════════ Governance Pallets ════════════════════╗
+    #[runtime::pallet_index(40)]
+    pub type TechnicalCommittee = pallet_collective<Instance1>;
+
+    #[runtime::pallet_index(41)]
+    pub type TreasuryCouncil = pallet_collective<Instance2>;
+
+    #[runtime::pallet_index(42)]
+    pub type ConvictionVoting = pallet_conviction_voting;
+
+    #[runtime::pallet_index(43)]
+    pub type Referenda = pallet_referenda;
+
+    #[runtime::pallet_index(44)]
+    pub type Whitelist = pallet_whitelist;
+
+    #[runtime::pallet_index(45)]
+    pub type Origins = governance::custom_origins;
+    // ╚═════════════════════════ Governance Pallets ════════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
     #[runtime::pallet_index(50)]
@@ -1041,10 +1064,9 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -1061,7 +1083,6 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
@@ -1341,7 +1362,8 @@ macro_rules! get {
 
 #[cfg(test)]
 mod tests {
-    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+    use codec::Decode;
+    use datahaven_runtime_common::{gas::BLOCK_STORAGE_LIMIT, proxy::ProxyType};
 
     use super::{
         configs::{BlockGasLimit, WeightPerGas},
@@ -1375,24 +1397,48 @@ mod tests {
             Balance::from(10 * HAVE + 530 * MILLIHAVE)
         );
 
-        // TODO: Uncomment when pallet_proxy is enabled
-        // proxy deposits
-        // assert_eq!(
-        // 	get!(pallet_proxy, ProxyDepositBase, u128),
-        // 	Balance::from(10 * HAVE + 80 * MILLIHAVE)
-        // );
-        // assert_eq!(
-        // 	get!(pallet_proxy, ProxyDepositFactor, u128),
-        // 	Balance::from(210 * MILLIHAVE)
-        // );
-        // assert_eq!(
-        // 	get!(pallet_proxy, AnnouncementDepositBase, u128),
-        // 	Balance::from(10 * HAVE + 80 * MILLIHAVE)
-        // );
-        // assert_eq!(
-        // 	get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        // 	Balance::from(560 * MILLIHAVE)
-        // );
+        // Proxy deposits
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositBase, u128),
+            Balance::from(10 * HAVE + 80 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositFactor, u128),
+            Balance::from(210 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositBase, u128),
+            Balance::from(10 * HAVE + 80 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositFactor, u128),
+            Balance::from(560 * MILLIHAVE)
+        );
+    }
+
+    #[test]
+    fn test_proxy_type_can_be_decoded_from_valid_values() {
+        let test_cases = vec![
+            // (input, expected)
+            (0u8, ProxyType::Any),
+            (1, ProxyType::NonTransfer),
+            (2, ProxyType::Governance),
+            (3, ProxyType::Staking),
+            (4, ProxyType::CancelProxy),
+            (5, ProxyType::Balances),
+            (6, ProxyType::IdentityJudgement),
+            (7, ProxyType::SudoOnly),
+        ];
+
+        for (input, expected) in test_cases {
+            let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+            assert_eq!(
+                Ok(expected),
+                actual,
+                "failed decoding ProxyType for value '{}'",
+                input
+            );
+        }
     }
 
     #[test]

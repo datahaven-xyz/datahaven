@@ -23,6 +23,12 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+// TODO: Temporary workaround before upgrading to latest polkadot-sdk - fix https://github.com/paritytech/polkadot-sdk/pull/6435
+#[allow(unused_imports)]
+use pallet_collective as pallet_collective_treasury_council;
+#[allow(unused_imports)]
+use pallet_collective as pallet_collective_technical_committee;
+
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
     [frame_system, SystemBench::<Runtime>]
@@ -47,6 +53,13 @@ frame_benchmarking::define_benchmarks!(
     [pallet_transaction_payment, TransactionPayment]
     [pallet_parameters, Parameters]
     [pallet_message_queue, MessageQueue]
+
+    // Governance pallets
+    [pallet_collective_technical_committee, TechnicalCommittee]
+    [pallet_collective_treasury_council, TreasuryCouncil]
+    [pallet_conviction_voting, ConvictionVoting]
+    [pallet_referenda, Referenda]
+    [pallet_whitelist, Whitelist]
 
     // EVM pallets
     [pallet_evm, Evm]

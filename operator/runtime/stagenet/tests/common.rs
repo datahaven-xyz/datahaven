@@ -49,8 +49,11 @@ pub fn account_id(account: [u8; 20]) -> AccountId {
 pub const DEFAULT_BALANCE: Balance = 1_000_000 * HAVE * SUPPLY_FACTOR;
 
 /// Governance test specific balances
+#[allow(dead_code)]
 pub const INITIAL_BALANCE: Balance = 1_000_000 * HAVE * SUPPLY_FACTOR; // 1M DH tokens for governance tests
+#[allow(dead_code)]
 pub const PROPOSAL_BOND: Balance = 100 * HAVE * SUPPLY_FACTOR;
+#[allow(dead_code)]
 pub const VOTING_BALANCE: Balance = 10 * HAVE * SUPPLY_FACTOR;
 
 /// Generate test session keys for a given account
@@ -88,6 +91,7 @@ impl ExtBuilder {
     }
 
     /// Alternative constructor for governance tests with smaller balances
+    #[allow(dead_code)]
     pub fn governance() -> Self {
         Self {
             balances: vec![

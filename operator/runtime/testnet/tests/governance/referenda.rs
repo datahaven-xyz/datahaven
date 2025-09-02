@@ -82,7 +82,6 @@ fn referendum_submission_works() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
         let proposal_hash = make_proposal_hash(&proposal);
-        let proposal_len = proposal.encoded_size() as u32;
 
         // First submit the preimage
         assert_ok!(Preimage::note_preimage(
@@ -123,7 +122,6 @@ fn referendum_submission_works() {
 fn conviction_voting_works() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Setup referendum
         assert_ok!(Preimage::note_preimage(
@@ -195,7 +193,6 @@ fn conviction_voting_works() {
 fn referendum_timing_works() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Setup referendum
         assert_ok!(Preimage::note_preimage(
@@ -246,7 +243,6 @@ fn referendum_cancellation_works() {
         setup_technical_committee(members);
 
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Setup referendum
         assert_ok!(Preimage::note_preimage(
@@ -290,7 +286,6 @@ fn referendum_killing_works() {
         setup_technical_committee(members);
 
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Setup referendum
         assert_ok!(Preimage::note_preimage(
@@ -326,7 +321,6 @@ fn referendum_killing_works() {
 fn multiple_tracks_work() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Submit preimage
         assert_ok!(Preimage::note_preimage(
@@ -347,7 +341,6 @@ fn multiple_tracks_work() {
         let another_proposal = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":test2".to_vec(), b"value2".to_vec())],
         });
-        let another_hash = make_proposal_hash(&another_proposal);
 
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(bob()),
@@ -393,7 +386,6 @@ fn multiple_tracks_work() {
 fn vote_delegation_works() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Setup referendum
         assert_ok!(Preimage::note_preimage(
@@ -457,7 +449,6 @@ fn vote_delegation_works() {
 fn referendum_insufficient_support_fails() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         // Setup referendum
         assert_ok!(Preimage::note_preimage(
@@ -507,7 +498,6 @@ fn preimage_lifecycle_works() {
     ExtBuilder::default().build().execute_with(|| {
         let proposal = make_simple_proposal();
         let proposal_hash = make_proposal_hash(&proposal);
-        let proposal_len = proposal.encoded_size() as u32;
 
         // Note preimage first
         assert_ok!(Preimage::note_preimage(
@@ -612,8 +602,6 @@ fn decision_deposit_mechanics_work() {
 #[test]
 fn track_capacity_limits_enforced() {
     ExtBuilder::default().build().execute_with(|| {
-        use datahaven_testnet_runtime::governance::custom_origins;
-
         // Use root track which has max_deciding of 5 (more reasonable for testing)
         let track_info = &TracksInfo::tracks()[0].1; // root track
         let max_deciding = track_info.max_deciding.min(5); // Use smaller number for testing
@@ -683,7 +671,7 @@ fn track_capacity_limits_enforced() {
 
         // Should still be preparing (queued) since track is at capacity
         let extra_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(max_deciding).unwrap();
-        if let ReferendumInfo::Ongoing(status) = extra_info {
+        if let ReferendumInfo::Ongoing(_status) = extra_info {
             // May be queued or preparing depending on implementation
             // The key is it shouldn't immediately go to deciding when track is full
         }
@@ -792,7 +780,7 @@ fn referendum_confirmation_period_works() {
         advance_referendum_time(2);
 
         // Now should be approved/confirmed
-        let referendum_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0);
+        let _referendum_info = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0);
         // May be approved or executed depending on enactment period
     });
 }

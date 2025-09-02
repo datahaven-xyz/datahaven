@@ -26,7 +26,6 @@ fn complete_governance_workflow_works() {
         let governance_proposal = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":code:upgrade".to_vec(), b"new_runtime_code".to_vec())],
         });
-        let proposal_hash = make_proposal_hash(&governance_proposal);
 
         // 2. Note preimage for the governance proposal
         assert_ok!(Preimage::note_preimage(
@@ -107,7 +106,7 @@ fn complete_governance_workflow_works() {
         // Check if referendum is ready for voting (either in deciding or preparing phase)
         let referendum_status = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
         match referendum_status {
-            ReferendumInfo::Ongoing(status) => {
+            ReferendumInfo::Ongoing(_status) => {
                 // 9. Community members vote if referendum allows voting
                 let voting_balance = 100 * HAVE;
 
@@ -178,7 +177,6 @@ fn emergency_cancellation_workflow_works() {
         let malicious_proposal = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":danger".to_vec(), b"malicious_code".to_vec())],
         });
-        let proposal_hash = make_proposal_hash(&malicious_proposal);
 
         // 2. Submit preimage and referendum
         assert_ok!(Preimage::note_preimage(
@@ -277,7 +275,7 @@ fn emergency_cancellation_workflow_works() {
                 // Still ongoing - committee may not have proper cancellation permissions
                 // This is still a valid test outcome as it tests the workflow
             }
-            Some(other) => {
+            Some(_other) => {
                 // Any other state (Approved, Rejected, etc.) is also valid
                 // The key is testing that the governance workflow executed without panicking
             }
@@ -298,7 +296,6 @@ fn treasury_spending_workflow_works() {
         let spending_proposal = RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(b":treasury:spend".to_vec(), b"100000".to_vec())],
         });
-        let proposal_hash = make_proposal_hash(&spending_proposal);
 
         // 2. Submit the proposal to referendum on general admin track
         assert_ok!(Preimage::note_preimage(
@@ -421,7 +418,6 @@ fn delegation_governance_workflow_works() {
     ExtBuilder::governance().build().execute_with(|| {
         // 1. Setup referendum
         let proposal = make_simple_proposal();
-        let proposal_hash = make_proposal_hash(&proposal);
 
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(alice()),
@@ -541,9 +537,6 @@ fn multi_track_parallel_governance_works() {
         });
 
         // 2. Submit preimages
-        let upgrade_hash = make_proposal_hash(&runtime_upgrade);
-        let param_hash = make_proposal_hash(&parameter_change);
-        let spend_hash = make_proposal_hash(&treasury_spend);
 
         assert_ok!(Preimage::note_preimage(
             RuntimeOrigin::signed(alice()),
@@ -755,7 +748,6 @@ fn governance_self_upgrade_workflow_works() {
                 b"new_tracks_config".to_vec(),
             )],
         });
-        let upgrade_hash = make_proposal_hash(&governance_upgrade);
 
         // 2. Technical committee proposes this as fast-track referendum
         assert_ok!(Preimage::note_preimage(
@@ -867,7 +859,7 @@ fn governance_self_upgrade_workflow_works() {
         // 8. Referendum should be ongoing with high participation
         let referendum_status = pallet_referenda::ReferendumInfoFor::<Runtime>::get(0).unwrap();
         match referendum_status {
-            ReferendumInfo::Ongoing(status) => {
+            ReferendumInfo::Ongoing(_status) => {
                 // Referendum is ongoing - may or may not be in deciding phase depending on timing
                 // The key is that the governance workflow executed successfully
             }

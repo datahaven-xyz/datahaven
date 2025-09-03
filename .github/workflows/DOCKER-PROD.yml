@@ -22,7 +22,8 @@ on:
 
 jobs:
   build-test-push:
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: bare-metal
     outputs:
       image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
     defaults:
@@ -42,7 +43,7 @@ jobs:
         id: meta-dispatch
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven
+          images: datahavenxyz/datahaven
           flavor: |
             latest=false
           tags: |
@@ -53,7 +54,7 @@ jobs:
         id: meta-main
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven
+          images: datahavenxyz/datahaven
           flavor: |
             latest=true
           tags: |

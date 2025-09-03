@@ -3,7 +3,7 @@ description: Datahaven Bootnode
 fullnameOverride: dh-bootnode
 
 image:
-  repository: moonsonglabs/datahaven
+  repository: datahavenxyz/datahaven
   tag: main
   pullPolicy: Always
 

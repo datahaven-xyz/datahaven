@@ -297,7 +297,7 @@ This is to be able to pull from the DockerHub private repo, and it's a temporary
 docker login -u <username>
 
 # Check you can access the datahaven image's manifest
-docker manifest inspect moonsonglabs/datahaven:main
+docker manifest inspect datahavenxyz/datahaven:main
 ```
 
 ### Remote deployment
@@ -375,7 +375,7 @@ If you have a similar error to this :
 ```
 ▶ Deploying DataHaven Network
 ──────────────────────────────
-[22:45:21.779] INFO (248627): ✅ Image moonsonglabs/datahaven:main found on Docker Hub
+[22:45:21.779] INFO (248627): ✅ Image datahavenxyz/datahaven:main found on Docker Hub
 [22:45:21.780] INFO (248627): 🔍 Checking if Kubernetes namespace "kt-datahaven-local" exists...
 [22:45:21.858] INFO (248627): ✅ Namespace "kt-datahaven-local" already exists
 [22:45:21.858] INFO (248627): 🔐 Creating Docker Hub secret...
@@ -396,7 +396,7 @@ ShellError: Failed with exit code 1
       at new ShellError (13:16)
       at new ShellPromise (75:16)
       at BunShell (191:35)
-      at <anonymous> (/home/lola/Workspace/Moonsonglabs/datahaven/test/cli/handlers/deploy/datahaven.ts:67:11)
+      at <anonymous> (/home/lola/Workspace/datahavenxyz/datahaven/test/cli/handlers/deploy/datahaven.ts:67:11)
 
 Bun v1.2.17 (Linux x64)
 error: script "cli" exited with code 1

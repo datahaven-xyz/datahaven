@@ -22,11 +22,10 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 //
 // For more information, please refer to <http://unlicense.org>
-#[cfg(feature = "storage-hub")]
-mod storagehub;
 
 pub mod governance;
 pub mod runtime_params;
+mod storagehub;
 
 use super::{
     currency::*, precompiles::DataHavenPrecompiles, AccountId, Babe, Balance, Balances,

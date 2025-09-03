@@ -46,3 +46,10 @@ pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
 pub mod pallet_treasury;
 pub mod pallet_utility;
+
+// Governance pallets
+pub mod pallet_collective_technical_committee;
+pub mod pallet_collective_treasury_council;
+pub mod pallet_conviction_voting;
+pub mod pallet_referenda;
+pub mod pallet_whitelist;

@@ -11,6 +11,9 @@ mod benchmarks;
 pub mod configs;
 pub mod weights;
 
+// Re-export governance for tests
+pub use configs::governance;
+
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
 use fp_rpc::TransactionStatus;
@@ -265,7 +268,6 @@ impl WeightToFeePolynomial for WeightToFee {
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
-#[cfg(not(feature = "storage-hub"))]
 mod runtime {
     #[runtime::runtime]
     #[runtime::derive(
@@ -361,178 +363,25 @@ mod runtime {
     pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
-    // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
-    #[runtime::pallet_index(50)]
-    pub type Ethereum = pallet_ethereum;
+    // ╔═════════════════════════ Governance Pallets ════════════════════╗
+    #[runtime::pallet_index(40)]
+    pub type TechnicalCommittee = pallet_collective<Instance1>;
 
-    #[runtime::pallet_index(51)]
-    pub type Evm = pallet_evm;
+    #[runtime::pallet_index(41)]
+    pub type TreasuryCouncil = pallet_collective<Instance2>;
 
-    #[runtime::pallet_index(52)]
-    pub type EvmChainId = pallet_evm_chain_id;
-    // ╚════════════════════ Frontier (EVM) Pallets ═════════════════════╝
+    #[runtime::pallet_index(42)]
+    pub type ConvictionVoting = pallet_conviction_voting;
 
-    // ╔══════════════════════ Snowbridge Pallets ═══════════════════════╗
-    #[runtime::pallet_index(60)]
-    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+    #[runtime::pallet_index(43)]
+    pub type Referenda = pallet_referenda;
 
-    #[runtime::pallet_index(61)]
-    pub type EthereumInboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+    #[runtime::pallet_index(44)]
+    pub type Whitelist = pallet_whitelist;
 
-    #[runtime::pallet_index(62)]
-    pub type EthereumOutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
-
-    #[runtime::pallet_index(63)]
-    pub type SnowbridgeSystem = snowbridge_pallet_system;
-
-    #[runtime::pallet_index(64)]
-    pub type SnowbridgeSystemV2 = snowbridge_pallet_system_v2;
-    // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
-
-    // ╔════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╗
-    // The Message Queue pallet has to be after the Snowbridge Outbound
-    // Queue V2 pallet since the former processes messages in its
-    // `on_initialize` hook and the latter clears up messages in
-    // its `on_initialize` hook, so otherwise messages will be cleared
-    // up before they are processed.
-    #[runtime::pallet_index(70)]
-    pub type MessageQueue = pallet_message_queue;
-    // ╚════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╝
-
-    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
-    // Start with index 80
-    // #[runtime::pallet_index(80)]
-    // pub type Providers = pallet_storage_providers;
-
-    // #[runtime::pallet_index(81)]
-    // pub type FileSystem = pallet_file_system;
-
-    // #[runtime::pallet_index(82)]
-    // pub type ProofsDealer = pallet_proofs_dealer;
-
-    // #[runtime::pallet_index(83)]
-    // pub type Randomness = pallet_randomness;
-
-    // #[runtime::pallet_index(84)]
-    // pub type PaymentStreams = pallet_payment_streams;
-
-    // #[runtime::pallet_index(85)]
-    // pub type BucketNfts = pallet_bucket_nfts;
-
-    // #[runtime::pallet_index(90)]
-    // pub type Nfts = pallet_nfts;
-    // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
-
-    // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
-    // Start with index 100
-    #[runtime::pallet_index(100)]
-    pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
-
-    #[runtime::pallet_index(101)]
-    pub type ExternalValidatorsRewards = pallet_external_validators_rewards;
-
-    #[runtime::pallet_index(102)]
-    pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
-    // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
-}
-
-// Create the runtime by composing the FRAME pallets that were previously configured.
-#[frame_support::runtime]
-#[cfg(feature = "storage-hub")]
-mod runtime {
-    #[runtime::runtime]
-    #[runtime::derive(
-        RuntimeCall,
-        RuntimeEvent,
-        RuntimeError,
-        RuntimeOrigin,
-        RuntimeFreezeReason,
-        RuntimeHoldReason,
-        RuntimeSlashReason,
-        RuntimeLockId,
-        RuntimeTask
-    )]
-    pub struct Runtime;
-
-    // ╔══════════════════ System and Consensus Pallets ═════════════════╗
-    #[runtime::pallet_index(0)]
-    pub type System = frame_system;
-
-    // Babe must be before session.
-    #[runtime::pallet_index(1)]
-    pub type Babe = pallet_babe;
-
-    #[runtime::pallet_index(2)]
-    pub type Timestamp = pallet_timestamp;
-
-    #[runtime::pallet_index(3)]
-    pub type Balances = pallet_balances;
-
-    // Consensus support.
-    // Authorship must be before session in order to note author in the correct session and era.
-    #[runtime::pallet_index(4)]
-    pub type Authorship = pallet_authorship;
-
-    #[runtime::pallet_index(5)]
-    pub type Offences = pallet_offences;
-
-    #[runtime::pallet_index(6)]
-    pub type Historical = pallet_session::historical;
-
-    // External Validators must be before Session.
-    #[runtime::pallet_index(7)]
-    pub type ExternalValidators = pallet_external_validators;
-
-    #[runtime::pallet_index(8)]
-    pub type Session = pallet_session;
-
-    #[runtime::pallet_index(9)]
-    pub type ImOnline = pallet_im_online;
-
-    #[runtime::pallet_index(10)]
-    pub type Grandpa = pallet_grandpa;
-
-    #[runtime::pallet_index(11)]
-    pub type TransactionPayment = pallet_transaction_payment;
-
-    #[runtime::pallet_index(12)]
-    pub type Beefy = pallet_beefy;
-
-    #[runtime::pallet_index(13)]
-    pub type Mmr = pallet_mmr;
-
-    #[runtime::pallet_index(14)]
-    pub type BeefyMmrLeaf = pallet_beefy_mmr;
-    // ╚═════════════════ System and Consensus Pallets ══════════════════╝
-
-    // ╔═════════════════ Polkadot SDK Utility Pallets ══════════════════╗
-    #[runtime::pallet_index(30)]
-    pub type Utility = pallet_utility;
-
-    #[runtime::pallet_index(31)]
-    pub type Scheduler = pallet_scheduler;
-
-    #[runtime::pallet_index(32)]
-    pub type Preimage = pallet_preimage;
-
-    #[runtime::pallet_index(33)]
-    pub type Identity = pallet_identity;
-
-    #[runtime::pallet_index(34)]
-    pub type Multisig = pallet_multisig;
-
-    #[runtime::pallet_index(35)]
-    pub type Parameters = pallet_parameters;
-
-    #[runtime::pallet_index(36)]
-    pub type Sudo = pallet_sudo;
-
-    #[runtime::pallet_index(37)]
-    pub type Treasury = pallet_treasury;
-
-    #[runtime::pallet_index(38)]
-    pub type Proxy = pallet_proxy;
-    // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+    #[runtime::pallet_index(45)]
+    pub type Origins = governance::custom_origins;
+    // ╚═════════════════════════ Governance Pallets ════════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
     #[runtime::pallet_index(50)]
@@ -1062,10 +911,9 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -1082,7 +930,6 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
@@ -1362,7 +1209,8 @@ macro_rules! get {
 
 #[cfg(test)]
 mod tests {
-    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+    use codec::Decode;
+    use datahaven_runtime_common::{gas::BLOCK_STORAGE_LIMIT, proxy::ProxyType};
 
     use super::{
         configs::{BlockGasLimit, WeightPerGas},
@@ -1396,24 +1244,48 @@ mod tests {
             Balance::from(1 * HAVE + 5300 * MICROHAVE)
         );
 
-        // TODO: Uncomment when pallet_proxy is enabled
-        // proxy deposits
-        // assert_eq!(
-        //     get!(pallet_proxy, ProxyDepositBase, u128),
-        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, ProxyDepositFactor, u128),
-        //     Balance::from(2100 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, AnnouncementDepositBase, u128),
-        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        //     Balance::from(5600 * MICROHAVE)
-        // );
+        // Proxy deposits
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositBase, u128),
+            Balance::from(1 * HAVE + 800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositFactor, u128),
+            Balance::from(2100 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositBase, u128),
+            Balance::from(1 * HAVE + 800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositFactor, u128),
+            Balance::from(5600 * MICROHAVE)
+        );
+    }
+
+    #[test]
+    fn test_proxy_type_can_be_decoded_from_valid_values() {
+        let test_cases = vec![
+            // (input, expected)
+            (0u8, ProxyType::Any),
+            (1, ProxyType::NonTransfer),
+            (2, ProxyType::Governance),
+            (3, ProxyType::Staking),
+            (4, ProxyType::CancelProxy),
+            (5, ProxyType::Balances),
+            (6, ProxyType::IdentityJudgement),
+            (7, ProxyType::SudoOnly),
+        ];
+
+        for (input, expected) in test_cases {
+            let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+            assert_eq!(
+                Ok(expected),
+                actual,
+                "failed decoding ProxyType for value '{}'",
+                input
+            );
+        }
     }
 
     #[test]

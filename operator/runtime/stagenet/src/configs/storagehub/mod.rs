@@ -266,7 +266,7 @@ parameter_types! {
     pub const TargetTicksStorageOfSubmitters: u32 = 3;
     pub const ChallengeHistoryLength: BlockNumber = 100;
     pub const ChallengesQueueLength: u32 = 100;
-    pub const ChallengesFee: Balance = 1 * HAVE;
+    pub const ChallengesFee: Balance = 0;
     pub const ChallengeTicksTolerance: u32 = 50;
     pub const PriorityChallengesFee: Balance = 0;
 }

@@ -507,17 +507,19 @@ impl pallet_identity::Config for Runtime {
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
-    #[cfg(feature = "runtime-benchmarks")]
-    fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
-        let public = sp_io::crypto::ecdsa_generate(0.into(), None);
-        let eth_signer: Self::SigningPublicKey = public.into();
-        let hash_msg = sp_io::hashing::keccak_256(message);
-        let signature = Self::OffchainSignature::new(
-            sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
-        );
+    // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
+    // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
+    // #[cfg(feature = "runtime-benchmarks")]
+    // fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    //     let public = sp_io::crypto::ecdsa_generate(0.into(), None);
+    //     let eth_signer: Self::SigningPublicKey = public.into();
+    //     let hash_msg = sp_io::hashing::keccak_256(message);
+    //     let signature = Self::OffchainSignature::new(
+    //         sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
+    //     );
 
-        (eth_signer.encode(), signature.encode())
-    }
+    //     (eth_signer.encode(), signature.encode())
+    // }
 }
 
 parameter_types! {

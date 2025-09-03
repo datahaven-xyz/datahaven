@@ -32,7 +32,7 @@ frame-try-runtime = { workspace = true, optional = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
-num-bigint = { workspace = true, optional = true }
+num-bigint = { workspace = true }
 num_enum = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }

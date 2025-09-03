@@ -88,7 +88,7 @@ done
 echo ""
 
 # Track success/failure
-declare -A RESULTS
+declare -a RESULTS
 
 # Create runtime weights directory if it doesn't exist
 WEIGHTS_DIR="runtime/$RUNTIME/src/weights"

@@ -1,6 +1,6 @@
 use crate::{
     configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, BalancesConfig, RuntimeGenesisConfig,
-    SessionKeys, Signature, SudoConfig,
+    SessionKeys, Signature, SudoConfig, TechnicalCommitteeConfig, TreasuryCouncilConfig,
 };
 use alloc::{format, vec, vec::Vec};
 use hex_literal::hex;
@@ -20,6 +20,8 @@ fn testnet_genesis(
     initial_authorities: Vec<(AccountId, BabeId, GrandpaId, ImOnlineId, BeefyId)>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
+    treasury_council_members: Vec<AccountId>,
+    technical_committee_members: Vec<AccountId>,
     evm_chain_id: u64,
 ) -> Value {
     let config = RuntimeGenesisConfig {
@@ -69,6 +71,15 @@ fn testnet_genesis(
                 .try_into()
                 .expect("Too many initial authorities"),
         },
+        // Governance pallets configuration
+        technical_committee: TechnicalCommitteeConfig {
+            phantom: Default::default(),
+            members: technical_committee_members,
+        },
+        treasury_council: TreasuryCouncilConfig {
+            phantom: Default::default(),
+            members: treasury_council_members,
+        },
         ..Default::default()
     };
 
@@ -81,9 +92,18 @@ pub fn development_config_genesis() -> Value {
     endowed_accounts.sort();
 
     testnet_genesis(
+        // Alice is the only authority in Dev mode
         vec![authority_keys_from_seed("Alice")],
+        // Alith is Sudo
         alith(),
+        // Endowed: Alice, Bob, Charlie, Dave, Eve, Ferdie,
+        // Alith, Baltathar, Charleth, Dorothy, Ethan, Frank,
+        // Beacon relayer account
         endowed_accounts,
+        // Treasury Council members: Baltathar, Charleth and Dorothy
+        vec![baltathar(), charleth(), dorothy()],
+        // Technical committee members: Alith and Baltathar
+        vec![alith(), baltathar()],
         MAINNET_EVM_CHAIN_ID,
     )
 }
@@ -94,16 +114,18 @@ pub fn local_config_genesis() -> Value {
     endowed_accounts.sort();
 
     testnet_genesis(
-        vec![
-            authority_keys_from_seed("Alice"),
-            authority_keys_from_seed("Bob"),
-            authority_keys_from_seed("Charlie"),
-            authority_keys_from_seed("Dave"),
-            authority_keys_from_seed("Eve"),
-            authority_keys_from_seed("Ferdie"),
-        ],
+        // Alice is the only authority in Dev mode
+        vec![authority_keys_from_seed("Alice")],
+        // Alith is Sudo
         alith(),
+        // Endowed: Alice, Bob, Charlie, Dave, Eve, Ferdie,
+        // Alith, Baltathar, Charleth, Dorothy, Ethan, Frank,
+        // Beacon relayer account
         endowed_accounts,
+        // Treasury Council members: Baltathar, Charleth and Dorothy
+        vec![baltathar(), charleth(), dorothy()],
+        // Technical committee members: Alith and Baltathar
+        vec![alith(), baltathar()],
         MAINNET_EVM_CHAIN_ID,
     )
 }

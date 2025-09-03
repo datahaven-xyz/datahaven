@@ -346,6 +346,7 @@ pub async fn new_full<
 >(
     config: Configuration,
     mut eth_config: EthConfiguration,
+    // provider_options: Option<ProviderOptions>,
 ) -> Result<TaskManager, ServiceError>
 where
     RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
@@ -383,6 +384,19 @@ where
         <Block as sp_runtime::traits::Block>::Hash,
         N,
     >::new(&config.network, config.prometheus_registry().cloned());
+
+    // Starting StorageHub file transfer service.
+    // let mut file_transfer_request_protocol = None;
+    // if true {
+    //     // should if `provider_options.is_some()`
+    //     file_transfer_request_protocol = Some(
+    //         shc_file_transfer_service::configure_file_transfer_network::<_, RuntimeApi>(
+    //             client.clone(),
+    //             &config,
+    //             &mut net_config,
+    //         ),
+    //     );
+    // }
 
     let metrics = N::register_notification_metrics(config.prometheus_registry());
 
@@ -469,6 +483,23 @@ where
             .boxed(),
         );
     }
+
+    // Storage Hub builder
+    // let (sh_builder, maybe_storage_hub_client_rpc_config) =
+    //     match init_sh_builder::<R, S, RuntimeApi>(
+    //         &provider_options,
+    //         &task_manager,
+    //         file_transfer_request_protocol,
+    //         network.clone(),
+    //         keystore_container.keystore(),
+    //         client.clone(),
+    //         indexer_options.clone(),
+    //     )
+    //     .await?
+    //     {
+    //         Some((shb, rpc)) => (Some(shb), Some(rpc)),
+    //         None => (None, None),
+    //     };
 
     let role = config.role;
     let force_authoring = config.force_authoring;

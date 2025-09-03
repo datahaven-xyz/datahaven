@@ -294,6 +294,7 @@ impl pallet_proofs_dealer::Config for Runtime {
     type ChallengesQueueLength = ChallengesQueueLength;
     type CheckpointChallengePeriod = runtime_config::CheckpointChallengePeriod;
     type ChallengesFee = ChallengesFee;
+    type PriorityChallengesFee = PriorityChallengesFee;
     type Treasury = TreasuryAccount;
     // TODO: Once the client logic to keep track of CR randomness deadlines and execute their submissions is implemented
     // AND after the chain has been live for enough time to have enough providers to avoid the commit-reveal randomness being

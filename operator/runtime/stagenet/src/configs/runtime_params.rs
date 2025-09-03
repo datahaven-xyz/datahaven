@@ -12,6 +12,7 @@ use datahaven_runtime_common::{Balance, BlockNumber};
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
 pub mod dynamic_params {
     use super::*;
+
     #[dynamic_pallet_params]
     #[codec(index = 0)]
     pub mod runtime_config {

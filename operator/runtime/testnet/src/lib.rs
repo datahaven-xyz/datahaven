@@ -11,6 +11,8 @@ mod benchmarks;
 pub mod configs;
 pub mod precompiles;
 pub mod weights;
+// Re-export governance for tests
+pub use configs::governance;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -20,7 +22,10 @@ use frame_support::{
     pallet_prelude::{TransactionValidity, TransactionValidityError},
     parameter_types,
     traits::{KeyOwnerProofSystem, OnFinalize},
-    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
+    weights::{
+        constants::ExtrinsicBaseWeight, constants::WEIGHT_REF_TIME_PER_SECOND, Weight,
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+    },
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -29,6 +34,7 @@ use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner}
 use pallet_external_validators::traits::EraIndex;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 pub use pallet_timestamp::Call as TimestampCall;
+use smallvec::smallvec;
 use snowbridge_core::AgentId;
 use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
@@ -231,6 +237,33 @@ where
     }
 }
 
+/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+/// node's balance type.
+///
+/// This should typically create a mapping between the following ranges:
+///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
+///   - `[Balance::min, Balance::max]`
+///
+/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+///   - Setting it to `0` will essentially disable the weight fee.
+///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+    type Balance = Balance;
+    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIHAVE:
+        // in our template, we map to 1/10 of that, or 1/10 MILLIHAVE
+        let p = currency::MILLIHAVE / 10;
+        let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+        smallvec![WeightToFeeCoefficient {
+            degree: 1,
+            negative: false,
+            coeff_frac: Perbill::from_rational(p % q, q),
+            coeff_integer: p / q,
+        }]
+    }
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
 mod runtime {
@@ -328,6 +361,26 @@ mod runtime {
     pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
+    // ╔═════════════════════════ Governance Pallets ════════════════════╗
+    #[runtime::pallet_index(40)]
+    pub type TechnicalCommittee = pallet_collective<Instance1>;
+
+    #[runtime::pallet_index(41)]
+    pub type TreasuryCouncil = pallet_collective<Instance2>;
+
+    #[runtime::pallet_index(42)]
+    pub type ConvictionVoting = pallet_conviction_voting;
+
+    #[runtime::pallet_index(43)]
+    pub type Referenda = pallet_referenda;
+
+    #[runtime::pallet_index(44)]
+    pub type Whitelist = pallet_whitelist;
+
+    #[runtime::pallet_index(45)]
+    pub type Origins = governance::custom_origins;
+    // ╚═════════════════════════ Governance Pallets ════════════════════╝
+
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
     #[runtime::pallet_index(50)]
     pub type Ethereum = pallet_ethereum;
@@ -368,6 +421,26 @@ mod runtime {
 
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
     // Start with index 80
+    #[runtime::pallet_index(80)]
+    pub type Providers = pallet_storage_providers;
+
+    #[runtime::pallet_index(81)]
+    pub type FileSystem = pallet_file_system;
+
+    #[runtime::pallet_index(82)]
+    pub type ProofsDealer = pallet_proofs_dealer;
+
+    #[runtime::pallet_index(83)]
+    pub type Randomness = pallet_randomness;
+
+    #[runtime::pallet_index(84)]
+    pub type PaymentStreams = pallet_payment_streams;
+
+    #[runtime::pallet_index(85)]
+    pub type BucketNfts = pallet_bucket_nfts;
+
+    #[runtime::pallet_index(90)]
+    pub type Nfts = pallet_nfts;
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
@@ -837,10 +910,9 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -857,7 +929,6 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
@@ -1137,7 +1208,8 @@ macro_rules! get {
 
 #[cfg(test)]
 mod tests {
-    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+    use codec::Decode;
+    use datahaven_runtime_common::{gas::BLOCK_STORAGE_LIMIT, proxy::ProxyType};
 
     use super::{
         configs::{BlockGasLimit, WeightPerGas},
@@ -1171,24 +1243,48 @@ mod tests {
             Balance::from(1 * HAVE + 5300 * MICROHAVE)
         );
 
-        // TODO: Uncomment when pallet_proxy is enabled
-        // proxy deposits
-        // assert_eq!(
-        //     get!(pallet_proxy, ProxyDepositBase, u128),
-        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, ProxyDepositFactor, u128),
-        //     Balance::from(2100 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, AnnouncementDepositBase, u128),
-        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        //     Balance::from(5600 * MICROHAVE)
-        // );
+        // Proxy deposits
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositBase, u128),
+            Balance::from(1 * HAVE + 800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositFactor, u128),
+            Balance::from(2100 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositBase, u128),
+            Balance::from(1 * HAVE + 800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositFactor, u128),
+            Balance::from(5600 * MICROHAVE)
+        );
+    }
+
+    #[test]
+    fn test_proxy_type_can_be_decoded_from_valid_values() {
+        let test_cases = vec![
+            // (input, expected)
+            (0u8, ProxyType::Any),
+            (1, ProxyType::NonTransfer),
+            (2, ProxyType::Governance),
+            (3, ProxyType::Staking),
+            (4, ProxyType::CancelProxy),
+            (5, ProxyType::Balances),
+            (6, ProxyType::IdentityJudgement),
+            (7, ProxyType::SudoOnly),
+        ];
+
+        for (input, expected) in test_cases {
+            let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+            assert_eq!(
+                Ok(expected),
+                actual,
+                "failed decoding ProxyType for value '{}'",
+                input
+            );
+        }
     }
 
     #[test]

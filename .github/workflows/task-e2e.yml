@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: d
+          submodules: recursive
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -78,15 +78,15 @@ jobs:
 
       - name: Download snowbridge binary
         run: |
-          docker create --name temp moonsonglabs/snowbridge-relay:latest
+          docker create --name temp datahavenxyz/snowbridge-relay:latest
           mkdir -p tmp/bin
           docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
           chmod +x tmp/bin/snowbridge-relay
           docker rm temp
       - run: tmp/bin/snowbridge-relay --help
-      - run: docker pull ${{ inputs.image-tag }}
+      - run: docker pull datahavenxyz/datahaven:${{ inputs.image-tag }}
       - run: |
-          docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
+          docker tag datahavenxyz/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
           docker images
       - run: bun install
       - run: bun test:e2e

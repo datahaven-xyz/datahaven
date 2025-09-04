@@ -23,20 +23,19 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
-#[cfg(feature = "storage-hub")]
-mod storagehub;
-
+pub mod governance;
 pub mod runtime_params;
+mod storagehub;
 
 use super::{
     currency::*, precompiles::DataHavenPrecompiles, AccountId, Babe, Balance, Balances,
     BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId,
     ExistentialDeposit, ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline,
     MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage,
-    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
-    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    SLOT_DURATION, VERSION,
+    Referenda, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    RuntimeOrigin, RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp,
+    Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -56,13 +55,14 @@ use frame_support::{
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
+        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
 use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
+use governance::councils::*;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -476,13 +476,10 @@ parameter_types! {
     pub const MaxUsernameLength: u32 = 32;
 }
 
-type IdentityForceOrigin = EnsureRoot<AccountId>;
-type IdentityRegistrarOrigin = EnsureRoot<AccountId>;
-// TODO: Add governance origin when available
-// type IdentityForceOrigin =
-// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
-// type IdentityRegistrarOrigin =
-// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+type IdentityForceOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+type IdentityRegistrarOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
 
 impl pallet_identity::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -509,17 +506,19 @@ impl pallet_identity::Config for Runtime {
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
-    #[cfg(feature = "runtime-benchmarks")]
-    fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
-        let public = sp_io::crypto::ecdsa_generate(0.into(), None);
-        let eth_signer: Self::SigningPublicKey = public.into();
-        let hash_msg = sp_io::hashing::keccak_256(message);
-        let signature = Self::OffchainSignature::new(
-            sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
-        );
+    // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
+    // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
+    // #[cfg(feature = "runtime-benchmarks")]
+    // fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    //     let public = sp_io::crypto::ecdsa_generate(0.into(), None);
+    //     let eth_signer: Self::SigningPublicKey = public.into();
+    //     let hash_msg = sp_io::hashing::keccak_256(message);
+    //     let signature = Self::OffchainSignature::new(
+    //         sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
+    //     );
 
-        (eth_signer.encode(), signature.encode())
-    }
+    //     (eth_signer.encode(), signature.encode())
+    // }
 }
 
 parameter_types! {
@@ -573,13 +572,24 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
                             | RuntimeCall::Identity(..)
                             | RuntimeCall::Utility(..)
                             | RuntimeCall::Proxy(..)
+                            | RuntimeCall::Referenda(..)
                             | RuntimeCall::Preimage(..)
+                            | RuntimeCall::ConvictionVoting(..)
+                            | RuntimeCall::TreasuryCouncil(..)
+                            | RuntimeCall::TechnicalCommittee(..)
                     )
                 }
             },
             ProxyType::Governance => {
-                // Todo: Add additional governance calls when available
-                matches!(c, RuntimeCall::Utility(..) | RuntimeCall::Preimage(..))
+                matches!(
+                    c,
+                    RuntimeCall::Referenda(..)
+                        | RuntimeCall::Preimage(..)
+                        | RuntimeCall::ConvictionVoting(..)
+                        | RuntimeCall::TreasuryCouncil(..)
+                        | RuntimeCall::TechnicalCommittee(..)
+                        | RuntimeCall::Utility(..)
+                )
             }
             ProxyType::Staking => {
                 // Todo: Add additional staking calls when available
@@ -679,10 +689,15 @@ parameter_types! {
     pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
 }
 
+type RootOrTreasuryCouncilOrigin = EitherOfDiverse<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<AccountId, TreasuryCouncilInstance, 1, 2>,
+>;
+
 impl pallet_treasury::Config for Runtime {
     type PalletId = TreasuryId;
     type Currency = Balances;
-    type RejectOrigin = EnsureRoot<AccountId>;
+    type RejectOrigin = RootOrTreasuryCouncilOrigin;
     type RuntimeEvent = RuntimeEvent;
     type SpendPeriod = ConstU32<{ 6 * DAYS }>;
     type Burn = ();
@@ -691,7 +706,7 @@ impl pallet_treasury::Config for Runtime {
     type WeightInfo = stagenet_weights::pallet_treasury::WeightInfo<Runtime>;
     type SpendFunds = ();
     type SpendOrigin =
-        frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;
+        frame_system::EnsureWithSuccess<RootOrTreasuryCouncilOrigin, AccountId, MaxSpendBalance>;
     type AssetKind = ();
     type Beneficiary = AccountId;
     type BeneficiaryLookup = IdentityLookup<AccountId>;

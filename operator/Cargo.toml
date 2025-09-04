@@ -10,6 +10,7 @@ members = [
     "node",
     "pallets/outbound-commitment-store",
     "pallets/*",
+    "precompiles/*",
     "primitives/bridge",
     "runtime/*",
 ]
@@ -29,6 +30,7 @@ pallet-external-validators-rewards = { path = "./pallets/external-validators-rew
 pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-datahaven-native-transfer = { path = "./pallets/datahaven-native-transfer", default-features = false }
+pallet-evm-precompile-registry = { path = "./precompiles/precompile-registry", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }
@@ -54,6 +56,7 @@ libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
 num-bigint = { version = "0.4.3", default-features = false }
+num_enum = { version = "0.7.3", default-features = false }
 openssl-sys = { version = "0.9", features = [
     "vendored",
 ] } # This is just to set the "vendored" feature required for the crossbuild, so that OpenSSL builds from source
@@ -211,10 +214,14 @@ pallet-dynamic-fee = { git = "https://github.com/polkadot-evm/frontier", rev="75
 pallet-ethereum = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 pallet-evm = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 pallet-evm-chain-id = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+pallet-evm-precompile-blake2 = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+pallet-evm-precompile-bn128 = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 pallet-evm-precompile-modexp = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 pallet-evm-precompile-sha3fips = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 pallet-evm-precompile-simple = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 pallet-hotfix-sufficients = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+precompile-utils = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+precompile-utils-macro = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 
 # Frontier (client)
 fc-api = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }

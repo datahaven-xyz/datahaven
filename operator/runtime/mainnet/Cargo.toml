@@ -33,6 +33,7 @@ hex = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
 num-bigint = { workspace = true }
+num_enum = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
 pallet-balances = { workspace = true, features = ["insecure_zero_ed"] }
@@ -40,10 +41,14 @@ pallet-beefy = { workspace = true }
 pallet-beefy-mmr = { workspace = true }
 pallet-collective = { workspace = true }
 pallet-conviction-voting = { workspace = true }
-pallet-ethereum = { workspace = true }
-pallet-referenda = { workspace = true }
-pallet-evm = { workspace = true }
+pallet-ethereum = { workspace = true, features = ["forbid-evm-reentrancy"] }
+pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
 pallet-evm-chain-id = { workspace = true }
+pallet-evm-precompile-blake2 = { workspace = true }
+pallet-evm-precompile-bn128 = { workspace = true }
+pallet-evm-precompile-modexp = { workspace = true }
+pallet-evm-precompile-sha3fips = { workspace = true }
+pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
@@ -59,17 +64,19 @@ pallet-datahaven-native-transfer = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
-pallet-transaction-payment = { workspace = true }
+pallet-transaction-payment = { workspace =  true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
 pallet-whitelist = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+precompile-utils = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
 serde_json = { workspace = true, default-features = false, features = [
     "alloc",
@@ -112,6 +119,8 @@ xcm-executor = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 
+# DataHaven precompiles
+pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
 pallet-bucket-nfts = { workspace = true }
@@ -135,7 +144,6 @@ shp-file-key-verifier = { workspace = true }
 shp-data-price-updater = { workspace = true }
 sp-trie = { workspace = true }
 
-
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
 
@@ -144,6 +152,8 @@ substrate-wasm-builder = { workspace = true, optional = true, default-features =
 frame-support-test = { workspace = true }
 sp-io = { workspace = true }
 sp-tracing = { workspace = true }
+
+precompile-utils = { workspace = true, features = ["std", "testing"] }
 
 # Snowbridge testing
 snowbridge-core = { workspace = true }
@@ -157,6 +167,7 @@ std = [
     "codec/std",
     "datahaven-runtime-common/std",
     "fp-account/std",
+    "fp-evm/std",
     "frame-benchmarking?/std",
     "frame-executive/std",
     "frame-metadata-hash-extension/std",
@@ -175,6 +186,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
@@ -200,6 +212,7 @@ std = [
     "pallet-whitelist/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
+    "precompile-utils/std",
     "scale-info/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",

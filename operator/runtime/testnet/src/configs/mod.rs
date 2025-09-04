@@ -28,14 +28,14 @@ pub mod runtime_params;
 mod storagehub;
 
 use super::{
-    currency::*, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit,
-    ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce,
-    Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
-    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    SLOT_DURATION, VERSION,
+    currency::*, precompiles::DataHavenPrecompiles, AccountId, Babe, Balance, Balances,
+    BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId,
+    ExistentialDeposit, ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline,
+    MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage,
+    Referenda, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    RuntimeOrigin, RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp,
+    Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -506,17 +506,19 @@ impl pallet_identity::Config for Runtime {
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
-    #[cfg(feature = "runtime-benchmarks")]
-    fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
-        let public = sp_io::crypto::ecdsa_generate(0.into(), None);
-        let eth_signer: Self::SigningPublicKey = public.into();
-        let hash_msg = sp_io::hashing::keccak_256(message);
-        let signature = Self::OffchainSignature::new(
-            sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
-        );
+    // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
+    // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
+    // #[cfg(feature = "runtime-benchmarks")]
+    // fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    //     let public = sp_io::crypto::ecdsa_generate(0.into(), None);
+    //     let eth_signer: Self::SigningPublicKey = public.into();
+    //     let hash_msg = sp_io::hashing::keccak_256(message);
+    //     let signature = Self::OffchainSignature::new(
+    //         sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
+    //     );
 
-        (eth_signer.encode(), signature.encode())
-    }
+    //     (eth_signer.encode(), signature.encode())
+    // }
 }
 
 parameter_types! {
@@ -771,7 +773,7 @@ datahaven_runtime_common::impl_on_charge_evm_transaction!();
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    // pub PrecompilesValue: TemplatePrecompiles<Runtime> = TemplatePrecompiles::<_>::new();
+    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
     /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
@@ -797,8 +799,8 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = ();
-    type PrecompilesValue = ();
+    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;

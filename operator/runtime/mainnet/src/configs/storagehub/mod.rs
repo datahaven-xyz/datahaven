@@ -16,8 +16,7 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use frame_system::EnsureRoot;
-use frame_system::EnsureSigned;
+use frame_system::{EnsureRoot, EnsureSigned};
 use num_bigint::BigUint;
 use pallet_nfts::PalletFeatures;
 use polkadot_runtime_common::prod_or_fast;
@@ -267,8 +266,9 @@ parameter_types! {
     pub const TargetTicksStorageOfSubmitters: u32 = 3;
     pub const ChallengeHistoryLength: BlockNumber = 100;
     pub const ChallengesQueueLength: u32 = 100;
-    pub const ChallengesFee: Balance = 1 * HAVE;
+    pub const ChallengesFee: Balance = 0;
     pub const ChallengeTicksTolerance: u32 = 50;
+    pub const PriorityChallengesFee: Balance = 0;
 }
 
 impl pallet_proofs_dealer::Config for Runtime {
@@ -306,6 +306,9 @@ impl pallet_proofs_dealer::Config for Runtime {
     type BlockFullnessHeadroom = BlockFullnessHeadroom;
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
+    type PriorityChallengesFee = PriorityChallengesFee;
+    type ChallengeOrigin = EnsureRoot<AccountId>;
+    type PriorityChallengeOrigin = EnsureRoot<AccountId>;
 }
 
 // Converter from the Balance type to the BlockNumber type for math.
@@ -485,6 +488,8 @@ impl pallet_file_system::Config for Runtime {
     type UltraHighSecurityReplicationTarget = runtime_config::UltraHighSecurityReplicationTarget;
     type MaxReplicationTarget = runtime_config::MaxReplicationTarget;
     type TickRangeToMaximumThreshold = runtime_config::TickRangeToMaximumThreshold;
+    type OffchainSignature = Signature;
+    type OffchainPublicKey = <Signature as Verify>::Signer;
 }
 
 impl MostlyStablePriceIndexUpdaterConfig for Runtime {

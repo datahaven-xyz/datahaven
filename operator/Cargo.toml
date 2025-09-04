@@ -1,9 +1,9 @@
 [workspace.package]
 authors = ["MoonsongLabs <dev@moonsonglabs.com>"]
 edition = "2021"
-homepage = "https://moonbeam.network/"
+homepage = "https://datahaven.xyz/"
 license = "GPL-3"
-repository = "https://github.com/Moonsong-Labs/datahaven.git"
+repository = "https://github.com/datahavenxyz/datahaven"
 
 [workspace]
 members = [
@@ -56,6 +56,7 @@ jsonrpsee = { version = "0.24.3" }
 libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
+num-bigint = { version = "0.4.3", default-features = false }
 num_enum = { version = "0.7.3", default-features = false }
 openssl-sys = { version = "0.9", features = [
     "vendored",
@@ -75,6 +76,8 @@ smallvec = "1.11.0"
 ssz_rs = { version = "0.9.0", default-features = false }
 ssz_rs_derive = { version = "0.9.0", default-features = false }
 static_assertions = { version = "1.1.0", default-features = false }
+strum = { version = "0.26.3", default-features = false, features = ["derive"] }
+strum_macros = "0.24"
 tracing = { version = "0.1.37", default-features = false }
 url = "2.2.2"
 
@@ -105,6 +108,10 @@ pallet-multisig = { git = "https://github.com/paritytech/polkadot-sdk", tag = "p
 pallet-offences = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-parameters = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-preimage = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-collective = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-conviction-voting = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
@@ -115,6 +122,7 @@ pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/polkadot
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-treasury = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-whitelist = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
@@ -165,6 +173,7 @@ sp-storage = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkad
 sp-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-tracing = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+sp-trie = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-version = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
@@ -227,29 +236,22 @@ fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df
 fc-storage = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 
 # StorageHub
-storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "e32b6a8fbbdf241d19d211c3325be7329869b85d", default-features = false }
-
-pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2412", default-features = false }
-# TODO: Change sp-trie to the next stable version when it's released with the applied fix of this [PR](https://github.com/paritytech/polkadot-sdk/pull/6486)
-sp-trie = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "stable2412", default-features = false }
-
-num-bigint = { version = "0.4.3", default-features = false }
-
+storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }
+shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub", rev = "f8281283b6003a3009a32431ed0f3cd628561d6b", default-features = false }

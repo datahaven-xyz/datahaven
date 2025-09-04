@@ -122,9 +122,9 @@ jobs:
           chmod +x tmp/bin/snowbridge-relay
           docker rm temp
       - run: tmp/bin/snowbridge-relay --help
-      - run: docker pull ghcr.io/datahavenxyz/datahaven/datahaven:${{ inputs.image-tag }}
+      - run: docker pull ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }}
       - run: |
-          docker tag ghcr.io/datahavenxyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
+          docker tag ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
           docker images
       - run: bun install
       - run: bun test:e2e

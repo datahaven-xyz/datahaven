@@ -109,15 +109,12 @@ impl pallet_randomness::Config for Runtime {
 pub struct BabeDataGetter;
 impl pallet_randomness::GetBabeData<u64, Hash> for BabeDataGetter {
     fn get_epoch_index() -> u64 {
-        todo!("implement `get_epoch_index`");
         pallet_babe::Pallet::<Runtime>::current_epoch().epoch_index
     }
     fn get_epoch_randomness() -> Hash {
-        todo!("implement `get_epoch_randomness`");
         sp_core::H256::from(pallet_babe::Pallet::<Runtime>::current_epoch().randomness)
     }
     fn get_parent_randomness() -> Hash {
-        todo!("implement `get_parent_randomness`");
         sp_core::H256::from(
             pallet_babe::Pallet::<Runtime>::author_vrf_randomness().unwrap_or_default(),
         )

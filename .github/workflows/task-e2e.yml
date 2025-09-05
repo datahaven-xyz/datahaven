@@ -30,8 +30,7 @@ env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
   DOCKER_HOST: unix:///run/user/1020/podman/podman.sock
-  # KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
-  KURTOSIS_ENGINE_IMAGE: kurtosistech/engine
+  KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
   KURTOSIS_CORE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-core
 
 jobs:
@@ -84,6 +83,7 @@ jobs:
           YML
           kurtosis cluster set podman
           kurtosis cluster get
+      - run: podman info --debug
       - run: kurtosis engine stop
       - run: kurtosis engine start --cli-log-level debug
       - run: kurtosis engine status

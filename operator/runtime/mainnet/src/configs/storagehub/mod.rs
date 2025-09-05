@@ -40,6 +40,9 @@ use sp_std::convert::{From, Into};
 use sp_std::vec;
 use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
 
+#[cfg(feature = "std")]
+pub mod client; // StorageHub client trait only build for std build
+
 /// Type representing the storage data units in StorageHub.
 pub type StorageDataUnit = u64;
 

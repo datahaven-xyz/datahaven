@@ -39,6 +39,7 @@ alloy-core = { version = "0.8.15", default-features = false }
 alloy-primitives = { version = "0.4.2", default-features = false }
 alloy-sol-types = { version = "0.4.2", default-features = false }
 array-bytes = { version = "6.2.2", default-features = false }
+async-channel = "1.8.0"
 async-trait = { version = "0.1.42" }
 blake2-rfc = { version = "0.2.18", default-features = false }
 byte-slice-cast = { version = "1.2.1", default-features = false }

@@ -32,6 +32,7 @@ log = { workspace = true }
 openssl-sys = { workspace = true }
 serde_json = { workspace = true, default-features = true }
 url = { workspace = true }
+async-channel = { workspace = true }
 
 #MMR
 mmr-rpc = { workspace = true, default-features = true }
@@ -131,13 +132,14 @@ shp-types = { workspace = true }
 substrate-build-script-utils = { workspace = true, default-features = true }
 
 [features]
-default = []
-# std = [
-#     "datahaven-runtime-common/std",
-#     "datahaven-stagenet-runtime/std",
-#     "datahaven-mainnet-runtime/std",
-#     "datahaven-testnet-runtime/std",
-# ]
+default = ["std"]
+std = [
+    "datahaven-runtime-common/std",
+    "datahaven-stagenet-runtime/std",
+    "datahaven-mainnet-runtime/std",
+    "datahaven-testnet-runtime/std",
+    "shp-opaque/std"
+]
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [

@@ -1103,7 +1103,7 @@ dependencies = [
  "bitflags 2.9.4",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "regex",
@@ -1474,7 +1474,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "234113d19d0d7d613b40e86fb654acf958910802bcceab913a4f9e7cda03b1a4"
 dependencies = [
  "memchr",
- "regex-automata 0.4.9",
+ "regex-automata",
  "serde",
 ]
 
@@ -2457,6 +2457,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-proof-size-hostfunction",
  "docify",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -2911,6 +2912,7 @@ dependencies = [
  "precompile-utils",
  "scale-info",
  "serde_json",
+ "shc-common",
  "shp-constants",
  "shp-data-price-updater",
  "shp-file-key-verifier",
@@ -2964,6 +2966,7 @@ dependencies = [
 name = "datahaven-node"
 version = "0.1.0"
 dependencies = [
+ "async-channel 1.9.0",
  "clap",
  "datahaven-mainnet-runtime",
  "datahaven-runtime-common",
@@ -3171,6 +3174,7 @@ dependencies = [
  "precompile-utils",
  "scale-info",
  "serde_json",
+ "shc-common",
  "shp-constants",
  "shp-data-price-updater",
  "shp-file-key-verifier",
@@ -3306,6 +3310,7 @@ dependencies = [
  "precompile-utils",
  "scale-info",
  "serde_json",
+ "shc-common",
  "shp-constants",
  "shp-data-price-updater",
  "shp-file-key-verifier",
@@ -3475,7 +3480,7 @@ checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.101",
+ "syn 2.0.106",
  "unicode-xid",
 ]
 
@@ -4594,10 +4599,12 @@ version = "1.0.0-dev"
 source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "hex",
+ "impl-serde 0.5.0",
  "libsecp256k1",
  "log",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -6323,15 +6330,6 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -8625,11 +8623,13 @@ name = "pallet-asset-tx-payment"
 version = "39.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -8640,6 +8640,7 @@ name = "pallet-assets"
 version = "41.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",
@@ -8807,6 +8808,7 @@ name = "pallet-collator-selection"
 version = "20.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -11491,7 +11493,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6)",
- "syn 2.0.101",
+ "syn 2.0.106",
 ]
 
 [[package]]

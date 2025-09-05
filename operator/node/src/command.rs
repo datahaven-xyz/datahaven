@@ -58,7 +58,7 @@ macro_rules! construct_async_run {
 		match runner.config().chain_spec {
 			ref spec if spec.is_mainnet() => {
 				runner.async_run(|$config| {
-					let $components = service::new_partial::<datahaven_mainnet_runtime::RuntimeApi>(
+					let $components = service::new_partial::<datahaven_mainnet_runtime::Runtime, datahaven_mainnet_runtime::RuntimeApi>(
 						&$config,
                         &mut $cli.eth.clone()
 					)?;
@@ -68,7 +68,7 @@ macro_rules! construct_async_run {
 			}
             ref spec if spec.is_testnet() => {
                 runner.async_run(|$config| {
-					let $components = service::new_partial::<datahaven_testnet_runtime::RuntimeApi>(
+					let $components = service::new_partial::<datahaven_testnet_runtime::Runtime, datahaven_testnet_runtime::RuntimeApi>(
 						&$config,
                         &mut $cli.eth.clone()
 					)?;
@@ -78,7 +78,7 @@ macro_rules! construct_async_run {
             }
 			_ => {
 				runner.async_run(|$config| {
-					let $components = service::new_partial::<datahaven_stagenet_runtime::RuntimeApi>(
+					let $components = service::new_partial::<datahaven_stagenet_runtime::Runtime, datahaven_stagenet_runtime::RuntimeApi>(
 						&$config,
                         &mut $cli.eth.clone()
 					)?;
@@ -94,24 +94,24 @@ macro_rules! construct_benchmark_partials {
     ($cli:expr, $config:expr, |$partials:ident| $code:expr) => {
         match $config.chain_spec {
             ref spec if spec.is_mainnet() => {
-                let $partials = service::new_partial::<datahaven_mainnet_runtime::RuntimeApi>(
-                    &$config,
-                    &mut $cli.eth.clone(),
-                )?;
+                let $partials = service::new_partial::<
+                    datahaven_mainnet_runtime::Runtime,
+                    datahaven_mainnet_runtime::RuntimeApi,
+                >(&$config, &mut $cli.eth.clone())?;
                 $code
             }
             ref spec if spec.is_testnet() => {
-                let $partials = service::new_partial::<datahaven_testnet_runtime::RuntimeApi>(
-                    &$config,
-                    &mut $cli.eth.clone(),
-                )?;
+                let $partials = service::new_partial::<
+                    datahaven_testnet_runtime::Runtime,
+                    datahaven_testnet_runtime::RuntimeApi,
+                >(&$config, &mut $cli.eth.clone())?;
                 $code
             }
             _ => {
-                let $partials = service::new_partial::<datahaven_stagenet_runtime::RuntimeApi>(
-                    &$config,
-                    &mut $cli.eth.clone(),
-                )?;
+                let $partials = service::new_partial::<
+                    datahaven_stagenet_runtime::Runtime,
+                    datahaven_stagenet_runtime::RuntimeApi,
+                >(&$config, &mut $cli.eth.clone())?;
                 $code
             }
         }
@@ -268,8 +268,9 @@ pub fn run() -> sc_cli::Result<()> {
                     // cfr. https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-7
                     Some(sc_network::config::NetworkBackendType::Libp2p) | None => {
                         match config.chain_spec {
-                            ref spec if spec.is_mainnet() => {
+                                ref spec if spec.is_mainnet() => {
                                 service::new_full::<
+                                    datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(config, cli.eth)
@@ -277,14 +278,16 @@ pub fn run() -> sc_cli::Result<()> {
                             }
                             ref spec if spec.is_testnet() => {
                                 service::new_full::<
-                                    datahaven_testnet_runtime::RuntimeApi,
+                                    datahaven_mainnet_runtime::Runtime,
+                                    datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(config, cli.eth)
                                 .await
                             }
                             _ => {
                                 service::new_full::<
-                                    datahaven_stagenet_runtime::RuntimeApi,
+                                    datahaven_mainnet_runtime::Runtime,
+                                    datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(config, cli.eth)
                                 .await
@@ -296,6 +299,7 @@ pub fn run() -> sc_cli::Result<()> {
                         match config.chain_spec {
                             ref spec if spec.is_mainnet() => {
                                 service::new_full::<
+                                    datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
                                 >(config, cli.eth)
@@ -303,6 +307,7 @@ pub fn run() -> sc_cli::Result<()> {
                             }
                             ref spec if spec.is_testnet() => {
                                 service::new_full::<
+                                    datahaven_testnet_runtime::Runtime,
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
                                 >(config, cli.eth)
@@ -310,6 +315,7 @@ pub fn run() -> sc_cli::Result<()> {
                             }
                             _ => {
                                 service::new_full::<
+                                    datahaven_stagenet_runtime::Runtime,
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
                                 >(config, cli.eth)

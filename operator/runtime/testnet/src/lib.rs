@@ -32,8 +32,21 @@ pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
 use pallet_external_validators::traits::EraIndex;
+use pallet_file_system::types::StorageRequestMetadata;
+use pallet_file_system_runtime_api::*;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
+use pallet_payment_streams_runtime_api::*;
+use pallet_proofs_dealer::types::{
+    CustomChallenge, KeyFor, ProviderIdFor as ProofsDealerProviderIdFor, RandomnessOutputFor,
+};
+use pallet_proofs_dealer_runtime_api::*;
+use pallet_storage_providers::types::{
+    BackupStorageProvider, BackupStorageProviderId, BucketId, MainStorageProviderId,
+    Multiaddresses, ProviderIdFor, StorageDataUnit, StorageProviderId, ValuePropositionWithId,
+};
+use pallet_storage_providers_runtime_api::*;
 pub use pallet_timestamp::Call as TimestampCall;
+use shp_file_metadata::ChunkId;
 use smallvec::smallvec;
 use snowbridge_core::AgentId;
 use snowbridge_merkle_tree::MerkleProof;
@@ -51,6 +64,7 @@ use sp_runtime::{
     transaction_validity::TransactionSource,
     ApplyExtrinsicResult, Perbill, Permill,
 };
+use sp_std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -1194,6 +1208,155 @@ impl_runtime_apis! {
             UncheckedExtrinsic::new_bare(
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
+        }
+    }
+
+    //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+    //║                                        STORAGEHUB APIS                                                        ║
+    //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+    impl pallet_file_system_runtime_api::FileSystemApi<Block, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>> for Runtime {
+        fn is_storage_request_open_to_volunteers(file_key: H256) -> Result<bool, IsStorageRequestOpenToVolunteersError> {
+            FileSystem::is_storage_request_open_to_volunteers(file_key)
+        }
+
+        fn query_earliest_file_volunteer_tick(bsp_id: BackupStorageProviderId<Runtime>, file_key: H256) -> Result<BlockNumber, QueryFileEarliestVolunteerTickError> {
+            FileSystem::query_earliest_file_volunteer_tick(bsp_id, file_key)
+        }
+
+        fn query_bsp_confirm_chunks_to_prove_for_file(bsp_id: BackupStorageProviderId<Runtime>, file_key: H256) -> Result<Vec<ChunkId>, QueryBspConfirmChunksToProveForFileError> {
+            FileSystem::query_bsp_confirm_chunks_to_prove_for_file(bsp_id, file_key)
+        }
+
+        fn query_msp_confirm_chunks_to_prove_for_file(msp_id: MainStorageProviderId<Runtime>, file_key: H256) -> Result<Vec<ChunkId>, QueryMspConfirmChunksToProveForFileError> {
+            FileSystem::query_msp_confirm_chunks_to_prove_for_file(msp_id, file_key)
+        }
+
+       fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
+            FileSystem::decode_generic_apply_delta_event_info(encoded_event_info)
+        }
+
+        fn pending_storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
+            FileSystem::pending_storage_requests_by_msp(msp_id)
+        }
+    }
+
+    impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {
+        fn get_users_with_debt_over_threshold(provider_id: &ProviderIdFor<Runtime>, threshold: Balance) -> Result<Vec<AccountId>, GetUsersWithDebtOverThresholdError> {
+            PaymentStreams::get_users_with_debt_over_threshold(provider_id, threshold)
+        }
+        fn get_users_of_payment_streams_of_provider(provider_id: &ProviderIdFor<Runtime>) -> Vec<AccountId> {
+            PaymentStreams::get_users_of_payment_streams_of_provider(provider_id)
+        }
+        fn get_providers_with_payment_streams_with_user(user_account: &AccountId) -> Vec<ProviderIdFor<Runtime>> {
+            PaymentStreams::get_providers_with_payment_streams_with_user(user_account)
+        }
+    }
+
+    impl pallet_proofs_dealer_runtime_api::ProofsDealerApi<Block, ProofsDealerProviderIdFor<Runtime>, BlockNumber, KeyFor<Runtime>, RandomnessOutputFor<Runtime>, CustomChallenge<Runtime>> for Runtime {
+        fn get_last_tick_provider_submitted_proof(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetProofSubmissionRecordError> {
+            ProofsDealer::get_last_tick_provider_submitted_proof(provider_id)
+        }
+
+        fn get_next_tick_to_submit_proof_for(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetProofSubmissionRecordError> {
+            ProofsDealer::get_next_tick_to_submit_proof_for(provider_id)
+        }
+
+        fn get_last_checkpoint_challenge_tick() -> BlockNumber {
+            ProofsDealer::get_last_checkpoint_challenge_tick()
+        }
+
+        fn get_checkpoint_challenges(
+            tick: BlockNumber
+        ) -> Result<Vec<CustomChallenge<Runtime>>, GetCheckpointChallengesError> {
+            ProofsDealer::get_checkpoint_challenges(tick)
+        }
+
+        fn get_challenge_seed(tick: BlockNumber) -> Result<RandomnessOutputFor<Runtime>, GetChallengeSeedError> {
+            ProofsDealer::get_challenge_seed(tick)
+        }
+
+        fn get_challenge_period(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetChallengePeriodError> {
+            ProofsDealer::get_challenge_period(provider_id)
+        }
+
+        fn get_checkpoint_challenge_period() -> BlockNumber {
+            ProofsDealer::get_checkpoint_challenge_period()
+        }
+
+        fn get_challenges_from_seed(seed: &RandomnessOutputFor<Runtime>, provider_id: &ProofsDealerProviderIdFor<Runtime>, count: u32) -> Vec<KeyFor<Runtime>> {
+            ProofsDealer::get_challenges_from_seed(seed, provider_id, count)
+        }
+
+        fn get_forest_challenges_from_seed(seed: &RandomnessOutputFor<Runtime>, provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Vec<KeyFor<Runtime>> {
+            ProofsDealer::get_forest_challenges_from_seed(seed, provider_id)
+        }
+
+        fn get_current_tick() -> BlockNumber {
+            ProofsDealer::get_current_tick()
+        }
+
+        fn get_next_deadline_tick(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetNextDeadlineTickError> {
+            ProofsDealer::get_next_deadline_tick(provider_id)
+        }
+    }
+
+
+    impl pallet_storage_providers_runtime_api::StorageProvidersApi<Block, BlockNumber, BackupStorageProviderId<Runtime>, BackupStorageProvider<Runtime>, MainStorageProviderId<Runtime>, AccountId, ProviderIdFor<Runtime>, StorageProviderId<Runtime>, StorageDataUnit<Runtime>, Balance, BucketId<Runtime>, Multiaddresses<Runtime>, ValuePropositionWithId<Runtime>> for Runtime {
+        fn get_bsp_info(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<BackupStorageProvider<Runtime>, GetBspInfoError> {
+            Providers::get_bsp_info(bsp_id)
+        }
+
+        fn get_storage_provider_id(who: &AccountId) -> Option<StorageProviderId<Runtime>> {
+            Providers::get_storage_provider_id(who)
+        }
+
+        fn query_msp_id_of_bucket_id(bucket_id: &BucketId<Runtime>) -> Result<Option<ProviderIdFor<Runtime>>, QueryMspIdOfBucketIdError> {
+            Providers::query_msp_id_of_bucket_id(bucket_id)
+        }
+
+        fn query_provider_multiaddresses(provider_id: &ProviderIdFor<Runtime>) -> Result<Multiaddresses<Runtime>, QueryProviderMultiaddressesError> {
+            Providers::query_provider_multiaddresses(provider_id)
+        }
+
+        fn query_storage_provider_capacity(provider_id: &ProviderIdFor<Runtime>) -> Result<StorageDataUnit<Runtime>, QueryStorageProviderCapacityError> {
+            Providers::query_storage_provider_capacity(provider_id)
+        }
+
+        fn query_available_storage_capacity(provider_id: &ProviderIdFor<Runtime>) -> Result<StorageDataUnit<Runtime>, QueryAvailableStorageCapacityError> {
+            Providers::query_available_storage_capacity(provider_id)
+        }
+
+        fn query_earliest_change_capacity_block(provider_id: &BackupStorageProviderId<Runtime>) -> Result<BlockNumber, QueryEarliestChangeCapacityBlockError> {
+            Providers::query_earliest_change_capacity_block(provider_id)
+        }
+
+        fn get_worst_case_scenario_slashable_amount(provider_id: ProviderIdFor<Runtime>) -> Option<Balance> {
+            Providers::get_worst_case_scenario_slashable_amount(&provider_id).ok()
+        }
+
+        fn get_slash_amount_per_max_file_size() -> Balance {
+            Providers::get_slash_amount_per_max_file_size()
+        }
+
+        fn query_value_propositions_for_msp(msp_id: &MainStorageProviderId<Runtime>) -> Vec<ValuePropositionWithId<Runtime>> {
+            Providers::query_value_propositions_for_msp(msp_id)
+        }
+
+        fn get_bsp_stake(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<Balance, GetStakeError> {
+            Providers::get_bsp_stake(bsp_id)
+        }
+
+        fn can_delete_provider(provider_id: &ProviderIdFor<Runtime>) -> bool {
+            Providers::can_delete_provider(provider_id)
+        }
+
+        fn query_buckets_for_msp(msp_id: &MainStorageProviderId<Runtime>) -> Result<Vec<BucketId<Runtime>>, QueryBucketsForMspError> {
+            Providers::query_buckets_for_msp(msp_id)
+        }
+
+        fn query_buckets_of_user_stored_by_msp(msp_id: &ProviderIdFor<Runtime>, user: &AccountId) -> Result<sp_runtime::Vec<BucketId<Runtime>>, QueryBucketsOfUserStoredByMspError> {
+            Ok(sp_runtime::Vec::from_iter(Providers::query_buckets_of_user_stored_by_msp(msp_id, user)?))
         }
     }
 }

@@ -85,6 +85,7 @@ jobs:
           kurtosis cluster get
       - run: podman info --debug
       - run: kurtosis engine stop
+      - run: kurtosis clean
       - run: kurtosis engine start --cli-log-level debug
       - run: kurtosis engine status
       - run: cat /home/gh-actions/.config/kurtosis/kurtosis-config.yml

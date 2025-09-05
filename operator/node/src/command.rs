@@ -4,13 +4,64 @@ use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec::{self, NetworkType},
-    cli::{Cli, Subcommand},
+    cli::{Cli, ProviderType, StorageLayer, Subcommand},
     service,
 };
 use datahaven_runtime_common::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::DatabaseSource;
+use serde::Deserialize;
+use shc_client::builder::{
+    BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
+    BspUploadFileOptions, MspChargeFeesOptions, MspMoveBucketOptions,
+};
+use shc_rpc::RpcConfig;
+use shp_types::StorageDataUnit;
+
+/// Configuration for the provider.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProviderOptions {
+    /// Provider type.
+    pub provider_type: ProviderType,
+    /// Storage layer.
+    pub storage_layer: StorageLayer,
+    /// RocksDB Path.
+    pub storage_path: Option<String>,
+    /// Maximum storage capacity of the Storage Provider (bytes).
+    pub max_storage_capacity: Option<StorageDataUnit>,
+    /// Jump capacity (bytes).
+    pub jump_capacity: Option<StorageDataUnit>,
+    /// RPC configuration options.
+    #[serde(default)]
+    pub rpc_config: RpcConfig,
+    /// MSP charging fees frequency.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msp_charging_period: Option<u32>,
+    /// Configuration options for MSP charge fees task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msp_charge_fees: Option<MspChargeFeesOptions>,
+    /// Configuration options for MSP move bucket task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msp_move_bucket: Option<MspMoveBucketOptions>,
+    /// Configuration options for BSP upload file task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_upload_file: Option<BspUploadFileOptions>,
+    /// Configuration options for BSP move bucket task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_move_bucket: Option<BspMoveBucketOptions>,
+    /// Configuration options for BSP charge fees task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_charge_fees: Option<BspChargeFeesOptions>,
+    /// Configuration options for BSP submit proof task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_submit_proof: Option<BspSubmitProofOptions>,
+    /// Configuration options for blockchain service.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blockchain_service: Option<BlockchainServiceOptions>,
+    /// Whether the node is running in maintenance mode.
+    pub maintenance_mode: bool,
+}
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {

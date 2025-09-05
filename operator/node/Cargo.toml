@@ -127,6 +127,8 @@ shp-file-metadata = { workspace = true }
 shp-opaque = { workspace = true }
 shp-traits = { workspace = true }
 shp-types = { workspace = true }
+sp-keystore = { workspace = true }
+serde = { workspace = true, default-features = true }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }

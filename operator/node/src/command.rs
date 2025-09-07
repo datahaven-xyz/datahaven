@@ -312,7 +312,13 @@ pub fn run() -> sc_cli::Result<()> {
             runner.sync_run(|config| cmd.run::<Block>(&config))
         }
         None => {
+            let mut provider_options: Option<ProviderOptions> = None;
             let runner = cli.create_runner(&cli.run)?;
+
+            if cli.provider_config.provider {
+                provider_options = Some(cli.provider_config.provider_options());
+            };
+
             runner.run_node_until_exit(|config| async move {
                 match config.network.network_backend {
                     // TODO: Litep2p becomes standard with Polkadot SDK stable2412-7 (should move None to other arm)
@@ -324,7 +330,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth)
+                                >(config, cli.eth, provider_options)
                                 .await
                             }
                             ref spec if spec.is_testnet() => {
@@ -332,7 +338,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth)
+                                >(config, cli.eth, provider_options)
                                 .await
                             }
                             _ => {
@@ -340,7 +346,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth)
+                                >(config, cli.eth, provider_options)
                                 .await
                             }
                         }
@@ -353,7 +359,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth)
+                                >(config, cli.eth, provider_options)
                                 .await
                             }
                             ref spec if spec.is_testnet() => {
@@ -361,7 +367,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_testnet_runtime::Runtime,
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth)
+                                >(config, cli.eth, provider_options)
                                 .await
                             }
                             _ => {
@@ -369,7 +375,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_stagenet_runtime::Runtime,
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth)
+                                >(config, cli.eth, provider_options)
                                 .await
                             }
                         }

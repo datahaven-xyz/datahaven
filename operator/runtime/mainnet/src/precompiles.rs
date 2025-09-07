@@ -57,8 +57,8 @@ type DataHavenPrecompilesAt<R> = (
     >,
     PrecompileAt<
         AddressU64<2058>,
-            CallPermitPrecompile<R>,
-            (SubcallWithMaxNesting<0>, CallableByContract),
+        CallPermitPrecompile<R>,
+        (SubcallWithMaxNesting<0>, CallableByContract),
     >,
     PrecompileAt<
         AddressU64<2069>,

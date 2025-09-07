@@ -1,4 +1,3 @@
-use fp_account::AccountId20;
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::H256;
 use sp_runtime::Vec;

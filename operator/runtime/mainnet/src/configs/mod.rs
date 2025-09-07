@@ -1334,7 +1334,7 @@ impl pallet_external_validators_slashes::types::SendMessage<AccountId> for Slash
     fn build(
         _slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils<AccountId>,
     ) -> Option<Self::Message> {
-        let mut calldata = Vec::new();
+        let calldata = Vec::new();
 
         let command = Command::CallContract {
             target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(), // TODO: get the slash registry address

@@ -105,7 +105,7 @@ use sp_std::{
 };
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
-use xcm::{latest::NetworkId, v3::Junction::AccountId32};
+use xcm::{latest::NetworkId};
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
@@ -1334,7 +1334,7 @@ impl pallet_external_validators_slashes::types::SendMessage<AccountId> for Slash
     type Ticket = OutboundMessage;
 
     fn build(
-        slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils<AccountId>,
+        _slashes_utils: &pallet_external_validators_slashes::types::SlashDataUtils<AccountId>,
     ) -> Option<Self::Message> {
         let mut calldata = Vec::new();
 

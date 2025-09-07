@@ -55,8 +55,6 @@ use {
     },
 };
 
-use snowbridge_core::ChannelId;
-
 pub use pallet::*;
 
 #[cfg(test)]
@@ -539,7 +537,7 @@ impl<T: Config> Pallet<T> {
     /// Returns number of slashes that were sent to ethereum.
     fn process_slashes_queue(amount: u32) -> u32 {
         let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![]; // FIXME
-        let era_index = T::EraIndexProvider::active_era().index;
+        let _era_index = T::EraIndexProvider::active_era().index;
 
         UnreportedSlashesQueue::<T>::mutate(|queue| {
             for _ in 0..amount {

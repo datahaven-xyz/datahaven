@@ -26,7 +26,7 @@ use datahaven_mainnet_runtime::{
     },
     currency::*,
     AccountId, Balances, ExistentialDeposit, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-    System, Treasury,
+    System, Treasury, TreasuryCouncil,
 };
 use datahaven_runtime_common::Balance;
 use fp_evm::FeeCalculator;
@@ -35,7 +35,7 @@ use frame_support::{
     traits::{Currency as CurrencyT, Get},
 };
 use sp_core::{H160, U256};
-use sp_runtime::traits::Dispatchable;
+use sp_runtime::traits::{Dispatchable, Hash as HashT};
 
 const BASE_FEE_GENESIS: u128 = 10 * MILLIHAVE / 4;
 
@@ -439,6 +439,87 @@ mod treasury_tests {
                         expire_at: payout_period + valid_from,
                     },
                 )]
+                .to_vec();
+                expect_events(expected_events);
+
+                while System::block_number() < valid_from {
+                    next_block();
+                }
+
+                assert_ok!(Treasury::payout(origin_of(spend_beneficiary), 0));
+
+                let expected_events = [
+                    RuntimeEvent::Treasury(pallet_treasury::Event::Paid {
+                        index: 0,
+                        payment_id: (),
+                    }),
+                    RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+                        from: Treasury::account_id(),
+                        to: spend_beneficiary,
+                        amount: spend_amount,
+                    }),
+                ]
+                .to_vec();
+                expect_events(expected_events);
+            });
+    }
+
+    #[test]
+    fn test_treasury_spend_local_with_council_origin() {
+        let initial_treasury_balance = 1_000 * HAVE;
+        ExtBuilder::default()
+            .with_balances(vec![
+                (AccountId::from(ALICE), 2_000 * HAVE),
+                (Treasury::account_id(), initial_treasury_balance),
+            ])
+            .build()
+            .execute_with(|| {
+                let spend_amount = 100u128 * HAVE;
+                let spend_beneficiary = AccountId::from(BOB);
+
+                next_block();
+
+                // TreasuryCouncilCollective
+                assert_ok!(TreasuryCouncil::set_members(
+                    root_origin(),
+                    vec![AccountId::from(ALICE)],
+                    Some(AccountId::from(ALICE)),
+                    1
+                ));
+
+                next_block();
+
+                // Perform treasury spending
+                let valid_from = System::block_number() + 5u32;
+                let proposal = RuntimeCall::Treasury(pallet_treasury::Call::spend {
+                    amount: spend_amount,
+                    asset_kind: Box::new(()),
+                    beneficiary: Box::new(AccountId::from(BOB)),
+                    valid_from: Some(valid_from),
+                });
+                assert_ok!(TreasuryCouncil::propose(
+                    origin_of(AccountId::from(ALICE)),
+                    1,
+                    Box::new(proposal.clone()),
+                    1_000
+                ));
+
+                let payout_period =
+                    <<Runtime as pallet_treasury::Config>::PayoutPeriod as Get<u32>>::get();
+                let expected_events = [
+                    RuntimeEvent::Treasury(pallet_treasury::Event::AssetSpendApproved {
+                        index: 0,
+                        asset_kind: (),
+                        amount: spend_amount,
+                        beneficiary: spend_beneficiary,
+                        valid_from,
+                        expire_at: payout_period + valid_from,
+                    }),
+                    RuntimeEvent::TreasuryCouncil(pallet_collective::Event::Executed {
+                        proposal_hash: sp_runtime::traits::BlakeTwo256::hash_of(&proposal),
+                        result: Ok(()),
+                    }),
+                ]
                 .to_vec();
                 expect_events(expected_events);
 

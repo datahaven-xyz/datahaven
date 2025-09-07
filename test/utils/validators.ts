@@ -10,7 +10,6 @@
  * 
  * // Launch a new Charlie validator node
  * const charlieNode = await launchDatahavenValidator(TestAccounts.Charlie, {
- *   datahavenImageTag: "moonsonglabs/datahaven:local",
  *   launchedNetwork: suite.getLaunchedNetwork()
  * });
  * 
@@ -115,7 +114,7 @@ export const launchDatahavenValidator = async (
 ): Promise<LaunchedValidatorInfo> => {
   const nodeId = name.toLowerCase();
   const networkId = options.launchedNetwork.networkId;
-  const datahavenImageTag = options.datahavenImageTag || "moonsonglabs/datahaven:local";
+  const datahavenImageTag = options.datahavenImageTag || "datahavenxyz/datahaven:local";
   const containerName = `datahaven-${nodeId}-${networkId}`;
 
   // Check if node is already running
@@ -167,7 +166,7 @@ export const launchDatahavenValidator = async (
     { ws: DEFAULT_SUBSTRATE_WS_PORT }
   );
 
-  logger.success(`✅ DataHaven validator node ${nodeId} launched successfully on port ${publicPort}`);
+  logger.success(`DataHaven validator node ${nodeId} launched successfully on port ${publicPort}`);
 
   return {
     nodeId,

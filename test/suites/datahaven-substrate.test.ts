@@ -15,7 +15,6 @@ class DataHavenSubstrateTestSuite extends BaseTestSuite {
   
   override async onSetup(): Promise<void> {
     await launchDatahavenValidator(TestAccounts.Charlie, {
-      datahavenImageTag: "moonsonglabs/datahaven:local",
       launchedNetwork: this.getConnectors().launchedNetwork
     });
   }

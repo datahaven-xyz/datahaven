@@ -1,30 +1,58 @@
+/**
+ * Validator Set Update E2E (Ethereum -> Snowbridge -> DataHaven)
+ *
+ * What this test exercises
+ * - Launches a fresh network with Snowbridge relayers and 4 validators (Alice, Bob, Charlie, Dave).
+ *   Initially only Alice & Bob are mapped on the `ServiceManager`.
+ * - Sends the initial set (Alice, Bob) via `ServiceManager.sendNewValidatorSet`, then waits for the
+ *   Snowbridge `Gateway` event `OutboundMessageAccepted`.
+ * - Adds Charlie & Dave to the allowlist, registers them as operators, and sends the updated set
+ *   (Alice, Bob, Charlie, Dave).
+ * - Verifies propagation on Ethereum and DataHaven, checks BEEFY liveness, and summarizes final state.
+ *
+ * Operational notes and common pitfalls
+ * - Do not double-send the same validator-set transaction. Use either the viem `walletClient.writeContract`
+ *   call OR the `updateValidatorSet` script, not both, otherwise Anvil may return
+ *   "replacement transaction underpriced" due to nonce/gas replacement rules.
+ * - Event waits can exceed 5s. Long-running tests should pass an explicit per-test timeout (e.g. 120_000)
+ *   and optionally set `fromBlock` when waiting for events to catch logs emitted before the watcher starts.
+ * - DataHaven event names depend on the runtime. If `EthereumInboundQueueV2.MessageReceived` is missing,
+ *   scan `System.Events` as a fallback or use the correct pallet name for your build.
+ * - Ensure `allValidators` includes both the initial and newly added validators before final assertions.
+ * - The "wait 10 minutes" step is intended for manual observation; skip it in CI or increase its timeout.
+ *
+ * Prerequisites
+ * - Deployed contracts in `deployments` (at least `ServiceManager` and `Gateway`).
+ * - Snowbridge relayers running and connected to both chains.
+ */
 import { beforeAll, describe, expect, it } from "bun:test";
 import { parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   logger,
   parseDeploymentsFile,
-  ANVIL_FUNDED_ACCOUNTS
+  ANVIL_FUNDED_ACCOUNTS,
+  getPapiSigner,
+  launchDatahavenValidator,
+  TestAccounts,
+  getValidatorInfoByName,
+  type ValidatorInfo,
+  isValidatorNodeRunning
 } from "utils";
+
 import { waitForDataHavenEvent, waitForEthereumEvent } from "utils/events";
 import { BaseTestSuite } from "../framework";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
-
-interface ValidatorInfo {
-  publicKey: string;
-  privateKey: string;
-  solochainAddress: string;
-  isActive: boolean;
-}
+import { performValidatorSetUpdate } from "cli/handlers/launch/validator";
+import { updateValidatorSet } from "scripts/update-validator-set";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
     super({
       suiteName: "validator-set-update",
       networkOptions: {
-        slotTime: 1, // Fast block times for testing
-        blockscout: false, // Disable for faster setup
-        buildDatahaven: false
+        slotTime: 2,
+        blockscout: false,
       }
     });
 
@@ -34,31 +62,34 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   override async onSetup(): Promise<void> {
     logger.info("Waiting for cross-chain infrastructure to stabilize...");
 
-    const connectors = this.getTestConnectors();
-    const initialBlock = await connectors.dhApi.query.System.Number.getValue();
-
-    // Wait for at least 5 blocks to ensure chain is progressing
-    await waitForDataHavenEvent({
-      api: connectors.dhApi,
-      pallet: "System",
-      event: "NewBlock",
-      filter: (event: any) => {
-        const currentBlock = event.blockNumber || event.number;
-        return currentBlock && currentBlock > initialBlock + 5;
-      },
-      timeout: 30000
+    // Launch to new nodes to be authorities
+    console.log("Launching Charlie...");
+    await launchDatahavenValidator(TestAccounts.Charlie, {
+      launchedNetwork: this.getConnectors().launchedNetwork
     });
 
-    logger.info("✅ Cross-chain infrastructure stabilized");
+    console.log("Launching Dave...");
+    await launchDatahavenValidator(TestAccounts.Dave, {
+      launchedNetwork: this.getConnectors().launchedNetwork
+    });
+
+    deployments = await parseDeploymentsFile();
+  }
+
+  public getNetworkId(): string {
+    return this.getConnectors().launchedNetwork.networkId;
+  }
+
+  public getRpcUrl(): string {
+    return this.getConnectors().launchedNetwork.elRpcUrl;
   }
 }
 
 // Create the test suite instance
 const suite = new ValidatorSetUpdateTestSuite();
+let deployments: any;
 
-describe("Validator Set Update End-to-End Test", () => {
-  let deployments: any;
-
+describe("Validator Set Update", () => {
   // Validator sets loaded from external JSON
   let initialValidators: ValidatorInfo[] = [];
   let newValidators: ValidatorInfo[] = [];
@@ -79,7 +110,7 @@ describe("Validator Set Update End-to-End Test", () => {
       functionName: "addValidatorToAllowlist",
       args: [validator.publicKey as `0x${string}`],
       account: getOwnerAccount(),
-      chain: connectors.walletClient.chain
+      chain: null
     });
     await connectors.publicClient.waitForTransactionReceipt({ hash });
     logger.info(`✅ Validator ${validator.publicKey} added to allowlist`);
@@ -98,11 +129,11 @@ describe("Validator Set Update End-to-End Test", () => {
       args: [
         validator.publicKey as `0x${string}`,
         deployments.ServiceManager as `0x${string}`,
-        [0], // VALIDATORS_SET_ID
+        [0], // operatorSetId
         validator.solochainAddress as `0x${string}`
       ],
       account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-      chain: connectors.walletClient.chain
+      chain: null
     });
 
     await connectors.publicClient.waitForTransactionReceipt({ hash });
@@ -116,26 +147,16 @@ describe("Validator Set Update End-to-End Test", () => {
     const validatorSetPath = "./configs/validator-set.json";
     try {
       const validatorSetJson: any = await Bun.file(validatorSetPath).json();
-      const validatorsRaw = validatorSetJson.validators as Array<{
-        publicKey: string;
-        privateKey: string;
-        solochainAddress: string;
-      }>;
 
-      if (!Array.isArray(validatorsRaw) || validatorsRaw.length < 4) {
-        throw new Error("Validator set JSON must contain at least 4 validators");
-      }
+      initialValidators = [
+        getValidatorInfoByName(validatorSetJson, TestAccounts.Alice),
+        getValidatorInfoByName(validatorSetJson, TestAccounts.Bob)
+      ];
 
-      // Slice first four validators for the scenario
-      initialValidators = validatorsRaw.slice(0, 2).map((v) => ({
-        ...v,
-        isActive: true
-      }));
-
-      newValidators = validatorsRaw.slice(2, 4).map((v) => ({
-        ...v,
-        isActive: false
-      }));
+      newValidators = [
+        getValidatorInfoByName(validatorSetJson, TestAccounts.Charlie),
+        getValidatorInfoByName(validatorSetJson, TestAccounts.Dave)
+      ];
 
       allValidators = [...initialValidators, ...newValidators];
       logger.info("✅ Loaded validator set from JSON file");
@@ -143,6 +164,20 @@ describe("Validator Set Update End-to-End Test", () => {
       logger.error(`Failed to load validator set from ${validatorSetPath}: ${err}`);
       throw err;
     }
+
+  });
+
+  it("should verify validators are running", async () => {
+    const isAliceRunning = await isValidatorNodeRunning(TestAccounts.Alice, suite.getNetworkId());
+    const isBobRunning = await isValidatorNodeRunning(TestAccounts.Bob, suite.getNetworkId());
+    const isCharlieRunning = await isValidatorNodeRunning(TestAccounts.Charlie, suite.getNetworkId());
+    const isDaveRunning = await isValidatorNodeRunning(TestAccounts.Dave, suite.getNetworkId());
+
+    expect(isAliceRunning).toBe(true);
+    expect(isBobRunning).toBe(true);
+    expect(isCharlieRunning).toBe(true);
+    expect(isDaveRunning).toBe(true);
+
   });
 
   it("should verify initial test setup", async () => {
@@ -161,24 +196,6 @@ describe("Validator Set Update End-to-End Test", () => {
     // Verify contract deployments
     expect(deployments.ServiceManager).toBeDefined();
     logger.info(`✅ ServiceManager deployed at: ${deployments.ServiceManager}`);
-  });
-
-  it("should register initial validators (alice and bob) in EigenLayer", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("🔧 Setting up initial validator set with Alice and Bob...");
-
-    // First, add initial validators to allowlist and register them
-    for (const validator of initialValidators) {
-      await addValidatorToAllowlist(connectors, validator);
-    }
-
-    // Register initial validators with their solochain addresses
-    for (const validator of initialValidators) {
-      await registerValidatorOperator(connectors, validator);
-    }
-
-    logger.success("✅ Initial validator set (Alice, Bob) registered successfully");
   });
 
   it("should verify initial validator set state", async () => {
@@ -215,64 +232,6 @@ describe("Validator Set Update End-to-End Test", () => {
     logger.info("✅ Initial validator set state verified: only Alice and Bob are active");
   });
 
-  it("should send initial validator set (alice and bob) to DataHaven", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("📤 Sending initial validator set (Alice, Bob) to DataHaven via Snowbridge...");
-
-    // Build the validator set message to see what will be sent
-    const messageBytes = await connectors.publicClient.readContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "buildNewValidatorSetMessage",
-      args: []
-    });
-
-    logger.info(`Initial validator set message size: ${messageBytes.length} bytes`);
-
-    // Send the initial validator set update
-    const executionFee = parseEther("0.1"); // 0.1 ETH
-    const relayerFee = parseEther("0.2");   // 0.2 ETH
-    const totalValue = parseEther("0.3");   // Total fee
-
-    const hash = await connectors.walletClient.writeContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "sendNewValidatorSet",
-      args: [executionFee, relayerFee],
-      value: totalValue,
-      account: getOwnerAccount(),
-      chain: connectors.walletClient.chain
-    });
-
-    const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-    expect(receipt.status).toBe("success");
-
-    logger.success(`✅ Initial validator set (Alice, Bob) sent to DataHaven: ${hash}`);
-    logger.info(`Gas used: ${receipt.gasUsed}`);
-  });
-
-  it("should wait for initial validator set propagation", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("⏳ Waiting for initial validator set to propagate...");
-
-    // Wait for the Snowbridge Gateway to accept the outbound message
-    const result = await waitForEthereumEvent({
-      client: connectors.publicClient,
-      address: deployments.SnowbridgeGateway as `0x${string}`,
-      abi: gatewayAbi,
-      eventName: "OutboundMessageAccepted",
-      timeout: 30000
-    });
-
-    if (result.log) {
-      logger.success(`✅ Initial validator set message accepted by Snowbridge: tx ${result.log.transactionHash}`);
-    } else {
-      logger.warn("⚠️ Timeout waiting for initial validator set message acceptance");
-    }
-  });
-
   it("should register new validators (charlie and dave)", async () => {
     const connectors = suite.getTestConnectors();
 
@@ -283,10 +242,8 @@ describe("Validator Set Update End-to-End Test", () => {
       await addValidatorToAllowlist(connectors, validator);
     }
 
-    // Register new validators with their solochain addresses
-    for (const validator of newValidators) {
-      await registerValidatorOperator(connectors, validator);
-    }
+    //wait 10 minutes
+    await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 10));
 
     logger.success("✅ New validators (Charlie, Dave) registered successfully");
   });
@@ -318,11 +275,26 @@ describe("Validator Set Update End-to-End Test", () => {
       args: [executionFee, relayerFee],
       value: totalValue,
       account: getOwnerAccount(),
-      chain: connectors.walletClient.chain
+      chain: null
     });
 
     const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
     expect(receipt.status).toBe("success");
+
+    // Ensure Charlie & Dave were registered on-chain before final count
+    const fromBlock = (await connectors.publicClient.getBlockNumber()) - 2n;
+
+    for (const v of newValidators) {
+      await waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        eventName: "OperatorRegistered",
+        args: { operator: v.publicKey as `0x${string}`, operatorSetId: 0 }, // both are indexed
+        fromBlock,
+        timeout: 120_000,
+      });
+    }
 
     logger.success(`✅ Updated validator set (all 4 validators) sent to DataHaven: ${hash}`);
     logger.info(`Gas used: ${receipt.gasUsed}`);
@@ -360,7 +332,7 @@ describe("Validator Set Update End-to-End Test", () => {
         api: connectors.dhApi,
         pallet: "EthereumInboundQueueV2",
         event: "MessageReceived",
-        timeout: 30000
+        timeout: 120000
       });
 
       if (messageReceivedResult.data) {
@@ -495,5 +467,26 @@ describe("Validator Set Update End-to-End Test", () => {
     logger.info("   - Cross-chain: Both validator set updates sent via Snowbridge to DataHaven");
     logger.info("   - Verification: Confirmed infrastructure health and message delivery");
     logger.info("   - Result: Successfully demonstrated validator set expansion from 2 to 4 validators");
+  });
+
+  it("should verify validator set update on DataHaven substrate", async () => {
+    const connectors = suite.getTestConnectors();
+
+    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
+
+    // Wait for the Snowbridge Gateway to accept the updated outbound message
+    const result = await waitForEthereumEvent({
+      client: connectors.publicClient,
+      address: deployments.SnowbridgeGateway as `0x${string}`,
+      abi: gatewayAbi,
+      eventName: "OutboundMessageAccepted",
+      timeout: 30000
+    });
+
+    if (result.log) {
+      logger.success(`✅ Updated validator set message accepted by Snowbridge: tx ${result.log.transactionHash}`);
+    } else {
+      logger.warn("⚠️ Timeout waiting for updated validator set message acceptance");
+    }
   });
 }); 

@@ -120,6 +120,8 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 
 # DataHaven precompiles
+pallet-evm-precompile-batch = { workspace = true }
+pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -186,6 +188,8 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-evm-precompile-batch/std",
+    "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-registry/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
@@ -207,6 +211,7 @@ std = [
     "pallet-treasury/std",
     "pallet-utility/std",
     "pallet-whitelist/std",
+    "precompile-utils/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "precompile-utils/std",

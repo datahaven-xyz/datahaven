@@ -310,7 +310,6 @@ impl pallet_proofs_dealer::Config for Runtime {
     type BlockFullnessHeadroom = BlockFullnessHeadroom;
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
-    type PriorityChallengesFee = PriorityChallengesFee;
     type ChallengeOrigin = EnsureRoot<AccountId>;
     type PriorityChallengeOrigin = EnsureRoot<AccountId>;
 }

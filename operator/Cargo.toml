@@ -212,7 +212,7 @@ snowbridge-verification-primitives = { path = "primitives/snowbridge/verificatio
 
 # Frontier (wasm)
 evm = { git = "https://github.com/rust-ethereum/evm", rev = "6d86fe2d3bcc14887c2575f62958a67ac2d523db", default-features = false }
-fp-account = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+fp-account = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 fp-evm = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 fp-rpc = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 fp-self-contained = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }

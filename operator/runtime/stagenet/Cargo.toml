@@ -17,7 +17,7 @@ bridge-hub-common = { workspace = true, optional = true }
 codec = { workspace = true, features = ["derive"] }
 datahaven-runtime-common = { workspace = true }
 dhp-bridge = { workspace = true }
-fp-account = { workspace = true, features = ["serde"] }
+fp-account = { workspace = true }
 fp-evm = { workspace = true, features = ["serde"] }
 fp-rpc = { workspace = true }
 fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }

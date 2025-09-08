@@ -325,7 +325,7 @@ pub fn run() -> sc_cli::Result<()> {
                     // cfr. https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-7
                     Some(sc_network::config::NetworkBackendType::Libp2p) | None => {
                         match config.chain_spec {
-                                ref spec if spec.is_mainnet() => {
+                            ref spec if spec.is_mainnet() => {
                                 service::new_full::<
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,

@@ -104,8 +104,8 @@ use sp_std::{
     prelude::*,
 };
 use sp_version::RuntimeVersion;
+use xcm::latest::NetworkId;
 use xcm::prelude::*;
-use xcm::{latest::NetworkId};
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;

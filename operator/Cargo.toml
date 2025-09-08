@@ -277,4 +277,4 @@ shc-rpc = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "b78
 shc-client = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "b78b5648a38849cee1a462a1b938d63d27e68547", default-features = false }
 shp-opaque = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "b78b5648a38849cee1a462a1b938d63d27e68547", default-features = false }
 shp-types = { git = "https://github.com/Moonsong-Labs/storage-hub.git", rev = "b78b5648a38849cee1a462a1b938d63d27e68547", default-features = false }
-
+cumulus-client-service = { git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-stable2412-6", default-features = false }

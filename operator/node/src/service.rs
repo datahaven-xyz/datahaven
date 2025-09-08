@@ -57,7 +57,7 @@ use std::{default::Default, path::Path, sync::Arc, time::Duration};
 pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
     Block,
     RuntimeApi,
-    sc_executor::WasmExecutor<sp_io::SubstrateHostFunctions>,
+    sc_executor::WasmExecutor<cumulus_client_service::ParachainHostFunctions>,
 >;
 
 type FullBackend = sc_service::TFullBackend<Block>;
@@ -529,57 +529,71 @@ where
     }
 
     // Storage Hub builder
+    let mut sh_builder = None;
+    let mut maybe_storage_hub_client_rpc_config;
     if let Some(provider_options) = &provider_options {
-        match (
-            &provider_options.provider_type,
-            &provider_options.storage_layer,
-        ) {
-            (&ProviderType::Bsp, &StorageLayer::Memory) => {
-                let (sh_builder, maybe_storage_hub_client_rpc_config) =
-                    init_sh_builder::<BspProvider, InMemoryStorageLayer, Runtime>(
-                        provider_options,
-                        &task_manager,
-                        file_transfer_request_protocol,
-                        network.clone(),
-                        keystore_container.keystore(),
-                        client.clone(),
-                        None, // TODO: fix indexer
-                    )
-                    .await?;
-            }
-            (&ProviderType::Bsp, &StorageLayer::RocksDB) => {
-                let (sh_builder, maybe_storage_hub_client_rpc_config) =
-                    init_sh_builder::<BspProvider, RocksDbStorageLayer, Runtime>(
-                        provider_options,
-                        &task_manager,
-                        file_transfer_request_protocol,
-                        network.clone(),
-                        keystore_container.keystore(),
-                        client.clone(),
-                        None, // TODO: fix indexer
-                    )
-                    .await?;
-            }
-            (&ProviderType::Msp, &StorageLayer::Memory) => {
-                todo!("Support for MSP"); // TODO: once the indexer issue is fixed
-            }
-            (&ProviderType::Msp, &StorageLayer::RocksDB) => {
-                todo!("Support for MSP"); // TODO: once the indexer issue is fixed
-            }
-            (&ProviderType::User, _) => {
-                let (sh_builder, maybe_storage_hub_client_rpc_config) =
-                    init_sh_builder::<UserRole, NoStorageLayer, Runtime>(
-                        provider_options,
-                        &task_manager,
-                        file_transfer_request_protocol,
-                        network.clone(),
-                        keystore_container.keystore(),
-                        client.clone(),
-                        None, // TODO: fix indexer
-                    )
-                    .await?;
-            }
-        };
+        // match (
+        //     &provider_options.provider_type,
+        //     &provider_options.storage_layer,
+        // ) {
+        //     (&ProviderType::Bsp, &StorageLayer::Memory) => {
+        //         let (sh_builder, maybe_storage_hub_client_rpc_config) =
+        //             init_sh_builder::<BspProvider, InMemoryStorageLayer, Runtime>(
+        //                 provider_options,
+        //                 &task_manager,
+        //                 file_transfer_request_protocol,
+        //                 network.clone(),
+        //                 keystore_container.keystore(),
+        //                 client.clone(),
+        //                 None, // TODO: fix indexer
+        //             )
+        //             .await?;
+        //     }
+        //     (&ProviderType::Bsp, &StorageLayer::RocksDB) => {
+        //         let (sh_builder, maybe_storage_hub_client_rpc_config) =
+        //             init_sh_builder::<BspProvider, RocksDbStorageLayer, Runtime>(
+        //                 provider_options,
+        //                 &task_manager,
+        //                 file_transfer_request_protocol,
+        //                 network.clone(),
+        //                 keystore_container.keystore(),
+        //                 client.clone(),
+        //                 None, // TODO: fix indexer
+        //             )
+        //             .await?;
+        //     }
+        //     (&ProviderType::Msp, &StorageLayer::Memory) => {
+        //         todo!("Support for MSP"); // TODO: once the indexer issue is fixed
+        //     }
+        //     (&ProviderType::Msp, &StorageLayer::RocksDB) => {
+        //         todo!("Support for MSP"); // TODO: once the indexer issue is fixed
+        //     }
+        //     (&ProviderType::User, _) => {
+        //         let (sh_builder, maybe_storage_hub_client_rpc_config) =
+        //             init_sh_builder::<UserRole, NoStorageLayer, Runtime>(
+        //                 provider_options,
+        //                 &task_manager,
+        //                 file_transfer_request_protocol,
+        //                 network.clone(),
+        //                 keystore_container.keystore(),
+        //                 client.clone(),
+        //                 None, // TODO: fix indexer
+        //             )
+        //             .await?;
+        //     }
+        // };
+
+        (sh_builder, maybe_storage_hub_client_rpc_config) =
+            init_sh_builder::<UserRole, NoStorageLayer, Runtime>(
+                provider_options,
+                &task_manager,
+                file_transfer_request_protocol,
+                network.clone(),
+                keystore_container.keystore(),
+                client.clone(),
+                None, // TODO: fix indexer
+            )
+            .await?;
     };
 
     let role = config.role;
@@ -625,6 +639,8 @@ where
     )
     .await;
 
+    let base_path = config.base_path.path().to_path_buf().clone();
+
     let rpc_extensions_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
@@ -669,7 +685,7 @@ where
         })
     };
 
-    let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+    let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         network: Arc::new(network.clone()),
         client: client.clone(),
         keystore: keystore_container.keystore(),
@@ -819,17 +835,17 @@ where
             .spawn_blocking("beefy-gadget", None, gadget);
     }
 
-    // Finishing building storage hub
     if let Some(_) = provider_options {
-        // finish_sh_builder_and_run_tasks(
-        //     sh_builder.expect("StorageHubBuilder should already be initialised."),
-        //     client.clone(),
-        //     rpc_handlers.clone(),
-        //     keystore_container.keystore(),
-        //     base_path.clone(),
-        //     false,
-        // )
-        // .await?;
+        // Finishing building storage hub
+        finish_sh_builder_and_run_tasks(
+            sh_builder.unwrap(),
+            client.clone(),
+            rpc_handlers.clone(),
+            keystore_container.keystore(),
+            base_path.clone(),
+            false,
+        )
+        .await?;
     }
 
     network_starter.start_network();
@@ -902,7 +918,7 @@ async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(
     indexer_options: Option<IndexerOptions>,
 ) -> Result<
     (
-        StorageHubBuilder<R, S, Runtime>,
+        Option<StorageHubBuilder<R, S, Runtime>>,
         StorageHubClientRpcConfig<
             <(R, S) as ShNodeType<Runtime>>::FL,
             <(R, S) as ShNodeType<Runtime>>::FSH,
@@ -974,7 +990,7 @@ where
     let storage_hub_client_rpc_config =
         storage_hub_builder.create_rpc_config(keystore, provider_options.rpc_config.clone());
 
-    Ok((storage_hub_builder, storage_hub_client_rpc_config))
+    Ok((Some(storage_hub_builder), storage_hub_client_rpc_config))
 }
 
 /// Configure and spawn the indexer service.

@@ -120,6 +120,7 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 
 # DataHaven precompiles
+pallet-evm-precompile-balances-erc20 = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -186,6 +187,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-evm-precompile-balances-erc20/std",
     "pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",

@@ -15,6 +15,9 @@ config:
 
 existingSecretName: "dh-beefy-relay-ethereum-key"
 
+relayData:
+  storagePath: null
+
 extraArgs:
   [
     "run",

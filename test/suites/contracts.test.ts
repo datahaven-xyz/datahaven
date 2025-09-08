@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { logger, parseDeploymentsFile } from "utils";
-import { BaseTestSuite } from "../framework";
+import { SharedTestSuite } from "../framework";
 
-class ContractsTestSuite extends BaseTestSuite {
+class ContractsTestSuite extends SharedTestSuite {
   constructor() {
     super({
       suiteName: "contracts"

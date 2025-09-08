@@ -2,9 +2,9 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
 import { getPapiSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
 import { isAddress } from "viem";
-import { BaseTestSuite } from "../framework";
+import { SharedTestSuite } from "../framework";
 
-class DataHavenSubstrateTestSuite extends BaseTestSuite {
+class DataHavenSubstrateTestSuite extends SharedTestSuite {
   constructor() {
     super({
       suiteName: "datahaven-substrate"

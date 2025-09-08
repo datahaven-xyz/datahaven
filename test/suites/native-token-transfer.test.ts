@@ -25,7 +25,7 @@ import {
 } from "utils";
 import { decodeEventLog, encodeAbiParameters, parseEther } from "viem";
 import { gatewayAbi } from "../contract-bindings";
-import { BaseTestSuite } from "../framework";
+import { SharedTestSuite } from "../framework";
 
 // Constants
 // The actual Ethereum sovereign account used by the runtime (derived from runtime configuration)
@@ -111,13 +111,10 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
   return tokenAddress === ZERO_ADDRESS ? null : tokenAddress;
 }
 
-class NativeTokenTransferTestSuite extends BaseTestSuite {
+class NativeTokenTransferTestSuite extends SharedTestSuite {
   constructor() {
     super({
-      suiteName: "native-token-transfer",
-      networkOptions: {
-        slotTime: 2
-      }
+      suiteName: "native-token-transfer"
     });
 
     this.setupHooks();

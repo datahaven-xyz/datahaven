@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
 import { getPapiSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
-import { BaseTestSuite } from "../framework";
+import { SharedTestSuite } from "../framework";
 
-class CrossChainTestSuite extends BaseTestSuite {
+class CrossChainTestSuite extends SharedTestSuite {
   constructor() {
     super({
       suiteName: "cross-chain"

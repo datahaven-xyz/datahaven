@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { ANVIL_FUNDED_ACCOUNTS, generateRandomAccount, logger } from "utils";
 import { parseEther } from "viem";
-import { BaseTestSuite } from "../framework";
+import { SharedTestSuite } from "../framework";
 
-class EthereumBasicTestSuite extends BaseTestSuite {
+class EthereumBasicTestSuite extends SharedTestSuite {
   constructor() {
     super({
       suiteName: "ethereum-basic"

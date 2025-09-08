@@ -121,6 +121,8 @@ xcm-executor = { workspace = true }
 
 # DataHaven precompiles
 pallet-evm-precompile-balances-erc20 = { workspace = true }
+pallet-evm-precompile-batch = { workspace = true }
+pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -189,6 +191,9 @@ std = [
     "pallet-evm/std",
 	"pallet-evm-precompile-balances-erc20/std",
 "pallet-evm-precompile-registry/std",
+    "pallet-evm-precompile-batch/std",
+    "pallet-evm-precompile-call-permit/std",
+	"pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",

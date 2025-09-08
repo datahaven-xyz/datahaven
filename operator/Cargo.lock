@@ -2387,8 +2387,10 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-evm-precompile-balances-erc20",
+ "pallet-evm-precompile-batch",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -2620,8 +2622,10 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-evm-precompile-balances-erc20",
+ "pallet-evm-precompile-batch",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -2754,8 +2758,10 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-evm-precompile-balances-erc20",
+ "pallet-evm-precompile-batch",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -8052,6 +8058,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-evm-precompile-batch"
+version = "0.1.0"
+dependencies = [
+ "evm",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.3.4",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-evm-precompile-blake2"
 version = "2.0.0-dev"
 source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
@@ -8067,6 +8094,28 @@ dependencies = [
  "fp-evm",
  "sp-core",
  "substrate-bn",
+]
+
+[[package]]
+name = "pallet-evm-precompile-call-permit"
+version = "0.1.0"
+dependencies = [
+ "evm",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.3.4",
+ "libsecp256k1",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

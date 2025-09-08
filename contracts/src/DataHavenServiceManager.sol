@@ -361,16 +361,15 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }
 
-
-    function slashValidatorsOperator() external onlyOwner() {
+    function slashValidatorsOperator() external onlyOwner {
         // uint len = validators.length;
         // IStrategy[] memory validatorsStrategies = new IStrategy[](0);
         // uint256[] memory wadsToSlash = new uint256[](0); // This need to have the same length as the number of strategies to slash
 
         // for (uint i; i < len; ++i) {
-            
+
         //     address  validator = validators[i];
-            
+
         //     IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
         //         operator: validator,
         //         operatorSetId: VALIDATORS_SET_ID,

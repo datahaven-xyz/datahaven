@@ -172,7 +172,7 @@ export const launchNetwork = async (
         datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
         relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
         authorityIds: TEST_AUTHORITY_IDS,
-        buildDatahaven: options.buildDatahaven ?? true,
+        buildDatahaven: options.buildDatahaven ?? !isCI, // if not specified, default to false for CI, true for local testing
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
       },
       launchedNetwork
@@ -282,3 +282,5 @@ export const launchNetwork = async (
     throw error;
   }
 };
+
+export const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";

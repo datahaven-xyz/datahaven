@@ -2269,13 +2269,6 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'requestId', internalType: 'uint256', type: 'uint256' }],
-    name: 'fulfilSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
     name: 'getOperatorRestakedStrategies',
     outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
@@ -2349,30 +2342,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'params',
-        internalType: 'struct IAllocationManagerTypes.SlashingParams',
-        type: 'tuple',
-        components: [
-          { name: 'operator', internalType: 'address', type: 'address' },
-          { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-          {
-            name: 'strategies',
-            internalType: 'contract IStrategy[]',
-            type: 'address[]',
-          },
-          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
-          { name: 'description', internalType: 'string', type: 'string' },
-        ],
-      },
-    ],
-    name: 'queueSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2586,25 +2555,19 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       {
-        name: 'slasher',
-        internalType: 'contract IVetoableSlasher',
-        type: 'address',
-      },
-    ],
-    name: 'setSlasher',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
         name: '_newSnowbridgeGateway',
         internalType: 'address',
         type: 'address',
       },
     ],
     name: 'setSnowbridgeGateway',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'slashValidatorsOperator',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2803,6 +2766,7 @@ export const dataHavenServiceManagerAbi = [
     ],
     name: 'RewardsRegistrySet',
   },
+  { type: 'event', anonymous: false, inputs: [], name: 'SlashOperatorTest' },
   {
     type: 'event',
     anonymous: false,
@@ -11504,30 +11468,12 @@ export const writeDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
- */
-export const writeDataHavenServiceManagerFulfilSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'fulfilSlashingRequest',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
  */
 export const writeDataHavenServiceManagerInitialise =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'initialise',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"queueSlashingRequest"`
- */
-export const writeDataHavenServiceManagerQueueSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'queueSlashingRequest',
   })
 
 /**
@@ -11702,21 +11648,21 @@ export const writeDataHavenServiceManagerSetRewardsRegistry =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSlasher"`
- */
-export const writeDataHavenServiceManagerSetSlasher =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSlasher',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
+ */
+export const writeDataHavenServiceManagerSlashValidatorsOperator =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'slashValidatorsOperator',
   })
 
 /**
@@ -11906,30 +11852,12 @@ export const simulateDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
- */
-export const simulateDataHavenServiceManagerFulfilSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'fulfilSlashingRequest',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
  */
 export const simulateDataHavenServiceManagerInitialise =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'initialise',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"queueSlashingRequest"`
- */
-export const simulateDataHavenServiceManagerQueueSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'queueSlashingRequest',
   })
 
 /**
@@ -12104,21 +12032,21 @@ export const simulateDataHavenServiceManagerSetRewardsRegistry =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSlasher"`
- */
-export const simulateDataHavenServiceManagerSetSlasher =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSlasher',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
+ */
+export const simulateDataHavenServiceManagerSlashValidatorsOperator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'slashValidatorsOperator',
   })
 
 /**
@@ -12242,6 +12170,15 @@ export const watchDataHavenServiceManagerRewardsRegistrySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'RewardsRegistrySet',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SlashOperatorTest"`
+ */
+export const watchDataHavenServiceManagerSlashOperatorTestEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'SlashOperatorTest',
   })
 
 /**

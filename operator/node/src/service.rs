@@ -42,6 +42,7 @@ use shc_client::{
 use shc_common::traits::StorageEnableRuntime;
 use shc_common::types::BlockHash;
 use shc_common::types::OpaqueBlock;
+use shc_common::types::BCSV_KEY_TYPE;
 use shc_indexer_db::DbPool;
 use shc_rpc::StorageHubClientRpcConfig;
 use sp_api::ProvideRuntimeApi;
@@ -378,7 +379,9 @@ where
 
 /// Builds a new service for a full client.
 // TODO: Find a way to remove `RuntimeApi` and to just keep `Runtime`
-pub async fn new_full<
+pub async fn new_full_impl<
+    R: ShRole,
+    S: ShStorageLayer,
     Runtime,
     RuntimeApi,
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
@@ -391,6 +394,9 @@ where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
     RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
     RuntimeApi::RuntimeApi: FullRuntimeApi,
+    (R, S): ShNodeType<Runtime>,
+    StorageHubBuilder<R, S, Runtime>: StorageLayerBuilder + Buildable<(R, S), Runtime>,
+    StorageHubHandler<(R, S), Runtime>: RunnableTasks,
 {
     let sc_service::PartialComponents {
         client,
@@ -528,73 +534,30 @@ where
         );
     }
 
-    // Storage Hub builder
-    let mut sh_builder = None;
-    let mut maybe_storage_hub_client_rpc_config;
-    if let Some(provider_options) = &provider_options {
-        // match (
-        //     &provider_options.provider_type,
-        //     &provider_options.storage_layer,
-        // ) {
-        //     (&ProviderType::Bsp, &StorageLayer::Memory) => {
-        //         let (sh_builder, maybe_storage_hub_client_rpc_config) =
-        //             init_sh_builder::<BspProvider, InMemoryStorageLayer, Runtime>(
-        //                 provider_options,
-        //                 &task_manager,
-        //                 file_transfer_request_protocol,
-        //                 network.clone(),
-        //                 keystore_container.keystore(),
-        //                 client.clone(),
-        //                 None, // TODO: fix indexer
-        //             )
-        //             .await?;
-        //     }
-        //     (&ProviderType::Bsp, &StorageLayer::RocksDB) => {
-        //         let (sh_builder, maybe_storage_hub_client_rpc_config) =
-        //             init_sh_builder::<BspProvider, RocksDbStorageLayer, Runtime>(
-        //                 provider_options,
-        //                 &task_manager,
-        //                 file_transfer_request_protocol,
-        //                 network.clone(),
-        //                 keystore_container.keystore(),
-        //                 client.clone(),
-        //                 None, // TODO: fix indexer
-        //             )
-        //             .await?;
-        //     }
-        //     (&ProviderType::Msp, &StorageLayer::Memory) => {
-        //         todo!("Support for MSP"); // TODO: once the indexer issue is fixed
-        //     }
-        //     (&ProviderType::Msp, &StorageLayer::RocksDB) => {
-        //         todo!("Support for MSP"); // TODO: once the indexer issue is fixed
-        //     }
-        //     (&ProviderType::User, _) => {
-        //         let (sh_builder, maybe_storage_hub_client_rpc_config) =
-        //             init_sh_builder::<UserRole, NoStorageLayer, Runtime>(
-        //                 provider_options,
-        //                 &task_manager,
-        //                 file_transfer_request_protocol,
-        //                 network.clone(),
-        //                 keystore_container.keystore(),
-        //                 client.clone(),
-        //                 None, // TODO: fix indexer
-        //             )
-        //             .await?;
-        //     }
-        // };
+    let signing_dev_key = config
+        .dev_key_seed
+        .clone()
+        .expect("Dev key seed must be present in dev mode.");
+    let keystore = keystore_container.keystore();
 
-        (sh_builder, maybe_storage_hub_client_rpc_config) =
-            init_sh_builder::<UserRole, NoStorageLayer, Runtime>(
-                provider_options,
-                &task_manager,
-                file_transfer_request_protocol,
-                network.clone(),
-                keystore_container.keystore(),
-                client.clone(),
-                None, // TODO: fix indexer
-            )
-            .await?;
-    };
+    // Initialise seed for signing transactions using blockchain service.
+    // In dev mode we use a well known dev account.
+    keystore
+        .sr25519_generate_new(BCSV_KEY_TYPE, Some(signing_dev_key.as_ref()))
+        .expect("Invalid dev signing key provided.");
+
+    // Storage Hub builder
+    let (sh_builder, maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
+        &provider_options,
+        &task_manager,
+        file_transfer_request_protocol,
+        network.clone(),
+        keystore.clone(),
+        client.clone(),
+        // indexer_options.clone(), FIXME
+        None,
+    )
+    .await?;
 
     let role = config.role;
     let force_authoring = config.force_authoring;
@@ -852,6 +815,74 @@ where
     Ok(task_manager)
 }
 
+pub async fn new_full<
+    Runtime,
+    RuntimeApi,
+    N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
+>(
+    config: Configuration,
+    mut eth_config: EthConfiguration,
+    provider_options: Option<ProviderOptions>,
+) -> Result<TaskManager, ServiceError>
+where
+    Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
+    RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: FullRuntimeApi,
+{
+    if let Some(provider_options) = provider_options {
+        match (
+            &provider_options.provider_type,
+            &provider_options.storage_layer,
+        ) {
+            (&ProviderType::Bsp, &StorageLayer::Memory) => {
+                return new_full_impl::<BspProvider, InMemoryStorageLayer, Runtime, RuntimeApi, N>(
+                    config,
+                    eth_config,
+                    Some(provider_options),
+                )
+                .await;
+            }
+            (&ProviderType::Bsp, &StorageLayer::RocksDB) => {
+                return new_full_impl::<BspProvider, RocksDbStorageLayer, Runtime, RuntimeApi, N>(
+                    config,
+                    eth_config,
+                    Some(provider_options),
+                )
+                .await;
+            }
+            (&ProviderType::Msp, &StorageLayer::Memory) => {
+                return new_full_impl::<MspProvider, InMemoryStorageLayer, Runtime, RuntimeApi, N>(
+                    config,
+                    eth_config,
+                    Some(provider_options),
+                )
+                .await;
+            }
+            (&ProviderType::Msp, &StorageLayer::RocksDB) => {
+                return new_full_impl::<MspProvider, RocksDbStorageLayer, Runtime, RuntimeApi, N>(
+                    config,
+                    eth_config,
+                    Some(provider_options),
+                )
+                .await;
+            }
+            (&ProviderType::User, _) => {
+                return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
+                    config,
+                    eth_config,
+                    Some(provider_options),
+                )
+                .await;
+            }
+        };
+    } else {
+        return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
+            config, eth_config, None,
+        )
+        .await;
+    };
+}
+
 /// Storage Hub
 
 /// Maximum memory usage target for queued requests (8GB)
@@ -909,7 +940,7 @@ pub fn configure_file_transfer_network<
 
 // Initialize the StorageHubBuilder for the StorageHub node.
 async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(
-    provider_options: &ProviderOptions,
+    provider_options: &Option<ProviderOptions>,
     task_manager: &TaskManager,
     file_transfer_request_protocol: Option<(ProtocolName, Receiver<IncomingRequest>)>,
     network: Arc<dyn NetworkService>,
@@ -919,10 +950,12 @@ async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(
 ) -> Result<
     (
         Option<StorageHubBuilder<R, S, Runtime>>,
-        StorageHubClientRpcConfig<
-            <(R, S) as ShNodeType<Runtime>>::FL,
-            <(R, S) as ShNodeType<Runtime>>::FSH,
-            Runtime,
+        Option<
+            StorageHubClientRpcConfig<
+                <(R, S) as ShNodeType<Runtime>>::FL,
+                <(R, S) as ShNodeType<Runtime>>::FSH,
+                Runtime,
+            >,
         >,
     ),
     sc_service::Error,
@@ -937,60 +970,67 @@ where
         configure_and_spawn_indexer::<Runtime>(&indexer_options, &task_manager, client.clone())
             .await?;
 
-    // Start building the StorageHubHandler, if running as a provider.
-    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "sh-builder");
-    let mut storage_hub_builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner);
+    if let Some(provider_options) = provider_options {
+        // Start building the StorageHubHandler, if running as a provider.
+        let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "sh-builder");
+        let mut storage_hub_builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner);
 
-    // Setup and spawn the File Transfer Service.
-    let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
-        file_transfer_request_protocol
-            .expect("FileTransfer request protocol should already be initialised.");
+        // Setup and spawn the File Transfer Service.
+        let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
+            file_transfer_request_protocol
+                .expect("FileTransfer request protocol should already be initialised.");
 
-    storage_hub_builder
-        .with_file_transfer(
-            file_transfer_request_receiver,
-            file_transfer_request_protocol_name,
-            network.clone(),
-        )
-        .await;
-
-    // Setup the `ShStorageLayer` and additional configuration parameters.
-    storage_hub_builder
-        .setup_storage_layer(provider_options.storage_path.clone())
-        .with_capacity_config(Some(CapacityConfig::new(
-            provider_options
-                .max_storage_capacity
-                .unwrap_or_default()
-                .saturated_into(),
-            provider_options
-                .jump_capacity
-                .unwrap_or_default()
-                .saturated_into(),
-        )));
-
-    storage_hub_builder.with_msp_charge_fees_config(provider_options.msp_charge_fees.clone());
-    storage_hub_builder.with_msp_move_bucket_config(provider_options.msp_move_bucket.clone());
-    storage_hub_builder.with_bsp_upload_file_config(provider_options.bsp_upload_file.clone());
-    storage_hub_builder.with_bsp_move_bucket_config(provider_options.bsp_move_bucket.clone());
-    storage_hub_builder.with_bsp_charge_fees_config(provider_options.bsp_charge_fees.clone());
-    storage_hub_builder.with_bsp_submit_proof_config(provider_options.bsp_submit_proof.clone());
-
-    // Setup specific configuration for the MSP node.
-    if provider_options.provider_type == ProviderType::Msp {
         storage_hub_builder
-            .with_notify_period(provider_options.msp_charging_period)
-            .with_indexer_db_pool(maybe_indexer_db_pool);
-    }
+            .with_file_transfer(
+                file_transfer_request_receiver,
+                file_transfer_request_protocol_name,
+                network.clone(),
+            )
+            .await;
 
-    if let Some(c) = &provider_options.blockchain_service {
-        storage_hub_builder.with_blockchain_service_config(c.clone());
-    }
+        // Setup the `ShStorageLayer` and additional configuration parameters.
+        storage_hub_builder
+            .setup_storage_layer(provider_options.storage_path.clone())
+            .with_capacity_config(Some(CapacityConfig::new(
+                provider_options
+                    .max_storage_capacity
+                    .unwrap_or_default()
+                    .saturated_into(),
+                provider_options
+                    .jump_capacity
+                    .unwrap_or_default()
+                    .saturated_into(),
+            )));
 
-    // Get the RPC configuration to use for this StorageHub node client.
-    let storage_hub_client_rpc_config =
-        storage_hub_builder.create_rpc_config(keystore, provider_options.rpc_config.clone());
+        storage_hub_builder.with_msp_charge_fees_config(provider_options.msp_charge_fees.clone());
+        storage_hub_builder.with_msp_move_bucket_config(provider_options.msp_move_bucket.clone());
+        storage_hub_builder.with_bsp_upload_file_config(provider_options.bsp_upload_file.clone());
+        storage_hub_builder.with_bsp_move_bucket_config(provider_options.bsp_move_bucket.clone());
+        storage_hub_builder.with_bsp_charge_fees_config(provider_options.bsp_charge_fees.clone());
+        storage_hub_builder.with_bsp_submit_proof_config(provider_options.bsp_submit_proof.clone());
 
-    Ok((Some(storage_hub_builder), storage_hub_client_rpc_config))
+        // Setup specific configuration for the MSP node.
+        if provider_options.provider_type == ProviderType::Msp {
+            storage_hub_builder
+                .with_notify_period(provider_options.msp_charging_period)
+                .with_indexer_db_pool(maybe_indexer_db_pool);
+        }
+
+        if let Some(c) = &provider_options.blockchain_service {
+            storage_hub_builder.with_blockchain_service_config(c.clone());
+        }
+
+        // Get the RPC configuration to use for this StorageHub node client.
+        let storage_hub_client_rpc_config =
+            storage_hub_builder.create_rpc_config(keystore, provider_options.rpc_config.clone());
+
+        return Ok((
+            Some(storage_hub_builder),
+            Some(storage_hub_client_rpc_config),
+        ));
+    };
+
+    Ok((None, None))
 }
 
 /// Configure and spawn the indexer service.
@@ -1009,15 +1049,14 @@ async fn configure_and_spawn_indexer<Runtime: StorageEnableRuntime>(
         .await
         .map_err(|e| sc_service::Error::Application(Box::new(e)))?;
 
-    // FIXME: the client expected is a shc_common::types::ParachainClient and is not compatible with ours
-    // let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "indexer-service");
-    // shc_indexer_service::spawn_indexer_service::<Runtime>(
-    //     &task_spawner,
-    //     client.clone(),
-    //     db_pool.clone(),
-    //     indexer_options.indexer_mode,
-    // )
-    // .await;
+    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "indexer-service");
+    shc_indexer_service::spawn_indexer_service::<Runtime>(
+        &task_spawner,
+        client.clone(),
+        db_pool.clone(),
+        indexer_options.indexer_mode,
+    )
+    .await;
 
     Ok(Some(db_pool))
 }

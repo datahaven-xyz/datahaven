@@ -100,34 +100,44 @@ runs:
         
         # Check and install PostgreSQL client libraries if needed
         if ! pkg-config --exists libpq 2>/dev/null; then
-          echo "libpq not found, installing locally..."
-          POSTGRESQL_VERSION="17.2"
-          ARCH=$(uname -m)
+          echo "libpq not found, installing from package..."
           
-          # Download and extract PostgreSQL binaries
-          wget -q -O- "https://get.enterprisedb.com/postgresql/postgresql-${POSTGRESQL_VERSION}-1-linux-${ARCH}.tar.gz" | \
-            tar -xzf - -C /tmp || {
-              echo "Failed to download PostgreSQL binaries, trying alternative method..."
-              # Alternative: Build from source (lighter weight, just client libs)
-              wget -q -O- "https://ftp.postgresql.org/pub/source/v${POSTGRESQL_VERSION}/postgresql-${POSTGRESQL_VERSION}.tar.gz" | \
-                tar -xzf - -C /tmp
-              cd "/tmp/postgresql-${POSTGRESQL_VERSION}"
-              ./configure --prefix="$LOCAL_DIR" --without-readline --without-zlib --with-openssl=no
-              make -C src/interfaces/libpq install
-              make -C src/include install
-              cd -
-              rm -rf "/tmp/postgresql-${POSTGRESQL_VERSION}"
-          }
+          # Download and install pre-built libpq-dev package (Ubuntu/Debian package)
+          ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
           
-          # If binary download succeeded, copy required files
-          if [ -d "/tmp/pgsql" ]; then
-            cp -r /tmp/pgsql/lib/libpq* "$LOCAL_LIB/" 2>/dev/null || true
-            cp -r /tmp/pgsql/include/* "$LOCAL_INCLUDE/" 2>/dev/null || true
-            cp -r /tmp/pgsql/lib/pkgconfig/* "$LOCAL_PKG_CONFIG/" 2>/dev/null || true
-            rm -rf /tmp/pgsql
+          # Try to download libpq5 and libpq-dev packages directly
+          echo "Downloading libpq packages for $ARCH..."
+          
+          # Download libpq5 (runtime library)
+          wget -q -O /tmp/libpq5.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/libpq5_16.4-0ubuntu0.24.04.2_${ARCH}.deb" || \
+          wget -q -O /tmp/libpq5.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-15/libpq5_15.8-0ubuntu0.24.04.1_${ARCH}.deb"
+          
+          # Download libpq-dev (development headers)  
+          wget -q -O /tmp/libpq-dev.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/libpq-dev_16.4-0ubuntu0.24.04.2_${ARCH}.deb" || \
+          wget -q -O /tmp/libpq-dev.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-15/libpq-dev_15.8-0ubuntu0.24.04.1_${ARCH}.deb"
+          
+          # Extract packages without installing system-wide
+          if [ -f /tmp/libpq5.deb ] && [ -f /tmp/libpq-dev.deb ]; then
+            cd /tmp
+            ar x libpq5.deb
+            tar -xf data.tar.* || tar -xf data.tar.xz || tar -xf data.tar.gz
+            ar x libpq-dev.deb  
+            tar -xf data.tar.* || tar -xf data.tar.xz || tar -xf data.tar.gz
+            
+            # Copy files to local directories
+            cp -r usr/lib/*/libpq* "$LOCAL_LIB/" 2>/dev/null || cp -r usr/lib/libpq* "$LOCAL_LIB/" 2>/dev/null || true
+            cp -r usr/include/postgresql/* "$LOCAL_INCLUDE/" 2>/dev/null || cp -r usr/include/libpq* "$LOCAL_INCLUDE/" 2>/dev/null || true
+            cp -r usr/lib/*/pkgconfig/libpq* "$LOCAL_PKG_CONFIG/" 2>/dev/null || true
+            
+            # Clean up
+            rm -rf /tmp/*.deb /tmp/usr /tmp/data.tar.* /tmp/control.tar.* /tmp/debian-binary
+            cd -
+            
+            echo "✓ libpq installed locally from package"
+          else
+            echo "Failed to download libpq packages"
+            exit 1
           fi
-          
-          echo "✓ libpq installed locally"
         else
           echo "✓ libpq found: $(pkg-config --modversion libpq 2>/dev/null || echo 'version unknown')"
         fi

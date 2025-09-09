@@ -13,11 +13,11 @@ import {
   waitForContainerToStart
 } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
+import { COMMON_LAUNCH_ARGS } from "utils/validators";
 import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
 import type { LaunchedNetwork } from "./types/launchedNetwork";
-import { COMMON_LAUNCH_ARGS } from "utils/validators";
 
 /**
  * Options for DataHaven-related operations.

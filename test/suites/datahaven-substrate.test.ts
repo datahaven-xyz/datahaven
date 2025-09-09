@@ -1,6 +1,13 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotSigner } from "polkadot-api";
-import { getPapiSigner, isValidatorNodeRunning, launchDatahavenValidator, logger, SUBSTRATE_FUNDED_ACCOUNTS, TestAccounts } from "utils";
+import {
+  getPapiSigner,
+  isValidatorNodeRunning,
+  launchDatahavenValidator,
+  logger,
+  SUBSTRATE_FUNDED_ACCOUNTS,
+  TestAccounts
+} from "utils";
 import { isAddress } from "viem";
 import { BaseTestSuite } from "../framework";
 
@@ -12,7 +19,7 @@ class DataHavenSubstrateTestSuite extends BaseTestSuite {
 
     this.setupHooks();
   }
-  
+
   override async onSetup(): Promise<void> {
     await launchDatahavenValidator(TestAccounts.Charlie, {
       launchedNetwork: this.getConnectors().launchedNetwork
@@ -78,7 +85,6 @@ describe("DataHaven Substrate Operations", () => {
 
     logger.info(`Current block #${blockHeader.number}`);
   });
-
 
   it("should see Charlie running", async () => {
     const isRunning = await isValidatorNodeRunning(TestAccounts.Charlie, suite.getNetworkId());

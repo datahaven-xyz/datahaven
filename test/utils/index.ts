@@ -11,5 +11,5 @@ export * from "./parameters";
 export * from "./parser";
 export * from "./rpc";
 export * from "./shell";
-export * from "./viem";
 export * from "./validators";
+export * from "./viem";

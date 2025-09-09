@@ -1,22 +1,22 @@
 /**
  * DataHaven utility functions for launching and managing validator nodes
- * 
+ *
  * This module provides utilities for launching individual DataHaven validator nodes
  * on demand, checking their status, and managing their lifecycle.
- * 
+ *
  * @example
  * ```typescript
  * import { launchDatahavenValidator, TestAccounts } from "utils";
- * 
+ *
  * // Launch a new Charlie validator node
  * const charlieNode = await launchDatahavenValidator(TestAccounts.Charlie, {
  *   launchedNetwork: suite.getLaunchedNetwork()
  * });
- * 
+ *
  * console.log(`Charlie node launched on port ${charlieNode.publicPort}`);
  * console.log(`WebSocket URL: ${charlieNode.wsUrl}`);
  * ```
- * 
+ *
  * @example
  * ```typescript
  * // Check if a node is already running before launching
@@ -30,13 +30,12 @@
  */
 
 import { $ } from "bun";
-import { logger } from "utils";
-import { getPublicPort } from "utils/docker";
-import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
-import { waitForContainerToStart } from "utils";
-import { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 import { dataHavenServiceManagerAbi } from "contract-bindings";
+import { logger, waitForContainerToStart } from "utils";
+import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
+import { getPublicPort } from "utils/docker";
 import { privateKeyToAccount } from "viem/accounts";
+import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 
 /**
  * Enum for test account names that are prefunded in substrate
@@ -98,7 +97,10 @@ export const COMMON_LAUNCH_ARGS = [
  * @param networkId - The network identifier
  * @returns True if the node is running, false otherwise
  */
-export const isValidatorNodeRunning = async (nodeId: string, networkId: string): Promise<boolean> => {
+export const isValidatorNodeRunning = async (
+  nodeId: string,
+  networkId: string
+): Promise<boolean> => {
   const containerName = `datahaven-${nodeId}-${networkId}`;
   const dockerPsOutput = await $`docker ps -q --filter "name=^${containerName}"`.text();
   return dockerPsOutput.trim().length > 0;
@@ -206,21 +208,28 @@ const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
  * @param account - Test account name
  * @returns Node info
  */
-export const getValidatorInfoByName = (validatorSetJson: any, account: TestAccounts): ValidatorInfo => {
+export const getValidatorInfoByName = (
+  validatorSetJson: any,
+  account: TestAccounts
+): ValidatorInfo => {
   const validatorsRaw = validatorSetJson.validators as Array<ValidatorInfo>;
   const node = validatorsRaw.find((v) => v.solochainAuthorityName === account.toLowerCase());
   if (!node) {
     throw new Error(`Node ${account} not found in validator set`);
   }
   return node;
-}
+};
 
 /**
  * Adds a validator to the EigenLayer allowlist
  * @param connectors - The connectors to use
  * @param validator - The validator to add to the allowlist
  */
-export const addValidatorToAllowlist = async (connectors: any, validator: ValidatorInfo, deployments: any) => {
+export const addValidatorToAllowlist = async (
+  connectors: any,
+  validator: ValidatorInfo,
+  deployments: any
+) => {
   logger.info(`Adding validator ${validator.publicKey} to allowlist...`);
   const hash = await connectors.walletClient.writeContract({
     address: deployments.ServiceManager as `0x${string}`,
@@ -232,4 +241,4 @@ export const addValidatorToAllowlist = async (connectors: any, validator: Valida
   });
   await connectors.publicClient.waitForTransactionReceipt({ hash });
   logger.info(`✅ Validator ${validator.publicKey} added to allowlist`);
-}
+};

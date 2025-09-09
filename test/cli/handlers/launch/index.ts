@@ -11,7 +11,7 @@ import { launchKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
 import { performSummaryOperations } from "./summary";
-import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
+import { performValidatorOperations } from "./validator";
 
 export const NETWORK_ID = "cli-launch";
 

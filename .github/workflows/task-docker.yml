@@ -18,6 +18,10 @@ on:
         description: "The tag portion of the docker image (without registry)"
         value: "${{ jobs.build-test-push.outputs.image-tag }}"
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: docker-build-${{ github.ref }}
   cancel-in-progress: true
@@ -46,10 +50,11 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: datahavenxyz/datahaven
+          images: ghcr.io/datahaven-xyz/datahaven/datahaven
           flavor: |
             latest=auto
           tags: |
+            type=raw,value=ci-${{ github.run_id }}
             type=sha,format=short,prefix=sha-
             type=ref,event=tag
             type=ref,event=branch
@@ -61,7 +66,7 @@ jobs:
           FULL_TAG=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')
           TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
           echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
-          echo "image-name=datahavenxyz/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
+          echo "image-name=ghcr.io/datahaven-xyz/datahaven/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
 
       - name: Log Docker Metadata
         run: |
@@ -79,10 +84,12 @@ jobs:
             --allow-insecure-entitlement network.host
             --allow-insecure-entitlement security.insecure
             
-      - uses: docker/login-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         id: build

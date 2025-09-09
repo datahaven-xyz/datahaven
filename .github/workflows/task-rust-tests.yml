@@ -16,7 +16,8 @@ jobs:
 
   prepare:
     name: Prepare artifacts for Rust tests
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -34,7 +35,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: true
+          install-deps: false
       - uses: ./.github/workflows/actions/cleanup-runner
       - name: Install nextest
         run: |
@@ -55,7 +56,8 @@ jobs:
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     strategy:
       fail-fast: false
       matrix:
@@ -88,7 +90,8 @@ jobs:
   tests-result-checker:
     name: Check tests were successful
     needs: [all-rust-tests]
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     steps:
       - name: Cleanup test artifacts
         uses: geekyeggo/delete-artifact@v5

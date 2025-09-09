@@ -15,7 +15,8 @@ jobs:
     outputs:
       binary-hash: ${{ steps.hash-binary.outputs.datahaven-node-hash }}
     name: Build operator binary
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -37,7 +38,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: BUILD-RELEASE
-          install-deps: true
+          install-deps: false
 
       - name: Build node binary
         run: |

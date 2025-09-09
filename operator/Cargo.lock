@@ -1097,7 +1097,7 @@ dependencies = [
  "bitflags 2.9.4",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "regex",
@@ -2826,7 +2826,7 @@ dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
  "dhp-bridge",
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?branch=stable2412)",
+ "fp-account",
  "fp-evm",
  "fp-rpc",
  "fp-self-contained",
@@ -2975,7 +2975,7 @@ dependencies = [
  "fc-rpc-core",
  "fc-storage",
  "flume 0.10.14",
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?branch=stable2412)",
+ "fp-account",
  "fp-evm",
  "fp-rpc",
  "frame-benchmarking-cli",
@@ -3068,7 +3068,7 @@ dependencies = [
 name = "datahaven-runtime-common"
 version = "0.1.0"
 dependencies = [
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?branch=stable2412)",
+ "fp-account",
  "frame-support",
  "frame-system",
  "pallet-authorship",
@@ -3091,7 +3091,7 @@ dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
  "dhp-bridge",
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?branch=stable2412)",
+ "fp-account",
  "fp-evm",
  "fp-rpc",
  "fp-self-contained",
@@ -3227,7 +3227,7 @@ dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
  "dhp-bridge",
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?branch=stable2412)",
+ "fp-account",
  "fp-evm",
  "fp-rpc",
  "fp-self-contained",
@@ -4203,7 +4203,7 @@ dependencies = [
 [[package]]
 name = "fc-api"
 version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "async-trait",
  "fp-storage",
@@ -4215,7 +4215,7 @@ dependencies = [
 [[package]]
 name = "fc-cli"
 version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "clap",
  "ethereum-types",
@@ -4233,7 +4233,7 @@ dependencies = [
 [[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "async-trait",
  "fp-consensus",
@@ -4249,7 +4249,7 @@ dependencies = [
 [[package]]
 name = "fc-db"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "async-trait",
  "ethereum",
@@ -4279,7 +4279,7 @@ dependencies = [
 [[package]]
 name = "fc-mapping-sync"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fc-db",
  "fc-storage",
@@ -4302,7 +4302,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -4353,7 +4353,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc-core"
 version = "1.1.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -4368,7 +4368,7 @@ dependencies = [
 [[package]]
 name = "fc-storage"
 version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -4609,28 +4609,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "fp-account"
-version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
-dependencies = [
- "hex",
- "impl-serde 0.5.0",
- "libsecp256k1",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-runtime-interface",
- "staging-xcm",
-]
-
-[[package]]
 name = "fp-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "parity-scale-codec",
@@ -4641,7 +4622,7 @@ dependencies = [
 [[package]]
 name = "fp-ethereum"
 version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -4653,7 +4634,7 @@ dependencies = [
 [[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "environmental",
  "evm",
@@ -4669,7 +4650,7 @@ dependencies = [
 [[package]]
 name = "fp-rpc"
 version = "3.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -4685,7 +4666,7 @@ dependencies = [
 [[package]]
 name = "fp-self-contained"
 version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -4697,7 +4678,7 @@ dependencies = [
 [[package]]
 name = "fp-storage"
 version = "2.0.0"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -6326,15 +6307,6 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -8407,7 +8379,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e878c846a8abae00dd069496dbe8751b16ac1c3d6bd2a7283a938e8228f90d"
 dependencies = [
- "proc-macro-crate 3.3.0",
+ "proc-macro-crate 1.1.3",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -8938,7 +8910,7 @@ dependencies = [
 [[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -8961,11 +8933,11 @@ dependencies = [
 [[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "environmental",
  "evm",
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48)",
+ "fp-account",
  "fp-evm",
  "frame-benchmarking",
  "frame-support",
@@ -8984,7 +8956,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-chain-id"
 version = "1.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9016,7 +8988,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-blake2"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fp-evm",
 ]
@@ -9024,7 +8996,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-bn128"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fp-evm",
  "sp-core",
@@ -9056,7 +9028,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-modexp"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fp-evm",
  "num",
@@ -9083,7 +9055,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-sha3fips"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fp-evm",
  "tiny-keccak",
@@ -9092,7 +9064,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-simple"
 version = "2.0.0-dev"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fp-evm",
  "ripemd",
@@ -11461,7 +11433,7 @@ dependencies = [
 [[package]]
 name = "precompile-utils"
 version = "0.1.0"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "derive_more 1.0.0",
  "environmental",
@@ -11490,7 +11462,7 @@ dependencies = [
 [[package]]
 name = "precompile-utils-macro"
 version = "0.1.0"
-source = "git+https://github.com/polkadot-evm/frontier?rev=75329a2df49e2cc7981485392c31160929d1bd48#75329a2df49e2cc7981485392c31160929d1bd48"
+source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "case",
  "num_enum",
@@ -14839,7 +14811,7 @@ dependencies = [
  "cumulus-client-service",
  "cumulus-primitives-core",
  "cumulus-primitives-storage-weight-reclaim",
- "fp-account 1.0.0-dev (git+https://github.com/polkadot-evm/frontier?branch=stable2412)",
+ "fp-account",
  "frame-benchmarking",
  "frame-metadata-hash-extension",
  "frame-support",

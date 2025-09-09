@@ -16,8 +16,7 @@ jobs:
 
   prepare:
     name: Prepare artifacts for Rust tests
-    runs-on:
-      labels: bare-metal
+    runs-on: ubuntu-latest
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -35,7 +34,7 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: false  # Self-hosted runners have deps pre-installed
+          install-deps: true
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
         run: |
@@ -56,8 +55,7 @@ jobs:
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
-    runs-on:
-      labels: bare-metal
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -90,8 +88,7 @@ jobs:
   tests-result-checker:
     name: Check tests were successful
     needs: [all-rust-tests]
-    runs-on:
-      labels: bare-metal
+    runs-on: ubuntu-latest
     steps:
       - name: Cleanup test artifacts
         uses: geekyeggo/delete-artifact@v5

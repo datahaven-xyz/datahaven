@@ -213,33 +213,33 @@ snowbridge-verification-primitives = { path = "primitives/snowbridge/verificatio
 # Frontier (wasm)
 evm = { git = "https://github.com/rust-ethereum/evm", rev = "6d86fe2d3bcc14887c2575f62958a67ac2d523db", default-features = false }
 fp-account = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
-fp-evm = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fp-rpc = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fp-self-contained = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fp-storage = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-base-fee = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-dynamic-fee = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-ethereum = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm-chain-id = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm-precompile-blake2 = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm-precompile-bn128 = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm-precompile-modexp = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm-precompile-sha3fips = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-evm-precompile-simple = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-pallet-hotfix-sufficients = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-precompile-utils = { git = "https://github.com/polkadot-evm/frontier/", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-precompile-utils-macro = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+fp-evm = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fp-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fp-self-contained = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fp-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-base-fee = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-dynamic-fee = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-ethereum = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2412", default-features = false }
+pallet-evm = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2412", default-features = false }
+pallet-evm-chain-id = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2412", default-features = false }
+pallet-evm-precompile-blake2 = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-evm-precompile-bn128 = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-evm-precompile-modexp = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-evm-precompile-sha3fips = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-evm-precompile-simple = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+pallet-hotfix-sufficients = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+precompile-utils = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2412", default-features = false }
+precompile-utils-macro = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 
 # Frontier (client)
-fc-api = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fc-cli = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fc-consensus = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fc-db = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48" }
-fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fc-rpc = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
-fc-storage = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
+fc-api = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fc-cli = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fc-consensus = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fc-db = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412" }
+fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
+fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2412", default-features = false }
 
 # StorageHub
 ## Runtime

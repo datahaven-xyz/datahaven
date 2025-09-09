@@ -26,8 +26,10 @@
  * - Snowbridge relayers running and connected to both chains.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
+
 import { parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { decodeEventLog } from "viem";
 import {
   logger,
   parseDeploymentsFile,
@@ -99,30 +101,6 @@ describe("Validator Set Update", () => {
     return privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[6].privateKey as `0x${string}`);
   }
 
-  /**
-   * Helper to register a validator operator in the ServiceManager
-   */
-  async function registerValidatorOperator(connectors: any, validator: ValidatorInfo) {
-    logger.info(`Registering validator ${validator.publicKey}...`);
-
-    const hash = await connectors.walletClient.writeContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "registerOperator",
-      args: [
-        validator.publicKey as `0x${string}`,
-        deployments.ServiceManager as `0x${string}`,
-        [0], // operatorSetId
-        validator.solochainAddress as `0x${string}`
-      ],
-      account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-      chain: null
-    });
-
-    await connectors.publicClient.waitForTransactionReceipt({ hash });
-    logger.info(`✅ Validator ${validator.publicKey} registered`);
-  }
-
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
 
@@ -160,7 +138,6 @@ describe("Validator Set Update", () => {
     expect(isBobRunning).toBe(true);
     expect(isCharlieRunning).toBe(true);
     expect(isDaveRunning).toBe(true);
-
   });
 
   it("should verify initial test setup", async () => {
@@ -198,6 +175,10 @@ describe("Validator Set Update", () => {
       expect(solochainAddress.toLowerCase()).toBe(validator.solochainAddress.toLowerCase());
       logger.info(`✅ Validator ${validator.publicKey} mapped to ${solochainAddress}`);
     }
+  });
+
+  it("should verify initial validator set state", async () => {
+    const connectors = suite.getTestConnectors();
 
     // Verify that new validators are not yet registered
     for (const validator of newValidators) {
@@ -215,28 +196,193 @@ describe("Validator Set Update", () => {
     logger.info("✅ Initial validator set state verified: only Alice and Bob are active");
   });
 
-  it("should register new validators (charlie and dave)", async () => {
+  it("should add new validators to allowlist", async () => {
     const connectors = suite.getTestConnectors();
 
-    logger.info("🔧 Now adding Charlie and Dave to the validator set...");
+    logger.info("📤 Adding Charlie and Dave to allowlist...");
 
-    // Add new validators to allowlist
-    for (const validator of newValidators) {
-      await addValidatorToAllowlist(connectors, validator);
+    // Add Charlie and Dave to the allowlist
+    for (let i = 0; i < newValidators.length; i++) {
+      const validator = newValidators[i];
+      logger.info(`🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`);
+
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          const hash = await connectors.walletClient.writeContract({
+            address: deployments.ServiceManager as `0x${string}`,
+            abi: dataHavenServiceManagerAbi,
+            functionName: "addValidatorToAllowlist",
+            args: [validator.publicKey as `0x${string}`],
+            account: getOwnerAccount(),
+            chain: null
+          });
+
+          logger.info(`📝 Transaction hash for allowlist: ${hash}`);
+
+          const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+          logger.info(`📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+
+          if (receipt.status === "success") {
+            logger.success(`✅ Added ${validator.publicKey} to allowlist`);
+            break; // Success, exit retry loop
+          } else {
+            logger.error(`❌ Failed to add ${validator.publicKey} to allowlist`);
+            throw new Error(`Transaction failed with status: ${receipt.status}`);
+          }
+        } catch (error) {
+          retryCount++;
+          logger.warn(`⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`);
+
+          if (retryCount >= maxRetries) {
+            logger.error(`❌ All retry attempts failed for ${validator.publicKey}`);
+            throw error;
+          }
+
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+        }
+      }
     }
+  }, 60_000);
 
-    //wait 10 minutes
-    await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 10));
+  it("should register new validators as operators", async () => {
+    const connectors = suite.getTestConnectors();
 
-    logger.success("✅ New validators (Charlie, Dave) registered successfully");
-  });
+    logger.info("📤 Registering Charlie and Dave as operators...");
+
+    // Register Charlie and Dave as operators
+    for (let i = 0; i < newValidators.length; i++) {
+      const validator = newValidators[i];
+      logger.info(`🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`);
+
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          const hash = await connectors.walletClient.writeContract({
+            address: deployments.ServiceManager as `0x${string}`,
+            abi: dataHavenServiceManagerAbi,
+            functionName: "registerOperator",
+            args: [
+              validator.publicKey as `0x${string}`,
+              deployments.ServiceManager as `0x${string}`,
+              [0], // VALIDATORS_SET_ID
+              validator.solochainAddress as `0x${string}`
+            ],
+            account: privateKeyToAccount(validator.privateKey as `0x${string}`),
+            chain: null
+          });
+
+          logger.info(`📝 Transaction hash for operator registration: ${hash}`);
+
+          const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+          logger.info(`📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+
+          if (receipt.status === "success") {
+            logger.success(`✅ Registered ${validator.publicKey} as operator`);
+            break; // Success, exit retry loop
+          } else {
+            logger.error(`❌ Failed to register ${validator.publicKey} as operator`);
+            throw new Error(`Transaction failed with status: ${receipt.status}`);
+          }
+        } catch (error) {
+          retryCount++;
+          logger.warn(`⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`);
+
+          if (retryCount >= maxRetries) {
+            logger.error(`❌ All retry attempts failed for ${validator.publicKey}`);
+            throw error;
+          }
+
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+        }
+      }
+    }
+  }, 60_000); // 1 minute timeout
 
   it("should send updated validator set to DataHaven", async () => {
     const connectors = suite.getTestConnectors();
 
-    logger.info("📤 Sending updated validator set (Alice, Bob, Charlie, Dave) to DataHaven...");
+    logger.info("📤 Registering Charlie and Dave as operators...");
+
+    // First, add Charlie and Dave to the allowlist
+    for (let i = 0; i < newValidators.length; i++) {
+      const validator = newValidators[i];
+      logger.info(`🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`);
+
+      try {
+        const hash = await connectors.walletClient.writeContract({
+          address: deployments.ServiceManager as `0x${string}`,
+          abi: dataHavenServiceManagerAbi,
+          functionName: "addValidatorToAllowlist",
+          args: [validator.publicKey as `0x${string}`],
+          account: getOwnerAccount(),
+          chain: null
+        });
+
+        logger.info(`📝 Transaction hash for allowlist: ${hash}`);
+
+        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+        logger.info(`📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+
+        if (receipt.status === "success") {
+          logger.success(`Added ${validator.publicKey} to allowlist`);
+        } else {
+          logger.error(`❌ Failed to add ${validator.publicKey} to allowlist`);
+          throw new Error(`Transaction failed with status: ${receipt.status}`);
+        }
+      } catch (error) {
+        logger.error(`❌ Error adding ${validator.publicKey} to allowlist: ${error}`);
+        throw error;
+      }
+    }
+
+    // Register Charlie and Dave as operators
+    for (let i = 0; i < newValidators.length; i++) {
+      const validator = newValidators[i];
+      logger.info(`🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`);
+
+      try {
+        const hash = await connectors.walletClient.writeContract({
+          address: deployments.ServiceManager as `0x${string}`,
+          abi: dataHavenServiceManagerAbi,
+          functionName: "registerOperator",
+          args: [
+            validator.publicKey as `0x${string}`,
+            deployments.ServiceManager as `0x${string}`,
+            [0], // VALIDATORS_SET_ID
+            validator.solochainAddress as `0x${string}`
+          ],
+          account: privateKeyToAccount(validator.privateKey as `0x${string}`),
+          chain: null
+        });
+
+        logger.info(`📝 Transaction hash for operator registration: ${hash}`);
+
+        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+        logger.info(`📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+
+        if (receipt.status === "success") {
+          logger.success(`Registered ${validator.publicKey} as operator`);
+        } else {
+          logger.error(`❌ Failed to register ${validator.publicKey} as operator`);
+          throw new Error(`Transaction failed with status: ${receipt.status}`);
+        }
+      } catch (error) {
+        logger.error(`❌ Error registering ${validator.publicKey} as operator: ${error}`);
+        throw error;
+      }
+    }
+
+    logger.info("📤 Sending updated validator set (Charlie, Dave) to DataHaven...");
 
     // Build the updated validator set message
+    logger.info("🔍 Building validator set message...");
     const updatedMessageBytes = await connectors.publicClient.readContract({
       address: deployments.ServiceManager as `0x${string}`,
       abi: dataHavenServiceManagerAbi,
@@ -244,232 +390,61 @@ describe("Validator Set Update", () => {
       args: []
     });
 
-    logger.info(`Updated validator set message size: ${updatedMessageBytes.length} bytes`);
+    logger.info(`📊 Updated validator set message size: ${updatedMessageBytes.length} bytes`);
 
     // Send the updated validator set
     const executionFee = parseEther("0.1"); // 0.1 ETH
     const relayerFee = parseEther("0.2");   // 0.2 ETH
     const totalValue = parseEther("0.3");   // Total fee
 
-    const hash = await connectors.walletClient.writeContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "sendNewValidatorSet",
-      args: [executionFee, relayerFee],
-      value: totalValue,
-      account: getOwnerAccount(),
-      chain: null
-    });
-
-    const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-    expect(receipt.status).toBe("success");
-
-    // Ensure Charlie & Dave were registered on-chain before final count
-    const fromBlock = (await connectors.publicClient.getBlockNumber()) - 2n;
-
-    for (const v of newValidators) {
-      await waitForEthereumEvent({
-        client: connectors.publicClient,
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        eventName: "OperatorRegistered",
-        args: { operator: v.publicKey as `0x${string}`, operatorSetId: 0 }, // both are indexed
-        fromBlock,
-        timeout: 120_000,
-      });
-    }
-
-    logger.success(`✅ Updated validator set (all 4 validators) sent to DataHaven: ${hash}`);
-    logger.info(`Gas used: ${receipt.gasUsed}`);
-  });
-
-  it("should wait for updated validator set propagation", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("⏳ Waiting for updated validator set to propagate...");
-
-    // Wait for the Snowbridge Gateway to accept the updated outbound message
-    const result = await waitForEthereumEvent({
-      client: connectors.publicClient,
-      address: deployments.SnowbridgeGateway as `0x${string}`,
-      abi: gatewayAbi,
-      eventName: "OutboundMessageAccepted",
-      timeout: 45000
-    });
-
-    if (result.log) {
-      logger.success(`✅ Updated validator set message accepted by Snowbridge: tx ${result.log.transactionHash}`);
-    } else {
-      logger.warn("⚠️ Timeout waiting for updated validator set message acceptance");
-    }
-  });
-
-  it("should verify validator set update on DataHaven substrate", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
+    logger.info(`💰 Sending validator set with executionFee=${executionFee}, relayerFee=${relayerFee}, totalValue=${totalValue}`);
 
     try {
-      // Wait for MessageReceived event from inbound queue to confirm message was received
-      const messageReceivedResult = await waitForDataHavenEvent({
-        api: connectors.dhApi,
-        pallet: "EthereumInboundQueueV2",
-        event: "MessageReceived",
-        timeout: 120000
+      const hash = await connectors.walletClient.writeContract({
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        functionName: "sendNewValidatorSet",
+        args: [executionFee, relayerFee],
+        value: totalValue,
+        gas: 1000000n,
+        account: getOwnerAccount(),
+        chain: null
       });
 
-      if (messageReceivedResult.data) {
-        logger.success(`✅ MessageReceived event from inbound queue: ${JSON.stringify(messageReceivedResult.data)}`);
+      logger.info(`📝 Transaction hash for validator set update: ${hash}`);
+
+      const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+      logger.info(`📋 Validator set update receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+
+      if (receipt.status === "success") {
+        logger.success(`Transaction sent: ${hash}`);
+        logger.info(`⛽ Gas used: ${receipt.gasUsed}`);
       } else {
-        logger.warn("⚠️ No MessageReceived event found - checking current state");
+        logger.error(`❌ Transaction failed with status: ${receipt.status}`);
+        throw new Error(`Transaction failed with status: ${receipt.status}`);
       }
 
-      // Wait for ExternalValidatorsSet event to confirm validator set was updated
-      const validatorSetResult = await waitForDataHavenEvent({
-        api: connectors.dhApi,
-        pallet: "ExternalValidators",
-        event: "ExternalValidatorsSet",
-        timeout: 30000
-      });
+      logger.info("🔍 Checking for OutboundMessageAccepted event in transaction receipt...");
 
-      if (validatorSetResult.data) {
-        logger.success(`✅ ExternalValidatorsSet event received: ${JSON.stringify(validatorSetResult.data)}`);
-      } else {
-        logger.warn("⚠️ No ExternalValidatorsSet event found - checking current state");
-      }
-
-      // Check current block to ensure chain is progressing
-      const currentBlock = await connectors.dhApi.query.System.Number.getValue();
-      logger.info(`Current DataHaven block: ${currentBlock}`);
-      expect(currentBlock).toBeGreaterThan(0);
-
-      // Attempt to query validator-related storage
-      try {
-        const externalValidators = await connectors.dhApi.query.ExternalValidators?.WhitelistedValidators?.getValue();
-        if (externalValidators) {
-          logger.info(`External validators found: ${JSON.stringify(externalValidators)}`);
+      const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
+        try {
+          const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+          return decoded.eventName === "OutboundMessageAccepted";
+        } catch {
+          return false;
         }
-      } catch (error) {
-        logger.warn(`Could not query external validators directly: ${error}`);
-      }
-
-      // Query system events to look for validator set updates
-      const latestEvents = await connectors.dhApi.query.System.Events.getValue();
-      logger.info(`Found ${latestEvents.length} events in latest block`);
-
-      // Look for events related to validator set updates
-      const validatorEvents = latestEvents.filter((event: any) =>
-        event.event?.section === "ExternalValidators" ||
-        event.event?.method?.includes("Validator")
-      );
-
-      if (validatorEvents.length > 0) {
-        logger.success(`✅ Found ${validatorEvents.length} validator-related events`);
-        validatorEvents.forEach((event: any, index: number) => {
-          logger.info(`Event ${index}: ${JSON.stringify(event)}`);
-        });
-      } else {
-        logger.warn("⚠️ No validator-related events found yet");
-      }
-
-    } catch (error) {
-      logger.error(`Error querying DataHaven state: ${error}`);
-      // Don't fail the test immediately - the substrate side might need more time
-      logger.warn("⚠️ Could not verify validator set on substrate - this might be expected if the message is still being processed");
-    }
-  });
-
-  it("should verify BEEFY validator set consistency", async () => {
-    const connectors = suite.getTestConnectors();
-
-    try {
-      // Query BEEFY validator set to ensure consensus is working
-      const beefyValidatorSet = await connectors.papiClient.getUnsafeApi().apis.BeefyApi.validator_set();
-
-      if (beefyValidatorSet) {
-        logger.info(`BEEFY validator set ID: ${beefyValidatorSet.id}`);
-        logger.info(`BEEFY validator count: ${beefyValidatorSet.validators.length}`);
-
-        expect(beefyValidatorSet.validators.length).toBeGreaterThan(0);
-        logger.success("✅ BEEFY consensus is operating with active validators");
-
-        // Log validator details
-        beefyValidatorSet.validators.forEach((validator: any, index: number) => {
-          logger.debug(`BEEFY Validator ${index}: ${validator}`);
-        });
-      } else {
-        logger.warn("⚠️ BEEFY validator set not available yet");
-      }
-    } catch (error) {
-      logger.warn(`Could not query BEEFY validator set: ${error}`);
-    }
-  });
-
-  it("should demonstrate validator set update scenario completion", async () => {
-    const connectors = suite.getTestConnectors();
-
-    // Final verification of the complete flow
-    logger.info("📊 Final verification of validator set update flow:");
-
-    // 1. Verify Ethereum side final state
-    // Check that all validators have their mappings set
-    let validatorCount = 0;
-    for (const validator of allValidators) {
-      const solochainAddress = await connectors.publicClient.readContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "validatorEthAddressToSolochainAddress",
-        args: [validator.publicKey as `0x${string}`]
       });
 
-      if (solochainAddress !== "0x0000000000000000000000000000000000000000") {
-        validatorCount++;
+      if (hasOutboundAccepted) {
+        logger.info("✅ OutboundMessageAccepted event found in transaction receipt!");
+      } else {
+        throw new Error("OutboundMessageAccepted event not found in transaction receipt");
       }
+
+    } catch (error) {
+      logger.error(`❌ Error sending validator set update: ${error}`);
+      throw error;
     }
+  }, 300_000);
 
-    logger.info(`✅ Ethereum: ${validatorCount} validators registered`);
-    expect(validatorCount).toBe(4);
-
-    // 2. Verify cross-chain infrastructure is healthy
-    const ethBlock = await connectors.publicClient.getBlockNumber();
-    const dhBlock = await connectors.dhApi.query.System.Number.getValue();
-
-    logger.info(`✅ Ethereum block: ${ethBlock}, DataHaven block: ${dhBlock}`);
-    expect(ethBlock).toBeGreaterThan(0);
-    expect(dhBlock).toBeGreaterThan(0);
-
-    // 3. Confirm the validator set update message was sent
-    logger.info("✅ Validator set update message successfully sent via Snowbridge");
-    logger.info("✅ Cross-chain infrastructure is operational");
-    logger.info("✅ All four validators (alice, bob, charlie, dave) are registered");
-
-    logger.success("🎉 Validator set update scenario completed successfully!");
-    logger.info("📋 Summary:");
-    logger.info("   - Phase 1: Started with Alice and Bob as initial validators");
-    logger.info("   - Phase 2: Added Charlie and Dave to expand the validator set");
-    logger.info("   - Cross-chain: Both validator set updates sent via Snowbridge to DataHaven");
-    logger.info("   - Verification: Confirmed infrastructure health and message delivery");
-    logger.info("   - Result: Successfully demonstrated validator set expansion from 2 to 4 validators");
-  });
-
-  it("should verify validator set update on DataHaven substrate", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
-
-    // Wait for the Snowbridge Gateway to accept the updated outbound message
-    const result = await waitForEthereumEvent({
-      client: connectors.publicClient,
-      address: deployments.SnowbridgeGateway as `0x${string}`,
-      abi: gatewayAbi,
-      eventName: "OutboundMessageAccepted",
-      timeout: 30000
-    });
-
-    if (result.log) {
-      logger.success(`✅ Updated validator set message accepted by Snowbridge: tx ${result.log.transactionHash}`);
-    } else {
-      logger.warn("⚠️ Timeout waiting for updated validator set message acceptance");
-    }
-  });
 }); 

@@ -30,8 +30,9 @@ env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
   DOCKER_HOST: unix:///run/user/1020/podman/podman.sock
-  KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
   KURTOSIS_CORE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-core
+  KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
+  KURTOSIS_VERSION: 1.11.1
 
 jobs:
   kurtosis:
@@ -48,18 +49,20 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      - run: docker pull ${{ env.KURTOSIS_ENGINE_IMAGE }}:1.11.1
-      - run: docker pull ${{ env.KURTOSIS_CORE_IMAGE }}:1.11.1
+      - name: Pull Kurtosis images
+        run: |
+          docker pull ${{ env.KURTOSIS_CORE_IMAGE }}:{{ env.KURTOSIS_VERSION }}
+          docker pull ${{ env.KURTOSIS_ENGINE_IMAGE }}:{{ env.KURTOSIS_VERSION }}
       - name: Install Kurtosis
         run: |
           # Install Kurtosis locally without sudo
-          KURTOSIS_VERSION="1.11.1"
           if ! command -v kurtosis &> /dev/null; then
             echo "Installing Kurtosis $KURTOSIS_VERSION locally"
             mkdir -p ~/.local/bin
             # wget -q -O kurtosis-cli.tar.gz "https://github.com/kurtosis-tech/kurtosis-cli-release-artifacts/releases/download/${KURTOSIS_VERSION}/kurtosis-cli_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
             # tar -xzf kurtosis-cli.tar.gz -C ~/.local/bin
             # rm kurtosis-cli.tar.gz
+            # For now, we use a patched version of Kurtosis CLI & Engine that supports Podman properly
             wget -q -O ~/.local/bin/kurtosis https://github.com/stiiifff/kurtosis/releases/download/1.11.99/kurtosis
             echo "$HOME/.local/bin" >> $GITHUB_PATH
             export PATH="$HOME/.local/bin:$PATH"
@@ -67,7 +70,7 @@ jobs:
             echo "Kurtosis is already installed: $(kurtosis version)"
           fi
           kurtosis analytics disable
-      - run: kurtosis version
+          kurtosis version
       - name: Configure Kurtosis cluster = podman
         run: |
           # Get the config path from Kurtosis itself (portable)
@@ -83,12 +86,12 @@ jobs:
           YML
           kurtosis cluster set podman
           kurtosis cluster get
-      - run: podman info --debug
-      - run: kurtosis engine stop
-      - run: kurtosis clean
-      - run: kurtosis engine start --cli-log-level debug
-      - run: kurtosis engine status
-      - run: cat /home/gh-actions/.config/kurtosis/kurtosis-config.yml
+      - name: Start Kurtosis engine with Podman
+        run: |
+          kurtosis engine stop
+          kurtosis clean
+          kurtosis engine start
+          kurtosis engine status
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -118,21 +121,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download snowbridge binary
+      - name: Download Snowbridge relay binary
         run: |
           docker create --name temp datahavenxyz/snowbridge-relay:latest
           mkdir -p tmp/bin
           docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
           chmod +x tmp/bin/snowbridge-relay
           docker rm temp
-      - run: tmp/bin/snowbridge-relay --help
-      - run: docker pull ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }}
+          tmp/bin/snowbridge-relay --help
       
-      - run: |
+      - name: Pull DataHaven node image 
+        run: |
+          docker pull ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }}
           docker tag ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
-          docker images
+      
       - run: bun install
-      - run: bun test:e2e
+      - name: Run E2E tests
+        run: bun test:e2e
+      
       # Try to collect all docker logs and upload it
       - name: Collect docker logs
         if: always()

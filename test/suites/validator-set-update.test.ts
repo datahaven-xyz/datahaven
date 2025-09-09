@@ -9,44 +9,24 @@
  * - Adds Charlie & Dave to the allowlist, registers them as operators, and sends the updated set
  *   (Alice, Bob, Charlie, Dave).
  * - Verifies propagation on Ethereum and DataHaven, checks BEEFY liveness, and summarizes final state.
- *
- * Operational notes and common pitfalls
- * - Do not double-send the same validator-set transaction. Use either the viem `walletClient.writeContract`
- *   call OR the `updateValidatorSet` script, not both, otherwise Anvil may return
- *   "replacement transaction underpriced" due to nonce/gas replacement rules.
- * - Event waits can exceed 5s. Long-running tests should pass an explicit per-test timeout (e.g. 120_000)
- *   and optionally set `fromBlock` when waiting for events to catch logs emitted before the watcher starts.
- * - DataHaven event names depend on the runtime. If `EthereumInboundQueueV2.MessageReceived` is missing,
- *   scan `System.Events` as a fallback or use the correct pallet name for your build.
- * - Ensure `allValidators` includes both the initial and newly added validators before final assertions.
- * - The "wait 10 minutes" step is intended for manual observation; skip it in CI or increase its timeout.
- *
- * Prerequisites
- * - Deployed contracts in `deployments` (at least `ServiceManager` and `Gateway`).
- * - Snowbridge relayers running and connected to both chains.
+
  */
 import { beforeAll, describe, expect, it } from "bun:test";
-
-import { parseEther } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { decodeEventLog } from "viem";
 import {
+  ANVIL_FUNDED_ACCOUNTS,
+  getValidatorInfoByName,
+  isValidatorNodeRunning,
+  launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
-  ANVIL_FUNDED_ACCOUNTS,
-  getPapiSigner,
-  launchDatahavenValidator,
   TestAccounts,
-  getValidatorInfoByName,
-  type ValidatorInfo,
-  isValidatorNodeRunning
+  type ValidatorInfo
 } from "utils";
-
-import { waitForDataHavenEvent, waitForEthereumEvent } from "utils/events";
-import { BaseTestSuite } from "../framework";
+import { waitForDataHavenEvent } from "utils/events";
+import { decodeEventLog, parseEther } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
-import { performValidatorSetUpdate } from "cli/handlers/launch/validator";
-import { updateValidatorSet } from "scripts/update-validator-set";
+import { BaseTestSuite } from "../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
@@ -54,7 +34,7 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
       suiteName: "validator-set-update",
       networkOptions: {
         slotTime: 2,
-        blockscout: false,
+        blockscout: false
       }
     });
 
@@ -95,7 +75,6 @@ describe("Validator Set Update", () => {
   // Validator sets loaded from external JSON
   let initialValidators: ValidatorInfo[] = [];
   let newValidators: ValidatorInfo[] = [];
-  let allValidators: ValidatorInfo[] = [];
 
   function getOwnerAccount() {
     return privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[6].privateKey as `0x${string}`);
@@ -119,19 +98,20 @@ describe("Validator Set Update", () => {
         getValidatorInfoByName(validatorSetJson, TestAccounts.Dave)
       ];
 
-      allValidators = [...initialValidators, ...newValidators];
       logger.info("✅ Loaded validator set from JSON file");
     } catch (err) {
       logger.error(`Failed to load validator set from ${validatorSetPath}: ${err}`);
       throw err;
     }
-
   });
 
   it("should verify validators are running", async () => {
     const isAliceRunning = await isValidatorNodeRunning(TestAccounts.Alice, suite.getNetworkId());
     const isBobRunning = await isValidatorNodeRunning(TestAccounts.Bob, suite.getNetworkId());
-    const isCharlieRunning = await isValidatorNodeRunning(TestAccounts.Charlie, suite.getNetworkId());
+    const isCharlieRunning = await isValidatorNodeRunning(
+      TestAccounts.Charlie,
+      suite.getNetworkId()
+    );
     const isDaveRunning = await isValidatorNodeRunning(TestAccounts.Dave, suite.getNetworkId());
 
     expect(isAliceRunning).toBe(true);
@@ -204,7 +184,9 @@ describe("Validator Set Update", () => {
     // Add Charlie and Dave to the allowlist
     for (let i = 0; i < newValidators.length; i++) {
       const validator = newValidators[i];
-      logger.info(`🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`);
+      logger.info(
+        `🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`
+      );
 
       let retryCount = 0;
       const maxRetries = 3;
@@ -223,18 +205,21 @@ describe("Validator Set Update", () => {
           logger.info(`📝 Transaction hash for allowlist: ${hash}`);
 
           const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-          logger.info(`📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+          logger.info(
+            `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+          );
 
           if (receipt.status === "success") {
             logger.success(`✅ Added ${validator.publicKey} to allowlist`);
             break; // Success, exit retry loop
-          } else {
-            logger.error(`❌ Failed to add ${validator.publicKey} to allowlist`);
-            throw new Error(`Transaction failed with status: ${receipt.status}`);
           }
+          logger.error(`❌ Failed to add ${validator.publicKey} to allowlist`);
+          throw new Error(`Transaction failed with status: ${receipt.status}`);
         } catch (error) {
           retryCount++;
-          logger.warn(`⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`);
+          logger.warn(
+            `⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
+          );
 
           if (retryCount >= maxRetries) {
             logger.error(`❌ All retry attempts failed for ${validator.publicKey}`);
@@ -242,7 +227,7 @@ describe("Validator Set Update", () => {
           }
 
           // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+          await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
         }
       }
     }
@@ -256,7 +241,9 @@ describe("Validator Set Update", () => {
     // Register Charlie and Dave as operators
     for (let i = 0; i < newValidators.length; i++) {
       const validator = newValidators[i];
-      logger.info(`🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`);
+      logger.info(
+        `🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`
+      );
 
       let retryCount = 0;
       const maxRetries = 3;
@@ -280,18 +267,21 @@ describe("Validator Set Update", () => {
           logger.info(`📝 Transaction hash for operator registration: ${hash}`);
 
           const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-          logger.info(`📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+          logger.info(
+            `📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+          );
 
           if (receipt.status === "success") {
             logger.success(`✅ Registered ${validator.publicKey} as operator`);
             break; // Success, exit retry loop
-          } else {
-            logger.error(`❌ Failed to register ${validator.publicKey} as operator`);
-            throw new Error(`Transaction failed with status: ${receipt.status}`);
           }
+          logger.error(`❌ Failed to register ${validator.publicKey} as operator`);
+          throw new Error(`Transaction failed with status: ${receipt.status}`);
         } catch (error) {
           retryCount++;
-          logger.warn(`⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`);
+          logger.warn(
+            `⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
+          );
 
           if (retryCount >= maxRetries) {
             logger.error(`❌ All retry attempts failed for ${validator.publicKey}`);
@@ -299,7 +289,7 @@ describe("Validator Set Update", () => {
           }
 
           // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+          await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
         }
       }
     }
@@ -313,7 +303,9 @@ describe("Validator Set Update", () => {
     // First, add Charlie and Dave to the allowlist
     for (let i = 0; i < newValidators.length; i++) {
       const validator = newValidators[i];
-      logger.info(`🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`);
+      logger.info(
+        `🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`
+      );
 
       try {
         const hash = await connectors.walletClient.writeContract({
@@ -328,7 +320,9 @@ describe("Validator Set Update", () => {
         logger.info(`📝 Transaction hash for allowlist: ${hash}`);
 
         const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-        logger.info(`📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+        logger.info(
+          `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+        );
 
         if (receipt.status === "success") {
           logger.success(`Added ${validator.publicKey} to allowlist`);
@@ -345,7 +339,9 @@ describe("Validator Set Update", () => {
     // Register Charlie and Dave as operators
     for (let i = 0; i < newValidators.length; i++) {
       const validator = newValidators[i];
-      logger.info(`🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`);
+      logger.info(
+        `🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`
+      );
 
       try {
         const hash = await connectors.walletClient.writeContract({
@@ -365,7 +361,9 @@ describe("Validator Set Update", () => {
         logger.info(`📝 Transaction hash for operator registration: ${hash}`);
 
         const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-        logger.info(`📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+        logger.info(
+          `📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+        );
 
         if (receipt.status === "success") {
           logger.success(`Registered ${validator.publicKey} as operator`);
@@ -394,10 +392,12 @@ describe("Validator Set Update", () => {
 
     // Send the updated validator set
     const executionFee = parseEther("0.1"); // 0.1 ETH
-    const relayerFee = parseEther("0.2");   // 0.2 ETH
-    const totalValue = parseEther("0.3");   // Total fee
+    const relayerFee = parseEther("0.2"); // 0.2 ETH
+    const totalValue = parseEther("0.3"); // Total fee
 
-    logger.info(`💰 Sending validator set with executionFee=${executionFee}, relayerFee=${relayerFee}, totalValue=${totalValue}`);
+    logger.info(
+      `💰 Sending validator set with executionFee=${executionFee}, relayerFee=${relayerFee}, totalValue=${totalValue}`
+    );
 
     try {
       const hash = await connectors.walletClient.writeContract({
@@ -414,7 +414,9 @@ describe("Validator Set Update", () => {
       logger.info(`📝 Transaction hash for validator set update: ${hash}`);
 
       const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-      logger.info(`📋 Validator set update receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`);
+      logger.info(
+        `📋 Validator set update receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+      );
 
       if (receipt.status === "success") {
         logger.success(`Transaction sent: ${hash}`);

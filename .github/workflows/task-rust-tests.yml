@@ -22,7 +22,6 @@ jobs:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
-      RUSTFLAGS: "${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold"
       SCCACHE_GHA_ENABLED: "true"
     defaults:
       run:
@@ -36,6 +35,10 @@ jobs:
         with:
           cache-key: "TEST"
           install-deps: false
+      
+      - name: Set build flags
+        run: echo "RUSTFLAGS=$RUSTFLAGS -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+      
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
         run: |

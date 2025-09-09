@@ -122,6 +122,11 @@ runs:
           sed -i "s|/usr|$LOCAL_DIR|g" "$LOCAL_PKG_CONFIG"/*.pc 2>/dev/null || true
           
           cd "$HOME" && rm -rf "$WORK_DIR"
+          
+          # Export build flags for libpq
+          echo "LDFLAGS=-L$LOCAL_LIB $LDFLAGS" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$LOCAL_INCLUDE $CPPFLAGS" >> $GITHUB_ENV
+          
           echo "✓ libpq installed"
         else
           echo "✓ libpq found: $(pkg-config --modversion libpq 2>/dev/null || echo 'version unknown')"

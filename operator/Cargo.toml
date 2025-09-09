@@ -30,6 +30,8 @@ pallet-external-validators-rewards = { path = "./pallets/external-validators-rew
 pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-datahaven-native-transfer = { path = "./pallets/datahaven-native-transfer", default-features = false }
+pallet-evm-precompile-batch = { path = "./precompiles/batch", default-features = false }
+pallet-evm-precompile-call-permit = { path = "./precompiles/call-permit", default-features = false }
 pallet-evm-precompile-registry = { path = "./precompiles/precompile-registry", default-features = false }
 
 # Crates.io (wasm)
@@ -204,6 +206,7 @@ snowbridge-test-utils = { path = "primitives/snowbridge/test-utils", default-fea
 snowbridge-verification-primitives = { path = "primitives/snowbridge/verification", default-features = false }
 
 # Frontier (wasm)
+evm = { git = "https://github.com/rust-ethereum/evm", rev = "6d86fe2d3bcc14887c2575f62958a67ac2d523db", default-features = false }
 fp-account = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 fp-evm = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }
 fp-rpc = { git = "https://github.com/polkadot-evm/frontier", rev="75329a2df49e2cc7981485392c31160929d1bd48", default-features = false }

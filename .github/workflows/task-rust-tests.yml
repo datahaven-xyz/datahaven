@@ -22,7 +22,7 @@ jobs:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
-      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+      RUSTFLAGS: "${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold"
       SCCACHE_GHA_ENABLED: "true"
     defaults:
       run:
@@ -36,7 +36,7 @@ jobs:
         with:
           cache-key: "TEST"
           install-deps: false
-      - uses: ./.github/workflows/actions/cleanup-runner
+      # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
         run: |
           if ! command -v cargo-nextest &> /dev/null; then

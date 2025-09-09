@@ -126,6 +126,8 @@ runs:
           # Export build flags for libpq
           echo "LDFLAGS=-L$LOCAL_LIB $LDFLAGS" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$LOCAL_INCLUDE $CPPFLAGS" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$LOCAL_LIB:$LIBRARY_PATH" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-L $LOCAL_LIB $RUSTFLAGS" >> $GITHUB_ENV
           
           echo "✓ libpq installed"
         else

@@ -17,7 +17,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
-  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
+  RUSTFLAGS: "${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
 

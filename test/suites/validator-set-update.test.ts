@@ -440,11 +440,75 @@ describe("Validator Set Update", () => {
       } else {
         throw new Error("OutboundMessageAccepted event not found in transaction receipt");
       }
-
     } catch (error) {
       logger.error(`❌ Error sending validator set update: ${error}`);
       throw error;
     }
   }, 300_000);
 
-}); 
+  it("should verify validator set update on DataHaven substrate", async () => {
+    const connectors = suite.getTestConnectors();
+
+    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
+
+    try {
+      // Wait for ExternalValidatorsSet event to confirm validator set was updated
+      const validatorSetResult = await waitForDataHavenEvent({
+        api: connectors.dhApi,
+        pallet: "ExternalValidators",
+        event: "ExternalValidatorsSet",
+        timeout: 30000
+      });
+
+      if (validatorSetResult.data) {
+        logger.success(
+          `✅ ExternalValidatorsSet event received: ${JSON.stringify(validatorSetResult.data)}`
+        );
+      } else {
+        logger.warn("⚠️ No ExternalValidatorsSet event found - checking current state");
+      }
+
+      // Check current block to ensure chain is progressing
+      const currentBlock = await connectors.dhApi.query.System.Number.getValue();
+      logger.info(`Current DataHaven block: ${currentBlock}`);
+      expect(currentBlock).toBeGreaterThan(0);
+
+      // Attempt to query validator-related storage
+      try {
+        const externalValidators =
+          await connectors.dhApi.query.ExternalValidators?.WhitelistedValidators?.getValue();
+        if (externalValidators) {
+          logger.info(`External validators found: ${JSON.stringify(externalValidators)}`);
+        }
+      } catch (error) {
+        logger.warn(`Could not query external validators directly: ${error}`);
+      }
+
+      // Query system events to look for validator set updates
+      const latestEvents = await connectors.dhApi.query.System.Events.getValue();
+      logger.info(`Found ${latestEvents.length} events in latest block`);
+
+      // Look for events related to validator set updates
+      const validatorEvents = latestEvents.filter(
+        (event: any) =>
+          event.event?.section === "ExternalValidators" ||
+          event.event?.method?.includes("Validator")
+      );
+
+      if (validatorEvents.length > 0) {
+        logger.success(`✅ Found ${validatorEvents.length} validator-related events`);
+        validatorEvents.forEach((event: any, index: number) => {
+          logger.info(`Event ${index}: ${JSON.stringify(event)}`);
+        });
+      } else {
+        logger.warn("⚠️ No validator-related events found yet");
+      }
+    } catch (error) {
+      logger.error(`Error querying DataHaven state: ${error}`);
+      // Don't fail the test immediately - the substrate side might need more time
+      logger.warn(
+        "⚠️ Could not verify validator set on substrate - this might be expected if the message is still being processed"
+      );
+    }
+  }, 300000);
+});

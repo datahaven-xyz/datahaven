@@ -35,7 +35,7 @@ jobs:
         with:
           cache-key: "TEST"
           install-deps: true
-      # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
+      - uses: ./.github/workflows/actions/cleanup-runner
       - name: Install nextest
         run: |
           if ! command -v cargo-nextest &> /dev/null; then

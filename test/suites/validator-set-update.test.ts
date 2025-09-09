@@ -1,15 +1,12 @@
 /**
- * Validator Set Update E2E (Ethereum -> Snowbridge -> DataHaven)
+ * Validator Set Update E2E: Ethereum → Snowbridge → DataHaven
  *
- * What this test exercises
- * - Launches a fresh network with Snowbridge relayers and 4 validators (Alice, Bob, Charlie, Dave).
- *   Initially only Alice & Bob are mapped on the `ServiceManager`.
- * - Sends the initial set (Alice, Bob) via `ServiceManager.sendNewValidatorSet`, then waits for the
- *   Snowbridge `Gateway` event `OutboundMessageAccepted`.
- * - Adds Charlie & Dave to the allowlist, registers them as operators, and sends the updated set
- *   (Alice, Bob, Charlie, Dave).
- * - Verifies propagation on Ethereum and DataHaven, checks BEEFY liveness, and summarizes final state.
-
+ * Exercises:
+ * - Start network and ensure 4 validator nodes are running (Alice, Bob, Charlie, Dave).
+ * - Confirm initial mapping exists only for Alice/Bob on `ServiceManager`.
+ * - Allowlist and register Charlie/Dave as operators on Ethereum.
+ * - Send updated validator set via `ServiceManager.sendNewValidatorSet`, assert Gateway `OutboundMessageAccepted`.
+ * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
 import {
@@ -54,16 +51,10 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
     await launchDatahavenValidator(TestAccounts.Dave, {
       launchedNetwork: this.getConnectors().launchedNetwork
     });
-
-    deployments = await parseDeploymentsFile();
   }
 
   public getNetworkId(): string {
     return this.getConnectors().launchedNetwork.networkId;
-  }
-
-  public getRpcUrl(): string {
-    return this.getConnectors().launchedNetwork.elRpcUrl;
   }
 }
 
@@ -157,7 +148,7 @@ describe("Validator Set Update", () => {
     }
   });
 
-  it("should verify initial validator set state", async () => {
+  it("should verify new validators are not yet registered", async () => {
     const connectors = suite.getTestConnectors();
 
     // Verify that new validators are not yet registered
@@ -298,85 +289,7 @@ describe("Validator Set Update", () => {
   it("should send updated validator set to DataHaven", async () => {
     const connectors = suite.getTestConnectors();
 
-    logger.info("📤 Registering Charlie and Dave as operators...");
-
-    // First, add Charlie and Dave to the allowlist
-    for (let i = 0; i < newValidators.length; i++) {
-      const validator = newValidators[i];
-      logger.info(
-        `🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`
-      );
-
-      try {
-        const hash = await connectors.walletClient.writeContract({
-          address: deployments.ServiceManager as `0x${string}`,
-          abi: dataHavenServiceManagerAbi,
-          functionName: "addValidatorToAllowlist",
-          args: [validator.publicKey as `0x${string}`],
-          account: getOwnerAccount(),
-          chain: null
-        });
-
-        logger.info(`📝 Transaction hash for allowlist: ${hash}`);
-
-        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-        logger.info(
-          `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-        );
-
-        if (receipt.status === "success") {
-          logger.success(`Added ${validator.publicKey} to allowlist`);
-        } else {
-          logger.error(`❌ Failed to add ${validator.publicKey} to allowlist`);
-          throw new Error(`Transaction failed with status: ${receipt.status}`);
-        }
-      } catch (error) {
-        logger.error(`❌ Error adding ${validator.publicKey} to allowlist: ${error}`);
-        throw error;
-      }
-    }
-
-    // Register Charlie and Dave as operators
-    for (let i = 0; i < newValidators.length; i++) {
-      const validator = newValidators[i];
-      logger.info(
-        `🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`
-      );
-
-      try {
-        const hash = await connectors.walletClient.writeContract({
-          address: deployments.ServiceManager as `0x${string}`,
-          abi: dataHavenServiceManagerAbi,
-          functionName: "registerOperator",
-          args: [
-            validator.publicKey as `0x${string}`,
-            deployments.ServiceManager as `0x${string}`,
-            [0], // VALIDATORS_SET_ID
-            validator.solochainAddress as `0x${string}`
-          ],
-          account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-          chain: null
-        });
-
-        logger.info(`📝 Transaction hash for operator registration: ${hash}`);
-
-        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-        logger.info(
-          `📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-        );
-
-        if (receipt.status === "success") {
-          logger.success(`Registered ${validator.publicKey} as operator`);
-        } else {
-          logger.error(`❌ Failed to register ${validator.publicKey} as operator`);
-          throw new Error(`Transaction failed with status: ${receipt.status}`);
-        }
-      } catch (error) {
-        logger.error(`❌ Error registering ${validator.publicKey} as operator: ${error}`);
-        throw error;
-      }
-    }
-
+    // proceed directly to sending, allowlist/register already covered in previous tests
     logger.info("📤 Sending updated validator set (Charlie, Dave) to DataHaven...");
 
     // Build the updated validator set message
@@ -391,9 +304,9 @@ describe("Validator Set Update", () => {
     logger.info(`📊 Updated validator set message size: ${updatedMessageBytes.length} bytes`);
 
     // Send the updated validator set
-    const executionFee = parseEther("0.1"); // 0.1 ETH
-    const relayerFee = parseEther("0.2"); // 0.2 ETH
-    const totalValue = parseEther("0.3"); // Total fee
+    const executionFee = parseEther("0.1");
+    const relayerFee = parseEther("0.2");
+    const totalValue = parseEther("0.3");
 
     logger.info(
       `💰 Sending validator set with executionFee=${executionFee}, relayerFee=${relayerFee}, totalValue=${totalValue}`

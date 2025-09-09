@@ -35,6 +35,8 @@ import { getPublicPort } from "utils/docker";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { waitForContainerToStart } from "utils";
 import { LaunchedNetwork } from "../launcher/types/launchedNetwork";
+import { dataHavenServiceManagerAbi } from "contract-bindings";
+import { privateKeyToAccount } from "viem/accounts";
 
 /**
  * Enum for test account names that are prefunded in substrate
@@ -211,4 +213,23 @@ export const getValidatorInfoByName = (validatorSetJson: any, account: TestAccou
     throw new Error(`Node ${account} not found in validator set`);
   }
   return node;
+}
+
+/**
+ * Adds a validator to the EigenLayer allowlist
+ * @param connectors - The connectors to use
+ * @param validator - The validator to add to the allowlist
+ */
+export const addValidatorToAllowlist = async (connectors: any, validator: ValidatorInfo, deployments: any) => {
+  logger.info(`Adding validator ${validator.publicKey} to allowlist...`);
+  const hash = await connectors.walletClient.writeContract({
+    address: deployments.ServiceManager as `0x${string}`,
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addValidatorToAllowlist",
+    args: [validator.publicKey as `0x${string}`],
+    account: privateKeyToAccount(validator.privateKey as `0x${string}`),
+    chain: null
+  });
+  await connectors.publicClient.waitForTransactionReceipt({ hash });
+  logger.info(`✅ Validator ${validator.publicKey} added to allowlist`);
 }

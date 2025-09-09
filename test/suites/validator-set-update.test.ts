@@ -100,23 +100,6 @@ describe("Validator Set Update", () => {
   }
 
   /**
-   * Helper to add a validator to the EigenLayer allowlist
-   */
-  async function addValidatorToAllowlist(connectors: any, validator: ValidatorInfo) {
-    logger.info(`Adding validator ${validator.publicKey} to allowlist...`);
-    const hash = await connectors.walletClient.writeContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "addValidatorToAllowlist",
-      args: [validator.publicKey as `0x${string}`],
-      account: getOwnerAccount(),
-      chain: null
-    });
-    await connectors.publicClient.waitForTransactionReceipt({ hash });
-    logger.info(`✅ Validator ${validator.publicKey} added to allowlist`);
-  }
-
-  /**
    * Helper to register a validator operator in the ServiceManager
    */
   async function registerValidatorOperator(connectors: any, validator: ValidatorInfo) {

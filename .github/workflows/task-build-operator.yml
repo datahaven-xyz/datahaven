@@ -40,7 +40,7 @@ jobs:
           install-deps: false
 
       - name: Set build flags
-        run: echo "RUSTFLAGS=$RUSTFLAGS -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
       - name: Build node binary
         run: |

@@ -56,7 +56,7 @@ jobs:
           install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Set build flags
-        run: echo "RUSTFLAGS=$RUSTFLAGS -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
       - name: Run cargo clippy
         run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --release

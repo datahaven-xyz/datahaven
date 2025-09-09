@@ -37,7 +37,7 @@ jobs:
           install-deps: false
       
       - name: Set build flags
-        run: echo "RUSTFLAGS=$RUSTFLAGS -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
       
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest

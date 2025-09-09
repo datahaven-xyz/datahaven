@@ -84,19 +84,12 @@ runs:
         
         mkdir -p "$LOCAL_BIN" "$LOCAL_LIB" "$LOCAL_INCLUDE" "$LOCAL_PKG_CONFIG"
         
-        # Add local paths to environment
-        export PATH="$LOCAL_BIN:$PATH"
-        export LD_LIBRARY_PATH="$LOCAL_LIB:$LD_LIBRARY_PATH"
-        export PKG_CONFIG_PATH="$LOCAL_PKG_CONFIG:$PKG_CONFIG_PATH"
-        export C_INCLUDE_PATH="$LOCAL_INCLUDE:$C_INCLUDE_PATH"
-        export CPLUS_INCLUDE_PATH="$LOCAL_INCLUDE:$CPLUS_INCLUDE_PATH"
-        
-        # Export paths for future steps
+        # Export paths for future steps (avoid duplication)
         echo "$LOCAL_BIN" >> $GITHUB_PATH
-        echo "LD_LIBRARY_PATH=$LOCAL_LIB:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=$LOCAL_PKG_CONFIG:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-        echo "C_INCLUDE_PATH=$LOCAL_INCLUDE:$C_INCLUDE_PATH" >> $GITHUB_ENV
-        echo "CPLUS_INCLUDE_PATH=$LOCAL_INCLUDE:$CPLUS_INCLUDE_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=$LOCAL_LIB:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=$LOCAL_PKG_CONFIG:${PKG_CONFIG_PATH:-}" >> $GITHUB_ENV
+        echo "C_INCLUDE_PATH=$LOCAL_INCLUDE:${C_INCLUDE_PATH:-}" >> $GITHUB_ENV
+        echo "CPLUS_INCLUDE_PATH=$LOCAL_INCLUDE:${CPLUS_INCLUDE_PATH:-}" >> $GITHUB_ENV
         
         # Check and install PostgreSQL client libraries if needed
         if ! pkg-config --exists libpq 2>/dev/null; then
@@ -124,10 +117,10 @@ runs:
           cd "$HOME" && rm -rf "$WORK_DIR"
           
           # Export build flags for libpq
-          echo "LDFLAGS=-L$LOCAL_LIB $LDFLAGS" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$LOCAL_INCLUDE $CPPFLAGS" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$LOCAL_LIB:$LIBRARY_PATH" >> $GITHUB_ENV
-          echo "RUSTFLAGS=-L $LOCAL_LIB $RUSTFLAGS" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$LOCAL_LIB ${LDFLAGS:-}" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$LOCAL_INCLUDE ${CPPFLAGS:-}" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$LOCAL_LIB:${LIBRARY_PATH:-}" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-L $LOCAL_LIB" >> $GITHUB_ENV
           
           echo "✓ libpq installed"
         else

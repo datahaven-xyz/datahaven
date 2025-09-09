@@ -108,13 +108,11 @@ runs:
           # Try to download libpq5 and libpq-dev packages directly
           echo "Downloading libpq packages for $ARCH..."
           
-          # Download libpq5 (runtime library)
-          wget -q -O /tmp/libpq5.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/libpq5_16.4-0ubuntu0.24.04.2_${ARCH}.deb" || \
-          wget -q -O /tmp/libpq5.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-15/libpq5_15.8-0ubuntu0.24.04.1_${ARCH}.deb"
+          # Download libpq5 (runtime library) - using PostgreSQL 17 from official PostgreSQL APT repo
+          wget -q -O /tmp/libpq5.deb "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/libpq5_17.6-1.pgdg+1_${ARCH}.deb"
           
           # Download libpq-dev (development headers)  
-          wget -q -O /tmp/libpq-dev.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/libpq-dev_16.4-0ubuntu0.24.04.2_${ARCH}.deb" || \
-          wget -q -O /tmp/libpq-dev.deb "http://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-15/libpq-dev_15.8-0ubuntu0.24.04.1_${ARCH}.deb"
+          wget -q -O /tmp/libpq-dev.deb "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/libpq-dev_17.6-1.pgdg+1_${ARCH}.deb"
           
           # Extract packages without installing system-wide
           if [ -f /tmp/libpq5.deb ] && [ -f /tmp/libpq-dev.deb ]; then

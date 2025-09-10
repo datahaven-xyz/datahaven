@@ -7,9 +7,6 @@ version = "0.1.0"
 
 [dependencies]
 
-# Moonbeam
-account = { workspace = true }
-
 # Substrate
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -51,5 +48,4 @@ std = [
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"account/std",
 ]

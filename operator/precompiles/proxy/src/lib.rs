@@ -16,7 +16,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use account::SYSTEM_ACCOUNT_SIZE;
 use evm::ExitReason;
 use fp_evm::{
     Context, PrecompileFailure, PrecompileHandle, Transfer, ACCOUNT_CODES_METADATA_PROOF_SIZE,
@@ -35,6 +34,10 @@ use sp_runtime::{
     SaturatedConversion,
 };
 use sp_std::marker::PhantomData;
+
+/// System account size in bytes = Pallet_Name_Hash (16) + Storage_name_hash (16) +
+/// Blake2_128Concat (16) + AccountId (20) + AccountInfo (4 + 12 + AccountData (4* 16)) = 148
+pub const SYSTEM_ACCOUNT_SIZE: u64 = 148;
 
 #[cfg(test)]
 pub mod mock;

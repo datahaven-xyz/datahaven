@@ -46,6 +46,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+/// System account size in bytes = Pallet_Name_Hash (16) + Storage_name_hash (16) +
+/// Blake2_128Concat (16) + AccountId (20) + AccountInfo (4 + 12 + AccountData (4* 16)) = 148
+pub const SYSTEM_ACCOUNT_SIZE: u64 = 148;
+
 /// Solidity selector of the Transfer log, which is the Keccak of the Log signature.
 pub const SELECTOR_LOG_TRANSFER: [u8; 32] = keccak256!("Transfer(address,address,uint256)");
 
@@ -192,6 +196,7 @@ where
     #[precompile::public("totalSupply()")]
     #[precompile::view]
     fn total_supply(handle: &mut impl PrecompileHandle) -> EvmResult<U256> {
+        // TotalIssuance: Balance(16)
         handle.record_db_read::<Runtime>(16)?;
 
         Ok(pallet_balances::Pallet::<Runtime, Instance>::total_issuance().into())
@@ -200,6 +205,8 @@ where
     #[precompile::public("balanceOf(address)")]
     #[precompile::view]
     fn balance_of(handle: &mut impl PrecompileHandle, owner: Address) -> EvmResult<U256> {
+        // frame_system::Account:
+        // Blake2128(16) + AccountId(20) + AccountInfo ((4 * 4) + AccountData(16 * 4))
         handle.record_db_read::<Runtime>(116)?;
 
         let owner: H160 = owner.into();
@@ -215,6 +222,8 @@ where
         owner: Address,
         spender: Address,
     ) -> EvmResult<U256> {
+        // frame_system::ApprovesStorage:
+        // (2 * (Blake2128(16) + AccountId(20)) + Balanceof(16)
         handle.record_db_read::<Runtime>(88)?;
 
         let owner: H160 = owner.into();
@@ -283,7 +292,7 @@ where
                     dest: Runtime::Lookup::unlookup(to),
                     value,
                 },
-                0, // Remove SYSTEM_ACCOUNT_SIZE reference for now
+                SYSTEM_ACCOUNT_SIZE,
             )?;
         }
 
@@ -306,6 +315,8 @@ where
         to: Address,
         value: U256,
     ) -> EvmResult<bool> {
+        // frame_system::ApprovesStorage:
+        // (2 * (Blake2128(16) + AccountId(20)) + Balanceof(16)
         handle.record_db_read::<Runtime>(88)?;
         handle.record_cost(RuntimeHelper::<Runtime>::db_write_gas_cost())?;
         handle.record_log_costs_manual(3, 32)?;
@@ -347,7 +358,7 @@ where
                     dest: Runtime::Lookup::unlookup(to),
                     value,
                 },
-                0, // Remove SYSTEM_ACCOUNT_SIZE reference for now
+                SYSTEM_ACCOUNT_SIZE,
             )?;
         }
 
@@ -409,7 +420,7 @@ where
                 dest: Runtime::Lookup::unlookup(caller),
                 value: amount,
             },
-            0, // Remove SYSTEM_ACCOUNT_SIZE reference for now
+            SYSTEM_ACCOUNT_SIZE,
         )?;
 
         log2(

@@ -32,15 +32,24 @@ frame-try-runtime = { workspace = true, optional = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
+num-bigint = { workspace = true }
+num_enum = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
 pallet-balances = { workspace = true, features = ["insecure_zero_ed"] }
 pallet-beefy = { workspace = true }
 pallet-beefy-mmr = { workspace = true }
+pallet-collective = { workspace = true }
+pallet-conviction-voting = { workspace = true }
 pallet-datahaven-native-transfer = { workspace = true }
-pallet-ethereum = { workspace = true }
-pallet-evm = { workspace = true }
+pallet-ethereum = { workspace = true, features = ["forbid-evm-reentrancy"] }
+pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
 pallet-evm-chain-id = { workspace = true }
+pallet-evm-precompile-blake2 = { workspace = true }
+pallet-evm-precompile-bn128 = { workspace = true }
+pallet-evm-precompile-modexp = { workspace = true }
+pallet-evm-precompile-sha3fips = { workspace = true }
+pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
@@ -55,6 +64,7 @@ pallet-outbound-commitment-store = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
 pallet-sudo = { workspace = true }
@@ -63,12 +73,15 @@ pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
+pallet-whitelist = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+precompile-utils = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
 serde_json = { workspace = true, default-features = false, features = [
     "alloc",
 ] }
+smallvec = { workspace = true }
 snowbridge-beacon-primitives = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
@@ -103,6 +116,36 @@ sp-version = { workspace = true, features = ["serde"] }
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+
+# DataHaven precompiles
+pallet-evm-precompile-batch = { workspace = true }
+pallet-evm-precompile-call-permit = { workspace = true }
+pallet-evm-precompile-registry = { workspace = true }
+
+# StorageHub
+pallet-bucket-nfts = { workspace = true }
+pallet-nfts = { workspace = true }
+pallet-cr-randomness = { workspace = true }
+pallet-file-system = { workspace = true }
+pallet-file-system-runtime-api = { workspace = true }
+pallet-payment-streams = { workspace = true }
+pallet-payment-streams-runtime-api = { workspace = true }
+pallet-proofs-dealer = { workspace = true }
+pallet-proofs-dealer-runtime-api = { workspace = true }
+pallet-randomness = { workspace = true }
+pallet-storage-providers = { workspace = true }
+pallet-storage-providers-runtime-api = { workspace = true }
+shc-common = { workspace = true, optional = true }
+shp-constants = { workspace = true }
+shp-file-metadata = { workspace = true }
+shp-traits = { workspace = true }
+shp-treasury-funding = { workspace = true }
+shp-forest-verifier = { workspace = true }
+shp-file-key-verifier = { workspace = true }
+shp-data-price-updater = { workspace = true }
+sp-trie = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
@@ -112,6 +155,8 @@ substrate-wasm-builder = { workspace = true, optional = true, default-features =
 frame-support-test = { workspace = true }
 sp-io = { workspace = true }
 sp-tracing = { workspace = true }
+
+precompile-utils = { workspace = true, features = ["std", "testing"] }
 
 # Snowbridge testing
 snowbridge-core = { workspace = true }
@@ -125,6 +170,7 @@ std = [
     "codec/std",
     "datahaven-runtime-common/std",
     "fp-account/std",
+    "fp-evm/std",
     "frame-benchmarking?/std",
     "frame-executive/std",
     "frame-metadata-hash-extension/std",
@@ -138,9 +184,14 @@ std = [
     "pallet-balances/std",
     "pallet-beefy-mmr/std",
     "pallet-beefy/std",
+    "pallet-collective/std",
+    "pallet-conviction-voting/std",
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+    "pallet-evm-precompile-batch/std",
+    "pallet-evm-precompile-call-permit/std",
+    "pallet-evm-precompile-registry/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
@@ -150,6 +201,7 @@ std = [
     "pallet-offences/std",
     "pallet-parameters/std",
     "pallet-preimage/std",
+    "pallet-referenda/std",
     "pallet-proxy/std",
     "pallet-scheduler/std",
     "pallet-session/std",
@@ -159,8 +211,11 @@ std = [
     "pallet-transaction-payment/std",
     "pallet-treasury/std",
     "pallet-utility/std",
+    "pallet-whitelist/std",
+    "precompile-utils/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
+    "precompile-utils/std",
     "scale-info/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",
@@ -199,6 +254,28 @@ std = [
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
     "pallet-datahaven-native-transfer/std",
+
+    # StorageHub
+	"pallet-bucket-nfts/std",
+    "pallet-nfts/std",
+	"pallet-cr-randomness/std",
+	"pallet-file-system/std",
+	"pallet-file-system-runtime-api/std",
+	"pallet-payment-streams/std",
+	"pallet-payment-streams-runtime-api/std",
+	"pallet-proofs-dealer/std",
+	"pallet-proofs-dealer-runtime-api/std",
+	"pallet-randomness/std",
+	"pallet-storage-providers/std",
+	"pallet-storage-providers-runtime-api/std",
+    "dep:shc-common",
+	"shc-common/std",
+    "shp-constants/std",
+	"shp-file-metadata/std",
+	"shp-forest-verifier/std",
+	"shp-traits/std",
+	"shp-treasury-funding/std",
+    "shp-file-key-verifier/std",
 ]
 
 runtime-benchmarks = [
@@ -210,6 +287,8 @@ runtime-benchmarks = [
     "frame-system/runtime-benchmarks",
     "pallet-balances/runtime-benchmarks",
     "pallet-beefy-mmr/runtime-benchmarks",
+    "pallet-collective/runtime-benchmarks",
+    "pallet-conviction-voting/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
@@ -221,12 +300,14 @@ runtime-benchmarks = [
     "pallet-offences/runtime-benchmarks",
     "pallet-parameters/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
+    "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-treasury/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
+    "pallet-whitelist/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
     "snowbridge-inbound-queue-primitives/runtime-benchmarks",
@@ -253,6 +334,8 @@ try-runtime = [
     "pallet-balances/try-runtime",
     "pallet-beefy-mmr/try-runtime",
     "pallet-beefy/try-runtime",
+    "pallet-collective/try-runtime",
+    "pallet-conviction-voting/try-runtime",
     "pallet-ethereum/try-runtime",
     "pallet-evm/try-runtime",
     "pallet-grandpa/try-runtime",
@@ -264,6 +347,7 @@ try-runtime = [
     "pallet-offences/try-runtime",
     "pallet-parameters/try-runtime",
     "pallet-preimage/try-runtime",
+    "pallet-referenda/try-runtime",
     "pallet-proxy/try-runtime",
     "pallet-scheduler/try-runtime",
     "pallet-session/try-runtime",
@@ -272,6 +356,7 @@ try-runtime = [
     "pallet-transaction-payment/try-runtime",
     "pallet-treasury/try-runtime",
     "pallet-utility/try-runtime",
+    "pallet-whitelist/try-runtime",
     "polkadot-runtime-common/try-runtime",
     "snowbridge-pallet-ethereum-client/try-runtime",
     "snowbridge-pallet-inbound-queue-v2/try-runtime",

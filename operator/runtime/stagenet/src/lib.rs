@@ -9,7 +9,11 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks;
 pub mod configs;
+pub mod precompiles;
 pub mod weights;
+
+// Re-export governance for tests
+pub use configs::governance;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -26,8 +30,21 @@ pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
 use pallet_external_validators::traits::EraIndex;
+use pallet_file_system::types::StorageRequestMetadata;
+use pallet_file_system_runtime_api::*;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
+use pallet_payment_streams_runtime_api::*;
+use pallet_proofs_dealer::types::{
+    CustomChallenge, KeyFor, ProviderIdFor as ProofsDealerProviderIdFor, RandomnessOutputFor,
+};
+use pallet_proofs_dealer_runtime_api::*;
+use pallet_storage_providers::types::{
+    BackupStorageProvider, BackupStorageProviderId, BucketId, MainStorageProviderId,
+    Multiaddresses, ProviderIdFor, StorageDataUnit, StorageProviderId, ValuePropositionWithId,
+};
+use pallet_storage_providers_runtime_api::*;
 pub use pallet_timestamp::Call as TimestampCall;
+use shp_file_metadata::ChunkId;
 use smallvec::smallvec;
 use snowbridge_core::AgentId;
 use snowbridge_merkle_tree::MerkleProof;
@@ -45,6 +62,7 @@ use sp_runtime::{
     transaction_validity::TransactionSource,
     ApplyExtrinsicResult, Perbill, Permill,
 };
+use sp_std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -265,7 +283,6 @@ impl WeightToFeePolynomial for WeightToFee {
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[frame_support::runtime]
-#[cfg(not(feature = "storage-hub"))]
 mod runtime {
     #[runtime::runtime]
     #[runtime::derive(
@@ -361,175 +378,25 @@ mod runtime {
     pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
-    // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
-    #[runtime::pallet_index(50)]
-    pub type Ethereum = pallet_ethereum;
+    // ╔═════════════════════════ Governance Pallets ════════════════════╗
+    #[runtime::pallet_index(40)]
+    pub type TechnicalCommittee = pallet_collective<Instance1>;
 
-    #[runtime::pallet_index(51)]
-    pub type Evm = pallet_evm;
+    #[runtime::pallet_index(41)]
+    pub type TreasuryCouncil = pallet_collective<Instance2>;
 
-    #[runtime::pallet_index(52)]
-    pub type EvmChainId = pallet_evm_chain_id;
-    // ╚════════════════════ Frontier (EVM) Pallets ═════════════════════╝
+    #[runtime::pallet_index(42)]
+    pub type ConvictionVoting = pallet_conviction_voting;
 
-    // ╔══════════════════════ Snowbridge Pallets ═══════════════════════╗
-    #[runtime::pallet_index(60)]
-    pub type EthereumBeaconClient = snowbridge_pallet_ethereum_client;
+    #[runtime::pallet_index(43)]
+    pub type Referenda = pallet_referenda;
 
-    #[runtime::pallet_index(61)]
-    pub type EthereumInboundQueueV2 = snowbridge_pallet_inbound_queue_v2;
+    #[runtime::pallet_index(44)]
+    pub type Whitelist = pallet_whitelist;
 
-    #[runtime::pallet_index(62)]
-    pub type EthereumOutboundQueueV2 = snowbridge_pallet_outbound_queue_v2;
-
-    #[runtime::pallet_index(63)]
-    pub type SnowbridgeSystem = snowbridge_pallet_system;
-
-    #[runtime::pallet_index(64)]
-    pub type SnowbridgeSystemV2 = snowbridge_pallet_system_v2;
-    // ╚══════════════════════ Snowbridge Pallets ═══════════════════════╝
-
-    // ╔════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╗
-    // The Message Queue pallet has to be after the Snowbridge Outbound
-    // Queue V2 pallet since the former processes messages in its
-    // `on_initialize` hook and the latter clears up messages in
-    // its `on_initialize` hook, so otherwise messages will be cleared
-    // up before they are processed.
-    #[runtime::pallet_index(70)]
-    pub type MessageQueue = pallet_message_queue;
-    // ╚════════════ Polkadot SDK Utility Pallets - Block 2 ═════════════╝
-
-    // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
-    // Start with index 80
-    // #[runtime::pallet_index(80)]
-    // pub type Providers = pallet_storage_providers;
-
-    // #[runtime::pallet_index(81)]
-    // pub type FileSystem = pallet_file_system;
-
-    // #[runtime::pallet_index(82)]
-    // pub type ProofsDealer = pallet_proofs_dealer;
-
-    // #[runtime::pallet_index(83)]
-    // pub type Randomness = pallet_randomness;
-
-    // #[runtime::pallet_index(84)]
-    // pub type PaymentStreams = pallet_payment_streams;
-
-    // #[runtime::pallet_index(85)]
-    // pub type BucketNfts = pallet_bucket_nfts;
-
-    // #[runtime::pallet_index(90)]
-    // pub type Nfts = pallet_nfts;
-    // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
-
-    // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
-    // Start with index 100
-    #[runtime::pallet_index(100)]
-    pub type OutboundCommitmentStore = pallet_outbound_commitment_store;
-
-    #[runtime::pallet_index(101)]
-    pub type ExternalValidatorsRewards = pallet_external_validators_rewards;
-
-    #[runtime::pallet_index(102)]
-    pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
-    // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
-}
-
-// Create the runtime by composing the FRAME pallets that were previously configured.
-#[frame_support::runtime]
-#[cfg(feature = "storage-hub")]
-mod runtime {
-    #[runtime::runtime]
-    #[runtime::derive(
-        RuntimeCall,
-        RuntimeEvent,
-        RuntimeError,
-        RuntimeOrigin,
-        RuntimeFreezeReason,
-        RuntimeHoldReason,
-        RuntimeSlashReason,
-        RuntimeLockId,
-        RuntimeTask
-    )]
-    pub struct Runtime;
-
-    // ╔══════════════════ System and Consensus Pallets ═════════════════╗
-    #[runtime::pallet_index(0)]
-    pub type System = frame_system;
-
-    // Babe must be before session.
-    #[runtime::pallet_index(1)]
-    pub type Babe = pallet_babe;
-
-    #[runtime::pallet_index(2)]
-    pub type Timestamp = pallet_timestamp;
-
-    #[runtime::pallet_index(3)]
-    pub type Balances = pallet_balances;
-
-    // Consensus support.
-    // Authorship must be before session in order to note author in the correct session and era.
-    #[runtime::pallet_index(4)]
-    pub type Authorship = pallet_authorship;
-
-    #[runtime::pallet_index(5)]
-    pub type Offences = pallet_offences;
-
-    #[runtime::pallet_index(6)]
-    pub type Historical = pallet_session::historical;
-
-    // External Validators must be before Session.
-    #[runtime::pallet_index(7)]
-    pub type ExternalValidators = pallet_external_validators;
-
-    #[runtime::pallet_index(8)]
-    pub type Session = pallet_session;
-
-    #[runtime::pallet_index(9)]
-    pub type ImOnline = pallet_im_online;
-
-    #[runtime::pallet_index(10)]
-    pub type Grandpa = pallet_grandpa;
-
-    #[runtime::pallet_index(11)]
-    pub type TransactionPayment = pallet_transaction_payment;
-
-    #[runtime::pallet_index(12)]
-    pub type Beefy = pallet_beefy;
-
-    #[runtime::pallet_index(13)]
-    pub type Mmr = pallet_mmr;
-
-    #[runtime::pallet_index(14)]
-    pub type BeefyMmrLeaf = pallet_beefy_mmr;
-    // ╚═════════════════ System and Consensus Pallets ══════════════════╝
-
-    // ╔═════════════════ Polkadot SDK Utility Pallets ══════════════════╗
-    #[runtime::pallet_index(30)]
-    pub type Utility = pallet_utility;
-
-    #[runtime::pallet_index(31)]
-    pub type Scheduler = pallet_scheduler;
-
-    #[runtime::pallet_index(32)]
-    pub type Preimage = pallet_preimage;
-
-    #[runtime::pallet_index(33)]
-    pub type Identity = pallet_identity;
-
-    #[runtime::pallet_index(34)]
-    pub type Multisig = pallet_multisig;
-
-    #[runtime::pallet_index(35)]
-    pub type Parameters = pallet_parameters;
-
-    #[runtime::pallet_index(36)]
-    pub type Sudo = pallet_sudo;
-
-    #[runtime::pallet_index(38)]
-    pub type Proxy = pallet_proxy;
-    // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+    #[runtime::pallet_index(45)]
+    pub type Origins = governance::custom_origins;
+    // ╚═════════════════════════ Governance Pallets ════════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
     #[runtime::pallet_index(50)]
@@ -1059,10 +926,9 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -1079,7 +945,6 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
@@ -1347,6 +1212,156 @@ impl_runtime_apis! {
             )
         }
     }
+
+    //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+    //║                                        STORAGEHUB APIS                                                        ║
+    //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+    impl pallet_file_system_runtime_api::FileSystemApi<Block, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>> for Runtime {
+        fn is_storage_request_open_to_volunteers(file_key: H256) -> Result<bool, IsStorageRequestOpenToVolunteersError> {
+            FileSystem::is_storage_request_open_to_volunteers(file_key)
+        }
+
+        fn query_earliest_file_volunteer_tick(bsp_id: BackupStorageProviderId<Runtime>, file_key: H256) -> Result<BlockNumber, QueryFileEarliestVolunteerTickError> {
+            FileSystem::query_earliest_file_volunteer_tick(bsp_id, file_key)
+        }
+
+        fn query_bsp_confirm_chunks_to_prove_for_file(bsp_id: BackupStorageProviderId<Runtime>, file_key: H256) -> Result<Vec<ChunkId>, QueryBspConfirmChunksToProveForFileError> {
+            FileSystem::query_bsp_confirm_chunks_to_prove_for_file(bsp_id, file_key)
+        }
+
+        fn query_msp_confirm_chunks_to_prove_for_file(msp_id: MainStorageProviderId<Runtime>, file_key: H256) -> Result<Vec<ChunkId>, QueryMspConfirmChunksToProveForFileError> {
+            FileSystem::query_msp_confirm_chunks_to_prove_for_file(msp_id, file_key)
+        }
+
+       fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
+            FileSystem::decode_generic_apply_delta_event_info(encoded_event_info)
+        }
+
+        fn pending_storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
+            FileSystem::pending_storage_requests_by_msp(msp_id)
+        }
+    }
+
+    impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {
+        fn get_users_with_debt_over_threshold(provider_id: &ProviderIdFor<Runtime>, threshold: Balance) -> Result<Vec<AccountId>, GetUsersWithDebtOverThresholdError> {
+            PaymentStreams::get_users_with_debt_over_threshold(provider_id, threshold)
+        }
+        fn get_users_of_payment_streams_of_provider(provider_id: &ProviderIdFor<Runtime>) -> Vec<AccountId> {
+            PaymentStreams::get_users_of_payment_streams_of_provider(provider_id)
+        }
+        fn get_providers_with_payment_streams_with_user(user_account: &AccountId) -> Vec<ProviderIdFor<Runtime>> {
+            PaymentStreams::get_providers_with_payment_streams_with_user(user_account)
+        }
+    }
+
+    impl pallet_proofs_dealer_runtime_api::ProofsDealerApi<Block, ProofsDealerProviderIdFor<Runtime>, BlockNumber, KeyFor<Runtime>, RandomnessOutputFor<Runtime>, CustomChallenge<Runtime>> for Runtime {
+        fn get_last_tick_provider_submitted_proof(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetProofSubmissionRecordError> {
+            ProofsDealer::get_last_tick_provider_submitted_proof(provider_id)
+        }
+
+        fn get_next_tick_to_submit_proof_for(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetProofSubmissionRecordError> {
+            ProofsDealer::get_next_tick_to_submit_proof_for(provider_id)
+        }
+
+        fn get_last_checkpoint_challenge_tick() -> BlockNumber {
+            ProofsDealer::get_last_checkpoint_challenge_tick()
+        }
+
+        fn get_checkpoint_challenges(
+            tick: BlockNumber
+        ) -> Result<Vec<CustomChallenge<Runtime>>, GetCheckpointChallengesError> {
+            ProofsDealer::get_checkpoint_challenges(tick)
+        }
+
+        fn get_challenge_seed(tick: BlockNumber) -> Result<RandomnessOutputFor<Runtime>, GetChallengeSeedError> {
+            ProofsDealer::get_challenge_seed(tick)
+        }
+
+        fn get_challenge_period(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetChallengePeriodError> {
+            ProofsDealer::get_challenge_period(provider_id)
+        }
+
+        fn get_checkpoint_challenge_period() -> BlockNumber {
+            ProofsDealer::get_checkpoint_challenge_period()
+        }
+
+        fn get_challenges_from_seed(seed: &RandomnessOutputFor<Runtime>, provider_id: &ProofsDealerProviderIdFor<Runtime>, count: u32) -> Vec<KeyFor<Runtime>> {
+            ProofsDealer::get_challenges_from_seed(seed, provider_id, count)
+        }
+
+        fn get_forest_challenges_from_seed(seed: &RandomnessOutputFor<Runtime>, provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Vec<KeyFor<Runtime>> {
+            ProofsDealer::get_forest_challenges_from_seed(seed, provider_id)
+        }
+
+        fn get_current_tick() -> BlockNumber {
+            ProofsDealer::get_current_tick()
+        }
+
+        fn get_next_deadline_tick(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetNextDeadlineTickError> {
+            ProofsDealer::get_next_deadline_tick(provider_id)
+        }
+    }
+
+
+    impl pallet_storage_providers_runtime_api::StorageProvidersApi<Block, BlockNumber, BackupStorageProviderId<Runtime>, BackupStorageProvider<Runtime>, MainStorageProviderId<Runtime>, AccountId, ProviderIdFor<Runtime>, StorageProviderId<Runtime>, StorageDataUnit<Runtime>, Balance, BucketId<Runtime>, Multiaddresses<Runtime>, ValuePropositionWithId<Runtime>> for Runtime {
+        fn get_bsp_info(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<BackupStorageProvider<Runtime>, GetBspInfoError> {
+            Providers::get_bsp_info(bsp_id)
+        }
+
+        fn get_storage_provider_id(who: &AccountId) -> Option<StorageProviderId<Runtime>> {
+            Providers::get_storage_provider_id(who)
+        }
+
+        fn query_msp_id_of_bucket_id(bucket_id: &BucketId<Runtime>) -> Result<Option<ProviderIdFor<Runtime>>, QueryMspIdOfBucketIdError> {
+            Providers::query_msp_id_of_bucket_id(bucket_id)
+        }
+
+        fn query_provider_multiaddresses(provider_id: &ProviderIdFor<Runtime>) -> Result<Multiaddresses<Runtime>, QueryProviderMultiaddressesError> {
+            Providers::query_provider_multiaddresses(provider_id)
+        }
+
+        fn query_storage_provider_capacity(provider_id: &ProviderIdFor<Runtime>) -> Result<StorageDataUnit<Runtime>, QueryStorageProviderCapacityError> {
+            Providers::query_storage_provider_capacity(provider_id)
+        }
+
+        fn query_available_storage_capacity(provider_id: &ProviderIdFor<Runtime>) -> Result<StorageDataUnit<Runtime>, QueryAvailableStorageCapacityError> {
+            Providers::query_available_storage_capacity(provider_id)
+        }
+
+        fn query_earliest_change_capacity_block(provider_id: &BackupStorageProviderId<Runtime>) -> Result<BlockNumber, QueryEarliestChangeCapacityBlockError> {
+            Providers::query_earliest_change_capacity_block(provider_id)
+        }
+
+        fn get_worst_case_scenario_slashable_amount(provider_id: ProviderIdFor<Runtime>) -> Option<Balance> {
+            Providers::get_worst_case_scenario_slashable_amount(&provider_id).ok()
+        }
+
+        fn get_slash_amount_per_max_file_size() -> Balance {
+            Providers::get_slash_amount_per_max_file_size()
+        }
+
+        fn query_value_propositions_for_msp(msp_id: &MainStorageProviderId<Runtime>) -> Vec<ValuePropositionWithId<Runtime>> {
+            Providers::query_value_propositions_for_msp(msp_id)
+        }
+
+        fn get_bsp_stake(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<Balance, GetStakeError> {
+            Providers::get_bsp_stake(bsp_id)
+        }
+
+        fn can_delete_provider(provider_id: &ProviderIdFor<Runtime>) -> bool {
+            Providers::can_delete_provider(provider_id)
+        }
+
+        fn query_buckets_for_msp(msp_id: &MainStorageProviderId<Runtime>) -> Result<Vec<BucketId<Runtime>>, QueryBucketsForMspError> {
+            Providers::query_buckets_for_msp(msp_id)
+        }
+
+        fn query_buckets_of_user_stored_by_msp(msp_id: &ProviderIdFor<Runtime>, user: &AccountId) -> Result<sp_runtime::Vec<BucketId<Runtime>>, QueryBucketsOfUserStoredByMspError> {
+            Ok(sp_runtime::Vec::from_iter(Providers::query_buckets_of_user_stored_by_msp(msp_id, user)?))
+        }
+    }
+
 }
 
 // Shorthand for a Get field of a pallet Config.
@@ -1359,7 +1374,8 @@ macro_rules! get {
 
 #[cfg(test)]
 mod tests {
-    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+    use codec::Decode;
+    use datahaven_runtime_common::{gas::BLOCK_STORAGE_LIMIT, proxy::ProxyType};
 
     use super::{
         configs::{BlockGasLimit, WeightPerGas},
@@ -1393,24 +1409,48 @@ mod tests {
             Balance::from(1 * HAVE + 5300 * MICROHAVE)
         );
 
-        // TODO: Uncomment when pallet_proxy is enabled
-        // proxy deposits
-        // assert_eq!(
-        //     get!(pallet_proxy, ProxyDepositBase, u128),
-        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, ProxyDepositFactor, u128),
-        //     Balance::from(2100 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, AnnouncementDepositBase, u128),
-        //     Balance::from(1 * HAVE + 800 * MICROHAVE)
-        // );
-        // assert_eq!(
-        //     get!(pallet_proxy, AnnouncementDepositFactor, u128),
-        //     Balance::from(5600 * MICROHAVE)
-        // );
+        // Proxy deposits
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositBase, u128),
+            Balance::from(1 * HAVE + 800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositFactor, u128),
+            Balance::from(2100 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositBase, u128),
+            Balance::from(1 * HAVE + 800 * MICROHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositFactor, u128),
+            Balance::from(5600 * MICROHAVE)
+        );
+    }
+
+    #[test]
+    fn test_proxy_type_can_be_decoded_from_valid_values() {
+        let test_cases = vec![
+            // (input, expected)
+            (0u8, ProxyType::Any),
+            (1, ProxyType::NonTransfer),
+            (2, ProxyType::Governance),
+            (3, ProxyType::Staking),
+            (4, ProxyType::CancelProxy),
+            (5, ProxyType::Balances),
+            (6, ProxyType::IdentityJudgement),
+            (7, ProxyType::SudoOnly),
+        ];
+
+        for (input, expected) in test_cases {
+            let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+            assert_eq!(
+                Ok(expected),
+                actual,
+                "failed decoding ProxyType for value '{}'",
+                input
+            );
+        }
     }
 
     #[test]

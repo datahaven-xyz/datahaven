@@ -17,7 +17,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
-  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
 
@@ -55,6 +54,9 @@ jobs:
         with:
           cache-key: LINT
           install-deps: false  # Self-hosted runners have deps pre-installed
+
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
       - name: Run cargo clippy
         run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --release

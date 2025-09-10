@@ -17,7 +17,7 @@ bridge-hub-common = { workspace = true, optional = true }
 codec = { workspace = true, features = ["derive"] }
 datahaven-runtime-common = { workspace = true }
 dhp-bridge = { workspace = true }
-fp-account = { workspace = true, features = ["serde"] }
+fp-account = { workspace = true }
 fp-evm = { workspace = true, features = ["serde"] }
 fp-rpc = { workspace = true }
 fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
@@ -137,6 +137,7 @@ pallet-proofs-dealer-runtime-api = { workspace = true }
 pallet-randomness = { workspace = true }
 pallet-storage-providers = { workspace = true }
 pallet-storage-providers-runtime-api = { workspace = true }
+shc-common = { workspace = true, optional = true }
 shp-constants = { workspace = true }
 shp-file-metadata = { workspace = true }
 shp-traits = { workspace = true }
@@ -266,6 +267,8 @@ std = [
 	"pallet-randomness/std",
 	"pallet-storage-providers/std",
 	"pallet-storage-providers-runtime-api/std",
+    "dep:shc-common",
+	"shc-common/std",
     "shp-constants/std",
 	"shp-file-metadata/std",
 	"shp-forest-verifier/std",

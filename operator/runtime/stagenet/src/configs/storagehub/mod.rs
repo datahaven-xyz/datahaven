@@ -40,6 +40,9 @@ use sp_std::convert::{From, Into};
 use sp_std::vec;
 use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
 
+#[cfg(feature = "std")]
+pub mod client; // StorageHub client trait only build for std build
+
 /// Type representing the storage data units in StorageHub.
 pub type StorageDataUnit = u64;
 
@@ -302,6 +305,7 @@ impl pallet_proofs_dealer::Config for Runtime {
     type ChallengesQueueLength = ChallengesQueueLength;
     type CheckpointChallengePeriod = runtime_config::CheckpointChallengePeriod;
     type ChallengesFee = ChallengesFee;
+    type PriorityChallengesFee = PriorityChallengesFee;
     type Treasury = TreasuryAccount;
     // TODO: Once the client logic to keep track of CR randomness deadlines and execute their submissions is implemented
     // AND after the chain has been live for enough time to have enough providers to avoid the commit-reveal randomness being
@@ -314,7 +318,6 @@ impl pallet_proofs_dealer::Config for Runtime {
     type BlockFullnessHeadroom = BlockFullnessHeadroom;
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
-    type PriorityChallengesFee = PriorityChallengesFee;
     type ChallengeOrigin = EnsureRoot<AccountId>;
     type PriorityChallengeOrigin = EnsureRoot<AccountId>;
 }

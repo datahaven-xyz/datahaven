@@ -22,7 +22,6 @@ jobs:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
-      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
       SCCACHE_GHA_ENABLED: "true"
     defaults:
       run:
@@ -35,7 +34,11 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: false  # Self-hosted runners have deps pre-installed
+          install-deps: false
+      
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+      
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
         run: |

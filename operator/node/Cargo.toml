@@ -32,6 +32,7 @@ log = { workspace = true }
 openssl-sys = { workspace = true }
 serde_json = { workspace = true, default-features = true }
 url = { workspace = true }
+async-channel = { workspace = true }
 
 #MMR
 mmr-rpc = { workspace = true, default-features = true }
@@ -99,6 +100,37 @@ fp-evm = { workspace = true }
 fp-rpc = { workspace = true }
 pallet-ethereum = { workspace = true }
 
+# StorageHub
+pallet-file-system = { workspace = true }
+pallet-file-system-runtime-api = { workspace = true }
+pallet-payment-streams = { workspace = true }
+pallet-payment-streams-runtime-api = { workspace = true }
+pallet-proofs-dealer = { workspace = true }
+pallet-proofs-dealer-runtime-api = { workspace = true }
+pallet-storage-providers = { workspace = true }
+pallet-storage-providers-runtime-api = { workspace = true }
+shc-actors-framework = { workspace = true }
+shc-actors-derive = { workspace = true }
+shc-blockchain-service = { workspace = true }
+shc-file-transfer-service = { workspace = true }
+shc-common = { workspace = true }
+shc-file-manager = { workspace = true }
+shc-fisherman-service = { workspace = true }
+shc-forest-manager = { workspace = true }
+shc-indexer-db = { workspace = true }
+shc-indexer-service = { workspace = true }
+shc-rpc = { workspace = true }
+shc-client = { workspace = true }
+shp-constants = { workspace = true }
+shp-file-key-verifier = { workspace = true }
+shp-file-metadata = { workspace = true }
+shp-opaque = { workspace = true }
+shp-traits = { workspace = true }
+shp-types = { workspace = true }
+sp-keystore = { workspace = true }
+serde = { workspace = true, default-features = true }
+cumulus-client-service = { workspace = true }
+
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
 
@@ -109,6 +141,7 @@ std = [
     "datahaven-stagenet-runtime/std",
     "datahaven-mainnet-runtime/std",
     "datahaven-testnet-runtime/std",
+    "shp-opaque/std"
 ]
 
 # Dependencies that are only required if runtime benchmarking should be build.

@@ -138,6 +138,7 @@ pallet-proofs-dealer-runtime-api = { workspace = true }
 pallet-randomness = { workspace = true }
 pallet-storage-providers = { workspace = true }
 pallet-storage-providers-runtime-api = { workspace = true }
+shc-common = { workspace = true, optional = true }
 shp-constants = { workspace = true }
 shp-file-metadata = { workspace = true }
 shp-traits = { workspace = true }
@@ -269,6 +270,8 @@ std = [
 	"pallet-randomness/std",
 	"pallet-storage-providers/std",
 	"pallet-storage-providers-runtime-api/std",
+    "dep:shc-common",
+	"shc-common/std",
     "shp-constants/std",
 	"shp-file-metadata/std",
 	"shp-forest-verifier/std",

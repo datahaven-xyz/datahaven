@@ -6,7 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 codec = { workspace = true }
-fp-account = { workspace = true }
+fp-account = { workspace = true, features = ["serde"] }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-authorship = { workspace = true }

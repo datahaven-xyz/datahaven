@@ -17,12 +17,11 @@ jobs:
   prepare:
     name: Prepare artifacts for Rust tests
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
       CARGO_TERM_COLOR: always
-      RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
       SCCACHE_GHA_ENABLED: "true"
     defaults:
       run:
@@ -35,7 +34,11 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: false  # Self-hosted runners have deps pre-installed
+          install-deps: false
+      
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+      
       # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
       - name: Install nextest
         run: |
@@ -57,7 +60,7 @@ jobs:
     name: Run all Operator Rust tests (/w partitioning)
     needs: [prepare]
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     strategy:
       fail-fast: false
       matrix:
@@ -91,7 +94,7 @@ jobs:
     name: Check tests were successful
     needs: [all-rust-tests]
     runs-on:
-      labels: bare-metal
+      group: DH-runners
     steps:
       - name: Cleanup test artifacts
         uses: geekyeggo/delete-artifact@v5

@@ -43,7 +43,9 @@ export const deployDataHavenSolochain = async (
 
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
 
-  await checkTagExists(options.datahavenImageTag);
+  if (!options.dockerUsername) {
+    await checkTagExists(options.datahavenImageTag);
+  }
 
   // Validate custom chainspec file if provided
   if (options.chainspec) {

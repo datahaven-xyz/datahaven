@@ -43,7 +43,7 @@ async-channel = "1.8.0"
 async-trait = { version = "0.1.42" }
 blake2-rfc = { version = "0.2.18", default-features = false }
 byte-slice-cast = { version = "1.2.1", default-features = false }
-clap = { version = "4.5.10" }
+clap = { version = "4.5.10", features = ["derive", "env"] }
 codec = { version = "3.6.12", default-features = false, package = "parity-scale-codec" }
 ethabi = { version = "2.0.0", default-features = false, package = "ethabi-decode" }
 ethbloom = { version = "0.14.1", default-features = false }

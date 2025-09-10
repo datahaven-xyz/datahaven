@@ -2,12 +2,12 @@ use crate::command::ProviderOptions;
 use crate::eth::EthConfiguration;
 use clap::{Parser, ValueEnum};
 use sc_cli::RunCmd;
-use serde::{Deserialize, Deserializer};
+use serde::Deserializer;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
-    BspUploadFileOptions, FishermanOptions, IndexerOptions, MspChargeFeesOptions,
-    MspMoveBucketOptions,
+    BspUploadFileOptions, IndexerOptions, MspChargeFeesOptions, MspMoveBucketOptions,
 };
+use shc_indexer_service::IndexerMode;
 use shc_rpc::RpcConfig;
 use shp_types::StorageDataUnit;
 
@@ -40,6 +40,10 @@ pub struct Cli {
     /// Provider configurations
     #[command(flatten)]
     pub provider_config: ProviderConfigurations,
+
+    /// Indexer configurations
+    #[command(flatten)]
+    pub indexer_config: IndexerConfigurations,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -516,7 +520,50 @@ impl ProviderConfigurations {
             bsp_charge_fees,
             bsp_submit_proof,
             blockchain_service,
-            maintenance_mode: self.maintenance_mode,
+            // We don't support maintenance mode for now.
+            // maintenance_mode: self.maintenance_mode,
+        }
+    }
+}
+
+#[derive(Debug, Parser, Clone)]
+pub struct IndexerConfigurations {
+    /// Enable the indexer service.
+    #[arg(long)]
+    pub indexer: bool,
+
+    /// The mode in which the indexer runs.
+    ///
+    /// - `full`: Indexes all blockchain data
+    /// - `lite`: Indexes only essential data for storage operations
+    /// - `fishing`: Indexes only essential data for operating as a fisherman
+    #[arg(long, value_parser = clap::value_parser!(IndexerMode), default_value = "full")]
+    pub indexer_mode: IndexerMode,
+
+    /// Postgres database URL.
+    ///
+    /// If not provided, the indexer will use the `INDEXER_DATABASE_URL` environment variable. If the
+    /// environment variable is not set, the node will abort.
+    #[arg(
+        long("indexer-database-url"),
+        env = "INDEXER_DATABASE_URL",
+        required_if_eq("indexer", "true")
+    )]
+    pub indexer_database_url: Option<String>,
+}
+
+impl IndexerConfigurations {
+    pub fn indexer_options(&self) -> Option<IndexerOptions> {
+        if self.indexer {
+            Some(IndexerOptions {
+                indexer_mode: self.indexer_mode,
+                database_url: self
+                    .indexer_database_url
+                    .clone()
+                    .expect("Indexer database URL is required"),
+            })
+        } else {
+            None
         }
     }
 }

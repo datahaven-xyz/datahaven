@@ -26,7 +26,7 @@ use sc_network::ProtocolName;
 use sc_service::RpcHandlers;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sc_transaction_pool::{BasicPool, FullChainApi};
+use sc_transaction_pool::BasicPool;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use shc_actors_framework::actor::TaskSpawner;
 use shc_blockchain_service::capacity_manager::CapacityConfig;
@@ -35,8 +35,8 @@ use shc_client::{
     builder::{Buildable, StorageHubBuilder, StorageLayerBuilder},
     handler::{RunnableTasks, StorageHubHandler},
     types::{
-        BspProvider, FishermanRole, InMemoryStorageLayer, MspProvider, NoStorageLayer,
-        RocksDbStorageLayer, ShNodeType, ShRole, ShStorageLayer, UserRole,
+        BspProvider, InMemoryStorageLayer, MspProvider, NoStorageLayer, RocksDbStorageLayer,
+        ShNodeType, ShRole, ShStorageLayer, UserRole,
     },
 };
 use shc_common::traits::StorageEnableRuntime;
@@ -77,8 +77,6 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId, RuntimeApi> =
         InnerBlockImport,
         AuthorityId,
     >;
-
-type SingleStatePool<RuntimeApi> = BasicPool<FullChainApi<FullClient<RuntimeApi>, Block>, Block>;
 
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
@@ -389,6 +387,7 @@ pub async fn new_full_impl<
     config: Configuration,
     mut eth_config: EthConfiguration,
     provider_options: Option<ProviderOptions>,
+    indexer_options: Option<IndexerOptions>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -547,15 +546,14 @@ where
         .expect("Invalid dev signing key provided.");
 
     // Storage Hub builder
-    let (sh_builder, maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
+    let (sh_builder, _maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
         &provider_options,
         &task_manager,
         file_transfer_request_protocol,
         network.clone(),
         keystore.clone(),
         client.clone(),
-        // indexer_options.clone(), FIXME
-        None,
+        indexer_options.clone(),
     )
     .await?;
 
@@ -821,8 +819,9 @@ pub async fn new_full<
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
     config: Configuration,
-    mut eth_config: EthConfiguration,
+    eth_config: EthConfiguration,
     provider_options: Option<ProviderOptions>,
+    indexer_options: Option<IndexerOptions>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -839,6 +838,7 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
                 )
                 .await;
             }
@@ -847,6 +847,7 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
                 )
                 .await;
             }
@@ -855,6 +856,7 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
                 )
                 .await;
             }
@@ -863,6 +865,7 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
                 )
                 .await;
             }
@@ -871,13 +874,17 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
                 )
                 .await;
             }
         };
     } else {
         return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
-            config, eth_config, None,
+            config,
+            eth_config,
+            None,
+            indexer_options,
         )
         .await;
     };

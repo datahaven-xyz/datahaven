@@ -15,7 +15,7 @@ use frame_support::{assert_noop, assert_ok, traits::InstanceFilter};
 use pallet_proxy::Event as ProxyEvent;
 use sp_core::blake2_256;
 
-type ProxyType = datahaven_runtime_common::proxy::ProxyType;
+use datahaven_mainnet_runtime::configs::ProxyType;
 
 // =================================================================================================
 // BASIC PROXY OPERATIONS

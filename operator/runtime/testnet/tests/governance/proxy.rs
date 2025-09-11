@@ -5,7 +5,7 @@
 
 use crate::common::*;
 use codec::Encode;
-use datahaven_runtime_common::proxy::ProxyType;
+use datahaven_testnet_runtime::configs::ProxyType;
 use datahaven_testnet_runtime::{
     currency::{HAVE, SUPPLY_FACTOR},
     Balances, Preimage, Proxy, Referenda, Runtime, RuntimeCall, RuntimeOrigin, TechnicalCommittee,

@@ -39,13 +39,54 @@ use super::{
     EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
     SLOT_DURATION, VERSION,
 };
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::RuntimeDebug;
+
+/// A description of our proxy types.
+/// Proxy types are used to restrict the calls that can be made by a proxy account.
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub enum ProxyType {
+    /// Allow any call to be made by the proxy account
+    Any = 0,
+    /// Allow only calls that do not transfer funds or modify balances
+    NonTransfer = 1,
+    /// Allow only governance-related calls (Treasury, Preimage, Scheduler, etc.)
+    Governance = 2,
+    /// Allow only staking and validator-related calls
+    Staking = 3,
+    /// Allow only calls that cancel proxy announcements and reject announcements
+    CancelProxy = 4,
+    /// Allow only Balances calls (transfers, set_balance, force_transfer, etc.)
+    Balances = 5,
+    /// Allow only identity judgement calls
+    IdentityJudgement = 6,
+    /// Allow only calls to the Sudo pallet - useful for multisig -> sudo proxy chains
+    SudoOnly = 7,
+}
+
+impl Default for ProxyType {
+    fn default() -> Self {
+        Self::Any
+    }
+}
 use datahaven_runtime_common::{
     deal_with_fees::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
-    proxy::ProxyType,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -630,57 +671,28 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
     }
 }
 
-/// Newtype wrapper for ProxyType to implement EvmProxyCallFilter
-/// This wrapper allows us to work around Rust's orphan rules
-#[derive(
-    Copy,
-    Clone,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    codec::Encode,
-    codec::Decode,
-    sp_runtime::RuntimeDebug,
-    scale_info::TypeInfo,
-    frame_support::pallet_prelude::MaxEncodedLen,
-)]
-pub struct MainnetProxyType(pub ProxyType);
-
-impl From<ProxyType> for MainnetProxyType {
-    fn from(proxy_type: ProxyType) -> Self {
-        Self(proxy_type)
-    }
-}
-
-impl Default for MainnetProxyType {
-    fn default() -> Self {
-        Self(ProxyType::default())
-    }
-}
-
 /// Helper function to identify governance precompiles (copied from Moonbeam)
 fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
     // TODO: Uncomment when DataHaven implements these governance precompiles
     // matches!(
     //     precompile_name,
-    //     PrecompileName::TreasuryCouncilInstance
-    //         | PrecompileName::ReferendaPrecompile
-    //         | PrecompileName::ConvictionVotingPrecompile
+    //     PrecompileName::ConvictionVotingPrecompile
     //         | PrecompileName::PreimagePrecompile
-    //         | PrecompileName::OpenTechCommitteeInstance,
+    //         | PrecompileName::ReferendaPrecompile
+    //         | PrecompileName::OpenTechCommitteeInstance
+    //         | PrecompileName::TreasuryCouncilInstance
     // )
     false // Temporarily disabled until governance precompiles are added
 }
 
-impl pallet_evm_precompile_proxy::EvmProxyCallFilter for MainnetProxyType {
+impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
     fn is_evm_proxy_call_allowed(
         &self,
         call: &pallet_evm_precompile_proxy::EvmSubCall,
         recipient_has_code: bool,
         gas: u64,
     ) -> precompile_utils::EvmResult<bool> {
-        Ok(match self.0 {
+        Ok(match self {
             ProxyType::Any => {
                 match PrecompileName::from_address(call.to.0) {
                     Some(ref precompile) if is_governance_precompile(precompile) => true,
@@ -723,21 +735,12 @@ impl pallet_evm_precompile_proxy::EvmProxyCallFilter for MainnetProxyType {
     }
 }
 
-impl frame_support::traits::InstanceFilter<RuntimeCall> for MainnetProxyType {
-    fn filter(&self, c: &RuntimeCall) -> bool {
-        self.0.filter(c)
-    }
-
-    fn is_superset(&self, o: &Self) -> bool {
-        self.0.is_superset(&o.0)
-    }
-}
 
 impl pallet_proxy::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type Currency = Balances;
-    type ProxyType = MainnetProxyType;
+    type ProxyType = ProxyType;
     type ProxyDepositBase = ProxyDepositBase;
     type ProxyDepositFactor = ProxyDepositFactor;
     type MaxProxies = MaxProxies;

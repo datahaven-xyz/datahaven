@@ -1,0 +1,21 @@
+# Install PostgreSQL into local k8S cluster
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm repo update
+# helm install sh-fisherman-db bitnami/postgresql -f ./deploy/environments/local/sh-fisherman-db.yaml -n datahaven-local
+
+auth:
+  username: fisherman
+  password: fisherman
+  database: datahaven
+  postgresPassword: postgres
+primary:
+  persistence:
+    enabled: true
+    size: 10Gi           # requires a default StorageClass
+  resources:
+    requests: { cpu: "100m", memory: "256Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }
+volumePermissions:
+  enabled: true          # helps with FS perms on some storage classes
+metrics:
+  enabled: true          # optional: Prometheus exporter

@@ -1,6 +1,6 @@
-name: sh-idxnode
-description: Datahaven Indexer node
-fullnameOverride: sh-idxnode
+name: sh-fisherman
+description: Datahaven Fisherman node
+fullnameOverride: sh-fisherman
 
 image:
   repository: datahavenxyz/datahaven
@@ -26,13 +26,12 @@ node:
     - "--allow-private-ipv4"
     - "--discover-local"
     - "--network-backend libp2p"
-    - "--indexer"
-    - "--indexer-mode full"
-    - "--indexer-database-url postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven"
+    - "--fisherman"
+    - "--fisherman-database-url postgresql://fisherman:fisherman@sh-fisherman-db-postgresql:5432/datahaven"
 
 ingress:
   enabled: false
   perReplica: false
   wildcardDomain: datahaven.local
   # If enabled, this would generate:
-  # - sh-idxnode-0.datahaven.local
+  # - sh-fisherman-0.datahaven.local

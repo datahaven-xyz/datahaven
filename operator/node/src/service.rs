@@ -19,7 +19,6 @@ use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvid
 use sc_consensus_babe::ImportQueueParams;
 use sc_consensus_grandpa::SharedVoterState;
 use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
-use sc_network::config::FullNetworkConfiguration;
 use sc_network::request_responses::IncomingRequest;
 use sc_network::service::traits::NetworkService;
 use sc_network::ProtocolName;
@@ -40,15 +39,11 @@ use shc_client::{
     },
 };
 use shc_common::traits::StorageEnableRuntime;
-use shc_common::types::BlockHash;
-use shc_common::types::OpaqueBlock;
-use shc_common::types::BCSV_KEY_TYPE;
 use shc_indexer_db::DbPool;
 use shc_rpc::StorageHubClientRpcConfig;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
-use sp_core::H256;
 use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::SaturatedConversion;
@@ -440,11 +435,13 @@ where
             .flatten()
             .expect("Genesis block exists; qed");
 
-        file_transfer_request_protocol = Some(configure_file_transfer_network::<_>(
-            genesis_hash,
-            &config,
-            &mut net_config,
-        ));
+        file_transfer_request_protocol = Some(
+            shc_file_transfer_service::configure_file_transfer_network::<_, Runtime>(
+                genesis_hash,
+                config.chain_spec.fork_id(),
+                &mut net_config,
+            ),
+        );
     }
 
     let metrics = N::register_notification_metrics(config.prometheus_registry());
@@ -879,59 +876,6 @@ where
 }
 
 /// Storage Hub
-
-/// Maximum memory usage target for queued requests (8GB)
-// TODO: Make this a configurable parameter
-const MAX_QUEUED_REQUESTS_MEMORY_BYTES: u64 = 8 * 1024 * 1024 * 1024;
-
-/// Max size of request packet. Calculated based on batch chunk size plus overhead percentage
-const MAX_REQUEST_PACKET_SIZE_BYTES: u64 = {
-    let base_size = shc_common::types::BATCH_CHUNK_FILE_TRANSFER_MAX_SIZE as u64;
-
-    /// Percentage increase for packet overhead
-    ///
-    /// This will cover any additional overhead required for the [`RemoteUploadDataRequest`](schema::v1::provider::request::Request::RemoteUploadDataRequest) payload.
-    // TODO: Make this a configurable parameter
-    const OVERHEAD_PERCENTILE: u64 = 100;
-
-    base_size.saturating_mul(100 + OVERHEAD_PERCENTILE) / 100
-};
-
-/// Max number of queued requests. Calculated to limit total memory usage
-const MAX_FILE_TRANSFER_REQUESTS_QUEUE: usize = {
-    let max_requests = MAX_QUEUED_REQUESTS_MEMORY_BYTES / MAX_REQUEST_PACKET_SIZE_BYTES;
-    max_requests as usize
-};
-
-// TODO: Remove this once the `configure_file_transfer_network` from storage hub allow us to not pass the full client
-pub fn configure_file_transfer_network<
-    Network: sc_network::NetworkBackend<OpaqueBlock, BlockHash>,
->(
-    genesis_hash: H256,
-    parachain_config: &Configuration,
-    net_config: &mut FullNetworkConfiguration<OpaqueBlock, BlockHash, Network>,
-) -> (ProtocolName, async_channel::Receiver<IncomingRequest>) {
-    let (tx, request_receiver) = async_channel::bounded(MAX_FILE_TRANSFER_REQUESTS_QUEUE);
-
-    let mut protocol_config = shc_file_transfer_service::generate_protocol_config(
-        genesis_hash,
-        parachain_config.chain_spec.fork_id(),
-    );
-    protocol_config.inbound_queue = Some(tx);
-
-    let request_response_config = Network::request_response_config(
-        protocol_config.name.clone(),
-        protocol_config.fallback_names.clone(),
-        protocol_config.max_request_size,
-        protocol_config.max_response_size,
-        protocol_config.request_timeout,
-        protocol_config.inbound_queue,
-    );
-
-    net_config.add_request_response_protocol(request_response_config);
-
-    (protocol_config.name, request_receiver)
-}
 
 // Initialize the StorageHubBuilder for the StorageHub node.
 async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(

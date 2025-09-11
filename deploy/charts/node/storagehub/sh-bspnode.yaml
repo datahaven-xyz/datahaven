@@ -25,7 +25,7 @@ node:
     # This is Alice seed. To generate new seed run: docker run --rm datahavenxyz/datahaven:latest key generate
     - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
       type: bcsv
-      scheme: sr25519
+      scheme: ecdsa
       # ${HOSTNAME##*-} will be evaluated as the pod index, pod-0: //Eve, pod-1: //Ferdie
       extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Eve" || echo "//Ferdie")'
   persistGeneratedNodeKey: true

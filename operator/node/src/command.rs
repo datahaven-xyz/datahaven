@@ -66,7 +66,7 @@ pub struct ProviderOptions {
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Substrate Node".into()
+        "DataHaven Node".into()
     }
 
     fn impl_version() -> String {
@@ -82,7 +82,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "support.anonymous.an".into()
+        "https://github.com/datahaven-xyz/datahaven/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
@@ -343,8 +343,8 @@ pub fn run() -> sc_cli::Result<()> {
                             }
                             ref spec if spec.is_testnet() => {
                                 service::new_full::<
-                                    datahaven_mainnet_runtime::Runtime,
-                                    datahaven_mainnet_runtime::RuntimeApi,
+                                    datahaven_testnet_runtime::Runtime,
+                                    datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(
                                     config, cli.eth, provider_options, indexer_options
@@ -353,8 +353,8 @@ pub fn run() -> sc_cli::Result<()> {
                             }
                             _ => {
                                 service::new_full::<
-                                    datahaven_mainnet_runtime::Runtime,
-                                    datahaven_mainnet_runtime::RuntimeApi,
+                                    datahaven_stagenet_runtime::Runtime,
+                                    datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(
                                     config, cli.eth, provider_options, indexer_options

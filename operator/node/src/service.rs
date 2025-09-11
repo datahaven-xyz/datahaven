@@ -533,25 +533,13 @@ where
         );
     }
 
-    let signing_dev_key = config
-        .dev_key_seed
-        .clone()
-        .expect("Dev key seed must be present in dev mode.");
-    let keystore = keystore_container.keystore();
-
-    // Initialise seed for signing transactions using blockchain service.
-    // In dev mode we use a well known dev account.
-    keystore
-        .sr25519_generate_new(BCSV_KEY_TYPE, Some(signing_dev_key.as_ref()))
-        .expect("Invalid dev signing key provided.");
-
     // Storage Hub builder
     let (sh_builder, _maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
         &provider_options,
         &task_manager,
         file_transfer_request_protocol,
         network.clone(),
-        keystore.clone(),
+        keystore_container.keystore(),
         client.clone(),
         indexer_options.clone(),
     )

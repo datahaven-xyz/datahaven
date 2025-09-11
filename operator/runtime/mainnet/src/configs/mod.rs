@@ -28,14 +28,16 @@ pub mod runtime_params;
 mod storagehub;
 
 use super::{
-    currency::*, precompiles::DataHavenPrecompiles, AccountId, Babe, Balance, Balances,
-    BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId,
-    ExistentialDeposit, ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline,
-    MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage,
-    Referenda, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
-    RuntimeOrigin, RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp,
-    Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
-    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    currency::*,
+    precompiles::{DataHavenPrecompiles, PrecompileName},
+    AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
+    EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
+    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
+    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode};
 use datahaven_runtime_common::{
@@ -628,11 +630,114 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
     }
 }
 
+/// Newtype wrapper for ProxyType to implement EvmProxyCallFilter
+/// This wrapper allows us to work around Rust's orphan rules
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    codec::Encode,
+    codec::Decode,
+    sp_runtime::RuntimeDebug,
+    scale_info::TypeInfo,
+    frame_support::pallet_prelude::MaxEncodedLen,
+)]
+pub struct MainnetProxyType(pub ProxyType);
+
+impl From<ProxyType> for MainnetProxyType {
+    fn from(proxy_type: ProxyType) -> Self {
+        Self(proxy_type)
+    }
+}
+
+impl Default for MainnetProxyType {
+    fn default() -> Self {
+        Self(ProxyType::default())
+    }
+}
+
+/// Helper function to identify governance precompiles (copied from Moonbeam)
+fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
+    // TODO: Uncomment when DataHaven implements these governance precompiles
+    // matches!(
+    //     precompile_name,
+    //     PrecompileName::TreasuryCouncilInstance
+    //         | PrecompileName::ReferendaPrecompile
+    //         | PrecompileName::ConvictionVotingPrecompile
+    //         | PrecompileName::PreimagePrecompile
+    //         | PrecompileName::OpenTechCommitteeInstance,
+    // )
+    false // Temporarily disabled until governance precompiles are added
+}
+
+impl pallet_evm_precompile_proxy::EvmProxyCallFilter for MainnetProxyType {
+    fn is_evm_proxy_call_allowed(
+        &self,
+        call: &pallet_evm_precompile_proxy::EvmSubCall,
+        recipient_has_code: bool,
+        gas: u64,
+    ) -> precompile_utils::EvmResult<bool> {
+        Ok(match self.0 {
+            ProxyType::Any => {
+                match PrecompileName::from_address(call.to.0) {
+                    Some(ref precompile) if is_governance_precompile(precompile) => true,
+                    Some(_) => false, // All other precompiles are forbidden
+                    None => {
+                        // Allow simple EOA transfers only
+                        !recipient_has_code
+                            && !precompile_utils::precompile_set::is_precompile_or_fail::<Runtime>(
+                                call.to.0, gas,
+                            )?
+                    }
+                }
+            }
+            ProxyType::NonTransfer => {
+                call.value == sp_core::U256::zero()
+                    && match PrecompileName::from_address(call.to.0) {
+                        Some(ref precompile) if is_governance_precompile(precompile) => true,
+                        _ => false,
+                    }
+            }
+            ProxyType::Governance => {
+                call.value == sp_core::U256::zero()
+                    && matches!(
+                        PrecompileName::from_address(call.to.0),
+                        Some(ref precompile) if is_governance_precompile(precompile)
+                    )
+            }
+            ProxyType::Staking => false,
+            ProxyType::CancelProxy => false,
+            ProxyType::Balances => {
+                // Allow only "simple" accounts as recipient (no code nor precompile)
+                !recipient_has_code
+                    && !precompile_utils::precompile_set::is_precompile_or_fail::<Runtime>(
+                        call.to.0, gas,
+                    )?
+            }
+            ProxyType::IdentityJudgement => false,
+            ProxyType::SudoOnly => false,
+        })
+    }
+}
+
+impl frame_support::traits::InstanceFilter<RuntimeCall> for MainnetProxyType {
+    fn filter(&self, c: &RuntimeCall) -> bool {
+        self.0.filter(c)
+    }
+
+    fn is_superset(&self, o: &Self) -> bool {
+        self.0.is_superset(&o.0)
+    }
+}
+
 impl pallet_proxy::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type Currency = Balances;
-    type ProxyType = ProxyType;
+    type ProxyType = MainnetProxyType;
     type ProxyDepositBase = ProxyDepositBase;
     type ProxyDepositFactor = ProxyDepositFactor;
     type MaxProxies = MaxProxies;

@@ -19,6 +19,7 @@ use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_call_permit::CallPermitPrecompile;
 use pallet_evm_precompile_modexp::Modexp;
+use pallet_evm_precompile_proxy::{OnlyIsProxyAndProxy, ProxyPrecompile};
 use pallet_evm_precompile_registry::PrecompileRegistry;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
@@ -59,6 +60,16 @@ type DataHavenPrecompilesAt<R> = (
         AddressU64<2058>,
         CallPermitPrecompile<R>,
         (SubcallWithMaxNesting<0>, CallableByContract),
+    >,
+    PrecompileAt<
+        AddressU64<2059>,
+        ProxyPrecompile<R>,
+        (
+            CallableByContract<OnlyIsProxyAndProxy<R>>,
+            SubcallWithMaxNesting<0>,
+            // Batch is the only precompile allowed to call Proxy.
+            CallableByPrecompile<OnlyFrom<AddressU64<2056>>>,
+        ),
     >,
     PrecompileAt<
         AddressU64<2069>,

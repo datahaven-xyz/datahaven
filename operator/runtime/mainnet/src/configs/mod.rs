@@ -735,7 +735,6 @@ impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
     }
 }
 
-
 impl pallet_proxy::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;

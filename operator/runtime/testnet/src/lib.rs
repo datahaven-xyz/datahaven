@@ -1371,9 +1371,9 @@ macro_rules! get {
 
 #[cfg(test)]
 mod tests {
+    use crate::configs::ProxyType;
     use codec::Decode;
     use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
-    use crate::configs::ProxyType;
 
     use super::{
         configs::{BlockGasLimit, WeightPerGas},

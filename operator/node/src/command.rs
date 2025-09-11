@@ -335,16 +335,16 @@ pub fn run() -> sc_cli::Result<()> {
                             }
                             ref spec if spec.is_testnet() => {
                                 service::new_full::<
-                                    datahaven_mainnet_runtime::Runtime,
-                                    datahaven_mainnet_runtime::RuntimeApi,
+                                    datahaven_testnet_runtime::Runtime,
+                                    datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(config, cli.eth, provider_options)
                                 .await
                             }
                             _ => {
                                 service::new_full::<
-                                    datahaven_mainnet_runtime::Runtime,
-                                    datahaven_mainnet_runtime::RuntimeApi,
+                                    datahaven_stagenet_runtime::Runtime,
+                                    datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(config, cli.eth, provider_options)
                                 .await

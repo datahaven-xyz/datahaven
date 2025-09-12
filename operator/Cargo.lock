@@ -2857,6 +2857,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
+ "pallet-evm-precompile-balances-erc20",
  "pallet-evm-precompile-batch",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
@@ -3126,6 +3127,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
+ "pallet-evm-precompile-balances-erc20",
  "pallet-evm-precompile-batch",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
@@ -3263,6 +3265,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
+ "pallet-evm-precompile-balances-erc20",
  "pallet-evm-precompile-batch",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
@@ -8968,6 +8971,29 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "scale-info",
+]
+
+[[package]]
+name = "pallet-evm-precompile-balances-erc20"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.3.4",
+ "libsecp256k1",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "paste",
+ "precompile-utils",
+ "scale-info",
+ "sha3",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

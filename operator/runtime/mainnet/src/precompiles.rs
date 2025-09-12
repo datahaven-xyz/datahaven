@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven. If not, see <http://www.gnu.org/licenses/>.
 
+use pallet_evm_precompile_balances_erc20::{Erc20BalancesPrecompile, Erc20Metadata};
 use pallet_evm_precompile_batch::BatchPrecompile;
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
@@ -26,6 +27,26 @@ use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripe
 use precompile_utils::precompile_set::*;
 
 type EthereumPrecompilesChecks = (AcceptDelegateCall, CallableByContract, CallableByPrecompile);
+
+pub struct NativeErc20Metadata;
+
+impl Erc20Metadata for NativeErc20Metadata {
+    fn name() -> &'static str {
+        "HAVE"
+    }
+
+    fn symbol() -> &'static str {
+        "HAVE"
+    }
+
+    fn decimals() -> u8 {
+        18
+    }
+
+    fn is_native_currency() -> bool {
+        true
+    }
+}
 
 /// EVM precompiles available in the DataHaven Mainnet runtime.
 #[precompile_utils::precompile_name_from_address]
@@ -47,6 +68,11 @@ type DataHavenPrecompilesAt<R> = (
     PrecompileAt<AddressU64<1026>, ECRecoverPublicKey, (CallableByContract, CallableByPrecompile)>,
     RemovedPrecompileAt<AddressU64<1027>>,
     // DataHaven specific precompiles:
+    PrecompileAt<
+        AddressU64<2050>,
+        Erc20BalancesPrecompile<R, NativeErc20Metadata>,
+        (CallableByContract, CallableByPrecompile),
+    >,
     PrecompileAt<
         AddressU64<2056>,
         BatchPrecompile<R>,

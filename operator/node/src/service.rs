@@ -428,7 +428,6 @@ where
     >::new(&config.network, config.prometheus_registry().cloned());
 
     // Starting StorageHub file transfer service.
-    // TODO: add fisherman
     let mut file_transfer_request_protocol = None;
     if provider_options.is_some() || fisherman_options.is_some() {
         let genesis_hash = client

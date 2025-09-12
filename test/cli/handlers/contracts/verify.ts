@@ -229,6 +229,18 @@ const getProxyImplementation = async (address: string, rpcUrl: string): Promise<
   }
 };
 
+/**
+ * Get the correct Etherscan API URL for a given chain
+ */
+const getEtherscanApiUrl = (chain: string): string => {
+  const baseUrls: Record<string, string> = {
+    mainnet: "https://api.etherscan.io/api",
+    holesky: "https://api-holesky.etherscan.io/api",
+    hoodi: "https://api-hoodi.etherscan.io/api"
+  };
+  return baseUrls[chain] || "https://api.etherscan.io/api";
+};
+
 const isVerified = async (
   address: string,
   chain: string | undefined,
@@ -237,9 +249,19 @@ const isVerified = async (
   if (!chain) {
     return false;
   }
+
+  const baseUrl = getEtherscanApiUrl(chain);
+
   const response = await fetch(
-    `https://api.etherscan.io/v2/api?module=contract&action=getsourcecode&address=${address}&chainid=${chain}&apikey=${apiKey}`
+    `${baseUrl}?module=contract&action=getsourcecode&address=${address}&apikey=${apiKey}`
   );
   const data = (await response.json()) as any;
+
+  // Check for successful API response
+  if (data.status !== "1" || data.message !== "OK") {
+    return false;
+  }
+
+  // Check if source code exists and is not empty
   return data.result?.[0]?.SourceCode && data.result[0].SourceCode !== "";
 };

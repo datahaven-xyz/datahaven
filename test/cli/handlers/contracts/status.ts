@@ -40,7 +40,7 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
 const printContractStatus = async (
   contract: { name: string; address: string },
   etherscanApiKey?: string,
-  chainId?: string,
+  chain?: string,
   rpcUrl?: string
 ) => {
   if (!contract.address || contract.address === "0x0000000000000000000000000000000000000000") {
@@ -49,7 +49,7 @@ const printContractStatus = async (
     logger.info(`⚠️ ${contract.name}: Deployed (${contract.address}) - verification unknown`);
   } else {
     try {
-      const isVerified = await checkContractVerification(contract.address, chainId, rpcUrl);
+      const isVerified = await checkContractVerification(contract.address, chain, rpcUrl);
       if (isVerified) {
         logger.info(`✅ ${contract.name}: Deployed and verified`);
       } else {

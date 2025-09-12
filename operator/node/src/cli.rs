@@ -88,8 +88,6 @@ pub enum ProviderType {
     Msp,
     /// Backup Storage Provider
     Bsp,
-    /// User role
-    User,
 }
 
 impl<'de> serde::Deserialize<'de> for ProviderType {
@@ -99,7 +97,6 @@ impl<'de> serde::Deserialize<'de> for ProviderType {
         let provider_type = match s.as_str() {
             "bsp" => ProviderType::Bsp,
             "msp" => ProviderType::Msp,
-            "user" => ProviderType::User,
             _ => {
                 return Err(serde::de::Error::custom(
                     "Cannot parse `provider_type`. Invalid value.",

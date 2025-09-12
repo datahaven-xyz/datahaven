@@ -120,6 +120,7 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # DataHaven precompiles
+pallet-evm-precompile-balances-erc20 = { workspace = true }
 pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
@@ -190,6 +191,8 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+	"pallet-evm-precompile-balances-erc20/std",
+"pallet-evm-precompile-registry/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-proxy/std",

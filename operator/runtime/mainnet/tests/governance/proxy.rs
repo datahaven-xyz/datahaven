@@ -5,11 +5,11 @@
 
 use crate::common::*;
 use codec::Encode;
+use datahaven_mainnet_runtime::configs::ProxyType;
 use datahaven_mainnet_runtime::{
     currency::{HAVE, SUPPLY_FACTOR},
     Balances, Preimage, Proxy, Referenda, Runtime, RuntimeCall, RuntimeOrigin, TechnicalCommittee,
 };
-use datahaven_runtime_common::proxy::ProxyType;
 use frame_support::traits::schedule::DispatchTime;
 use frame_support::{assert_ok, traits::StorePreimage};
 use pallet_conviction_voting::{AccountVote, Conviction, Vote};

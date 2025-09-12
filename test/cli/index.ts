@@ -49,7 +49,7 @@ program
     `🫎  DataHaven: Network Deployer CLI for deploying a full DataHaven network stack to a Kubernetes cluster
     It will deploy:
     - DataHaven solochain validators (all envs),
-    - Storage providers (all envs) (TODO),
+    - StorageHub components: MSP, BSP, Indexer, Fisherman nodes and databases (local & stagenet envs),
     - Kurtosis Ethereum private network (stagenet env),
     - Snowbridge Relayers (all envs)
     `
@@ -98,6 +98,11 @@ program
   .option("--skip-validator-operations", "Skip performing validator operations", false)
   .option("--skip-set-parameters", "Skip setting DataHaven runtime parameters", false)
   .option("--skip-relayers", "Skip deploying Snowbridge Relayers", false)
+  .option(
+    "--skip-storagehub",
+    "Skip deploying StorageHub components (MSP, BSP, Indexer, Fisherman, databases)",
+    false
+  )
   .hook("preAction", deployPreActionHook)
   .action(deploy);
 
@@ -109,7 +114,7 @@ program
     `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
   Complete with:
   - Solo-chain validators,
-  - Storage providers (TODO),
+  - StorageHub components: MSP, BSP, Indexer, Fisherman nodes and databases,
   - Ethereum Private network,
   - Snowbridge Relayers
   `

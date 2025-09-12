@@ -2862,6 +2862,7 @@ dependencies = [
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
@@ -3073,10 +3074,13 @@ dependencies = [
  "frame-system",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-evm",
+ "pallet-evm-precompile-proxy",
  "pallet-treasury",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
+ "precompile-utils",
  "scale-info",
  "sp-core",
  "sp-runtime",
@@ -3127,6 +3131,7 @@ dependencies = [
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
@@ -3263,6 +3268,7 @@ dependencies = [
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
@@ -8379,7 +8385,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e878c846a8abae00dd069496dbe8751b16ac1c3d6bd2a7283a938e8228f90d"
 dependencies = [
- "proc-macro-crate 1.1.3",
+ "proc-macro-crate 3.3.0",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -9032,6 +9038,27 @@ source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2
 dependencies = [
  "fp-evm",
  "num",
+]
+
+[[package]]
+name = "pallet-evm-precompile-proxy"
+version = "0.1.0"
+dependencies = [
+ "evm",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-proxy",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

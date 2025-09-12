@@ -1,0 +1,91 @@
+# StorageHub MSP Backend API base configuration
+# This file contains the base configuration for the StorageHub MSP Backend API
+
+# Chart metadata
+fullnameOverride: sh-mspbackend
+
+# Container image
+image:
+  repository: ghcr.io/moonsong-labs/storage-hub-backend
+  tag: latest
+  pullPolicy: Always
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+# Backend API configuration
+backend:
+  port: 3000
+  
+  # Database connection to StorageHub Indexer PostgreSQL
+  database:
+    url: postgresql://indexer:indexer_password@sh-indexer-db:5432/storagehub_indexer
+    
+  # RPC connection to StorageHub Indexer node
+  rpc:
+    endpoint: ws://sh-idxnode:9944
+    httpEndpoint: http://sh-idxnode:9933
+    
+  # Environment variables
+  env:
+    NODE_ENV: production
+    LOG_LEVEL: info
+    # API configuration
+    API_PREFIX: "/api/v1"
+    # Rate limiting
+    RATE_LIMIT_ENABLED: "true"
+    RATE_LIMIT_WINDOW_MS: "60000"
+    RATE_LIMIT_MAX_REQUESTS: "100"
+    
+  # CLI arguments for the backend application
+  args:
+    - "--config"
+    - "/app/config/config.toml"
+
+# Resource limits
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+  prometheus.io/path: "/metrics"
+
+# Service account
+serviceAccount:
+  create: true
+  name: sh-mspbackend
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+
+# Ingress configuration (disabled by default, enabled per environment)
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: api.storagehub.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Enable ConfigMap for configuration file
+configMap:
+  enabled: true

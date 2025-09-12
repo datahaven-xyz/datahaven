@@ -1,0 +1,9 @@
+apiVersion: v2
+name: sh-mspbackend
+description: A Helm chart for StorageHub MSP Backend API
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+- name: StorageHub Team
+  email: team@storagehub.io

@@ -1,0 +1,74 @@
+# StorageHub MSP Backend API configuration for Local environment
+
+global:
+  environment: local
+  namespace: kt-datahaven-local
+
+# Use local image
+image:
+  repository: storagehub/backend
+  tag: local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+# Single replica for local development
+replicaCount: 1
+
+# Service configuration for local access
+service:
+  type: NodePort
+  port: 3000
+  nodePort: 30300  # Fixed NodePort for local access
+
+# Backend configuration for local environment
+backend:
+  database:
+    url: postgresql://indexer:local_indexer_password@sh-indexer-db:5432/storagehub_indexer
+    
+  rpc:
+    endpoint: ws://sh-idxnode:9944
+    httpEndpoint: http://sh-idxnode:9933
+    
+  env:
+    LOG_LEVEL: debug
+    
+  # CLI arguments for local development
+  args:
+    - "--config"
+    - "/app/config/config.toml"
+    - "--log-level"
+    - "debug"
+    - "--dev-mode"
+
+# Minimal resources for local development
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Enable ingress for local development with Traefik
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: sh-mspbackend.datahaven.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# ConfigMap for local environment
+configMap:
+  enabled: true
+  extraConfig:
+    environment: "local"
+    features:
+      debug: true
+      swagger: true
+      metrics: true

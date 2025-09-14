@@ -872,16 +872,6 @@ where
                 )
                 .await;
             }
-            (&ProviderType::User, _) => {
-                return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
-                    config,
-                    eth_config,
-                    Some(provider_options),
-                    indexer_options,
-                    fisherman_options,
-                )
-                .await;
-            }
         };
     } else {
         return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(

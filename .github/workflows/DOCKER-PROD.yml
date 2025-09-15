@@ -35,7 +35,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
 
-      # Cleanup-runner skipped on self-hosted runners (bare-metal manages disk space externally)
+      - uses: ./.github/workflows/actions/cleanup-runner
 
       - name: Docker meta (dispatch)
         if: github.event_name == 'workflow_dispatch'

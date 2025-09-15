@@ -1,0 +1,50 @@
+[package]
+name = "pallet-evm-precompile-balances-erc20"
+authors = { workspace = true }
+description = "A Precompile to expose a Balances pallet through an ERC20-compliant interface."
+edition = "2021"
+version = "0.1.0"
+
+[dependencies]
+paste = { workspace = true }
+
+# Substrate
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-balances = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["max-encoded-len"] }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+# Frontier
+fp-evm = { workspace = true }
+pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
+precompile-utils = { workspace = true }
+
+[dev-dependencies]
+hex-literal = { workspace = true }
+libsecp256k1 = { workspace = true }
+sha3 = { workspace = true }
+
+precompile-utils = { workspace = true, features = ["std", "testing"] }
+
+pallet-timestamp = { workspace = true, features = ["std"] }
+scale-info = { workspace = true, features = ["derive"] }
+sp-runtime = { workspace = true, features = ["std"] }
+
+[features]
+default = ["std"]
+std = [
+        "fp-evm/std",
+        "frame-support/std",
+        "frame-system/std",
+        "pallet-balances/std",
+        "pallet-evm/std",
+        "parity-scale-codec/std",
+        "precompile-utils/std",
+        "sp-core/std",
+        "sp-io/std",
+        "sp-std/std",
+]

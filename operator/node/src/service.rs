@@ -19,36 +19,32 @@ use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvid
 use sc_consensus_babe::ImportQueueParams;
 use sc_consensus_grandpa::SharedVoterState;
 use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
-use sc_network::config::FullNetworkConfiguration;
 use sc_network::request_responses::IncomingRequest;
 use sc_network::service::traits::NetworkService;
 use sc_network::ProtocolName;
 use sc_service::RpcHandlers;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sc_transaction_pool::{BasicPool, FullChainApi};
+use sc_transaction_pool::BasicPool;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use shc_actors_framework::actor::TaskSpawner;
 use shc_blockchain_service::capacity_manager::CapacityConfig;
-use shc_client::builder::IndexerOptions;
+use shc_client::builder::{FishermanOptions, IndexerOptions};
+use shc_client::types::FishermanRole;
 use shc_client::{
     builder::{Buildable, StorageHubBuilder, StorageLayerBuilder},
     handler::{RunnableTasks, StorageHubHandler},
     types::{
-        BspProvider, FishermanRole, InMemoryStorageLayer, MspProvider, NoStorageLayer,
-        RocksDbStorageLayer, ShNodeType, ShRole, ShStorageLayer, UserRole,
+        BspProvider, InMemoryStorageLayer, MspProvider, NoStorageLayer, RocksDbStorageLayer,
+        ShNodeType, ShRole, ShStorageLayer, UserRole,
     },
 };
 use shc_common::traits::StorageEnableRuntime;
-use shc_common::types::BlockHash;
-use shc_common::types::OpaqueBlock;
-use shc_common::types::BCSV_KEY_TYPE;
 use shc_indexer_db::DbPool;
 use shc_rpc::StorageHubClientRpcConfig;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
-use sp_core::H256;
 use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::SaturatedConversion;
@@ -77,8 +73,6 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId, RuntimeApi> =
         InnerBlockImport,
         AuthorityId,
     >;
-
-type SingleStatePool<RuntimeApi> = BasicPool<FullChainApi<FullClient<RuntimeApi>, Block>, Block>;
 
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
@@ -389,6 +383,8 @@ pub async fn new_full_impl<
     config: Configuration,
     mut eth_config: EthConfiguration,
     provider_options: Option<ProviderOptions>,
+    indexer_options: Option<IndexerOptions>,
+    fisherman_options: Option<FishermanOptions>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -432,20 +428,21 @@ where
     >::new(&config.network, config.prometheus_registry().cloned());
 
     // Starting StorageHub file transfer service.
-    // TODO: add fisherman
     let mut file_transfer_request_protocol = None;
-    if provider_options.is_some() {
+    if provider_options.is_some() || fisherman_options.is_some() {
         let genesis_hash = client
             .block_hash(0u32.into())
             .ok()
             .flatten()
             .expect("Genesis block exists; qed");
 
-        file_transfer_request_protocol = Some(configure_file_transfer_network::<_>(
-            genesis_hash,
-            &config,
-            &mut net_config,
-        ));
+        file_transfer_request_protocol = Some(
+            shc_file_transfer_service::configure_file_transfer_network::<_, Runtime>(
+                genesis_hash,
+                config.chain_spec.fork_id(),
+                &mut net_config,
+            ),
+        );
     }
 
     let metrics = N::register_notification_metrics(config.prometheus_registry());
@@ -535,15 +532,14 @@ where
     }
 
     // Storage Hub builder
-    let (sh_builder, maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
+    let (sh_builder, _maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
         &provider_options,
         &task_manager,
         file_transfer_request_protocol,
         network.clone(),
         keystore_container.keystore(),
         client.clone(),
-        // indexer_options.clone(), FIXME
-        None,
+        indexer_options.clone(),
     )
     .await?;
 
@@ -799,6 +795,18 @@ where
         .await?;
     }
 
+    configure_and_spawn_fisherman::<Runtime>(
+        &fisherman_options,
+        &indexer_options,
+        &task_manager,
+        client.clone(),
+        keystore_container.keystore(),
+        Arc::new(rpc_handlers.clone()),
+        base_path,
+        network.clone(),
+    )
+    .await?;
+
     network_starter.start_network();
     Ok(task_manager)
 }
@@ -809,8 +817,10 @@ pub async fn new_full<
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
     config: Configuration,
-    mut eth_config: EthConfiguration,
+    eth_config: EthConfiguration,
     provider_options: Option<ProviderOptions>,
+    indexer_options: Option<IndexerOptions>,
+    fisherman_options: Option<FishermanOptions>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -827,6 +837,8 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
+                    fisherman_options,
                 )
                 .await;
             }
@@ -835,6 +847,8 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
+                    fisherman_options,
                 )
                 .await;
             }
@@ -843,6 +857,8 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
+                    indexer_options,
+                    fisherman_options,
                 )
                 .await;
             }
@@ -851,80 +867,21 @@ where
                     config,
                     eth_config,
                     Some(provider_options),
-                )
-                .await;
-            }
-            (&ProviderType::User, _) => {
-                return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
-                    config,
-                    eth_config,
-                    Some(provider_options),
+                    indexer_options,
+                    fisherman_options,
                 )
                 .await;
             }
         };
     } else {
         return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
-            config, eth_config, None,
+            config, eth_config, None, None, None,
         )
         .await;
     };
 }
 
 /// Storage Hub
-
-/// Maximum memory usage target for queued requests (8GB)
-// TODO: Make this a configurable parameter
-const MAX_QUEUED_REQUESTS_MEMORY_BYTES: u64 = 8 * 1024 * 1024 * 1024;
-
-/// Max size of request packet. Calculated based on batch chunk size plus overhead percentage
-const MAX_REQUEST_PACKET_SIZE_BYTES: u64 = {
-    let base_size = shc_common::types::BATCH_CHUNK_FILE_TRANSFER_MAX_SIZE as u64;
-
-    /// Percentage increase for packet overhead
-    ///
-    /// This will cover any additional overhead required for the [`RemoteUploadDataRequest`](schema::v1::provider::request::Request::RemoteUploadDataRequest) payload.
-    // TODO: Make this a configurable parameter
-    const OVERHEAD_PERCENTILE: u64 = 100;
-
-    base_size.saturating_mul(100 + OVERHEAD_PERCENTILE) / 100
-};
-
-/// Max number of queued requests. Calculated to limit total memory usage
-const MAX_FILE_TRANSFER_REQUESTS_QUEUE: usize = {
-    let max_requests = MAX_QUEUED_REQUESTS_MEMORY_BYTES / MAX_REQUEST_PACKET_SIZE_BYTES;
-    max_requests as usize
-};
-
-// TODO: Remove this once the `configure_file_transfer_network` from storage hub allow us to not pass the full client
-pub fn configure_file_transfer_network<
-    Network: sc_network::NetworkBackend<OpaqueBlock, BlockHash>,
->(
-    genesis_hash: H256,
-    parachain_config: &Configuration,
-    net_config: &mut FullNetworkConfiguration<OpaqueBlock, BlockHash, Network>,
-) -> (ProtocolName, async_channel::Receiver<IncomingRequest>) {
-    let (tx, request_receiver) = async_channel::bounded(MAX_FILE_TRANSFER_REQUESTS_QUEUE);
-
-    let mut protocol_config = shc_file_transfer_service::generate_protocol_config(
-        genesis_hash,
-        parachain_config.chain_spec.fork_id(),
-    );
-    protocol_config.inbound_queue = Some(tx);
-
-    let request_response_config = Network::request_response_config(
-        protocol_config.name.clone(),
-        protocol_config.fallback_names.clone(),
-        protocol_config.max_request_size,
-        protocol_config.max_response_size,
-        protocol_config.request_timeout,
-        protocol_config.inbound_queue,
-    );
-
-    net_config.add_request_response_protocol(request_response_config);
-
-    (protocol_config.name, request_receiver)
-}
 
 // Initialize the StorageHubBuilder for the StorageHub node.
 async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(
@@ -1088,4 +1045,84 @@ where
     sh_handler.run_tasks().await;
 
     Ok(())
+}
+
+async fn configure_and_spawn_fisherman<Runtime: StorageEnableRuntime>(
+    fisherman_options: &Option<FishermanOptions>,
+    indexer_config: &Option<IndexerOptions>,
+    task_manager: &TaskManager,
+    client: Arc<StorageEnableClient<Runtime>>,
+    keystore: KeystorePtr,
+    rpc_handlers: Arc<RpcHandlers>,
+    rocksdb_root_path: impl Into<PathBuf>,
+    network: Arc<dyn NetworkService>,
+) -> Result<Option<DbPool>, sc_service::Error> {
+    let fisherman_options = match fisherman_options {
+        Some(fc) => fc,
+        None => return Ok(None),
+    };
+
+    // Validate configuration compatibility with indexer if both are enabled
+    if let Some(indexer_cfg) = indexer_config {
+        if indexer_cfg.indexer_mode == shc_indexer_service::IndexerMode::Lite {
+            return Err(sc_service::Error::Other(
+                "Fisherman service cannot run with 'lite' indexer mode. Please use either 'full' or 'fishing' mode."
+                    .to_string(),
+            ));
+        }
+    }
+
+    // Setup database pool for fisherman
+    let db_pool = setup_database_pool(fisherman_options.database_url.clone()).await?;
+
+    // Build StorageHubHandler for fisherman tasks
+    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "fisherman-service");
+    let mut fisherman_builder =
+        StorageHubBuilder::<FishermanRole, NoStorageLayer, Runtime>::new(task_spawner.clone());
+
+    // Convert rocksdb_root_path to PathBuf first
+    let rocksdb_path: PathBuf = rocksdb_root_path.into();
+
+    // Set the indexer db pool
+    fisherman_builder.with_indexer_db_pool(Some(db_pool.clone()));
+
+    // Spawn the fisherman service
+    fisherman_builder.with_fisherman(client.clone()).await;
+
+    // All variables below are not needed for the fisherman service to operate but required by the StorageHubHandler
+    // TODO: Refactor this once we have a proper setup to support role based StorageHubHandler builder
+    fisherman_builder.setup_storage_layer(None);
+
+    // Setup blockchain service
+    fisherman_builder
+        .with_blockchain(
+            client.clone(),
+            keystore,
+            rpc_handlers,
+            rocksdb_path.clone(),
+            false, // Not in maintenance mode
+        )
+        .await;
+
+    fisherman_builder.with_peer_manager(rocksdb_path);
+    let (_sender, receiver) = async_channel::bounded(1);
+    let protocol_name = ProtocolName::from("/storage-hub/file-transfer/1");
+    fisherman_builder
+        .with_file_transfer(receiver, protocol_name, network)
+        .await;
+
+    // Build the handler
+    let mut fisherman_handler = fisherman_builder.build();
+
+    // Run fisherman tasks
+    fisherman_handler.run_tasks().await;
+
+    Ok(Some(db_pool))
+}
+
+/// Helper function to setup database pool
+async fn setup_database_pool(database_url: String) -> Result<DbPool, sc_service::Error> {
+    shc_indexer_db::setup_db_pool(database_url)
+        .await
+        .map_err(|e| sc_service::Error::Application(Box::new(e)))
 }

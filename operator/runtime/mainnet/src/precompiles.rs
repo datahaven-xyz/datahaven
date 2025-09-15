@@ -103,7 +103,7 @@ type DataHavenPrecompilesAt<R> = (
         PrecompileRegistry<R>,
         (CallableByContract, CallableByPrecompile),
     >,
-    PrecompileAt<AddressU64<100>, FileSystemPrecompile<R>>,
+    PrecompileAt<AddressU64<1028>, FileSystemPrecompile<R>>,
 );
 
 /// The PrecompileSet installed in the DataHaven runtime.

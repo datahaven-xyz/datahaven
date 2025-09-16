@@ -13,14 +13,22 @@ on:
     inputs:
       image-tag:
         description: "The tag of the docker image"
-        required: true
+        required: false
         type: string
+      maintenance:
+        description: "Prune unused Docker volumes and skip tests"
+        required: false
+        type: boolean
   workflow_call:
     inputs:
       image-tag:
         description: "The tag of the docker image"
         required: true
         type: string
+      maintenance:
+        description: "Prune unused Docker volumes and skip tests"
+        required: false
+        type: boolean
 
 permissions:
   contents: read
@@ -121,7 +129,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Maintenance - prune unused Docker volumes
+        if: ${{ inputs.maintenance == 'true' }}
+        run: |
+          echo "Volume count before prune:"
+          docker volume ls | wc -l
+          docker volume prune -f
+          echo "Volume count after prune:"
+          docker volume ls | wc -l
+      - name: Skip remaining steps (maintenance)
+        if: ${{ inputs.maintenance == 'true' }}
+        run: exit 0
+
       - name: Download Snowbridge relay binary
+        if: ${{ inputs.maintenance != 'true' }}
         run: |
           docker create --name temp datahavenxyz/snowbridge-relay:latest
           mkdir -p tmp/bin
@@ -131,22 +152,25 @@ jobs:
           tmp/bin/snowbridge-relay --help
       
       - name: Pull DataHaven node image 
+        if: ${{ inputs.maintenance != 'true' }}
         run: |
           docker pull ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }}
           docker tag ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
       
       - run: bun install
+        if: ${{ inputs.maintenance != 'true' }}
       - name: Run E2E tests
+        if: ${{ inputs.maintenance != 'true' }}
         run: bun test:e2e
       
       # Try to collect all docker logs and upload it
       - name: Collect docker logs
-        if: always()
+        if: ${{ always() && inputs.maintenance != 'true' }}
         run: |
           mkdir ./logs
           for name in `docker ps -a --format '{{.Names}}'`; do docker logs $name > ./logs/$name.log 2>&1; done
       - name: Upload logs to GitHub
-        if: always()
+        if: ${{ always() && inputs.maintenance != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: logs

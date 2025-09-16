@@ -5,7 +5,8 @@ use sc_cli::RunCmd;
 use serde::Deserializer;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
-    BspUploadFileOptions, IndexerOptions, MspChargeFeesOptions, MspMoveBucketOptions,
+    BspUploadFileOptions, FishermanOptions, IndexerOptions, MspChargeFeesOptions,
+    MspMoveBucketOptions,
 };
 use shc_indexer_service::IndexerMode;
 use shc_rpc::RpcConfig;
@@ -44,6 +45,10 @@ pub struct Cli {
     /// Indexer configurations
     #[command(flatten)]
     pub indexer_config: IndexerConfigurations,
+
+    /// Fisherman configurations
+    #[command(flatten)]
+    pub fisherman_config: FishermanConfigurations,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -88,8 +93,6 @@ pub enum ProviderType {
     Msp,
     /// Backup Storage Provider
     Bsp,
-    /// User role
-    User,
 }
 
 impl<'de> serde::Deserialize<'de> for ProviderType {
@@ -99,7 +102,6 @@ impl<'de> serde::Deserialize<'de> for ProviderType {
         let provider_type = match s.as_str() {
             "bsp" => ProviderType::Bsp,
             "msp" => ProviderType::Msp,
-            "user" => ProviderType::User,
             _ => {
                 return Err(serde::de::Error::custom(
                     "Cannot parse `provider_type`. Invalid value.",
@@ -561,6 +563,39 @@ impl IndexerConfigurations {
                     .indexer_database_url
                     .clone()
                     .expect("Indexer database URL is required"),
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Parser, Clone)]
+pub struct FishermanConfigurations {
+    /// Enable the fisherman service.
+    #[arg(long)]
+    pub fisherman: bool,
+
+    /// Postgres database URL for the fisherman service.
+    ///
+    /// If not provided, the fisherman will use the `FISHERMAN_DATABASE_URL` environment variable.
+    /// If the environment variable is not set, the node will abort.
+    #[arg(
+        long("fisherman-database-url"),
+        env = "FISHERMAN_DATABASE_URL",
+        required_if_eq("fisherman", "true")
+    )]
+    pub fisherman_database_url: Option<String>,
+}
+
+impl FishermanConfigurations {
+    pub fn fisherman_options(&self) -> Option<FishermanOptions> {
+        if self.fisherman {
+            Some(FishermanOptions {
+                database_url: self
+                    .fisherman_database_url
+                    .clone()
+                    .expect("Fisherman database URL is required"),
             })
         } else {
             None

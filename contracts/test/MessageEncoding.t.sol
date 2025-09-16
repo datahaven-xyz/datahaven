@@ -8,7 +8,7 @@ import {TestUtils} from "./utils/TestUtils.sol";
 
 // This test is used to encode the receive validators message and print the hex string.
 // Run forge test --match-test testEncodeReceiveValidatorsMessage -vvv to see the hex encoded bytes.
-// Use the helper script in operator/test/scripts/test_message_encoding.sh to test the encoding/decoding full cycle.
+// Use the helper script in operator/scripts/test_message_encoding.sh to test the encoding/decoding full cycle.
 contract MessageEncodingTest is Test {
     function testEncodeReceiveValidatorsMessage() public pure {
         // Use the utility function for consistency

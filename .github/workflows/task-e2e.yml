@@ -121,14 +121,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prune stale Docker volumes
-        run: |
-          echo "Volume count before prune:"
-          docker volume ls | wc -l
-          docker volume prune -f
-          echo "Volume count after prune:"
-          docker volume ls | wc -l
-
       - name: Download Snowbridge relay binary
         run: |
           docker create --name temp datahavenxyz/snowbridge-relay:latest

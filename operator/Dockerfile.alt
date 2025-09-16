@@ -1,0 +1,24 @@
+##### BUILDER #####
+FROM rust:latest AS builder
+
+WORKDIR /usr/src/datahaven
+COPY . .
+
+RUN apt-get update && apt-get install -y protobuf-compiler libpq-dev libclang-dev
+RUN cargo build --locked --release
+
+##### RUNNER #####
+FROM debian:bookworm
+
+LABEL description="DataHaven Node Local Build"
+
+COPY --from=builder /usr/src/datahaven/target/release/datahaven-node /usr/local/bin/datahaven-node
+
+RUN apt-get update && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 9333 9944 30333 30334 9615
+
+VOLUME ["/data"]
+
+ENTRYPOINT ["datahaven-node"]
+CMD ["--tmp"]

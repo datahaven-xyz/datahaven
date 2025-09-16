@@ -1,0 +1,21 @@
+name: Compare docker builds
+
+on:
+  push:
+
+jobs:
+  current:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - run: ls
+      - run: cd operator && docker build -t datahaven --file Dockerfile .
+  
+  alt: 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - run: ls
+      - run: cd operator && docker build -t datahaven --file Dockerfile.alt .

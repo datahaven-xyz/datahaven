@@ -148,6 +148,7 @@ shp-forest-verifier = { workspace = true }
 shp-file-key-verifier = { workspace = true }
 shp-data-price-updater = { workspace = true }
 sp-trie = { workspace = true }
+pallet-evm-precompile-file-system = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
@@ -196,6 +197,7 @@ std = [
     "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-proxy/std",
     "pallet-evm-precompile-registry/std",
+    "pallet-evm-precompile-file-system/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
@@ -280,6 +282,7 @@ std = [
 	"shp-traits/std",
 	"shp-treasury-funding/std",
     "shp-file-key-verifier/std",
+    "pallet-evm-precompile-file-system/std",
 ]
 
 runtime-benchmarks = [

@@ -4,11 +4,6 @@ name: CI
 
 on:
   workflow_dispatch:
-    inputs:
-      maintenance:
-        description: "Run maintenance tasks instead of the full CI pipeline"
-        type: boolean
-        default: false
   push:
     branches:
       - main
@@ -26,36 +21,28 @@ concurrency:
 jobs:
   # First Tier - Build the binary first
   build-operator:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     uses: ./.github/workflows/task-build-operator.yml
     
   # First Tier - Other parallel jobs
   ts-build:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     uses: ./.github/workflows/task-ts-build.yml
   ts-lint:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     uses: ./.github/workflows/task-ts-lint.yml
   unit-tests:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     uses: ./.github/workflows/task-rust-tests.yml
   contract-tests:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     uses: ./.github/workflows/task-foundry-tests.yml
   rust-lint:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     uses: ./.github/workflows/task-rust-lint.yml
     
   # Second Tier - Jobs that depend on operator build
   check-metadata:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     needs: [build-operator]
     uses: ./.github/workflows/task-check-metadata.yml
     with:
       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
       
   docker-build:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     needs: [build-operator]
     uses: ./.github/workflows/task-docker.yml
     secrets: inherit
@@ -64,22 +51,8 @@ jobs:
 
   # Third Tier - E2E tests depend on docker build
   e2e-tests:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.maintenance != 'true' }}
     needs: [docker-build]
     uses: ./.github/workflows/task-e2e.yml
     secrets: inherit
     with:
       image-tag: ${{ needs.docker-build.outputs.image-tag }}
-
-  maintenance-prune:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.maintenance == 'true' }}
-    runs-on:
-      group: DH-Testing
-    steps:
-      - name: Show volume count before prune
-        run: docker volume ls | wc -l
-      - name: Prune unused Docker volumes
-        run: docker volume prune -f
-      - name: Show volume count after prune
-        run: docker volume ls | wc -l
-

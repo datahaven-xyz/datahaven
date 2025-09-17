@@ -9,6 +9,11 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks;
 pub mod configs;
+pub mod precompiles;
+pub mod weights;
+
+// Re-export governance for tests
+pub use configs::governance;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -16,16 +21,34 @@ use fp_rpc::TransactionStatus;
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::{TransactionValidity, TransactionValidityError},
+    parameter_types,
     traits::{KeyOwnerProofSystem, OnFinalize},
-    weights::Weight,
+    weights::{
+        constants::ExtrinsicBaseWeight, constants::WEIGHT_REF_TIME_PER_SECOND, Weight,
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+    },
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
 use pallet_external_validators::traits::EraIndex;
+use pallet_file_system::types::StorageRequestMetadata;
+use pallet_file_system_runtime_api::*;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
+use pallet_payment_streams_runtime_api::*;
+use pallet_proofs_dealer::types::{
+    CustomChallenge, KeyFor, ProviderIdFor as ProofsDealerProviderIdFor, RandomnessOutputFor,
+};
+use pallet_proofs_dealer_runtime_api::*;
+use pallet_storage_providers::types::{
+    BackupStorageProvider, BackupStorageProviderId, BucketId, MainStorageProviderId,
+    Multiaddresses, ProviderIdFor, StorageDataUnit, StorageProviderId, ValuePropositionWithId,
+};
+use pallet_storage_providers_runtime_api::*;
 pub use pallet_timestamp::Call as TimestampCall;
+use shp_file_metadata::ChunkId;
+use smallvec::smallvec;
 use snowbridge_core::AgentId;
 use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
@@ -40,16 +63,17 @@ use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{Block as BlockT, DispatchInfoOf, Dispatchable, PostDispatchInfoOf},
     transaction_validity::TransactionSource,
-    ApplyExtrinsicResult, Permill,
+    ApplyExtrinsicResult, Perbill, Permill,
 };
+use sp_std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::VersionedLocation;
 
 pub use datahaven_runtime_common::{
-    time::EpochDurationInBlocks, AccountId, Address, Balance, BlockNumber, Hash, Header, Nonce,
-    Signature,
+    gas::WEIGHT_PER_GAS, time::EpochDurationInBlocks, time::*, AccountId, Address, Balance,
+    BlockNumber, Hash, Header, Nonce, Signature,
 };
 
 pub mod genesis_config_presets;
@@ -105,43 +129,59 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     system_version: 1,
 };
 
-mod block_times {
-    /// This determines the average expected block time that we are targeting. Blocks will be
-    /// produced at a minimum duration defined by `SLOT_DURATION`. `SLOT_DURATION` is picked up by
-    /// `pallet_timestamp` which is in turn picked up by `pallet_babe` to implement `fn
-    /// slot_duration()`.
-    ///
-    /// Change this to adjust the block time.
-    pub const MILLI_SECS_PER_BLOCK: u64 = 6000;
-
-    // NOTE: Currently it is not possible to change the slot duration after the chain has started.
-    // Attempting to do so will brick block production.
-    pub const SLOT_DURATION: u64 = MILLI_SECS_PER_BLOCK;
-}
-pub use block_times::*;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLI_SECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
-// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
-pub const SUPPLY_FACTOR: Balance = 1;
+/// HAVE, the native token, uses 18 decimals of precision.
+pub mod currency {
+    use super::Balance;
 
-// Unit = the base number of indivisible units for balances
-pub const UNIT: Balance = 1_000_000_000_000;
-pub const MILLI_UNIT: Balance = 1_000_000_000;
-pub const MICRO_UNIT: Balance = 1_000_000;
+    // Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
+    pub const SUPPLY_FACTOR: Balance = 100;
 
-pub const STORAGE_BYTE_FEE: Balance = 100 * MICRO_UNIT * SUPPLY_FACTOR;
+    pub const WEI: Balance = 1;
+    pub const KILOWEI: Balance = 1_000;
+    pub const MEGAWEI: Balance = 1_000_000;
+    pub const GIGAWEI: Balance = 1_000_000_000;
+    pub const MICROHAVE: Balance = 1_000_000_000_000;
+    pub const MILLIHAVE: Balance = 1_000_000_000_000_000;
+    pub const HAVE: Balance = 1_000_000_000_000_000_000;
+    pub const KILOHAVE: Balance = 1_000_000_000_000_000_000_000;
 
-/// Existential deposit.
-pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+    pub const TRANSACTION_BYTE_FEE: Balance = 1 * GIGAWEI * SUPPLY_FACTOR;
+    pub const STORAGE_BYTE_FEE: Balance = 100 * MICROHAVE * SUPPLY_FACTOR;
+    pub const WEIGHT_FEE: Balance = 50 * KILOWEI * SUPPLY_FACTOR / 4;
 
-pub const fn deposit(items: u32, bytes: u32) -> Balance {
-    items as Balance * UNIT * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 100 * MILLIHAVE * SUPPLY_FACTOR + (bytes as Balance) * STORAGE_BYTE_FEE
+    }
+}
+
+pub const MAX_POV_SIZE: u32 = 5 * 1024 * 1024;
+
+/// Maximum weight per block
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+    WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+    MAX_POV_SIZE as u64,
+);
+
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+pub const NORMAL_BLOCK_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_mul(3).saturating_div(4);
+// Here we assume Ethereum's base fee of 21000 gas and convert to weight, but we
+// subtract roughly the cost of a balance transfer from it (about 1/3 the cost)
+// and some cost to account for per-byte-fee.
+// TODO: we should use benchmarking's overhead feature to measure this
+pub const EXTRINSIC_BASE_WEIGHT: Weight = Weight::from_parts(10000 * WEIGHT_PER_GAS, 0);
+
+// Existential deposit.
+#[cfg(not(feature = "runtime-benchmarks"))]
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 0;
+}
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    // TODO: Change ED to 1 after upgrade to Polkadot SDK stable2503
+    // cfr. https://github.com/paritytech/polkadot-sdk/pull/7379
+    pub const ExistentialDeposit: Balance = 100;
 }
 
 /// The version information used to identify this runtime when compiled natively.
@@ -209,6 +249,33 @@ where
 {
     fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
         UncheckedExtrinsic::new_bare(call)
+    }
+}
+
+/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+/// node's balance type.
+///
+/// This should typically create a mapping between the following ranges:
+///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
+///   - `[Balance::min, Balance::max]`
+///
+/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+///   - Setting it to `0` will essentially disable the weight fee.
+///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+    type Balance = Balance;
+    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIHAVE:
+        // in our template, we map to 1/10 of that, or 1/10 MILLIHAVE
+        let p = currency::MILLIHAVE / 10;
+        let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+        smallvec![WeightToFeeCoefficient {
+            degree: 1,
+            negative: false,
+            coeff_frac: Perbill::from_rational(p % q, q),
+            coeff_integer: p / q,
+        }]
     }
 }
 
@@ -304,7 +371,30 @@ mod runtime {
 
     #[runtime::pallet_index(37)]
     pub type Treasury = pallet_treasury;
+
+    #[runtime::pallet_index(38)]
+    pub type Proxy = pallet_proxy;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
+
+    // ╔═════════════════════════ Governance Pallets ════════════════════╗
+    #[runtime::pallet_index(40)]
+    pub type TechnicalCommittee = pallet_collective<Instance1>;
+
+    #[runtime::pallet_index(41)]
+    pub type TreasuryCouncil = pallet_collective<Instance2>;
+
+    #[runtime::pallet_index(42)]
+    pub type ConvictionVoting = pallet_conviction_voting;
+
+    #[runtime::pallet_index(43)]
+    pub type Referenda = pallet_referenda;
+
+    #[runtime::pallet_index(44)]
+    pub type Whitelist = pallet_whitelist;
+
+    #[runtime::pallet_index(45)]
+    pub type Origins = governance::custom_origins;
+    // ╚═════════════════════════ Governance Pallets ════════════════════╝
 
     // ╔════════════════════ Frontier (EVM) Pallets ═════════════════════╗
     #[runtime::pallet_index(50)]
@@ -346,6 +436,26 @@ mod runtime {
 
     // ╔══════════════════════ StorageHub Pallets ═══════════════════════╗
     // Start with index 80
+    #[runtime::pallet_index(80)]
+    pub type Providers = pallet_storage_providers;
+
+    #[runtime::pallet_index(81)]
+    pub type FileSystem = pallet_file_system;
+
+    #[runtime::pallet_index(82)]
+    pub type ProofsDealer = pallet_proofs_dealer;
+
+    #[runtime::pallet_index(83)]
+    pub type Randomness = pallet_randomness;
+
+    #[runtime::pallet_index(84)]
+    pub type PaymentStreams = pallet_payment_streams;
+
+    #[runtime::pallet_index(85)]
+    pub type BucketNfts = pallet_bucket_nfts;
+
+    #[runtime::pallet_index(90)]
+    pub type Nfts = pallet_nfts;
     // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
 
     // ╔═══════════════════ DataHaven-specific Pallets ══════════════════╗
@@ -815,10 +925,9 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -835,7 +944,6 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
@@ -1102,5 +1210,267 @@ impl_runtime_apis! {
                 pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
             )
         }
+    }
+
+    //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+    //║                                        STORAGEHUB APIS                                                        ║
+    //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+    impl pallet_file_system_runtime_api::FileSystemApi<Block, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>> for Runtime {
+        fn is_storage_request_open_to_volunteers(file_key: H256) -> Result<bool, IsStorageRequestOpenToVolunteersError> {
+            FileSystem::is_storage_request_open_to_volunteers(file_key)
+        }
+
+        fn query_earliest_file_volunteer_tick(bsp_id: BackupStorageProviderId<Runtime>, file_key: H256) -> Result<BlockNumber, QueryFileEarliestVolunteerTickError> {
+            FileSystem::query_earliest_file_volunteer_tick(bsp_id, file_key)
+        }
+
+        fn query_bsp_confirm_chunks_to_prove_for_file(bsp_id: BackupStorageProviderId<Runtime>, file_key: H256) -> Result<Vec<ChunkId>, QueryBspConfirmChunksToProveForFileError> {
+            FileSystem::query_bsp_confirm_chunks_to_prove_for_file(bsp_id, file_key)
+        }
+
+        fn query_msp_confirm_chunks_to_prove_for_file(msp_id: MainStorageProviderId<Runtime>, file_key: H256) -> Result<Vec<ChunkId>, QueryMspConfirmChunksToProveForFileError> {
+            FileSystem::query_msp_confirm_chunks_to_prove_for_file(msp_id, file_key)
+        }
+
+       fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
+            FileSystem::decode_generic_apply_delta_event_info(encoded_event_info)
+        }
+
+        fn pending_storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
+            FileSystem::pending_storage_requests_by_msp(msp_id)
+        }
+    }
+
+    impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {
+        fn get_users_with_debt_over_threshold(provider_id: &ProviderIdFor<Runtime>, threshold: Balance) -> Result<Vec<AccountId>, GetUsersWithDebtOverThresholdError> {
+            PaymentStreams::get_users_with_debt_over_threshold(provider_id, threshold)
+        }
+        fn get_users_of_payment_streams_of_provider(provider_id: &ProviderIdFor<Runtime>) -> Vec<AccountId> {
+            PaymentStreams::get_users_of_payment_streams_of_provider(provider_id)
+        }
+        fn get_providers_with_payment_streams_with_user(user_account: &AccountId) -> Vec<ProviderIdFor<Runtime>> {
+            PaymentStreams::get_providers_with_payment_streams_with_user(user_account)
+        }
+    }
+
+    impl pallet_proofs_dealer_runtime_api::ProofsDealerApi<Block, ProofsDealerProviderIdFor<Runtime>, BlockNumber, KeyFor<Runtime>, RandomnessOutputFor<Runtime>, CustomChallenge<Runtime>> for Runtime {
+        fn get_last_tick_provider_submitted_proof(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetProofSubmissionRecordError> {
+            ProofsDealer::get_last_tick_provider_submitted_proof(provider_id)
+        }
+
+        fn get_next_tick_to_submit_proof_for(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetProofSubmissionRecordError> {
+            ProofsDealer::get_next_tick_to_submit_proof_for(provider_id)
+        }
+
+        fn get_last_checkpoint_challenge_tick() -> BlockNumber {
+            ProofsDealer::get_last_checkpoint_challenge_tick()
+        }
+
+        fn get_checkpoint_challenges(
+            tick: BlockNumber
+        ) -> Result<Vec<CustomChallenge<Runtime>>, GetCheckpointChallengesError> {
+            ProofsDealer::get_checkpoint_challenges(tick)
+        }
+
+        fn get_challenge_seed(tick: BlockNumber) -> Result<RandomnessOutputFor<Runtime>, GetChallengeSeedError> {
+            ProofsDealer::get_challenge_seed(tick)
+        }
+
+        fn get_challenge_period(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetChallengePeriodError> {
+            ProofsDealer::get_challenge_period(provider_id)
+        }
+
+        fn get_checkpoint_challenge_period() -> BlockNumber {
+            ProofsDealer::get_checkpoint_challenge_period()
+        }
+
+        fn get_challenges_from_seed(seed: &RandomnessOutputFor<Runtime>, provider_id: &ProofsDealerProviderIdFor<Runtime>, count: u32) -> Vec<KeyFor<Runtime>> {
+            ProofsDealer::get_challenges_from_seed(seed, provider_id, count)
+        }
+
+        fn get_forest_challenges_from_seed(seed: &RandomnessOutputFor<Runtime>, provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Vec<KeyFor<Runtime>> {
+            ProofsDealer::get_forest_challenges_from_seed(seed, provider_id)
+        }
+
+        fn get_current_tick() -> BlockNumber {
+            ProofsDealer::get_current_tick()
+        }
+
+        fn get_next_deadline_tick(provider_id: &ProofsDealerProviderIdFor<Runtime>) -> Result<BlockNumber, GetNextDeadlineTickError> {
+            ProofsDealer::get_next_deadline_tick(provider_id)
+        }
+    }
+
+
+    impl pallet_storage_providers_runtime_api::StorageProvidersApi<Block, BlockNumber, BackupStorageProviderId<Runtime>, BackupStorageProvider<Runtime>, MainStorageProviderId<Runtime>, AccountId, ProviderIdFor<Runtime>, StorageProviderId<Runtime>, StorageDataUnit<Runtime>, Balance, BucketId<Runtime>, Multiaddresses<Runtime>, ValuePropositionWithId<Runtime>> for Runtime {
+        fn get_bsp_info(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<BackupStorageProvider<Runtime>, GetBspInfoError> {
+            Providers::get_bsp_info(bsp_id)
+        }
+
+        fn get_storage_provider_id(who: &AccountId) -> Option<StorageProviderId<Runtime>> {
+            Providers::get_storage_provider_id(who)
+        }
+
+        fn query_msp_id_of_bucket_id(bucket_id: &BucketId<Runtime>) -> Result<Option<ProviderIdFor<Runtime>>, QueryMspIdOfBucketIdError> {
+            Providers::query_msp_id_of_bucket_id(bucket_id)
+        }
+
+        fn query_provider_multiaddresses(provider_id: &ProviderIdFor<Runtime>) -> Result<Multiaddresses<Runtime>, QueryProviderMultiaddressesError> {
+            Providers::query_provider_multiaddresses(provider_id)
+        }
+
+        fn query_storage_provider_capacity(provider_id: &ProviderIdFor<Runtime>) -> Result<StorageDataUnit<Runtime>, QueryStorageProviderCapacityError> {
+            Providers::query_storage_provider_capacity(provider_id)
+        }
+
+        fn query_available_storage_capacity(provider_id: &ProviderIdFor<Runtime>) -> Result<StorageDataUnit<Runtime>, QueryAvailableStorageCapacityError> {
+            Providers::query_available_storage_capacity(provider_id)
+        }
+
+        fn query_earliest_change_capacity_block(provider_id: &BackupStorageProviderId<Runtime>) -> Result<BlockNumber, QueryEarliestChangeCapacityBlockError> {
+            Providers::query_earliest_change_capacity_block(provider_id)
+        }
+
+        fn get_worst_case_scenario_slashable_amount(provider_id: ProviderIdFor<Runtime>) -> Option<Balance> {
+            Providers::get_worst_case_scenario_slashable_amount(&provider_id).ok()
+        }
+
+        fn get_slash_amount_per_max_file_size() -> Balance {
+            Providers::get_slash_amount_per_max_file_size()
+        }
+
+        fn query_value_propositions_for_msp(msp_id: &MainStorageProviderId<Runtime>) -> Vec<ValuePropositionWithId<Runtime>> {
+            Providers::query_value_propositions_for_msp(msp_id)
+        }
+
+        fn get_bsp_stake(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<Balance, GetStakeError> {
+            Providers::get_bsp_stake(bsp_id)
+        }
+
+        fn can_delete_provider(provider_id: &ProviderIdFor<Runtime>) -> bool {
+            Providers::can_delete_provider(provider_id)
+        }
+
+        fn query_buckets_for_msp(msp_id: &MainStorageProviderId<Runtime>) -> Result<Vec<BucketId<Runtime>>, QueryBucketsForMspError> {
+            Providers::query_buckets_for_msp(msp_id)
+        }
+
+        fn query_buckets_of_user_stored_by_msp(msp_id: &ProviderIdFor<Runtime>, user: &AccountId) -> Result<sp_runtime::Vec<BucketId<Runtime>>, QueryBucketsOfUserStoredByMspError> {
+            Ok(sp_runtime::Vec::from_iter(Providers::query_buckets_of_user_stored_by_msp(msp_id, user)?))
+        }
+    }
+}
+
+// Shorthand for a Get field of a pallet Config.
+#[macro_export]
+macro_rules! get {
+    ($pallet:ident, $name:ident, $type:ty) => {
+        <<$crate::Runtime as $pallet::Config>::$name as $crate::Get<$type>>::get()
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::configs::ProxyType;
+    use codec::Decode;
+    use datahaven_runtime_common::gas::BLOCK_STORAGE_LIMIT;
+
+    use super::{
+        configs::{BlockGasLimit, WeightPerGas},
+        currency::*,
+        *,
+    };
+
+    #[test]
+    fn currency_constants_are_correct() {
+        assert_eq!(SUPPLY_FACTOR, 100);
+
+        // txn fees
+        assert_eq!(TRANSACTION_BYTE_FEE, Balance::from(100 * GIGAWEI));
+        assert_eq!(
+            get!(pallet_transaction_payment, OperationalFeeMultiplier, u8),
+            5_u8
+        );
+        assert_eq!(STORAGE_BYTE_FEE, Balance::from(10 * MILLIHAVE));
+
+        // pallet_identity deposits
+        assert_eq!(
+            get!(pallet_identity, BasicDeposit, u128),
+            Balance::from(10 * HAVE + 2580 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_identity, ByteDeposit, u128),
+            Balance::from(10 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_identity, SubAccountDeposit, u128),
+            Balance::from(10 * HAVE + 530 * MILLIHAVE)
+        );
+
+        // Proxy deposits
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositBase, u128),
+            Balance::from(10 * HAVE + 80 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, ProxyDepositFactor, u128),
+            Balance::from(210 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositBase, u128),
+            Balance::from(10 * HAVE + 80 * MILLIHAVE)
+        );
+        assert_eq!(
+            get!(pallet_proxy, AnnouncementDepositFactor, u128),
+            Balance::from(560 * MILLIHAVE)
+        );
+    }
+
+    #[test]
+    fn test_proxy_type_can_be_decoded_from_valid_values() {
+        let test_cases = vec![
+            // (input, expected)
+            (0u8, ProxyType::Any),
+            (1, ProxyType::NonTransfer),
+            (2, ProxyType::Governance),
+            (3, ProxyType::Staking),
+            (4, ProxyType::CancelProxy),
+            (5, ProxyType::Balances),
+            (6, ProxyType::IdentityJudgement),
+            (7, ProxyType::SudoOnly),
+        ];
+
+        for (input, expected) in test_cases {
+            let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+            assert_eq!(
+                Ok(expected),
+                actual,
+                "failed decoding ProxyType for value '{}'",
+                input
+            );
+        }
+    }
+
+    #[test]
+    fn configured_base_extrinsic_weight_is_evm_compatible() {
+        let min_ethereum_transaction_weight = WeightPerGas::get() * 21_000;
+        let base_extrinsic = <Runtime as frame_system::Config>::BlockWeights::get()
+            .get(frame_support::dispatch::DispatchClass::Normal)
+            .base_extrinsic;
+        assert!(base_extrinsic.ref_time() <= min_ethereum_transaction_weight.ref_time());
+    }
+
+    #[test]
+    fn test_storage_growth_ratio_is_correct() {
+        let expected_storage_growth_ratio = BlockGasLimit::get()
+            .low_u64()
+            .saturating_div(BLOCK_STORAGE_LIMIT);
+        let actual_storage_growth_ratio: u64 =
+            <Runtime as pallet_evm::Config>::GasLimitStorageGrowthRatio::get();
+        assert_eq!(
+            expected_storage_growth_ratio, actual_storage_growth_ratio,
+            "Storage growth ratio is not correct"
+        );
     }
 }

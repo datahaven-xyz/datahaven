@@ -130,7 +130,7 @@ export const generateRelayerConfig = async (
       const cfg = parseRelayConfig(json, type);
       cfg.source.beacon.endpoint = config.ethClEndpoint;
       cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
-      cfg.source.beacon.datastore.location = "/data";
+      cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.parachain.endpoint = config.substrateWsEndpoint;
 
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
@@ -153,7 +153,7 @@ export const generateRelayerConfig = async (
       cfg.source.ethereum.endpoint = config.ethElRpcEndpoint;
       cfg.source.beacon.endpoint = config.ethClEndpoint;
       cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
-      cfg.source.beacon.datastore.location = "/data";
+      cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.parachain.endpoint = config.substrateWsEndpoint;
       cfg.source.contracts.Gateway = config.gatewayAddress;
 
@@ -169,7 +169,7 @@ export const generateRelayerConfig = async (
       cfg.source.contracts.Gateway = config.gatewayAddress;
       cfg.source.beacon.endpoint = config.ethClEndpoint;
       cfg.source.beacon.stateEndpoint = config.ethClEndpoint;
-      cfg.source.beacon.datastore.location = "/data";
+      cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.ethereum.endpoint = config.ethElRpcEndpoint;
       cfg.sink.contracts.Gateway = config.gatewayAddress;
       cfg["reward-address"] = config.rewardsRegistryAddress;
@@ -433,10 +433,10 @@ export const launchRelayers = async (
   // Check if BEEFY is ready before proceeding
   await waitBeefyReady(launchedNetwork, 2000, 60000);
 
-  const anvilDeployments = await parseDeploymentsFile();
-  const beefyClientAddress = anvilDeployments.BeefyClient;
-  const gatewayAddress = anvilDeployments.Gateway;
-  const rewardsRegistryAddress = anvilDeployments.RewardsRegistry;
+  const deployments = await parseDeploymentsFile();
+  const beefyClientAddress = deployments.BeefyClient;
+  const gatewayAddress = deployments.Gateway;
+  const rewardsRegistryAddress = deployments.RewardsRegistry;
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
   invariant(rewardsRegistryAddress, "❌ RewardsRegistry address not found in anvil.json");
@@ -659,7 +659,7 @@ const launchRelayerContainers = async (
 
       if (config.type === "beacon" || config.type === "execution") {
         const hostDatastorePath = path.resolve("tmp/datastore");
-        const containerDatastorePath = "/data";
+        const containerDatastorePath = "/relay-data";
         volumeMounts.push("-v", `${hostDatastorePath}:${containerDatastorePath}`);
       }
 

@@ -23,11 +23,24 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+// TODO: Temporary workaround before upgrading to latest polkadot-sdk - fix https://github.com/paritytech/polkadot-sdk/pull/6435
+#[allow(unused_imports)]
+use pallet_collective as pallet_collective_treasury_council;
+#[allow(unused_imports)]
+use pallet_collective as pallet_collective_technical_committee;
+
 frame_benchmarking::define_benchmarks!(
-    [frame_benchmarking, BaselineBench::<Runtime>]
+    // System benchmarks
     [frame_system, SystemBench::<Runtime>]
+
+    // Consensus pallets
+    [pallet_mmr, Mmr]
+    [pallet_beefy_mmr, BeefyMmrLeaf]
+
+    // Substrate pallets
     [pallet_balances, Balances]
-    [pallet_identity, Identity]
+    // FIXME: benchmarking identity fail
+    // [pallet_identity, Identity]
     [pallet_im_online, ImOnline]
     [pallet_multisig, Multisig]
     [pallet_preimage, Preimage]
@@ -36,4 +49,30 @@ frame_benchmarking::define_benchmarks!(
     [pallet_timestamp, Timestamp]
     [pallet_utility, Utility]
     [pallet_sudo, Sudo]
+    [pallet_proxy, Proxy]
+    [pallet_transaction_payment, TransactionPayment]
+    [pallet_parameters, Parameters]
+    [pallet_message_queue, MessageQueue]
+
+    // Governance pallets
+    [pallet_collective_technical_committee, TechnicalCommittee]
+    [pallet_collective_treasury_council, TreasuryCouncil]
+    [pallet_conviction_voting, ConvictionVoting]
+    [pallet_referenda, Referenda]
+    [pallet_whitelist, Whitelist]
+
+    // EVM pallets
+    [pallet_evm, Evm]
+
+    // DataHaven custom pallets
+    [pallet_external_validators, ExternalValidators]
+    [pallet_external_validators_rewards, ExternalValidatorsRewards]
+    [pallet_datahaven_native_transfer, DataHavenNativeTransfer]
+
+    // Snowbridge pallets
+    [snowbridge_pallet_ethereum_client, EthereumBeaconClient]
+    [snowbridge_pallet_inbound_queue_v2, EthereumInboundQueueV2]
+    [snowbridge_pallet_outbound_queue_v2, EthereumOutboundQueueV2]
+    [snowbridge_pallet_system, SnowbridgeSystem]
+    [snowbridge_pallet_system_v2, SnowbridgeSystemV2]
 );

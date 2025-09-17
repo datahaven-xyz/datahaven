@@ -23,18 +23,65 @@
 //
 // For more information, please refer to <http://unlicense.org>
 
+pub mod governance;
 pub mod runtime_params;
+mod storagehub;
 
 use super::{
-    deposit, AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber,
-    EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId, ExternalValidators,
+    currency::*,
+    precompiles::{DataHavenPrecompiles, PrecompileName},
+    AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
+    EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-    SessionKeys, Signature, System, Timestamp, Treasury, EXISTENTIAL_DEPOSIT, SLOT_DURATION,
-    STORAGE_BYTE_FEE, SUPPLY_FACTOR, UNIT, VERSION,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
+    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
+    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    SLOT_DURATION, VERSION,
 };
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::RuntimeDebug;
+
+/// A description of our proxy types.
+/// Proxy types are used to restrict the calls that can be made by a proxy account.
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub enum ProxyType {
+    /// Allow any call to be made by the proxy account
+    Any = 0,
+    /// Allow only calls that do not transfer funds or modify balances
+    NonTransfer = 1,
+    /// Allow only governance-related calls (Treasury, Preimage, Scheduler, etc.)
+    Governance = 2,
+    /// Allow only staking and validator-related calls
+    Staking = 3,
+    /// Allow only calls that cancel proxy announcements and reject announcements
+    CancelProxy = 4,
+    /// Allow only Balances calls (transfers, set_balance, force_transfer, etc.)
+    Balances = 5,
+    /// Allow only identity judgement calls
+    IdentityJudgement = 6,
+    /// Allow only calls to the Sudo pallet - useful for multisig -> sudo proxy chains
+    SudoOnly = 7,
+}
+
+impl Default for ProxyType {
+    fn default() -> Self {
+        Self::Any
+    }
+}
 use datahaven_runtime_common::{
     deal_with_fees::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
@@ -45,24 +92,20 @@ use datahaven_runtime_common::{
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
+    dispatch::DispatchClass,
     pallet_prelude::TransactionPriority,
     parameter_types,
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EqualPrivilegeOnly, FindAuthor,
+        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
-    weights::{
-        constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-        IdentityFee, RuntimeDbWeight, Weight,
-    },
+    weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    unique, EnsureRoot, EnsureRootWithSuccess,
-};
+use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
+use governance::councils::*;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
     EVMFungibleAdapter, EnsureAddressNever, EnsureAddressRoot, FeeCalculator,
@@ -112,20 +155,10 @@ use bridge_hub_common::AggregateMessageOrigin;
 #[cfg(feature = "runtime-benchmarks")]
 use datahaven_runtime_common::benchmarking::BenchmarkHelper;
 
+pub(crate) use crate::weights as mainnet_weights;
+
 const EVM_CHAIN_ID: u64 = 1289;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
-
-// TODO: We need to define what do we want here as max PoV size
-pub const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
-
-// Todo: import all currency constants from moonbeam
-pub const WEIGHT_FEE: Balance = 50_000 / 4;
-
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND, u64::MAX)
-    .saturating_mul(2)
-    .set_proof_size(MAX_POV_SIZE);
-
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 //║                                             COMMON PARAMETERS                                                 ║
@@ -142,15 +175,30 @@ parameter_types! {
 //║                                      SYSTEM AND CONSENSUS PALLETS                                             ║
 //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
+pub struct BlockWeights;
+impl Get<frame_system::limits::BlockWeights> for BlockWeights {
+    fn get() -> frame_system::limits::BlockWeights {
+        frame_system::limits::BlockWeights::builder()
+            .for_class(DispatchClass::Normal, |weights| {
+                weights.base_extrinsic = EXTRINSIC_BASE_WEIGHT;
+                weights.max_total = NORMAL_BLOCK_WEIGHT.into();
+            })
+            .for_class(DispatchClass::Operational, |weights| {
+                weights.max_total = MAXIMUM_BLOCK_WEIGHT.into();
+                weights.reserved = (MAXIMUM_BLOCK_WEIGHT - NORMAL_BLOCK_WEIGHT).into();
+            })
+            .avg_block_initialization(Perbill::from_percent(10))
+            .build()
+            .expect("Provided BlockWeight definitions are valid, qed")
+    }
+}
+
 parameter_types! {
-    pub const BlockHashCount: BlockNumber = 2400;
+    pub const BlockHashCount: BlockNumber = BLOCK_HASH_COUNT;
     pub const Version: RuntimeVersion = VERSION;
 
-    /// We allow for 2 seconds of compute with a 6 second average block time.
-    pub RuntimeBlockWeights: BlockWeights = BlockWeights::with_sensible_defaults(
-        Weight::from_parts(2u64 * WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
-        NORMAL_DISPATCH_RATIO,
-    );
+    pub RuntimeBlockWeights: frame_system::limits::BlockWeights = BlockWeights::get();
+    /// We allow for 5 MB blocks.
     pub RuntimeBlockLength: BlockLength = BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
@@ -185,6 +233,7 @@ impl frame_system::Config for Runtime {
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type SystemWeightInfo = mainnet_weights::frame_system::WeightInfo<Runtime>;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -223,7 +272,7 @@ impl pallet_timestamp::Config for Runtime {
     type Moment = u64;
     type OnTimestampSet = Babe;
     type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -235,9 +284,9 @@ impl pallet_balances::Config for Runtime {
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
-    type ExistentialDeposit = ConstU128<EXISTENTIAL_DEPOSIT>;
+    type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
-    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = mainnet_weights::pallet_balances::WeightInfo<Runtime>;
     type FreezeIdentifier = RuntimeFreezeReason;
     type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
     type RuntimeHoldReason = RuntimeHoldReason;
@@ -291,7 +340,7 @@ impl pallet_session::Config for Runtime {
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
-    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -348,10 +397,16 @@ impl pallet_transaction_payment::Config for Runtime {
         >,
     >;
     type OperationalFeeMultiplier = ConstU8<5>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type WeightToFee = IdentityFee<Balance>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type WeightToFee = benchmark_helpers::BenchmarkWeightToFee;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type LengthToFee = IdentityFee<Balance>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type LengthToFee = benchmark_helpers::BenchmarkWeightToFee;
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -393,7 +448,7 @@ impl pallet_mmr::Config for Runtime {
     type Hashing = Keccak256;
     type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
     type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_mmr::WeightInfo<Runtime>;
     type BlockHashProvider = pallet_mmr::DefaultBlockHashProvider<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
@@ -404,7 +459,7 @@ impl pallet_beefy_mmr::Config for Runtime {
     type BeefyAuthorityToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
     type LeafExtra = LeafExtraData;
     type BeefyDataProvider = LeafExtraDataProvider;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_beefy_mmr::WeightInfo<Runtime>;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -415,7 +470,7 @@ impl pallet_utility::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type PalletsOrigin = OriginCaller;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_utility::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -433,11 +488,11 @@ impl pallet_scheduler::Config for Runtime {
     type MaxScheduledPerBlock = ConstU32<50>;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type Preimages = Preimage;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_scheduler::WeightInfo<Runtime>;
 }
 
 parameter_types! {
-    pub const PreimageBaseDeposit: Balance = 5 * UNIT * SUPPLY_FACTOR ;
+    pub const PreimageBaseDeposit: Balance = 5 * HAVE * SUPPLY_FACTOR ;
     pub const PreimageByteDeposit: Balance = STORAGE_BYTE_FEE;
     pub const PreimageHoldReason: RuntimeHoldReason =
         RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
@@ -453,7 +508,7 @@ impl pallet_preimage::Config for Runtime {
         PreimageHoldReason,
         LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, Balance>,
     >;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_preimage::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -465,13 +520,10 @@ parameter_types! {
     pub const MaxUsernameLength: u32 = 32;
 }
 
-type IdentityForceOrigin = EnsureRoot<AccountId>;
-type IdentityRegistrarOrigin = EnsureRoot<AccountId>;
-// TODO: Add governance origin when available
-// type IdentityForceOrigin =
-// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
-// type IdentityRegistrarOrigin =
-// 	EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+type IdentityForceOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
+type IdentityRegistrarOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, governance::custom_origins::GeneralAdmin>;
 
 impl pallet_identity::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -497,6 +549,20 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = ();
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
+
+    // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
+    // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
+    // #[cfg(feature = "runtime-benchmarks")]
+    // fn benchmark_helper(message: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    //     let public = sp_io::crypto::ecdsa_generate(0.into(), None);
+    //     let eth_signer: Self::SigningPublicKey = public.into();
+    //     let hash_msg = sp_io::hashing::keccak_256(message);
+    //     let signature = Self::OffchainSignature::new(
+    //         sp_io::crypto::ecdsa_sign_prehashed(0.into(), &public, &hash_msg).unwrap(),
+    //     );
+
+    //     (eth_signer.encode(), signature.encode())
+    // }
 }
 
 parameter_types! {
@@ -514,20 +580,187 @@ impl pallet_multisig::Config for Runtime {
     type DepositBase = DepositBase;
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_multisig::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    // One storage item; key size 32 (AccountId), value overhead ~8 bytes (Vec metadata)
+    pub const ProxyDepositBase: Balance = deposit(1, 8);
+    // Additional storage item size of 21 bytes (20 bytes AccountId + 1 byte sizeof(ProxyType)).
+    pub const ProxyDepositFactor: Balance = deposit(0, 21);
+    pub const MaxProxies: u16 = 32;
+    // One storage item; key size 32 (AccountId), value overhead ~8 bytes (BoundedVec metadata)
+    pub const AnnouncementDepositBase: Balance = deposit(1, 8);
+    // Additional storage item size of 56 bytes:
+    // - 20 bytes AccountId
+    // - 32 bytes Hasher (Blake2256)
+    // - 4 bytes BlockNumber (u32)
+    pub const AnnouncementDepositFactor: Balance = deposit(0, 56);
+    pub const MaxPending: u16 = 32;
+}
+
+// Implement the proxy filter logic specific to the mainnet runtime
+impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
+    fn filter(&self, c: &RuntimeCall) -> bool {
+        match self {
+            ProxyType::Any => true,
+            ProxyType::NonTransfer => match c {
+                RuntimeCall::Identity(
+                    pallet_identity::Call::add_sub { .. } | pallet_identity::Call::set_subs { .. },
+                ) => false,
+                call => {
+                    matches!(
+                        call,
+                        RuntimeCall::System(..)
+                            | RuntimeCall::Timestamp(..)
+                            | RuntimeCall::Identity(..)
+                            | RuntimeCall::Utility(..)
+                            | RuntimeCall::Proxy(..)
+                            | RuntimeCall::Referenda(..)
+                            | RuntimeCall::Preimage(..)
+                            | RuntimeCall::ConvictionVoting(..)
+                            | RuntimeCall::TreasuryCouncil(..)
+                            | RuntimeCall::TechnicalCommittee(..)
+                    )
+                }
+            },
+            ProxyType::Governance => {
+                matches!(
+                    c,
+                    RuntimeCall::Referenda(..)
+                        | RuntimeCall::Preimage(..)
+                        | RuntimeCall::ConvictionVoting(..)
+                        | RuntimeCall::TreasuryCouncil(..)
+                        | RuntimeCall::TechnicalCommittee(..)
+                        | RuntimeCall::Utility(..)
+                )
+            }
+            ProxyType::Staking => {
+                // Todo: Add additional staking calls when available
+                matches!(c, RuntimeCall::Utility(..))
+            }
+            ProxyType::CancelProxy => {
+                matches!(
+                    c,
+                    RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })
+                )
+            }
+            ProxyType::Balances => {
+                matches!(c, RuntimeCall::Balances(..) | RuntimeCall::Utility(..))
+            }
+            ProxyType::IdentityJudgement => {
+                matches!(
+                    c,
+                    RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. })
+                        | RuntimeCall::Utility(..)
+                )
+            }
+            ProxyType::SudoOnly => {
+                matches!(c, RuntimeCall::Sudo(..))
+            }
+        }
+    }
+
+    fn is_superset(&self, o: &Self) -> bool {
+        match (self, o) {
+            (x, y) if x == y => true,
+            (ProxyType::Any, _) => true,
+            (_, ProxyType::Any) => false,
+            _ => false,
+        }
+    }
+}
+
+/// Helper function to identify governance precompiles (copied from Moonbeam)
+fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
+    // TODO: Uncomment when DataHaven implements these governance precompiles
+    // matches!(
+    //     precompile_name,
+    //     PrecompileName::ConvictionVotingPrecompile
+    //         | PrecompileName::PreimagePrecompile
+    //         | PrecompileName::ReferendaPrecompile
+    //         | PrecompileName::OpenTechCommitteeInstance
+    //         | PrecompileName::TreasuryCouncilInstance
+    // )
+    false // Temporarily disabled until governance precompiles are added
+}
+
+impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
+    fn is_evm_proxy_call_allowed(
+        &self,
+        call: &pallet_evm_precompile_proxy::EvmSubCall,
+        recipient_has_code: bool,
+        gas: u64,
+    ) -> precompile_utils::EvmResult<bool> {
+        Ok(match self {
+            ProxyType::Any => {
+                match PrecompileName::from_address(call.to.0) {
+                    Some(ref precompile) if is_governance_precompile(precompile) => true,
+                    Some(_) => false, // All other precompiles are forbidden
+                    None => {
+                        // Allow simple EOA transfers only
+                        !recipient_has_code
+                            && !precompile_utils::precompile_set::is_precompile_or_fail::<Runtime>(
+                                call.to.0, gas,
+                            )?
+                    }
+                }
+            }
+            ProxyType::NonTransfer => {
+                call.value == sp_core::U256::zero()
+                    && match PrecompileName::from_address(call.to.0) {
+                        Some(ref precompile) if is_governance_precompile(precompile) => true,
+                        _ => false,
+                    }
+            }
+            ProxyType::Governance => {
+                call.value == sp_core::U256::zero()
+                    && matches!(
+                        PrecompileName::from_address(call.to.0),
+                        Some(ref precompile) if is_governance_precompile(precompile)
+                    )
+            }
+            ProxyType::Staking => false,
+            ProxyType::CancelProxy => false,
+            ProxyType::Balances => {
+                // Allow only "simple" accounts as recipient (no code nor precompile)
+                !recipient_has_code
+                    && !precompile_utils::precompile_set::is_precompile_or_fail::<Runtime>(
+                        call.to.0, gas,
+                    )?
+            }
+            ProxyType::IdentityJudgement => false,
+            ProxyType::SudoOnly => false,
+        })
+    }
+}
+
+impl pallet_proxy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type Currency = Balances;
+    type ProxyType = ProxyType;
+    type ProxyDepositBase = ProxyDepositBase;
+    type ProxyDepositFactor = ProxyDepositFactor;
+    type MaxProxies = MaxProxies;
+    type WeightInfo = mainnet_weights::pallet_proxy::WeightInfo<Runtime>;
+    type MaxPending = MaxPending;
+    type CallHasher = sp_runtime::traits::BlakeTwo256;
+    type AnnouncementDepositBase = AnnouncementDepositBase;
+    type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
 impl pallet_parameters::Config for Runtime {
     type AdminOrigin = EnsureRoot<AccountId>;
     type RuntimeEvent = RuntimeEvent;
     type RuntimeParameters = RuntimeParameters;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
-    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = mainnet_weights::pallet_sudo::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -555,7 +788,7 @@ impl pallet_message_queue::Config for Runtime {
     type MaxStale = MessageQueueMaxStale;
     type ServiceWeight = MessageQueueServiceWeight;
     type IdleMaxServiceWeight = MessageQueueServiceWeight;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_message_queue::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -564,19 +797,24 @@ parameter_types! {
     pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
 }
 
+type RootOrTreasuryCouncilOrigin = EitherOfDiverse<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<AccountId, TreasuryCouncilInstance, 1, 2>,
+>;
+
 impl pallet_treasury::Config for Runtime {
     type PalletId = TreasuryId;
     type Currency = Balances;
-    type RejectOrigin = EnsureRoot<AccountId>;
+    type RejectOrigin = RootOrTreasuryCouncilOrigin;
     type RuntimeEvent = RuntimeEvent;
     type SpendPeriod = ConstU32<{ 6 * DAYS }>;
     type Burn = ();
     type BurnDestination = ();
     type MaxApprovals = ConstU32<100>;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_treasury::WeightInfo<Runtime>;
     type SpendFunds = ();
     type SpendOrigin =
-        frame_system::EnsureWithSuccess<EnsureRoot<AccountId>, AccountId, MaxSpendBalance>;
+        frame_system::EnsureWithSuccess<RootOrTreasuryCouncilOrigin, AccountId, MaxSpendBalance>;
     type AssetKind = ();
     type Beneficiary = AccountId;
     type BeneficiaryLookup = IdentityLookup<AccountId>;
@@ -643,10 +881,18 @@ datahaven_runtime_common::impl_on_charge_evm_transaction!();
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    // pub PrecompilesValue: TemplatePrecompiles<Runtime> = TemplatePrecompiles::<_>::new();
+    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
-    pub GasLimitPovSizeRatio: u32 = 16;
+    /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
+    /// it with the pov_size for a block. E.g.
+    /// ceil(
+    ///     (max_extrinsic.ref_time() / max_extrinsic.proof_size()) / WEIGHT_PER_GAS
+    /// )
+    /// We should re-check `xcm_config::Erc20XcmBridgeTransferGasLimit` when changing this value
+    pub const GasLimitPovSizeRatio: u64 = 16;
+    /// The amount of gas per storage (in bytes): BLOCK_GAS_LIMIT / BLOCK_STORAGE_LIMIT
+    /// (60_000_000 / 160 kb)
     pub GasLimitStorageGrowthRatio: u64 = 366;
 }
 
@@ -661,8 +907,8 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = ();
-    type PrecompilesValue = ();
+    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
@@ -676,9 +922,9 @@ impl pallet_evm::Config for Runtime {
     type OnCreate = ();
     type FindAuthor = FindAuthorAdapter<Self>;
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
-    type GasLimitStorageGrowthRatio = ();
+    type GasLimitStorageGrowthRatio = GasLimitStorageGrowthRatio;
     type Timestamp = Timestamp;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_evm::WeightInfo<Runtime>;
 }
 
 impl pallet_evm_chain_id::Config for Runtime {}
@@ -699,7 +945,7 @@ parameter_types! {
     pub Parameters: PricingParameters<u128> = PricingParameters {
         exchange_rate: FixedU128::from_rational(1, 400),
         fee_per_gas: gwei(20),
-        rewards: Rewards { local: UNIT, remote: meth(1) },
+        rewards: Rewards { local: HAVE, remote: meth(1) },
         multiplier: FixedU128::from_rational(1, 1),
     };
     pub EthereumLocation: Location = Location::new(1, EthereumNetwork::get());
@@ -738,9 +984,9 @@ impl snowbridge_pallet_system::Config for Runtime {
     type TreasuryAccount = TreasuryAccount;
     type DefaultPricingParameters = Parameters;
     type InboundDeliveryCost = InboundDeliveryCost;
-    type WeightInfo = ();
     type UniversalLocation = UniversalLocation;
     type EthereumLocation = EthereumLocation;
+    type WeightInfo = mainnet_weights::snowbridge_pallet_system::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
 }
@@ -751,7 +997,7 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type OutboundQueue = EthereumOutboundQueueV2;
     type FrontendOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
     type GovernanceOrigin = EnsureRootWithSuccess<AccountId, RootLocation>;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::snowbridge_pallet_system_v2::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = ();
 }
@@ -766,27 +1012,27 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: [0, 0, 0, 0], // 0x00000000
+            version: hex_literal::hex!("10000038"),
             epoch: 0,
         },
         altair: Fork {
-            version: [1, 0, 0, 0], // 0x01000000
+            version: hex_literal::hex!("20000038"),
             epoch: 0,
         },
         bellatrix: Fork {
-            version: [2, 0, 0, 0], // 0x02000000
+            version: hex_literal::hex!("30000038"),
             epoch: 0,
         },
         capella: Fork {
-            version: [3, 0, 0, 0], // 0x03000000
+            version: hex_literal::hex!("40000038"),
             epoch: 0,
         },
         deneb: Fork {
-            version: [4, 0, 0, 0], // 0x04000000
+            version: hex_literal::hex!("50000038"),
             epoch: 0,
         },
         electra: Fork {
-            version: [5, 0, 0, 0], // 0x05000000
+            version: hex_literal::hex!("60000038"),
             epoch: 0,
         },
     };
@@ -833,7 +1079,32 @@ impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ForkVersions = ChainForkVersions;
     type FreeHeadersInterval = ();
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
+}
+
+// No-op message processor for benchmarks
+// TODO: Adding this as fixture from upstream pallet has an incompatible
+// payload type. See if EigenLayerMessageProcessor has non trivial
+// compute or has storage read/writes that we may want to compute
+// as part of the weight
+#[cfg(feature = "runtime-benchmarks")]
+pub struct NoOpMessageProcessor;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_inbound_queue_primitives::v2::MessageProcessor<AccountId> for NoOpMessageProcessor {
+    fn can_process_message(
+        _who: &AccountId,
+        _message: &snowbridge_inbound_queue_primitives::v2::Message,
+    ) -> bool {
+        true
+    }
+
+    fn process_message(
+        _who: AccountId,
+        _message: snowbridge_inbound_queue_primitives::v2::Message,
+    ) -> Result<[u8; 32], sp_runtime::DispatchError> {
+        Ok([0u8; 32])
+    }
 }
 
 parameter_types! {
@@ -852,14 +1123,17 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = (
         EigenLayerMessageProcessor<Runtime>,
         NativeTokenTransferMessageProcessor<Runtime>,
     );
+    #[cfg(feature = "runtime-benchmarks")]
+    type MessageProcessor = NoOpMessageProcessor;
     type RewardKind = ();
     type DefaultRewardKind = DefaultRewardKind;
     type RewardPayment = DummyRewardPayment;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::snowbridge_pallet_inbound_queue_v2::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = Runtime;
 }
@@ -889,7 +1163,6 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type MaxMessagesPerBlock = ConstU32<32>;
     type OnNewCommitment = CommitmentHandler;
     type WeightToFee = IdentityFee<Balance>;
-    type WeightInfo = ();
     type Verifier = EthereumBeaconClient;
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     type RewardKind = ();
@@ -897,6 +1170,9 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
     type RewardPayment = DummyRewardPayment;
     type EthereumNetwork = EthereumNetwork;
     type ConvertAssetId = ();
+    type WeightInfo = mainnet_weights::snowbridge_pallet_outbound_queue_v2::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = Runtime;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -910,28 +1186,91 @@ impl snowbridge_pallet_outbound_queue_v2::Config for Runtime {
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmark_helpers {
     use crate::RuntimeOrigin;
-    use crate::{EthereumBeaconClient, Runtime};
+    use crate::{Balance, EthereumBeaconClient, Runtime};
+    use frame_support::weights::{Weight, WeightToFee};
     use snowbridge_beacon_primitives::BeaconHeader;
     use snowbridge_pallet_inbound_queue_v2::BenchmarkHelper as InboundQueueBenchmarkHelperV2;
-    use sp_core::H256;
-    use xcm::opaque::latest::Location;
+    use snowbridge_pallet_outbound_queue_v2::BenchmarkHelper as OutboundQueueBenchmarkHelperV2;
+    use sp_core::{H160, H256};
 
     impl<T: snowbridge_pallet_inbound_queue_v2::Config> InboundQueueBenchmarkHelperV2<T> for Runtime {
         fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
+            // Set the gateway address to match the one used in the fixture
+            use super::runtime_params::dynamic_params;
+            use super::RuntimeParameters;
+            use frame_support::assert_ok;
+            use hex_literal::hex;
+
+            // Gateway address from the fixture: 0xb1185ede04202fe62d38f5db72f71e38ff3e8305
+            let gateway_address = H160::from(hex!("b1185ede04202fe62d38f5db72f71e38ff3e8305"));
+
+            // Set the parameter using the pallet_parameters extrinsic
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
+                        dynamic_params::runtime_config::EthereumGatewayAddress,
+                        Some(gateway_address),
+                    )
+                )
+            ));
+
             EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }
 
-    impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
-        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
-            RuntimeOrigin::root()
+    impl<T: snowbridge_pallet_outbound_queue_v2::Config> OutboundQueueBenchmarkHelperV2<T> for Runtime {
+        fn initialize_storage(beacon_header: BeaconHeader, block_roots_root: H256) {
+            // Set the gateway address to match the one used in the fixture
+            use super::runtime_params::dynamic_params;
+            use super::RuntimeParameters;
+            use frame_support::assert_ok;
+            use hex_literal::hex;
+
+            // Gateway address from the fixture: 0xb1185ede04202fe62d38f5db72f71e38ff3e8305
+            let gateway_address = H160::from(hex!("b1185ede04202fe62d38f5db72f71e38ff3e8305"));
+
+            // Set the parameter using the pallet_parameters extrinsic
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    dynamic_params::runtime_config::Parameters::EthereumGatewayAddress(
+                        dynamic_params::runtime_config::EthereumGatewayAddress,
+                        Some(gateway_address),
+                    )
+                )
+            ));
+            EthereumBeaconClient::store_finalized_header(beacon_header, block_roots_root).unwrap();
         }
     }
 
-    impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
-        fn make_xcm_origin(_location: Location) -> RuntimeOrigin {
-            RuntimeOrigin::root()
+    /// Benchmark helper for transaction payment that provides minimal fees
+    pub struct BenchmarkWeightToFee;
+
+    impl WeightToFee for BenchmarkWeightToFee {
+        type Balance = Balance;
+
+        fn weight_to_fee(weight: &Weight) -> Self::Balance {
+            // Divide weight by 10,000,000 to get minimal fees
+            // This ensures fees are small enough to work with minimal funding
+            weight.ref_time().saturating_div(10_000_000).max(1).into()
         }
+    }
+}
+
+// BenchmarkHelper implementations for Snowbridge pallets
+// These need to be outside the benchmark_helpers module so they can be found by the compiler
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_pallet_system::BenchmarkHelper<RuntimeOrigin> for () {
+    fn make_xcm_origin(_location: xcm::opaque::latest::Location) -> RuntimeOrigin {
+        RuntimeOrigin::root()
+    }
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl snowbridge_pallet_system_v2::BenchmarkHelper<RuntimeOrigin> for () {
+    fn make_xcm_origin(_location: xcm::opaque::latest::Location) -> RuntimeOrigin {
+        RuntimeOrigin::root()
     }
 }
 
@@ -957,7 +1296,7 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = ExternalValidatorsRewards;
     type OnEraEnd = ExternalValidatorsRewards;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;
 }
@@ -977,6 +1316,18 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
+        let rewards_registry_address =
+            runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get();
+
+        // Skip sending message if RewardsRegistryAddress is zero (invalid)
+        if rewards_registry_address == H160::zero() {
+            log::warn!(
+                target: "rewards_send_adapter",
+                "Skipping rewards message: RewardsRegistryAddress is zero"
+            );
+            return None;
+        }
+
         let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
 
         let mut calldata = Vec::new();
@@ -984,7 +1335,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
 
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(),
+            target: rewards_registry_address,
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
@@ -1028,9 +1379,9 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = TreasuryAccount;
-    type WeightInfo = ();
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ();
+    type WeightInfo = mainnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
@@ -1056,15 +1407,30 @@ impl Get<Option<TokenId>> for DataHavenTokenId {
     }
 }
 
+/// Mock implementation for benchmarks
+#[cfg(feature = "runtime-benchmarks")]
+pub struct MockNativeTokenId;
+#[cfg(feature = "runtime-benchmarks")]
+impl Get<Option<TokenId>> for MockNativeTokenId {
+    fn get() -> Option<TokenId> {
+        // For benchmarks, always return a valid token ID
+        // This represents a pre-registered native token
+        Some(TokenId::from([1u8; 32]))
+    }
+}
+
 impl pallet_datahaven_native_transfer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EthereumSovereignAccount = EthereumSovereignAccount;
     type OutboundQueue = EthereumOutboundQueueV2;
+    #[cfg(feature = "runtime-benchmarks")]
+    type NativeTokenId = MockNativeTokenId;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type NativeTokenId = DataHavenTokenId;
     type FeeRecipient = TreasuryAccount;
     type PauseOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = pallet_datahaven_native_transfer::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = mainnet_weights::pallet_datahaven_native_transfer::WeightInfo<Runtime>;
 }
 
 #[cfg(test)]
@@ -1087,5 +1453,80 @@ mod tests {
             EthereumSovereignAccount::get(),
             "Computed account must match hardcoded value"
         );
+    }
+
+    #[test]
+    fn test_rewards_send_adapter_with_zero_address() {
+        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use sp_io::TestExternalities;
+
+        TestExternalities::default().execute_with(|| {
+            // Create test rewards utils
+            let rewards_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::random(),
+                leaves: vec![H256::random()],
+                leaf_index: Some(1),
+                total_points: 1000,
+            };
+
+            // By default, RewardsRegistryAddress is zero (H160::repeat_byte(0x0))
+            // So the adapter should return None
+            let message = RewardsSendAdapter::build(&rewards_utils);
+            assert!(
+                message.is_none(),
+                "Should return None when RewardsRegistryAddress is zero"
+            );
+        });
+    }
+
+    #[test]
+    fn test_rewards_send_adapter_with_valid_address() {
+        use frame_support::assert_ok;
+        use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
+        use sp_io::TestExternalities;
+
+        TestExternalities::default().execute_with(|| {
+            // Set a valid (non-zero) rewards registry address
+            let valid_address = H160::from_low_u64_be(0x1234567890abcdef);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::RewardsRegistryAddress(
+                        runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress,
+                        Some(valid_address),
+                    ),
+                ),
+            ));
+
+            // Create test rewards utils
+            let rewards_utils = EraRewardsUtils {
+                rewards_merkle_root: H256::random(),
+                leaves: vec![H256::random()],
+                leaf_index: Some(1),
+                total_points: 1000,
+            };
+
+            // Now the adapter should return a valid message
+            let message = RewardsSendAdapter::build(&rewards_utils);
+            assert!(
+                message.is_some(),
+                "Should return Some(message) when RewardsRegistryAddress is non-zero"
+            );
+
+            // Verify the message contains the correct target address
+            if let Some(msg) = message {
+                // Check that the first command has the correct target
+                let command = &msg.commands[0];
+                match command {
+                    Command::CallContract { target, .. } => {
+                        assert_eq!(
+                            *target, valid_address,
+                            "Message should target the configured address"
+                        );
+                    }
+                    _ => panic!("Expected CallContract command"),
+                }
+            }
+        });
     }
 }

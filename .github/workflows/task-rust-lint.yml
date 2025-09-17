@@ -17,14 +17,14 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
-  RUSTFLAGS: "-C linker=clang -C link-arg=-fuse-ld=mold"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
 
 jobs:
   cargo-fmt:
     name: "Check format with rustfmt"
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -35,13 +35,15 @@ jobs:
         with:
           cache-key: FMT
           cache-targets: false
+          install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
   check-rust-lint:
     name: "Check lint with clippy"
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -51,13 +53,18 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: LINT
+          install-deps: false  # Self-hosted runners have deps pre-installed
+
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
       - name: Run cargo clippy
         run: SKIP_WASM_BUILD=1 cargo clippy --features try-runtime,runtime-benchmarks --locked --release
 
   check-cargo-sort:
     name: "Check Cargo sort"
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
 
     defaults:
       run:
@@ -66,9 +73,22 @@ jobs:
     steps:
       - name: Check out the repository to the runner
         uses: actions/checkout@v4
-      - uses: uncenter/setup-taplo@v1
-        with:
-          version: "0.8.1"
+      
+      - name: Install taplo locally
+        run: |
+          # Install taplo in user space without sudo
+          TAPLO_VERSION="0.8.1"
+          if ! command -v taplo &> /dev/null || [[ $(taplo --version | grep -oP '\d+\.\d+\.\d+' | head -1) != "$TAPLO_VERSION" ]]; then
+            echo "Installing taplo $TAPLO_VERSION in ~/.local/bin"
+            mkdir -p ~/.local/bin
+            curl -Ls "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-full-linux-x86_64.gz" | \
+              gzip -d > ~/.local/bin/taplo
+            chmod +x ~/.local/bin/taplo
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            echo "taplo is already installed: $(taplo --version)"
+          fi
 
       - run: taplo fmt --check
       - run: taplo lint

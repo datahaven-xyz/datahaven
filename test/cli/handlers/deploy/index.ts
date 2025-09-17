@@ -31,6 +31,7 @@ export interface DeployOptions {
   dockerPassword?: string;
   // TODO: This shouldn't be necessary once the repo is public
   dockerEmail?: string;
+  chainspec?: string;
   skipCleanup: boolean;
   skipKurtosis: boolean;
   skipDatahavenSolochain: boolean;

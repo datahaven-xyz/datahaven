@@ -273,6 +273,27 @@ spec:
           securityContext:
             runAsUser: 0
         {{- end }}
+        {{- if .Values.customChainspecContent }}
+        - name: copy-custom-chainspec
+          image: {{ .Values.initContainers.downloadChainspec.image.repository }}:{{ .Values.initContainers.downloadChainspec.image.tag }}
+          command: [ "/bin/sh" ]
+          args:
+            - -c
+            - |
+              set -eu -o pipefail {{ if .Values.initContainers.downloadChainspec.debug }}-x{{ end }}
+              echo "Copying custom chainspec to {{ .Values.node.customChainspecPath }}"
+              cp /custom-chainspec/chainspec.json {{ .Values.node.customChainspecPath }}
+          resources:
+          {{- toYaml .Values.initContainers.downloadChainspec.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /chain-data
+              name: chain-data
+            - mountPath: /custom-chainspec
+              name: custom-chainspec
+              readOnly: true
+          securityContext:
+            runAsUser: 0
+        {{- end }}
         {{- if .Values.node.wasmRuntimeUrl }}
         - name: download-runtime
           image: {{ .Values.initContainers.downloadRuntime.image.repository }}:{{ .Values.initContainers.downloadRuntime.image.tag }}
@@ -927,6 +948,11 @@ spec:
           secret:
             secretName: {{ $fullname }}-{{ .type }}
             defaultMode: 0400
+      {{- end }}
+      {{- if .Values.customChainspecContent }}
+        - name: custom-chainspec
+          configMap:
+            name: {{ $fullname }}-custom-chainspec
       {{- end }}
       {{- range $keys := .Values.node.existingSecrets.keys }}
         - name: {{ $keys }}

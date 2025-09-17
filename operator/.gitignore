@@ -29,3 +29,6 @@ tools/build
 
 # Temporary files
 **/tmp
+
+# Local CLAUDE configuration
+CLAUDE.local.md

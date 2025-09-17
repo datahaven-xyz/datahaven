@@ -3,7 +3,7 @@ description: Datahaven Execution Relay
 fullnameOverride: dh-execution-relay
 
 image:
-  repository: moonsonglabs/snowbridge-relay
+  repository: datahavenxyz/snowbridge-relay
   pullPolicy: Always
   tag: latest
 
@@ -13,7 +13,12 @@ imagePullSecrets:
 config:
   name: "execution-relay"
 
-existingSecretName: "dh-execution-relay-sub-key"
+existingSecretName: "dh-execution-relay-substrate-key"
+
+relayData:
+  storagePath: "/relay-data"
+  storageClass: "gp2"
+  volumeSize: 10Gi
 
 extraArgs: [
   "run",
@@ -21,5 +26,5 @@ extraArgs: [
   "--config",
   "/configs/execution-relay.json",
   "--substrate.private-key-file",
-  "/secrets/dh-execution-relay-sub-key",
+  "/secrets/dh-execution-relay-substrate-key",
 ]

@@ -1,0 +1,45 @@
+# Bootnode-specific settings for local development
+
+global:
+  environment: local
+  namespace: kt-datahaven-local
+
+image:
+  tag: local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+# Ingress disabled for local (can be enabled for testing)
+ingress:
+  enabled: false
+  ingressClassName: traefik
+  host: dh-bootnode-0.datahaven-kt.local
+
+node:
+  chain: local
+  customChainspec: false
+  chainData:
+    pruning: archive
+    storageClass: "hostpath"
+    persistence:
+      size: 10Gi
+  chainKeystore:
+    storageClass: "hostpath"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  enableOffchainIndexing: true
+  perNodeServices:
+    apiService:
+      enabled: true
+
+# Local development settings
+development:
+  debug: true
+  fastRuntime: true

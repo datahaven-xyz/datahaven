@@ -13,9 +13,8 @@ class CrossChainTestSuite extends BaseTestSuite {
   }
 
   override async onSetup(): Promise<void> {
-    // Wait a bit for relayers to fully initialize
-    logger.info("Waiting for relayers to initialize...");
-    await Bun.sleep(10000); // 10 seconds
+    // Relayers initialization is handled by the network setup
+    logger.info("Cross-chain test setup complete");
   }
 }
 

@@ -22,13 +22,22 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
+  DOCKER_HOST: unix:///run/user/1020/podman/podman.sock
+  KURTOSIS_CORE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-core
+  KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
+  KURTOSIS_VERSION: 1.11.1
 
 jobs:
   kurtosis:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-Testing
     name: E2E Tests with Kurtosis Ethereum Network
     defaults:
       run:
@@ -36,24 +45,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: d
+          submodules: recursive
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+      - name: Pull Kurtosis images
+        run: |
+          docker pull ${{ env.KURTOSIS_CORE_IMAGE }}:${{ env.KURTOSIS_VERSION }}
+          docker pull ${{ env.KURTOSIS_ENGINE_IMAGE }}:${{ env.KURTOSIS_VERSION }}
       - name: Install Kurtosis
         run: |
-          echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
-          sudo apt update
-          sudo apt install kurtosis-cli
+          # Install Kurtosis locally without sudo
+          if ! command -v kurtosis &> /dev/null; then
+            echo "Installing Kurtosis $KURTOSIS_VERSION locally"
+            mkdir -p ~/.local/bin
+            # wget -q -O kurtosis-cli.tar.gz "https://github.com/kurtosis-tech/kurtosis-cli-release-artifacts/releases/download/${KURTOSIS_VERSION}/kurtosis-cli_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
+            # tar -xzf kurtosis-cli.tar.gz -C ~/.local/bin
+            # rm kurtosis-cli.tar.gz
+            # For now, we use a patched version of Kurtosis CLI & Engine that supports Podman properly
+            wget -q -O ~/.local/bin/kurtosis https://github.com/stiiifff/kurtosis/releases/download/1.11.99/kurtosis
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            echo "Kurtosis is already installed: $(kurtosis version)"
+          fi
           kurtosis analytics disable
-      - run: kurtosis version
+          kurtosis version
+      - name: Configure Kurtosis cluster = podman
+        run: |
+          # Get the config path from Kurtosis itself (portable)
+          CFG_PATH="$(kurtosis config path)"
+          mkdir -p "$(dirname "$CFG_PATH")"
+          # Create/update config with a podman cluster entry
+          cat > "$CFG_PATH" <<'YML'
+          config-version: 6
+          should-send-metrics: true
+          kurtosis-clusters:
+            podman:
+              type: "podman"
+          YML
+          kurtosis cluster set podman
+          kurtosis cluster get
+      - name: Start Kurtosis engine with Podman
+        run: |
+          kurtosis engine stop
+          kurtosis clean
+          kurtosis engine start
+          kurtosis engine status
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-
       - name: Cache Foundry libraries
         uses: actions/cache/restore@v4
         with:
@@ -73,23 +117,28 @@ jobs:
             ${{ runner.os }}-foundry-build-
       - uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download snowbridge binary
+      - name: Download Snowbridge relay binary
         run: |
-          docker create --name temp moonsonglabs/snowbridge-relay:latest
+          docker create --name temp datahavenxyz/snowbridge-relay:latest
           mkdir -p tmp/bin
           docker cp temp:/usr/local/bin/snowbridge-relay tmp/bin/
           chmod +x tmp/bin/snowbridge-relay
-          docker rm temp
-      - run: tmp/bin/snowbridge-relay --help
-      - run: docker pull ${{ inputs.image-tag }}
-      - run: |
-          docker tag ${{ inputs.image-tag }} moonsonglabs/datahaven:local
-          docker images
+          docker rm -fv temp
+          tmp/bin/snowbridge-relay --help
+      
+      - name: Pull DataHaven node image 
+        run: |
+          docker pull ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }}
+          docker tag ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
+      
       - run: bun install
-      - run: bun test:e2e
+      - name: Run E2E tests
+        run: bun test:e2e
+      
       # Try to collect all docker logs and upload it
       - name: Collect docker logs
         if: always()

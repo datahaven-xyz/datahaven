@@ -3,7 +3,7 @@ description: Datahaven Beefy Relay
 fullnameOverride: dh-beefy-relay
 
 image:
-  repository: moonsonglabs/snowbridge-relay
+  repository: datahavenxyz/snowbridge-relay
   pullPolicy: Always
   tag: latest
 
@@ -14,6 +14,9 @@ config:
   name: "beefy-relay"
 
 existingSecretName: "dh-beefy-relay-ethereum-key"
+
+relayData:
+  storagePath: null
 
 extraArgs:
   [

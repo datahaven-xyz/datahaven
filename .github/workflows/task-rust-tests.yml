@@ -1,22 +1,24 @@
 # Rust Tests: CI for Rust components (DataHaven runtime and node Rust tests)
 #
 # Overview:
-# 1. Prepare: This job handles the setup phase where the cargo nextest archive is created
-#    and uploaded to the workflow for use in the subsequent jobs
-# 2. All Rust Tests: Executes the full suite of Rust tests across two partitions to
+# All Rust Tests: Executes the full suite of Rust tests across two partitions to
 #    to reduce total execution time.
 
-name: DataHave Operator Rust Tests
+name: DataHaven Operator Rust Tests
 
 on:
   workflow_dispatch:
   workflow_call:
 
 jobs:
-
-  prepare:
-    name: Prepare artifacts for Rust tests
-    runs-on: ubuntu-latest
+  all-rust-tests:
+    name: Run all Operator Rust tests (/w partitioning)
+    runs-on:
+      group: DH-runners
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2]
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -29,54 +31,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
-          install-deps: true
-      - uses: ./.github/workflows/actions/cleanup-runner
+          install-deps: false
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
-      - name: Build and archive tests
-        run: cargo nextest archive --archive-file nextest-archive.tar.zst
-      - name: Upload archive to workflow
-        uses: actions/upload-artifact@v4
-        with:
-          name: nextest-archive
-          path: ./operator/nextest-archive.tar.zst
-
-  all-rust-tests:
-    name: Run all Operator Rust tests (/w partitioning)
-    needs: [prepare]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        partition: [1, 2]
-    defaults:
-      run:
-        working-directory: ./operator
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Install nextest
-        uses: taiki-e/install-action@nextest
-      - name: Download archive
-        uses: actions/download-artifact@v4
-        with:
-          name: nextest-archive
+        run: |
+          if ! command -v cargo-nextest &> /dev/null; then
+            echo "Installing cargo-nextest version 0.9.100"
+            cargo install cargo-nextest --version 0.9.100 --locked
+          else
+            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
+          fi
       - name: Run Tests for All Projects!
         run: |
           ~/.cargo/bin/cargo-nextest nextest run \
-            --archive-file ../nextest-archive.tar.zst \
             --partition count:${{ matrix.partition }}/2
 
   tests-result-checker:
     name: Check tests were successful
     needs: [all-rust-tests]
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     steps:
       - name: Validate test results
         run: |

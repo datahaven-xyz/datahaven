@@ -1,0 +1,50 @@
+{{- if and .Values.ingress.enabled .Values.ingress.perReplica -}}
+{{- $fullName := include "node.fullname" . -}}
+{{- $replicas := .Values.node.replicas | int -}}
+{{- range $i := until $replicas }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-{{ $i }}
+  labels:
+  {{- $labels := include "node.labels" $ | fromYaml }}
+  {{- range $key, $value := $labels }}
+    {{- if eq $key "app.kubernetes.io/instance" }}
+    {{ $key }}: {{ $value | replace $fullName (printf "%s-%d" $fullName $i) | quote }}
+    {{- else }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+    replica: "{{ $i }}"
+  {{- with $.Values.ingress.annotations }}
+  annotations:
+  {{- range $key, $value := . }}
+    {{- if eq $key "meta.helm.sh/release-name" }}
+    {{ $key }}: {{ $value | quote }}
+    {{- else }}
+    {{ $key }}: {{ $value | replace $fullName (printf "%s-%d" $fullName $i) | quote }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+spec:
+  {{- if $.Values.ingress.ingressClassName }}
+  ingressClassName: {{ $.Values.ingress.ingressClassName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ printf "%s-%d.%s" $fullName $i $.Values.ingress.wildcardDomain | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}-{{ $i }}
+                port:
+                  number: {{ $.Values.node.perNodeServices.apiService.rpcPort }}
+  {{- with $.Values.ingress.tls }}
+  tls:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

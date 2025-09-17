@@ -15,8 +15,12 @@ on:
         type: string
     outputs:
       image-tag:
-        description: "The tag of the docker image"
-        value: ${{ jobs.build-test-push.outputs.image-tag }}
+        description: "The tag portion of the docker image (without registry)"
+        value: "${{ jobs.build-test-push.outputs.image-tag }}"
+
+permissions:
+  contents: read
+  packages: write
 
 concurrency:
   group: docker-build-${{ github.ref }}
@@ -26,7 +30,7 @@ jobs:
   build-test-push:
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ steps.last_tag_extractor.outputs.last_tag_value }}
+      image-tag: ${{ steps.last_tag_extractor.outputs.image-tag }}
 
     steps:
       - name: Checkout repository
@@ -46,19 +50,23 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: moonsonglabs/datahaven
+          images: ghcr.io/datahaven-xyz/datahaven/datahaven
           flavor: |
             latest=auto
           tags: |
+            type=raw,value=ci-${{ github.run_id }}
             type=sha,format=short,prefix=sha-
             type=ref,event=tag
             type=ref,event=branch
             type=ref,event=pr
 
-      - name: Extract last tag for job output
+      - name: Extract tag for job output
         id: last_tag_extractor
         run: |
-          echo "last_tag_value=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')" >> $GITHUB_OUTPUT
+          FULL_TAG=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')
+          TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
+          echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
+          echo "image-name=ghcr.io/datahaven-xyz/datahaven/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
 
       - name: Log Docker Metadata
         run: |
@@ -76,10 +84,12 @@ jobs:
             --allow-insecure-entitlement network.host
             --allow-insecure-entitlement security.insecure
             
-      - uses: docker/login-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         id: build
@@ -105,13 +115,13 @@ jobs:
 
       - name: Pull and test node --help
         run: |
-          docker pull ${{ steps.last_tag_extractor.outputs.last_tag_value }}
-          docker run --rm ${{ steps.last_tag_extractor.outputs.last_tag_value }} --help
+          docker pull ${{ steps.last_tag_extractor.outputs.image-name }}
+          docker run --rm ${{ steps.last_tag_extractor.outputs.image-name }} --help
 
       - name: Integration test (dev chain starts)
         run: |
           docker run --rm -d -p 9944:9944 --name local-dh-node \
-            ${{ steps.last_tag_extractor.outputs.last_tag_value }} --dev --unsafe-rpc-external
+            ${{ steps.last_tag_extractor.outputs.image-name }} --dev --unsafe-rpc-external
 
       - name: Wait for node to be healthy and test
         run: |

@@ -3,7 +3,7 @@ description: Datahaven Beacon Relay
 fullnameOverride: dh-beacon-relay
 
 image:
-  repository: moonsonglabs/snowbridge-relay
+  repository: datahavenxyz/snowbridge-relay
   pullPolicy: Always
   tag: latest
 
@@ -14,6 +14,11 @@ config:
   name: "beacon-relay"
 
 existingSecretName: "dh-beacon-relay-substrate-key"
+
+relayData:
+  storagePath: "/relay-data"
+  storageClass: "gp2"
+  volumeSize: 10Gi
 
 extraArgs:
   [

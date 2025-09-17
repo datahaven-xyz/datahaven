@@ -16,10 +16,11 @@ WORKDIR /
 RUN echo "*** Installing Basic dependencies ***"
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
 RUN apt install --assume-yes git clang curl libpq-dev libssl-dev llvm libudev-dev make protobuf-compiler pkg-config unzip
-RUN echo "Installing protoc v${PROTOC_VER}..." \
-RUN curl -Lo protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-linux-x86_64.zip" \
-    && unzip -q protoc.zip -d /usr/local/ \
-    && rm protoc.zip \
+
+RUN echo "*** Installing protoc v${PROTOC_VER} ***"
+RUN curl -Lo /tmp/protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-linux-x86_64.zip" \
+	&& unzip -q /tmp/protoc.zip -d /usr/local/ \
+	&& rm /tmp/protoc.zip
 
 RUN set -e
 

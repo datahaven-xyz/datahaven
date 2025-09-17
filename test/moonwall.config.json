@@ -16,7 +16,7 @@
         "launchSpec": [
           {
             "name": "datahaven",
-            "binPath": "../../operator/target/release/datahaven-node",
+            "binPath": "../operator/target/release/datahaven-node",
             "newRpcBehaviour": true,
             "options": [
               "--dev",

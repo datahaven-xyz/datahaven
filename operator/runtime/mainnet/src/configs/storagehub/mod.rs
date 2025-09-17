@@ -12,7 +12,7 @@ use frame_support::pallet_prelude::DispatchClass;
 use frame_support::traits::AsEnsureOriginWithArg;
 use frame_support::{
     parameter_types,
-    traits::{ConstU128, ConstU32, ConstU64},
+    traits::{ConstU128, ConstU32, ConstU64, Randomness},
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
@@ -39,6 +39,9 @@ use sp_runtime::{traits::BlakeTwo256, Perbill};
 use sp_std::convert::{From, Into};
 use sp_std::vec;
 use sp_trie::{LayoutV1, TrieConfiguration, TrieLayout};
+
+#[cfg(feature = "std")]
+pub mod client; // StorageHub client trait only build for std build
 
 /// Type representing the storage data units in StorageHub.
 pub type StorageDataUnit = u64;
@@ -109,15 +112,21 @@ impl pallet_randomness::Config for Runtime {
 pub struct BabeDataGetter;
 impl pallet_randomness::GetBabeData<u64, Hash> for BabeDataGetter {
     fn get_epoch_index() -> u64 {
-        pallet_babe::Pallet::<Runtime>::current_epoch().epoch_index
+        pallet_babe::Pallet::<Runtime>::epoch_index()
     }
     fn get_epoch_randomness() -> Hash {
-        sp_core::H256::from(pallet_babe::Pallet::<Runtime>::current_epoch().randomness)
+        // We use `RandomnessFromOneEpochAgo` implementation of the `Randomness` trait here, which hashes the `NextRandomness`
+        // stored by the BABE pallet, and is valid for commitments until the last block of the last epoch (`_n`). The hashed
+        // received is the hash of `NextRandomness` concatenated with the `subject` parameter provided (in this case empty).
+        let (h, _n) = pallet_babe::RandomnessFromOneEpochAgo::<Runtime>::random(b"");
+        h
     }
     fn get_parent_randomness() -> Hash {
-        sp_core::H256::from(
-            pallet_babe::Pallet::<Runtime>::author_vrf_randomness().unwrap_or_default(),
-        )
+        // We use `ParentBlockRandomness` implementation of the `Randomness` trait here, which hashes the `AuthorVrfRandomness`
+        // stored by the BABE pallet, and is valid for commitments until the parent block (`_n`). The hashed received is the
+        // hash of `AuthorVrfRandomness` concatenated with the `subject` parameter provided (in this case empty).
+        let (h_opt, _n) = pallet_babe::ParentBlockRandomness::<Runtime>::random(b"");
+        h_opt.unwrap_or_default()
     }
 }
 
@@ -296,6 +305,7 @@ impl pallet_proofs_dealer::Config for Runtime {
     type ChallengesQueueLength = ChallengesQueueLength;
     type CheckpointChallengePeriod = runtime_config::CheckpointChallengePeriod;
     type ChallengesFee = ChallengesFee;
+    type PriorityChallengesFee = PriorityChallengesFee;
     type Treasury = TreasuryAccount;
     // TODO: Once the client logic to keep track of CR randomness deadlines and execute their submissions is implemented
     // AND after the chain has been live for enough time to have enough providers to avoid the commit-reveal randomness being
@@ -308,7 +318,6 @@ impl pallet_proofs_dealer::Config for Runtime {
     type BlockFullnessHeadroom = BlockFullnessHeadroom;
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
-    type PriorityChallengesFee = PriorityChallengesFee;
     type ChallengeOrigin = EnsureRoot<AccountId>;
     type PriorityChallengeOrigin = EnsureRoot<AccountId>;
 }

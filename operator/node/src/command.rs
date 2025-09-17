@@ -4,17 +4,69 @@ use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec::{self, NetworkType},
-    cli::{Cli, Subcommand},
+    cli::{Cli, ProviderType, StorageLayer, Subcommand},
     service,
 };
 use datahaven_runtime_common::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::DatabaseSource;
+use serde::Deserialize;
+use shc_client::builder::{
+    BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
+    BspUploadFileOptions, FishermanOptions, IndexerOptions, MspChargeFeesOptions,
+    MspMoveBucketOptions,
+};
+use shc_rpc::RpcConfig;
+use shp_types::StorageDataUnit;
+
+/// Configuration for the provider.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProviderOptions {
+    /// Provider type.
+    pub provider_type: ProviderType,
+    /// Storage layer.
+    pub storage_layer: StorageLayer,
+    /// RocksDB Path.
+    pub storage_path: Option<String>,
+    /// Maximum storage capacity of the Storage Provider (bytes).
+    pub max_storage_capacity: Option<StorageDataUnit>,
+    /// Jump capacity (bytes).
+    pub jump_capacity: Option<StorageDataUnit>,
+    /// RPC configuration options.
+    #[serde(default)]
+    pub rpc_config: RpcConfig,
+    /// MSP charging fees frequency.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msp_charging_period: Option<u32>,
+    /// Configuration options for MSP charge fees task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msp_charge_fees: Option<MspChargeFeesOptions>,
+    /// Configuration options for MSP move bucket task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msp_move_bucket: Option<MspMoveBucketOptions>,
+    /// Configuration options for BSP upload file task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_upload_file: Option<BspUploadFileOptions>,
+    /// Configuration options for BSP move bucket task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_move_bucket: Option<BspMoveBucketOptions>,
+    /// Configuration options for BSP charge fees task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_charge_fees: Option<BspChargeFeesOptions>,
+    /// Configuration options for BSP submit proof task.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bsp_submit_proof: Option<BspSubmitProofOptions>,
+    /// Configuration options for blockchain service.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blockchain_service: Option<BlockchainServiceOptions>,
+    // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
+    // pub maintenance_mode: bool,
+}
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Substrate Node".into()
+        "DataHaven Node".into()
     }
 
     fn impl_version() -> String {
@@ -30,7 +82,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "support.anonymous.an".into()
+        "https://github.com/datahaven-xyz/datahaven/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
@@ -58,7 +110,7 @@ macro_rules! construct_async_run {
 		match runner.config().chain_spec {
 			ref spec if spec.is_mainnet() => {
 				runner.async_run(|$config| {
-					let $components = service::new_partial::<datahaven_mainnet_runtime::RuntimeApi>(
+					let $components = service::new_partial::<datahaven_mainnet_runtime::Runtime, datahaven_mainnet_runtime::RuntimeApi>(
 						&$config,
                         &mut $cli.eth.clone()
 					)?;
@@ -68,7 +120,7 @@ macro_rules! construct_async_run {
 			}
             ref spec if spec.is_testnet() => {
                 runner.async_run(|$config| {
-					let $components = service::new_partial::<datahaven_testnet_runtime::RuntimeApi>(
+					let $components = service::new_partial::<datahaven_testnet_runtime::Runtime, datahaven_testnet_runtime::RuntimeApi>(
 						&$config,
                         &mut $cli.eth.clone()
 					)?;
@@ -78,7 +130,7 @@ macro_rules! construct_async_run {
             }
 			_ => {
 				runner.async_run(|$config| {
-					let $components = service::new_partial::<datahaven_stagenet_runtime::RuntimeApi>(
+					let $components = service::new_partial::<datahaven_stagenet_runtime::Runtime, datahaven_stagenet_runtime::RuntimeApi>(
 						&$config,
                         &mut $cli.eth.clone()
 					)?;
@@ -94,24 +146,24 @@ macro_rules! construct_benchmark_partials {
     ($cli:expr, $config:expr, |$partials:ident| $code:expr) => {
         match $config.chain_spec {
             ref spec if spec.is_mainnet() => {
-                let $partials = service::new_partial::<datahaven_mainnet_runtime::RuntimeApi>(
-                    &$config,
-                    &mut $cli.eth.clone(),
-                )?;
+                let $partials = service::new_partial::<
+                    datahaven_mainnet_runtime::Runtime,
+                    datahaven_mainnet_runtime::RuntimeApi,
+                >(&$config, &mut $cli.eth.clone())?;
                 $code
             }
             ref spec if spec.is_testnet() => {
-                let $partials = service::new_partial::<datahaven_testnet_runtime::RuntimeApi>(
-                    &$config,
-                    &mut $cli.eth.clone(),
-                )?;
+                let $partials = service::new_partial::<
+                    datahaven_testnet_runtime::Runtime,
+                    datahaven_testnet_runtime::RuntimeApi,
+                >(&$config, &mut $cli.eth.clone())?;
                 $code
             }
             _ => {
-                let $partials = service::new_partial::<datahaven_stagenet_runtime::RuntimeApi>(
-                    &$config,
-                    &mut $cli.eth.clone(),
-                )?;
+                let $partials = service::new_partial::<
+                    datahaven_stagenet_runtime::Runtime,
+                    datahaven_stagenet_runtime::RuntimeApi,
+                >(&$config, &mut $cli.eth.clone())?;
                 $code
             }
         }
@@ -261,7 +313,23 @@ pub fn run() -> sc_cli::Result<()> {
             runner.sync_run(|config| cmd.run::<Block>(&config))
         }
         None => {
+            let mut provider_options: Option<ProviderOptions> = None;
+            let mut indexer_options: Option<IndexerOptions> = None;
+            let mut fisherman_options: Option<FishermanOptions> = None;
             let runner = cli.create_runner(&cli.run)?;
+
+            if cli.provider_config.provider {
+                provider_options = Some(cli.provider_config.provider_options());
+            };
+
+            if cli.indexer_config.indexer {
+                indexer_options = cli.indexer_config.indexer_options();
+            };
+
+            if cli.fisherman_config.fisherman {
+                fisherman_options = cli.fisherman_config.fisherman_options();
+            };
+
             runner.run_node_until_exit(|config| async move {
                 match config.network.network_backend {
                     // TODO: Litep2p becomes standard with Polkadot SDK stable2412-7 (should move None to other arm)
@@ -270,23 +338,44 @@ pub fn run() -> sc_cli::Result<()> {
                         match config.chain_spec {
                             ref spec if spec.is_mainnet() => {
                                 service::new_full::<
+                                    datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             ref spec if spec.is_testnet() => {
                                 service::new_full::<
+                                    datahaven_testnet_runtime::Runtime,
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             _ => {
                                 service::new_full::<
+                                    datahaven_stagenet_runtime::Runtime,
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                         }
@@ -296,23 +385,44 @@ pub fn run() -> sc_cli::Result<()> {
                         match config.chain_spec {
                             ref spec if spec.is_mainnet() => {
                                 service::new_full::<
+                                    datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             ref spec if spec.is_testnet() => {
                                 service::new_full::<
+                                    datahaven_testnet_runtime::Runtime,
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             _ => {
                                 service::new_full::<
+                                    datahaven_stagenet_runtime::Runtime,
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                         }

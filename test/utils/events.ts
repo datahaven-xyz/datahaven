@@ -1,6 +1,7 @@
 import { firstValueFrom, of } from "rxjs";
-import { catchError, take, tap, timeout } from "rxjs/operators";
+import { catchError, map, filter as rxFilter, take, tap, timeout } from "rxjs/operators";
 import type { Abi, Address, Log, PublicClient } from "viem";
+import { decodeEventLog } from "viem";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
 
@@ -22,6 +23,8 @@ export interface DataHavenEventResult<T = unknown> {
   event: string;
   /** Event data payload (null if timeout or error) */
   data: T | null;
+  /** Metadata about when/where event was emitted */
+  meta: any | null;
 }
 
 /**
@@ -45,7 +48,7 @@ export interface WaitForDataHavenEventOptions<T = unknown> {
 /**
  * Wait for a specific event on the DataHaven chain
  * @param options - Options for event waiting
- * @returns Event result with pallet, event name, and data
+ * @returns Event result with pallet, event name, and converted data
  */
 export async function waitForDataHavenEvent<T = unknown>(
   options: WaitForDataHavenEventOptions<T>
@@ -55,18 +58,33 @@ export async function waitForDataHavenEvent<T = unknown>(
   const eventWatcher = (api.event as any)?.[pallet]?.[event];
   if (!eventWatcher?.watch) {
     logger.warn(`Event ${pallet}.${event} not found`);
-    return { pallet, event, data: null };
+    return { pallet, event, data: null, meta: null };
   }
 
-  let data: T | null;
+  let meta: any = null;
+  let data: T | null = null;
+
   try {
-    data = await firstValueFrom(
-      eventWatcher.watch(filter).pipe(
-        tap((eventData: T) => {
-          logger.debug(`Event ${pallet}.${event} received`);
-          onEvent?.(eventData);
+    const matched: any = await firstValueFrom(
+      eventWatcher.watch().pipe(
+        // Log every raw emission from the watcher
+        tap(() => {
+          logger.debug(`Event ${pallet}.${event} received (raw)`);
         }),
-        take(1), // Always stop on first event
+        // Normalize to a consistent shape { payload, meta }
+        map((raw: any) => ({ payload: raw?.payload ?? raw, meta: raw?.meta ?? null })),
+        // Apply the optional filter BEFORE taking the first item
+        rxFilter(({ payload }) => {
+          if (!filter) return true;
+          try {
+            return filter(payload as T);
+          } catch {
+            return false;
+          }
+        }),
+        // Stop on the first matching event
+        take(1),
+        // Enforce an overall timeout while waiting for a matching event
         timeout({
           first: timeoutMs,
           with: () => {
@@ -80,11 +98,20 @@ export async function waitForDataHavenEvent<T = unknown>(
         })
       )
     );
-  } catch {
+
+    if (matched) {
+      meta = matched.meta;
+      data = matched.payload as T;
+      if (data) {
+        onEvent?.(data);
+      }
+    }
+  } catch (error) {
+    logger.error(`Unexpected error waiting for event ${pallet}.${event}: ${error}`);
     data = null;
   }
 
-  return { pallet, event, data };
+  return { pallet, event, data, meta };
 }
 
 // ================== Ethereum Event Utilities ==================
@@ -161,14 +188,48 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
         args,
         fromBlock,
         onLogs: (logs) => {
-          if (logs.length > 0) {
-            matchedLog = logs[0];
+          logger.debug(`Ethereum event ${eventName} received: ${logs.length} logs`);
+
+          // If args include non-indexed fields, viem cannot pre-filter them.
+          // Post-filter by decoding logs and matching provided args if any.
+          let selected: Log | null = null;
+          if (args && Object.keys(args).length > 0) {
+            for (const candidate of logs) {
+              try {
+                const decoded = decodeEventLog({
+                  abi,
+                  eventName: eventName as any,
+                  data: candidate.data,
+                  topics: candidate.topics
+                });
+                const decodedArgs = (decoded as any).args ?? {};
+                const allMatch = Object.entries(args as Record<string, unknown>).every(
+                  ([key, value]) => decodedArgs?.[key] === value
+                );
+                if (allMatch) {
+                  selected = candidate;
+                  break;
+                }
+              } catch {
+                // Ignore decode errors and continue scanning
+              }
+            }
+          }
+
+          if (!selected && (!args || Object.keys(args).length === 0) && logs.length > 0) {
+            // Only fallback to first log when no args filter provided
+            selected = logs[0];
+          }
+
+          if (selected) {
+            matchedLog = selected;
             if (onEvent) {
               onEvent(matchedLog);
             }
             cleanup();
             resolve(matchedLog);
           }
+          // If no selected log matched, keep watching until timeout
         },
         onError: (error: unknown) => {
           // Log and continue; transient watcher errors shouldn't abort the wait

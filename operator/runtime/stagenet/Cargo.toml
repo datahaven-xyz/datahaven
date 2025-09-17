@@ -17,7 +17,7 @@ bridge-hub-common = { workspace = true, optional = true }
 codec = { workspace = true, features = ["derive"] }
 datahaven-runtime-common = { workspace = true }
 dhp-bridge = { workspace = true }
-fp-account = { workspace = true, features = ["serde"] }
+fp-account = { workspace = true }
 fp-evm = { workspace = true, features = ["serde"] }
 fp-rpc = { workspace = true }
 fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
@@ -120,8 +120,10 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 
 # DataHaven precompiles
+pallet-evm-precompile-balances-erc20 = { workspace = true }
 pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
+pallet-evm-precompile-proxy = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -137,6 +139,7 @@ pallet-proofs-dealer-runtime-api = { workspace = true }
 pallet-randomness = { workspace = true }
 pallet-storage-providers = { workspace = true }
 pallet-storage-providers-runtime-api = { workspace = true }
+shc-common = { workspace = true, optional = true }
 shp-constants = { workspace = true }
 shp-file-metadata = { workspace = true }
 shp-traits = { workspace = true }
@@ -145,6 +148,7 @@ shp-forest-verifier = { workspace = true }
 shp-file-key-verifier = { workspace = true }
 shp-data-price-updater = { workspace = true }
 sp-trie = { workspace = true }
+pallet-evm-precompile-file-system = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true, default-features = true }
@@ -188,8 +192,11 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
+	"pallet-evm-precompile-balances-erc20/std",
+"pallet-evm-precompile-registry/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
+    "pallet-evm-precompile-proxy/std",
 	"pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
@@ -266,12 +273,15 @@ std = [
 	"pallet-randomness/std",
 	"pallet-storage-providers/std",
 	"pallet-storage-providers-runtime-api/std",
+    "dep:shc-common",
+	"shc-common/std",
     "shp-constants/std",
 	"shp-file-metadata/std",
 	"shp-forest-verifier/std",
 	"shp-traits/std",
 	"shp-treasury-funding/std",
     "shp-file-key-verifier/std",
+    "pallet-evm-precompile-file-system/std",
 ]
 
 runtime-benchmarks = [

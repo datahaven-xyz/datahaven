@@ -28,22 +28,65 @@ pub mod runtime_params;
 mod storagehub;
 
 use super::{
-    currency::*, precompiles::DataHavenPrecompiles, AccountId, Babe, Balance, Balances,
-    BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient, EthereumOutboundQueueV2, EvmChainId,
-    ExistentialDeposit, ExternalValidators, ExternalValidatorsRewards, Hash, Historical, ImOnline,
-    MessageQueue, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage,
-    Referenda, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
-    RuntimeOrigin, RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp,
-    Treasury, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
-    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    currency::*,
+    precompiles::{DataHavenPrecompiles, PrecompileName},
+    AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
+    EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
+    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
+    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
+    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
+    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+    SLOT_DURATION, VERSION,
 };
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::RuntimeDebug;
+
+/// A description of our proxy types.
+/// Proxy types are used to restrict the calls that can be made by a proxy account.
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub enum ProxyType {
+    /// Allow any call to be made by the proxy account
+    Any = 0,
+    /// Allow only calls that do not transfer funds or modify balances
+    NonTransfer = 1,
+    /// Allow only governance-related calls (Treasury, Preimage, Scheduler, etc.)
+    Governance = 2,
+    /// Allow only staking and validator-related calls
+    Staking = 3,
+    /// Allow only calls that cancel proxy announcements and reject announcements
+    CancelProxy = 4,
+    /// Allow only Balances calls (transfers, set_balance, force_transfer, etc.)
+    Balances = 5,
+    /// Allow only identity judgement calls
+    IdentityJudgement = 6,
+    /// Allow only calls to the Sudo pallet - useful for multisig -> sudo proxy chains
+    SudoOnly = 7,
+}
+
+impl Default for ProxyType {
+    fn default() -> Self {
+        Self::Any
+    }
+}
 use datahaven_runtime_common::{
     deal_with_fees::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
-    proxy::ProxyType,
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -628,6 +671,70 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
     }
 }
 
+/// Helper function to identify governance precompiles (copied from Moonbeam)
+fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
+    // TODO: Uncomment when DataHaven implements these governance precompiles
+    // matches!(
+    //     precompile_name,
+    //     PrecompileName::ConvictionVotingPrecompile
+    //         | PrecompileName::PreimagePrecompile
+    //         | PrecompileName::ReferendaPrecompile
+    //         | PrecompileName::OpenTechCommitteeInstance
+    //         | PrecompileName::TreasuryCouncilInstance
+    // )
+    false // Temporarily disabled until governance precompiles are added
+}
+
+impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
+    fn is_evm_proxy_call_allowed(
+        &self,
+        call: &pallet_evm_precompile_proxy::EvmSubCall,
+        recipient_has_code: bool,
+        gas: u64,
+    ) -> precompile_utils::EvmResult<bool> {
+        Ok(match self {
+            ProxyType::Any => {
+                match PrecompileName::from_address(call.to.0) {
+                    Some(ref precompile) if is_governance_precompile(precompile) => true,
+                    Some(_) => false, // All other precompiles are forbidden
+                    None => {
+                        // Allow simple EOA transfers only
+                        !recipient_has_code
+                            && !precompile_utils::precompile_set::is_precompile_or_fail::<Runtime>(
+                                call.to.0, gas,
+                            )?
+                    }
+                }
+            }
+            ProxyType::NonTransfer => {
+                call.value == sp_core::U256::zero()
+                    && match PrecompileName::from_address(call.to.0) {
+                        Some(ref precompile) if is_governance_precompile(precompile) => true,
+                        _ => false,
+                    }
+            }
+            ProxyType::Governance => {
+                call.value == sp_core::U256::zero()
+                    && matches!(
+                        PrecompileName::from_address(call.to.0),
+                        Some(ref precompile) if is_governance_precompile(precompile)
+                    )
+            }
+            ProxyType::Staking => false,
+            ProxyType::CancelProxy => false,
+            ProxyType::Balances => {
+                // Allow only "simple" accounts as recipient (no code nor precompile)
+                !recipient_has_code
+                    && !precompile_utils::precompile_set::is_precompile_or_fail::<Runtime>(
+                        call.to.0, gas,
+                    )?
+            }
+            ProxyType::IdentityJudgement => false,
+            ProxyType::SudoOnly => false,
+        })
+    }
+}
+
 impl pallet_proxy::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
@@ -905,27 +1012,27 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: [0, 0, 0, 0], // 0x00000000
+            version: hex_literal::hex!("10000038"),
             epoch: 0,
         },
         altair: Fork {
-            version: [1, 0, 0, 0], // 0x01000000
+            version: hex_literal::hex!("20000038"),
             epoch: 0,
         },
         bellatrix: Fork {
-            version: [2, 0, 0, 0], // 0x02000000
+            version: hex_literal::hex!("30000038"),
             epoch: 0,
         },
         capella: Fork {
-            version: [3, 0, 0, 0], // 0x03000000
+            version: hex_literal::hex!("40000038"),
             epoch: 0,
         },
         deneb: Fork {
-            version: [4, 0, 0, 0], // 0x04000000
+            version: hex_literal::hex!("50000038"),
             epoch: 0,
         },
         electra: Fork {
-            version: [5, 0, 0, 0], // 0x05000000
+            version: hex_literal::hex!("60000038"),
             epoch: 0,
         },
     };

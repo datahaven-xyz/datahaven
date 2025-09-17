@@ -1,0 +1,33 @@
+{
+  "name": "datahaven-tests",
+  "version": "1.0.0",
+  "description": "DataHaven node tests using Moonwall framework",
+  "type": "module",
+  "scripts": {
+    "test": "moonwall test",
+    "test:dev": "moonwall test dev_datahaven",
+    "run:dev": "moonwall run dev_datahaven",
+    "fmt": "biome format --write .",
+    "fmt:check": "biome check .",
+    "fmt:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@moonwall/cli": "5.15.0",
+    "@moonwall/util": "5.15.0",
+    "@polkadot/api": "^14.3.1",
+    "@polkadot/keyring": "^13.2.3",
+    "@polkadot/types": "^14.3.1",
+    "@polkadot/util": "^13.2.3",
+    "@polkadot/util-crypto": "^13.2.3",
+    "ethers": "^6.13.4",
+    "viem": "^2.21.45",
+    "vitest": "^2.1.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.1.14",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

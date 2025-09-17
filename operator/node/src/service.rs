@@ -875,7 +875,11 @@ where
         };
     } else {
         return new_full_impl::<UserRole, NoStorageLayer, Runtime, RuntimeApi, N>(
-            config, eth_config, None, None, None,
+            config,
+            eth_config,
+            None,
+            indexer_options,
+            fisherman_options,
         )
         .await;
     };

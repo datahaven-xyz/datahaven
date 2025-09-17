@@ -1,0 +1,56 @@
+name: Enforce PR labels
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, edited, synchronize]
+jobs:
+  enforce-noteworthiness-label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: yogevbd/enforce-label-action@2.2.2
+        with:
+          REQUIRED_LABELS_ANY: "B0-silent,B5-clientnoteworthy,B7-runtimenoteworthy"
+          REQUIRED_LABELS_ALL: ""
+          BANNED_LABELS: ""
+      - name: Verify breaking changes label
+        if: contains(github.event.pull_request.labels.*.name, 'B5-clientnoteworthy') || contains(github.event.pull_request.labels.*.name, 'B7-runtimenoteworthy')
+        uses: yogevbd/enforce-label-action@2.2.2
+        with:
+          REQUIRED_LABELS_ANY: "breaking,not-breaking"
+          REQUIRED_LABELS_ALL: ""
+          BANNED_LABELS: ""
+  enforce-auditability-label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: yogevbd/enforce-label-action@2.2.2
+        with:
+          REQUIRED_LABELS_ANY: "D1-audited👍,D5-nicetohaveaudit⚠️,D9-needsaudit👮,D2-notlive,D3-trivial"
+          REQUIRED_LABELS_ALL: ""
+          BANNED_LABELS: ""
+  validate-breaking-description:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR for "breaking" label and description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels) }}
+        run: |
+          echo "Pull Request Labels: $PR_LABELS"
+          echo "Pull Request Body: $PR_BODY"
+
+          # Check if "breaking" label is set
+          if echo "$PR_LABELS" | grep -q '"breaking"'; then
+            echo "Label 'breaking' is present. Checking description..."
+            if echo "$PR_BODY" | grep -qi "## ⚠️ Breaking Changes ⚠️"; then
+              echo "✅ Description contains the required phrase."
+            else
+              echo "❌ Description does not contain the required phrase '## ⚠️ Breaking Changes ⚠️'."
+              exit 1
+            fi
+          else
+            echo "Label 'breaking' is not present. No validation needed."
+          fi

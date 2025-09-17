@@ -25,3 +25,4 @@ tmp/*
 
 .worktrees/
 .claude/
+Agents.md

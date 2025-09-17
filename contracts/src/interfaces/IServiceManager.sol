@@ -134,42 +134,54 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
     function setRewardsRegistry(uint32 operatorSetId, IRewardsRegistry rewardsRegistry) external;
 
     /**
-     * @notice Claim rewards for an operator from a specific merkle root index
+     * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs
      * @param operatorSetId The ID of the operator set
      * @param rootIndex Index of the merkle root to claim from
      * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
      */
     function claimOperatorRewards(
         uint32 operatorSetId,
         uint256 rootIndex,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) external;
 
     /**
-     * @notice Claim rewards for an operator from the latest merkle root
+     * @notice Claim rewards for an operator from the latest merkle root using Substrate/Snowbridge positional Merkle proofs
      * @param operatorSetId The ID of the operator set
      * @param operatorPoints Points earned by the operator
-     * @param proof Merkle proof to validate the operator's rewards
+     * @param numberOfLeaves The total number of leaves in the Merkle tree
+     * @param leafIndex The index of the operator's leaf in the Merkle tree
+     * @param proof Positional Merkle proof (from leaf to root)
      */
     function claimLatestOperatorRewards(
         uint32 operatorSetId,
         uint256 operatorPoints,
+        uint256 numberOfLeaves,
+        uint256 leafIndex,
         bytes32[] calldata proof
     ) external;
 
     /**
-     * @notice Claim rewards for an operator from multiple merkle root indices
+     * @notice Claim rewards for an operator from multiple merkle root indices using Substrate/Snowbridge positional Merkle proofs
      * @param operatorSetId The ID of the operator set
      * @param rootIndices Array of merkle root indices to claim from
      * @param operatorPoints Array of points earned by the operator for each root
-     * @param proofs Array of merkle proofs to validate the operator's rewards
+     * @param numberOfLeaves Array with the total number of leaves for each Merkle tree
+     * @param leafIndices Array of leaf indices for the operator in each Merkle tree
+     * @param proofs Array of positional Merkle proofs for each claim
      */
     function claimOperatorRewardsBatch(
         uint32 operatorSetId,
         uint256[] calldata rootIndices,
         uint256[] calldata operatorPoints,
+        uint256[] calldata numberOfLeaves,
+        uint256[] calldata leafIndices,
         bytes32[][] calldata proofs
     ) external;
 

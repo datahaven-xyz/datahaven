@@ -13,7 +13,7 @@ runs:
     - name: Download sources from artifacts
       uses: actions/download-artifact@v4
       with:
-        name: datahaven-sources
+        name: datahaven-sources-${{ inputs.target }}
         path: .
     - name: Build production DataHaven
       shell: bash

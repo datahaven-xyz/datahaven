@@ -28,7 +28,7 @@ jobs:
       - name: Upload sources as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: datahaven-sources
+          name: datahaven-sources-${{ matrix.cpu }}
           path: .
           retention-days: 1
       - name: Cargo build

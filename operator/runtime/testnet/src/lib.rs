@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 512.
+#![recursion_limit = "512"]
 
 extern crate alloc;
 #[cfg(feature = "std")]
@@ -373,6 +373,9 @@ mod runtime {
 
     #[runtime::pallet_index(38)]
     pub type Proxy = pallet_proxy;
+
+    #[runtime::pallet_index(39)]
+    pub type MultiBlockMigrations = pallet_migrations;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔═════════════════════════ Governance Pallets ════════════════════╗

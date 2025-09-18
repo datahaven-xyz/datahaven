@@ -87,6 +87,10 @@ use datahaven_runtime_common::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
+    migrations::{
+        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
+        MigrationIdentifierMaxLen, MigrationStatusHandler, MultiBlockMigrationList,
+    },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -150,6 +154,8 @@ use sp_version::RuntimeVersion;
 use xcm::latest::NetworkId;
 use xcm::prelude::*;
 
+use super::MultiBlockMigrations;
+
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;
 #[cfg(feature = "runtime-benchmarks")]
@@ -203,6 +209,10 @@ parameter_types! {
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
 
+parameter_types! {
+    pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
+}
+
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
 /// but overridden as needed.
@@ -234,6 +244,7 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = mainnet_weights::frame_system::WeightInfo<Runtime>;
+    type MultiBlockMigrator = MultiBlockMigrations;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -755,6 +766,17 @@ impl pallet_parameters::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeParameters = RuntimeParameters;
     type WeightInfo = mainnet_weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+impl pallet_migrations::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Migrations = MultiBlockMigrationList;
+    type CursorMaxLen = MigrationCursorMaxLen;
+    type IdentifierMaxLen = MigrationIdentifierMaxLen;
+    type MigrationStatusHandler = MigrationStatusHandler;
+    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type MaxServiceWeight = MaxServiceWeight;
+    type WeightInfo = mainnet_weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {

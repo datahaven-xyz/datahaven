@@ -74,7 +74,6 @@ import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
-
 /**
  * @title DeployLocal
  * @notice Deployment script for local development (anvil) - deploys full EigenLayer infrastructure

@@ -9,6 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks;
 pub mod configs;
+mod migrations;
 pub mod precompiles;
 pub mod weights;
 
@@ -223,7 +224,7 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 ///
 /// This can be a tuple of types, each implementing `OnRuntimeUpgrade`.
 #[allow(unused_parens)]
-type Migrations = ();
+type Migrations = migrations::SingleBlockMigrations;
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<

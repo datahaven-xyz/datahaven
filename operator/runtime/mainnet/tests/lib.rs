@@ -2,6 +2,7 @@
 
 pub mod common;
 pub mod governance;
+mod migrations;
 mod native_token_transfer;
 mod proxy;
 

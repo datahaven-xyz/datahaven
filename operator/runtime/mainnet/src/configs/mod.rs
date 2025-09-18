@@ -82,6 +82,7 @@ impl Default for ProxyType {
         Self::Any
     }
 }
+use crate::migrations;
 use datahaven_runtime_common::{
     deal_with_fees::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
@@ -89,7 +90,7 @@ use datahaven_runtime_common::{
     gas::WEIGHT_PER_GAS,
     migrations::{
         FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
-        MigrationIdentifierMaxLen, MigrationStatusHandler, MultiBlockMigrationList,
+        MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -770,7 +771,7 @@ impl pallet_parameters::Config for Runtime {
 
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type Migrations = MultiBlockMigrationList;
+    type Migrations = migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;

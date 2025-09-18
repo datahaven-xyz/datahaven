@@ -36,7 +36,10 @@ jobs:
       contents: read
     strategy:
       matrix:
-        cpu: ["x86-64", "skylake", "znver3"]
+        # Re-enable other CPU architectures when we have enough CI minutes
+        # on GitHub Actions or move to self-hosted runners (w/ Docker).
+        # cpu: ["x86-64", "skylake", "znver3"]
+        cpu: ["x86-64"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5

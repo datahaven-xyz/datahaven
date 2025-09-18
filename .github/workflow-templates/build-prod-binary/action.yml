@@ -24,8 +24,8 @@ runs:
           --tag prod --no-cache \
           --build-arg="COMMIT=${{ github.event.inputs.sha }}" \
           --build-arg="RUSTFLAGS=-C target-cpu=${{ inputs.target }}" \
-          --file ./docker/datahaven-production.Dockerfile
-          . # Use current directory as build context
+          --file ./docker/datahaven-production.Dockerfile \
+          .
 
         # Copy DataHaven binary
         docker rm -f dummy 2> /dev/null | true

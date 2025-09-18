@@ -30,8 +30,8 @@ ENV PATH="/root/.cargo/bin:$PATH"
 RUN rustup default stable
 # rustup version are pinned in the rust-toolchain file
 
-COPY ./operator /datahaven/datahaven
-WORKDIR /datahaven/datahaven
+COPY ./operator /datahaven
+WORKDIR /datahaven
 
 # Print target cpu
 RUN rustc --print target-cpus

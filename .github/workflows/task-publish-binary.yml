@@ -10,8 +10,6 @@ on:
       to:
         description: tag (ex. v0.2.0) to generate release note and binaries from
         required: true
-  pull_request:
-    branches: [main]
 
 jobs:
   build-binary:

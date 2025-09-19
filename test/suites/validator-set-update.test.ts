@@ -22,13 +22,19 @@ import {
 import { waitForDataHavenEvent } from "utils/events";
 import { decodeEventLog, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
+import {
+  allocationManagerAbi,
+  dataHavenServiceManagerAbi,
+  delegationManagerAbi,
+  gatewayAbi
+} from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
     super({
       suiteName: "validator-set-update",
+      keepAlive: true,
       networkOptions: {
         slotTime: 2,
         blockscout: false
@@ -182,44 +188,42 @@ describe("Validator Set Update", () => {
       let retryCount = 0;
       const maxRetries = 3;
 
-      while (retryCount < maxRetries) {
-        try {
-          const hash = await connectors.walletClient.writeContract({
-            address: deployments.ServiceManager as `0x${string}`,
-            abi: dataHavenServiceManagerAbi,
-            functionName: "addValidatorToAllowlist",
-            args: [validator.publicKey as `0x${string}`],
-            account: getOwnerAccount(),
-            chain: null
-          });
+      try {
+        const hash = await connectors.walletClient.writeContract({
+          address: deployments.ServiceManager as `0x${string}`,
+          abi: dataHavenServiceManagerAbi,
+          functionName: "addValidatorToAllowlist",
+          args: [validator.publicKey as `0x${string}`],
+          account: getOwnerAccount(),
+          chain: null
+        });
 
-          logger.info(`📝 Transaction hash for allowlist: ${hash}`);
+        logger.info(`📝 Transaction hash for allowlist: ${hash}`);
 
-          const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-          logger.info(
-            `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-          );
+        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+        logger.info(
+          `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+        );
 
-          if (receipt.status === "success") {
-            logger.success(`Added ${validator.publicKey} to allowlist`);
-            break; // Success, exit retry loop
-          }
-          logger.error(`Failed to add ${validator.publicKey} to allowlist`);
-          throw new Error(`Transaction failed with status: ${receipt.status}`);
-        } catch (error) {
-          retryCount++;
-          logger.warn(
-            `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
-          );
-
-          if (retryCount >= maxRetries) {
-            logger.error(`All retry attempts failed for ${validator.publicKey}`);
-            throw error;
-          }
-
-          // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+        if (receipt.status === "success") {
+          logger.success(`Added ${validator.publicKey} to allowlist`);
+          break; // Success, exit retry loop
         }
+        logger.error(`Failed to add ${validator.publicKey} to allowlist`);
+        throw new Error(`Transaction failed with status: ${receipt.status}`);
+      } catch (error) {
+        retryCount++;
+        logger.warn(
+          `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
+        );
+
+        if (retryCount >= maxRetries) {
+          logger.error(`All retry attempts failed for ${validator.publicKey}`);
+          throw error;
+        }
+
+        // Wait before retry
+        await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
       }
     }
   }, 60_000);
@@ -239,49 +243,76 @@ describe("Validator Set Update", () => {
       let retryCount = 0;
       const maxRetries = 3;
 
-      while (retryCount < maxRetries) {
-        try {
-          const hash = await connectors.walletClient.writeContract({
-            address: deployments.ServiceManager as `0x${string}`,
-            abi: dataHavenServiceManagerAbi,
-            functionName: "registerOperator",
-            args: [
-              validator.publicKey as `0x${string}`,
-              deployments.ServiceManager as `0x${string}`,
-              [0], // VALIDATORS_SET_ID
-              validator.solochainAddress as `0x${string}`
-            ],
-            account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-            chain: null
-          });
+      try {
+        // Step 1: Register as EigenLayer operator first
+        logger.info(`🔧 Registering ${validator.publicKey} as EigenLayer operator...`);
+        const operatorHash = await connectors.walletClient.writeContract({
+          address: deployments.DelegationManager as `0x${string}`,
+          abi: delegationManagerAbi,
+          functionName: "registerAsOperator",
+          args: [
+            "0x0000000000000000000000000000000000000000", // initDelegationApprover (no approver)
+            0, // allocationDelay
+            "" // metadataURI
+          ],
+          account: privateKeyToAccount(validator.privateKey as `0x${string}`),
+          chain: null
+        });
 
-          logger.info(`📝 Transaction hash for operator set registration: ${hash}`);
-
-          const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-          logger.info(
-            `📋 Operator set registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+        const operatorReceipt = await connectors.publicClient.waitForTransactionReceipt({
+          hash: operatorHash
+        });
+        if (operatorReceipt.status !== "success") {
+          throw new Error(
+            `EigenLayer operator registration failed with status: ${operatorReceipt.status}`
           );
-
-          if (receipt.status === "success") {
-            logger.success(`Registered ${validator.publicKey} for operator sets`);
-            break; // Success, exit retry loop
-          }
-          logger.error(`Failed to register ${validator.publicKey} for operator sets`);
-          throw new Error(`Transaction failed with status: ${receipt.status}`);
-        } catch (error) {
-          retryCount++;
-          logger.warn(
-            `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
-          );
-
-          if (retryCount >= maxRetries) {
-            logger.error(`All retry attempts failed for ${validator.publicKey}`);
-            throw error;
-          }
-
-          // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
         }
+        logger.success(`Registered ${validator.publicKey} as EigenLayer operator`);
+
+        // Step 2: Register for operator sets
+        logger.info(`🔧 Registering ${validator.publicKey} for operator sets...`);
+        const hash = await connectors.walletClient.writeContract({
+          address: deployments.AllocationManager as `0x${string}`,
+          abi: allocationManagerAbi,
+          functionName: "registerForOperatorSets",
+          args: [
+            validator.publicKey as `0x${string}`,
+            {
+              avs: deployments.ServiceManager as `0x${string}`,
+              operatorSetIds: [0],
+              data: validator.solochainAddress as `0x${string}`
+            }
+          ],
+          account: privateKeyToAccount(validator.privateKey as `0x${string}`),
+          chain: null
+        });
+
+        logger.info(`📝 Transaction hash for operator set registration: ${hash}`);
+
+        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+        logger.info(
+          `📋 Operator set registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+        );
+
+        if (receipt.status === "success") {
+          logger.success(`Registered ${validator.publicKey} for operator sets`);
+          break; // Success, exit retry loop
+        }
+        logger.error(`Failed to register ${validator.publicKey} for operator sets`);
+        throw new Error(`Transaction failed with status: ${receipt.status}`);
+      } catch (error) {
+        retryCount++;
+        logger.warn(
+          `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
+        );
+
+        if (retryCount >= maxRetries) {
+          logger.error(`All retry attempts failed for ${validator.publicKey}`);
+          throw error;
+        }
+
+        // Wait before retry
+        await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
       }
     }
   }, 60_000); // 1 minute timeout
@@ -302,6 +333,13 @@ describe("Validator Set Update", () => {
     });
 
     logger.info(`📊 Updated validator set message size: ${updatedMessageBytes.length} bytes`);
+    logger.info(`📊 Message bytes (first 100): ${updatedMessageBytes.slice(0, 100)}`);
+
+    // Log the expected validators that should be in the message
+    logger.info("🔍 Expected validators in message:");
+    for (let i = 0; i < newValidators.length; i++) {
+      logger.info(`  Validator ${i}: ${newValidators[i].solochainAddress}`);
+    }
 
     // Send the updated validator set
     const executionFee = parseEther("0.1");
@@ -309,7 +347,9 @@ describe("Validator Set Update", () => {
     const totalValue = parseEther("0.3");
 
     logger.info(
-      `💰 Sending validator set with executionFee=${executionFee}, relayerFee=${relayerFee}, totalValue=${totalValue}`
+      `Sending validator set with executionFee=${executionFee},
+      relayerFee=${relayerFee},
+      totalValue=${totalValue}`
     );
 
     try {
@@ -364,66 +404,21 @@ describe("Validator Set Update", () => {
   it("should verify validator set update on DataHaven substrate", async () => {
     const connectors = suite.getTestConnectors();
 
-    logger.info("🔍 Verifying ExternalValidatorsSet event was emitted (confirms set_external_validators_inner was called)...");
+    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
 
+    logger.info("⏳ Waiting for ExternalValidatorsSet event...");
+    const externalValidatorsSetEvent = await waitForDataHavenEvent({
+      api: connectors.dhApi,
+      pallet: "ExternalValidators",
+      event: "ExternalValidatorsSet",
+      timeout: 600_000,
+      failOnTimeout: true
+    });
 
-    try {
-      // Wait for ExternalValidatorsSet event to confirm validator set was updated
-      const validatorSetResult = await waitForDataHavenEvent({
-        api: connectors.dhApi,
-        pallet: "ExternalValidators",
-        event: "ExternalValidatorsSet",
-        timeout: 30000
-      });
-
-      if (validatorSetResult.data) {
-        logger.success(
-          `ExternalValidatorsSet event received: ${JSON.stringify(validatorSetResult.data)}`
-        );
-      } else {
-        logger.warn("No ExternalValidatorsSet event found - checking current state");
-      }
-
-      // Check current block to ensure chain is progressing
-      const currentBlock = await connectors.dhApi.query.System.Number.getValue();
-      logger.info(`Current DataHaven block: ${currentBlock}`);
-      expect(currentBlock).toBeGreaterThan(0);
-
-      // Attempt to query validator-related storage
-      try {
-        const externalValidators =
-          await connectors.dhApi.query.ExternalValidators?.WhitelistedValidators?.getValue();
-        if (externalValidators) {
-          logger.info(`External validators found: ${JSON.stringify(externalValidators)}`);
-        }
-      } catch (error) {
-        logger.warn(`Could not query external validators directly: ${error}`);
-      }
-
-      // Query system events to look for validator set updates
-      const latestEvents = await connectors.dhApi.query.System.Events.getValue();
-      logger.info(`Found ${latestEvents.length} events in latest block`);
-
-      // Look for events related to validator set updates
-      const validatorEvents = latestEvents.filter(
-        (event: any) =>
-          event.event?.section === "ExternalValidators" ||
-          event.event?.method?.includes("Validator")
-      );
-
-      if (validatorEvents.length > 0) {
-        validatorEvents.forEach((event: any, index: number) => {
-          logger.info(`Event ${index}: ${JSON.stringify(event)}`);
-        });
-      } else {
-        logger.warn("No validator-related events found yet");
-      }
-    } catch (error) {
-      logger.error(`Error querying DataHaven state: ${error}`);
-      // Don't fail the test immediately - the substrate side might need more time
-      logger.warn(
-        "Could not verify validator set on substrate - this might be expected if the message is still being processed"
-      );
+    if (!externalValidatorsSetEvent.data) {
+      logger.error("ExternalValidatorsSet event not found");
+      throw new Error("ExternalValidatorsSet event not found");
     }
-  }, 300000);
+    logger.success("ExternalValidatorsSet event found");
+  }, 600_000);
 });

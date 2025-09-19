@@ -55,7 +55,15 @@ export interface WaitForDataHavenEventOptions<T = unknown> {
 export async function waitForDataHavenEvent<T = unknown>(
   options: WaitForDataHavenEventOptions<T>
 ): Promise<DataHavenEventResult<T>> {
-  const { api, pallet, event, filter, timeout: timeoutMs = 30000, onEvent, failOnTimeout } = options;
+  const {
+    api,
+    pallet,
+    event,
+    filter,
+    timeout: timeoutMs = 30000,
+    onEvent,
+    failOnTimeout
+  } = options;
 
   const eventWatcher = (api.event as any)?.[pallet]?.[event];
   if (!eventWatcher?.watch) {

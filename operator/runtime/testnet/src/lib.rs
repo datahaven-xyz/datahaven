@@ -21,7 +21,7 @@ use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::{TransactionValidity, TransactionValidityError},
     parameter_types,
-    traits::{KeyOwnerProofSystem, OnFinalize},
+    traits::{Contains, KeyOwnerProofSystem, OnFinalize},
     weights::{
         constants::ExtrinsicBaseWeight, constants::WEIGHT_REF_TIME_PER_SECOND, Weight,
         WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -61,7 +61,7 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{Block as BlockT, DispatchInfoOf, Dispatchable, PostDispatchInfoOf},
-    transaction_validity::TransactionSource,
+    transaction_validity::{InvalidTransaction, TransactionSource},
     ApplyExtrinsicResult, Perbill, Permill,
 };
 use sp_std::collections::btree_map::BTreeMap;
@@ -608,6 +608,11 @@ impl_runtime_apis! {
             tx: <Block as BlockT>::Extrinsic,
             block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
+            // Filtered calls should not enter the tx pool as they'll fail if inserted.
+            // If this call is not allowed, we return early.
+            if !<Runtime as frame_system::Config>::BaseCallFilter::contains(&tx.0.function) {
+                return InvalidTransaction::Call.into();
+            }
             Executive::validate_transaction(source, tx, block_hash)
         }
     }

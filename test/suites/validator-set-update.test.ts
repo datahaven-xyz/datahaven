@@ -89,7 +89,7 @@ describe("Validator Set Update", () => {
         getValidatorInfoByName(validatorSetJson, TestAccounts.Dave)
       ];
 
-      logger.info("✅ Loaded validator set from JSON file");
+      logger.success("Loaded validator set from JSON file");
     } catch (err) {
       logger.error(`Failed to load validator set from ${validatorSetPath}: ${err}`);
       throw err;
@@ -117,16 +117,16 @@ describe("Validator Set Update", () => {
     // Verify Ethereum side connectivity
     const ethBlockNumber = await connectors.publicClient.getBlockNumber();
     expect(ethBlockNumber).toBeGreaterThan(0);
-    logger.info(`✅ Ethereum network connected at block: ${ethBlockNumber}`);
+    logger.success(`Ethereum network connected at block: ${ethBlockNumber}`);
 
     // Verify DataHaven substrate connectivity
     const dhBlockHeader = await connectors.papiClient.getBlockHeader();
     expect(dhBlockHeader.number).toBeGreaterThan(0);
-    logger.info(`✅ DataHaven substrate connected at block: ${dhBlockHeader.number}`);
+    logger.success(`DataHaven substrate connected at block: ${dhBlockHeader.number}`);
 
     // Verify contract deployments
     expect(deployments.ServiceManager).toBeDefined();
-    logger.info(`✅ ServiceManager deployed at: ${deployments.ServiceManager}`);
+    logger.success(`ServiceManager deployed at: ${deployments.ServiceManager}`);
   });
 
   it("should verify initial validator set state", async () => {
@@ -144,7 +144,7 @@ describe("Validator Set Update", () => {
       });
 
       expect(solochainAddress.toLowerCase()).toBe(validator.solochainAddress.toLowerCase());
-      logger.info(`✅ Validator ${validator.publicKey} mapped to ${solochainAddress}`);
+      logger.success(`Validator ${validator.publicKey} mapped to ${solochainAddress}`);
     }
   });
 
@@ -161,10 +161,10 @@ describe("Validator Set Update", () => {
       });
 
       expect(solochainAddress).toBe("0x0000000000000000000000000000000000000000");
-      logger.info(`✅ Validator ${validator.publicKey} not yet registered (as expected)`);
+      logger.success(`Validator ${validator.publicKey} not yet registered (as expected)`);
     }
 
-    logger.info("✅ Initial validator set state verified: only Alice and Bob are active");
+    logger.success("Initial validator set state verified: only Alice and Bob are active");
   });
 
   it("should add new validators to allowlist", async () => {
@@ -201,19 +201,19 @@ describe("Validator Set Update", () => {
           );
 
           if (receipt.status === "success") {
-            logger.success(`✅ Added ${validator.publicKey} to allowlist`);
+            logger.success(`Added ${validator.publicKey} to allowlist`);
             break; // Success, exit retry loop
           }
-          logger.error(`❌ Failed to add ${validator.publicKey} to allowlist`);
+          logger.error(`Failed to add ${validator.publicKey} to allowlist`);
           throw new Error(`Transaction failed with status: ${receipt.status}`);
         } catch (error) {
           retryCount++;
           logger.warn(
-            `⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
+            `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
           );
 
           if (retryCount >= maxRetries) {
-            logger.error(`❌ All retry attempts failed for ${validator.publicKey}`);
+            logger.error(`All retry attempts failed for ${validator.publicKey}`);
             throw error;
           }
 
@@ -255,27 +255,27 @@ describe("Validator Set Update", () => {
             chain: null
           });
 
-          logger.info(`📝 Transaction hash for operator registration: ${hash}`);
+          logger.info(`📝 Transaction hash for operator set registration: ${hash}`);
 
           const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
           logger.info(
-            `📋 Operator registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
+            `📋 Operator set registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
           );
 
           if (receipt.status === "success") {
-            logger.success(`✅ Registered ${validator.publicKey} as operator`);
+            logger.success(`Registered ${validator.publicKey} for operator sets`);
             break; // Success, exit retry loop
           }
-          logger.error(`❌ Failed to register ${validator.publicKey} as operator`);
+          logger.error(`Failed to register ${validator.publicKey} for operator sets`);
           throw new Error(`Transaction failed with status: ${receipt.status}`);
         } catch (error) {
           retryCount++;
           logger.warn(
-            `⚠️ Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
+            `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
           );
 
           if (retryCount >= maxRetries) {
-            logger.error(`❌ All retry attempts failed for ${validator.publicKey}`);
+            logger.error(`All retry attempts failed for ${validator.publicKey}`);
             throw error;
           }
 
@@ -335,7 +335,7 @@ describe("Validator Set Update", () => {
         logger.success(`Transaction sent: ${hash}`);
         logger.info(`⛽ Gas used: ${receipt.gasUsed}`);
       } else {
-        logger.error(`❌ Transaction failed with status: ${receipt.status}`);
+        logger.error(`Transaction failed with status: ${receipt.status}`);
         throw new Error(`Transaction failed with status: ${receipt.status}`);
       }
 
@@ -351,12 +351,12 @@ describe("Validator Set Update", () => {
       });
 
       if (hasOutboundAccepted) {
-        logger.info("✅ OutboundMessageAccepted event found in transaction receipt!");
+        logger.success("OutboundMessageAccepted event found in transaction receipt!");
       } else {
         throw new Error("OutboundMessageAccepted event not found in transaction receipt");
       }
     } catch (error) {
-      logger.error(`❌ Error sending validator set update: ${error}`);
+      logger.error(`Error sending validator set update: ${error}`);
       throw error;
     }
   }, 300_000);
@@ -364,7 +364,8 @@ describe("Validator Set Update", () => {
   it("should verify validator set update on DataHaven substrate", async () => {
     const connectors = suite.getTestConnectors();
 
-    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
+    logger.info("🔍 Verifying ExternalValidatorsSet event was emitted (confirms set_external_validators_inner was called)...");
+
 
     try {
       // Wait for ExternalValidatorsSet event to confirm validator set was updated
@@ -377,10 +378,10 @@ describe("Validator Set Update", () => {
 
       if (validatorSetResult.data) {
         logger.success(
-          `✅ ExternalValidatorsSet event received: ${JSON.stringify(validatorSetResult.data)}`
+          `ExternalValidatorsSet event received: ${JSON.stringify(validatorSetResult.data)}`
         );
       } else {
-        logger.warn("⚠️ No ExternalValidatorsSet event found - checking current state");
+        logger.warn("No ExternalValidatorsSet event found - checking current state");
       }
 
       // Check current block to ensure chain is progressing
@@ -411,18 +412,17 @@ describe("Validator Set Update", () => {
       );
 
       if (validatorEvents.length > 0) {
-        logger.success(`✅ Found ${validatorEvents.length} validator-related events`);
         validatorEvents.forEach((event: any, index: number) => {
           logger.info(`Event ${index}: ${JSON.stringify(event)}`);
         });
       } else {
-        logger.warn("⚠️ No validator-related events found yet");
+        logger.warn("No validator-related events found yet");
       }
     } catch (error) {
       logger.error(`Error querying DataHaven state: ${error}`);
       // Don't fail the test immediately - the substrate side might need more time
       logger.warn(
-        "⚠️ Could not verify validator set on substrate - this might be expected if the message is still being processed"
+        "Could not verify validator set on substrate - this might be expected if the message is still being processed"
       );
     }
   }, 300000);

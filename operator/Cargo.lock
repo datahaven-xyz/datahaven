@@ -3079,6 +3079,7 @@ dependencies = [
  "pallet-balances",
  "pallet-evm",
  "pallet-evm-precompile-proxy",
+ "pallet-migrations",
  "pallet-treasury",
  "parity-scale-codec",
  "polkadot-primitives",

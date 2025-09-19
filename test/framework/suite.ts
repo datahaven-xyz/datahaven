@@ -1,4 +1,5 @@
 import { afterAll, beforeAll } from "bun:test";
+import readline from "node:readline";
 import { logger } from "utils";
 import { launchNetwork } from "../launcher";
 import type { LaunchNetworkResult } from "../launcher/types";
@@ -14,6 +15,7 @@ export interface TestSuiteOptions {
     datahavenImageTag?: string;
     relayerImageTag?: string;
   };
+  keepAlive?: boolean;
 }
 
 export abstract class BaseTestSuite {
@@ -70,6 +72,11 @@ export abstract class BaseTestSuite {
       logger.info(`🧹 Tearing down test suite: ${this.options.suiteName}`);
 
       try {
+        if (this.options.keepAlive) {
+          this.printNetworkInfo();
+          await this.waitForEnter();
+        }
+
         // Allow derived classes to perform cleanup
         await this.onTeardown();
 
@@ -136,5 +143,41 @@ export abstract class BaseTestSuite {
       throw new Error("Connector factory not initialized. Did you call setupHooks()?");
     }
     return this.connectorFactory;
+  }
+
+  private printNetworkInfo(): void {
+    try {
+      const connectors = this.getConnectors();
+      const ln = connectors.launchedNetwork;
+      logger.info("🛠 Keep-alive mode enabled. Network will remain running until you press Enter.");
+      logger.info("📡 Network info:");
+      logger.info(`  • Network ID: ${ln.networkId}`);
+      logger.info(`  • Network Name: ${ln.networkName}`);
+      logger.info(`  • DataHaven RPC: ${connectors.dataHavenRpcUrl}`);
+      logger.info(`  • Ethereum RPC: ${connectors.ethereumRpcUrl}`);
+      logger.info(`  • Ethereum CL:  ${connectors.ethereumClEndpoint}`);
+      const containers = ln.containers || [];
+      if (containers.length > 0) {
+        logger.info("  • Containers:");
+        for (const c of containers) {
+          const pubPorts = Object.entries(c.publicPorts || {})
+            .map(([k, v]) => `${k}:${v}`)
+            .join(", ");
+          logger.info(`     - ${c.name} [${pubPorts}]`);
+        }
+      }
+    } catch (e) {
+      logger.warn("Could not print network info", e as Error);
+    }
+  }
+
+  private async waitForEnter(): Promise<void> {
+    return await new Promise<void>((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      rl.question("\nPress Enter to teardown and cleanup... ", () => {
+        rl.close();
+        resolve();
+      });
+    });
   }
 }

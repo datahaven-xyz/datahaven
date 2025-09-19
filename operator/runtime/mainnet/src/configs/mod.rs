@@ -209,10 +209,15 @@ pub struct NormalCallFilter;
 impl Contains<RuntimeCall> for NormalCallFilter {
     fn contains(c: &RuntimeCall) -> bool {
         match c {
-            // Filter anonymous proxy creation as they make "reserve" inconsistent
+            // Filter proxy-related calls
             RuntimeCall::Proxy(method) => match method {
+                // Filter anonymous proxy creation as they make "reserve" inconsistent
                 pallet_proxy::Call::create_pure { .. } => false,
                 pallet_proxy::Call::kill_pure { .. } => false,
+                // Filter proxy calls to EVM accounts to prevent bypassing EVM restrictions
+                pallet_proxy::Call::proxy { real, .. } => {
+                    !pallet_evm::AccountCodes::<Runtime>::contains_key(H160::from(*real))
+                }
                 _ => true,
             },
             // Filter EVM calls to prevent possible re-entrancy from precompiles

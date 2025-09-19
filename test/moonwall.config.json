@@ -5,12 +5,22 @@
   "environments": [
     {
       "name": "dev_datahaven",
-      "testFileDir": ["suites/dev"],
-      "include": ["**/*test*.ts"],
+      "testFileDir": [
+        "suites/dev"
+      ],
+      "include": [
+        "**/*test*.ts"
+      ],
       "timeout": 180000,
       "multiThreads": 1,
-      "envVars": ["DEBUG_COLORS=1"],
-      "reporters": ["basic", "html", "json"],
+      "envVars": [
+        "DEBUG_COLORS=1"
+      ],
+      "reporters": [
+        "basic",
+        "html",
+        "json"
+      ],
       "foundation": {
         "type": "dev",
         "launchSpec": [
@@ -20,22 +30,16 @@
             "newRpcBehaviour": true,
             "options": [
               "--dev",
-              "--ethapi=txpool",
-              "--no-hardware-benchmarks",
               "--no-telemetry",
               "--unsafe-force-node-key-generation",
               "--reserved-only",
               "--no-grandpa",
               "--no-prometheus",
-              "--force-authoring",
-              "--rpc-cors=all",
-              "--sealing=manual",
-              "--tmp"
+              "--sealing=manual"
             ],
             "ports": {
               "p2pPort": 30333,
-              "rpcPort": 9944,
-              "wsPort": 9944
+              "rpcPort": 9944
             }
           }
         ]
@@ -44,17 +48,23 @@
         {
           "name": "ethers",
           "type": "ethers",
-          "endpoints": ["ws://127.0.0.1:9944"]
+          "endpoints": [
+            "ws://127.0.0.1:9944"
+          ]
         },
         {
           "name": "viem",
           "type": "viem",
-          "endpoints": ["ws://127.0.0.1:9944"]
+          "endpoints": [
+            "ws://127.0.0.1:9944"
+          ]
         },
         {
           "name": "para",
           "type": "polkadotJs",
-          "endpoints": ["ws://127.0.0.1:9944"]
+          "endpoints": [
+            "ws://127.0.0.1:9944"
+          ]
         }
       ]
     }

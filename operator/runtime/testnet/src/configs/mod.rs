@@ -98,7 +98,7 @@ use frame_support::{
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
+        ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
         KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
@@ -223,7 +223,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
             // See https://github.com/PureStake/sr-moonbeam/issues/30
             // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
             // this can be seen as an additional security
-            RuntimeCall::EVM(_) => false,
+            RuntimeCall::Evm(_) => false,
             _ => true,
         }
     }

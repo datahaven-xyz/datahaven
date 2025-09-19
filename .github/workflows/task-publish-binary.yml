@@ -1,0 +1,149 @@
+name: Publish Binary Draft
+
+# The code (like generate-release-body) will be taken from the tag version, not master
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: tag (ex. v0.1.0) to retrieve commit diff from
+        required: true
+      to:
+        description: tag (ex. v0.2.0) to generate release note and binaries from
+        required: true
+
+jobs:
+  prepare-sources:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.to }}
+          fetch-depth: 0
+      - name: Upload sources as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: datahaven-sources
+          path: .
+          retention-days: 1
+
+  build-binary:
+    runs-on: ubuntu-latest
+    needs: ["prepare-sources"]
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        # Re-enable other CPU architectures when we have enough CI minutes
+        # on GitHub Actions or move to self-hosted runners (w/ Docker).
+        # cpu: ["x86-64", "skylake", "znver3"]
+        cpu: ["x86-64"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.to }}
+      - name: Cargo build
+        uses: ./.github/workflow-templates/build-prod-binary
+        with:
+          target: ${{ matrix.cpu }}
+
+  ####### Prepare and publish the release draft #######
+
+  publish-draft-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: ["build-binary"]
+    outputs:
+      release_url: ${{ steps.create-release.outputs.html_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.to }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: datahaven-binaries-*
+          merge-multiple: true
+          path: build
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: "tools/.nvmrc"
+      - name: Prepare DataHaven binary for release body generation
+        working-directory: build
+        run: |
+          mv datahaven-node-x86-64 datahaven-node
+      - name: Generate release body
+        id: generate-release-body
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: tools
+        run: |
+          yarn
+          yarn -s run ts-node github/generate-release-body.ts --owner "${{ github.repository_owner }}" --repo "$(basename ${{ github.repository }})" --from "${{ github.event.inputs.from }}" --to "${{ github.event.inputs.to }}" --srtool-report-folder '../build/' > ../body.md
+      - name: Prepare binary assets
+        working-directory: build
+        run: |
+          # Prepare binaries for upload
+          cp datahaven-node ../datahaven-node
+          cp datahaven-node-skylake ../datahaven-node-skylake
+          cp datahaven-node-znver3 ../datahaven-node-znver3
+      - name: Create draft release with binaries
+        id: create-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.to }}
+          name: DataHaven ${{ github.event.inputs.to }}
+          body_path: body.md
+          draft: true
+          files: |
+            datahaven-node
+            datahaven-node-skylake
+            datahaven-node-znver3
+
+  ####### Publish Release Candidate Docker Image #######
+
+  docker-release-candidate:
+    runs-on: ubuntu-latest
+    needs: ["build-binary"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.to }}
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: datahaven-binaries-*
+          merge-multiple: true
+          path: build
+      - name: Rename binary for Docker
+        working-directory: build
+        run: |
+          mv datahaven-node-x86-64 datahaven-node
+      - name: Prepare Docker metadata
+        id: prep
+        run: |
+          DOCKER_IMAGE=datahavenxyz/datahaven
+          VERSION="${{ github.event.inputs.to }}"
+          TAG="${VERSION}-rc"
+
+          echo "tags=${DOCKER_IMAGE}:${TAG}" >> $GITHUB_OUTPUT
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+      - name: Cargo build
+        uses: ./.github/workflow-templates/publish-docker
+        with:
+          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          image_tags: ${{ steps.prep.outputs.tags }}
+          image_title: ${{ github.event.repository.name }}
+          image_description: ${{ github.event.repository.description }}
+          image_url: ${{ github.event.repository.html_url }}
+          image_source: ${{ github.event.repository.clone_url }}
+          image_created: ${{ steps.prep.outputs.created }}
+          image_revision: ${{ github.sha }}
+          image_licenses: ${{ github.event.repository.license.spdx_id }}

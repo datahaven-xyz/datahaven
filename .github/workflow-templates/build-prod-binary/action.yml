@@ -1,0 +1,57 @@
+name: Build Production Binary
+description: |
+  Builds production a DataHaven binary for a given CPU target
+
+inputs:
+  target:
+    description: The CPU target for the binary
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download sources from artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: datahaven-sources
+        path: .
+    - name: Build production DataHaven
+      shell: bash
+      run: |
+        # Build DataHaven
+        # (we don't use volumes because of ownership/permissions issues)
+        docker build \
+          --tag prod --no-cache \
+          --build-arg="COMMIT=${{ github.event.inputs.sha }}" \
+          --build-arg="RUSTFLAGS=-C target-cpu=${{ inputs.target }}" \
+          --file ./docker/datahaven-production.Dockerfile \
+          .
+
+        # Copy DataHaven binary
+        docker rm -f dummy 2> /dev/null | true
+        docker create -ti --name dummy prod bash
+        docker cp dummy:/datahaven/datahaven-node datahaven-node
+        docker rm -f dummy
+
+        GLIBC_VERSION="$(objdump -T datahaven-node | grep "GLIBC_" | sed 's/.*GLIBC_\([.0-9]*\).*/\1/g' | sort -Vu | tail -1)"
+
+        if [[ $GLIBC_VERSION == "2.34" ]]; then
+          echo "✅ Using expected GLIBC version: ${GLIBC_VERSION}";
+        else
+          echo "❌ Unexpected GLIBC version: ${GLIBC_VERSION}";
+          exit 1;
+        fi
+
+        # Cleanup
+        docker rmi prod
+
+    - name: Save DataHaven node binary
+      shell: bash
+      run: |
+        mkdir -p build
+        cp datahaven-node build/datahaven-node-${{ inputs.target }}
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: datahaven-binaries-${{inputs.target}}
+        path: build/datahaven-node-${{inputs.target }}

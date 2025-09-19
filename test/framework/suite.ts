@@ -7,14 +7,22 @@ import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
 
 export interface TestSuiteOptions {
+  /** Unique name for the test suite */
   suiteName: string;
+  /** Network configuration options */
   networkOptions?: {
+    /** Slot time in milliseconds for the network */
     slotTime?: number;
+    /** Enable Blockscout explorer for the network */
     blockscout?: boolean;
+    /** Build DataHaven runtime from source, needed to reflect local changes */
     buildDatahaven?: boolean;
+    /** Docker image tag for DataHaven node */
     datahavenImageTag?: string;
+    /** Docker image tag for Snowbridge relayer */
     relayerImageTag?: string;
   };
+  /** Keep network running after tests complete for debugging */
   keepAlive?: boolean;
 }
 

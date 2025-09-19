@@ -203,6 +203,27 @@ parameter_types! {
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
 
+/// Normal Call Filter
+/// Filters calls in the runtime to prevent potentially dangerous operations
+pub struct NormalCallFilter;
+impl Contains<RuntimeCall> for NormalCallFilter {
+    fn contains(c: &RuntimeCall) -> bool {
+        match c {
+            // Filter anonymous proxy creation as they make "reserve" inconsistent
+            RuntimeCall::Proxy(method) => match method {
+                pallet_proxy::Call::create_pure { .. } => false,
+                pallet_proxy::Call::kill_pure { .. } => false,
+                _ => true,
+            },
+            // Filter EVM calls to prevent possible re-entrancy from precompiles
+            // EVM calls should only be allowed through Origin::Root
+            RuntimeCall::EVM(_) => false,
+            // Allow all other calls
+            _ => true,
+        }
+    }
+}
+
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
 /// but overridden as needed.
@@ -234,6 +255,8 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = mainnet_weights::frame_system::WeightInfo<Runtime>;
+    /// Use the NormalCallFilter to restrict certain runtime calls
+    type BaseCallFilter = NormalCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.

@@ -204,26 +204,26 @@ parameter_types! {
 }
 
 /// Normal Call Filter
-/// Filters calls in the runtime to prevent potentially dangerous operations
 pub struct NormalCallFilter;
 impl Contains<RuntimeCall> for NormalCallFilter {
     fn contains(c: &RuntimeCall) -> bool {
         match c {
-            // Filter proxy-related calls
+            // We filter anonymous proxy as they make "reserve" inconsistent
+            // See: https://github.com/paritytech/substrate/blob/37cca710eed3dadd4ed5364c7686608f5175cce1/frame/proxy/src/lib.rs#L270 // editorconfig-checker-disable-line
             RuntimeCall::Proxy(method) => match method {
-                // Filter anonymous proxy creation as they make "reserve" inconsistent
                 pallet_proxy::Call::create_pure { .. } => false,
                 pallet_proxy::Call::kill_pure { .. } => false,
-                // Filter proxy calls to EVM accounts to prevent bypassing EVM restrictions
                 pallet_proxy::Call::proxy { real, .. } => {
                     !pallet_evm::AccountCodes::<Runtime>::contains_key(H160::from(*real))
                 }
                 _ => true,
             },
-            // Filter EVM calls to prevent possible re-entrancy from precompiles
-            // EVM calls should only be allowed through Origin::Root
+            // Filtering the EVM prevents possible re-entrancy from the precompiles which could
+            // lead to unexpected scenarios.
+            // See https://github.com/PureStake/sr-moonbeam/issues/30
+            // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
+            // this can be seen as an additional security
             RuntimeCall::EVM(_) => false,
-            // Allow all other calls
             _ => true,
         }
     }

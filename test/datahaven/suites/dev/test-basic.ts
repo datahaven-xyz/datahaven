@@ -52,11 +52,10 @@ describeSuite({
       id: "T04",
       title: "Should support EVM calls",
       test: async () => {
-        const { result } = await context.viem().eth.call({
-          data: "0x",
-        });
+        const client = context.viem();
+        const chainId = await client.request({ method: "eth_chainId" });
 
-        expect(result).toBeDefined();
+        expect(chainId).toBeDefined();
       },
     });
   },

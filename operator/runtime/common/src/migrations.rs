@@ -26,6 +26,14 @@ pub type MultiBlockMigrationList = ();
 #[cfg(feature = "runtime-benchmarks")]
 pub type MultiBlockMigrationList = pallet_migrations::mock_helpers::MockedMigrations;
 
+/// Single-block migrations executed via the executive (currently empty).
+#[cfg(not(feature = "runtime-benchmarks"))]
+pub type SingleBlockMigrations = ();
+
+/// Benchmark builds keep the single-block list empty as well.
+#[cfg(feature = "runtime-benchmarks")]
+pub type SingleBlockMigrations = ();
+
 /// Placeholder handler for migration status notifications. We do not emit any extra signals yet.
 pub type MigrationStatusHandler = ();
 

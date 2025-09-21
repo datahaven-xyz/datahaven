@@ -5,6 +5,7 @@ import { launchNetwork } from "../launcher";
 import type { LaunchNetworkResult } from "../launcher/types";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
+import { isCI } from "launcher/network";
 
 export interface TestSuiteOptions {
   /** Unique name for the test suite */
@@ -80,7 +81,7 @@ export abstract class BaseTestSuite {
       logger.info(`🧹 Tearing down test suite: ${this.options.suiteName}`);
 
       try {
-        if (this.options.keepAlive) {
+        if (this.options.keepAlive && !isCI) {
           this.printNetworkInfo();
           await this.waitForEnter();
         }

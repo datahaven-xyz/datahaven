@@ -1,11 +1,11 @@
 import { afterAll, beforeAll } from "bun:test";
 import readline from "node:readline";
+import { isCI } from "launcher/network";
 import { logger } from "utils";
 import { launchNetwork } from "../launcher";
 import type { LaunchNetworkResult } from "../launcher/types";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
-import { isCI } from "launcher/network";
 
 export interface TestSuiteOptions {
   /** Unique name for the test suite */

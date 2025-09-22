@@ -50,12 +50,12 @@ runs:
       with:
         username: ${{ inputs.dockerhub_username }}
         password: ${{ inputs.dockerhub_password }}
-    - name: Build and push moonbeam
+    - name: Build and push datahaven
       id: docker_build
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: ./docker/moonbeam.Dockerfile
+        file: ./docker/datahaven.Dockerfile
         platforms: linux/amd64
         push: true
         tags: ${{ inputs.image_tags }}

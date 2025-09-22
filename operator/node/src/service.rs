@@ -54,6 +54,7 @@ use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::SaturatedConversion;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{default::Default, path::Path, sync::Arc, time::Duration};
 
 pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
@@ -82,6 +83,11 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId, RuntimeApi> =
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
+
+// Mock timestamp used for manual/instant sealing in dev mode, similar to Moonbeam.
+// Each new block will advance the timestamp by one slot duration to satisfy
+// pallet_timestamp MinimumPeriod checks when sealing back-to-back.
+static MOCK_TIMESTAMP: AtomicU64 = AtomicU64::new(0);
 
 pub(crate) trait FullRuntimeApi:
     sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
@@ -241,7 +247,14 @@ fn build_babe_inherent_providers(
     sp_consensus_babe::inherents::InherentDataProvider,
     sp_timestamp::InherentDataProvider,
 ) {
-    let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+    // In manual/instant sealing we want to advance time deterministically per block
+    // to satisfy `pallet_timestamp` MinimumPeriod without sleeping. We increment a
+    // static counter by one slot each time and use that value as the timestamp.
+    let increment = slot_duration.as_millis();
+    let next_ts = MOCK_TIMESTAMP
+        .fetch_add(increment, Ordering::SeqCst)
+        .saturating_add(increment);
+    let timestamp = sp_timestamp::InherentDataProvider::new(sp_timestamp::Timestamp::new(next_ts));
     let slot = sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
         *timestamp,
         slot_duration,

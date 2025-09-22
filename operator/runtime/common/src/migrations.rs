@@ -29,6 +29,5 @@ pub type MultiBlockMigrationList = pallet_migrations::mock_helpers::MockedMigrat
 /// Placeholder handler for migration status notifications. We do not emit any extra signals yet.
 pub type MigrationStatusHandler = ();
 
-/// Default handler triggered on migration failures. Freezing the chain mirrors Moonbeam’s
-/// maintenance-mode behaviour by preventing further transactions until governance intervenes.
+/// Default handler triggered on migration failures.
 pub type FailedMigrationHandler = frame_support::migrations::FreezeChainOnFailedMigration;

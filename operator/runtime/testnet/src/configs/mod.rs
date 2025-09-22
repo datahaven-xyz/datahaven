@@ -773,6 +773,7 @@ impl pallet_migrations::Config for Runtime {
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;
+    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
     type FailedMigrationHandler = DefaultFailedMigrationHandler;
     type MaxServiceWeight = MaxServiceWeight;
     type WeightInfo = testnet_weights::pallet_migrations::WeightInfo<Runtime>;

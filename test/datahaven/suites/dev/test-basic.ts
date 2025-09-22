@@ -11,7 +11,7 @@ describeSuite({
       test: async () => {
         const api = context.polkadotJs();
         const chain = await api.rpc.system.chain();
-        expect(chain.toString()).toBe("DataHaven Development");
+        expect(chain.toString()).toBe("DataHaven Stagenet Dev");
       },
     });
 
@@ -43,8 +43,8 @@ describeSuite({
         const api = context.polkadotJs();
         const version = await api.rpc.state.getRuntimeVersion();
 
-        expect(version.specName.toString()).toBe("datahaven");
-        expect(version.implName.toString()).toBe("datahaven");
+        expect(version.specName.toString()).toBe("datahaven-stagenet");
+        expect(version.implName.toString()).toBe("datahaven-stagenet");
       },
     });
 

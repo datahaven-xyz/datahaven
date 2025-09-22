@@ -2,9 +2,7 @@
 mod common;
 
 use common::*;
-use core::mem;
 use datahaven_mainnet_runtime::{Runtime, RuntimeCall, RuntimeOrigin};
-use datahaven_runtime_common::migrations::SingleBlockMigrations;
 use frame_support::{assert_noop, assert_ok};
 use pallet_migrations::{Call as MigrationsCall, HistoricCleanupSelector};
 use sp_runtime::{traits::Dispatchable, DispatchError};
@@ -54,9 +52,4 @@ fn migrations_force_calls_are_root_only() {
         );
         assert_ok!(clear_historic.dispatch(RuntimeOrigin::root()));
     });
-}
-
-#[test]
-fn single_block_migrations_alias_is_empty() {
-    assert_eq!(mem::size_of::<SingleBlockMigrations>(), 0);
 }

@@ -21,6 +21,9 @@
         "html",
         "json"
       ],
+      "reportFile": {
+        "json": "./tmp/testResults.json"
+      },
       "foundation": {
         "type": "dev",
         "launchSpec": [
@@ -60,7 +63,7 @@
           ]
         },
         {
-          "name": "para",
+          "name": "solo",
           "type": "polkadotJs",
           "endpoints": [
             "ws://127.0.0.1:9944"

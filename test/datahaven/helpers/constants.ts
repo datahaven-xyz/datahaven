@@ -11,14 +11,14 @@ class RuntimeConstant<T> {
    */
   get(runtimeVersion: number): T {
     const versions = Object.keys(this.values).map(Number); // slow but easier to maintain
-    let value;
+    let value: T | undefined;
     for (let i = 0; i < versions.length; i++) {
       if (versions[i] > runtimeVersion) {
         break;
       }
       value = this.values[versions[i]];
     }
-    return value;
+    return value as T;
   }
 
   // Builds RuntimeConstant with single or multiple values

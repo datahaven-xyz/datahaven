@@ -6,7 +6,7 @@ describeSuite({
   id: "D010101",
   title: "Block 1",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let specVersion: number;
     beforeAll(async () => {
       await context.createBlock();
@@ -71,7 +71,10 @@ describeSuite({
       title: "should be accessible by hash",
       test: async () => {
         const latestBlock = await context.viem().getBlock({ blockTag: "latest" });
-        const block = await context.viem().getBlock({ blockHash: latestBlock.hash! });
+        if (!latestBlock.hash) {
+          throw new Error("Latest block hash is null");
+        }
+        const block = await context.viem().getBlock({ blockHash: latestBlock.hash });
         expect(block.hash).toBe(latestBlock.hash);
       }
     });

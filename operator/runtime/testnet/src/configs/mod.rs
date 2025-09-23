@@ -208,11 +208,7 @@ pub struct NormalCallFilter;
 impl Contains<RuntimeCall> for NormalCallFilter {
     fn contains(c: &RuntimeCall) -> bool {
         match c {
-            // We filter anonymous proxy as they make "reserve" inconsistent
-            // See: https://github.com/paritytech/substrate/blob/37cca710eed3dadd4ed5364c7686608f5175cce1/frame/proxy/src/lib.rs#L270 // editorconfig-checker-disable-line
             RuntimeCall::Proxy(method) => match method {
-                pallet_proxy::Call::create_pure { .. } => false,
-                pallet_proxy::Call::kill_pure { .. } => false,
                 pallet_proxy::Call::proxy { real, .. } => {
                     !pallet_evm::AccountCodes::<Runtime>::contains_key(H160::from(*real))
                 }

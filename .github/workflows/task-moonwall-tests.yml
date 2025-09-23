@@ -1,0 +1,59 @@
+name: Moonwall Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      binary-hash:
+        description: "Hash of the built operator binary uploaded as artifact"
+        required: true
+        type: string
+
+jobs:
+  moonwall:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download operator binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-node-${{ inputs.binary-hash }}
+          path: operator/target/x86_64-unknown-linux-gnu/release
+
+      - name: Prepare operator binary in expected path
+        run: |
+          mkdir -p ../operator/target/release
+          cp ../operator/target/x86_64-unknown-linux-gnu/release/datahaven-node ../operator/target/release/datahaven-node
+          chmod +x ../operator/target/release/datahaven-node
+
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run Moonwall tests
+        run: bun run moonwall:test
+
+      - name: Upload Moonwall reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonwall-reports
+          path: |
+            test/tmp/testResults.json
+            test/reports/**
+          retention-days: 7
+
+

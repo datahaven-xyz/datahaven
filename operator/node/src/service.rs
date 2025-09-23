@@ -1018,7 +1018,6 @@ where
             indexer_options,
             fisherman_options,
             sealing,
-            sealing,
         )
         .await;
     };

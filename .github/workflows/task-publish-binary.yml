@@ -30,16 +30,14 @@ jobs:
           retention-days: 1
 
   build-binary:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     needs: ["prepare-sources"]
     permissions:
       contents: read
     strategy:
       matrix:
-        # Re-enable other CPU architectures when we have enough CI minutes
-        # on GitHub Actions or move to self-hosted runners (w/ Docker).
-        # cpu: ["x86-64", "skylake", "znver3"]
-        cpu: ["x86-64"]
+        cpu: ["x86-64", "skylake", "znver3"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5

@@ -25,10 +25,9 @@ COPY --chown=datahaven build/* /datahaven
 RUN chmod uog+x /datahaven/datahaven*
 
 # 30333 for parachain p2p
-# 30334 for relaychain p2p
 # 9944 for Websocket & RPC call
 # 9615 for Prometheus (metrics)
-EXPOSE 30333 30334 9944 9615
+EXPOSE 30333 9944 9615
 
 VOLUME ["/data"]
 

@@ -13,6 +13,7 @@ pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
+pallet-migrations = { workspace = true }
 pallet-treasury = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -32,6 +33,7 @@ std = [
     "pallet-balances/std",
     "pallet-evm/std",
     "pallet-evm-precompile-proxy/std",
+    "pallet-migrations/std",
     "pallet-treasury/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
@@ -45,6 +47,7 @@ std = [
 
 runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
+    "pallet-migrations/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",

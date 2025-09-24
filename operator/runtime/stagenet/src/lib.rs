@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 512.
+#![recursion_limit = "512"]
 
 extern crate alloc;
 #[cfg(feature = "std")]
@@ -22,7 +22,7 @@ use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::{TransactionValidity, TransactionValidityError},
     parameter_types,
-    traits::{KeyOwnerProofSystem, OnFinalize},
+    traits::{Contains, KeyOwnerProofSystem, OnFinalize},
     weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 pub use frame_system::Call as SystemCall;
@@ -59,7 +59,7 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{Block as BlockT, DispatchInfoOf, Dispatchable, PostDispatchInfoOf},
-    transaction_validity::TransactionSource,
+    transaction_validity::{InvalidTransaction, TransactionSource},
     ApplyExtrinsicResult, Perbill, Permill,
 };
 use sp_std::collections::btree_map::BTreeMap;
@@ -376,6 +376,9 @@ mod runtime {
 
     #[runtime::pallet_index(38)]
     pub type Proxy = pallet_proxy;
+
+    #[runtime::pallet_index(39)]
+    pub type MultiBlockMigrations = pallet_migrations;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔═════════════════════════ Governance Pallets ════════════════════╗
@@ -610,6 +613,11 @@ impl_runtime_apis! {
             tx: <Block as BlockT>::Extrinsic,
             block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
+            // Filtered calls should not enter the tx pool as they'll fail if inserted.
+            // If this call is not allowed, we return early.
+            if !<Runtime as frame_system::Config>::BaseCallFilter::contains(&tx.0.function) {
+                return InvalidTransaction::Call.into();
+            }
             Executive::validate_transaction(source, tx, block_hash)
         }
     }

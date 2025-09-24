@@ -32,12 +32,12 @@ use super::{
     precompiles::{DataHavenPrecompiles, PrecompileName},
     AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
     EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
-    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
-    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    SLOT_DURATION, VERSION,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
+    Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
+    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -87,6 +87,10 @@ use datahaven_runtime_common::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
+    migrations::{
+        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
+        MigrationIdentifierMaxLen, MigrationStatusHandler,
+    },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -98,8 +102,8 @@ use frame_support::{
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
-        KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
+        ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -203,6 +207,32 @@ parameter_types! {
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
 
+parameter_types! {
+    pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
+}
+
+/// Normal Call Filter
+pub struct NormalCallFilter;
+impl Contains<RuntimeCall> for NormalCallFilter {
+    fn contains(c: &RuntimeCall) -> bool {
+        match c {
+            RuntimeCall::Proxy(method) => match method {
+                pallet_proxy::Call::proxy { real, .. } => {
+                    !pallet_evm::AccountCodes::<Runtime>::contains_key(H160::from(*real))
+                }
+                _ => true,
+            },
+            // Filtering the EVM prevents possible re-entrancy from the precompiles which could
+            // lead to unexpected scenarios.
+            // See https://github.com/PureStake/sr-moonbeam/issues/30
+            // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
+            // this can be seen as an additional security
+            RuntimeCall::Evm(_) => false,
+            _ => true,
+        }
+    }
+}
+
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
 /// but overridden as needed.
@@ -234,6 +264,9 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = stagenet_weights::frame_system::WeightInfo<Runtime>;
+    type MultiBlockMigrator = MultiBlockMigrations;
+    /// Use the NormalCallFilter to restrict certain runtime calls
+    type BaseCallFilter = NormalCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -754,6 +787,18 @@ impl pallet_parameters::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeParameters = RuntimeParameters;
     type WeightInfo = stagenet_weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+impl pallet_migrations::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
+    type CursorMaxLen = MigrationCursorMaxLen;
+    type IdentifierMaxLen = MigrationIdentifierMaxLen;
+    type MigrationStatusHandler = MigrationStatusHandler;
+    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
+    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type MaxServiceWeight = MaxServiceWeight;
+    type WeightInfo = stagenet_weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {

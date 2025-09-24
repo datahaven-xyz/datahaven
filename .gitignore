@@ -23,6 +23,14 @@ tmp/*
 .DS_Store
 **/.DS_Store
 
+# Typescript directories
+**/node_modules
+**/.yarn
+**/dist
+
+# Spec/Wasm build directory
+/build/
+
 .worktrees/
 .claude/
 CLAUDE.local.md

@@ -5,39 +5,14 @@ global:
   namespace: kt-datahaven-stagenet
 
 image:
-  tag: main
+  tag: latest
   pullPolicy: Always
 
 imagePullSecrets:
   - name: datahaven-dockerhub
 
 ingress:
-  enabled: true
-  host: sh-idxnode.datahaven-kt.xyz
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-    alb.ingress.kubernetes.io/load-balancer-name: sh-idxnode
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
-    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
-    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
-    external-dns.alpha.kubernetes.io/hostname: sh-idxnode.datahaven-kt.xyz
-    meta.helm.sh/release-name: sh-idxnode
-    meta.helm.sh/release-namespace: kt-datahaven-stagenet
-  rules:
-    - host: sh-idxnode.datahaven-kt.xyz
-      http:
-        paths:
-          - pathType: Prefix
-            path: "/"
-            backend:
-              service:
-                name: sh-idxnode
-                port:
-                  name: rpc
+  enabled: false
 
 node:
   chain: stagenet-local
@@ -51,6 +26,3 @@ node:
     limits:
       memory: "1Gi"
       cpu: "500m"
-  perNodeServices:
-    apiService:
-      enabled: true

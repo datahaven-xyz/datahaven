@@ -32,12 +32,12 @@ use super::{
     precompiles::{DataHavenPrecompiles, PrecompileName},
     AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
     EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
-    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
-    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    SLOT_DURATION, VERSION,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
+    Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
+    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -153,8 +153,6 @@ use sp_std::{
 use sp_version::RuntimeVersion;
 use xcm::latest::NetworkId;
 use xcm::prelude::*;
-
-use super::MultiBlockMigrations;
 
 #[cfg(feature = "runtime-benchmarks")]
 use bridge_hub_common::AggregateMessageOrigin;

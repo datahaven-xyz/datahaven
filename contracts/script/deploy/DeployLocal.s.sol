@@ -16,7 +16,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 // Logging import
 import {Logging} from "../utils/Logging.sol";
 import {Accounts} from "../utils/Accounts.sol";
-import {StateDiffRecorder} from "../utils/StateDiffRecorder.sol";
 import {ValidatorsUtils} from "../utils/ValidatorsUtils.sol";
 
 // Snowbridge imports

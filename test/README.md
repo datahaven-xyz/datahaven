@@ -81,6 +81,19 @@ Follow these steps to set up and interact with your local network:
    - Block Explorer: [http://127.0.0.1:3000](http://127.0.0.1:3000).
    - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
 
+## Generating Ethereum state
+
+To avoid deploying contracts everytime for each tests, you can generate and then inject state in the Ethereum client.
+
+### Generate state
+
+```
+$ bun cli launch --all
+$ make generate
+$ bun cli stop --all
+```
+
+
 ## Troubleshooting
 
 ### E2E Network Launch doesn't work

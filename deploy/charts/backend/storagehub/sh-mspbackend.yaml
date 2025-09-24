@@ -6,19 +6,19 @@ fullnameOverride: sh-mspbackend
 
 # Container image
 image:
-  repository: ghcr.io/moonsong-labs/storage-hub-backend
+  repository: moonsonglabs/storage-hub-msp-backend
   tag: latest
   pullPolicy: Always
 
 # Service configuration
 service:
   type: ClusterIP
-  port: 3000
-  targetPort: 3000
+  port: 8080
+  targetPort: 80
 
 # Backend API configuration
 backend:
-  port: 3000
+  port: 8080
   
   # Database connection to StorageHub Indexer PostgreSQL
   database:

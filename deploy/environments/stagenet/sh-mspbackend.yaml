@@ -6,8 +6,8 @@ global:
 
 # Stagenet image configuration
 image:
-  repository: ghcr.io/moonsong-labs/storage-hub-backend
-  tag: stagenet
+  repository: moonsonglabs/storage-hub-msp-backend
+  tag: latest
   pullPolicy: Always
 
 imagePullSecrets:

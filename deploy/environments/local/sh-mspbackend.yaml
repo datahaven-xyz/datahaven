@@ -6,9 +6,9 @@ global:
 
 # Use local image
 image:
-  repository: storagehub/backend
-  tag: local
-  pullPolicy: IfNotPresent
+  repository: moonsonglabs/storage-hub-msp-backend
+  tag: latest
+  pullPolicy: Always
 
 imagePullSecrets:
   - name: datahaven-dockerhub
@@ -19,17 +19,16 @@ replicaCount: 1
 # Service configuration for local access
 service:
   type: NodePort
-  port: 3000
+  port: 8080
   nodePort: 30300  # Fixed NodePort for local access
 
 # Backend configuration for local environment
 backend:
   database:
-    url: postgresql://indexer:local_indexer_password@sh-indexer-db:5432/storagehub_indexer
+    url: postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven
     
   rpc:
-    endpoint: ws://sh-idxnode:9944
-    httpEndpoint: http://sh-idxnode:9933
+    url: ws://sh-idxnode:9944
     
   env:
     LOG_LEVEL: debug
@@ -38,9 +37,6 @@ backend:
   args:
     - "--config"
     - "/app/config/config.toml"
-    - "--log-level"
-    - "debug"
-    - "--dev-mode"
 
 # Minimal resources for local development
 resources:

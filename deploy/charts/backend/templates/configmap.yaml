@@ -17,12 +17,14 @@ data:
     
     [storage_hub]
     {{- if .Values.backend.rpc.endpoint }}
-    rpc_endpoint = {{ .Values.backend.rpc.endpoint | quote }}
+    rpc_url = {{ .Values.backend.rpc.endpoint | quote }}
     {{- end }}
-    {{- if .Values.backend.rpc.httpEndpoint }}
-    http_endpoint = {{ .Values.backend.rpc.httpEndpoint | quote }}
-    {{- end }}
-    
+
+    timeout_secs = 30
+    max_concurrent_requests = 100
+    verify_tls = true
+    mock_mode = false
+
     [database]
     {{- if .Values.backend.database.url }}
     url = {{ .Values.backend.database.url | quote }}
@@ -32,19 +34,7 @@ data:
     url = "postgresql://indexer:password@sh-indexer-db:5432/storagehub"
     {{- end }}
     
-    {{- if .Values.configMap.extraConfig }}
-    {{- range $section, $values := .Values.configMap.extraConfig }}
-    {{- if kindIs "map" $values }}
-    
-    [{{ $section }}]
-    {{- range $key, $value := $values }}
-    {{ $key }} = {{ if kindIs "string" $value }}{{ $value | quote }}{{ else }}{{ $value }}{{ end }}
-    {{- end }}
-    {{- else }}
-    {{ $section }} = {{ if kindIs "string" $values }}{{ $values | quote }}{{ else }}{{ $values }}{{ end }}
-    {{- end }}
-    {{- end }}
-    {{- end }}
+    mock_mode = false
   {{- range $key, $value := .Values.configMap.data }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}

@@ -14,7 +14,8 @@ use sc_service::DatabaseSource;
 use serde::Deserialize;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
-    BspUploadFileOptions, MspChargeFeesOptions, MspMoveBucketOptions,
+    BspUploadFileOptions, FishermanOptions, IndexerOptions, MspChargeFeesOptions,
+    MspMoveBucketOptions,
 };
 use shc_rpc::RpcConfig;
 use shp_types::StorageDataUnit;
@@ -59,8 +60,8 @@ pub struct ProviderOptions {
     /// Configuration options for blockchain service.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blockchain_service: Option<BlockchainServiceOptions>,
-    /// Whether the node is running in maintenance mode.
-    pub maintenance_mode: bool,
+    // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
+    // pub maintenance_mode: bool,
 }
 
 impl SubstrateCli for Cli {
@@ -313,10 +314,20 @@ pub fn run() -> sc_cli::Result<()> {
         }
         None => {
             let mut provider_options: Option<ProviderOptions> = None;
+            let mut indexer_options: Option<IndexerOptions> = None;
+            let mut fisherman_options: Option<FishermanOptions> = None;
             let runner = cli.create_runner(&cli.run)?;
 
             if cli.provider_config.provider {
                 provider_options = Some(cli.provider_config.provider_options());
+            };
+
+            if cli.indexer_config.indexer {
+                indexer_options = cli.indexer_config.indexer_options();
+            };
+
+            if cli.fisherman_config.fisherman {
+                fisherman_options = cli.fisherman_config.fisherman_options();
             };
 
             runner.run_node_until_exit(|config| async move {
@@ -330,7 +341,13 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth, provider_options)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             ref spec if spec.is_testnet() => {
@@ -338,7 +355,13 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_testnet_runtime::Runtime,
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth, provider_options)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             _ => {
@@ -346,7 +369,13 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_stagenet_runtime::Runtime,
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
-                                >(config, cli.eth, provider_options)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                         }
@@ -359,7 +388,13 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::Runtime,
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth, provider_options)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             ref spec if spec.is_testnet() => {
@@ -367,7 +402,13 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_testnet_runtime::Runtime,
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth, provider_options)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                             _ => {
@@ -375,7 +416,13 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_stagenet_runtime::Runtime,
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
-                                >(config, cli.eth, provider_options)
+                                >(
+                                    config,
+                                    cli.eth,
+                                    provider_options,
+                                    indexer_options,
+                                    fisherman_options,
+                                )
                                 .await
                             }
                         }

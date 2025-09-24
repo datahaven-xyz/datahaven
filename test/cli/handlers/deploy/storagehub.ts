@@ -34,8 +34,8 @@ export const deployStorageHubComponents = async (
     await checkTagExists(options.datahavenImageTag);
   }
 
-  // Deploy StorageHub databases first (Indexer and Fisherman PostgreSQL databases)
-  await deployStorageHubDatabases(options, launchedNetwork);
+  // Deploy StorageHub Indexer database first (Indexer PostgreSQL database)
+  await deployStorageHubDatabase(options, launchedNetwork);
 
   // Deploy StorageHub nodes (MSP, BSP, Indexer, Fisherman)
   await deployStorageHubNodes(options, launchedNetwork);
@@ -51,11 +51,11 @@ export const deployStorageHubComponents = async (
 /**
  * Deploys StorageHub PostgreSQL databases for Indexer and Fisherman nodes.
  */
-const deployStorageHubDatabases = async (
+const deployStorageHubDatabase = async (
   options: DeployOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> => {
-  logger.info("🗄️ Deploying StorageHub PostgreSQL databases...");
+  logger.info("🗄️ Deploying StorageHub PostgreSQL database...");
 
   const deployDatabase = async (name: string, component: string) => {
     const timeout = "3m";
@@ -80,9 +80,6 @@ const deployStorageHubDatabases = async (
 
   // Deploy Indexer database
   await deployDatabase("sh-indexer-db", "sh-idxnode");
-
-  // Deploy Fisherman database
-  await deployDatabase("sh-fisherman-db", "sh-fisherman");
 };
 
 /**

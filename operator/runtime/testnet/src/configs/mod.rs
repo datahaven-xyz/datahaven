@@ -102,8 +102,8 @@ use frame_support::{
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
-        KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
+        ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -211,6 +211,28 @@ parameter_types! {
     pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
 }
 
+/// Normal Call Filter
+pub struct NormalCallFilter;
+impl Contains<RuntimeCall> for NormalCallFilter {
+    fn contains(c: &RuntimeCall) -> bool {
+        match c {
+            RuntimeCall::Proxy(method) => match method {
+                pallet_proxy::Call::proxy { real, .. } => {
+                    !pallet_evm::AccountCodes::<Runtime>::contains_key(H160::from(*real))
+                }
+                _ => true,
+            },
+            // Filtering the EVM prevents possible re-entrancy from the precompiles which could
+            // lead to unexpected scenarios.
+            // See https://github.com/PureStake/sr-moonbeam/issues/30
+            // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
+            // this can be seen as an additional security
+            RuntimeCall::Evm(_) => false,
+            _ => true,
+        }
+    }
+}
+
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
 /// but overridden as needed.
@@ -243,6 +265,8 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = testnet_weights::frame_system::WeightInfo<Runtime>;
     type MultiBlockMigrator = MultiBlockMigrations;
+    /// Use the NormalCallFilter to restrict certain runtime calls
+    type BaseCallFilter = NormalCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.

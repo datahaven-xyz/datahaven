@@ -7,13 +7,13 @@ type Commits = Await<ReturnType<Octokit["rest"]["repos"]["compareCommits"]>>["da
 
 export function getCompareLink(packageName: string, previousTag: string, newTag: string) {
   const previousPackage = execSync(
-    `git show ${previousTag}:../Cargo.lock | grep ${packageName}? | head -1 | grep -o '".*"'`
+    `git show ${previousTag}:../operator/Cargo.lock | grep -E '${packageName}(\\.git)?\\?' | head -1 | grep -o '".*"'`
   ).toString();
   const previousCommit = /#([0-9a-f]*)/g.exec(previousPackage)[1].slice(0, 8);
   const previousRepo = /(https:\/\/.*)\?/g.exec(previousPackage)[1];
 
   const newPackage = execSync(
-    `git show ${newTag}:../operator/Cargo.lock | grep ${packageName}? | head -1 | grep -o '".*"'`
+    `git show ${newTag}:../operator/Cargo.lock | grep -E '${packageName}(\\.git)?\\?' | head -1 | grep -o '".*"'`
   ).toString();
   const newCommit = /#([0-9a-f]*)/g.exec(newPackage)[1].slice(0, 8);
   const newRepo = /(https:\/\/.*)\?/g.exec(newPackage)[1];

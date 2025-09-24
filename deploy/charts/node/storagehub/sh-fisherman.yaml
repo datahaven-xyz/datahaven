@@ -27,7 +27,7 @@ node:
     - "--discover-local"
     - "--network-backend libp2p"
     - "--fisherman"
-    - "--fisherman-database-url postgresql://fisherman:fisherman@sh-fisherman-db-postgresql:5432/datahaven"
+    - "--fisherman-database-url postgresql://indexer:indexer@sh-fisherman-db-postgresql:5432/datahaven"
 
 ingress:
   enabled: false

@@ -12,6 +12,7 @@ primary:
   persistence:
     enabled: true
     size: 10Gi           # requires a default StorageClass
+    storageClass: "gp2"
   resources:
     requests: { cpu: "100m", memory: "256Mi" }
     limits:   { cpu: "500m", memory: "512Mi" }

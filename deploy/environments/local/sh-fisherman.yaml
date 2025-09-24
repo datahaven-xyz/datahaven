@@ -1,4 +1,4 @@
-# Indexer-specific settings for Local environment
+# Fisherman-specific settings for Local environment
 
 global:
   environment: local
@@ -11,8 +11,15 @@ image:
 imagePullSecrets:
   - name: datahaven-dockerhub
 
+# Ingress disabled for local (can be enabled for testing)
 ingress:
   enabled: false
+  ingressClassName: traefik
+  perReplica: true
+  wildcardDomain: datahaven.local
+  # If enabled, this would generate:
+  # - sh-fisherman-0.datahaven.local
+  # - sh-fisherman-1.datahaven.local
 
 node:
   chain: local
@@ -31,3 +38,7 @@ node:
     limits:
       memory: "512Mi"
       cpu: "200m"
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort

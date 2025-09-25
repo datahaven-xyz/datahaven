@@ -35,7 +35,8 @@ use super::{
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
     Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
     Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    RuntimeTask, SafeMode, Scheduler, Session, SessionKeys, Signature, System, Timestamp,
+    Treasury, TxPause,
     BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
     NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
@@ -90,6 +91,10 @@ use datahaven_runtime_common::{
     migrations::{
         FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
         MigrationIdentifierMaxLen, MigrationStatusHandler,
+    },
+    safe_mode::{
+        CombinedCallFilter, SafeModeDuration, SafeModeMaxNameLen, SafeModeReleaseDelay,
+        TestnetSafeModeConfig, TxPauseMaxNameLen,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -211,6 +216,75 @@ parameter_types! {
     pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
 }
 
+// Safe Mode and Tx Pause Parameter Types
+parameter_types! {
+    /// Safe mode enter deposit for testnet
+    pub SafeModeEnterDeposit: Balance = TestnetSafeModeConfig::enter_deposit();
+    /// Safe mode extend deposit for testnet
+    pub SafeModeExtendDeposit: Balance = TestnetSafeModeConfig::extend_deposit();
+    /// Testnet whitelist for safe mode - very permissive for easy testing
+    pub SafeModeWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
+        // System calls for basic functionality
+        (b"System".to_vec(), b"remark".to_vec()),
+        (b"System".to_vec(), b"remark_with_event".to_vec()),
+        // Timestamp for block production
+        (b"Timestamp".to_vec(), b"set".to_vec()),
+        // Babe for consensus
+        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
+        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
+        // Grandpa for finality
+        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
+        // Safe mode management calls
+        (b"SafeMode".to_vec(), b"enter".to_vec()),
+        (b"SafeMode".to_vec(), b"extend".to_vec()),
+        (b"SafeMode".to_vec(), b"exit".to_vec()),
+        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
+        (b"SafeMode".to_vec(), b"force_release_deposit".to_vec()),
+        (b"SafeMode".to_vec(), b"force_slash_deposit".to_vec()),
+        // Tx pause management calls
+        (b"TxPause".to_vec(), b"pause".to_vec()),
+        (b"TxPause".to_vec(), b"unpause".to_vec()),
+        // Governance calls
+        (b"Sudo".to_vec(), b"sudo".to_vec()),
+        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
+        // Balance transfers for testing
+        (b"Balances".to_vec(), b"transfer_allow_death".to_vec()),
+        (b"Balances".to_vec(), b"transfer_keep_alive".to_vec()),
+        (b"Balances".to_vec(), b"force_transfer".to_vec()),
+        (b"Balances".to_vec(), b"transfer_all".to_vec()),
+        // Utility calls for batch operations
+        (b"Utility".to_vec(), b"batch".to_vec()),
+        (b"Utility".to_vec(), b"batch_all".to_vec()),
+        // Identity calls for testing
+        (b"Identity".to_vec(), b"set_identity".to_vec()),
+        (b"Identity".to_vec(), b"clear_identity".to_vec()),
+    ];
+    /// Testnet tx pause whitelist - calls that cannot be paused
+    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
+        // System calls
+        (b"System".to_vec(), b"remark".to_vec()),
+        (b"System".to_vec(), b"remark_with_event".to_vec()),
+        // Consensus calls that must not be paused
+        (b"Timestamp".to_vec(), b"set".to_vec()),
+        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
+        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
+        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
+        // Emergency management calls
+        (b"SafeMode".to_vec(), b"enter".to_vec()),
+        (b"SafeMode".to_vec(), b"force_enter".to_vec()),
+        (b"SafeMode".to_vec(), b"extend".to_vec()),
+        (b"SafeMode".to_vec(), b"force_extend".to_vec()),
+        (b"SafeMode".to_vec(), b"exit".to_vec()),
+        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
+        (b"TxPause".to_vec(), b"pause".to_vec()),
+        (b"TxPause".to_vec(), b"unpause".to_vec()),
+        // Sudo calls for emergency governance
+        (b"Sudo".to_vec(), b"sudo".to_vec()),
+        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
+        (b"Sudo".to_vec(), b"set_key".to_vec()),
+    ];
+}
+
 /// Normal Call Filter
 pub struct NormalCallFilter;
 impl Contains<RuntimeCall> for NormalCallFilter {
@@ -232,6 +306,15 @@ impl Contains<RuntimeCall> for NormalCallFilter {
         }
     }
 }
+
+/// Safe Mode Call Filter - allows only whitelisted calls when safe mode is active
+pub type SafeModeFilter = pallet_safe_mode::SafeModeFilter<Runtime>;
+
+/// Tx Pause Call Filter - blocks paused calls
+pub type TxPauseFilter = pallet_tx_pause::TxPauseFilter<Runtime>;
+
+/// Combined Call Filter that applies Normal, SafeMode, and TxPause filters
+pub type RuntimeCallFilter = CombinedCallFilter<NormalCallFilter, SafeModeFilter, TxPauseFilter>;
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
@@ -265,8 +348,8 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = testnet_weights::frame_system::WeightInfo<Runtime>;
     type MultiBlockMigrator = MultiBlockMigrations;
-    /// Use the NormalCallFilter to restrict certain runtime calls
-    type BaseCallFilter = NormalCallFilter;
+    /// Use the combined call filter to apply Normal, SafeMode, and TxPause restrictions
+    type BaseCallFilter = RuntimeCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -1475,6 +1558,56 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type FeeRecipient = TreasuryAccount;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = testnet_weights::pallet_datahaven_native_transfer::WeightInfo<Runtime>;
+}
+
+//╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                          SAFE MODE & TX PAUSE PALLETS                                           ║
+//╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+impl pallet_safe_mode::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type WhitelistedCalls = SafeModeWhitelistedCalls;
+    type EnterDuration = SafeModeDuration;
+    type ExtendDuration = SafeModeDuration;
+    type EnterDepositAmount = SafeModeEnterDeposit;
+    type ExtendDepositAmount = SafeModeExtendDeposit;
+    type ForceEnterOrigin = EnsureRoot<AccountId>;
+    type ForceExtendOrigin = EnsureRoot<AccountId>;
+    type ForceExitOrigin = EnsureRoot<AccountId>;
+    type ForceDepositOrigin = EnsureRoot<AccountId>;
+    type ReleaseDelay = SafeModeReleaseDelay;
+    type Notify = ();
+    type NotifyId = [u8; 8];
+    type WhitelistedCallMaxNameLen = SafeModeMaxNameLen;
+    type RuntimeCallNameOf = (
+        frame_support::BoundedVec<u8, SafeModeMaxNameLen>,
+        frame_support::BoundedVec<u8, SafeModeMaxNameLen>,
+    );
+    // Testnet: Allow permissionless entry/extend with very low deposits (easy testing)
+    type EnterOrigin = frame_support::traits::EitherOf<
+        EnsureRoot<AccountId>,
+        pallet_safe_mode::EnsureSignedCanDeposit<AccountId, Self::Currency, Self::EnterDepositAmount>
+    >;
+    type ExtendOrigin = frame_support::traits::EitherOf<
+        EnsureRoot<AccountId>,
+        pallet_safe_mode::EnsureSignedCanDeposit<AccountId, Self::Currency, Self::ExtendDepositAmount>
+    >;
+    type WeightInfo = testnet_weights::pallet_safe_mode::WeightInfo<Runtime>;
+}
+
+impl pallet_tx_pause::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type UnpauseOrigin = EnsureRoot<AccountId>;
+    type WhitelistedCalls = TxPauseWhitelistedCalls;
+    type MaxNameLen = TxPauseMaxNameLen;
+    type RuntimeCallNameOf = (
+        frame_support::BoundedVec<u8, TxPauseMaxNameLen>,
+        frame_support::BoundedVec<u8, TxPauseMaxNameLen>,
+    );
+    type WeightInfo = testnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 
 #[cfg(test)]

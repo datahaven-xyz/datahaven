@@ -49,10 +49,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      # - name: Pull Kurtosis images
-      #   run: |
-      #     docker pull ${{ env.KURTOSIS_CORE_IMAGE }}:${{ env.KURTOSIS_VERSION }}
-      #     docker pull ${{ env.KURTOSIS_ENGINE_IMAGE }}:${{ env.KURTOSIS_VERSION }}
+      - name: Pull Kurtosis images
+        run: |
+          docker pull ${{ env.KURTOSIS_CORE_IMAGE }}:${{ env.KURTOSIS_VERSION }}
+          docker pull ${{ env.KURTOSIS_ENGINE_IMAGE }}:${{ env.KURTOSIS_VERSION }}
       - name: Install Kurtosis
         run: |
           # Install Kurtosis locally without sudo

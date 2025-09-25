@@ -46,8 +46,25 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Check operator binary version
+        run: ../operator/target/release/datahaven-node --version || true
+
       - name: Run Moonwall tests
-        run: bun run moonwall:test
+        run: MOON_DEBUG=true bun run moonwall:test
+
+      - name: Archive Moonwall logs
+        if: failure()
+        run: |
+          mkdir -p tmp
+          tar -czf tmp/moonwall-logs.tar.gz tmp
+
+      - name: Upload Moonwall logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonwall-logs
+          path: test/tmp/moonwall-logs.tar.gz
+          retention-days: 1
 
       - name: Upload Moonwall reports
         if: always()
@@ -57,5 +74,4 @@ jobs:
           path: |
             test/tmp/testResults.json
             test/reports/**
-          retention-days: 7
-
+          retention-days: 1

@@ -29,7 +29,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1u128 << 110))
+                .map(|k| (k, 1u128 << 80))
                 .collect::<Vec<_>>(),
         },
         babe: pallet_babe::GenesisConfig {

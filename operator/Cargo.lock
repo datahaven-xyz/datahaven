@@ -2877,6 +2877,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-mmr",
  "pallet-multisig",
  "pallet-nfts",
@@ -3078,6 +3079,7 @@ dependencies = [
  "pallet-balances",
  "pallet-evm",
  "pallet-evm-precompile-proxy",
+ "pallet-migrations",
  "pallet-treasury",
  "parity-scale-codec",
  "polkadot-primitives",
@@ -3148,6 +3150,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-mmr",
  "pallet-multisig",
  "pallet-nfts",
@@ -3287,6 +3290,7 @@ dependencies = [
  "pallet-identity",
  "pallet-im-online",
  "pallet-message-queue",
+ "pallet-migrations",
  "pallet-mmr",
  "pallet-multisig",
  "pallet-nfts",
@@ -9339,6 +9343,24 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-weights",
+]
+
+[[package]]
+name = "pallet-migrations"
+version = "9.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+dependencies = [
+ "cfg-if",
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]

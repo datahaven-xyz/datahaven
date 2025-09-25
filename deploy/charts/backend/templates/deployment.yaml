@@ -56,7 +56,8 @@ spec:
           {{- if .Values.configMap.enabled }}
           volumeMounts:
             - name: config
-              mountPath: /app/config
+              mountPath: "/configs/config.toml"
+              subPath: "config.toml"
               readOnly: true
           {{- end }}
       {{- if .Values.configMap.enabled }}

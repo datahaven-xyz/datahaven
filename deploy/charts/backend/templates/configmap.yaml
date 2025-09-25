@@ -20,6 +20,8 @@ data:
     rpc_url = {{ .Values.backend.rpc.endpoint | quote }}
     {{- end }}
 
+    msp_callback_url = "http://{{ include "backend.fullname" . }}:8080"
+
     timeout_secs = 30
     max_concurrent_requests = 100
     verify_tls = true

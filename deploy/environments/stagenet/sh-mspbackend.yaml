@@ -11,48 +11,29 @@ image:
   pullPolicy: Always
 
 imagePullSecrets:
-  - name: ghcr-dockerhub
+  - name: datahaven-dockerhub
 
-# Multiple replicas for redundancy
-replicaCount: 2
+replicaCount: 1
 
 # Service configuration
 service:
   type: ClusterIP
-  port: 3000
+  port: 8080
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
 
 # Backend configuration for stagenet
 backend:
   database:
-    # Note: In production, consider using a more secure approach for credentials
-    url: postgresql://indexer:REPLACE_WITH_ACTUAL_PASSWORD@sh-indexer-db:5432/storagehub_indexer
+    url: postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven
     
   rpc:
-    endpoint: ws://sh-idxnode:9944
-    httpEndpoint: http://sh-idxnode:9933
-    
-  env:
-    NODE_ENV: staging
-    LOG_LEVEL: info
-    API_PREFIX: "/api/v1"
-    # Rate limiting configuration
-    RATE_LIMIT_ENABLED: "true"
-    RATE_LIMIT_WINDOW_MS: "60000"
-    RATE_LIMIT_MAX_REQUESTS: "200"
-    # Cache configuration
-    CACHE_ENABLED: "true"
-    CACHE_TTL: "300"
-    # Monitoring
-    METRICS_ENABLED: "true"
-    METRICS_PORT: "9090"
-    
+    endpoint: ws://sh-mspnode-0:9955
+
   # CLI arguments for production
   args:
     - "--config"
-    - "/app/config/config.toml"
-    - "--enable-metrics"
+    - "/configs/config.toml"
 
 # Production-ready resources
 resources:
@@ -66,66 +47,25 @@ resources:
 # Enable ingress with SSL
 ingress:
   enabled: true
-  className: nginx
+  host: sh-mspbackend.datahaven-kt.xyz
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-name: sh-mspbackend
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
+    external-dns.alpha.kubernetes.io/hostname: sh-mspbackend.datahaven-kt.xyz
+    meta.helm.sh/release-name: sh-mspbackend
+    meta.helm.sh/release-namespace: kt-datahaven-stagenet
   hosts:
-    - host: api-stagenet.storagehub.io
+    - host: sh-mspbackend.datahaven-kt.xyz
       paths:
         - path: /
           pathType: Prefix
-  tls:
-    - secretName: sh-mspbackend-stagenet-tls
-      hosts:
-        - api-stagenet.storagehub.io
 
-# Pod disruption budget for high availability
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-
-# Anti-affinity to spread pods across nodes
-affinity:
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-              - key: app.kubernetes.io/name
-                operator: In
-                values:
-                  - backend
-          topologyKey: kubernetes.io/hostname
-
-# Additional monitoring annotations
-podAnnotations:
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "9090"
-  prometheus.io/path: "/metrics"
-  co.elastic.logs/enabled: "true"
-  co.elastic.logs/module: "nodejs"
-
-# ConfigMap for stagenet-specific configuration
-configMap:
-  enabled: true
-  extraConfig:
-    environment: "stagenet"
-    features:
-      debug: false
-      swagger: true
-      metrics: true
-      healthCheck: true
-    api:
-      version: "v1"
-      prefix: "/api/v1"
-      timeout: 30000
-    security:
-      helmet: true
-      rateLimit: true
-      cors: true
+backend:
+  port: 8080

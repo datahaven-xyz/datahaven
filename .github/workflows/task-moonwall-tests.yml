@@ -33,6 +33,9 @@ jobs:
           chmod +x ../operator/target/release/datahaven-node
 
       - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -55,5 +58,4 @@ jobs:
             test/tmp/testResults.json
             test/reports/**
           retention-days: 7
-
 

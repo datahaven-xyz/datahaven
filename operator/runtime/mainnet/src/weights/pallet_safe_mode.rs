@@ -49,10 +49,25 @@ use core::marker::PhantomData;
 /// Weight functions for `pallet_safe_mode`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_safe_mode::WeightInfo for WeightInfo<T> {
-	/// Storage: SafeMode EnteredUntil (r:1 w:1)
-	/// Proof: SafeMode EnteredUntil (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
-	/// Storage: Balances Reserves (r:1 w:1)
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(1249), added: 3724, mode: MaxEncodedLen)
+	fn on_initialize_noop() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `499`
+		// Minimum execution time: 5_000_000 picoseconds.
+		Weight::from_parts(6_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 499))
+			.saturating_add(T::DbWeight::get().reads(1))
+	}
+	fn on_initialize_exit() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `1489`
+		// Minimum execution time: 10_000_000 picoseconds.
+		Weight::from_parts(11_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1489))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 	fn enter() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `142`
@@ -63,10 +78,16 @@ impl<T: frame_system::Config> pallet_safe_mode::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// Storage: SafeMode EnteredUntil (r:1 w:1)
-	/// Proof: SafeMode EnteredUntil (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
-	/// Storage: Balances Reserves (r:1 w:1)
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(1249), added: 3724, mode: MaxEncodedLen)
+	fn force_enter() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `1489`
+		// Minimum execution time: 12_000_000 picoseconds.
+		Weight::from_parts(13_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 1489))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 	fn extend() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `142`
@@ -77,11 +98,7 @@ impl<T: frame_system::Config> pallet_safe_mode::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// Storage: SafeMode EnteredUntil (r:1 w:1)
-	/// Proof: SafeMode EnteredUntil (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
-	/// Storage: SafeMode Deposits (r:0 w:1)
-	/// Proof: SafeMode Deposits (max_values: None, max_size: Some(68), added: 2543, mode: MaxEncodedLen)
-	fn exit() -> Weight {
+	fn force_extend() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `142`
 		//  Estimated: `1489`
@@ -89,14 +106,8 @@ impl<T: frame_system::Config> pallet_safe_mode::WeightInfo for WeightInfo<T> {
 		Weight::from_parts(13_000_000, 0)
 			.saturating_add(Weight::from_parts(0, 1489))
 			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// Storage: SafeMode EnteredUntil (r:1 w:1)
-	/// Proof: SafeMode EnteredUntil (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
-	/// Storage: SafeMode Deposits (r:0 w:1)
-	/// Proof: SafeMode Deposits (max_values: None, max_size: Some(68), added: 2543, mode: MaxEncodedLen)
-	/// Storage: Balances Reserves (r:1 w:1)
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(1249), added: 3724, mode: MaxEncodedLen)
 	fn force_exit() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `142`
@@ -106,5 +117,35 @@ impl<T: frame_system::Config> pallet_safe_mode::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 4714))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
+	}
+	fn release_deposit() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `4714`
+		// Minimum execution time: 14_000_000 picoseconds.
+		Weight::from_parts(15_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 4714))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	fn force_release_deposit() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `4714`
+		// Minimum execution time: 14_000_000 picoseconds.
+		Weight::from_parts(15_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 4714))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
+	fn force_slash_deposit() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `142`
+		//  Estimated: `4714`
+		// Minimum execution time: 14_000_000 picoseconds.
+		Weight::from_parts(15_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 4714))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }

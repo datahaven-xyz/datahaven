@@ -94,7 +94,7 @@ use datahaven_runtime_common::{
     },
     safe_mode::{
         CombinedCallFilter, SafeModeDuration, SafeModeMaxNameLen, SafeModeReleaseDelay,
-        StagenetSafeModeConfig, TxPauseMaxNameLen,
+        StagenetSafeModeConfig, TxPauseMaxNameLen, SafeModeConfig,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };

@@ -219,11 +219,12 @@ export const launchNetwork = async (
       rpcUrl: launchedNetwork.elRpcUrl
     });
 
-    // 5. Setup validators
-    logger.info("🔐 Setting up validators...");
-    await setupValidators({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
+    // We are injecting contracts with already registers validator state 
+    // // 5. Setup validators
+    // logger.info("🔐 Setting up validators...");
+    // await setupValidators({
+    //   rpcUrl: launchedNetwork.elRpcUrl
+    // });
 
     // We are injecting contracts but we still need the address
     try {

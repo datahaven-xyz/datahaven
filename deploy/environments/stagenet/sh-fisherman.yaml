@@ -35,8 +35,6 @@ ingress:
 
 node:
   chain: stagenet-local
-  customChainspecUrl:
-  forceDownloadChainspec: false
   chainData:
     persistence:
       size: 20Gi

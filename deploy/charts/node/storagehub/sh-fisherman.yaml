@@ -21,6 +21,13 @@ node:
     storageClass: "gp2"
   chainKeystore:
     storageClass: "gp2"
+  keys:
+    # This is Alice seed. To generate new seed run: docker run --rm datahavenxyz/datahaven:latest key generate
+    - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+      type: bcsv
+      scheme: ecdsa
+      # ${HOSTNAME##*-} will be evaluated as the pod index, pod-0: //Gustavo, pod-1: //Hermano
+      extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Gustavo" || echo "//Hermano")'
   persistGeneratedNodeKey: true
   flags:
     - "--allow-private-ipv4"

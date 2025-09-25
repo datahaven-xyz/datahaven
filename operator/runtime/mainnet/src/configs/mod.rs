@@ -35,8 +35,7 @@ use super::{
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
     Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
     Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp,
-    Treasury,
+    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
     BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
     NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
@@ -92,9 +91,7 @@ use datahaven_runtime_common::{
         FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
-    safe_mode::{
-        SafeModeDuration, SafeModeReleaseDelay, TxPauseMaxNameLen,
-    },
+    safe_mode::{SafeModeDuration, SafeModeReleaseDelay, TxPauseMaxNameLen},
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -223,8 +220,6 @@ parameter_types! {
     pub SafeModeExtendDeposit: Option<Balance> = None;
     /// Safe mode release delay - None disables permissionless release
     pub SafeModeReleaseDelayBlocks: Option<BlockNumber> = Some(SafeModeReleaseDelay::get());
-    /// Maximum blocks for force enter/extend operations
-    pub const MaxForceBlocks: BlockNumber = 7 * DAYS;
     /// Mainnet whitelist for safe mode - essential calls only
     pub SafeModeWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
         // System calls for basic functionality
@@ -316,19 +311,7 @@ impl Contains<RuntimeCall> for SafeModeWhitelistFilter {
 }
 
 /// Tx Pause Whitelist Filter - implements Contains<RuntimeCallNameOf> for tx pause
-pub struct TxPauseWhitelistFilter;
-impl Contains<(
-    frame_support::BoundedVec<u8, TxPauseMaxNameLen>,
-    frame_support::BoundedVec<u8, TxPauseMaxNameLen>,
-)> for TxPauseWhitelistFilter {
-    fn contains(_call_name: &(
-        frame_support::BoundedVec<u8, TxPauseMaxNameLen>,
-        frame_support::BoundedVec<u8, TxPauseMaxNameLen>,
-    )) -> bool {
-        // These calls cannot be paused - simplified implementation
-        true // For now, allow all calls to be paused except those in the whitelist
-    }
-}
+// TxPause whitelist is backed by the shared adapter in runtime common
 
 /// Combined Call Filter that applies Normal, SafeMode, and TxPause filters
 pub type RuntimeCallFilter = NormalCallFilter;
@@ -1591,8 +1574,14 @@ impl pallet_safe_mode::Config for Runtime {
     type ExtendDuration = SafeModeDuration;
     type EnterDepositAmount = SafeModeEnterDeposit;
     type ExtendDepositAmount = SafeModeExtendDeposit;
-    type ForceEnterOrigin = EnsureRootWithSuccess<AccountId, MaxForceBlocks>;
-    type ForceExtendOrigin = EnsureRootWithSuccess<AccountId, MaxForceBlocks>;
+    type ForceEnterOrigin = EnsureRootWithSuccess<
+        AccountId,
+        datahaven_runtime_common::safe_mode::SafeModeForceMaxBlocks,
+    >;
+    type ForceExtendOrigin = EnsureRootWithSuccess<
+        AccountId,
+        datahaven_runtime_common::safe_mode::SafeModeForceMaxBlocks,
+    >;
     type ForceExitOrigin = EnsureRoot<AccountId>;
     type ForceDepositOrigin = EnsureRoot<AccountId>;
     type ReleaseDelay = SafeModeReleaseDelayBlocks;
@@ -1605,7 +1594,10 @@ impl pallet_tx_pause::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type PauseOrigin = EnsureRoot<AccountId>;
     type UnpauseOrigin = EnsureRoot<AccountId>;
-    type WhitelistedCalls = TxPauseWhitelistFilter;
+    type WhitelistedCalls = datahaven_runtime_common::safe_mode::TxPauseWhitelist<
+        TxPauseWhitelistedCalls,
+        TxPauseMaxNameLen,
+    >;
     type MaxNameLen = TxPauseMaxNameLen;
     type WeightInfo = mainnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }

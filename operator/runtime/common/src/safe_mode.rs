@@ -19,7 +19,8 @@
 use crate::time::{DAYS, HOURS};
 use frame_support::{
     parameter_types,
-    traits::{Contains, InsideBoth},
+    traits::{Contains, Get, InsideBoth},
+    BoundedVec,
 };
 use polkadot_primitives::BlockNumber;
 use sp_std::marker::PhantomData;
@@ -52,6 +53,13 @@ parameter_types! {
     pub const TxPauseMaxNameLen: u32 = MAX_NAME_LEN;
 }
 
+// Shared max blocks used for force enter/extend origins.
+parameter_types! {
+    /// Default maximum number of blocks used as Success for EnsureRootWithSuccess
+    /// in `ForceEnterOrigin` and `ForceExtendOrigin`.
+    pub const SafeModeForceMaxBlocks: polkadot_primitives::BlockNumber = 7 * DAYS;
+}
+
 /// Composite call filter that combines SafeMode and TxPause filters with existing filters
 pub struct SafeModeTxPauseFilter<SafeModeFilter, TxPauseFilter>(
     PhantomData<(SafeModeFilter, TxPauseFilter)>,
@@ -75,6 +83,27 @@ pub type RuntimeCallFilter<SafeModeFilter, TxPauseFilter> =
 /// Helper type for combining with existing call filters
 pub type CombinedCallFilter<NormalFilter, SafeModeFilter, TxPauseFilter> =
     InsideBoth<NormalFilter, RuntimeCallFilter<SafeModeFilter, TxPauseFilter>>;
+
+/// Generic TxPause whitelist adapter that implements Contains over call names.
+///
+/// List is expected to return a Vec<(pallet_name_bytes, call_name_bytes)> and MaxLen
+/// bounds the encoded name sizes.
+pub struct TxPauseWhitelist<List, MaxLen>(PhantomData<(List, MaxLen)>);
+
+impl<List, MaxLen> Contains<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)>
+    for TxPauseWhitelist<List, MaxLen>
+where
+    List: Get<sp_std::vec::Vec<(sp_std::vec::Vec<u8>, sp_std::vec::Vec<u8>)>>,
+    MaxLen: Get<u32>,
+{
+    fn contains(call_name: &(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)) -> bool {
+        let (pallet, call) = call_name;
+        let list = List::get();
+        list.iter().any(|(p_bytes, c_bytes)| {
+            p_bytes.as_slice() == pallet.as_slice() && c_bytes.as_slice() == call.as_slice()
+        })
+    }
+}
 
 /// Network-specific safe mode configuration trait
 pub trait SafeModeConfig {
@@ -202,13 +231,7 @@ pub mod helpers {
     pub fn build_safe_mode_call_name<MaxLen: Get<u32>>(
         pallet_name: &str,
         call_name: &str,
-    ) -> Result<
-        (
-            BoundedVec<u8, MaxLen>,
-            BoundedVec<u8, MaxLen>,
-        ),
-        &'static str,
-    > {
+    ) -> Result<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>), &'static str> {
         let pallet_bounded: BoundedVec<u8, MaxLen> = pallet_name
             .as_bytes()
             .to_vec()
@@ -228,13 +251,7 @@ pub mod helpers {
     pub fn build_tx_pause_call_name<MaxLen: Get<u32>>(
         pallet_name: &str,
         call_name: &str,
-    ) -> Result<
-        (
-            BoundedVec<u8, MaxLen>,
-            BoundedVec<u8, MaxLen>,
-        ),
-        &'static str,
-    > {
+    ) -> Result<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>), &'static str> {
         let pallet_bounded: BoundedVec<u8, MaxLen> = pallet_name
             .as_bytes()
             .to_vec()
@@ -253,13 +270,7 @@ pub mod helpers {
     /// Batch build multiple call names for SafeMode whitelist
     pub fn build_safe_mode_whitelist<MaxLen: Get<u32>>(
         calls: &[(&str, &str)],
-    ) -> Result<
-        Vec<(
-            BoundedVec<u8, MaxLen>,
-            BoundedVec<u8, MaxLen>,
-        )>,
-        &'static str,
-    > {
+    ) -> Result<Vec<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)>, &'static str> {
         calls
             .iter()
             .map(|(pallet, call)| build_safe_mode_call_name::<MaxLen>(pallet, call))
@@ -269,13 +280,7 @@ pub mod helpers {
     /// Batch build multiple call names for TxPause operations
     pub fn build_tx_pause_whitelist<MaxLen: Get<u32>>(
         calls: &[(&str, &str)],
-    ) -> Result<
-        Vec<(
-            BoundedVec<u8, MaxLen>,
-            BoundedVec<u8, MaxLen>,
-        )>,
-        &'static str,
-    > {
+    ) -> Result<Vec<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)>, &'static str> {
         calls
             .iter()
             .map(|(pallet, call)| build_tx_pause_call_name::<MaxLen>(pallet, call))
@@ -332,24 +337,14 @@ pub mod helpers {
     ];
 
     /// Build essential SafeMode whitelist with common calls
-    pub fn build_essential_safe_mode_whitelist<MaxLen: Get<u32>>() -> Result<
-        Vec<(
-            BoundedVec<u8, MaxLen>,
-            BoundedVec<u8, MaxLen>,
-        )>,
-        &'static str,
-    > {
+    pub fn build_essential_safe_mode_whitelist<MaxLen: Get<u32>>(
+    ) -> Result<Vec<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)>, &'static str> {
         build_safe_mode_whitelist::<MaxLen>(ESSENTIAL_SAFE_MODE_CALLS)
     }
 
     /// Build essential TxPause whitelist with common calls
-    pub fn build_essential_tx_pause_whitelist<MaxLen: Get<u32>>() -> Result<
-        Vec<(
-            BoundedVec<u8, MaxLen>,
-            BoundedVec<u8, MaxLen>,
-        )>,
-        &'static str,
-    > {
+    pub fn build_essential_tx_pause_whitelist<MaxLen: Get<u32>>(
+    ) -> Result<Vec<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)>, &'static str> {
         build_tx_pause_whitelist::<MaxLen>(ESSENTIAL_TX_PAUSE_WHITELIST)
     }
 
@@ -359,15 +354,15 @@ pub mod helpers {
         call_name: &str,
     ) -> Result<(), &'static str> {
         let max_len = MaxLen::get() as usize;
-        
+
         if pallet_name.len() > max_len {
             return Err("Pallet name exceeds MaxNameLen");
         }
-        
+
         if call_name.len() > max_len {
             return Err("Call name exceeds MaxNameLen");
         }
-        
+
         Ok(())
     }
 
@@ -393,7 +388,7 @@ mod tests {
     fn test_build_safe_mode_call_name() {
         let result = helpers::build_safe_mode_call_name::<TestMaxNameLen>("System", "remark");
         assert!(result.is_ok());
-        
+
         let (pallet, call) = result.unwrap();
         assert_eq!(pallet.as_slice(), b"System");
         assert_eq!(call.as_slice(), b"remark");
@@ -403,7 +398,7 @@ mod tests {
     fn test_build_tx_pause_call_name() {
         let result = helpers::build_tx_pause_call_name::<TestMaxNameLen>("TxPause", "pause");
         assert!(result.is_ok());
-        
+
         let (pallet, call) = result.unwrap();
         assert_eq!(pallet.as_slice(), b"TxPause");
         assert_eq!(call.as_slice(), b"pause");
@@ -413,11 +408,15 @@ mod tests {
     fn test_validate_call_name_length() {
         // Valid names
         assert!(helpers::validate_call_name_length::<TestMaxNameLen>("System", "remark").is_ok());
-        
+
         // Invalid names (too long)
         let long_name = "a".repeat(33);
-        assert!(helpers::validate_call_name_length::<TestMaxNameLen>(&long_name, "remark").is_err());
-        assert!(helpers::validate_call_name_length::<TestMaxNameLen>("System", &long_name).is_err());
+        assert!(
+            helpers::validate_call_name_length::<TestMaxNameLen>(&long_name, "remark").is_err()
+        );
+        assert!(
+            helpers::validate_call_name_length::<TestMaxNameLen>("System", &long_name).is_err()
+        );
     }
 
     #[test]
@@ -425,7 +424,7 @@ mod tests {
         let safe_mode_result = helpers::build_essential_safe_mode_whitelist::<TestMaxNameLen>();
         assert!(safe_mode_result.is_ok());
         assert!(!safe_mode_result.unwrap().is_empty());
-        
+
         let tx_pause_result = helpers::build_essential_tx_pause_whitelist::<TestMaxNameLen>();
         assert!(tx_pause_result.is_ok());
         assert!(!tx_pause_result.unwrap().is_empty());
@@ -435,7 +434,7 @@ mod tests {
     fn test_string_calls_to_bytes() {
         let calls = &[("System", "remark"), ("TxPause", "pause")];
         let result = helpers::string_calls_to_bytes(calls);
-        
+
         assert_eq!(result.len(), 2);
         assert_eq!(result[0], (b"System".to_vec(), b"remark".to_vec()));
         assert_eq!(result[1], (b"TxPause".to_vec(), b"pause".to_vec()));

@@ -134,6 +134,9 @@ cumulus-client-service = { workspace = true }
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
 
+[patch.crates-io]
+shc_rpc = { path = "../../storage-hub/client/rpc" }
+
 [features]
 default = ["std"]
 std = [

@@ -7,10 +7,7 @@
 
 use crate::consensus::BabeConsensusDataProvider;
 use crate::eth::DefaultEthConfig;
-use datahaven_runtime_common::{
-    time::SLOT_DURATION, AccountId, Balance, Block, BlockNumber, Hash, Nonce,
-};
-use fc_rpc::EthConfig;
+use datahaven_runtime_common::{time::SLOT_DURATION, Block, BlockNumber, Hash};
 use fc_rpc::TxPool;
 use fc_rpc::{Eth, EthBlockDataCacheTask, EthFilter, Net, Web3};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
@@ -18,7 +15,7 @@ use fc_rpc_core::{EthApiServer, EthFilterApiServer, NetApiServer, TxPoolApiServe
 use fc_storage::StorageOverride;
 use fp_rpc::EthereumRuntimeRPCApi;
 use jsonrpsee::RpcModule;
-use sc_client_api::{AuxStore, Backend, StateBackend, StorageProvider};
+use sc_client_api::{Backend, StateBackend, StorageProvider};
 use sc_consensus_beefy::communication::notification::{
     BeefyBestBlockStream, BeefyVersionedFinalityProofStream,
 };
@@ -27,7 +24,6 @@ use sc_network_sync::SyncingService;
 use sc_transaction_pool::{ChainApi, Pool};
 use sc_transaction_pool_api::TransactionPool;
 use shc_client::types::FileStorageT;
-use shc_common::traits::StorageEnableApiCollection;
 use shc_common::traits::StorageEnableRuntime;
 use shc_common::traits::StorageEnableRuntimeApi;
 use shc_common::types::OpaqueBlock;
@@ -36,14 +32,10 @@ use shc_forest_manager::traits::ForestStorageHandler;
 use shc_rpc::StorageHubClientApiServer;
 use shc_rpc::StorageHubClientRpc;
 use shc_rpc::StorageHubClientRpcConfig;
-use sp_api::{CallApiAt, ProvideRuntimeApi};
-use sp_block_builder::BlockBuilder;
-use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_babe::{BabeApi, SlotDuration};
 use sp_consensus_beefy::AuthorityIdBound;
 use sp_core::H256;
 use sp_runtime::traits::BlakeTwo256;
-use sp_runtime::OpaqueExtrinsic;
 use std::any::Any;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -106,21 +98,6 @@ pub fn create_full<P, BE, AuthorityId, A, FL, FSH, Runtime>(
     deps: FullDeps<P, BE, AuthorityId, A, FL, FSH, Runtime>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-    // C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
-    // C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
-    // C: Send + Sync + 'static,
-    // C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
-    // C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-    // C::Api: BlockBuilder<Block>,
-    // C::Api: mmr_rpc::MmrRuntimeApi<Block, <Block as sp_runtime::traits::Block>::Hash, BlockNumber>,
-    // C::Api: EthereumRuntimeRPCApi<Block>,
-    // C::Api: BabeApi<Block>,
-    // C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
-    // C::Api: StorageEnableApiCollection<Runtime>,
-    // C: sc_client_api::UsageProvider<Block>,
-    // C: CallApiAt<
-    //     sp_runtime::generic::Block<sp_runtime::generic::Header<u32, BlakeTwo256>, OpaqueExtrinsic>,
-    // >,
     P: TransactionPool<Block = Block> + 'static,
     BE: Backend<Block> + Send + Sync + 'static,
     BE::State: StateBackend<BlakeTwo256>,

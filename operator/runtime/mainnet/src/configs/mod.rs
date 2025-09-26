@@ -220,29 +220,6 @@ parameter_types! {
     pub SafeModeExtendDeposit: Option<Balance> = None;
     /// Safe mode release delay - None disables permissionless release
     pub SafeModeReleaseDelayBlocks: Option<BlockNumber> = Some(SafeModeReleaseDelay::get());
-    /// Mainnet whitelist for safe mode - essential calls only
-    pub SafeModeWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
-        // System calls for basic functionality
-        (b"System".to_vec(), b"remark".to_vec()),
-        (b"System".to_vec(), b"remark_with_event".to_vec()),
-        // Timestamp for block production
-        (b"Timestamp".to_vec(), b"set".to_vec()),
-        // Babe for consensus
-        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
-        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
-        // Grandpa for finality
-        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
-        // Safe mode management calls
-        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_release_deposit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_slash_deposit".to_vec()),
-        // Tx pause management calls
-        (b"TxPause".to_vec(), b"pause".to_vec()),
-        (b"TxPause".to_vec(), b"unpause".to_vec()),
-        // Essential governance calls
-        (b"Sudo".to_vec(), b"sudo".to_vec()),
-        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
-    ];
     /// Mainnet tx pause whitelist - calls that cannot be paused
     pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
         // System calls

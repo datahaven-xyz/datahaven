@@ -223,43 +223,6 @@ parameter_types! {
     pub SafeModeExtendDeposit: Option<Balance> = Some(TestnetSafeModeConfig::extend_deposit());
     /// Safe mode release delay - Some(blocks) enables permissionless release
     pub SafeModeReleaseDelayBlocks: Option<BlockNumber> = Some(SafeModeReleaseDelay::get());
-    /// Testnet whitelist for safe mode - very permissive for easy testing
-    pub SafeModeWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
-        // System calls for basic functionality
-        (b"System".to_vec(), b"remark".to_vec()),
-        (b"System".to_vec(), b"remark_with_event".to_vec()),
-        // Timestamp for block production
-        (b"Timestamp".to_vec(), b"set".to_vec()),
-        // Babe for consensus
-        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
-        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
-        // Grandpa for finality
-        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
-        // Safe mode management calls
-        (b"SafeMode".to_vec(), b"enter".to_vec()),
-        (b"SafeMode".to_vec(), b"extend".to_vec()),
-        (b"SafeMode".to_vec(), b"exit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_release_deposit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_slash_deposit".to_vec()),
-        // Tx pause management calls
-        (b"TxPause".to_vec(), b"pause".to_vec()),
-        (b"TxPause".to_vec(), b"unpause".to_vec()),
-        // Governance calls
-        (b"Sudo".to_vec(), b"sudo".to_vec()),
-        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
-        // Balance transfers for testing
-        (b"Balances".to_vec(), b"transfer_allow_death".to_vec()),
-        (b"Balances".to_vec(), b"transfer_keep_alive".to_vec()),
-        (b"Balances".to_vec(), b"force_transfer".to_vec()),
-        (b"Balances".to_vec(), b"transfer_all".to_vec()),
-        // Utility calls for batch operations
-        (b"Utility".to_vec(), b"batch".to_vec()),
-        (b"Utility".to_vec(), b"batch_all".to_vec()),
-        // Identity calls for testing
-        (b"Identity".to_vec(), b"set_identity".to_vec()),
-        (b"Identity".to_vec(), b"clear_identity".to_vec()),
-    ];
     /// Testnet tx pause whitelist - calls that cannot be paused
     pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
         // System calls

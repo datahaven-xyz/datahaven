@@ -99,8 +99,8 @@ runs:
           mkdir -p "$WORK_DIR" && cd "$WORK_DIR"
           
           # Download PostgreSQL 17 packages
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/libpq5_17.6-1.pgdg+1_${ARCH}.deb"
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/libpq-dev_17.6-1.pgdg+1_${ARCH}.deb"
+          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/libpq5_18.0-1.pgdg+3_${ARCH}.deb"
+          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/libpq-dev_18.0-1.pgdg+3_${ARCH}.deb"
           
           # Extract and install
           for pkg in *.deb; do

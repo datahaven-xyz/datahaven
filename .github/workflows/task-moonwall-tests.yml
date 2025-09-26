@@ -43,6 +43,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Ensure lsof is available
+        run: |
+          if ! command -v lsof >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y lsof
+          fi
+
       - name: Install dependencies
         run: bun install
 

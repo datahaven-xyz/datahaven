@@ -10,6 +10,7 @@ use crate::eth::DefaultEthConfig;
 use datahaven_runtime_common::{
     time::SLOT_DURATION, AccountId, Balance, Block, BlockNumber, Hash, Nonce,
 };
+use fc_rpc::EthConfig;
 use fc_rpc::TxPool;
 use fc_rpc::{Eth, EthBlockDataCacheTask, EthFilter, Net, Web3};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
@@ -221,7 +222,7 @@ where
     };
 
     module.merge(
-        Eth::<_, _, _, _, _, _, _, ()>::new(
+        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<ParachainClient<Runtime::RuntimeApi>, BE>>::new(
             Arc::clone(&client),
             Arc::clone(&pool),
             graph.clone(),

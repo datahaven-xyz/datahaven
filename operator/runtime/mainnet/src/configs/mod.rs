@@ -91,7 +91,10 @@ use datahaven_runtime_common::{
         FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
-    safe_mode::{SafeModeDuration, SafeModeReleaseDelay, TxPauseMaxNameLen},
+    safe_mode::{
+        get_common_tx_pause_whitelist, SafeModeDuration, SafeModeReleaseDelayBlocks,
+        SafeModeWhitelistFilter, TxPauseMaxNameLen,
+    },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -218,32 +221,8 @@ parameter_types! {
     pub SafeModeEnterDeposit: Option<Balance> = None;
     /// Safe mode extend deposit for mainnet - None disables permissionless extend
     pub SafeModeExtendDeposit: Option<Balance> = None;
-    /// Safe mode release delay - None disables permissionless release
-    pub SafeModeReleaseDelayBlocks: Option<BlockNumber> = Some(SafeModeReleaseDelay::get());
-    /// Mainnet tx pause whitelist - calls that cannot be paused
-    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
-        // System calls
-        (b"System".to_vec(), b"remark".to_vec()),
-        (b"System".to_vec(), b"remark_with_event".to_vec()),
-        // Consensus calls that must not be paused
-        (b"Timestamp".to_vec(), b"set".to_vec()),
-        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
-        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
-        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
-        // Emergency management calls
-        (b"SafeMode".to_vec(), b"enter".to_vec()),
-        (b"SafeMode".to_vec(), b"force_enter".to_vec()),
-        (b"SafeMode".to_vec(), b"extend".to_vec()),
-        (b"SafeMode".to_vec(), b"force_extend".to_vec()),
-        (b"SafeMode".to_vec(), b"exit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
-        (b"TxPause".to_vec(), b"pause".to_vec()),
-        (b"TxPause".to_vec(), b"unpause".to_vec()),
-        // Sudo calls for emergency governance
-        (b"Sudo".to_vec(), b"sudo".to_vec()),
-        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
-        (b"Sudo".to_vec(), b"set_key".to_vec()),
-    ];
+    /// Mainnet tx pause whitelist - uses common whitelist
+    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = get_common_tx_pause_whitelist();
 }
 
 /// Normal Call Filter
@@ -268,8 +247,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
     }
 }
 
-/// Safe Mode Whitelist Filter - implements Contains<RuntimeCall> for safe mode
-pub struct SafeModeWhitelistFilter;
+// SafeModeWhitelistFilter implementation using the shared type
 impl Contains<RuntimeCall> for SafeModeWhitelistFilter {
     fn contains(call: &RuntimeCall) -> bool {
         // During safe mode, only allow whitelisted calls

@@ -92,8 +92,8 @@ use datahaven_runtime_common::{
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
     safe_mode::{
-        SafeModeConfig, SafeModeDuration, SafeModeReleaseDelay, StagenetSafeModeConfig,
-        TxPauseMaxNameLen,
+        get_common_tx_pause_whitelist, SafeModeDuration, SafeModeReleaseDelayBlocks,
+        SafeModeWhitelistFilter, TxPauseMaxNameLen,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -218,35 +218,11 @@ parameter_types! {
 // Safe Mode and Tx Pause Parameter Types
 parameter_types! {
     /// Safe mode enter deposit for stagenet - Some(amount) enables permissionless entry
-    pub SafeModeEnterDeposit: Option<Balance> = Some(StagenetSafeModeConfig::enter_deposit());
+    pub SafeModeEnterDeposit: Option<Balance> = Some(1000 * 1_000_000_000_000_000_000); // 1,000 HAVE
     /// Safe mode extend deposit for stagenet - Some(amount) enables permissionless extend
-    pub SafeModeExtendDeposit: Option<Balance> = Some(StagenetSafeModeConfig::extend_deposit());
-    /// Safe mode release delay - Some(blocks) enables permissionless release
-    pub SafeModeReleaseDelayBlocks: Option<BlockNumber> = Some(SafeModeReleaseDelay::get());
-    /// Stagenet tx pause whitelist - calls that cannot be paused
-    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = vec![
-        // System calls
-        (b"System".to_vec(), b"remark".to_vec()),
-        (b"System".to_vec(), b"remark_with_event".to_vec()),
-        // Consensus calls that must not be paused
-        (b"Timestamp".to_vec(), b"set".to_vec()),
-        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
-        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
-        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
-        // Emergency management calls
-        (b"SafeMode".to_vec(), b"enter".to_vec()),
-        (b"SafeMode".to_vec(), b"force_enter".to_vec()),
-        (b"SafeMode".to_vec(), b"extend".to_vec()),
-        (b"SafeMode".to_vec(), b"force_extend".to_vec()),
-        (b"SafeMode".to_vec(), b"exit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
-        (b"TxPause".to_vec(), b"pause".to_vec()),
-        (b"TxPause".to_vec(), b"unpause".to_vec()),
-        // Sudo calls for emergency governance
-        (b"Sudo".to_vec(), b"sudo".to_vec()),
-        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
-        (b"Sudo".to_vec(), b"set_key".to_vec()),
-    ];
+    pub SafeModeExtendDeposit: Option<Balance> = Some(500 * 1_000_000_000_000_000_000); // 500 HAVE
+    /// Stagenet tx pause whitelist - uses common whitelist
+    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = get_common_tx_pause_whitelist();
 }
 
 /// Normal Call Filter
@@ -271,8 +247,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
     }
 }
 
-/// Safe Mode Whitelist Filter - implements Contains<RuntimeCall> for safe mode
-pub struct SafeModeWhitelistFilter;
+// SafeModeWhitelistFilter implementation using the shared type
 impl Contains<RuntimeCall> for SafeModeWhitelistFilter {
     fn contains(call: &RuntimeCall) -> bool {
         // During safe mode, only allow whitelisted calls

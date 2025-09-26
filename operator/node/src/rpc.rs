@@ -36,7 +36,6 @@ use sp_consensus_babe::{BabeApi, SlotDuration};
 use sp_consensus_beefy::AuthorityIdBound;
 use sp_core::H256;
 use sp_runtime::traits::BlakeTwo256;
-use std::any::Any;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 

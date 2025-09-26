@@ -12,7 +12,6 @@ use sc_client_api::{Backend, BlockchainEvents, StorageProvider};
 use sc_executor::HostFunctions;
 use sc_network_sync::SyncingService;
 use sc_service::{error::Error as ServiceError, TaskManager};
-use shc_common::{traits::StorageEnableRuntimeApi, types::ParachainClient};
 use sp_api::ConstructRuntimeApi;
 use sp_core::H256;
 use sp_runtime::traits::Block as BlockT;

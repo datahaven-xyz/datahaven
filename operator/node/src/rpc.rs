@@ -44,6 +44,7 @@ use sp_consensus_beefy::AuthorityIdBound;
 use sp_core::H256;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::OpaqueExtrinsic;
+use std::any::Any;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -135,6 +136,7 @@ where
                         + BabeApi<Block>
                         + fp_rpc::ConvertTransactionRuntimeApi<Block>,
     >,
+    ParachainClient<Runtime::RuntimeApi>: StorageProvider<Block, BE>,
     FL: FileStorageT,
     FSH: ForestStorageHandler<Runtime> + Send + Sync + 'static,
 {

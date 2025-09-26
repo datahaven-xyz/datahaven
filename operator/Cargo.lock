@@ -3065,6 +3065,7 @@ dependencies = [
  "sp-transaction-pool",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "toml 0.8.23",
  "url",
 ]
 

@@ -577,7 +577,7 @@ where
     }
 
     // Storage Hub builder
-    let (sh_builder, _maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
+    let (sh_builder, maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
         &provider_options,
         &task_manager,
         file_transfer_request_protocol,
@@ -680,6 +680,7 @@ where
                     fc_db::Backend::Sql(b) => b.clone(),
                 },
                 forced_parent_hashes: None,
+                maybe_storage_hub_client_config: maybe_storage_hub_client_rpc_config.clone(),
             };
             crate::rpc::create_full(deps).map_err(Into::into)
         })

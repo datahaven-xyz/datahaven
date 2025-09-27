@@ -2,6 +2,7 @@
 use crate::client::{FullBackend, FullClient};
 use datahaven_runtime_common::Block;
 pub use fc_db::Backend as FrontierBackend;
+use fc_rpc::EthConfig;
 use fc_rpc::EthTask;
 pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 pub use fc_storage::{StorageOverride, StorageOverrideHandler};
@@ -23,7 +24,7 @@ use std::{
 /// Frontier DB backend type.
 pub struct DefaultEthConfig<C, BE>(std::marker::PhantomData<(C, BE)>);
 
-impl<C, BE> fc_rpc::EthConfig<Block, C> for DefaultEthConfig<C, BE>
+impl<C, BE> EthConfig<Block, C> for DefaultEthConfig<C, BE>
 where
     C: StorageProvider<Block, BE> + Sync + Send + 'static,
     BE: Backend<Block> + 'static,

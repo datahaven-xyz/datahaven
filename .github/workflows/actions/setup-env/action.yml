@@ -98,7 +98,7 @@ runs:
           WORK_DIR="$LOCAL_DIR/tmp"
           mkdir -p "$WORK_DIR" && cd "$WORK_DIR"
           
-          # Download PostgreSQL 17 packages
+          # Download PostgreSQL 18 packages
           wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.0-1.pgdg+3_${ARCH}.deb"
           wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_18.0-1.pgdg+3_${ARCH}.deb"
           

@@ -251,10 +251,6 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
     }
 }
 
-/// Tx Pause Whitelist Filter - implements Contains<RuntimeCallNameOf> for tx pause
-// TxPause whitelist is backed by the shared adapter in runtime common
-
-// Type alias for the specific RuntimeCallFilter used in mainnet
 pub type MainnetRuntimeCallFilter =
     RuntimeCallFilter<RuntimeCall, NormalCallFilter, SafeMode, TxPause>;
 

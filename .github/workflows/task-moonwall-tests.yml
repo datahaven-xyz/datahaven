@@ -32,19 +32,11 @@ jobs:
           cp ../operator/target/x86_64-unknown-linux-gnu/release/datahaven-node ../operator/target/release/datahaven-node
           chmod +x ../operator/target/release/datahaven-node
 
-      - name: Smoke test node startup
-        env:
-          RUST_BACKTRACE: 1
-          RUST_LOG: info
-        run: |
-          timeout 20 ../operator/target/release/datahaven-node \
-            --dev \
-            --no-telemetry \
-            --unsafe-force-node-key-generation \
-            --reserved-only \
-            --no-grandpa \
-            --no-prometheus \
-            --sealing=manual || true
+          # Kill any zombie processes on port 9944
+          lsof -ti:9944 | xargs kill -9 2>/dev/null || true
+
+          # Verify binary dependencies
+          ldd ../operator/target/release/datahaven-node || true
 
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v4
@@ -64,7 +56,15 @@ jobs:
         run: ../operator/target/release/datahaven-node --version || true
 
       - name: Run Moonwall tests
-        run: bun run moonwall:test
+        run: |
+          # Kill any process on port 9944 before starting
+          lsof -ti:9944 | xargs kill -9 2>/dev/null || true
+
+          # Force cleanup of data directory
+          rm -rf /tmp/tmp_moonwall_* ~/.moonwall 2>/dev/null || true
+
+          # Run tests with full logging
+          MOONWALL_DEBUG=1 bun run moonwall:test
 
       - name: Upload Moonwall reports
         if: always()

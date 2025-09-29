@@ -92,8 +92,8 @@ use datahaven_runtime_common::{
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
     safe_mode::{
-        get_common_tx_pause_whitelist, RuntimeCallFilter, SafeModeDuration,
-        SafeModeReleaseDelayBlocks, SafeModeWhitelistFilter, TxPauseMaxNameLen,
+        RuntimeCallFilter, SafeModeDuration, SafeModeReleaseDelayBlocks, SafeModeWhitelistFilter,
+        TxPauseWhitelistedCalls,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -221,8 +221,6 @@ parameter_types! {
     pub SafeModeEnterDeposit: Option<Balance> = None;
     /// Safe mode extend deposit for mainnet - None disables permissionless extend
     pub SafeModeExtendDeposit: Option<Balance> = None;
-    /// Mainnet tx pause whitelist - uses common whitelist
-    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = get_common_tx_pause_whitelist();
 }
 
 /// Normal Call Filter
@@ -1550,11 +1548,8 @@ impl pallet_tx_pause::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type PauseOrigin = EnsureRoot<AccountId>;
     type UnpauseOrigin = EnsureRoot<AccountId>;
-    type WhitelistedCalls = datahaven_runtime_common::safe_mode::TxPauseWhitelist<
-        TxPauseWhitelistedCalls,
-        TxPauseMaxNameLen,
-    >;
-    type MaxNameLen = TxPauseMaxNameLen;
+    type WhitelistedCalls = TxPauseWhitelistedCalls<Runtime>;
+    type MaxNameLen = ConstU32<256>;
     type WeightInfo = mainnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 

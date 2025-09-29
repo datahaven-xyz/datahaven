@@ -92,8 +92,8 @@ use datahaven_runtime_common::{
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
     safe_mode::{
-        get_common_tx_pause_whitelist, RuntimeCallFilter, SafeModeDuration,
-        SafeModeReleaseDelayBlocks, SafeModeWhitelistFilter, TxPauseMaxNameLen,
+        RuntimeCallFilter, SafeModeDuration, SafeModeReleaseDelayBlocks, SafeModeWhitelistFilter,
+        TxPauseWhitelistedCalls,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -221,8 +221,6 @@ parameter_types! {
     pub SafeModeEnterDeposit: Option<Balance> = Some(100 * 1_000_000_000_000_000_000); // 100 HAVE
     /// Safe mode extend deposit for testnet - Some(amount) enables permissionless extend
     pub SafeModeExtendDeposit: Option<Balance> = Some(50 * 1_000_000_000_000_000_000); // 50 HAVE
-    /// Testnet tx pause whitelist - uses common whitelist
-    pub TxPauseWhitelistedCalls: Vec<(Vec<u8>, Vec<u8>)> = get_common_tx_pause_whitelist();
 }
 
 /// Normal Call Filter
@@ -1552,11 +1550,8 @@ impl pallet_tx_pause::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type PauseOrigin = EnsureRoot<AccountId>;
     type UnpauseOrigin = EnsureRoot<AccountId>;
-    type WhitelistedCalls = datahaven_runtime_common::safe_mode::TxPauseWhitelist<
-        TxPauseWhitelistedCalls,
-        TxPauseMaxNameLen,
-    >;
-    type MaxNameLen = TxPauseMaxNameLen;
+    type WhitelistedCalls = TxPauseWhitelistedCalls<Runtime>;
+    type MaxNameLen = ConstU32<256>;
     type WeightInfo = testnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 

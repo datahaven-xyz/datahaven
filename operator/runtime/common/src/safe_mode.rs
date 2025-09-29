@@ -22,14 +22,9 @@ use frame_support::{
     traits::{Contains, Get},
     BoundedVec,
 };
+use pallet_tx_pause::RuntimeCallNameOf;
 use polkadot_primitives::BlockNumber;
-use sp_std::{marker::PhantomData, vec, vec::Vec};
-
-/// Maximum length for pallet and call names in safe mode and tx pause configurations
-/// Based on analysis of current runtime metadata, longest names are around 30 characters
-/// (e.g., "snowbridge_pallet_outbound_queue_v2", "ExternalValidatorsRewards")
-/// Setting to 64 to provide headroom for future pallets
-pub const MAX_NAME_LEN: u32 = 64;
+use sp_std::marker::PhantomData;
 
 // Safe Mode Constants
 parameter_types! {
@@ -39,12 +34,6 @@ parameter_types! {
     /// Release delay for safe mode (1 hour) - time before forced release takes effect
     pub const SafeModeReleaseDelay: BlockNumber = HOURS;
 
-}
-
-// Tx Pause Constants
-parameter_types! {
-    /// Maximum name length for tx pause call names
-    pub const TxPauseMaxNameLen: u32 = MAX_NAME_LEN;
 }
 
 // Shared max blocks used for force enter/extend origins.
@@ -88,32 +77,30 @@ pub struct SafeModeWhitelistFilter;
 // needs to be done in each runtime since it depends on the specific RuntimeCall enum
 // for that runtime. This struct is just the common type definition.
 
-/// Get the common TxPause whitelist - calls that cannot be paused
-/// This whitelist is identical across all runtimes
-pub fn get_common_tx_pause_whitelist() -> Vec<(Vec<u8>, Vec<u8>)> {
-    vec![
-        // System calls
-        (b"System".to_vec(), b"remark".to_vec()),
-        (b"System".to_vec(), b"remark_with_event".to_vec()),
-        // Consensus calls that must not be paused
-        (b"Timestamp".to_vec(), b"set".to_vec()),
-        (b"Babe".to_vec(), b"plan_config_change".to_vec()),
-        (b"Babe".to_vec(), b"report_equivocation".to_vec()),
-        (b"Grandpa".to_vec(), b"report_equivocation".to_vec()),
-        // Emergency management calls
-        (b"SafeMode".to_vec(), b"enter".to_vec()),
-        (b"SafeMode".to_vec(), b"force_enter".to_vec()),
-        (b"SafeMode".to_vec(), b"extend".to_vec()),
-        (b"SafeMode".to_vec(), b"force_extend".to_vec()),
-        (b"SafeMode".to_vec(), b"exit".to_vec()),
-        (b"SafeMode".to_vec(), b"force_exit".to_vec()),
-        (b"TxPause".to_vec(), b"pause".to_vec()),
-        (b"TxPause".to_vec(), b"unpause".to_vec()),
-        // Sudo calls for emergency governance
-        (b"Sudo".to_vec(), b"sudo".to_vec()),
-        (b"Sudo".to_vec(), b"sudo_unchecked_weight".to_vec()),
-        (b"Sudo".to_vec(), b"set_key".to_vec()),
-    ]
+/// Calls that cannot be paused by the tx-pause pallet.
+pub struct TxPauseWhitelistedCalls<R>(PhantomData<R>);
+/// Whitelist `Balances::transfer_keep_alive`, all others are pauseable.
+impl<R> Contains<RuntimeCallNameOf<R>> for TxPauseWhitelistedCalls<R>
+where
+    R: pallet_tx_pause::Config,
+{
+    fn contains(full_name: &RuntimeCallNameOf<R>) -> bool {
+        match (full_name.0.as_slice(), full_name.1.as_slice()) {
+            (b"Balances", b"transfer_keep_alive") => true,
+            // sudo calls
+            (b"Sudo", b"sudo") => true,
+            (b"Sudo", b"sudo_unchecked_weight") => true,
+            (b"Sudo", b"set_key") => true,
+            // SafeMode calls
+            (b"SafeMode", b"enter") => true,
+            (b"SafeMode", b"force_enter") => true,
+            (b"SafeMode", b"extend") => true,
+            (b"SafeMode", b"force_extend") => true,
+            (b"SafeMode", b"exit") => true,
+            (b"SafeMode", b"force_exit") => true,
+            _ => false,
+        }
+    }
 }
 
 /// Combined Call Filter that applies Normal, SafeMode, and TxPause filters

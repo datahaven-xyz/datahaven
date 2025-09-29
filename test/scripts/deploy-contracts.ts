@@ -5,8 +5,7 @@ import {
   logger,
   parseDeploymentsFile,
   parseRewardsInfoFile,
-  runShellCommandWithLogger,
-  waitForNodeToSync
+  runShellCommandWithLogger
 } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 

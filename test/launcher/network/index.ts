@@ -10,7 +10,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { fundValidators, setupValidators, updateValidatorSet } from "../validators";
+import { fundValidators, updateValidatorSet } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -219,7 +219,7 @@ export const launchNetwork = async (
       rpcUrl: launchedNetwork.elRpcUrl
     });
 
-    // We are injecting contracts with already registers validator state 
+    // We are injecting contracts with already registers validator state
     // // 5. Setup validators
     // logger.info("🔐 Setting up validators...");
     // await setupValidators({

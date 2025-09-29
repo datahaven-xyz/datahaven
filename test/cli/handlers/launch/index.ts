@@ -41,7 +41,6 @@ export interface LaunchOptions {
   deployContracts?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
-  updateValidatorSet?: boolean;
   setParameters?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
@@ -121,7 +120,6 @@ export const launchPreActionHook = (
     launchKurtosis,
     relayer,
     setParameters,
-    updateValidatorSet
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag
@@ -133,7 +131,6 @@ export const launchPreActionHook = (
       deployContracts === false ||
       fundValidators === false ||
       setupValidators === false ||
-      updateValidatorSet === false ||
       setParameters === false ||
       relayer === false)
   ) {
@@ -150,7 +147,6 @@ export const launchPreActionHook = (
     thisCmd.setOptionValue("deployContracts", true);
     thisCmd.setOptionValue("fundValidators", true);
     thisCmd.setOptionValue("setupValidators", true);
-    thisCmd.setOptionValue("updateValidatorSet", true);
     thisCmd.setOptionValue("setParameters", true);
     thisCmd.setOptionValue("relayer", true);
     thisCmd.setOptionValue("cleanNetwork", true);

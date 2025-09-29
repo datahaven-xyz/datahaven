@@ -75,27 +75,11 @@ export const performValidatorOperations = async (
  * @returns Promise resolving when the operation is complete
  */
 export const performValidatorSetUpdate = async (
-  options: LaunchOptions,
   networkRpcUrl: string,
   contractsDeployed: boolean
 ) => {
   printHeader("Updating DataHaven Validator Set");
 
-  // If not specified, prompt for update
-  let shouldUpdateValidatorSet = options.updateValidatorSet;
-  if (shouldUpdateValidatorSet === undefined) {
-    shouldUpdateValidatorSet = await confirmWithTimeout(
-      "Do you want to update the validator set on the substrate chain?",
-      true,
-      10
-    );
-  } else {
-    logger.info(
-      `🏳️ Using flag option: ${shouldUpdateValidatorSet ? "will update" : "will not update"} validator set`
-    );
-  }
-
-  if (shouldUpdateValidatorSet) {
     if (!contractsDeployed) {
       logger.warn(
         "⚠️ Updating validator set but contracts were not deployed in this CLI run. Could have unexpected results."
@@ -104,8 +88,4 @@ export const performValidatorSetUpdate = async (
 
     await updateValidatorSet({ rpcUrl: networkRpcUrl });
     printDivider();
-  } else {
-    logger.info("👍 Skipping validator set update");
-    printDivider();
-  }
 };

@@ -2821,7 +2821,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-mainnet-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
@@ -2961,7 +2961,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-node"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-channel 1.9.0",
  "clap",
@@ -3070,7 +3070,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-runtime-common"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "fp-account",
  "frame-support",
@@ -3094,7 +3094,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-stagenet-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
@@ -3234,7 +3234,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-testnet-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
@@ -3510,7 +3510,7 @@ dependencies = [
 
 [[package]]
 name = "dhp-bridge"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8878,7 +8878,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-datahaven-native-transfer"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8990,7 +8990,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-balances-erc20"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -9013,7 +9013,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-batch"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -9052,7 +9052,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-call-permit"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -9103,7 +9103,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-proxy"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -9124,7 +9124,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-registry"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -9161,7 +9161,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9183,7 +9183,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators-rewards"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -9210,7 +9210,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators-rewards-runtime-api"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "parity-scale-codec",
  "snowbridge-merkle-tree",
@@ -9433,7 +9433,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-outbound-commitment-store"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -16156,7 +16156,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-test-utils"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",

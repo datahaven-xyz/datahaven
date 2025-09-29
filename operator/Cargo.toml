@@ -4,6 +4,8 @@ edition = "2021"
 homepage = "https://datahaven.xyz/"
 license = "GPL-3"
 repository = "https://github.com/datahavenxyz/datahaven"
+description = "DataHaven: A decentralized storage network with Ethereum and IPFS integration."
+version = "0.2.0"
 
 [workspace]
 members = [

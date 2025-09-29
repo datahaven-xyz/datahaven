@@ -3,7 +3,7 @@ name = "pallet-evm-precompile-balances-erc20"
 authors = { workspace = true }
 description = "A Precompile to expose a Balances pallet through an ERC20-compliant interface."
 edition = "2021"
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 paste = { workspace = true }

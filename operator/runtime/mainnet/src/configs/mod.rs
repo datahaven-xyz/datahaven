@@ -92,8 +92,8 @@ use datahaven_runtime_common::{
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
     safe_mode::{
-        RuntimeCallFilter, SafeModeDuration, SafeModeReleaseDelayBlocks, SafeModeWhitelistFilter,
-        TxPauseWhitelistedCalls,
+        ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
+        SafeModeExtendDeposit, TxPauseWhitelistedCalls,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -215,14 +215,6 @@ parameter_types! {
     pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
 }
 
-// Safe Mode and Tx Pause Parameter Types
-parameter_types! {
-    /// Safe mode enter deposit for mainnet - None disables permissionless entry
-    pub SafeModeEnterDeposit: Option<Balance> = None;
-    /// Safe mode extend deposit for mainnet - None disables permissionless extend
-    pub SafeModeExtendDeposit: Option<Balance> = None;
-}
-
 /// Normal Call Filter
 pub struct NormalCallFilter;
 impl Contains<RuntimeCall> for NormalCallFilter {
@@ -245,19 +237,15 @@ impl Contains<RuntimeCall> for NormalCallFilter {
     }
 }
 
-// SafeModeWhitelistFilter implementation using the shared type
-impl Contains<RuntimeCall> for SafeModeWhitelistFilter {
+/// Calls that can bypass the safe-mode pallet.
+pub struct SafeModeWhitelistedCalls;
+impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
     fn contains(call: &RuntimeCall) -> bool {
-        // During safe mode, only allow whitelisted calls
-        // This is a simplified implementation - in practice, you'd check against the whitelist
         match call {
-            RuntimeCall::System(_) => true,
-            RuntimeCall::Timestamp(_) => true,
-            RuntimeCall::Babe(_) => true,
-            RuntimeCall::Grandpa(_) => true,
-            RuntimeCall::SafeMode(_) => true,
-            RuntimeCall::TxPause(_) => true,
-            RuntimeCall::Sudo(_) => true,
+            RuntimeCall::System(_)
+            | RuntimeCall::SafeMode(_)
+            | RuntimeCall::TxPause(_)
+            | RuntimeCall::Sudo(_) => true,
             _ => false,
         }
     }
@@ -1523,22 +1511,16 @@ impl pallet_safe_mode::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type RuntimeHoldReason = RuntimeHoldReason;
-    type WhitelistedCalls = SafeModeWhitelistFilter;
+    type WhitelistedCalls = SafeModeWhitelistedCalls;
     type EnterDuration = SafeModeDuration;
     type ExtendDuration = SafeModeDuration;
     type EnterDepositAmount = SafeModeEnterDeposit;
     type ExtendDepositAmount = SafeModeExtendDeposit;
-    type ForceEnterOrigin = EnsureRootWithSuccess<
-        AccountId,
-        datahaven_runtime_common::safe_mode::SafeModeForceMaxBlocks,
-    >;
-    type ForceExtendOrigin = EnsureRootWithSuccess<
-        AccountId,
-        datahaven_runtime_common::safe_mode::SafeModeForceMaxBlocks,
-    >;
+    type ForceEnterOrigin = EnsureRootWithSuccess<AccountId, SafeModeDuration>;
+    type ForceExtendOrigin = EnsureRootWithSuccess<AccountId, SafeModeDuration>;
     type ForceExitOrigin = EnsureRoot<AccountId>;
     type ForceDepositOrigin = EnsureRoot<AccountId>;
-    type ReleaseDelay = SafeModeReleaseDelayBlocks;
+    type ReleaseDelay = ReleaseDelayNone;
     type Notify = ();
     type WeightInfo = mainnet_weights::pallet_safe_mode::WeightInfo<Runtime>;
 }

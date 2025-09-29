@@ -16,12 +16,9 @@
 
 //! Safe Mode and Tx Pause shared types, constants, and utilities
 
-use crate::time::{DAYS, HOURS};
-use frame_support::{
-    parameter_types,
-    traits::{Contains, Get},
-    BoundedVec,
-};
+use crate::time::DAYS;
+use crate::Balance;
+use frame_support::{parameter_types, traits::Contains};
 use pallet_tx_pause::RuntimeCallNameOf;
 use polkadot_primitives::BlockNumber;
 use sp_std::marker::PhantomData;
@@ -30,52 +27,12 @@ use sp_std::marker::PhantomData;
 parameter_types! {
     /// Default duration for safe mode activation (1 day)
     pub const SafeModeDuration: BlockNumber = DAYS;
-
-    /// Release delay for safe mode (1 hour) - time before forced release takes effect
-    pub const SafeModeReleaseDelay: BlockNumber = HOURS;
-
+    pub const SafeModeEnterDeposit: Option<Balance> = None;
+    /// Safe mode extend deposit - None disables permissionless extend
+    pub const SafeModeExtendDeposit: Option<Balance> = None;
+    /// Release delay - None disables permissionless release
+    pub const ReleaseDelayNone: Option<BlockNumber> = None;
 }
-
-// Shared max blocks used for force enter/extend origins.
-parameter_types! {
-    /// Default maximum number of blocks used as Success for EnsureRootWithSuccess
-    /// in `ForceEnterOrigin` and `ForceExtendOrigin`.
-    pub const SafeModeForceMaxBlocks: polkadot_primitives::BlockNumber = 7 * DAYS;
-
-    /// Safe mode release delay - Some(blocks) enables permissionless release
-    /// This is common across all runtimes
-    pub const SafeModeReleaseDelayBlocks: Option<BlockNumber> = Some(SafeModeReleaseDelay::get());
-
-}
-
-/// Generic TxPause whitelist adapter that implements Contains over call names.
-///
-/// List is expected to return a Vec<(pallet_name_bytes, call_name_bytes)> and MaxLen
-/// bounds the encoded name sizes.
-pub struct TxPauseWhitelist<List, MaxLen>(PhantomData<(List, MaxLen)>);
-
-impl<List, MaxLen> Contains<(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)>
-    for TxPauseWhitelist<List, MaxLen>
-where
-    List: Get<sp_std::vec::Vec<(sp_std::vec::Vec<u8>, sp_std::vec::Vec<u8>)>>,
-    MaxLen: Get<u32>,
-{
-    fn contains(call_name: &(BoundedVec<u8, MaxLen>, BoundedVec<u8, MaxLen>)) -> bool {
-        let (pallet, call) = call_name;
-        let list = List::get();
-        list.iter().any(|(p_bytes, c_bytes)| {
-            p_bytes.as_slice() == pallet.as_slice() && c_bytes.as_slice() == call.as_slice()
-        })
-    }
-}
-
-/// Common SafeMode Whitelist Filter - implements Contains<RuntimeCall> for safe mode
-/// This filter is identical across all runtimes
-pub struct SafeModeWhitelistFilter;
-
-// Note: The actual implementation of Contains<RuntimeCall> for SafeModeWhitelistFilter
-// needs to be done in each runtime since it depends on the specific RuntimeCall enum
-// for that runtime. This struct is just the common type definition.
 
 /// Calls that cannot be paused by the tx-pause pallet.
 pub struct TxPauseWhitelistedCalls<R>(PhantomData<R>);
@@ -86,18 +43,10 @@ where
 {
     fn contains(full_name: &RuntimeCallNameOf<R>) -> bool {
         match (full_name.0.as_slice(), full_name.1.as_slice()) {
-            (b"Balances", b"transfer_keep_alive") => true,
             // sudo calls
-            (b"Sudo", b"sudo") => true,
-            (b"Sudo", b"sudo_unchecked_weight") => true,
-            (b"Sudo", b"set_key") => true,
+            (b"Sudo", _) => true,
             // SafeMode calls
-            (b"SafeMode", b"enter") => true,
-            (b"SafeMode", b"force_enter") => true,
-            (b"SafeMode", b"extend") => true,
-            (b"SafeMode", b"force_extend") => true,
-            (b"SafeMode", b"exit") => true,
-            (b"SafeMode", b"force_exit") => true,
+            (b"SafeMode", _) => true,
             _ => false,
         }
     }

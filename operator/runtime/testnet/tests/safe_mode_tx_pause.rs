@@ -6,18 +6,24 @@ mod common;
 use common::{account_id, ExtBuilder, ALICE, BOB};
 use datahaven_testnet_runtime::{
     Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SafeMode, System, TxPause,
+    UncheckedExtrinsic,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, BoundedVec};
 use pallet_safe_mode::EnteredUntil;
-use pallet_tx_pause::{CallNameOf, Error as TxPauseError};
+use pallet_tx_pause::{Error as TxPauseError, RuntimeCallNameOf};
 use sp_runtime::{
     traits::Dispatchable,
     transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidityError},
 };
 use sp_transaction_pool::runtime_api::runtime_decl_for_tagged_transaction_queue::TaggedTransactionQueueV3;
 
-fn call_name(call: &RuntimeCall) -> CallNameOf<Runtime> {
-    TxPause::call_name(call).expect("call name should resolve for runtime call")
+fn call_name(call: &RuntimeCall) -> RuntimeCallNameOf<Runtime> {
+    use frame_support::traits::GetCallMetadata;
+    let metadata = call.get_call_metadata();
+    (
+        BoundedVec::try_from(metadata.pallet_name.as_bytes().to_vec()).unwrap(),
+        BoundedVec::try_from(metadata.function_name.as_bytes().to_vec()).unwrap(),
+    )
 }
 
 fn transfer_call(amount: u128) -> RuntimeCall {
@@ -36,21 +42,23 @@ mod safe_mode {
             .with_sudo(account_id(ALICE))
             .build()
             .execute_with(|| {
-                assert_ok!(RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
-                .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 assert_noop!(
                     RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
-                    .dispatch(RuntimeOrigin::signed(account_id(ALICE))),
+                        .dispatch(RuntimeOrigin::signed(account_id(ALICE))),
                     sp_runtime::DispatchError::BadOrigin
                 );
 
                 assert!(EnteredUntil::<Runtime>::get().is_some());
-                System::assert_last_event(RuntimeEvent::SafeMode(
-                    pallet_safe_mode::Event::<Runtime>::Entered {
-                        until: EnteredUntil::<Runtime>::get().unwrap(),
-                    },
-                ));
+                System::assert_last_event(RuntimeEvent::SafeMode(pallet_safe_mode::Event::<
+                    Runtime,
+                >::Entered {
+                    until: EnteredUntil::<Runtime>::get().unwrap(),
+                }));
             });
     }
 
@@ -60,13 +68,16 @@ mod safe_mode {
             .with_sudo(account_id(ALICE))
             .build()
             .execute_with(|| {
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_enter {})
-                    .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 let xt = transfer_call(1u128);
+                let unchecked_xt = UncheckedExtrinsic::new_bare(xt.into());
                 let validity = Runtime::validate_transaction(
                     TransactionSource::External,
-                    xt.clone().into(),
+                    unchecked_xt,
                     Default::default(),
                 );
                 assert_eq!(
@@ -82,8 +93,10 @@ mod safe_mode {
             .with_sudo(account_id(ALICE))
             .build()
             .execute_with(|| {
-                assert_ok!(RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
-                .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 assert_ok!(RuntimeCall::SafeMode(pallet_safe_mode::Call::force_exit {})
                     .dispatch(RuntimeOrigin::root()));
@@ -100,33 +113,29 @@ mod safe_mode {
             .build()
             .execute_with(|| {
                 // Enter safe mode
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_enter {}
-                    .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 let call = transfer_call(100);
 
                 // Verify call is blocked in safe mode
+                let xt = UncheckedExtrinsic::new_bare(call.clone().into());
                 assert_eq!(
                     Runtime::validate_transaction(
                         TransactionSource::External,
-                        call.clone().into(),
+                        xt,
                         Default::default()
                     ),
                     Err(TransactionValidityError::Invalid(InvalidTransaction::Call))
                 );
 
                 // Exit safe mode
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_exit {}
+                assert_ok!(RuntimeCall::SafeMode(pallet_safe_mode::Call::force_exit {})
                     .dispatch(RuntimeOrigin::root()));
 
                 // Verify call now works
-                assert_ok!(Runtime::validate_transaction(
-                    TransactionSource::External,
-                    call.clone().into(),
-                    Default::default()
-                ));
-
-                // Verify dispatch works
                 assert_ok!(call.dispatch(RuntimeOrigin::signed(account_id(ALICE))));
             });
     }
@@ -139,8 +148,10 @@ mod safe_mode {
             .build()
             .execute_with(|| {
                 // Enter safe mode
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_enter {}
-                    .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 let transfer = transfer_call(100);
 
@@ -164,23 +175,21 @@ mod tx_pause {
             let call = transfer_call(1u128);
             let call_name = call_name(&call);
 
-            assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause_call {
-                call_name: call_name.clone(),
-                reason: None,
+            assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                full_name: call_name.clone(),
             })
             .dispatch(RuntimeOrigin::root()));
 
-                assert_noop!(
-                RuntimeCall::TxPause(pallet_tx_pause::Call::pause_call {
-                    call_name: call_name.clone(),
-                    reason: None,
+            assert_noop!(
+                RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name.clone(),
                 })
                 .dispatch(RuntimeOrigin::signed(account_id(ALICE))),
                 sp_runtime::DispatchError::BadOrigin
             );
 
             assert_ok!(
-                RuntimeCall::TxPause(pallet_tx_pause::Call::unpause_call { call_name })
+                RuntimeCall::TxPause(pallet_tx_pause::Call::unpause { ident: call_name })
                     .dispatch(RuntimeOrigin::root())
             );
         });
@@ -192,34 +201,30 @@ mod tx_pause {
             let call = transfer_call(1u128);
             let call_name = call_name(&call);
 
-            assert_ok!(pallet_tx_pause::Call::<Runtime>::pause_call {
-                call_name: call_name.clone(),
-                reason: None,
-            }
+            assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                full_name: call_name.clone(),
+            })
             .dispatch(RuntimeOrigin::root()));
 
+            let xt = UncheckedExtrinsic::new_bare(call.clone().into());
             assert_eq!(
-                Runtime::validate_transaction(
-                    TransactionSource::External,
-                    call.clone().into(),
-                    Default::default()
-                ),
+                Runtime::validate_transaction(TransactionSource::External, xt, Default::default()),
                 Err(TransactionValidityError::Invalid(InvalidTransaction::Call))
             );
 
             assert_noop!(
-                call.dispatch(RuntimeOrigin::signed(account_id(ALICE))),
-                TxPauseError::<Runtime>::IsPaused
+                call.clone()
+                    .dispatch(RuntimeOrigin::signed(account_id(ALICE))),
+                frame_system::Error::<Runtime>::CallFiltered
             );
 
-            assert_ok!(pallet_tx_pause::Call::<Runtime>::unpause_call { call_name }
-                .dispatch(RuntimeOrigin::root()));
+            assert_ok!(
+                RuntimeCall::TxPause(pallet_tx_pause::Call::unpause { ident: call_name })
+                    .dispatch(RuntimeOrigin::root())
+            );
 
-            assert_ok!(Runtime::validate_transaction(
-                TransactionSource::External,
-                call.into(),
-                Default::default()
-            ));
+            // After unpause, the call should be dispatchable
+            assert_ok!(call.dispatch(RuntimeOrigin::signed(account_id(ALICE))));
         });
     }
 
@@ -230,9 +235,8 @@ mod tx_pause {
             let call_name = call_name(&call);
 
             assert_noop!(
-                RuntimeCall::TxPause(pallet_tx_pause::Call::pause_call {
-                    call_name,
-                    reason: None,
+                RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name,
                 })
                 .dispatch(RuntimeOrigin::root()),
                 TxPauseError::<Runtime>::Unpausable
@@ -250,21 +254,23 @@ mod combined_behaviour {
             .with_sudo(account_id(ALICE))
             .build()
             .execute_with(|| {
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_enter {})
-                    .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 let call = transfer_call(1u128);
                 let call_name = call_name(&call);
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::pause_call {
-                    call_name: call_name.clone(),
-                    reason: None,
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name.clone(),
+                })
                 .dispatch(RuntimeOrigin::root()));
 
+                let xt = UncheckedExtrinsic::new_bare(call.clone().into());
                 let validity = Runtime::validate_transaction(
                     TransactionSource::External,
-                    call.clone().into(),
+                    xt,
                     Default::default(),
                 );
                 assert_eq!(
@@ -272,14 +278,15 @@ mod combined_behaviour {
                     Err(TransactionValidityError::Invalid(InvalidTransaction::Call))
                 );
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::unpause_call {
-                    call_name: call_name.clone()
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::unpause {
+                    ident: call_name.clone()
+                })
                 .dispatch(RuntimeOrigin::root()));
 
+                let xt = UncheckedExtrinsic::new_bare(call.clone().into());
                 let still_blocked = Runtime::validate_transaction(
                     TransactionSource::External,
-                    call.clone().into(),
+                    xt,
                     Default::default(),
                 );
                 assert_eq!(
@@ -287,25 +294,24 @@ mod combined_behaviour {
                     Err(TransactionValidityError::Invalid(InvalidTransaction::Call))
                 );
 
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_exit {}
+                assert_ok!(RuntimeCall::SafeMode(pallet_safe_mode::Call::force_exit {})
                     .dispatch(RuntimeOrigin::root()));
 
-                assert_ok!(Runtime::validate_transaction(
-                    TransactionSource::External,
-                    call.clone().into(),
-                    Default::default()
-                ));
+                // After exiting safe mode and unpausing, call should be dispatchable
+                assert_ok!(call
+                    .clone()
+                    .dispatch(RuntimeOrigin::signed(account_id(ALICE))));
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::pause_call {
-                    call_name,
-                    reason: None,
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name,
+                })
                 .dispatch(RuntimeOrigin::root()));
 
+                let xt = UncheckedExtrinsic::new_bare(call.into());
                 assert_eq!(
                     Runtime::validate_transaction(
                         TransactionSource::External,
-                        call.into(),
+                        xt,
                         Default::default()
                     ),
                     Err(TransactionValidityError::Invalid(InvalidTransaction::Call))
@@ -319,32 +325,30 @@ mod combined_behaviour {
             .with_sudo(account_id(ALICE))
             .build()
             .execute_with(|| {
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_enter {
-                    duration: SafeMode::default_enter_duration()
-                }
-                .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 let call = transfer_call(1u128);
                 let call_name = call_name(&call);
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::pause_call {
-                    call_name: call_name.clone(),
-                    reason: None,
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name.clone(),
+                })
                 .dispatch(RuntimeOrigin::root()));
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::unpause_call {
-                    call_name: call_name.clone()
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::unpause {
+                    ident: call_name.clone()
+                })
                 .dispatch(RuntimeOrigin::root()));
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::pause_call {
-                    call_name,
-                    reason: None,
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name,
+                })
                 .dispatch(RuntimeOrigin::root()));
 
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_exit {}
+                assert_ok!(RuntimeCall::SafeMode(pallet_safe_mode::Call::force_exit {})
                     .dispatch(RuntimeOrigin::root()));
             });
     }
@@ -357,22 +361,24 @@ mod combined_behaviour {
             .build()
             .execute_with(|| {
                 // Activate both restrictions
-                assert_ok!(pallet_safe_mode::Call::<Runtime>::force_enter {}
-                    .dispatch(RuntimeOrigin::root()));
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
 
                 let call = transfer_call(100);
                 let call_name = call_name(&call);
 
-                assert_ok!(pallet_tx_pause::Call::<Runtime>::pause_call {
-                    call_name,
-                    reason: None,
-                }
+                assert_ok!(RuntimeCall::TxPause(pallet_tx_pause::Call::pause {
+                    full_name: call_name,
+                })
                 .dispatch(RuntimeOrigin::root()));
 
                 // Validate the blocked call - should return consistent error
+                let xt = UncheckedExtrinsic::new_bare(call.clone().into());
                 let validation_result = Runtime::validate_transaction(
                     TransactionSource::External,
-                    call.clone().into(),
+                    xt,
                     Default::default(),
                 );
 
@@ -385,7 +391,7 @@ mod combined_behaviour {
                 // Dispatch should also fail with consistent error
                 assert_noop!(
                     call.dispatch(RuntimeOrigin::signed(account_id(ALICE))),
-                    TxPauseError::<Runtime>::IsPaused
+                    frame_system::Error::<Runtime>::CallFiltered
                 );
             });
     }

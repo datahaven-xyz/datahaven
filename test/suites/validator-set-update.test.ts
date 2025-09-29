@@ -10,22 +10,27 @@
  */
 import { beforeAll, describe, expect, it } from "bun:test";
 import {
-  ANVIL_FUNDED_ACCOUNTS,
   getValidatorInfoByName,
   isValidatorNodeRunning,
   launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
   TestAccounts,
+  type Deployments,
   type ValidatorInfo
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
-import { decodeEventLog, parseEther } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { waitForDataHavenStorageContains } from "utils/storage";
 import {
-  allocationManagerAbi,
+  addValidatorToAllowlist,
+  getOwnerAccount,
+  registerSingleOperator,
+  serviceManagerHasOperator,
+  isValidatorInAllowlist
+} from "launcher/validators";
+import { decodeEventLog, parseEther } from "viem";
+import {
   dataHavenServiceManagerAbi,
-  delegationManagerAbi,
   gatewayAbi
 } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
@@ -61,20 +66,24 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   public getNetworkId(): string {
     return this.getConnectors().launchedNetwork.networkId;
   }
+
+  public getValidatorOptions() {
+    return {
+      rpcUrl: this.getConnectors().launchedNetwork.elRpcUrl,
+      connectors: this.getTestConnectors(),
+      deployments
+    };
+  }
 }
 
 // Create the test suite instance
 const suite = new ValidatorSetUpdateTestSuite();
-let deployments: any;
+let deployments: Deployments;
 
 describe("Validator Set Update", () => {
   // Validator sets loaded from external JSON
   let initialValidators: ValidatorInfo[] = [];
   let newValidators: ValidatorInfo[] = [];
-
-  function getOwnerAccount() {
-    return privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[6].privateKey as `0x${string}`);
-  }
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
@@ -104,10 +113,7 @@ describe("Validator Set Update", () => {
   it("should verify validators are running", async () => {
     const isAliceRunning = await isValidatorNodeRunning(TestAccounts.Alice, suite.getNetworkId());
     const isBobRunning = await isValidatorNodeRunning(TestAccounts.Bob, suite.getNetworkId());
-    const isCharlieRunning = await isValidatorNodeRunning(
-      TestAccounts.Charlie,
-      suite.getNetworkId()
-    );
+    const isCharlieRunning = await isValidatorNodeRunning(TestAccounts.Charlie, suite.getNetworkId());
     const isDaveRunning = await isValidatorNodeRunning(TestAccounts.Dave, suite.getNetworkId());
 
     expect(isAliceRunning).toBe(true);
@@ -173,147 +179,39 @@ describe("Validator Set Update", () => {
   });
 
   it("should add new validators to allowlist", async () => {
-    const connectors = suite.getTestConnectors();
-
     logger.info("📤 Adding Charlie and Dave to allowlist...");
 
     // Add Charlie and Dave to the allowlist
-    for (let i = 0; i < newValidators.length; i++) {
-      const validator = newValidators[i];
-      logger.info(
-        `🔧 Adding validator ${i + 1}/${newValidators.length} (${validator.publicKey}) to allowlist...`
-      );
+    await addValidatorToAllowlist(TestAccounts.Charlie, suite.getValidatorOptions());
+    await addValidatorToAllowlist(TestAccounts.Dave, suite.getValidatorOptions());
 
-      let retryCount = 0;
-      const maxRetries = 3;
+    // Verification of allowlist status
+    logger.info("🔍 Verification of allowlist status...");
+    const charlieAllowlisted = await isValidatorInAllowlist(TestAccounts.Charlie, suite.getValidatorOptions());
+    const daveAllowlisted = await isValidatorInAllowlist(TestAccounts.Dave, suite.getValidatorOptions());
 
-      try {
-        const hash = await connectors.walletClient.writeContract({
-          address: deployments.ServiceManager as `0x${string}`,
-          abi: dataHavenServiceManagerAbi,
-          functionName: "addValidatorToAllowlist",
-          args: [validator.publicKey as `0x${string}`],
-          account: getOwnerAccount(),
-          chain: null
-        });
+    expect(charlieAllowlisted).toBe(true);
+    expect(daveAllowlisted).toBe(true);
 
-        logger.info(`📝 Transaction hash for allowlist: ${hash}`);
-
-        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-        logger.info(
-          `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-        );
-
-        if (receipt.status === "success") {
-          logger.success(`Added ${validator.publicKey} to allowlist`);
-          break; // Success, exit retry loop
-        }
-        logger.error(`Failed to add ${validator.publicKey} to allowlist`);
-        throw new Error(`Transaction failed with status: ${receipt.status}`);
-      } catch (error) {
-        retryCount++;
-        logger.warn(
-          `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
-        );
-
-        if (retryCount >= maxRetries) {
-          logger.error(`All retry attempts failed for ${validator.publicKey}`);
-          throw error;
-        }
-
-        // Wait before retry
-        await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
-      }
-    }
+    logger.success("✅ Both validators successfully added to allowlist");
   }, 60_000);
 
-  it("should register new validators as operators", async () => {
-    const connectors = suite.getTestConnectors();
 
+  it("should register new validators as operators", async () => {
     logger.info("📤 Registering Charlie and Dave as operators...");
 
     // Register Charlie and Dave as operators
-    for (let i = 0; i < newValidators.length; i++) {
-      const validator = newValidators[i];
-      logger.info(
-        `🔧 Registering validator ${i + 1}/${newValidators.length} (${validator.publicKey}) as operator...`
-      );
+    await registerSingleOperator(TestAccounts.Charlie, suite.getValidatorOptions());
+    await registerSingleOperator(TestAccounts.Dave, suite.getValidatorOptions());
 
-      let retryCount = 0;
-      const maxRetries = 3;
+    // Verify both validators are properly registered in ServiceManager
+    const charlieRegistered = await serviceManagerHasOperator(TestAccounts.Charlie, suite.getValidatorOptions());
+    expect(charlieRegistered).toBe(true);
+    logger.success(`Charlie is registered as operator`);
 
-      try {
-        // Step 1: Register as EigenLayer operator first
-        logger.info(`🔧 Registering ${validator.publicKey} as EigenLayer operator...`);
-        const operatorHash = await connectors.walletClient.writeContract({
-          address: deployments.DelegationManager as `0x${string}`,
-          abi: delegationManagerAbi,
-          functionName: "registerAsOperator",
-          args: [
-            "0x0000000000000000000000000000000000000000", // initDelegationApprover (no approver)
-            0, // allocationDelay
-            "" // metadataURI
-          ],
-          account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-          chain: null
-        });
-
-        const operatorReceipt = await connectors.publicClient.waitForTransactionReceipt({
-          hash: operatorHash
-        });
-        if (operatorReceipt.status !== "success") {
-          throw new Error(
-            `EigenLayer operator registration failed with status: ${operatorReceipt.status}`
-          );
-        }
-        logger.success(`Registered ${validator.publicKey} as EigenLayer operator`);
-
-        // Step 2: Register for operator sets
-        logger.info(`🔧 Registering ${validator.publicKey} for operator sets...`);
-        const hash = await connectors.walletClient.writeContract({
-          address: deployments.AllocationManager as `0x${string}`,
-          abi: allocationManagerAbi,
-          functionName: "registerForOperatorSets",
-          args: [
-            validator.publicKey as `0x${string}`,
-            {
-              avs: deployments.ServiceManager as `0x${string}`,
-              operatorSetIds: [0],
-              data: validator.solochainAddress as `0x${string}`
-            }
-          ],
-          account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-          chain: null
-        });
-
-        logger.info(`📝 Transaction hash for operator set registration: ${hash}`);
-
-        const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-        logger.info(
-          `📋 Operator set registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-        );
-
-        if (receipt.status === "success") {
-          logger.success(`Registered ${validator.publicKey} for operator sets`);
-          break; // Success, exit retry loop
-        }
-        logger.error(`Failed to register ${validator.publicKey} for operator sets`);
-        throw new Error(`Transaction failed with status: ${receipt.status}`);
-      } catch (error) {
-        retryCount++;
-        logger.warn(
-          `Attempt ${retryCount}/${maxRetries} failed for ${validator.publicKey}: ${error}`
-        );
-
-        if (retryCount >= maxRetries) {
-          logger.error(`All retry attempts failed for ${validator.publicKey}`);
-          throw error;
-        }
-
-        // Wait before retry
-        await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
-      }
-    }
+    const daveRegistered = await serviceManagerHasOperator(TestAccounts.Dave, suite.getValidatorOptions());
+    expect(daveRegistered).toBe(true);
+    logger.success(`Dave is registered as operator`);
   }, 60_000); // 1 minute timeout
 
   it("should send updated validator set to DataHaven", async () => {
@@ -323,6 +221,23 @@ describe("Validator Set Update", () => {
     logger.info("📤 Sending updated validator set (Charlie, Dave) to DataHaven...");
 
     // Build the updated validator set message
+    // Debug: Check what validators are registered in the ServiceManager contract
+    logger.info("🔍 Checking registered validators in DataHavenServiceManager...");
+
+    // Check all validators (initial + new)
+    const allValidators = [...initialValidators, ...newValidators];
+    for (const validator of allValidators) {
+      const registeredAddress = await connectors.publicClient.readContract({
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        functionName: "validatorEthAddressToSolochainAddress",
+        args: [validator.publicKey as `0x${string}`]
+      });
+
+      const isRegistered = registeredAddress !== "0x0000000000000000000000000000000000000000";
+      logger.info(`  ${validator.publicKey} -> ${registeredAddress} (registered: ${isRegistered})`);
+    }
+
     logger.info("🔍 Building validator set message...");
     const updatedMessageBytes = await connectors.publicClient.readContract({
       address: deployments.ServiceManager as `0x${string}`,
@@ -333,6 +248,23 @@ describe("Validator Set Update", () => {
 
     logger.info(`📊 Updated validator set message size: ${updatedMessageBytes.length} bytes`);
     logger.info(`📊 Message bytes (first 100): ${updatedMessageBytes.slice(0, 100)}`);
+
+    // Verify that new validators are properly registered before sending message
+    logger.info("🔍 Verifying new validators are registered before sending message...");
+    for (const validator of newValidators) {
+      const registeredAddress = await connectors.publicClient.readContract({
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        functionName: "validatorEthAddressToSolochainAddress",
+        args: [validator.publicKey as `0x${string}`]
+      });
+
+      const isRegistered = registeredAddress !== "0x0000000000000000000000000000000000000000";
+      if (!isRegistered) {
+        throw new Error(`Validator ${validator.publicKey} is not registered in ServiceManager before sending message`);
+      }
+      logger.success(`${validator.publicKey} is registered -> ${registeredAddress}`);
+    }
 
     // Log the expected validators that should be in the message
     logger.info("🔍 Expected validators in message:");
@@ -419,5 +351,24 @@ describe("Validator Set Update", () => {
       throw new Error("ExternalValidatorsSet event not found");
     }
     logger.success("ExternalValidatorsSet event found");
+
+    logger.info("🔍 Checking the new validators are present in the ExternalValidators pallet storage...");
+
+    const expectedAddresses = newValidators.map(v => (v.solochainAddress as `0x${string}`));
+
+    const storageResult = await waitForDataHavenStorageContains({
+      api: connectors.dhApi,
+      pallet: "ExternalValidators",
+      storage: "ExternalValidators",
+      contains: expectedAddresses,
+      timeout: 10_000,
+      failOnTimeout: true
+    });
+
+    if (!storageResult.value) {
+      throw new Error("Failed to get ExternalValidators storage value");
+    }
+
+    logger.success("New validators are present in the ExternalValidators pallet storage");
   }, 600_000);
 });

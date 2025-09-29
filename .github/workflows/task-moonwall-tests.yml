@@ -20,6 +20,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Ensure lsof installed
+        run: |
+          if ! command -v lsof >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y lsof
+          fi
+
       - name: Download operator binary artifact
         uses: actions/download-artifact@v4
         with:

@@ -43,49 +43,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      - name: Ensure lsof is available
-        run: |
-          if ! command -v lsof >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y lsof
-          fi
-
       - name: Install dependencies
         run: bun install
 
       - name: Check operator binary version
         run: ../operator/target/release/datahaven-node --version || true
 
-      - name: Smoke test node startup
-        env:
-          RUST_BACKTRACE: 1
-          RUST_LOG: info
-        run: |
-          timeout 20 ../operator/target/release/datahaven-node \
-            --dev \
-            --no-telemetry \
-            --unsafe-force-node-key-generation \
-            --reserved-only \
-            --no-grandpa \
-            --no-prometheus \
-            --sealing=manual || true
-
       - name: Run Moonwall tests
-        run: MOON_DEBUG=true bun run moonwall:test
-
-      - name: Archive Moonwall logs
-        if: failure()
-        run: |
-          mkdir -p tmp
-          tar -czf tmp/moonwall-logs.tar.gz tmp
-
-      - name: Upload Moonwall logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonwall-logs
-          path: test/tmp/moonwall-logs.tar.gz
-          retention-days: 1
+        run: bun run moonwall:test
 
       - name: Upload Moonwall reports
         if: always()

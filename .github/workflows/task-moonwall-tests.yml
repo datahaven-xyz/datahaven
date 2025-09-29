@@ -20,13 +20,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Ensure lsof installed
-        run: |
-          if ! command -v lsof >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y lsof
-          fi
-
       - name: Download operator binary artifact
         uses: actions/download-artifact@v4
         with:
@@ -38,6 +31,20 @@ jobs:
           mkdir -p ../operator/target/release
           cp ../operator/target/x86_64-unknown-linux-gnu/release/datahaven-node ../operator/target/release/datahaven-node
           chmod +x ../operator/target/release/datahaven-node
+
+      - name: Smoke test node startup
+        env:
+          RUST_BACKTRACE: 1
+          RUST_LOG: info
+        run: |
+          timeout 20 ../operator/target/release/datahaven-node \
+            --dev \
+            --no-telemetry \
+            --unsafe-force-node-key-generation \
+            --reserved-only \
+            --no-grandpa \
+            --no-prometheus \
+            --sealing=manual || true
 
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v4

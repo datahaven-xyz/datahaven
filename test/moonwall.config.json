@@ -14,7 +14,9 @@
       "timeout": 180000,
       "multiThreads": 1,
       "envVars": [
-        "DEBUG_COLORS=1"
+        "DEBUG_COLORS=1",
+        "RUST_BACKTRACE=1",
+        "RUST_LOG=info"
       ],
       "reporters": [
         "basic",

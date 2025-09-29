@@ -56,6 +56,20 @@ jobs:
       - name: Check operator binary version
         run: ../operator/target/release/datahaven-node --version || true
 
+      - name: Smoke test node startup
+        env:
+          RUST_BACKTRACE: 1
+          RUST_LOG: info
+        run: |
+          timeout 20 ../operator/target/release/datahaven-node \
+            --dev \
+            --no-telemetry \
+            --unsafe-force-node-key-generation \
+            --reserved-only \
+            --no-grandpa \
+            --no-prometheus \
+            --sealing=manual || true
+
       - name: Run Moonwall tests
         run: MOON_DEBUG=true bun run moonwall:test
 

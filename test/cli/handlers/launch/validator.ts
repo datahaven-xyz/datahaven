@@ -80,12 +80,12 @@ export const performValidatorSetUpdate = async (
 ) => {
   printHeader("Updating DataHaven Validator Set");
 
-    if (!contractsDeployed) {
-      logger.warn(
-        "⚠️ Updating validator set but contracts were not deployed in this CLI run. Could have unexpected results."
-      );
-    }
+  if (!contractsDeployed) {
+    logger.warn(
+      "⚠️ Updating validator set but contracts were not deployed in this CLI run. Could have unexpected results."
+    );
+  }
 
-    await updateValidatorSet({ rpcUrl: networkRpcUrl });
-    printDivider();
+  await updateValidatorSet({ rpcUrl: networkRpcUrl });
+  printDivider();
 };

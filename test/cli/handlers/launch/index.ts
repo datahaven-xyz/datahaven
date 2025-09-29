@@ -119,7 +119,7 @@ export const launchPreActionHook = (
     buildDatahaven,
     launchKurtosis,
     relayer,
-    setParameters,
+    setParameters
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag

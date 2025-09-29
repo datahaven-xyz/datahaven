@@ -1,14 +1,20 @@
-import { fundValidators as fundValidatorsScript } from "scripts/fund-validators";
-import { setupValidators as setupValidatorsScript } from "scripts/setup-validators";
-import { updateValidatorSet as updateValidatorSetScript } from "scripts/update-validator-set";
-import { logger, ANVIL_FUNDED_ACCOUNTS, getValidatorInfoByName, TestAccounts, type Deployments } from "utils";
-import { privateKeyToAccount } from "viem/accounts";
 import {
   allocationManagerAbi,
   dataHavenServiceManagerAbi,
   delegationManagerAbi
 } from "contract-bindings";
 import type { TestConnectors } from "framework";
+import { fundValidators as fundValidatorsScript } from "scripts/fund-validators";
+import { setupValidators as setupValidatorsScript } from "scripts/setup-validators";
+import { updateValidatorSet as updateValidatorSetScript } from "scripts/update-validator-set";
+import {
+  ANVIL_FUNDED_ACCOUNTS,
+  type Deployments,
+  getValidatorInfoByName,
+  logger,
+  type TestAccounts
+} from "utils";
+import { privateKeyToAccount } from "viem/accounts";
 
 /**
  * Configuration options for validator operations.
@@ -111,7 +117,10 @@ export async function registerSingleOperator(
   options: ValidatorOptionsExt
 ): Promise<void> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(await Bun.file("./configs/validator-set.json").json(), validatorName);
+  const validator = getValidatorInfoByName(
+    await Bun.file("./configs/validator-set.json").json(),
+    validatorName
+  );
 
   logger.info(`🔧 Registering ${validator.publicKey} as operator...`);
 
@@ -167,9 +176,7 @@ export async function registerSingleOperator(
       logger.success(`Registered ${validator.publicKey} for operator sets`);
     }
   } catch (error) {
-    logger.warn(
-      `Failed to register ${validator.publicKey} for operator sets: ${error}`
-    );
+    logger.warn(`Failed to register ${validator.publicKey} for operator sets: ${error}`);
     throw error;
   }
 }
@@ -186,7 +193,10 @@ export async function serviceManagerHasOperator(
   options: ValidatorOptionsExt
 ): Promise<boolean> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(await Bun.file("./configs/validator-set.json").json(), validatorName);
+  const validator = getValidatorInfoByName(
+    await Bun.file("./configs/validator-set.json").json(),
+    validatorName
+  );
 
   const validatorEthAddressToSolochainAddress = await connectors.publicClient.readContract({
     address: deployments.ServiceManager as `0x${string}`,
@@ -195,7 +205,9 @@ export async function serviceManagerHasOperator(
     args: [validator.publicKey as `0x${string}`]
   });
 
-  return validatorEthAddressToSolochainAddress.toLowerCase() === validator.solochainAddress.toLowerCase();
+  return (
+    validatorEthAddressToSolochainAddress.toLowerCase() === validator.solochainAddress.toLowerCase()
+  );
 }
 
 /**
@@ -210,10 +222,13 @@ export async function addValidatorToAllowlist(
   options: ValidatorOptionsExt
 ): Promise<void> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(await Bun.file("./configs/validator-set.json").json(), validatorName);
+  const validator = getValidatorInfoByName(
+    await Bun.file("./configs/validator-set.json").json(),
+    validatorName
+  );
 
   logger.info(`🔧 Adding ${validatorName} (${validator.publicKey}) to allowlist...`);
-  
+
   try {
     const hash = await connectors.walletClient.writeContract({
       address: deployments.ServiceManager as `0x${string}`,
@@ -255,7 +270,10 @@ export async function isValidatorInAllowlist(
   options: ValidatorOptionsExt
 ): Promise<boolean> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(await Bun.file("./configs/validator-set.json").json(), validatorName);
+  const validator = getValidatorInfoByName(
+    await Bun.file("./configs/validator-set.json").json(),
+    validatorName
+  );
 
   logger.info(`🔍 Checking allowlist status for ${validatorName} (${validator.publicKey})...`);
 

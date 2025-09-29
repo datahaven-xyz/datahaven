@@ -10,29 +10,26 @@
  */
 import { beforeAll, describe, expect, it } from "bun:test";
 import {
+  addValidatorToAllowlist,
+  getOwnerAccount,
+  isValidatorInAllowlist,
+  registerSingleOperator,
+  serviceManagerHasOperator
+} from "launcher/validators";
+import {
+  type Deployments,
   getValidatorInfoByName,
   isValidatorNodeRunning,
   launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
   TestAccounts,
-  type Deployments,
   type ValidatorInfo
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { waitForDataHavenStorageContains } from "utils/storage";
-import {
-  addValidatorToAllowlist,
-  getOwnerAccount,
-  registerSingleOperator,
-  serviceManagerHasOperator,
-  isValidatorInAllowlist
-} from "launcher/validators";
 import { decodeEventLog, parseEther } from "viem";
-import {
-  dataHavenServiceManagerAbi,
-  gatewayAbi
-} from "../contract-bindings";
+import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
@@ -113,7 +110,10 @@ describe("Validator Set Update", () => {
   it("should verify validators are running", async () => {
     const isAliceRunning = await isValidatorNodeRunning(TestAccounts.Alice, suite.getNetworkId());
     const isBobRunning = await isValidatorNodeRunning(TestAccounts.Bob, suite.getNetworkId());
-    const isCharlieRunning = await isValidatorNodeRunning(TestAccounts.Charlie, suite.getNetworkId());
+    const isCharlieRunning = await isValidatorNodeRunning(
+      TestAccounts.Charlie,
+      suite.getNetworkId()
+    );
     const isDaveRunning = await isValidatorNodeRunning(TestAccounts.Dave, suite.getNetworkId());
 
     expect(isAliceRunning).toBe(true);
@@ -187,15 +187,20 @@ describe("Validator Set Update", () => {
 
     // Verification of allowlist status
     logger.info("🔍 Verification of allowlist status...");
-    const charlieAllowlisted = await isValidatorInAllowlist(TestAccounts.Charlie, suite.getValidatorOptions());
-    const daveAllowlisted = await isValidatorInAllowlist(TestAccounts.Dave, suite.getValidatorOptions());
+    const charlieAllowlisted = await isValidatorInAllowlist(
+      TestAccounts.Charlie,
+      suite.getValidatorOptions()
+    );
+    const daveAllowlisted = await isValidatorInAllowlist(
+      TestAccounts.Dave,
+      suite.getValidatorOptions()
+    );
 
     expect(charlieAllowlisted).toBe(true);
     expect(daveAllowlisted).toBe(true);
 
     logger.success("✅ Both validators successfully added to allowlist");
   }, 60_000);
-
 
   it("should register new validators as operators", async () => {
     logger.info("📤 Registering Charlie and Dave as operators...");
@@ -205,13 +210,19 @@ describe("Validator Set Update", () => {
     await registerSingleOperator(TestAccounts.Dave, suite.getValidatorOptions());
 
     // Verify both validators are properly registered in ServiceManager
-    const charlieRegistered = await serviceManagerHasOperator(TestAccounts.Charlie, suite.getValidatorOptions());
+    const charlieRegistered = await serviceManagerHasOperator(
+      TestAccounts.Charlie,
+      suite.getValidatorOptions()
+    );
     expect(charlieRegistered).toBe(true);
-    logger.success(`Charlie is registered as operator`);
+    logger.success("Charlie is registered as operator");
 
-    const daveRegistered = await serviceManagerHasOperator(TestAccounts.Dave, suite.getValidatorOptions());
+    const daveRegistered = await serviceManagerHasOperator(
+      TestAccounts.Dave,
+      suite.getValidatorOptions()
+    );
     expect(daveRegistered).toBe(true);
-    logger.success(`Dave is registered as operator`);
+    logger.success("Dave is registered as operator");
   }, 60_000); // 1 minute timeout
 
   it("should send updated validator set to DataHaven", async () => {
@@ -261,7 +272,9 @@ describe("Validator Set Update", () => {
 
       const isRegistered = registeredAddress !== "0x0000000000000000000000000000000000000000";
       if (!isRegistered) {
-        throw new Error(`Validator ${validator.publicKey} is not registered in ServiceManager before sending message`);
+        throw new Error(
+          `Validator ${validator.publicKey} is not registered in ServiceManager before sending message`
+        );
       }
       logger.success(`${validator.publicKey} is registered -> ${registeredAddress}`);
     }
@@ -352,9 +365,11 @@ describe("Validator Set Update", () => {
     }
     logger.success("ExternalValidatorsSet event found");
 
-    logger.info("🔍 Checking the new validators are present in the ExternalValidators pallet storage...");
+    logger.info(
+      "🔍 Checking the new validators are present in the ExternalValidators pallet storage..."
+    );
 
-    const expectedAddresses = newValidators.map(v => (v.solochainAddress as `0x${string}`));
+    const expectedAddresses = newValidators.map((v) => v.solochainAddress as `0x${string}`);
 
     const storageResult = await waitForDataHavenStorageContains({
       api: connectors.dhApi,

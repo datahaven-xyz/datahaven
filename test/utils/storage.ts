@@ -97,7 +97,9 @@ export async function waitForDataHavenStorage<T = unknown>(
           first: timeoutMs,
           with: () => {
             if (failOnTimeout) {
-              throw new Error(`Timeout waiting for storage ${pallet}.${storage} after ${timeoutMs}ms`);
+              throw new Error(
+                `Timeout waiting for storage ${pallet}.${storage} after ${timeoutMs}ms`
+              );
             }
             logger.debug(`Timeout waiting for storage ${pallet}.${storage} after ${timeoutMs}ms`);
             return of(null);
@@ -155,7 +157,7 @@ export async function waitForDataHavenStorageContains<T = unknown>(
       if (Array.isArray(value)) {
         const normalizedValue = value.map(normalizeValue);
         const normalizedContains = contains.map(normalizeValue);
-        return normalizedContains.every(item => normalizedValue.includes(item));
+        return normalizedContains.every((item) => normalizedValue.includes(item));
       }
       return false;
     }

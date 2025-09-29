@@ -115,3 +115,23 @@ pub fn get_common_tx_pause_whitelist() -> Vec<(Vec<u8>, Vec<u8>)> {
         (b"Sudo".to_vec(), b"set_key".to_vec()),
     ]
 }
+
+/// Combined Call Filter that applies Normal, SafeMode, and TxPause filters
+/// This filter is generic over the runtime call type and identical across all runtimes
+pub struct RuntimeCallFilter<Call, NormalFilter, SafeModeFilter, TxPauseFilter>(
+    PhantomData<(Call, NormalFilter, SafeModeFilter, TxPauseFilter)>,
+);
+
+impl<Call, NormalFilter, SafeModeFilter, TxPauseFilter> Contains<Call>
+    for RuntimeCallFilter<Call, NormalFilter, SafeModeFilter, TxPauseFilter>
+where
+    NormalFilter: Contains<Call>,
+    SafeModeFilter: Contains<Call>,
+    TxPauseFilter: Contains<Call>,
+{
+    fn contains(call: &Call) -> bool {
+        NormalFilter::contains(call)
+            && SafeModeFilter::contains(call)
+            && TxPauseFilter::contains(call)
+    }
+}

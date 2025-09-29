@@ -35,8 +35,8 @@ use super::{
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
     Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
     Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
-    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    RuntimeTask, SafeMode, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
     NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -92,8 +92,8 @@ use datahaven_runtime_common::{
         MigrationIdentifierMaxLen, MigrationStatusHandler,
     },
     safe_mode::{
-        get_common_tx_pause_whitelist, SafeModeDuration, SafeModeReleaseDelayBlocks,
-        SafeModeWhitelistFilter, TxPauseMaxNameLen,
+        get_common_tx_pause_whitelist, RuntimeCallFilter, SafeModeDuration,
+        SafeModeReleaseDelayBlocks, SafeModeWhitelistFilter, TxPauseMaxNameLen,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -269,8 +269,9 @@ impl Contains<RuntimeCall> for SafeModeWhitelistFilter {
 /// Tx Pause Whitelist Filter - implements Contains<RuntimeCallNameOf> for tx pause
 // TxPause whitelist is backed by the shared adapter in runtime common
 
-/// Combined Call Filter that applies Normal, SafeMode, and TxPause filters
-pub type RuntimeCallFilter = NormalCallFilter;
+// Type alias for the specific RuntimeCallFilter used in stagenet
+pub type StagenetRuntimeCallFilter =
+    RuntimeCallFilter<RuntimeCall, NormalCallFilter, SafeMode, TxPause>;
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
@@ -305,7 +306,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = stagenet_weights::frame_system::WeightInfo<Runtime>;
     type MultiBlockMigrator = MultiBlockMigrations;
     /// Use the combined call filter to apply Normal, SafeMode, and TxPause restrictions
-    type BaseCallFilter = RuntimeCallFilter;
+    type BaseCallFilter = StagenetRuntimeCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.

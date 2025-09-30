@@ -1,0 +1,192 @@
+name: Publish Runtime Draft
+
+# The code (like generate-release-body) will be taken from the tag versions, not master
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: tag (ex. runtime-53) to retrieve commit diff from
+        required: true
+      to:
+        description: tag (ex. runtime-155) to generate release note and srtool runtimes from
+        required: true
+
+jobs:
+  ####### Build runtimes with srtool #######
+
+  setup-scripts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Upload scripts
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-scripts
+          path: operator/scripts
+      - name: Upload tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-tools
+          path: tools
+
+  read-rust-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      rust_version: ${{ steps.get-version.outputs.rust_version }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: get-version
+        run: |
+          RUST_VERSION=$(cat operator/rust-toolchain.toml | grep channel | grep --only-matching --perl-regexp "\d+\.\d+(?:\.\d+)?(?:-nightly)?")
+          echo "rust_version=$RUST_VERSION" >> $GITHUB_OUTPUT
+
+  build-srtool-runtimes:
+    needs: ["setup-scripts", "read-rust-version"]
+    runs-on: DH-runners
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        chain: ["stagenet", "testnet", "mainnet"]
+        srtool_image:
+          - paritytech/srtool
+        srtool_image_tag:
+          - ${{ needs.read-rust-version.outputs.rust_version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.to }}
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        if: github.repository == 'datahaven-xyz/datahaven'
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: index.docker.io
+      - name: Download original scripts
+        uses: actions/download-artifact@v5
+        with:
+          name: original-scripts
+          path: original-scripts
+      - name: Build runtime using "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}"
+        id: srtool_build
+        env:
+          GH_WORKFLOW_MATRIX_CHAIN: ${{ matrix.chain }}
+          GH_WORKFLOW_MATRIX_SRTOOL_IMAGE: ${{ matrix.srtool_image }}
+          GH_WORKFLOW_MATRIX_SRTOOL_IMAGE_TAG: ${{ matrix.srtool_image_tag }}
+          RUNTIME_BUILD_OPTS: "--features=on-chain-release-build"
+          RUNTIME_BUILD_PROFILE: "production"
+        run: |
+          # Ensure we have permissions to write to the runtime folder target for the docker user
+          mkdir -p runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
+          chmod uog+rwX runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
+
+          chmod u+x ./original-scripts/build-runtime-srtool.sh
+          ./original-scripts/build-runtime-srtool.sh
+      - name: Summary
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ matrix.chain }}-srtool-digest.json
+          cat ${{ matrix.chain }}-srtool-digest.json
+          cp ${{ steps.srtool_build.outputs.wasm_compressed }} ${{ matrix.chain }}-runtime.compact.compressed.wasm
+      - name: Archive Artifacts for ${{ matrix.chain }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.chain }}-runtime
+          path: |
+            ${{ matrix.chain }}-runtime.compact.compressed.wasm
+            ${{ matrix.chain }}-srtool-digest.json
+
+  ####### Prepare the release draft #######
+  publish-draft-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: ["setup-scripts", "build-srtool-runtimes"]
+    outputs:
+      release_url: ${{ steps.create-release.outputs.html_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.to }}
+          fetch-depth: 0
+      - name: Download stagenet runtime
+        uses: actions/download-artifact@v5
+        with:
+          name: stagenet-runtime
+          path: build
+      - name: Download testnet runtime
+        uses: actions/download-artifact@v5
+        with:
+          name: testnet-runtime
+          path: build
+      - name: Download mainnet runtime
+        uses: actions/download-artifact@v5
+        with:
+          name: mainnet-runtime
+          path: build
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "test/.nvmrc"
+      - name: Download Original Tools
+        uses: actions/download-artifact@v5
+        with:
+          name: original-tools
+          path: original-tools
+      - name: Generate release body
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: generate-release-body
+        working-directory: original-tools
+        run: |
+          yarn
+          yarn -s run ts-node github/generate-runtimes-body.ts --owner "${{ github.repository_owner }}" --repo "$(basename ${{ github.repository }})" --from "${{ github.event.inputs.from }}" --to "${{ github.event.inputs.to }}" --srtool-report-folder '../build/' > ../body.md
+      - name: Get runtime versions
+        id: get-runtime-ver
+        run: |
+          runtime_stagenet_ver="$(cat ./operator/runtime/stagenet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
+          echo "runtime_stagenet_ver=$runtime_stagenet_ver" >> $GITHUB_OUTPUT
+
+          runtime_testnet_ver="$(cat ./operator/runtime/testnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
+          echo "runtime_testnet_ver=$runtime_testnet_ver" >> $GITHUB_OUTPUT
+
+          runtime_mainnet_ver="$(cat ./operator/runtime/mainnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
+          echo "runtime_mainnet_ver=$runtime_mainnet_ver" >> $GITHUB_OUTPUT
+      - name: Prepare runtime assets
+        working-directory: build
+        run: |
+          # Get runtime versions from the previous step
+          runtime_stagenet_ver="${{ steps.get-runtime-ver.outputs.runtime_stagenet_ver }}"
+          runtime_testnet_ver="${{ steps.get-runtime-ver.outputs.runtime_testnet_ver }}"
+          runtime_mainnet_ver="${{ steps.get-runtime-ver.outputs.runtime_mainnet_ver }}"
+
+          # Rename files with version numbers
+          mv stagenet-runtime.compact.compressed.wasm ../stagenet-runtime-${runtime_stagenet_ver}.wasm
+          mv stagenet-srtool-digest.json ../stagenet-runtime-${runtime_stagenet_ver}.srtool-digest.json
+
+          mv testnet-runtime.compact.compressed.wasm ../testnet-runtime-${runtime_testnet_ver}.wasm
+          mv testnet-srtool-digest.json ../testnet-runtime-${runtime_testnet_ver}.srtool-digest.json
+
+          mv mainnet-runtime.compact.compressed.wasm ../mainnet-runtime-${runtime_mainnet_ver}.wasm
+          mv mainnet-srtool-digest.json ../mainnet-runtime-${runtime_mainnet_ver}.srtool-digest.json
+
+      - name: Create draft release with runtime assets
+        id: create-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.to }}
+          name: Runtime ${{ github.event.inputs.to }}
+          body_path: body.md
+          draft: true
+          files: |
+            stagenet-runtime-${{ steps.get-runtime-ver.outputs.runtime_stagenet_ver }}.wasm
+            stagenet-runtime-${{ steps.get-runtime-ver.outputs.runtime_stagenet_ver }}.srtool-digest.json
+            testnet-runtime-${{ steps.get-runtime-ver.outputs.runtime_testnet_ver }}.wasm
+            testnet-runtime-${{ steps.get-runtime-ver.outputs.runtime_testnet_ver }}.srtool-digest.json
+            mainnet-runtime-${{ steps.get-runtime-ver.outputs.runtime_mainnet_ver }}.wasm
+            mainnet-runtime-${{ steps.get-runtime-ver.outputs.runtime_mainnet_ver }}.srtool-digest.json

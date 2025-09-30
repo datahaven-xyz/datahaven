@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "datahaven-testnet-runtime"
 publish = false
 repository = { workspace = true }
-version = "0.1.0"
+version = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

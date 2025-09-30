@@ -3,7 +3,7 @@ authors = { workspace = true }
 description = "Pallet for storing the latest commitment hash from the outbound queue for cross-chain verification"
 edition = { workspace = true }
 name = "pallet-outbound-commitment-store"
-version = "0.1.0"
+version = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

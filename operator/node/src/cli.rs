@@ -596,6 +596,7 @@ impl FishermanConfigurations {
                     .fisherman_database_url
                     .clone()
                     .expect("Fisherman database URL is required"),
+                maintenance_mode: false, // Skipping maintenance mode for now
             })
         } else {
             None

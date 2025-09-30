@@ -2,7 +2,7 @@
 description = "Common code used through the DataHaven network"
 edition = { workspace = true }
 name = "datahaven-runtime-common"
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 codec = { workspace = true }

@@ -1,7 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use crate::cli::ProviderType;
-use crate::cli::StorageLayer;
+use crate::cli::{ProviderType, Sealing, StorageLayer};
 use crate::command::ProviderOptions;
 use crate::eth::{
     new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierBackend,
@@ -14,16 +13,22 @@ use datahaven_runtime_common::{AccountId, Balance, Block, BlockNumber, Hash, Non
 use fc_consensus::FrontierBlockImport;
 use fc_db::DatabaseSource;
 use fc_storage::StorageOverride;
+use futures::channel::mpsc;
 use futures::FutureExt;
 use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvider};
 use sc_consensus_babe::ImportQueueParams;
 use sc_consensus_grandpa::SharedVoterState;
+use sc_consensus_manual_seal::consensus::babe::BabeConsensusDataProvider;
+use sc_consensus_manual_seal::rpc::EngineCommand;
+use sc_consensus_manual_seal::{self, InstantSealParams, ManualSealParams};
 use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
 use sc_network::request_responses::IncomingRequest;
 use sc_network::service::traits::NetworkService;
 use sc_network::ProtocolName;
 use sc_service::RpcHandlers;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
+use sc_service::{
+    error::Error as ServiceError, ChainType, Configuration, TaskManager, WarpSyncConfig,
+};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool::BasicPool;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
@@ -49,6 +54,7 @@ use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::SaturatedConversion;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{default::Default, path::Path, sync::Arc, time::Duration};
 
 pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
@@ -77,6 +83,11 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId, RuntimeApi> =
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
+
+// Mock timestamp used for manual/instant sealing in dev mode, similar to Moonbeam.
+// Each new block will advance the timestamp by one slot duration to satisfy
+// pallet_timestamp MinimumPeriod checks when sealing back-to-back.
+static MOCK_TIMESTAMP: AtomicU64 = AtomicU64::new(0);
 
 pub(crate) trait FullRuntimeApi:
     sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
@@ -230,6 +241,27 @@ where
     Ok(frontier_backend)
 }
 
+fn build_babe_inherent_providers(
+    slot_duration: sp_consensus_babe::SlotDuration,
+) -> (
+    sp_consensus_babe::inherents::InherentDataProvider,
+    sp_timestamp::InherentDataProvider,
+) {
+    // In manual/instant sealing we want to advance time deterministically per block
+    // to satisfy `pallet_timestamp` MinimumPeriod without sleeping. We increment a
+    // static counter by one slot each time and use that value as the timestamp.
+    let increment = slot_duration.as_millis();
+    let next_ts = MOCK_TIMESTAMP
+        .fetch_add(increment, Ordering::SeqCst)
+        .saturating_add(increment);
+    let timestamp = sp_timestamp::InherentDataProvider::new(sp_timestamp::Timestamp::new(next_ts));
+    let slot = sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+        *timestamp,
+        slot_duration,
+    );
+    (slot, timestamp)
+}
+
 pub fn new_partial<Runtime, RuntimeApi>(
     config: &Configuration,
     eth_config: &mut EthConfiguration,
@@ -330,16 +362,10 @@ where
         justification_import: Some(Box::new(grandpa_block_import.clone())),
         client: client.clone(),
         select_chain: select_chain.clone(),
-        create_inherent_data_providers: move |_, ()| async move {
-            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-            let slot =
-                    sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                        *timestamp,
-                        slot_duration,
-                    );
-
-            Ok((slot, timestamp))
+        create_inherent_data_providers: move |_, ()| {
+            std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
+                build_babe_inherent_providers(slot_duration),
+            ))
         },
         spawner: &task_manager.spawn_essential_handle(),
         registry: config.prometheus_registry(),
@@ -385,6 +411,7 @@ pub async fn new_full_impl<
     provider_options: Option<ProviderOptions>,
     indexer_options: Option<IndexerOptions>,
     fisherman_options: Option<FishermanOptions>,
+    sealing: Option<Sealing>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -414,6 +441,24 @@ where
                 mut telemetry,
             ),
     } = new_partial::<Runtime, RuntimeApi>(&config, &mut eth_config)?;
+
+    let role = config.role;
+    let mut sealing = match sealing {
+        Some(_) if !matches!(config.chain_spec.chain_type(), ChainType::Development) => {
+            log::warn!("Manual sealing is only available for development chains; disabling.");
+            None
+        }
+        other => other,
+    };
+
+    if sealing.is_some() && !role.is_authority() {
+        log::warn!(
+            "Manual sealing requested but the node is not running as an authority; disabling."
+        );
+        sealing = None;
+    }
+
+    let is_authority = role.is_authority();
 
     let FrontierPartialComponents {
         filter_pool,
@@ -543,11 +588,10 @@ where
     )
     .await?;
 
-    let role = config.role;
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let name = config.network.node_name.clone();
-    let enable_grandpa = !config.disable_grandpa;
+    let enable_grandpa = sealing.is_none() && !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
     let overrides = Arc::new(StorageOverrideHandler::new(client.clone()));
 
@@ -558,6 +602,15 @@ where
         eth_config.eth_statuses_cache,
         prometheus_registry.clone(),
     ));
+
+    let mut manual_commands_stream: Option<mpsc::Receiver<EngineCommand<Hash>>> = None;
+    let command_sink = if matches!(sealing, Some(Sealing::Manual)) {
+        let (sink, stream) = mpsc::channel::<EngineCommand<Hash>>(1000);
+        manual_commands_stream = Some(stream);
+        Some(sink)
+    } else {
+        None
+    };
 
     // Sinks for pubsub notifications.
     // Everytime a new subscription is created, a new mpsc channel is added to the sink pool.
@@ -619,8 +672,8 @@ where
                 filter_pool: filter_pool.clone(),
                 block_data_cache: block_data_cache.clone(),
                 overrides: overrides.clone(),
-                is_authority: false,
-                command_sink: None,
+                is_authority: is_authority.clone(),
+                command_sink: command_sink.clone(),
                 backend: backend.clone(),
                 frontier_backend: match &*frontier_backend {
                     fc_db::Backend::KeyValue(b) => b.clone(),
@@ -648,47 +701,122 @@ where
         telemetry: telemetry.as_mut(),
     })?;
 
-    if role.is_authority() {
-        let proposer_factory = sc_basic_authorship::ProposerFactory::new(
-            task_manager.spawn_handle(),
-            client.clone(),
-            transaction_pool.clone(),
-            prometheus_registry.as_ref(),
-            telemetry.as_ref().map(|x| x.handle()),
-        );
+    if is_authority {
+        if let Some(mode) = sealing {
+            let proposer_factory = sc_basic_authorship::ProposerFactory::new(
+                task_manager.spawn_handle(),
+                client.clone(),
+                transaction_pool.clone(),
+                prometheus_registry.as_ref(),
+                telemetry.as_ref().map(|x| x.handle()),
+            );
 
-        let slot_duration = babe_link.clone().config().slot_duration();
-        let babe_config = sc_consensus_babe::BabeParams {
-            keystore: keystore_container.keystore(),
-            client: client.clone(),
-            select_chain,
-            env: proposer_factory,
-            block_import,
-            sync_oracle: sync_service.clone(),
-            justification_sync_link: sync_service.clone(),
-            create_inherent_data_providers: move |_, ()| async move {
-                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-                let slot =
-                        sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                            *timestamp,
-                            slot_duration,
-                        );
-                Ok((slot, timestamp))
-            },
-            force_authoring,
-            backoff_authoring_blocks,
-            babe_link,
-            block_proposal_slot_portion: sc_consensus_babe::SlotProportion::new(0.5),
-            max_block_proposal_slot_portion: None,
-            telemetry: telemetry.as_ref().map(|x| x.handle()),
-        };
+            let slot_duration = babe_link.config().slot_duration();
+            let epoch_changes = babe_link.epoch_changes().clone();
+            let authorities = babe_link.config().authorities.clone();
+            let keystore = keystore_container.keystore();
+            let client_for_consensus = client.clone();
+            let consensus_data_provider = move || {
+                BabeConsensusDataProvider::new(
+                    client_for_consensus.clone(),
+                    keystore.clone(),
+                    epoch_changes.clone(),
+                    authorities.clone(),
+                )
+                .map(|provider| Box::new(provider) as _)
+                .map_err(|e| ServiceError::Other(e.to_string()))
+            };
 
-        let babe = sc_consensus_babe::start_babe(babe_config)?;
-        task_manager.spawn_essential_handle().spawn_blocking(
-            "babe-proposer",
-            Some("block-authoring"),
-            babe,
-        );
+            let create_inherent_data_providers = move |_, ()| {
+                std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
+                    build_babe_inherent_providers(slot_duration),
+                ))
+            };
+
+            match mode {
+                Sealing::Manual => {
+                    let commands_stream = manual_commands_stream.take().ok_or_else(|| {
+                        ServiceError::Other(
+                            "Manual sealing requested but command channel is unavailable".into(),
+                        )
+                    })?;
+
+                    let future = sc_consensus_manual_seal::run_manual_seal(ManualSealParams {
+                        block_import,
+                        env: proposer_factory,
+                        client: client.clone(),
+                        pool: transaction_pool.clone(),
+                        commands_stream,
+                        select_chain,
+                        consensus_data_provider: Some(consensus_data_provider()?),
+                        create_inherent_data_providers,
+                    });
+
+                    task_manager.spawn_essential_handle().spawn_blocking(
+                        "manual-seal",
+                        Some("block-authoring"),
+                        future,
+                    );
+                }
+                Sealing::Instant => {
+                    let future = sc_consensus_manual_seal::run_instant_seal(InstantSealParams {
+                        block_import,
+                        env: proposer_factory,
+                        client: client.clone(),
+                        pool: transaction_pool.clone(),
+                        select_chain,
+                        consensus_data_provider: Some(consensus_data_provider()?),
+                        create_inherent_data_providers,
+                    });
+
+                    task_manager.spawn_essential_handle().spawn_blocking(
+                        "manual-seal",
+                        Some("block-authoring"),
+                        future,
+                    );
+                }
+            }
+
+            log::info!("Manual sealing enabled (mode: {:?})", mode);
+        } else {
+            let proposer_factory = sc_basic_authorship::ProposerFactory::new(
+                task_manager.spawn_handle(),
+                client.clone(),
+                transaction_pool.clone(),
+                prometheus_registry.as_ref(),
+                telemetry.as_ref().map(|x| x.handle()),
+            );
+
+            let slot_duration = babe_link.clone().config().slot_duration();
+            let create_inherent_data_providers = move |_, ()| {
+                std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
+                    build_babe_inherent_providers(slot_duration),
+                ))
+            };
+            let babe_config = sc_consensus_babe::BabeParams {
+                keystore: keystore_container.keystore(),
+                client: client.clone(),
+                select_chain,
+                env: proposer_factory,
+                block_import,
+                sync_oracle: sync_service.clone(),
+                justification_sync_link: sync_service.clone(),
+                create_inherent_data_providers,
+                force_authoring,
+                backoff_authoring_blocks,
+                babe_link,
+                block_proposal_slot_portion: sc_consensus_babe::SlotProportion::new(0.5),
+                max_block_proposal_slot_portion: None,
+                telemetry: telemetry.as_ref().map(|x| x.handle()),
+            };
+
+            let babe = sc_consensus_babe::start_babe(babe_config)?;
+            task_manager.spawn_essential_handle().spawn_blocking(
+                "babe-proposer",
+                Some("block-authoring"),
+                babe,
+            );
+        }
     }
 
     if enable_grandpa {
@@ -748,39 +876,43 @@ where
     };
 
     // beefy is enabled if its notification service exists
-    if let Some(notification_service) = beefy_notification_service {
-        let justifications_protocol_name = beefy_on_demand_justifications_handler.protocol_name();
-        let network_params = sc_consensus_beefy::BeefyNetworkParams {
-            network: Arc::new(network.clone()),
-            sync: sync_service.clone(),
-            gossip_protocol_name: beefy_gossip_proto_name,
-            justifications_protocol_name,
-            notification_service,
-            _phantom: core::marker::PhantomData::<Block>,
-        };
-        let payload_provider = sp_consensus_beefy::mmr::MmrRootProvider::new(client.clone());
-        let beefy_params = sc_consensus_beefy::BeefyParams {
-            client: client.clone(),
-            backend: backend.clone(),
-            payload_provider,
-            runtime: client.clone(),
-            key_store: keystore_opt.clone(),
-            network_params,
-            min_block_delta: 8,
-            prometheus_registry: prometheus_registry.clone(),
-            links: beefy_voter_links,
-            on_demand_justifications_handler: beefy_on_demand_justifications_handler,
-            is_authority: role.is_authority(),
-        };
+    if sealing.is_none() {
+        if let Some(notification_service) = beefy_notification_service {
+            let justifications_protocol_name =
+                beefy_on_demand_justifications_handler.protocol_name();
+            let network_params = sc_consensus_beefy::BeefyNetworkParams {
+                network: Arc::new(network.clone()),
+                sync: sync_service.clone(),
+                gossip_protocol_name: beefy_gossip_proto_name,
+                justifications_protocol_name,
+                notification_service,
+                _phantom: core::marker::PhantomData::<Block>,
+            };
+            let payload_provider = sp_consensus_beefy::mmr::MmrRootProvider::new(client.clone());
+            let beefy_params = sc_consensus_beefy::BeefyParams {
+                client: client.clone(),
+                backend: backend.clone(),
+                payload_provider,
+                runtime: client.clone(),
+                key_store: keystore_opt.clone(),
+                network_params,
+                min_block_delta: 8,
+                prometheus_registry: prometheus_registry.clone(),
+                links: beefy_voter_links,
+                on_demand_justifications_handler: beefy_on_demand_justifications_handler,
+                is_authority: role.is_authority(),
+            };
 
-        let gadget =
-            sc_consensus_beefy::start_beefy_gadget::<_, _, _, _, _, _, _, BeefyId>(beefy_params);
+            let gadget = sc_consensus_beefy::start_beefy_gadget::<_, _, _, _, _, _, _, BeefyId>(
+                beefy_params,
+            );
 
-        // BEEFY is part of consensus, if it fails we'll bring the node down with it to make sure it
-        // is noticed.
-        task_manager
-            .spawn_essential_handle()
-            .spawn_blocking("beefy-gadget", None, gadget);
+            // BEEFY is part of consensus, if it fails we'll bring the node down with it to make
+            // sure it is noticed.
+            task_manager
+                .spawn_essential_handle()
+                .spawn_blocking("beefy-gadget", None, gadget);
+        }
     }
 
     if let Some(_) = provider_options {
@@ -822,6 +954,7 @@ pub async fn new_full<
     provider_options: Option<ProviderOptions>,
     indexer_options: Option<IndexerOptions>,
     fisherman_options: Option<FishermanOptions>,
+    sealing: Option<Sealing>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -840,6 +973,7 @@ where
                     Some(provider_options),
                     indexer_options,
                     fisherman_options,
+                    sealing,
                 )
                 .await;
             }
@@ -850,6 +984,7 @@ where
                     Some(provider_options),
                     indexer_options,
                     fisherman_options,
+                    sealing,
                 )
                 .await;
             }
@@ -860,6 +995,7 @@ where
                     Some(provider_options),
                     indexer_options,
                     fisherman_options,
+                    sealing,
                 )
                 .await;
             }
@@ -870,6 +1006,7 @@ where
                     Some(provider_options),
                     indexer_options,
                     fisherman_options,
+                    sealing,
                 )
                 .await;
             }
@@ -881,6 +1018,7 @@ where
             None,
             indexer_options,
             fisherman_options,
+            sealing,
         )
         .await;
     };

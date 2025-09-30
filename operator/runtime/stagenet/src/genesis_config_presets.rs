@@ -118,8 +118,14 @@ pub fn development_config_genesis() -> Value {
     endowed_accounts.sort();
 
     testnet_genesis(
-        // Alice is the only authority in Dev mode
-        vec![authority_keys_from_seed("Alice")],
+        // Alith is the only authority in Dev mode (using Alice's session keys)
+        vec![(
+            alith(),
+            get_from_seed::<BabeId>("Alice"),
+            get_from_seed::<GrandpaId>("Alice"),
+            get_from_seed::<ImOnlineId>("Alice"),
+            get_from_seed::<BeefyId>("Alice"),
+        )],
         // Alith is Sudo
         alith(),
         // Endowed: Alice, Bob, Charlie, Dave, Eve, Ferdie,

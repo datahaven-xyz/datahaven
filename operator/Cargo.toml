@@ -90,6 +90,7 @@ tracing-subscriber = { version = "=0.3.19", features = [
     "env-filter",
 ] } # Dependency pinned because 0.3.20 messes up text formatting in substrate logs
 url = "2.2.2"
+toml = "0.8.19"
 
 # Polkadot SDK
 cumulus-primitives-core = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }

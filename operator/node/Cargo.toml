@@ -130,6 +130,7 @@ shp-types = { workspace = true }
 sp-keystore = { workspace = true }
 serde = { workspace = true, default-features = true }
 cumulus-client-service = { workspace = true }
+toml = { workspace = true }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }

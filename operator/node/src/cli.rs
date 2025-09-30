@@ -60,7 +60,7 @@ pub struct Cli {
         "bsp_upload_file_task", "bsp_upload_file_max_try_count", "bsp_upload_file_max_tip",
         "bsp_move_bucket_task", "bsp_move_bucket_grace_period",
         "bsp_charge_fees_task", "bsp_charge_fees_min_debt",
-        "bsp_submit_proof_task", "bsp_submit_proof_max_attempts",
+        "bsp_submit_proof_task", "bsp_submit_proof_max_attempts", "fisherman", "fisherman_database_url",
     ])]
     pub provider_config_file: Option<String>,
 }

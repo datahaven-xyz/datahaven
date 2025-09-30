@@ -19,13 +19,13 @@ pub struct Config {
 pub fn read_config(path: &str) -> Option<Config> {
     let path = Path::new(path);
 
-    if !path.exists() {
-        error!("Fail to find config file ({:?})", path);
-
-        return None;
-    }
-
-    let mut file = File::open(path).expect("config.toml file should exist");
+    let mut file = match File::open(path) {
+        Ok(file) => file,
+        Err(err) => {
+            error!("Failed to open config file: {}", err);
+            return None;
+        }
+    };
     let mut contents = String::new();
     if let Err(err) = file.read_to_string(&mut contents) {
         error!("Fail to read config file : {}", err);

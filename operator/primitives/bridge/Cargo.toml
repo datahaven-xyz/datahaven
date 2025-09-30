@@ -5,7 +5,7 @@ homepage = { workspace = true }
 license = { workspace = true }
 name = "dhp-bridge"
 repository = { workspace = true }
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 frame-support = { workspace = true }

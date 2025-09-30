@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
 import type { DeployEnvironment } from "utils";
+import { logger, printHeader } from "utils";
 import {
   contractsCheck,
   contractsDeploy,
   contractsPreActionHook,
+  contractsUpgrade,
   contractsVerify,
   deploy,
   deployPreActionHook,
@@ -87,9 +89,9 @@ program
     "Tag of the relayer image to use",
     "datahavenxyz/snowbridge-relay:latest"
   )
-  .option("--docker-username <value>", "Docker Hub username")
-  .option("--docker-password <value>", "Docker Hub password")
-  .option("--docker-email <value>", "Docker Hub email")
+  .option("--docker-username <value>", "Docker Hub username (use DOCKER_USERNAME env var instead)")
+  .option("--docker-password <value>", "Docker Hub password (use DOCKER_PASSWORD env var instead)")
+  .option("--docker-email <value>", "Docker Hub email (use DOCKER_EMAIL env var instead)")
   .option("--chainspec <value>", "Absolute path to custom chainspec file")
   .option("--skip-cleanup", "Skip cleaning up the network", false)
   .option("--skip-kurtosis", "Skip deploying Kurtosis Ethereum private network", false)
@@ -143,7 +145,7 @@ program
     "--features=fast-runtime"
   )
   .option(
-    "--e --kurtosis-enclave-name <value>",
+    "--ken, --kurtosis-enclave-name <value>",
     "Name of the Kurtosis Enclave",
     "datahaven-ethereum"
   )
@@ -187,6 +189,7 @@ const contractsCommand = program
     Commands:
     - status: Show deployment plan, configuration, and status (default)
     - deploy: Deploy contracts to specified chain
+    - upgrade: Upgrade contracts by deploying new implementations
     - verify: Verify deployed contracts on block explorer
     - update-metadata: Update the metadata URI of an existing AVS contract
     
@@ -205,7 +208,7 @@ contractsCommand
   .description("Show deployment plan, configuration, and status")
   .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);
@@ -216,10 +219,43 @@ contractsCommand
   .description("Deploy DataHaven AVS contracts to specified chain")
   .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsDeploy);
+
+// Contracts Upgrade
+contractsCommand
+  .command("upgrade")
+  .description("Upgrade DataHaven AVS contracts by deploying new implementations")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--private-key-file <value>", "Path to file containing private key for deployment")
+  .option("--verify", "Verify upgraded contracts on block explorer", false)
+  .hook("preAction", contractsPreActionHook)
+  .action(async (options: any, command: any) => {
+    // Try to get chain from options or command
+    let chain = options.chain;
+    if (!chain && command.parent) {
+      chain = command.parent.getOptionValue("chain");
+    }
+    if (!chain) {
+      chain = command.getOptionValue("chain");
+    }
+
+    printHeader(`Upgrading DataHaven Contracts on ${chain}`);
+
+    try {
+      await contractsUpgrade({
+        chain: chain,
+        rpcUrl: options.rpcUrl,
+        privateKeyFile: options.privateKeyFile,
+        verify: options.verify
+      });
+    } catch (error) {
+      logger.error(`❌ Upgrade failed: ${error}`);
+    }
+  });
 
 // Contracts Verify
 contractsCommand
@@ -265,7 +301,7 @@ contractsCommand
   .description("Show deployment plan, configuration, and status")
   .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);

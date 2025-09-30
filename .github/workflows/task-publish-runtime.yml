@@ -149,10 +149,10 @@ jobs:
       - name: Get runtime versions
         id: get-runtime-ver
         run: |
-          runtime_stagenet_ver="$(cat ./runtime/stagenet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
+          runtime_stagenet_ver="$(cat ./operator/runtime/stagenet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
           echo "runtime_stagenet_ver=$runtime_stagenet_ver" >> $GITHUB_OUTPUT
 
-          runtime_testnet_ver="$(cat ./runtime/testnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
+          runtime_testnet_ver="$(cat ./operator/runtime/testnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
           echo "runtime_testnet_ver=$runtime_testnet_ver" >> $GITHUB_OUTPUT
 
           runtime_mainnet_ver="$(cat ./runtime/mainnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"

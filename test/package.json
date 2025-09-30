@@ -26,6 +26,8 @@
     "stop:engine": "bun cli stop --kurtosisEngine --no-datahaven --no-relayer --no-enclave",
     "test:e2e": "bun test ./suites --timeout 900000",
     "test:e2e:parallel": "bun scripts/test-parallel.ts",
+    "moonwall:test": "moonwall test dev_datahaven",
+    "moonwall:run": "moonwall run dev_datahaven",
     "typecheck": "tsc --noEmit",
     "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
     "postinstall": "papi"
@@ -42,6 +44,8 @@
     "@commander-js/extra-typings": "^13.1.0",
     "@dotenvx/dotenvx": "^1.44.2",
     "@inquirer/prompts": "^7.5.3",
+    "@moonwall/cli": "^5.15.0",
+    "@moonwall/util": "^5.15.0",
     "@noble/curves": "^1.9.2",
     "@noble/hashes": "^1.8.0",
     "@polkadot-api/descriptors": "file:.papi/descriptors",

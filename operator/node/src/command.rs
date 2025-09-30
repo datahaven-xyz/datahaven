@@ -11,7 +11,7 @@ use crate::{
 use datahaven_runtime_common::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
-use sc_service::DatabaseSource;
+use sc_service::{ChainType, DatabaseSource};
 use serde::Deserialize;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
@@ -366,6 +366,17 @@ pub fn run() -> sc_cli::Result<()> {
             };
 
             runner.run_node_until_exit(|config| async move {
+                let sealing_mode = match (cli.sealing, config.chain_spec.chain_type()) {
+                    (Some(mode), ChainType::Development) => Some(mode),
+                    (Some(_), _) => {
+                        log::warn!(
+                            "`--sealing` is only supported on development chains; ignoring."
+                        );
+                        None
+                    }
+                    (None, _) => None,
+                };
+
                 match config.network.network_backend {
                     // TODO: Litep2p becomes standard with Polkadot SDK stable2412-7 (should move None to other arm)
                     // cfr. https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-7
@@ -382,6 +393,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -396,6 +408,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -410,6 +423,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -429,6 +443,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -443,6 +458,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -457,6 +473,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }

@@ -12,7 +12,8 @@
       "!**/tmp/*",
       "!**/*.spec.json",
       "!**/.papi/descriptors/**/*",
-      "!**/contract-bindings/**/*"
+      "!**/contract-bindings/**/*",
+      "!**/html/**/*"
     ]
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },

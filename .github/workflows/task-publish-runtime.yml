@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v5
       - id: get-version
         run: |
-          RUST_VERSION=$(cat rust-toolchain | grep channel | grep --only-matching --perl-regexp "(\d+\.){2}\d+(-nightly)?")
+          RUST_VERSION=$(cat operator/rust-toolchain.toml | grep channel | grep --only-matching --perl-regexp "\d+\.\d+(?:\.\d+)?(?:-nightly)?")
           echo "rust_version=$RUST_VERSION" >> $GITHUB_OUTPUT
 
   build-srtool-runtimes:

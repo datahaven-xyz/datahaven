@@ -21,7 +21,7 @@ function capitalize(s) {
 
 function getRuntimeInfo(srtoolReportFolder: string, runtimeName: string) {
   const specVersion = execSync(
-    `cat ../runtime/${runtimeName}/src/lib.rs | grep 'spec_version: [0-9]*' | tail -1`
+    `cat ../operator/runtime/${runtimeName}/src/lib.rs | grep 'spec_version: [0-9]*' | tail -1`
   ).toString();
   return {
     name: runtimeName,

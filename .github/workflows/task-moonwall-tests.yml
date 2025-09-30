@@ -32,16 +32,7 @@ jobs:
           cp ../operator/target/x86_64-unknown-linux-gnu/release/datahaven-node ../operator/target/release/datahaven-node
           chmod +x ../operator/target/release/datahaven-node
 
-          # Kill any zombie processes on port 9944
-          lsof -ti:9944 | xargs kill -9 2>/dev/null || true
-
-          # Verify binary dependencies
-          echo "=== Checking binary dependencies ==="
-          ldd ../operator/target/release/datahaven-node || true
-
-          # Test binary execution with verbose output
-          echo "=== Testing node startup ==="
-          timeout 10 ../operator/target/release/datahaven-node \
+          timeout 20 ../operator/target/release/datahaven-node \
             --dev \
             --no-telemetry \
             --unsafe-force-node-key-generation \
@@ -64,31 +55,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Check operator binary version
-        run: ../operator/target/release/datahaven-node --version || true
-
       - name: Run Moonwall tests
-        run: |
-          # Kill any process on port 9944 before starting
-          lsof -ti:9944 | xargs kill -9 2>/dev/null || true
-
-          # Force cleanup of data directory
-          rm -rf /tmp/tmp_moonwall_* ~/.moonwall 2>/dev/null || true
-
-          # Run tests with full logging
-          MOONWALL_DEBUG=1 bun run moonwall:test
-
-      - name: Capture node logs on failure
-        if: failure()
-        run: |
-          echo "=== Moonwall logs ==="
-          find . -name "*.log" -type f 2>/dev/null | head -10 | xargs -I {} sh -c 'echo "File: {}" && tail -100 {}'
-
-          echo "=== Checking for running datahaven processes ==="
-          ps aux | grep datahaven || true
-
-          echo "=== Checking port 9944 ==="
-          lsof -i:9944 || true
+        run: bun run moonwall:test
 
       - name: Upload Moonwall reports
         if: always()

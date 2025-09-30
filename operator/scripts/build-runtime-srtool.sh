@@ -1,3 +1,4 @@
+#!/bin/bash
 
 # CARGO_NET_GIT_FETCH_WITH_CLI=true and --entrypoint /srtool/entrypoint.sh
 # are required to allow srtool to fetch from github private repositories
@@ -15,7 +16,7 @@ CMD="docker run \
   -e BUILD_OPTS=${RUNTIME_BUILD_OPTS} \
   -e PROFILE=${RUNTIME_BUILD_PROFILE} \
   -e WASM_BUILD_STD=0 \
-  -v ${PWD}:/build \
+  -v "${PWD}:/build" \
   ${GH_WORKFLOW_MATRIX_SRTOOL_IMAGE}:${GH_WORKFLOW_MATRIX_SRTOOL_IMAGE_TAG} \
     build --app --json -cM"
 
@@ -29,15 +30,15 @@ stdbuf -oL $CMD | {
 
   echo "json=$JSON" >> $GITHUB_OUTPUT
 
-  PROP=`echo $JSON | jq -r .runtimes.compact.prop`
+  PROP=$(echo $JSON | jq -r .runtimes.compact.prop)
   echo "proposal_hash=$PROP" >> $GITHUB_OUTPUT
 
-  WASM=`echo $JSON | jq -r .runtimes.compact.wasm`
+  WASM=$(echo $JSON | jq -r .runtimes.compact.wasm)
   echo "wasm=$WASM" >> $GITHUB_OUTPUT
 
-  Z_WASM=`echo $JSON | jq -r .runtimes.compressed.wasm`
+  Z_WASM=$(echo $JSON | jq -r .runtimes.compressed.wasm)
   echo "wasm_compressed=$Z_WASM" >> $GITHUB_OUTPUT
 
-  IPFS=`echo $JSON | jq -r .runtimes.compact.ipfs`
+  IPFS=$(echo $JSON | jq -r .runtimes.compact.ipfs)
   echo "ipfs=$IPFS" >> $GITHUB_OUTPUT
 }

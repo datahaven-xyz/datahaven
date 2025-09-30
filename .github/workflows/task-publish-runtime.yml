@@ -117,17 +117,17 @@ jobs:
       - name: Download stagenet runtime
         uses: actions/download-artifact@v5
         with:
-          name: datahaven-stagenet-runtime
+          name: stagenet-runtime
           path: build
       - name: Download testnet runtime
         uses: actions/download-artifact@v5
         with:
-          name: datahaven-testnet-runtime
+          name: testnet-runtime
           path: build
       - name: Download mainnet runtime
         uses: actions/download-artifact@v5
         with:
-          name: datahaven-mainnet-runtime
+          name: mainnet-runtime
           path: build
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -155,7 +155,7 @@ jobs:
           runtime_testnet_ver="$(cat ./operator/runtime/testnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
           echo "runtime_testnet_ver=$runtime_testnet_ver" >> $GITHUB_OUTPUT
 
-          runtime_mainnet_ver="$(cat ./runtime/mainnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
+          runtime_mainnet_ver="$(cat ./operator/runtime/mainnet/src/lib.rs | grep -o 'spec_version: [0-9]*' | tail -1 | grep -o '[0-9]*')"
           echo "runtime_mainnet_ver=$runtime_mainnet_ver" >> $GITHUB_OUTPUT
       - name: Prepare runtime assets
         working-directory: build

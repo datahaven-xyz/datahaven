@@ -3,7 +3,7 @@ name = "pallet-evm-precompile-proxy"
 authors = { workspace = true }
 description = "A Precompile to make proxy calls encoding accessible to pallet-evm"
 edition = "2021"
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 

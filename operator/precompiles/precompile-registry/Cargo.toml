@@ -3,7 +3,7 @@ name = "pallet-evm-precompile-registry"
 authors = ["The DataHaven Team"]
 description = "Registry of active precompiles"
 edition = "2021"
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 # Substrate

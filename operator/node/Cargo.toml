@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "datahaven-node"
 publish = false
 repository = { workspace = true }
-version = "0.1.0"
+version = { workspace = true }
 
 build = "build.rs"
 

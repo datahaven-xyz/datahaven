@@ -1,10 +1,10 @@
-import type { CompiledContract } from "@moonwall/cli";
-import chalk from "chalk";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { CompiledContract } from "@moonwall/cli";
+import chalk from "chalk";
 import solc from "solc";
 import type { Abi } from "viem";
-import crypto from "node:crypto";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -22,26 +22,26 @@ yargs(hideBin(process.argv))
       type: "string",
       alias: "p",
       description: "Path to directory containing precompile solidity files",
-      default: "../operator/precompiles/",
+      default: "../operator/precompiles/"
     },
     OutputDirectory: {
       type: "string",
       alias: "o",
       description: "Output directory for compiled contracts",
-      default: "datahaven/contracts/out",
+      default: "datahaven/contracts/out"
     },
     SourceDirectory: {
       type: "string",
       alias: "i",
       description: "Source directory for solidity contracts to compile",
-      default: "datahaven/contracts/src",
+      default: "datahaven/contracts/src"
     },
     Verbose: {
       type: "boolean",
       alias: "v",
       description: "Verbose mode for extra logging.",
-      default: false,
-    },
+      default: false
+    }
   })
   .command("compile", "Compile contracts", async (argv) => {
     await main(argv as any);
@@ -83,7 +83,7 @@ async function main(args: any) {
       contractSourcePaths.push({
         filepath: fullPath,
         importPath: path.posix.join("precompiles", entry),
-        compile: true,
+        compile: true
       });
     }
   }
@@ -91,7 +91,7 @@ async function main(args: any) {
   contractSourcePaths.push({
     filepath: sourceDirectory,
     importPath: "", // Reference in contracts are local
-    compile: true,
+    compile: true
   });
 
   const sourceToCompile = {};
@@ -196,20 +196,20 @@ function compileSolidity(
         language: "Solidity",
         sources: {
           [filename]: {
-            content: contractContent,
-          },
+            content: contractContent
+          }
         },
         settings: {
           optimizer: { enabled: true, runs: 200 },
           outputSelection: {
             "*": {
-              "*": ["*"],
-            },
+              "*": ["*"]
+            }
           },
           debug: {
-            revertStrings: "debug",
-          },
-        },
+            revertStrings: "debug"
+          }
+        }
       }),
       { import: getImports(fileRef) }
     )
@@ -223,7 +223,7 @@ function compileSolidity(
         byteCode:
           `0x${result.contracts[filename][contractName].evm.bytecode.object}` as `0x${string}`,
         contract: result.contracts[filename][contractName],
-        sourceCode: contractContent,
+        sourceCode: contractContent
       };
       return p;
     },
@@ -257,7 +257,7 @@ async function compile(
       await fs.mkdir(path.dirname(dest), { recursive: true });
       await fs.writeFile(dest, JSON.stringify(compiledContracts[contractName], null, 2), {
         flag: "w",
-        encoding: "utf-8",
+        encoding: "utf-8"
       });
       console.log(`  - ${chalk.green(`${contractName}.json`)} file has been saved 💾`);
       refByContract[dest] = fileRef;

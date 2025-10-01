@@ -38,19 +38,19 @@ export const RUNTIME_CONSTANTS = {
     GAS_LIMIT: new RuntimeConstant(60_000_000n),
     EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
     BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-    MAX_POV_SIZE: new RuntimeConstant(10_485_760n), // 10MB in bytes (matching Moonbeam)
+    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
   },
   "DATAHAVEN-MAINNET": {
     GAS_LIMIT: new RuntimeConstant(60_000_000n),
     EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
     BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-    MAX_POV_SIZE: new RuntimeConstant(10_485_760n), // 10MB in bytes (matching Moonbeam)
+    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
   },
   "DATAHAVEN-TESTNET": {
     GAS_LIMIT: new RuntimeConstant(60_000_000n),
     EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
     BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-    MAX_POV_SIZE: new RuntimeConstant(10_485_760n), // 10MB in bytes (matching Moonbeam)
+    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
   }
 };
 

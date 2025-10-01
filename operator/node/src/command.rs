@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::config;
 use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
@@ -317,6 +318,40 @@ pub fn run() -> sc_cli::Result<()> {
             let mut indexer_options: Option<IndexerOptions> = None;
             let mut fisherman_options: Option<FishermanOptions> = None;
             let runner = cli.create_runner(&cli.run)?;
+
+            // If we have a provider config file
+            if let Some(provider_config_file) = cli.provider_config_file {
+                let config = config::read_config(&provider_config_file);
+                if let Some(c) = config {
+                    // Check for mutual exclusivity in config file
+                    let has_provider = matches!(
+                        c.provider.provider_type,
+                        ProviderType::Bsp | ProviderType::Msp
+                    );
+                    let has_fisherman = !c.fisherman.database_url.is_empty();
+
+                    if has_provider && has_fisherman {
+                        return Err("Cannot configure both provider and fisherman in the same config file. Please choose one role.".into());
+                    }
+
+                    if has_provider {
+                        let provider = c.provider;
+                        provider_options = Some(provider);
+                    } else if has_fisherman {
+                        let fisherman = c.fisherman;
+                        fisherman_options = Some(fisherman);
+                    }
+
+                    indexer_options = Some(c.indexer);
+                };
+            };
+
+            if cli.provider_config.provider && cli.fisherman_config.fisherman {
+                return Err(
+                    "Cannot run as a fisherman and a provider at the same time. Please choose one role."
+                        .into(),
+                );
+            }
 
             if cli.provider_config.provider {
                 provider_options = Some(cli.provider_config.provider_options());

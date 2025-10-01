@@ -6,12 +6,20 @@ import chalk from "chalk";
 import solc from "solc";
 import type { Abi } from "viem";
 import yargs from "yargs";
+import type { ArgumentsCamelCase } from "yargs";
 import { hideBin } from "yargs/helpers";
 
-const sourceByReference = {} as { [ref: string]: string };
-const countByReference = {} as { [ref: string]: number };
-const refByContract = {} as { [contract: string]: string };
-let contractMd5 = {} as { [contract: string]: string };
+type CompileCommandOptions = {
+  PreCompilesDirectory: string;
+  OutputDirectory: string;
+  SourceDirectory: string;
+  Verbose: boolean;
+};
+
+const sourceByReference: Record<string, string> = {};
+const countByReference: Record<string, number> = {};
+const refByContract: Record<string, string> = {};
+let contractMd5: Record<string, string> = {};
 const solcVersion = solc.version();
 
 yargs(hideBin(process.argv))
@@ -43,16 +51,20 @@ yargs(hideBin(process.argv))
       default: false
     }
   })
-  .command("compile", "Compile contracts", async (argv) => {
-    await main(argv as any);
+  .command<CompileCommandOptions>({
+    command: "compile",
+    describe: "Compile contracts",
+    handler: async (argv) => {
+      await main(argv);
+    }
   })
   .parse();
 
-async function main(args: any) {
-  const precompilesPath = path.join(process.cwd(), args.argv.PreCompilesDirectory);
-  const outputDirectory = path.join(process.cwd(), args.argv.OutputDirectory);
-  const sourceDirectory = path.join(process.cwd(), args.argv.SourceDirectory);
-  const tempFile = path.join(process.cwd(), args.argv.OutputDirectory, ".compile.tmp");
+async function main(args: ArgumentsCamelCase<CompileCommandOptions>) {
+  const precompilesPath = path.join(process.cwd(), args.PreCompilesDirectory);
+  const outputDirectory = path.join(process.cwd(), args.OutputDirectory);
+  const sourceDirectory = path.join(process.cwd(), args.SourceDirectory);
+  const tempFile = path.join(process.cwd(), args.OutputDirectory, ".compile.tmp");
 
   console.log(`🧪  Solc version: ${solcVersion}`);
   const precompilesDirectoryExists = await fs
@@ -70,11 +82,11 @@ async function main(args: any) {
   await fs.mkdir(outputDirectory, { recursive: true });
 
   // Order is important so precompiles are available first
-  const contractSourcePaths = [] as Array<{
+  const contractSourcePaths: Array<{
     filepath: string;
     importPath: string;
     compile: boolean;
-  }>;
+  }> = [];
 
   if (precompilesDirectoryExists) {
     const entries = await fs.readdir(precompilesPath);
@@ -94,10 +106,10 @@ async function main(args: any) {
     compile: true
   });
 
-  const sourceToCompile = {};
+  const sourceToCompile: Record<string, string> = {};
   const filePaths: string[] = [];
   for (const contractPath of contractSourcePaths) {
-    const contracts = (await getFiles(contractPath.filepath)).filter((filename) =>
+    const contracts = (await getFiles(contractPath.filepath)).filter((filename: string) =>
       filename.endsWith(".sol")
     );
     for (const filepath of contracts) {
@@ -126,14 +138,17 @@ async function main(args: any) {
     .catch(() => false);
 
   if (tempFileExists) {
-    contractMd5 = JSON.parse((await fs.readFile(tempFile)).toString());
+    contractMd5 = JSON.parse((await fs.readFile(tempFile)).toString()) as Record<string, string>;
     for (const contract of Object.keys(sourceToCompile)) {
-      const path = filePaths.find((path) => path.includes(contract));
-      const contractHash = computeHash((await fs.readFile(path!)).toString());
+      const filePath = filePaths.find((candidate) => candidate.includes(contract));
+      if (!filePath) {
+        continue;
+      }
+      const contractHash = computeHash((await fs.readFile(filePath)).toString());
       if (contractHash !== contractMd5[contract]) {
         console.log(`  - Change in ${chalk.yellow(contract)}, compiling ⚙️`);
         contractsToCompile.push(contract);
-      } else if (args.argv.Verbose) {
+      } else if (args.Verbose) {
         console.log(`  - No change to ${chalk.green(contract)}, skipping ✅`);
       }
     }
@@ -268,15 +283,19 @@ async function compile(
   return compiledContracts;
 }
 
-async function getFiles(dir) {
+async function getFiles(dir: string): Promise<string[]> {
   const subdirs = await fs.readdir(dir);
   const files = await Promise.all(
-    subdirs.map(async (subdir) => {
-      const res = path.resolve(dir, subdir);
-      return (await fs.stat(res)).isDirectory() ? getFiles(res) : res;
+    subdirs.map(async (subdir): Promise<string[]> => {
+      const resolvedPath = path.resolve(dir, subdir);
+      const stats = await fs.stat(resolvedPath);
+      if (stats.isDirectory()) {
+        return getFiles(resolvedPath);
+      }
+      return [resolvedPath];
     })
   );
-  return files.reduce((a, f) => a.concat(f), []);
+  return files.flat();
 }
 
 function computeHash(input: string): string {

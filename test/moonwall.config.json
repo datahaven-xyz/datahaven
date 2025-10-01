@@ -13,7 +13,7 @@
         "**/*test*.ts"
       ],
       "timeout": 180000,
-      "multiThreads": 1,
+      "multiThreads": 4,
       "contracts": "contracts/",
       "runScripts": [
         "compile-contracts.ts compile"
@@ -46,37 +46,10 @@
               "--no-grandpa",
               "--no-prometheus",
               "--sealing=manual"
-            ],
-            "ports": {
-              "p2pPort": 30333,
-              "rpcPort": 9944
-            }
+            ]
           }
         ]
-      },
-      "connections": [
-        {
-          "name": "ethers",
-          "type": "ethers",
-          "endpoints": [
-            "ws://127.0.0.1:9944"
-          ]
-        },
-        {
-          "name": "viem",
-          "type": "viem",
-          "endpoints": [
-            "ws://127.0.0.1:9944"
-          ]
-        },
-        {
-          "name": "solo",
-          "type": "polkadotJs",
-          "endpoints": [
-            "ws://127.0.0.1:9944"
-          ]
-        }
-      ]
+      }
     }
   ]
 }

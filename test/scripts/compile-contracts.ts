@@ -5,8 +5,8 @@ import type { CompiledContract } from "@moonwall/cli";
 import chalk from "chalk";
 import solc from "solc";
 import type { Abi } from "viem";
-import yargs from "yargs";
 import type { ArgumentsCamelCase } from "yargs";
+import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 type CompileCommandOptions = {

@@ -47,6 +47,7 @@ pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
 pallet-evm-chain-id = { workspace = true }
 pallet-evm-precompile-blake2 = { workspace = true }
 pallet-evm-precompile-bn128 = { workspace = true }
+pallet-evm-precompile-conviction-voting = { workspace = true }
 pallet-evm-precompile-modexp = { workspace = true }
 pallet-evm-precompile-sha3fips = { workspace = true }
 pallet-evm-precompile-simple = { workspace = true }
@@ -196,6 +197,7 @@ std = [
     "pallet-evm-precompile-balances-erc20/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
+    "pallet-evm-precompile-conviction-voting/std",
     "pallet-evm-precompile-proxy/std",
     "pallet-evm-precompile-registry/std",
     "pallet-evm-precompile-file-system/std",

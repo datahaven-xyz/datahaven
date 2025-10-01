@@ -2862,6 +2862,7 @@ dependencies = [
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
+ "pallet-evm-precompile-conviction-voting",
  "pallet-evm-precompile-file-system",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-proxy",
@@ -3136,6 +3137,7 @@ dependencies = [
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
+ "pallet-evm-precompile-conviction-voting",
  "pallet-evm-precompile-file-system",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-proxy",
@@ -3276,6 +3278,7 @@ dependencies = [
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
+ "pallet-evm-precompile-conviction-voting",
  "pallet-evm-precompile-file-system",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-proxy",
@@ -9062,6 +9065,27 @@ dependencies = [
  "hex-literal 0.3.4",
  "libsecp256k1",
  "pallet-balances",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-evm-precompile-conviction-voting"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-conviction-voting",
  "pallet-evm",
  "pallet-timestamp",
  "parity-scale-codec",

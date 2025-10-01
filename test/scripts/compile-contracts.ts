@@ -28,13 +28,13 @@ yargs(hideBin(process.argv))
       type: "string",
       alias: "o",
       description: "Output directory for compiled contracts",
-      default: "contracts/out",
+      default: "datahaven/contracts/out",
     },
     SourceDirectory: {
       type: "string",
       alias: "i",
       description: "Source directory for solidity contracts to compile",
-      default: "contracts/src",
+      default: "datahaven/contracts/src",
     },
     Verbose: {
       type: "boolean",

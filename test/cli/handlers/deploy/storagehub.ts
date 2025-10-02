@@ -2,7 +2,6 @@ import path from "node:path";
 import { $ } from "bun";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
-import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { waitFor } from "utils/waits";
 import { isNetworkReady } from "../../../launcher/datahaven";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";

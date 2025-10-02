@@ -99,7 +99,7 @@ program
   .option("--skip-set-parameters", "Skip setting DataHaven runtime parameters", false)
   .option("--skip-relayers", "Skip deploying Snowbridge Relayers", false)
   .option(
-    "--skip-storagehub",
+    "--skip-storage-hub",
     "Skip deploying StorageHub components (MSP, BSP, Indexer, Fisherman, databases)",
     false
   )

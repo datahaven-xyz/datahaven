@@ -1,0 +1,77 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Moonsong-Labs/moonwall/main/packages/types/config_schema.json",
+  "label": "DataHaven Tests 🔷",
+  "defaultTestTimeout": 120000,
+  "environments": [
+    {
+      "name": "dev_datahaven",
+      "testFileDir": [
+        "suites/dev"
+      ],
+      "include": [
+        "**/*test*.ts"
+      ],
+      "timeout": 180000,
+      "multiThreads": 1,
+      "envVars": [
+        "DEBUG_COLORS=1",
+        "RUST_BACKTRACE=1",
+        "RUST_LOG=info"
+      ],
+      "reporters": [
+        "basic",
+        "html",
+        "json"
+      ],
+      "reportFile": {
+        "json": "./tmp/testResults.json"
+      },
+      "foundation": {
+        "type": "dev",
+        "launchSpec": [
+          {
+            "name": "datahaven",
+            "binPath": "../operator/target/release/datahaven-node",
+            "newRpcBehaviour": true,
+            "options": [
+              "--dev",
+              "--no-telemetry",
+              "--unsafe-force-node-key-generation",
+              "--reserved-only",
+              "--no-grandpa",
+              "--no-prometheus",
+              "--sealing=manual"
+            ],
+            "ports": {
+              "p2pPort": 30333,
+              "rpcPort": 9944
+            }
+          }
+        ]
+      },
+      "connections": [
+        {
+          "name": "ethers",
+          "type": "ethers",
+          "endpoints": [
+            "ws://127.0.0.1:9944"
+          ]
+        },
+        {
+          "name": "viem",
+          "type": "viem",
+          "endpoints": [
+            "ws://127.0.0.1:9944"
+          ]
+        },
+        {
+          "name": "solo",
+          "type": "polkadotJs",
+          "endpoints": [
+            "ws://127.0.0.1:9944"
+          ]
+        }
+      ]
+    }
+  ]
+}

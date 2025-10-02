@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::config;
 use crate::service::frontier_database_dir;
 use crate::{
     benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
@@ -10,7 +11,7 @@ use crate::{
 use datahaven_runtime_common::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
-use sc_service::DatabaseSource;
+use sc_service::{ChainType, DatabaseSource};
 use serde::Deserialize;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
@@ -112,7 +113,8 @@ macro_rules! construct_async_run {
 				runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_mainnet_runtime::Runtime, datahaven_mainnet_runtime::RuntimeApi>(
 						&$config,
-                        &mut $cli.eth.clone()
+                        &mut $cli.eth.clone(),
+                        false,
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -122,7 +124,8 @@ macro_rules! construct_async_run {
                 runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_testnet_runtime::Runtime, datahaven_testnet_runtime::RuntimeApi>(
 						&$config,
-                        &mut $cli.eth.clone()
+                        &mut $cli.eth.clone(),
+                        false,
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -132,7 +135,8 @@ macro_rules! construct_async_run {
 				runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_stagenet_runtime::Runtime, datahaven_stagenet_runtime::RuntimeApi>(
 						&$config,
-                        &mut $cli.eth.clone()
+                        &mut $cli.eth.clone(),
+                        false,
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -149,21 +153,21 @@ macro_rules! construct_benchmark_partials {
                 let $partials = service::new_partial::<
                     datahaven_mainnet_runtime::Runtime,
                     datahaven_mainnet_runtime::RuntimeApi,
-                >(&$config, &mut $cli.eth.clone())?;
+                >(&$config, &mut $cli.eth.clone(), false)?;
                 $code
             }
             ref spec if spec.is_testnet() => {
                 let $partials = service::new_partial::<
                     datahaven_testnet_runtime::Runtime,
                     datahaven_testnet_runtime::RuntimeApi,
-                >(&$config, &mut $cli.eth.clone())?;
+                >(&$config, &mut $cli.eth.clone(), false)?;
                 $code
             }
             _ => {
                 let $partials = service::new_partial::<
                     datahaven_stagenet_runtime::Runtime,
                     datahaven_stagenet_runtime::RuntimeApi,
-                >(&$config, &mut $cli.eth.clone())?;
+                >(&$config, &mut $cli.eth.clone(), false)?;
                 $code
             }
         }
@@ -318,6 +322,40 @@ pub fn run() -> sc_cli::Result<()> {
             let mut fisherman_options: Option<FishermanOptions> = None;
             let runner = cli.create_runner(&cli.run)?;
 
+            // If we have a provider config file
+            if let Some(provider_config_file) = cli.provider_config_file {
+                let config = config::read_config(&provider_config_file);
+                if let Some(c) = config {
+                    // Check for mutual exclusivity in config file
+                    let has_provider = matches!(
+                        c.provider.provider_type,
+                        ProviderType::Bsp | ProviderType::Msp
+                    );
+                    let has_fisherman = !c.fisherman.database_url.is_empty();
+
+                    if has_provider && has_fisherman {
+                        return Err("Cannot configure both provider and fisherman in the same config file. Please choose one role.".into());
+                    }
+
+                    if has_provider {
+                        let provider = c.provider;
+                        provider_options = Some(provider);
+                    } else if has_fisherman {
+                        let fisherman = c.fisherman;
+                        fisherman_options = Some(fisherman);
+                    }
+
+                    indexer_options = Some(c.indexer);
+                };
+            };
+
+            if cli.provider_config.provider && cli.fisherman_config.fisherman {
+                return Err(
+                    "Cannot run as a fisherman and a provider at the same time. Please choose one role."
+                        .into(),
+                );
+            }
+
             if cli.provider_config.provider {
                 provider_options = Some(cli.provider_config.provider_options());
             };
@@ -331,6 +369,17 @@ pub fn run() -> sc_cli::Result<()> {
             };
 
             runner.run_node_until_exit(|config| async move {
+                let sealing_mode = match (cli.sealing, config.chain_spec.chain_type()) {
+                    (Some(mode), ChainType::Development) => Some(mode),
+                    (Some(_), _) => {
+                        log::warn!(
+                            "`--sealing` is only supported on development chains; ignoring."
+                        );
+                        None
+                    }
+                    (None, _) => None,
+                };
+
                 match config.network.network_backend {
                     // TODO: Litep2p becomes standard with Polkadot SDK stable2412-7 (should move None to other arm)
                     // cfr. https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-7
@@ -347,6 +396,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -361,6 +411,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -375,6 +426,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -394,6 +446,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -408,6 +461,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }
@@ -422,6 +476,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     provider_options,
                                     indexer_options,
                                     fisherman_options,
+                                    sealing_mode,
                                 )
                                 .await
                             }

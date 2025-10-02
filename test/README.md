@@ -10,10 +10,29 @@ Quick start guide for running DataHaven end-to-end tests. For comprehensive docu
 - [Foundry](https://getfoundry.sh/introduction/installation/): To deploy contracts
 - [Helm](https://helm.sh/docs/intro/install/): The Kubernetes Package Manager 
 
-##### MacOS
+#### MacOS
+If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+You may also need to install `libpq` for PostgreSQL connectivity and set the appropriate Rust flags.
 
-> [!IMPORTANT]
-> If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+```bash
+# Install libpq using Homebrew
+brew install zig
+
+# Install libpq using Homebrew
+brew install libpq
+
+# Set environment variables for Rust compilation
+export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"
+export CPPFLAGS="-I$(brew --prefix libpq)/include"
+export LDFLAGS="-L$(brew --prefix libpq)/lib"
+export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"
+
+# Add to your shell profile (~/.zshrc or ~/.bash_profile) to persist
+echo 'export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"' >> ~/.zshrc
+echo 'export CPPFLAGS="-I$(brew --prefix libpq)/include"' >> ~/.zshrc
+echo 'export LDFLAGS="-L$(brew --prefix libpq)/lib"' >> ~/.zshrc
+echo 'export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"' >> ~/.zshrc
+```
 
 ## Quick Start
 

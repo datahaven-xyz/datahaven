@@ -49,6 +49,20 @@ pub struct Cli {
     /// Fisherman configurations
     #[command(flatten)]
     pub fisherman_config: FishermanConfigurations,
+
+    /// Provider configurations file path (allow to specify the provider configuration in a file instead of the cli)
+    #[arg(long, conflicts_with_all = [
+        "provider", "provider_type", "max_storage_capacity", "jump_capacity",
+        "storage_layer", "storage_path", "extrinsic_retry_timeout", "sync_mode_min_blocks_behind",
+        "check_for_pending_proofs_period", "max_blocks_behind_to_catch_up_root_changes",
+        "msp_charging_period", "msp_charge_fees_task", "msp_charge_fees_min_debt",
+        "msp_move_bucket_task", "msp_move_bucket_max_try_count", "msp_move_bucket_max_tip",
+        "bsp_upload_file_task", "bsp_upload_file_max_try_count", "bsp_upload_file_max_tip",
+        "bsp_move_bucket_task", "bsp_move_bucket_grace_period",
+        "bsp_charge_fees_task", "bsp_charge_fees_min_debt",
+        "bsp_submit_proof_task", "bsp_submit_proof_max_attempts", "fisherman", "fisherman_database_url",
+    ])]
+    pub provider_config_file: Option<String>,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -596,6 +610,7 @@ impl FishermanConfigurations {
                     .fisherman_database_url
                     .clone()
                     .expect("Fisherman database URL is required"),
+                maintenance_mode: false, // Skipping maintenance mode for now
             })
         } else {
             None

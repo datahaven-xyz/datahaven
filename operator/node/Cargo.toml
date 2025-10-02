@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "datahaven-node"
 publish = false
 repository = { workspace = true }
-version = "0.1.0"
+version = { workspace = true }
 
 build = "build.rs"
 
@@ -130,6 +130,7 @@ shp-types = { workspace = true }
 sp-keystore = { workspace = true }
 serde = { workspace = true, default-features = true }
 cumulus-client-service = { workspace = true }
+toml = { workspace = true }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }

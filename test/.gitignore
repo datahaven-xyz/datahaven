@@ -36,6 +36,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Test files
 tmp/*
+html/
 
 # Local CLAUDE configuration
 CLAUDE.local.md

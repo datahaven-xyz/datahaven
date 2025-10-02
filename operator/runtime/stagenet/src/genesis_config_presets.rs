@@ -1,8 +1,10 @@
 use crate::{
-    configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, BalancesConfig, RuntimeGenesisConfig,
-    SessionKeys, Signature, SudoConfig, TechnicalCommitteeConfig, TreasuryCouncilConfig,
+    configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, BalancesConfig, EvmConfig, Precompiles,
+    RuntimeGenesisConfig, SessionKeys, Signature, SudoConfig, TechnicalCommitteeConfig,
+    TreasuryCouncilConfig,
 };
 use alloc::{format, vec, vec::Vec};
+use fp_evm::GenesisAccount;
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use serde_json::Value;
@@ -24,16 +26,40 @@ fn testnet_genesis(
     technical_committee_members: Vec<AccountId>,
     evm_chain_id: u64,
 ) -> Value {
+    // This is the simplest bytecode to revert without returning any data.
+    // We will pre-deploy it under all of our precompiles to ensure they can be called from
+    // within contracts.
+    // (PUSH1 0x00 PUSH1 0x00 REVERT)
+    let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
+
     let config = RuntimeGenesisConfig {
         balances: BalancesConfig {
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1u128 << 110))
+                .map(|k| (k, 1u128 << 80))
                 .collect::<Vec<_>>(),
         },
         babe: pallet_babe::GenesisConfig {
             epoch_config: BABE_GENESIS_EPOCH_CONFIG,
+            ..Default::default()
+        },
+        evm: EvmConfig {
+            // We need _some_ code inserted at the precompile address so that
+            // the evm will actually call the address.
+            accounts: Precompiles::used_addresses()
+                .map(|addr| {
+                    (
+                        addr.into(),
+                        GenesisAccount {
+                            nonce: Default::default(),
+                            balance: Default::default(),
+                            storage: Default::default(),
+                            code: revert_bytecode.clone(),
+                        },
+                    )
+                })
+                .collect(),
             ..Default::default()
         },
         evm_chain_id: pallet_evm_chain_id::GenesisConfig {
@@ -92,8 +118,14 @@ pub fn development_config_genesis() -> Value {
     endowed_accounts.sort();
 
     testnet_genesis(
-        // Alice is the only authority in Dev mode
-        vec![authority_keys_from_seed("Alice")],
+        // Alith is the only authority in Dev mode (using Alice's session keys)
+        vec![(
+            alith(),
+            get_from_seed::<BabeId>("Alice"),
+            get_from_seed::<GrandpaId>("Alice"),
+            get_from_seed::<ImOnlineId>("Alice"),
+            get_from_seed::<BeefyId>("Alice"),
+        )],
         // Alith is Sudo
         alith(),
         // Endowed: Alice, Bob, Charlie, Dave, Eve, Ferdie,

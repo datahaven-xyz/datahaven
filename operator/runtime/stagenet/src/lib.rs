@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 512.
+#![recursion_limit = "512"]
 
 extern crate alloc;
 #[cfg(feature = "std")]
@@ -14,6 +14,7 @@ pub mod weights;
 
 // Re-export governance for tests
 pub use configs::governance;
+pub use configs::Precompiles;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -123,9 +124,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
-    // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
+    // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 100,
+    spec_version: 200,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -376,6 +377,9 @@ mod runtime {
 
     #[runtime::pallet_index(38)]
     pub type Proxy = pallet_proxy;
+
+    #[runtime::pallet_index(39)]
+    pub type MultiBlockMigrations = pallet_migrations;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔═════════════════════════ Governance Pallets ════════════════════╗
@@ -1222,7 +1226,8 @@ impl_runtime_apis! {
     //║                                        STORAGEHUB APIS                                                        ║
     //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-    impl pallet_file_system_runtime_api::FileSystemApi<Block, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>> for Runtime {
+
+    impl pallet_file_system_runtime_api::FileSystemApi<Block, AccountId, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>, BucketId<Runtime>, StorageDataUnit<Runtime>, H256> for Runtime {
         fn is_storage_request_open_to_volunteers(file_key: H256) -> Result<bool, IsStorageRequestOpenToVolunteersError> {
             FileSystem::is_storage_request_open_to_volunteers(file_key)
         }
@@ -1239,12 +1244,23 @@ impl_runtime_apis! {
             FileSystem::query_msp_confirm_chunks_to_prove_for_file(msp_id, file_key)
         }
 
-       fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
+        fn query_bsps_volunteered_for_file(file_key: H256) -> Result<Vec<BackupStorageProviderId<Runtime>>, QueryBspsVolunteeredForFileError> {
+            FileSystem::query_bsps_volunteered_for_file(file_key)
+        }
+
+        fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
             FileSystem::decode_generic_apply_delta_event_info(encoded_event_info)
+        }
+
+        fn storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
+            FileSystem::storage_requests_by_msp(msp_id)
         }
 
         fn pending_storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
             FileSystem::pending_storage_requests_by_msp(msp_id)
+        }
+        fn query_incomplete_storage_request_metadata(file_key: H256) -> Result<pallet_file_system_runtime_api::IncompleteStorageRequestMetadataResponse<AccountId, BucketId<Runtime>, StorageDataUnit<Runtime>, H256, BackupStorageProviderId<Runtime>>, QueryIncompleteStorageRequestMetadataError> {
+            FileSystem::query_incomplete_storage_request_metadata(file_key)
         }
     }
 

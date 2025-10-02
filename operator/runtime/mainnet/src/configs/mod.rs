@@ -32,12 +32,12 @@ use super::{
     precompiles::{DataHavenPrecompiles, PrecompileName},
     AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
     EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
-    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
-    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    SLOT_DURATION, VERSION,
+    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
+    Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
+    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -87,6 +87,10 @@ use datahaven_runtime_common::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
+    migrations::{
+        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
+        MigrationIdentifierMaxLen, MigrationStatusHandler,
+    },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -203,6 +207,10 @@ parameter_types! {
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
 
+parameter_types! {
+    pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
+}
+
 /// Normal Call Filter
 pub struct NormalCallFilter;
 impl Contains<RuntimeCall> for NormalCallFilter {
@@ -256,6 +264,7 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = mainnet_weights::frame_system::WeightInfo<Runtime>;
+    type MultiBlockMigrator = MultiBlockMigrations;
     /// Use the NormalCallFilter to restrict certain runtime calls
     type BaseCallFilter = NormalCallFilter;
 }
@@ -781,6 +790,18 @@ impl pallet_parameters::Config for Runtime {
     type WeightInfo = mainnet_weights::pallet_parameters::WeightInfo<Runtime>;
 }
 
+impl pallet_migrations::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
+    type CursorMaxLen = MigrationCursorMaxLen;
+    type IdentifierMaxLen = MigrationIdentifierMaxLen;
+    type MigrationStatusHandler = MigrationStatusHandler;
+    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
+    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type MaxServiceWeight = MaxServiceWeight;
+    type WeightInfo = mainnet_weights::pallet_migrations::WeightInfo<Runtime>;
+}
+
 impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
@@ -902,10 +923,12 @@ where
 
 datahaven_runtime_common::impl_on_charge_evm_transaction!();
 
+pub type Precompiles = DataHavenPrecompiles<Runtime>;
+
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
+    pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
     /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
@@ -931,7 +954,7 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesType = Precompiles;
     type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;

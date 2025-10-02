@@ -243,28 +243,42 @@ where
 
 fn build_babe_inherent_providers(
     slot_duration: sp_consensus_babe::SlotDuration,
+    use_mock_timestamp: bool,
 ) -> (
     sp_consensus_babe::inherents::InherentDataProvider,
     sp_timestamp::InherentDataProvider,
 ) {
-    // In manual/instant sealing we want to advance time deterministically per block
-    // to satisfy `pallet_timestamp` MinimumPeriod without sleeping. We increment a
-    // static counter by one slot each time and use that value as the timestamp.
-    let increment = slot_duration.as_millis();
-    let next_ts = MOCK_TIMESTAMP
-        .fetch_add(increment, Ordering::SeqCst)
-        .saturating_add(increment);
-    let timestamp = sp_timestamp::InherentDataProvider::new(sp_timestamp::Timestamp::new(next_ts));
-    let slot = sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-        *timestamp,
-        slot_duration,
-    );
-    (slot, timestamp)
+    if use_mock_timestamp {
+        // In manual/instant sealing we want to advance time deterministically per block
+        // to satisfy `pallet_timestamp` MinimumPeriod without sleeping. We increment a
+        // static counter by one slot each time and use that value as the timestamp.
+        let increment = slot_duration.as_millis();
+        let next_ts = MOCK_TIMESTAMP
+            .fetch_add(increment, Ordering::SeqCst)
+            .saturating_add(increment);
+        let timestamp =
+            sp_timestamp::InherentDataProvider::new(sp_timestamp::Timestamp::new(next_ts));
+        let slot =
+            sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                *timestamp,
+                slot_duration,
+            );
+        (slot, timestamp)
+    } else {
+        let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+        let slot =
+            sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                *timestamp,
+                slot_duration,
+            );
+        (slot, timestamp)
+    }
 }
 
 pub fn new_partial<Runtime, RuntimeApi>(
     config: &Configuration,
     eth_config: &mut EthConfiguration,
+    use_mock_timestamp: bool,
 ) -> Result<Service<RuntimeApi>, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime,
@@ -364,7 +378,7 @@ where
         select_chain: select_chain.clone(),
         create_inherent_data_providers: move |_, ()| {
             std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
-                build_babe_inherent_providers(slot_duration),
+                build_babe_inherent_providers(slot_duration, use_mock_timestamp),
             ))
         },
         spawner: &task_manager.spawn_essential_handle(),
@@ -421,6 +435,24 @@ where
     StorageHubBuilder<R, S, Runtime>: StorageLayerBuilder + Buildable<(R, S), Runtime>,
     StorageHubHandler<(R, S), Runtime>: RunnableTasks,
 {
+    let role = config.role;
+    let mut sealing = match sealing {
+        Some(_) if !matches!(config.chain_spec.chain_type(), ChainType::Development) => {
+            log::warn!("Manual sealing is only available for development chains; disabling.");
+            None
+        }
+        other => other,
+    };
+
+    if sealing.is_some() && !role.is_authority() {
+        log::warn!(
+            "Manual sealing requested but the node is not running as an authority; disabling."
+        );
+        sealing = None;
+    }
+
+    let use_mock_timestamp = sealing.is_some();
+
     let sc_service::PartialComponents {
         client,
         backend,
@@ -440,23 +472,7 @@ where
                 storage_override,
                 mut telemetry,
             ),
-    } = new_partial::<Runtime, RuntimeApi>(&config, &mut eth_config)?;
-
-    let role = config.role;
-    let mut sealing = match sealing {
-        Some(_) if !matches!(config.chain_spec.chain_type(), ChainType::Development) => {
-            log::warn!("Manual sealing is only available for development chains; disabling.");
-            None
-        }
-        other => other,
-    };
-
-    if sealing.is_some() && !role.is_authority() {
-        log::warn!(
-            "Manual sealing requested but the node is not running as an authority; disabling."
-        );
-        sealing = None;
-    }
+    } = new_partial::<Runtime, RuntimeApi>(&config, &mut eth_config, use_mock_timestamp)?;
 
     let is_authority = role.is_authority();
 
@@ -729,7 +745,7 @@ where
 
             let create_inherent_data_providers = move |_, ()| {
                 std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
-                    build_babe_inherent_providers(slot_duration),
+                    build_babe_inherent_providers(slot_duration, true),
                 ))
             };
 
@@ -790,7 +806,7 @@ where
             let slot_duration = babe_link.clone().config().slot_duration();
             let create_inherent_data_providers = move |_, ()| {
                 std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
-                    build_babe_inherent_providers(slot_duration),
+                    build_babe_inherent_providers(slot_duration, false),
                 ))
             };
             let babe_config = sc_consensus_babe::BabeParams {

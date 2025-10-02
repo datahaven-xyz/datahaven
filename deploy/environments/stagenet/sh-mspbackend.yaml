@@ -26,9 +26,12 @@ service:
 backend:
   database:
     url: postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven
-    
+
   rpc:
     endpoint: ws://sh-mspnode-0:9955
+
+  auth:
+    jwtSecret: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
   # CLI arguments for production
   args:
@@ -66,6 +69,3 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-
-backend:
-  port: 8080

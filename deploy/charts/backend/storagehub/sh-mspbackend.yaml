@@ -19,14 +19,18 @@ service:
 # Backend API configuration
 backend:
   port: 8080
-  
+
   # Database connection to StorageHub Indexer PostgreSQL
   database:
     url: postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven
-    
+
   # RPC connection to StorageHub Indexer node
   rpc:
     endpoint: ws://sh-mspnode-0:9955
+
+  # Authentication (set in environment-specific values)
+  # auth:
+  #   jwtSecret: "set-in-environment-values"
     
   # CLI arguments for the backend application
   args:

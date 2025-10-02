@@ -86,6 +86,10 @@ backend:
   api:
     defaultPageSize: 20
     maxPageSize: 100
+
+  # Authentication configuration
+  auth:
+    jwtSecret: ""
     
   # Environment variables
   env:

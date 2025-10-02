@@ -27,6 +27,11 @@ data:
     verify_tls = true
     mock_mode = false
 
+    [auth]
+    {{- if .Values.backend.auth.jwtSecret }}
+    jwt_secret = {{ .Values.backend.auth.jwtSecret | quote }}
+    {{- end }}
+
     [database]
     {{- if .Values.backend.database.url }}
     url = {{ .Values.backend.database.url | quote }}

@@ -29,7 +29,10 @@ backend:
     
   rpc:
     url: ws://sh-idxnode:9944
-    
+
+  auth:
+    jwtSecret: "local-development-secret"
+
   env:
     LOG_LEVEL: debug
     

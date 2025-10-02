@@ -943,10 +943,12 @@ where
 
 datahaven_runtime_common::impl_on_charge_evm_transaction!();
 
+pub type Precompiles = DataHavenPrecompiles<Runtime>;
+
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
+    pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
     /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
@@ -972,7 +974,7 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesType = Precompiles;
     type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;

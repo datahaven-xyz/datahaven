@@ -13,6 +13,7 @@ pub mod precompiles;
 pub mod weights;
 // Re-export governance for tests
 pub use configs::governance;
+pub use configs::Precompiles;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;

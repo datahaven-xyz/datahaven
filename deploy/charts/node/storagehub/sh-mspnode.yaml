@@ -29,6 +29,7 @@ node:
       # ${HOSTNAME##*-} will be evaluated as the pod index, pod-0: //Charlie, pod-1: //Dave
       extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Charlie" || echo "//Dave")'
   persistGeneratedNodeKey: true
+  allowUnsafeRpcMethods: true
   flags:
     - "--allow-private-ipv4"
     - "--discover-local"

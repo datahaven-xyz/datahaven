@@ -126,6 +126,7 @@ pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
+pallet-evm-precompile-collective = { workspace = true }
 
 # StorageHub
 pallet-bucket-nfts = { workspace = true }
@@ -194,11 +195,11 @@ std = [
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
 	"pallet-evm-precompile-balances-erc20/std",
-"pallet-evm-precompile-registry/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-proxy/std",
 	"pallet-evm-precompile-registry/std",
+    "pallet-evm-precompile-collective/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",

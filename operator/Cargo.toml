@@ -37,6 +37,7 @@ pallet-evm-precompile-batch = { path = "./precompiles/batch", default-features =
 pallet-evm-precompile-call-permit = { path = "./precompiles/call-permit", default-features = false }
 pallet-evm-precompile-proxy = { path = "./precompiles/proxy", default-features = false }
 pallet-evm-precompile-registry = { path = "./precompiles/precompile-registry", default-features = false }
+pallet-evm-precompile-collective = { path = "./precompiles/collective", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }

@@ -146,3 +146,8 @@ export const getContractInstance = async <C extends ContractName>(
     client
   });
 };
+
+export const getAbi = async (contract: string) => {
+  const contractInstance = await getContractInstance(contract as ContractName);
+  return contractInstance.abi;
+};

@@ -35,3 +35,4 @@ tmp/*
 .claude/
 CLAUDE.local.md
 Agents.md
+.cursor/

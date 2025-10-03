@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import invariant from "tiny-invariant";
-import { logger, runShellCommandWithLogger } from "../utils/index";
+import {
+  getValidatorInfoByName,
+  logger,
+  runShellCommandWithLogger,
+  TestAccounts
+} from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -18,7 +23,9 @@ interface ValidatorConfig {
   validators: {
     publicKey: string;
     privateKey: string;
-    solochainAddress?: string; // Optional substrate address
+    solochainAddress?: string;
+    solochainPrivateKey?: string;
+    solochainAuthorityName: string;
   }[];
   notes?: string;
 }
@@ -93,10 +100,14 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     }
   }
 
-  const validators = config.validators;
-  logger.info(`🔎 Found ${validators.length} validators to register`);
+  const validators = [
+    getValidatorInfoByName(config, TestAccounts.Alice),
+    getValidatorInfoByName(config, TestAccounts.Bob)
+  ];
 
-  // Iterate through all validators to register them
+  logger.info(`🔎 Registering ${validators.length} validators`);
+
+  // Iterate through validators to register them
   for (let i = 0; i < validators.length; i++) {
     const validator = validators[i];
     logger.info(`🔧 Setting up validator ${i} (${validator.publicKey})`);

@@ -113,7 +113,8 @@ macro_rules! construct_async_run {
 				runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_mainnet_runtime::Runtime, datahaven_mainnet_runtime::RuntimeApi>(
 						&$config,
-                        &mut $cli.eth.clone()
+                        &mut $cli.eth.clone(),
+                        false,
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -123,7 +124,8 @@ macro_rules! construct_async_run {
                 runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_testnet_runtime::Runtime, datahaven_testnet_runtime::RuntimeApi>(
 						&$config,
-                        &mut $cli.eth.clone()
+                        &mut $cli.eth.clone(),
+                        false,
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -133,7 +135,8 @@ macro_rules! construct_async_run {
 				runner.async_run(|$config| {
 					let $components = service::new_partial::<datahaven_stagenet_runtime::Runtime, datahaven_stagenet_runtime::RuntimeApi>(
 						&$config,
-                        &mut $cli.eth.clone()
+                        &mut $cli.eth.clone(),
+                        false,
 					)?;
 					let task_manager = $components.task_manager;
 					{ $( $code )* }.map(|v| (v, task_manager))
@@ -150,21 +153,21 @@ macro_rules! construct_benchmark_partials {
                 let $partials = service::new_partial::<
                     datahaven_mainnet_runtime::Runtime,
                     datahaven_mainnet_runtime::RuntimeApi,
-                >(&$config, &mut $cli.eth.clone())?;
+                >(&$config, &mut $cli.eth.clone(), false)?;
                 $code
             }
             ref spec if spec.is_testnet() => {
                 let $partials = service::new_partial::<
                     datahaven_testnet_runtime::Runtime,
                     datahaven_testnet_runtime::RuntimeApi,
-                >(&$config, &mut $cli.eth.clone())?;
+                >(&$config, &mut $cli.eth.clone(), false)?;
                 $code
             }
             _ => {
                 let $partials = service::new_partial::<
                     datahaven_stagenet_runtime::Runtime,
                     datahaven_stagenet_runtime::RuntimeApi,
-                >(&$config, &mut $cli.eth.clone())?;
+                >(&$config, &mut $cli.eth.clone(), false)?;
                 $code
             }
         }

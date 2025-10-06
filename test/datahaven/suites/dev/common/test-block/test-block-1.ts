@@ -1,6 +1,6 @@
 import { beforeAll, describeSuite, expect } from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
-import { ConstantStore } from "../../helpers";
+import { ConstantStore } from "../../../../helpers";
 
 describeSuite({
   id: "D010101",

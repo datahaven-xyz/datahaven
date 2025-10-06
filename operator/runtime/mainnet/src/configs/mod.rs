@@ -708,13 +708,11 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
 fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
     matches!(
         precompile_name,
-            PrecompileName::ConvictionVotingPrecompile
-            // | PrecompileName::PreimagePrecompile
-            // | PrecompileName::ReferendaPrecompile
-            // | PrecompileName::OpenTechCommitteeInstance
-            // | PrecompileName::TreasuryCouncilInstance
+        PrecompileName::ConvictionVotingPrecompile // | PrecompileName::PreimagePrecompile
+                                                   // | PrecompileName::ReferendaPrecompile
+                                                   // | PrecompileName::OpenTechCommitteeInstance
+                                                   // | PrecompileName::TreasuryCouncilInstance
     )
-    false // Temporarily disabled until governance precompiles are added
 }
 
 impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {

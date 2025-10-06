@@ -98,7 +98,7 @@ describeSuite({
         // All batch functions should use similar gas (within reasonable tolerance)
         // The actual gas used includes one storage read for balance check
         const expectedGas = 43932n + STORAGE_READ_GAS_COST;
-        
+
         expect(batchAllReceipt.gasUsed).toBe(expectedGas);
         expect(batchSomeReceipt.gasUsed).toBe(expectedGas);
         expect(batchSomeUntilFailureReceipt.gasUsed).toBe(expectedGas);
@@ -169,74 +169,76 @@ describeSuite({
           ],
         });
 
-        const signature = await context.viem().signTypedData({
-          types: {
-            EIP712Domain: [
-              {
-                name: "name",
-                type: "string",
-              },
-              {
-                name: "version",
-                type: "string",
-              },
-              {
-                name: "chainId",
-                type: "uint256",
-              },
-              {
-                name: "verifyingContract",
-                type: "address",
-              },
-            ],
-            CallPermit: [
-              {
-                name: "from",
-                type: "address",
-              },
-              {
-                name: "to",
-                type: "address",
-              },
-              {
-                name: "value",
-                type: "uint256",
-              },
-              {
-                name: "data",
-                type: "bytes",
-              },
-              {
-                name: "gaslimit",
-                type: "uint64",
-              },
-              {
-                name: "nonce",
-                type: "uint256",
-              },
-              {
-                name: "deadline",
-                type: "uint256",
-              },
-            ],
-          },
-          primaryType: "CallPermit",
-          domain: {
-            name: "Call Permit Precompile",
-            version: "1",
-            chainId: 3151908n, // DataHaven chain ID
-            verifyingContract: PRECOMPILE_CALL_PERMIT_ADDRESS,
-          },
-          message: {
-            from: ALITH_ADDRESS,
-            to: PRECOMPILE_BATCH_ADDRESS,
-            value: 0n,
-            data: batchData,
-            gaslimit: 200_000n,
-            nonce: fromHex(alithNonceResult!, "bigint"),
-            deadline: 9999999999n,
-          },
-        });
+        const signature = await context
+          .viem("wallet")
+          .signTypedData({
+            types: {
+              EIP712Domain: [
+                {
+                  name: "name",
+                  type: "string",
+                },
+                {
+                  name: "version",
+                  type: "string",
+                },
+                {
+                  name: "chainId",
+                  type: "uint256",
+                },
+                {
+                  name: "verifyingContract",
+                  type: "address",
+                },
+              ],
+              CallPermit: [
+                {
+                  name: "from",
+                  type: "address",
+                },
+                {
+                  name: "to",
+                  type: "address",
+                },
+                {
+                  name: "value",
+                  type: "uint256",
+                },
+                {
+                  name: "data",
+                  type: "bytes",
+                },
+                {
+                  name: "gaslimit",
+                  type: "uint64",
+                },
+                {
+                  name: "nonce",
+                  type: "uint256",
+                },
+                {
+                  name: "deadline",
+                  type: "uint256",
+                },
+              ],
+            },
+            primaryType: "CallPermit",
+            domain: {
+              name: "Call Permit Precompile",
+              version: "1",
+              chainId: 3151908n, // DataHaven chain ID
+              verifyingContract: PRECOMPILE_CALL_PERMIT_ADDRESS,
+            },
+            message: {
+              from: ALITH_ADDRESS,
+              to: PRECOMPILE_BATCH_ADDRESS,
+              value: 0n,
+              data: batchData,
+              gaslimit: 200_000n,
+              nonce: fromHex(alithNonceResult!, "bigint"),
+              deadline: 9999999999n,
+            },
+          });
         const { v, r, s } = getSignatureParameters(signature);
 
         const { result: baltatharForAlithResult } = await context.createBlock(

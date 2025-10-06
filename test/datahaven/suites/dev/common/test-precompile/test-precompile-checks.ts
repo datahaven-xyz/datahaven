@@ -1,6 +1,6 @@
 import { beforeAll, describeSuite, expect } from "@moonwall/cli";
 import { encodeFunctionData } from "viem";
-import { deployedContractsInLatestBlock, expectEVMResult } from "../../../../helpers";
+import { deployedContractsInLatestBlock } from "../../../../helpers";
 
 describeSuite({
   id: "D010313",
@@ -12,6 +12,7 @@ describeSuite({
     beforeAll(async () => {
       // Test setup
       multiplyBy7Contract = await context.deployContract!("MultiplyBy7");
+      await context.createBlock();
 
       expect(await deployedContractsInLatestBlock(context)).toContain(
         multiplyBy7Contract.contractAddress
@@ -57,6 +58,7 @@ describeSuite({
             rawTxOnly: true,
           }
         );
+        await context.createBlock();
         expect(await deployedContractsInLatestBlock(context)).toContain(contract.contractAddress);
 
         await expect(

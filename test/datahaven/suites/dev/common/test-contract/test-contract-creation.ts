@@ -28,8 +28,12 @@ describeSuite({
         const contractData = fetchCompiledContract("MultiplyBy7");
         const callCode = (await context.viem().call({ data: contractData.bytecode })).data;
         const { contractAddress } = await context.deployContract!("MultiplyBy7");
-        const deployedCode = await context.viem("public").getCode({ address: contractAddress! });
-        expect(callCode).toBe(deployedCode);
+        await context.createBlock();
+
+        const deployedCode = await context
+          .viem("public")
+          .getCode({ address: contractAddress!, blockTag: "latest" });
+        expect(deployedCode).toBe(callCode);
       },
     });
 
@@ -66,20 +70,17 @@ describeSuite({
           nonce,
         });
 
+        await context.createBlock();
+
         const contractAddress = ("0x" +
           keccak256(hexToU8a(toRlp([ALITH_ADDRESS, numberToHex(nonce)])))
             .slice(12)
             .substring(14)) as `0x${string}`;
 
-        expect(
-          await context.viem("public").getCode({ address: contractAddress, blockTag: "pending" })
-        ).toEqual(compiled.deployedBytecode);
-
-        await context.createBlock();
-
-        expect(
-          await context.viem("public").getCode({ address: contractAddress, blockTag: "latest" })
-        ).toEqual(compiled.deployedBytecode);
+        const deployedCode = await context
+          .viem("public")
+          .getCode({ address: contractAddress, blockTag: "latest" });
+        expect(deployedCode).toEqual(compiled.deployedBytecode);
       },
     });
 

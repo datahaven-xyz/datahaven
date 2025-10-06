@@ -1,7 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/Moonsong-Labs/moonwall/main/packages/types/config_schema.json",
   "label": "DataHaven Tests 🔷",
-  "defaultTestTimeout": 120000,
+  "defaultTestTimeout": 180000,
+  "scriptsDir": "scripts/",
   "environments": [
     {
       "name": "dev_datahaven",
@@ -12,7 +13,11 @@
         "**/*test*.ts"
       ],
       "timeout": 180000,
-      "multiThreads": 1,
+      "multiThreads": 4,
+      "contracts": "contracts/",
+      "runScripts": [
+        "compile-contracts.sh compile"
+      ],
       "envVars": [
         "DEBUG_COLORS=1",
         "RUST_BACKTRACE=1",
@@ -41,37 +46,10 @@
               "--no-grandpa",
               "--no-prometheus",
               "--sealing=manual"
-            ],
-            "ports": {
-              "p2pPort": 30333,
-              "rpcPort": 9944
-            }
+            ]
           }
         ]
-      },
-      "connections": [
-        {
-          "name": "ethers",
-          "type": "ethers",
-          "endpoints": [
-            "ws://127.0.0.1:9944"
-          ]
-        },
-        {
-          "name": "viem",
-          "type": "viem",
-          "endpoints": [
-            "ws://127.0.0.1:9944"
-          ]
-        },
-        {
-          "name": "solo",
-          "type": "polkadotJs",
-          "endpoints": [
-            "ws://127.0.0.1:9944"
-          ]
-        }
-      ]
+      }
     }
   ]
 }

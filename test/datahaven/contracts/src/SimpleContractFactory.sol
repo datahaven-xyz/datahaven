@@ -23,7 +23,7 @@ contract SimpleContractFactory {
         deployedWithCreate.push(newContract);
     }
 
-    function createSimpleContractWithCreate2(uint salt) public returns (address) {
+    function createSimpleContractWithCreate2(uint256 salt) public returns (address) {
         bytes memory bytecode = type(SimpleContract).creationCode;
 
         address addr;
@@ -45,4 +45,3 @@ contract SimpleContractFactory {
         return deployedWithCreate2;
     }
 }
-

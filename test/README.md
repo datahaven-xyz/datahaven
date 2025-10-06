@@ -232,37 +232,46 @@ This script will:
 
 ```
 test/
-├── suites/                        # E2E test suites
-│   ├── block-validation.test.ts  # Block production & finality
-│   ├── native-transfer.test.ts   # Cross-chain token transfers
-│   ├── rewards.test.ts           # Validator rewards distribution
-│   └── validator-set.test.ts     # Dynamic validator set updates
-├── framework/                     # Test utilities & helpers
-│   ├── clients/                  # API clients (Ethereum, DataHaven)
-│   ├── deployers/                # Contract deployment helpers
-│   └── utils/                    # Common test utilities
-├── launcher/                      # Network deployment tools
-│   ├── kurtosis/                 # Ethereum network launcher
-│   ├── snowbridge/               # Relayer management
-│   └── datahaven/                # DataHaven node management
-├── generated/                     # Generated types
-│   ├── wagmi/                    # Contract bindings
-│   └── polkadot-api/             # Runtime types
-└── docs/                          # Testing documentation
+├── suites/                              # E2E test suites
+│   ├── contracts.test.ts               # Contract deployment & configuration
+│   ├── cross-chain.test.ts             # Cross-chain message passing
+│   ├── datahaven-substrate.test.ts     # Block production & finality
+│   ├── ethereum-basic.test.ts          # Ethereum network validation
+│   ├── native-token-transfer.test.ts   # Cross-chain token transfers
+│   ├── rewards-message.test.ts         # Validator rewards distribution
+│   └── validator-set-update.test.ts    # Dynamic validator set updates
+├── framework/                           # Test utilities & helpers
+│   ├── connectors.ts                   # Network connectors
+│   ├── manager.ts                      # Test environment manager
+│   ├── suite.ts                        # Test suite utilities
+│   └── index.ts                        # Framework exports
+├── launcher/                            # Network deployment tools
+│   ├── kurtosis/                       # Ethereum network launcher
+│   ├── snowbridge/                     # Relayer management
+│   └── datahaven/                      # DataHaven node management
+├── generated/                           # Generated types
+│   ├── wagmi/                          # Contract bindings
+│   └── polkadot-api/                   # Runtime types
+└── docs/                                # Testing documentation
     ├── E2E_TESTING_GUIDE.md
     └── E2E_FRAMEWORK_OVERVIEW.md
 ```
 
 ## Test Suites
 
-- **Block Validation**: Tests block production, finalization, and consensus
-- **Native Transfer**: Validates cross-chain token transfers via Snowbridge
-- **Rewards**: Tests validator reward distribution from Ethereum to DataHaven
-- **Validator Set**: Tests dynamic validator registration/deregistration via EigenLayer
+- **contracts.test.ts**: Contract deployment and configuration validation
+- **cross-chain.test.ts**: Cross-chain message passing between Ethereum and DataHaven
+- **datahaven-substrate.test.ts**: Block production, finalization, and consensus
+- **ethereum-basic.test.ts**: Ethereum network health and basic functionality
+- **native-token-transfer.test.ts**: Cross-chain token transfers via Snowbridge
+- **rewards-message.test.ts**: Validator reward distribution from Ethereum to DataHaven
+- **validator-set-update.test.ts**: Dynamic validator registration/deregistration via EigenLayer
 
 Run individual suites:
 ```bash
-bun test suites/rewards.test.ts
+bun test suites/rewards-message.test.ts
+bun test suites/native-token-transfer.test.ts
+bun test suites/validator-set-update.test.ts
 ```
 
 ## Further Information

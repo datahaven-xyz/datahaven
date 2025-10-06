@@ -5,40 +5,46 @@
 
 import type { GenericContext } from "@moonwall/cli";
 
-/**
- * Class allowing to store multiple values for a runtime constant based on the runtime version
- */
 class RuntimeConstant<T> {
-  private values: { [version: number]: T };
+  private readonly values: Map<number, T>;
 
-  constructor(values: { [version: number]: T } | T) {
-    if (values instanceof Object) {
-      this.values = values;
-    } else {
-      this.values = { 0: values };
-    }
+  constructor(valuesByVersion: Record<number, T>) {
+    this.values = new Map(Object.entries(valuesByVersion).map(([k, v]) => [Number(k), v]));
   }
 
-  get(runtimeVersion: number): T {
-    const versions = Object.keys(this.values).map(Number);
-    let value: T | undefined;
-    for (let i = 0; i < versions.length; i++) {
-      if (versions[i] > runtimeVersion) {
-        break;
+  get(version: number): T {
+    const sortedVersions = Array.from(this.values.keys()).sort((a, b) => b - a);
+    for (const v of sortedVersions) {
+      if (version >= v) {
+        return this.values.get(v)!;
       }
-      value = this.values[versions[i]];
     }
-    return value as T;
+    return this.values.get(0)!;
   }
 }
 
 const DATAHAVEN_CONSTANTS = {
-  GAS_LIMIT: new RuntimeConstant(60_000_000n),
-  EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
-  BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-  MAX_POV_SIZE: new RuntimeConstant(10_485_760n),
-  STORAGE_READ_COST: 25_000_000n,
+  CHAIN_ID: 3151908n,
+  BLOCK_TIME: 12_000n,
+  SLOT_DURATION: 12_000n,
+  BLOCK_WEIGHT_LIMIT: new RuntimeConstant({
+    0: 2_000_000_000_000n,
+  }),
+  GAS_LIMIT: new RuntimeConstant({
+    0: 60_000_000n,
+  }),
+  EXTRINSIC_GAS_LIMIT: new RuntimeConstant({
+    0: 52_000_000n,
+  }),
   WEIGHT_TO_GAS_RATIO: 25_000n,
+  SUPPLY_FACTOR: 1n,
+  PRECOMPILE_ADDRESSES: {
+    BATCH: "0x0000000000000000000000000000000000000808" as const,
+    CALL_PERMIT: "0x000000000000000000000000000000000000080a" as const,
+    PROXY: "0x000000000000000000000000000000000000080b" as const,
+    ERC20_BALANCES: "0x0000000000000000000000000000000000000802" as const,
+    PRECOMPILE_REGISTRY: "0x0000000000000000000000000000000000000815" as const,
+  },
 } as const;
 
 type ConstantStoreType = typeof DATAHAVEN_CONSTANTS;

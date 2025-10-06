@@ -15,7 +15,7 @@ describeSuite({
       test: async function () {
         const { contractAddress, hash } = await context.deployContract!("MultiplyBy7");
         await context.createBlock();
-        
+
         expect(hash).toBeTruthy();
         expect(contractAddress).toBeTruthy();
       },

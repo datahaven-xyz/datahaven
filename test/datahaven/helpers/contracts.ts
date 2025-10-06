@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Abi } from "viem";
@@ -32,11 +32,30 @@ export interface CompiledContractArtifact {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const fetchCompiledContract = async (
+export const fetchCompiledContract = (
   contractName: string
-): Promise<CompiledContractArtifact> => {
-  const artifactPath = path.join(__dirname, "../", "contracts", "out", `${contractName}.json`);
-  const artifactContent = await readFile(artifactPath, "utf-8");
+): CompiledContractArtifact => {
+  let artifactPath = path.join(__dirname, "../", "contracts", "out", `${contractName}.json`);
+  if (!existsSync(artifactPath)) {
+    const folder = contractName
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .replace(/_/g, "-")
+      .toLowerCase()
+      .replace(/-+precompile$/, "");
+    const candidate = path.join(
+      __dirname,
+      "../",
+      "contracts",
+      "out",
+      "precompiles",
+      folder,
+      `${contractName}.json`
+    );
+    if (existsSync(candidate)) {
+      artifactPath = candidate;
+    }
+  }
+  const artifactContent = readFileSync(artifactPath, "utf-8");
   const artifactJson = JSON.parse(artifactContent) as CompiledContractArtifactJson;
 
   const abi = artifactJson.abi ?? artifactJson.contract.abi;

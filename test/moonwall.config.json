@@ -16,7 +16,7 @@
       "multiThreads": 4,
       "contracts": "datahaven/contracts/",
       "runScripts": [
-        "compile-contracts.ts compile"
+        "compile-contracts.sh compile"
       ],
       "envVars": [
         "DEBUG_COLORS=1",

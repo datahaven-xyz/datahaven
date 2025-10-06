@@ -10,11 +10,11 @@ import type { GenericContext } from "@moonwall/cli";
  */
 class RuntimeConstant<T> {
   private values: Map<number, T>;
-  
+
   constructor(valuesByVersion: Record<number, T>) {
     this.values = new Map(Object.entries(valuesByVersion).map(([k, v]) => [Number(k), v]));
   }
-  
+
   get(version: number): T {
     // Find the highest version <= the requested version
     const sortedVersions = Array.from(this.values.keys()).sort((a, b) => b - a);
@@ -37,49 +37,49 @@ class RuntimeConstant<T> {
 const DATAHAVEN_CONSTANTS = {
   // Network identifiers
   CHAIN_ID: 3151908n,
-  
+
   // Block production
   BLOCK_TIME: 12_000n, // 12 seconds in milliseconds
   SLOT_DURATION: 12_000n, // 12 seconds
-  
+
   // Weight and gas limits
   // DataHaven uses similar values to Substrate defaults
   BLOCK_WEIGHT_LIMIT: new RuntimeConstant({
     0: 2_000_000_000_000n, // 2 * 10^12 weight units
   }),
-  
+
   // Gas limit considering block utilization
   // Based on weight-to-gas conversion and block limits
   GAS_LIMIT: new RuntimeConstant({
-    0: 30_000_000n, // Conservative estimate
+    0: 60_000_000n, // Conservative estimate
   }),
-  
+
   // Maximum extrinsic gas limit
   EXTRINSIC_GAS_LIMIT: new RuntimeConstant({
     0: 26_000_000n,
   }),
-  
+
   // Gas per PoV (Proof of Validity) byte ratio
   GAS_PER_POV_BYTES: new RuntimeConstant({
     0: 16n,
   }),
-  
+
   // Maximum PoV size for one ethereum transaction
   MAX_ETH_POV_PER_TX: new RuntimeConstant({
     0: 1_625_000n, // EXTRINSIC_GAS_LIMIT / GAS_PER_POV_BYTES
   }),
-  
+
   // Storage costs (in weight units)
   STORAGE_READ_COST: 25_000_000n, // Approximate substrate storage read weight
   STORAGE_WRITE_COST: 100_000_000n, // Approximate substrate storage write weight
-  
+
   // Weight to gas conversion ratio
   // This is the critical factor for converting substrate weights to EVM gas
   WEIGHT_TO_GAS_RATIO: 25_000n, // 1 gas = 25,000 weight units
-  
+
   // Supply factors (for financial calculations)
   SUPPLY_FACTOR: 1n,
-  
+
   // Precompile addresses
   PRECOMPILE_ADDRESSES: {
     BATCH: "0x0000000000000000000000000000000000000808" as const,

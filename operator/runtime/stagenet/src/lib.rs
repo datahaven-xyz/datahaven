@@ -380,6 +380,12 @@ mod runtime {
 
     #[runtime::pallet_index(39)]
     pub type MultiBlockMigrations = pallet_migrations;
+
+    #[runtime::pallet_index(103)]
+    pub type SafeMode = pallet_safe_mode;
+
+    #[runtime::pallet_index(104)]
+    pub type TxPause = pallet_tx_pause;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔═════════════════════════ Governance Pallets ════════════════════╗

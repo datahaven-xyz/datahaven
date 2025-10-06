@@ -2892,6 +2892,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-randomness",
  "pallet-referenda",
+ "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
@@ -2901,6 +2902,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-utility",
  "pallet-whitelist",
  "parity-scale-codec",
@@ -3081,7 +3083,9 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-precompile-proxy",
  "pallet-migrations",
+ "pallet-safe-mode",
  "pallet-treasury",
+ "pallet-tx-pause",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -3166,6 +3170,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-randomness",
  "pallet-referenda",
+ "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
@@ -3175,6 +3180,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-utility",
  "pallet-whitelist",
  "parity-scale-codec",
@@ -3306,6 +3312,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-randomness",
  "pallet-referenda",
+ "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
  "pallet-storage-providers",
@@ -3315,6 +3322,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-utility",
  "pallet-whitelist",
  "parity-scale-codec",
@@ -9590,6 +9598,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-safe-mode"
+version = "20.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-scheduler"
 version = "40.2.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
@@ -9786,6 +9812,23 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-tx-pause"
+version = "20.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "scale-info",
  "sp-runtime",
 ]
 

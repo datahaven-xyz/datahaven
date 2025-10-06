@@ -137,6 +137,7 @@ program
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
+  .option("--ic, --inject-contracts", "Inject smart contracts from saved state diff")
   .option(
     "--datahaven-build-extra-args <value>",
     "Extra args for DataHaven node Cargo build (the plain command is `cargo build --release` for linux, `cargo zigbuild --target x86_64-unknown-linux-gnu --release` for mac)",

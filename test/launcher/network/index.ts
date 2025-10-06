@@ -186,7 +186,8 @@ export const launchNetwork = async (
         kurtosisEnclaveName: kurtosisEnclaveName,
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
-        kurtosisNetworkArgs: options.kurtosisNetworkArgs
+        kurtosisNetworkArgs: options.kurtosisNetworkArgs,
+        injectContracts: true // Forcing it to be true to run e2e tests
       },
       launchedNetwork
     );
@@ -207,7 +208,9 @@ export const launchNetwork = async (
       rpcUrl: launchedNetwork.elRpcUrl,
       verified: options.verified ?? false,
       blockscoutBackendUrl,
-      parameterCollection
+      parameterCollection,
+      deployContracts: false,
+      injectContracts: true // Because we are injecting contracts in kurtosis deployment
     });
 
     // 4. Fund validators
@@ -216,11 +219,67 @@ export const launchNetwork = async (
       rpcUrl: launchedNetwork.elRpcUrl
     });
 
-    // 5. Setup validators
-    logger.info("🔐 Setting up validators...");
-    await setupValidators({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
+    // We are injecting contracts with already registers validator state
+    // // 5. Setup validators
+    // logger.info("🔐 Setting up validators...");
+    // await setupValidators({
+    //   rpcUrl: launchedNetwork.elRpcUrl
+    // });
+
+    // We are injecting contracts but we still need the address
+    try {
+      const { parseDeploymentsFile, parseRewardsInfoFile } = await import("utils/contracts");
+      const deployments = await parseDeploymentsFile();
+      const gatewayAddress = deployments.Gateway;
+      const rewardsRegistryAddress = deployments.RewardsRegistry;
+      const rewardsInfo = await parseRewardsInfoFile();
+      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+
+      if (gatewayAddress) {
+        logger.debug(
+          `📝 Reading EthereumGatewayAddress from existing deployment: ${gatewayAddress}`
+        );
+        parameterCollection.addParameter({
+          name: "EthereumGatewayAddress",
+          value: gatewayAddress
+        });
+      }
+
+      if (rewardsRegistryAddress) {
+        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+        parameterCollection.addParameter({
+          name: "RewardsRegistryAddress",
+          value: rewardsRegistryAddress
+        });
+      } else {
+        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+      }
+
+      if (updateRewardsMerkleRootSelector) {
+        logger.debug(
+          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
+        );
+        parameterCollection.addParameter({
+          name: "RewardsUpdateSelector",
+          value: updateRewardsMerkleRootSelector
+        });
+      } else {
+        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+      }
+
+      if (rewardsAgentOrigin) {
+        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+        parameterCollection.addParameter({
+          name: "RewardsAgentOrigin",
+          value: rewardsAgentOrigin
+        });
+      } else {
+        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+      }
+    } catch (error) {
+      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+    }
 
     // 6. Set DataHaven runtime parameters
     logger.info("⚙️ Setting DataHaven parameters...");

@@ -134,7 +134,7 @@ const removeDataHavenNetworks = async (options: StopOptions) => {
   }
 };
 
-const stopAllEnclaves = async (options: StopOptions) => {
+export const stopAllEnclaves = async (options: StopOptions) => {
   logger.info("🔎 Checking for running Kurtosis enclaves...");
 
   let shouldStopEnclave = options.all || options.enclave;

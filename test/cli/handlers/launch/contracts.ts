@@ -9,6 +9,7 @@ interface DeployContractsOptions {
   blockscoutBackendUrl?: string;
   deployContracts?: boolean;
   parameterCollection?: ParameterCollection;
+  injectContracts?: boolean;
 }
 
 /**
@@ -20,11 +21,19 @@ interface DeployContractsOptions {
  * @param options.blockscoutBackendUrl - URL for the Blockscout API (required if verified is true)
  * @param options.deployContracts - Flag to control deployment (if undefined, will prompt)
  * @param options.parameterCollection - Collection of parameters to update in the DataHaven runtime
+ * @param options.injectContracts - If true, skips contract deployment entirely
  * @returns Promise resolving to true if contracts were deployed successfully, false if skipped
  */
 export const deployContracts = async (options: DeployContractsOptions): Promise<boolean> => {
   printHeader("Deploying Smart Contracts");
-  const { deployContracts } = options;
+  const { deployContracts, injectContracts } = options;
+
+  // Skip deployment if injectContracts is set
+  if (injectContracts) {
+    logger.info("💉 Inject contracts is enabled. Skipping contract deployment.");
+    printDivider();
+    return false;
+  }
 
   // Check if deployContracts option was set via flags, or prompt if not
   let shouldDeployContracts = deployContracts;

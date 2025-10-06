@@ -45,6 +45,7 @@ export interface LaunchOptions {
   relayer?: boolean;
   relayerImageTag: string;
   cleanNetwork?: boolean;
+  injectContracts?: boolean;
 }
 
 // =====  Launch Handler Functions  =====
@@ -81,10 +82,70 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     verified: options.verified,
     blockscoutBackendUrl,
     deployContracts: options.deployContracts,
-    parameterCollection
+    parameterCollection,
+    injectContracts: options.injectContracts
   });
 
-  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  // If we're injecting contracts instead of deploying, still read the Gateway address
+  if (options.injectContracts && !contractsDeployed) {
+    try {
+      const { parseDeploymentsFile, parseRewardsInfoFile } = await import("utils/contracts");
+      const deployments = await parseDeploymentsFile();
+      const gatewayAddress = deployments.Gateway;
+      const rewardsRegistryAddress = deployments.RewardsRegistry;
+      const rewardsInfo = await parseRewardsInfoFile();
+      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+
+      if (gatewayAddress) {
+        logger.debug(
+          `📝 Reading EthereumGatewayAddress from existing deployment: ${gatewayAddress}`
+        );
+        parameterCollection.addParameter({
+          name: "EthereumGatewayAddress",
+          value: gatewayAddress
+        });
+      }
+
+      if (rewardsRegistryAddress) {
+        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+        parameterCollection.addParameter({
+          name: "RewardsRegistryAddress",
+          value: rewardsRegistryAddress
+        });
+      } else {
+        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+      }
+
+      if (updateRewardsMerkleRootSelector) {
+        logger.debug(
+          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
+        );
+        parameterCollection.addParameter({
+          name: "RewardsUpdateSelector",
+          value: updateRewardsMerkleRootSelector
+        });
+      } else {
+        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+      }
+
+      if (rewardsAgentOrigin) {
+        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+        parameterCollection.addParameter({
+          name: "RewardsAgentOrigin",
+          value: rewardsAgentOrigin
+        });
+      } else {
+        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+      }
+    } catch (error) {
+      logger.error(`Failed to read Gateway address from deployments: ${error}`);
+    }
+  }
+
+  const isDeployed = options.injectContracts || contractsDeployed;
+
+  await performValidatorOperations(options, launchedNetwork.elRpcUrl, isDeployed);
 
   await setParametersFromCollection({
     launchedNetwork,
@@ -119,7 +180,8 @@ export const launchPreActionHook = (
     buildDatahaven,
     launchKurtosis,
     relayer,
-    setParameters
+    setParameters,
+    injectContracts
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag
@@ -161,4 +223,10 @@ export const launchPreActionHook = (
   if (deployContracts === false && fundValidators) {
     thisCmd.error("--fundValidators requires --deployContracts to be set");
   }
+  if (injectContracts && !deployContracts && !all) {
+    // If we have `--all` argument then `deployContracts` is technically true
+    thisCmd.error("--inject-contracts requires --deploy-contracts to be set");
+  }
+
+
 };

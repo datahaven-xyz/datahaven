@@ -1,63 +1,190 @@
 # DataHaven 🫎
 
-An EVM compatible Substrate chain, powered by StorageHub and secured by EigenLayer.
+An EVM-compatible Substrate blockchain secured by EigenLayer, bridging Ethereum and Substrate ecosystems through trustless cross-chain communication.
 
-## Repo Structure
+## Overview
+
+DataHaven is an EigenLayer Actively Validated Service (AVS) that combines:
+
+- **EVM Compatibility**: Full Ethereum support via Frontier pallets for smart contracts and dApps
+- **EigenLayer Security**: Validator set secured by Ethereum's economic security through restaking
+- **Cross-chain Bridge**: Seamless asset and message transfers with Ethereum via Snowbridge
+- **Dynamic Validators**: Operator registry managed on-chain through EigenLayer contracts
+- **Performance Rewards**: Validator incentives distributed cross-chain from Ethereum
+
+## Architecture
+
+DataHaven bridges two major blockchain ecosystems:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Ethereum (L1)                           │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  EigenLayer AVS Contracts                                │  │
+│  │  • DataHavenServiceManager (operator lifecycle)          │  │
+│  │  • RewardsRegistry (performance tracking)                │  │
+│  │  • VetoableSlasher (misbehavior penalties)               │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                              ↕                                  │
+│                    Snowbridge Protocol                          │
+└─────────────────────────────────────────────────────────────────┘
+                               ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                      DataHaven (Substrate)                      │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Custom Pallets                                          │  │
+│  │  • External Validators (sync validator set)             │  │
+│  │  • Native Transfer (cross-chain tokens)                 │  │
+│  │  • Rewards (distribute validator rewards)               │  │
+│  │  • Frontier (EVM compatibility)                         │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Repository Structure
+
+```
+datahaven/
+├── contracts/      # EigenLayer AVS smart contracts
+│   ├── src/       # Service Manager, Rewards Registry, Slasher
+│   ├── script/    # Deployment scripts
+│   └── test/      # Foundry test suites
+├── operator/       # Substrate-based DataHaven node
+│   ├── node/      # Node implementation & chain spec
+│   ├── pallets/   # Custom pallets (validators, rewards, transfers)
+│   └── runtime/   # Runtime configurations (mainnet/stagenet/testnet)
+├── test/           # E2E testing framework
+│   ├── suites/    # Integration test scenarios
+│   ├── framework/ # Test utilities and helpers
+│   └── launcher/  # Network deployment automation
+├── deploy/         # Kubernetes deployment charts
+│   ├── charts/    # Helm charts for nodes and relayers
+│   └── environments/ # Environment-specific configurations
+├── tools/          # GitHub automation and release scripts
+└── .github/        # CI/CD workflows
+```
+
+Each directory contains its own README with detailed information. See:
+- [contracts/README.md](contracts/README.md) - Smart contract development
+- [operator/README.md](operator/README.md) - Node building and runtime development
+- [test/README.md](test/README.md) - E2E testing and network deployment
+- [deploy/README.md](deploy/README.md) - Kubernetes deployment
+- [tools/README.md](tools/README.md) - Development tools
+
+## Quick Start
+
+### Prerequisites
+
+- [Kurtosis](https://docs.kurtosis.com/install) - Network orchestration
+- [Bun](https://bun.sh/) v1.2+ - TypeScript runtime
+- [Docker](https://www.docker.com/) - Container management
+- [Foundry](https://getfoundry.sh/) - Solidity toolkit
+- [Rust](https://www.rust-lang.org/tools/install) - For building the operator
+- [Helm](https://helm.sh/) - Kubernetes deployments (optional)
+- [Zig](https://ziglang.org/) - For macOS cross-compilation (macOS only)
+
+### Launch Local Network
+
+The fastest way to get started is with the interactive CLI:
 
 ```bash
-datahaven/
-├── .github/ # GitHub Actions workflows.
-├── contracts/ # Implementation of the DataHaven AVS (Autonomous Verifiable Service) smart contracts to interact with EigenLayer.
-├── operator/ # DataHaven node based on Substrate. The "Operator" in EigenLayer terms.
-├── test/ # Integration tests for the AVS and Operator.
-├── resources/ # Miscellaneous resources for the DataHaven project.
-└── README.md
+cd test
+bun i                    # Install dependencies
+bun cli launch           # Interactive launcher with prompts
 ```
 
-## E2E CLI
+This deploys a complete environment including:
+- **Ethereum network**: 2x EL clients (reth), 2x CL clients (lodestar)
+- **Block explorers**: Blockscout (optional), Dora consensus explorer
+- **DataHaven node**: Single validator with fast block times
+- **AVS contracts**: Deployed and configured on Ethereum
+- **Snowbridge relayers**: Bidirectional message passing
 
-This repo comes with a CLI for launching a local DataHaven network, packaged with:
+For more options and detailed instructions, see the [test README](./test/README.md).
 
-1. A full Ethereum network with:
-   - 2 x Execution Layer clients (e.g., reth)
-   - 2 x Consensus Layer clients (e.g., lodestar)
-   - Blockscout Explorer services for EL (if enabled with --blockscout)
-   - Dora Explorer service for CL
-   - Contracts deployed and configured for the DataHaven network.
-2. A DataHaven solochain.
-3. Snowbridge relayers for cross-chain communication.
+### Run Tests
 
-To launch the network, follow the instructions in the [test README](./test/README.md).
-
-## Docker
-
-This repo publishes images to [DockerHub](https://hub.docker.com/r/datahavenxyz/datahaven).
-
-> [!TIP]
->
-> If you cannot see this repo you must be added to the permission list for the private repo.
-
-To aid with speed it employs the following:
-
-- [sccache](https://github.com/mozilla/sccache/tree/main): De-facto caching tool to speed up rust builds.
-- [cargo chef](https://lpalmieri.com/posts/fast-rust-docker-builds/): A method of caching building the dependencies as a docker layer to cut down compilation times.
-- [buildx cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts): Using buildx's new feature to mount an externally restored cache into a container.
-- [cache dance](https://github.com/reproducible-containers/buildkit-cache-dance): Weird workaround (endorsed by docker themselves) to inject caches into containers and return the result back to the CI.
-
-To run a docker image locally (`datahavenxyz/datahaven:local`), from the `/test` folder run:
-
-```sh
-bun build:docker:operator
+```bash
+cd test
+bun test:e2e              # Run all integration tests
+bun test:e2e:parallel     # Run with limited concurrency
 ```
 
-## Working with IDEs
+### Development Workflows
 
-### VS Code (and its forks)
+**Smart Contract Development**:
+```bash
+cd contracts
+forge build               # Compile contracts
+forge test                # Run contract tests
+```
 
-IDE configurations are ignored from this repo's version control, to allow for personalisation. However, there are a few key configurations that we suggest for a better experience. Here are the key suggested configurations to add to your `.vscode/settings.json` file:
+**Node Development**:
+```bash
+cd operator
+cargo build --release --features fast-runtime
+cargo test
+./scripts/run-benchmarks.sh
+```
 
-#### Rust
+**After Making Changes**:
+```bash
+cd test
+bun generate:wagmi        # Regenerate contract bindings
+bun generate:types        # Regenerate runtime types
+```
 
+## Key Features
+
+### EVM Compatibility
+Full Ethereum Virtual Machine support via Frontier pallets:
+- Deploy Solidity smart contracts
+- Use existing Ethereum tooling (MetaMask, Hardhat, etc.)
+- Compatible with ERC-20, ERC-721, and other standards
+
+### EigenLayer Integration
+Validator security anchored to Ethereum:
+- Operators register via `DataHavenServiceManager` contract
+- Economic security through ETH restaking
+- Slashing protection with veto period via `VetoableSlasher`
+- Performance-based rewards through `RewardsRegistry`
+
+### Cross-chain Communication
+Trustless bridging via Snowbridge:
+- Native token transfers between Ethereum ↔ DataHaven
+- Cross-chain message passing
+- Finality proofs via BEEFY consensus
+- Three specialized relayers (beacon, BEEFY, execution)
+
+### Dynamic Validator Set
+Validator management synchronized with Ethereum:
+- EigenLayer operator registry as source of truth
+- On-chain validator set updates via External Validators pallet
+- Automatic consensus participation changes
+- Cross-chain coordination for validator lifecycle
+
+## Docker Images
+
+Production images published to [DockerHub](https://hub.docker.com/r/datahavenxyz/datahaven).
+
+**Build optimizations**:
+- [sccache](https://github.com/mozilla/sccache) - Rust compilation caching
+- [cargo-chef](https://lpalmieri.com/posts/fast-rust-docker-builds/) - Dependency layer caching
+- [BuildKit cache mounts](https://docs.docker.com/build/cache/optimize/#use-cache-mounts) - External cache restoration
+
+**Build locally**:
+```bash
+cd test
+bun build:docker:operator    # Creates datahavenxyz/datahaven:local
+```
+
+## Development Environment
+
+### VS Code Configuration
+
+IDE configurations are excluded from version control for personalization, but these settings are recommended for optimal developer experience. Add to your `.vscode/settings.json`:
+
+**Rust Analyzer**:
 ```json
 {
   "rust-analyzer.linkedProjects": ["./operator/Cargo.toml"],
@@ -72,17 +199,13 @@ IDE configurations are ignored from this repo's version control, to allow for pe
 }
 ```
 
-These settings optimise Rust Analyzer for the DataHaven codebase:
+Optimizations:
+- Links `operator/` directory as the primary Rust project
+- Disables proc macros and build scripts for faster analysis (Substrate macros are slow)
+- Uses dedicated target directory to avoid conflicts
+- Skips WASM builds during development
 
-- Marks the `operator/` folder as a linked project for analysis. The root of this repo is a workspace, and this is the rust project that should be analysed by `rust-analyzer`.
-- Disables proc macros and build scripts to improve performance. Otherwise, Substrate's proc macros will make iterative checks from `rust-analyzer` unbearably slow.
-- Sets a dedicated target directory for Rust Analyzer to avoid conflicts with other build targets like `release` builds.
-- Disables WASM builds during analysis for faster feedback.
-
-#### Solidity
-
-For [Juan Blanco's Solidity Extension](https://marketplace.visualstudio.com/items?itemName=JuanBlanco.solidity), add the following to your `.vscode/settings.json` file:
-
+**Solidity** ([Juan Blanco's extension](https://marketplace.visualstudio.com/items?itemName=JuanBlanco.solidity)):
 ```json
 {
   "solidity.formatter": "forge",
@@ -93,16 +216,9 @@ For [Juan Blanco's Solidity Extension](https://marketplace.visualstudio.com/item
 }
 ```
 
-These settings configure Solidity support:
+Note: Solidity version must match [foundry.toml](./contracts/foundry.toml)
 
-- Uses Forge as the formatter for consistency with the project's tooling.
-- Sets a specific Solidity version for compilation. This one should match the version used in [foundry.toml](./contracts/foundry.toml).
-- Sets the Solidity extension as the default formatter.
-
-#### Typescript
-
-This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting and formatting. To make the extension work nicely with this repo, add the following to your `.vscode/settings.json` file:
-
+**TypeScript** ([Biome](https://github.com/biomejs/biome)):
 ```json
 {
   "biome.lsp.bin": "test/node_modules/.bin/biome",
@@ -115,38 +231,59 @@ This repo uses [Biome](https://github.com/biomejs/biome) for TypeScript linting 
 }
 ```
 
-- Sets the Biome binary to the one in the `test/` folder.
-- Sets Biome as the default formatter for TypeScript.
-- Sets Biome to always organise imports on save.
+## CI/CD
 
-## CI
+### Local CI Testing
 
-Using the [act](https://github.com/nektos/act) binary, you can run GitHub Actions locally.
-
-For example, to run the entire `e2e` workflow:
+Run GitHub Actions workflows locally using [act](https://github.com/nektos/act):
 
 ```bash
+# Run E2E workflow
 act -W .github/workflows/e2e.yml -s GITHUB_TOKEN="$(gh auth token)"
+
+# Run specific job
+act -W .github/workflows/e2e.yml -j test-job-name
 ```
 
-Which results in:
+### Automated Workflows
 
-```bash
-INFO[0000] Using docker host 'unix:///var/run/docker.sock', and daemon socket 'unix:///var/run/docker.sock'
-INFO[0000] Start server on http://192.168.1.97:34567
-[E2E - Kurtosis Deploy and Verify/kurtosis] ⭐ Run Set up job
-[E2E - Kurtosis Deploy and Verify/kurtosis] 🚀  Start image=catthehacker/ubuntu:rust-24.04
-[E2E - Kurtosis Deploy and Verify/kurtosis]   🐳  docker pull image=catthehacker/ubuntu:rust-24.04 platform= username= forcePull=true
-[E2E - Kurtosis Deploy and Verify/kurtosis] using DockerAuthConfig authentication for docker pull
-[E2E - Kurtosis Deploy and Verify/kurtosis]   🐳  docker create image=catthehacker/ubuntu:rust-24.04 platform= entrypoint=["tail" "-f" "/dev/null"] cmd=[] network="host"
-[E2E - Kurtosis Deploy and Verify/kurtosis]   🐳  docker run image=catthehacker/ubuntu:rust-24.04 platform= entrypoint=["tail" "-f" "/dev/null"] cmd=[] network="host"
-[E2E - Kurtosis Deploy and Verify/kurtosis]   🐳  docker exec cmd=[node --no-warnings -e console.log(process.execPath)] user= workdir=
-[E2E - Kurtosis Deploy and Verify/kurtosis]   ✅  Success - Set up job
-[E2E - Kurtosis Deploy and Verify/kurtosis]   ☁  git clone 'https://github.com/oven-sh/setup-bun' # ref=v2
-...
-[E2E - Kurtosis Deploy and Verify/kurtosis]   ✅  Success - Post Install Foundry [212.864597ms]
-[E2E - Kurtosis Deploy and Verify/kurtosis] ⭐ Run Complete job
-[E2E - Kurtosis Deploy and Verify/kurtosis] Cleaning up container for job kurtosis
-[E2E - Kurtosis Deploy and Verify/kurtosis]   ✅  Success - Complete job
-[E2E - Kurtosis Deploy and Verify/kurtosis] 🏁  Job succeeded
-```
+The repository includes GitHub Actions for:
+- **E2E Testing**: Full integration tests on PR and main branch
+- **Contract Testing**: Foundry test suites for smart contracts
+- **Rust Testing**: Unit and integration tests for operator
+- **Docker Builds**: Multi-platform image builds with caching
+- **Release Automation**: Version tagging and changelog generation
+
+See `.github/workflows/` for workflow definitions.
+
+## Contributing
+
+### Development Cycle
+
+1. **Make Changes**: Edit contracts, runtime, or tests
+2. **Run Tests**: Component-specific tests (`forge test`, `cargo test`)
+3. **Regenerate Types**: Update bindings if contracts/runtime changed
+4. **Integration Test**: Run E2E tests to verify cross-component behavior
+5. **Code Quality**: Format and lint (`cargo fmt`, `forge fmt`, `bun fmt:fix`)
+
+### Common Pitfalls
+
+- **Type mismatches**: Regenerate with `bun generate:types` after runtime changes
+- **Contract changes not reflected**: Run `bun generate:wagmi` after modifications
+- **Kurtosis issues**: Ensure Docker is running and Kurtosis engine is started
+- **Slow development**: Use `--features fast-runtime` for faster block times
+- **Network launch hangs**: Check Blockscout - forge output can appear frozen
+
+See [CLAUDE.md](./CLAUDE.md) for detailed development guidance.
+
+## License
+
+GPL-3.0 - See LICENSE file for details
+
+## Links
+
+- [EigenLayer Documentation](https://docs.eigenlayer.xyz/)
+- [Substrate Documentation](https://docs.substrate.io/)
+- [Snowbridge Documentation](https://docs.snowbridge.network/)
+- [Foundry Book](https://book.getfoundry.sh/)
+- [Polkadot-API Documentation](https://papi.how/)

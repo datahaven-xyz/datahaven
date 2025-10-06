@@ -17,28 +17,28 @@ DataHaven is an EigenLayer Actively Validated Service (AVS) that combines:
 DataHaven bridges two major blockchain ecosystems:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Ethereum (L1)                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  EigenLayer AVS Contracts                                │  │
-│  │  • DataHavenServiceManager (operator lifecycle)          │  │
-│  │  • RewardsRegistry (performance tracking)                │  │
-│  │  • VetoableSlasher (misbehavior penalties)               │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              ↕                                  │
-│                    Snowbridge Protocol                          │
-└─────────────────────────────────────────────────────────────────┘
-                               ↕
-┌─────────────────────────────────────────────────────────────────┐
-│                      DataHaven (Substrate)                      │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Custom Pallets                                          │  │
-│  │  • External Validators (sync validator set)             │  │
-│  │  • Native Transfer (cross-chain tokens)                 │  │
-│  │  • Rewards (distribute validator rewards)               │  │
-│  │  • Frontier (EVM compatibility)                         │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                       Ethereum (L1)                           │
+│  ┌────────────────────────────────────────────────────────┐   │
+│  │  EigenLayer AVS Contracts                              │   │
+│  │  • DataHavenServiceManager (operator lifecycle)        │   │
+│  │  • RewardsRegistry (performance tracking)              │   │
+│  │  • VetoableSlasher (misbehavior penalties)             │   │
+│  └────────────────────────────────────────────────────────┘   │
+│                            ↕                                  │
+│                  Snowbridge Protocol                          │
+└───────────────────────────────────────────────────────────────┘
+                             ↕
+┌───────────────────────────────────────────────────────────────┐
+│                    DataHaven (Substrate)                      │
+│  ┌────────────────────────────────────────────────────────┐   │
+│  │  Custom Pallets                                        │   │
+│  │  • External Validators (sync validator set)            │   │
+│  │  • Native Transfer (cross-chain tokens)                │   │
+│  │  • Rewards (distribute validator rewards)              │   │
+│  │  • Frontier (EVM compatibility)                        │   │
+│  └────────────────────────────────────────────────────────┘   │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ## Repository Structure

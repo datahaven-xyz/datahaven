@@ -354,6 +354,143 @@ mod combined_behaviour {
     }
 
     #[test]
+    fn governance_whitelisted_calls_work_during_safe_mode() {
+        use sp_core::H256;
+
+        ExtBuilder::default()
+            .with_sudo(account_id(ALICE))
+            .with_balances(vec![(account_id(ALICE), 1_000_000_000_000)])
+            .build()
+            .execute_with(|| {
+                // Enter safe mode
+                assert_ok!(
+                    RuntimeCall::SafeMode(pallet_safe_mode::Call::force_enter {})
+                        .dispatch(RuntimeOrigin::root())
+                );
+
+                // Verify safe mode is active
+                assert!(EnteredUntil::<Runtime>::get().is_some());
+
+                // Verify normal calls are blocked during safe mode
+                let normal_call = transfer_call(100);
+                assert_noop!(
+                    normal_call.dispatch(RuntimeOrigin::signed(account_id(ALICE))),
+                    frame_system::Error::<Runtime>::CallFiltered
+                );
+
+                // Test Whitelist pallet - critical for emergency runtime upgrades
+                let call_hash = H256::random();
+                assert_ok!(
+                    RuntimeCall::Whitelist(pallet_whitelist::Call::whitelist_call { call_hash })
+                        .dispatch(RuntimeOrigin::root())
+                );
+
+                // Test Preimage pallet - required for storing governance call data
+                let dummy_preimage = vec![1u8; 32];
+                let preimage_result = RuntimeCall::Preimage(pallet_preimage::Call::note_preimage {
+                    bytes: dummy_preimage,
+                })
+                .dispatch(RuntimeOrigin::signed(account_id(ALICE)));
+
+                match preimage_result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let call_filtered_error: sp_runtime::DispatchError =
+                            frame_system::Error::<Runtime>::CallFiltered.into();
+                        assert_ne!(
+                            format!("{:?}", e.error),
+                            format!("{:?}", call_filtered_error),
+                            "Preimage calls should not be filtered by safe mode"
+                        );
+                    }
+                }
+
+                // Test Scheduler pallet - needed for time-delayed governance actions
+                let scheduler_result = RuntimeCall::Scheduler(pallet_scheduler::Call::cancel {
+                    when: 100,
+                    index: 0,
+                })
+                .dispatch(RuntimeOrigin::root());
+
+                match scheduler_result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let call_filtered_error: sp_runtime::DispatchError =
+                            frame_system::Error::<Runtime>::CallFiltered.into();
+                        assert_ne!(
+                            format!("{:?}", e.error),
+                            format!("{:?}", call_filtered_error),
+                            "Scheduler calls should not be filtered by safe mode"
+                        );
+                    }
+                }
+
+                // Test Referenda pallet - core OpenGov proposal system
+                let referenda_result =
+                    RuntimeCall::Referenda(pallet_referenda::Call::cancel { index: 0 })
+                        .dispatch(RuntimeOrigin::root());
+
+                match referenda_result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let call_filtered_error: sp_runtime::DispatchError =
+                            frame_system::Error::<Runtime>::CallFiltered.into();
+                        assert_ne!(
+                            format!("{:?}", e.error),
+                            format!("{:?}", call_filtered_error),
+                            "Referenda calls should not be filtered by safe mode"
+                        );
+                    }
+                }
+
+                // Test ConvictionVoting - allows token holders to vote during emergencies
+                let voting_result = RuntimeCall::ConvictionVoting(
+                    pallet_conviction_voting::Call::remove_other_vote {
+                        target: account_id(BOB),
+                        class: 0,
+                        index: 0,
+                    },
+                )
+                .dispatch(RuntimeOrigin::signed(account_id(ALICE)));
+
+                match voting_result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let call_filtered_error: sp_runtime::DispatchError =
+                            frame_system::Error::<Runtime>::CallFiltered.into();
+                        assert_ne!(
+                            format!("{:?}", e.error),
+                            format!("{:?}", call_filtered_error),
+                            "ConvictionVoting calls should not be filtered by safe mode"
+                        );
+                    }
+                }
+
+                // Test TechnicalCommittee - expert oversight for emergency actions
+                let tech_committee_result =
+                    RuntimeCall::TechnicalCommittee(pallet_collective::Call::set_members {
+                        new_members: vec![account_id(ALICE)],
+                        prime: None,
+                        old_count: 0,
+                    })
+                    .dispatch(RuntimeOrigin::root());
+
+                match tech_committee_result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let call_filtered_error: sp_runtime::DispatchError =
+                            frame_system::Error::<Runtime>::CallFiltered.into();
+                        assert_ne!(
+                            format!("{:?}", e.error),
+                            format!("{:?}", call_filtered_error),
+                            "TechnicalCommittee calls should not be filtered by safe mode"
+                        );
+                    }
+                }
+            });
+    }
+
+    #[test]
     fn error_surface_consistency() {
         ExtBuilder::default()
             .with_sudo(account_id(ALICE))

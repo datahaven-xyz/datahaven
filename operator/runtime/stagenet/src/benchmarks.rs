@@ -62,7 +62,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_whitelist, Whitelist]
 
     // EVM pallets
-    [pallet_evm, Evm]
+    [pallet_evm, EVM]
 
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]

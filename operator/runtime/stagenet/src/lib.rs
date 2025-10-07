@@ -407,7 +407,7 @@ mod runtime {
     pub type Ethereum = pallet_ethereum;
 
     #[runtime::pallet_index(51)]
-    pub type Evm = pallet_evm;
+    pub type EVM = pallet_evm;
 
     #[runtime::pallet_index(52)]
     pub type EvmChainId = pallet_evm_chain_id;

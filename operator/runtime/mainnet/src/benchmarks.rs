@@ -55,7 +55,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_message_queue, MessageQueue]
 
     // EVM pallets
-    [pallet_evm, Evm]
+    [pallet_evm, EVM]
 
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]

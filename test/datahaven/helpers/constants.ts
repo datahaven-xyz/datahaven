@@ -24,9 +24,6 @@ class RuntimeConstant<T> {
 }
 
 const DATAHAVEN_CONSTANTS = {
-  CHAIN_ID: 3151908n,
-  BLOCK_TIME: 12_000n,
-  SLOT_DURATION: 12_000n,
   BLOCK_WEIGHT_LIMIT: new RuntimeConstant({
     0: 2_000_000_000_000n,
   }),

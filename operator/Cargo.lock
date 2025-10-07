@@ -2864,6 +2864,7 @@ dependencies = [
  "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-file-system",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -3142,6 +3143,7 @@ dependencies = [
  "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-file-system",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -3284,6 +3286,7 @@ dependencies = [
  "pallet-evm-precompile-call-permit",
  "pallet-evm-precompile-file-system",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -9108,6 +9111,26 @@ source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2
 dependencies = [
  "fp-evm",
  "num",
+]
+
+[[package]]
+name = "pallet-evm-precompile-preimage"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-preimage",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

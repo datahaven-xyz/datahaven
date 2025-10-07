@@ -1,6 +1,6 @@
 # DataHaven Deployment
 
-This directory contains all the necessary files and configurations for deploying DataHaven to various environments.
+This directory contains Helm charts and configurations for deploying DataHaven nodes and relayers to Kubernetes clusters across various environments (local development, staging, production).
 
 ## Directory Structure
 
@@ -50,16 +50,20 @@ Available environments:
 ## Environment Details
 
 ### Local
-- Single replica
-- Minimal resources (256Mi memory, 100m CPU)
-- Local image tags
-- Small persistence size
+- **Purpose**: Local development and testing
+- **Replicas**: 1 (bootnode + validator)
+- **Resources**: Minimal (256Mi memory, 100m CPU)
+- **Image**: Local Docker builds (`datahavenxyz/datahaven:local`)
+- **Storage**: Small persistence (1-5Gi)
+- **Network**: Single-node network with fast block times
 
 ### Stagenet
-- 2 replicas
-- Medium resources (512Mi memory, 200m CPU)
-- Stagenet image tags
-- 20Gi persistence size
+- **Purpose**: Pre-production testing and staging
+- **Replicas**: 2+ validators
+- **Resources**: Medium (512Mi memory, 200m CPU)
+- **Image**: Stagenet tags from DockerHub
+- **Storage**: 20Gi+ persistent volumes
+- **Network**: Multi-validator network simulating production
 
 ## Configuration Structure
 
@@ -87,9 +91,44 @@ The deployment process:
 - **Bootnode**: Entry point for the network
 - **Validator**: Validates transactions and produces blocks
 
-### Relays
-- **Snowbridge Relays**: Handle cross-chain communication with Ethereum
-  - **Beacon Relay**: Relays Ethereum beacon chain data
-  - **BEEFY Relay**: Relays BEEFY consensus data for finality
-  - **Execution Relay**: Relays Ethereum execution layer data
-- **Solochain Relayers**: Handle standalone chain operations and cross-chain communication
+### Relays (Snowbridge)
+- **Beacon Relay**: Relays Ethereum beacon chain finality to DataHaven
+- **BEEFY Relay**: Relays DataHaven BEEFY finality proofs to Ethereum
+- **Execution Relay**: Relays Ethereum execution layer messages to DataHaven
+- **Solochain Relayers**: Relays DataHaven chain operations to the DataHaven AVS
+
+These relayers enable trustless bidirectional token and message passing between Ethereum and DataHaven.
+
+## Development Workflow
+
+1. **Local Testing**:
+   ```bash
+   cd test
+   bun cli launch  # Starts local network without K8s
+   ```
+
+2. **K8s Deployment**:
+   ```bash
+   cd test
+   bun cli deploy --e local
+   ```
+
+3. **Building Local Images**:
+   ```bash
+   cd test
+   bun build:docker:operator  # Builds datahavenxyz/datahaven:local
+   ```
+
+4. **Updating Configurations**:
+   - Modify `environments/<env>/values.yaml` for environment-specific changes
+   - Modify chart templates in `charts/` for structural changes
+   - Redeploy with `bun cli deploy --e <env>`
+
+## Troubleshooting
+
+- **Pods not starting**: Check logs with `kubectl logs <pod-name>`
+- **Image pull failures**: Verify Docker registry access and image tags
+- **Persistent volume issues**: Ensure storage class is available with `kubectl get sc`
+- **Network connectivity**: Check service endpoints with `kubectl get svc`
+
+For more detailed deployment and testing workflows, see the [test directory](../test/README.md).

@@ -1,6 +1,7 @@
 import { describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
 import {
   ALITH_ADDRESS,
+  ALITH_PRIVATE_KEY,
   BALTATHAR_ADDRESS,
   BALTATHAR_PRIVATE_KEY,
   CHARLETH_ADDRESS,
@@ -8,7 +9,10 @@ import {
   sendRawTransaction,
 } from "@moonwall/util";
 import { encodeFunctionData, fromHex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { ConstantStore, expectEVMResult, getSignatureParameters } from "../../../../helpers";
+
+const ALITH_ACCOUNT = privateKeyToAccount(ALITH_PRIVATE_KEY);
 
 // Precompile addresses for DataHaven
 const PRECOMPILE_BATCH_ADDRESS = "0x0000000000000000000000000000000000000808";
@@ -83,13 +87,13 @@ describeSuite({
         await context.createBlock();
 
         const batchAllReceipt = await context
-          .viem("public")
+          .viem()
           .getTransactionReceipt({ hash: batchAllResult as `0x${string}` });
         const batchSomeReceipt = await context
-          .viem("public")
+          .viem()
           .getTransactionReceipt({ hash: batchSomeResult as `0x${string}` });
         const batchSomeUntilFailureReceipt = await context
-          .viem("public")
+          .viem()
           .getTransactionReceipt({ hash: batchSomeUntilFailureResult as `0x${string}` });
 
         const STORAGE_READ_GAS_COST = // One storage read gas cost
@@ -169,76 +173,75 @@ describeSuite({
           ],
         });
 
-        const signature = await context
-          .viem("wallet")
-          .signTypedData({
-            types: {
-              EIP712Domain: [
-                {
-                  name: "name",
-                  type: "string",
-                },
-                {
-                  name: "version",
-                  type: "string",
-                },
-                {
-                  name: "chainId",
-                  type: "uint256",
-                },
-                {
-                  name: "verifyingContract",
-                  type: "address",
-                },
-              ],
-              CallPermit: [
-                {
-                  name: "from",
-                  type: "address",
-                },
-                {
-                  name: "to",
-                  type: "address",
-                },
-                {
-                  name: "value",
-                  type: "uint256",
-                },
-                {
-                  name: "data",
-                  type: "bytes",
-                },
-                {
-                  name: "gaslimit",
-                  type: "uint64",
-                },
-                {
-                  name: "nonce",
-                  type: "uint256",
-                },
-                {
-                  name: "deadline",
-                  type: "uint256",
-                },
-              ],
-            },
-            primaryType: "CallPermit",
-            domain: {
-              name: "Call Permit Precompile",
-              version: "1",
-              chainId: 3151908n, // DataHaven chain ID
-              verifyingContract: PRECOMPILE_CALL_PERMIT_ADDRESS,
-            },
-            message: {
-              from: ALITH_ADDRESS,
-              to: PRECOMPILE_BATCH_ADDRESS,
-              value: 0n,
-              data: batchData,
-              gaslimit: 200_000n,
-              nonce: fromHex(alithNonceResult!, "bigint"),
-              deadline: 9999999999n,
-            },
-          });
+        const chainId = await context.viem().getChainId();
+        const signature = await ALITH_ACCOUNT.signTypedData({
+          types: {
+            EIP712Domain: [
+              {
+                name: "name",
+                type: "string",
+              },
+              {
+                name: "version",
+                type: "string",
+              },
+              {
+                name: "chainId",
+                type: "uint256",
+              },
+              {
+                name: "verifyingContract",
+                type: "address",
+              },
+            ],
+            CallPermit: [
+              {
+                name: "from",
+                type: "address",
+              },
+              {
+                name: "to",
+                type: "address",
+              },
+              {
+                name: "value",
+                type: "uint256",
+              },
+              {
+                name: "data",
+                type: "bytes",
+              },
+              {
+                name: "gaslimit",
+                type: "uint64",
+              },
+              {
+                name: "nonce",
+                type: "uint256",
+              },
+              {
+                name: "deadline",
+                type: "uint256",
+              },
+            ],
+          },
+          primaryType: "CallPermit",
+          domain: {
+            name: "Call Permit Precompile",
+            version: "1",
+            chainId: Number(chainId),
+            verifyingContract: PRECOMPILE_CALL_PERMIT_ADDRESS,
+          },
+          message: {
+            from: ALITH_ADDRESS,
+            to: PRECOMPILE_BATCH_ADDRESS,
+            value: 0n,
+            data: batchData,
+            gaslimit: 200_000n,
+            nonce: fromHex(alithNonceResult!, "bigint"),
+            deadline: 9999999999n,
+          },
+        });
         const { v, r, s } = getSignatureParameters(signature);
 
         const { result: baltatharForAlithResult } = await context.createBlock(
@@ -267,4 +270,3 @@ describeSuite({
     });
   },
 });
-

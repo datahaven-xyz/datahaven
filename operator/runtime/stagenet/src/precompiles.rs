@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven. If not, see <http://www.gnu.org/licenses/>.
 
-use crate::governance::councils:: {TreasuryCouncilInstance, TechnicalCommitteeInstance};
+use crate::governance::councils::{TechnicalCommitteeInstance, TreasuryCouncilInstance};
 use pallet_evm_precompile_balances_erc20::{Erc20BalancesPrecompile, Erc20Metadata};
 use pallet_evm_precompile_batch::BatchPrecompile;
 use pallet_evm_precompile_blake2::Blake2F;

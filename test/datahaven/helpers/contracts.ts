@@ -80,8 +80,27 @@ export const fetchCompiledContract = (
 };
 
 export async function deployedContractsInLatestBlock(context: DevModeContext): Promise<string[]> {
-  return (await context.polkadotJs().query.system.events())
-    .filter(({ event }) => context.polkadotJs().events.ethereum.Executed.is(event))
-    .filter(({ event }) => (event.toHuman() as any)["data"]["exitReason"]["Succeed"] === "Returned")
-    .map(({ event }) => (event.toHuman() as any)["data"]["to"]);
+  const latestBlockNumber = await context.viem().getBlockNumber();
+  const collectedAddresses = new Set<`0x${string}`>();
+
+  const latestBlock = await context
+    .viem()
+    .getBlock({ blockNumber: latestBlockNumber, includeTransactions: true });
+
+  if (!latestBlock?.transactions?.length) {
+    return Array.from(collectedAddresses);
+  }
+
+  const transactionHashes = latestBlock.transactions.map((tx: any) =>
+    typeof tx === "string" ? tx : tx.hash
+  );
+
+  for (const hash of transactionHashes) {
+    const receipt = await context.viem().getTransactionReceipt({ hash });
+    if (receipt.contractAddress && receipt.contractAddress !== "0x0000000000000000000000000000000000000000") {
+      collectedAddresses.add(receipt.contractAddress.toLowerCase() as `0x${string}`);
+    }
+  }
+
+  return Array.from(collectedAddresses);
 }

@@ -37,8 +37,8 @@ const DATAHAVEN_CONSTANTS = {
     0: 52_000_000n,
   }),
   WEIGHT_TO_GAS_RATIO: 25_000n,
-  STORAGE_READ_COST: 125_000_000n,
-  STORAGE_WRITE_COST: 250_000_000n,
+  STORAGE_READ_COST: 25_000_000n,
+  STORAGE_WRITE_COST: 50_000_000n,
   SUPPLY_FACTOR: 1n,
   PRECOMPILE_ADDRESSES: {
     BATCH: "0x0000000000000000000000000000000000000808" as const,
@@ -56,4 +56,3 @@ export function ConstantStore(_context: GenericContext): ConstantStoreType {
 }
 
 export { RuntimeConstant };
-

@@ -53,6 +53,7 @@ pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
+pallet-external-validator-slashes = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }

@@ -15,7 +15,6 @@ pub mod dynamic_params {
     #[dynamic_pallet_params]
     #[codec(index = 0)]
     pub mod runtime_config {
-
         use super::*;
 
         #[codec(index = 0)]
@@ -313,6 +312,16 @@ pub mod dynamic_params {
         /// 50 GIGAWEIs per gigabyte per tick * 12 BSPs * 72k ticks * 1 GB = 0.0432 HAVEs
         pub static UpfrontTicksToPay: BlockNumber = 72_000;
         // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
+
+        #[codec(index = 35)]
+        #[allow(non_upper_case_globals)]
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
+        pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
+            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+
+        #[codec(index = 36)]
+        #[allow(non_upper_case_globals)]
+        pub static DatahavenAddress: H160 = H160::repeat_byte(0x0);
     }
 }
 

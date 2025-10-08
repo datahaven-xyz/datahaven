@@ -32,7 +32,7 @@ use super::{
     precompiles::{DataHavenPrecompiles, PrecompileName},
     AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
     EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
+    ExternalValidatorsRewards, ExternalValidatorsSlashes, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
     Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
     Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
     RuntimeTask, SafeMode, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
@@ -1376,7 +1376,7 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = stagenet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
@@ -1545,6 +1545,69 @@ impl pallet_tx_pause::Config for Runtime {
     type WhitelistedCalls = TxPauseWhitelistedCalls<Runtime>;
     type MaxNameLen = ConstU32<256>;
     type WeightInfo = stagenet_weights::pallet_tx_pause::WeightInfo<Runtime>;
+}
+
+// Stub SendMessage implementation for slash pallet
+pub struct SlashesSendAdapter;
+impl pallet-_external-validator-slashes::SendMessage<AccountId> for SlashesSendAdapter {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(
+        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
+    ) -> Option<Self::Message> {
+        let calldata = Vec::new();
+
+        let command = Command::CallContract {
+            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(), // TODO: get the slash registry address
+            calldata,
+            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
+            // TODO: Determine appropriate id value
+            id: unique(1).into(),
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => {
+                    log::error!(
+                        target: "slashes_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        EthereumOutboundQueueV2::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        EthereumOutboundQueueV2::deliver(message)
+    }
+}
+
+impl pallet_external_validators_slashes::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type SlashDeferDuration = SlashDeferDuration;
+    type BondingDuration = BondingDuration;
+    type SlashId = u32;
+    type SessionInterface = (); // FIXME
+    type EraIndexProvider = ExternalValidators;
+    type InvulnerablesProvider = ExternalValidators;
+    type ExternalIndexProvider = ExternalValidators;
+    type QueuedSlashesProcessedPerBlock = ConstU32<10>;
+    type WeightInfo = (); // TODO: calculate weights
+    type SendMessage = SlashesSendAdapter;
+}
+
+parameter_types! {
+    pub const SlashDeferDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(0, 0);
 }
 
 #[cfg(test)]

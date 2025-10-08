@@ -2,6 +2,9 @@ name: Cleanup Srtool Cache
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - fix/srtool-user
 
 jobs:
   purge-srtool-cache:

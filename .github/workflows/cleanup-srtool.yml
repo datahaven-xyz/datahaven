@@ -12,10 +12,13 @@ jobs:
       group: DH-runners
     steps:
       - name: Remove srtool build artifacts
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set -euo pipefail
-          WORKSPACE="${RUNNER_WORKSPACE}/${{ github.event.repository.name }}"
-          TARGET_ROOT="$WORKSPACE/operator/runtime"
+          WORKSPACE_ROOT="${RUNNER_WORKSPACE}/${REPO_NAME}"
+          REPO_ROOT="${WORKSPACE_ROOT}/${REPO_NAME}"
+          TARGET_ROOT="${REPO_ROOT}/operator/runtime"
           if [ ! -d "$TARGET_ROOT" ]; then
             echo "Nothing to clean; $TARGET_ROOT does not exist."
             exit 0

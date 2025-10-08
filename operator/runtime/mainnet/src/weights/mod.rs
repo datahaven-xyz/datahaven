@@ -41,11 +41,13 @@ pub mod pallet_multisig;
 pub mod pallet_parameters;
 pub mod pallet_preimage;
 pub mod pallet_proxy;
+pub mod pallet_safe_mode;
 pub mod pallet_scheduler;
 pub mod pallet_sudo;
 pub mod pallet_timestamp;
 pub mod pallet_transaction_payment;
 pub mod pallet_treasury;
+pub mod pallet_tx_pause;
 pub mod pallet_utility;
 
 // Governance pallets

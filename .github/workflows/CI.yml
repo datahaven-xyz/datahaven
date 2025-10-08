@@ -1,64 +1,64 @@
 #! Main CI Specification for DataHaven Repository
 
-# name: CI
+name: CI
 
-# on:
-#   workflow_dispatch:
-#   push:
-#     branches:
-#       - main
-#   pull_request:
-#     branches: [main]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [main]
 
-# permissions:
-#   contents: read
-#   packages: write
+permissions:
+  contents: read
+  packages: write
 
-# concurrency:
-#   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-#   cancel-in-progress: true
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
-# jobs:
-#   # First Tier - Build the binary first
-#   build-operator:
-#     uses: ./.github/workflows/task-build-operator.yml
+jobs:
+  # First Tier - Build the binary first
+  build-operator:
+    uses: ./.github/workflows/task-build-operator.yml
     
-#   # First Tier - Other parallel jobs
-#   ts-build:
-#     uses: ./.github/workflows/task-ts-build.yml
-#   ts-lint:
-#     uses: ./.github/workflows/task-ts-lint.yml
-#   unit-tests:
-#     uses: ./.github/workflows/task-rust-tests.yml
-#   contract-tests:
-#     uses: ./.github/workflows/task-foundry-tests.yml
-#   rust-lint:
-#     uses: ./.github/workflows/task-rust-lint.yml
+  # First Tier - Other parallel jobs
+  ts-build:
+    uses: ./.github/workflows/task-ts-build.yml
+  ts-lint:
+    uses: ./.github/workflows/task-ts-lint.yml
+  unit-tests:
+    uses: ./.github/workflows/task-rust-tests.yml
+  contract-tests:
+    uses: ./.github/workflows/task-foundry-tests.yml
+  rust-lint:
+    uses: ./.github/workflows/task-rust-lint.yml
     
-#   # Second Tier - Jobs that depend on operator build
-#   check-metadata:
-#     needs: [build-operator]
-#     uses: ./.github/workflows/task-check-metadata.yml
-#     with:
-#       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
+  # Second Tier - Jobs that depend on operator build
+  check-metadata:
+    needs: [build-operator]
+    uses: ./.github/workflows/task-check-metadata.yml
+    with:
+      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
       
-#   docker-build:
-#     needs: [build-operator]
-#     uses: ./.github/workflows/task-docker.yml
-#     secrets: inherit
-#     with:
-#       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
+  docker-build:
+    needs: [build-operator]
+    uses: ./.github/workflows/task-docker.yml
+    secrets: inherit
+    with:
+      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
 
-  # moonwall-tests:
-  #   needs: [build-operator]
-  #   uses: ./.github/workflows/task-moonwall-tests.yml
-  #   with:
-  #     binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
+  moonwall-tests:
+    needs: [build-operator]
+    uses: ./.github/workflows/task-moonwall-tests.yml
+    with:
+      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
 
-  # # Third Tier - E2E tests depend on docker build
-  # e2e-tests:
-  #   needs: [docker-build]
-  #   uses: ./.github/workflows/task-e2e.yml
-  #   secrets: inherit
-  #   with:
-  #     image-tag: ${{ needs.docker-build.outputs.image-tag }}
+  # Third Tier - E2E tests depend on docker build
+  e2e-tests:
+    needs: [docker-build]
+    uses: ./.github/workflows/task-e2e.yml
+    secrets: inherit
+    with:
+      image-tag: ${{ needs.docker-build.outputs.image-tag }}

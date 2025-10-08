@@ -30,6 +30,7 @@ dhp-bridge = { path = "./primitives/bridge", default-features = false }
 pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
 pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
 pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
+pallet-external-validator-slashes = { path = "./pallets/external-validator-slashes", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-datahaven-native-transfer = { path = "./pallets/datahaven-native-transfer", default-features = false }
 pallet-evm-precompile-balances-erc20 = { path = "./precompiles/erc20-balances", default-features = false }
@@ -73,7 +74,7 @@ parity-scale-codec = { version = "3.0.0", default-features = false, features = [
     "derive",
 ] }
 paste = "1.0.14"
-rand = { version = "0.8.5", default-features = false, features = [ "std_rng" ] }
+rand = { version = "0.8.5", default-features = false, features = ["std_rng"] }
 rlp = { version = "0.6.1", default-features = false }
 scale-info = { version = "2.11.6", default-features = false }
 serde = { version = "1.0.197", default-features = false, features = ["derive"] }
@@ -132,6 +133,7 @@ pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", tag = "
 pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-staking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }

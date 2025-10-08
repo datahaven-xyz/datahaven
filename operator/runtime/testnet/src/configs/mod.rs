@@ -738,17 +738,11 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
 }
 
 /// Helper function to identify governance precompiles (copied from Moonbeam)
-fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
-    // TODO: Uncomment when DataHaven implements these governance precompiles
-    // matches!(
-    //     precompile_name,
-    //     PrecompileName::ConvictionVotingPrecompile
-    //         | PrecompileName::PreimagePrecompile
-    //         | PrecompileName::ReferendaPrecompile
-    //         | PrecompileName::OpenTechCommitteeInstance
-    //         | PrecompileName::TreasuryCouncilInstance
-    // )
-    false // Temporarily disabled until governance precompiles are added
+fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
+    matches!(
+        precompile_name,
+        PrecompileName::TechnicalCommitteeInstance | PrecompileName::TreasuryCouncilInstance
+    )
 }
 
 impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {

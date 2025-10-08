@@ -25,14 +25,11 @@ snowbridge-core = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
+pallet-external-validators = { workspace = true }
 sp-staking = { workspace = true }
-tp-bridge = { workspace = true }
-tp-traits = { workspace = true }
 
 [dev-dependencies]
 pallet-timestamp = { workspace = true, features = ["std"] }
-polkadot-core-primitives = { workspace = true }
-sp-core = { workspace = true }
 sp-io = { workspace = true }
 
 [features]
@@ -46,7 +43,7 @@ std = [
     "pallet-staking/std",
     "pallet-timestamp/std",
     "parity-scale-codec/std",
-    "polkadot-core-primitives/std",
+    "pallet-external-validators/std",
     "scale-info/std",
     "snowbridge-core/std",
     "snowbridge-outbound-queue-primitives/std",
@@ -54,8 +51,6 @@ std = [
     "sp-io/std",
     "sp-runtime/std",
     "sp-staking/std",
-    "tp-bridge/std",
-    "tp-traits/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
@@ -63,11 +58,10 @@ runtime-benchmarks = [
     "frame-system/runtime-benchmarks",
     "pallet-staking/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
+    "pallet-external-validators/runtime-benchmarks",
     "snowbridge-core/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
     "sp-staking/runtime-benchmarks",
-    "tp-bridge/runtime-benchmarks",
-    "tp-traits/runtime-benchmarks",
 ]
 
 try-runtime = [

@@ -28,12 +28,17 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
-
+use pallet_external_validators::apply;
+use snowbridge_outbound_queue_primitives::SendError;
 use {
     alloc::{collections::vec_deque::VecDeque, vec, vec::Vec},
     frame_support::{pallet_prelude::*, traits::DefensiveSaturating},
     frame_system::pallet_prelude::*,
     log::log,
+    pallet_external_validators::{
+        derive_storage_traits,
+        traits::{EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider, OnEraStart},
+    },
     pallet_staking::SessionInterface,
     parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, FullCodec},
     sp_core::H256,
@@ -45,15 +50,6 @@ use {
         offence::{OffenceDetails, OnOffenceHandler},
         EraIndex, SessionIndex,
     },
-    tp_traits::{
-        apply, derive_storage_traits, EraIndexProvider, ExternalIndexProvider,
-        InvulnerablesProvider, OnEraStart,
-    },
-};
-
-use {
-    snowbridge_core::ChannelId,
-    tp_bridge::{Command, DeliverMessage, Message, SlashData, TicketInfo, ValidateMessage},
 };
 
 pub use pallet::*;
@@ -67,6 +63,27 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 pub mod weights;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct SlashData<AccountId> {
+    pub validator: AccountId,
+    pub amount_to_slash: u128,
+}
+
+/// TODO: populate this with what we need
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct SlashDataUtils<AccountId>(pub Vec<SlashData<AccountId>>);
+
+pub trait SendMessage<AccountId> {
+    type Message;
+    type Ticket;
+
+    fn build(utils: &SlashDataUtils<AccountId>) -> Option<Self::Message>;
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
+
+    fn deliver(ticket: Self::Ticket) -> Result<H256, SendError>;
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -83,10 +100,7 @@ pub mod pallet {
             slash_era: EraIndex,
         },
         /// The slashes message was sent correctly.
-        SlashesMessageSent {
-            message_id: H256,
-            slashes_command: Command,
-        },
+        SlashesMessageSent { message_id: H256 },
     }
 
     #[pallet::config]
@@ -131,19 +145,13 @@ pub mod pallet {
         /// Interface for interacting with a session pallet.
         type SessionInterface: SessionInterface<Self::AccountId>;
 
+        type SendMessage: SendMessage<Self::AccountId>;
+
         /// Era index provider, used to fetch the active era among other things
         type EraIndexProvider: EraIndexProvider;
 
         /// Invulnerable provider, used to get the invulnerables to know when not to slash
         type InvulnerablesProvider: InvulnerablesProvider<Self::ValidatorId>;
-
-        /// Validate a message that will be sent to Ethereum.
-        type ValidateMessage: ValidateMessage;
-
-        /// Send a message to Ethereum. Needs to be validated first.
-        type OutboundQueue: DeliverMessage<
-            Ticket = <<Self as pallet::Config>::ValidateMessage as ValidateMessage>::Ticket,
-        >;
 
         /// Provider to retrieve the current external index of validators
         type ExternalIndexProvider: ExternalIndexProvider;
@@ -319,61 +327,6 @@ pub mod pallet {
             });
 
             NextSlashId::<T>::put(next_slash_id.saturating_add(One::one()));
-            Ok(())
-        }
-
-        #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::root_test_send_msg_to_eth())]
-        pub fn root_test_send_msg_to_eth(
-            origin: OriginFor<T>,
-            nonce: H256,
-            num_msgs: u32,
-            msg_size: u32,
-        ) -> DispatchResult {
-            ensure_root(origin)?;
-
-            // Ensure we don't accidentally pass huge params that would stall the chain
-            ensure!(
-                num_msgs <= 100 && msg_size <= 2048,
-                Error::<T>::RootTestInvalidParams
-            );
-
-            for i in 0..num_msgs {
-                // Make sure each message has a different payload
-                let mut payload = sp_core::blake2_256((nonce, i).encode().as_ref()).to_vec();
-                // Extend with zeros until msg_size is reached
-                payload.resize(msg_size as usize, 0);
-                // Example command, this should be something like "ReportSlashes"
-                let command = Command::Test(payload);
-
-                // Validate
-                let channel_id: ChannelId = snowbridge_core::PRIMARY_GOVERNANCE_CHANNEL;
-
-                let outbound_message = Message {
-                    id: None,
-                    channel_id,
-                    command,
-                };
-
-                // validate the message
-                // Ignore fee because for now only root can send messages
-                let (ticket, _fee) =
-                    T::ValidateMessage::validate(&outbound_message).map_err(|err| {
-                        log::error!(
-                            "root_test_send_msg_to_eth: validation of message {i} failed. {err:?}"
-                        );
-                        crate::pallet::Error::<T>::EthereumValidateFail
-                    })?;
-
-                // Deliver
-                T::OutboundQueue::deliver(ticket).map_err(|err| {
-                    log::error!(
-                        "root_test_send_msg_to_eth: delivery of message {i} failed. {err:?}"
-                    );
-                    crate::pallet::Error::<T>::EthereumDeliverFail
-                })?;
-            }
-
             Ok(())
         }
 
@@ -596,8 +549,8 @@ impl<T: Config> Pallet<T> {
 
     /// Returns number of slashes that were sent to ethereum.
     fn process_slashes_queue(amount: u32) -> u32 {
-        let mut slashes_to_send: Vec<_> = vec![];
-        let era_index = T::EraIndexProvider::active_era().index;
+        let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
+        let _era_index = T::EraIndexProvider::active_era().index;
 
         UnreportedSlashesQueue::<T>::mutate(|queue| {
             for _ in 0..amount {
@@ -607,9 +560,8 @@ impl<T: Config> Pallet<T> {
                 };
 
                 slashes_to_send.push(SlashData {
-                    encoded_validator_id: slash.validator.clone().encode(),
-                    slash_fraction: slash.percentage.deconstruct(),
-                    external_idx: slash.external_idx,
+                    validator: slash.validator,
+                    amount_to_slash: 0, // TODO: need to compute how much we slash
                 });
             }
         });
@@ -620,37 +572,38 @@ impl<T: Config> Pallet<T> {
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        // Build command with slashes.
-        let command = Command::ReportSlashes {
-            era_index,
-            slashes: slashes_to_send,
-        };
-
-        let channel_id: ChannelId = snowbridge_core::PRIMARY_GOVERNANCE_CHANNEL;
-
-        let outbound_message = Message {
-            id: None,
-            channel_id,
-            command: command.clone(),
+        let outbound = match T::SendMessage::build(&SlashDataUtils(slashes_to_send)) {
+            Some(send_msg) => send_msg,
+            None => {
+                log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
+                return 0;
+            }
         };
 
         // Validate and deliver the message
-        match T::ValidateMessage::validate(&outbound_message) {
-            Ok((ticket, _fee)) => {
-                let message_id = ticket.message_id();
-                if let Err(err) = T::OutboundQueue::deliver(ticket) {
-                    log::error!(target: "ext_validators_slashes", "OutboundQueue delivery of message failed. {err:?}");
-                } else {
-                    Self::deposit_event(Event::SlashesMessageSent {
-                        message_id,
-                        slashes_command: command,
-                    });
-                }
-            }
-            Err(err) => {
-                log::error!(target: "ext_validators_slashes", "OutboundQueue validation of message failed. {err:?}");
-            }
-        };
+        let ticket = T::SendMessage::validate(outbound)
+            .map_err(|e| {
+                log::error!(
+                    target: "ext_validators_rewards",
+                    "Failed to validate outbound message: {:?}",
+                    e
+                );
+                return 0;
+            })
+            .unwrap();
+
+        let message_id = T::SendMessage::deliver(ticket)
+            .map_err(|e| {
+                log::error!(
+                    target: "ext_validators_rewards",
+                    "Failed to deliver outbound message: {:?}",
+                    e
+                );
+                return 0;
+            })
+            .unwrap();
+
+        Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
 
         slashes_count
     }

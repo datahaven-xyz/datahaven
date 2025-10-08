@@ -215,7 +215,7 @@ pub fn sent_ethereum_message_nonce() -> u64 {
 }
 
 pub struct MockOkOutboundQueue;
-impl tp_bridge::DeliverMessage for MockOkOutboundQueue {
+impl pallet_external_validators::DeliverMessage for MockOkOutboundQueue {
     type Ticket = ();
 
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {

@@ -2,12 +2,6 @@ use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::H256;
 use sp_std::vec::Vec;
 
-pub trait DeliverMessage {
-    type Ticket;
-
-    fn deliver(ticket: Self::Ticket) -> Result<H256, SendError>;
-}
-
 /// Utils needed to generate/verify merkle roots/proofs inside this pallet.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EraRewardsUtils {

@@ -128,6 +128,7 @@ pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
+pallet-evm-precompile-identity = { workspace = true }
 
 # StorageHub
 pallet-bucket-nfts = { workspace = true }
@@ -200,6 +201,7 @@ std = [
     "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-proxy/std",
     "pallet-evm-precompile-registry/std",
+    "pallet-evm-precompile-identity/std",
     "pallet-evm-precompile-file-system/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
@@ -224,7 +226,6 @@ std = [
     "pallet-treasury/std",
     "pallet-utility/std",
     "pallet-whitelist/std",
-    "precompile-utils/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "precompile-utils/std",
@@ -288,7 +289,6 @@ std = [
 	"shp-traits/std",
 	"shp-treasury-funding/std",
     "shp-file-key-verifier/std",
-    "pallet-evm-precompile-file-system/std",
 ]
 
 runtime-benchmarks = [

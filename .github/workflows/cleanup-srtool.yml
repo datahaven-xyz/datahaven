@@ -16,9 +16,12 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set -euo pipefail
-          WORKSPACE_ROOT="${RUNNER_WORKSPACE}/${REPO_NAME}"
-          REPO_ROOT="${WORKSPACE_ROOT}/${REPO_NAME}"
-          TARGET_ROOT="${REPO_ROOT}/operator/runtime"
+          REPO_DIR="${REPO_NAME##*/}"
+          TARGET_ROOT="${RUNNER_WORKSPACE}/${REPO_DIR}/operator/runtime"
+
+          echo "Resolved runner workspace: ${RUNNER_WORKSPACE}"
+          echo "Resolved repository directory: ${TARGET_ROOT}"
+
           if [ ! -d "$TARGET_ROOT" ]; then
             echo "Nothing to clean; $TARGET_ROOT does not exist."
             exit 0

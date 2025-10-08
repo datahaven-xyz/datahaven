@@ -1,0 +1,20 @@
+name: Cleanup Srtool Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  purge-srtool-cache:
+    runs-on:
+      group: DH-runners
+    steps:
+      - name: Remove srtool build artifacts
+        run: |
+          set -euo pipefail
+          WORKSPACE="${RUNNER_WORKSPACE}/${{ github.event.repository.name }}"
+          TARGET_ROOT="$WORKSPACE/operator/runtime"
+          if [ ! -d "$TARGET_ROOT" ]; then
+            echo "Nothing to clean; $TARGET_ROOT does not exist."
+            exit 0
+          fi
+          sudo find "$TARGET_ROOT" -path '*/target/srtool' -prune -exec rm -rf {} +

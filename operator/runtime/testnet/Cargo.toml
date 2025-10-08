@@ -65,6 +65,8 @@ pallet-offences = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
+pallet-safe-mode = { workspace = true }
+pallet-tx-pause = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -211,6 +213,8 @@ std = [
     "pallet-offences/std",
     "pallet-parameters/std",
     "pallet-preimage/std",
+    "pallet-safe-mode/std",
+    "pallet-tx-pause/std",
     "pallet-referenda/std",
     "pallet-proxy/std",
     "pallet-scheduler/std",
@@ -312,6 +316,8 @@ runtime-benchmarks = [
     "pallet-offences/runtime-benchmarks",
     "pallet-parameters/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
+    "pallet-safe-mode/runtime-benchmarks",
+    "pallet-tx-pause/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
@@ -360,6 +366,8 @@ try-runtime = [
     "pallet-offences/try-runtime",
     "pallet-parameters/try-runtime",
     "pallet-preimage/try-runtime",
+    "pallet-safe-mode/try-runtime",
+    "pallet-tx-pause/try-runtime",
     "pallet-referenda/try-runtime",
     "pallet-proxy/try-runtime",
     "pallet-scheduler/try-runtime",

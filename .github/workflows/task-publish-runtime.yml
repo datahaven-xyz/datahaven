@@ -83,8 +83,8 @@ jobs:
           RUNTIME_BUILD_PROFILE: "production"
         run: |
           # Ensure we have permissions to write to the runtime folder target for the docker user
-          mkdir -p runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
-          chmod uog+rwX runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
+          mkdir -p operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
+          chmod uog+rwX operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
 
           chmod u+x ./original-scripts/build-runtime-srtool.sh
           ./original-scripts/build-runtime-srtool.sh

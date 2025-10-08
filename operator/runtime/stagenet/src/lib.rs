@@ -482,7 +482,7 @@ mod runtime {
     pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
 
     #[runtime::pallet_index(105)]
-    pub type ExternalValidatorsSlashes = pallet_external_validators_slashes;
+    pub type ExternalValidatorsSlashes = pallet_external_validator_slashes;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
 

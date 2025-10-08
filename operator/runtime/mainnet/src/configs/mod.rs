@@ -1589,7 +1589,7 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
     }
 }
 
-impl pallet_external_validators_slashes::Config for Runtime {
+impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;

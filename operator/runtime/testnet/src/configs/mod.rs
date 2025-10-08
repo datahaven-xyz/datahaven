@@ -1547,7 +1547,7 @@ impl pallet_tx_pause::Config for Runtime {
 
 // Stub SendMessage implementation for slash pallet
 pub struct SlashesSendAdapter;
-impl pallet-_external-validator-slashes::SendMessage<AccountId> for SlashesSendAdapter {
+impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
     fn build(
@@ -1588,7 +1588,7 @@ impl pallet-_external-validator-slashes::SendMessage<AccountId> for SlashesSendA
     }
 }
 
-impl pallet_external_validators_slashes::Config for Runtime {
+impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = AccountId;
     type ValidatorIdOf = ConvertInto;

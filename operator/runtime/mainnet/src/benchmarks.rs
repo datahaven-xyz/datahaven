@@ -53,6 +53,8 @@ frame_benchmarking::define_benchmarks!(
     [pallet_transaction_payment, TransactionPayment]
     [pallet_parameters, Parameters]
     [pallet_message_queue, MessageQueue]
+    [pallet_safe_mode, SafeMode]
+    [pallet_tx_pause, TxPause]
 
     // EVM pallets
     [pallet_evm, EVM]

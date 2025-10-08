@@ -20,4 +20,8 @@ jobs:
             echo "Nothing to clean; $TARGET_ROOT does not exist."
             exit 0
           fi
-          sudo find "$TARGET_ROOT" -path '*/target/srtool' -prune -exec rm -rf {} +
+          echo "Cleaning srtool directories under $TARGET_ROOT using ephemeral container"
+          docker run --rm \
+            -v "$TARGET_ROOT:/workspace" \
+            alpine:3.19 \
+            sh -c 'set -e; find /workspace -path "*/target/srtool" -prune -exec rm -rf {} +'

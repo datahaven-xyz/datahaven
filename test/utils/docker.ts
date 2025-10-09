@@ -35,7 +35,7 @@ function createDockerConnection(): Docker {
         return new Docker({ socketPath });
       }
     } catch (error) {
-      logger.debug(`Failed to access socket ${socketPath}:`, error);
+      logger.debug(`Failed to access socket ${socketPath}: ${error}`);
     }
   }
 
@@ -50,7 +50,7 @@ async function testDockerConnection(): Promise<void> {
     await docker.ping();
     logger.debug("Docker connection successful");
   } catch (error) {
-    logger.error("Docker connection failed:", error);
+    logger.error(`Docker connection failed: ${error}`);
     throw new Error(
       `Failed to connect to Docker daemon: ${error instanceof Error ? error.message : String(error)}`
     );
@@ -62,7 +62,7 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
   try {
     containers = await docker.listContainers();
   } catch (error) {
-    logger.error("Failed to list containers:", error);
+    logger.error(`Failed to list containers: ${error}`);
     await testDockerConnection();
     throw error;
   }
@@ -113,7 +113,7 @@ export const getServicesFromDocker = async (): Promise<ServiceInfo[]> => {
         url: `http://127.0.0.1:${selectedMapping.PublicPort}`
       });
     } catch (error) {
-      logger.error(`Error getting info for ${mapping.service}:`, error);
+      logger.error(`Error getting info for ${mapping.service}: ${error}`);
       services.push({
         service: mapping.service,
         port: "Error",
@@ -152,7 +152,7 @@ export const getPublicPort = async (
   const portMappings = container.Ports.find(
     (port) => port.PrivatePort === internalPort && port.Type === "tcp"
   );
-  logger.debug(`Port mappings for ${containerName}:${internalPort}`, portMappings);
+  logger.debug(`Port mappings for ${containerName}:${internalPort}: ${portMappings}`);
   invariant(portMappings, `❌ port mapping not found for ${containerName}:${internalPort}`);
   return portMappings.PublicPort;
 };

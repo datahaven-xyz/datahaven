@@ -17,7 +17,7 @@ export const runShellCommandWithLogger = async (
 
   try {
     if (!existsSync(cwd)) {
-      logger.error("❌ CWD does not exist:", cwd);
+      logger.error(`❌ CWD does not exist: ${cwd}`);
       throw new Error("❌ CWD does not exist");
     }
 
@@ -54,7 +54,7 @@ export const runShellCommandWithLogger = async (
           }
         }
       } catch (err) {
-        logger.error(`Error reading from ${streamName} stream:`, err);
+        logger.error(`Error reading from ${streamName} stream: ${err}`);
       } finally {
         reader.releaseLock();
       }
@@ -68,7 +68,7 @@ export const runShellCommandWithLogger = async (
           stderrBuffer += new TextDecoder().decode(value);
         }
       } catch (err) {
-        logger.error("Error reading from stderr stream:", err);
+        logger.error(`Error reading from stderr stream: ${err}`);
       } finally {
         stderrReader.releaseLock();
       }
@@ -84,7 +84,7 @@ export const runShellCommandWithLogger = async (
 
     // Only log stderr if the command failed
     if (exitCode !== 0) {
-      logger.error("❌ Command failed with exit code:", exitCode);
+      logger.error(`❌ Command failed with exit code: ${exitCode}`);
       const trimmedStderr = stderrBuffer.trim();
       if (trimmedStderr) {
         logger.error("Stderr:");
@@ -94,8 +94,7 @@ export const runShellCommandWithLogger = async (
       }
     }
   } catch (err) {
-    logger.error("❌ Error running shell command:", command, "in", cwd);
-    logger.error(err);
+    logger.error(`❌ Error running shell command: ${command} ${cwd} ${err}`);
     throw err;
   }
 };

@@ -82,7 +82,7 @@ export const getServiceFromKurtosis = async (
   service: string,
   enclave: string
 ): Promise<KurtosisService> => {
-  logger.debug("Getting service from kurtosis", service);
+  logger.debug(`Getting service from kurtosis: ${service}`);
 
   const command = `kurtosis service inspect ${enclave} ${service} -o json`;
   logger.debug(`Running command: ${command}`);
@@ -103,7 +103,7 @@ export const getPortFromKurtosis = async (
   portName: string,
   enclave: string
 ): Promise<number> => {
-  logger.debug("Getting port for service", service, portName);
+  logger.debug(`Getting port for service: ${service} ${portName}`);
 
   const command = `kurtosis service inspect ${enclave} ${service} -o json`;
   logger.debug(`Running command: ${command}`);

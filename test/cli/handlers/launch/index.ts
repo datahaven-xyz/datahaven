@@ -69,7 +69,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   if (options.blockscout === true) {
     blockscoutBackendUrl = await getBlockscoutUrl(options.kurtosisEnclaveName);
-    logger.trace("Blockscout backend URL:", blockscoutBackendUrl);
+    logger.trace(`Blockscout backend URL: ${blockscoutBackendUrl}`);
   } else if (options.verified) {
     logger.warn(
       "⚠️ Contract verification (--verified) requested, but Blockscout is disabled (--no-blockscout). Verification will be skipped."

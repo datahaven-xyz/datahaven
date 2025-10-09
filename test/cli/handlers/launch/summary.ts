@@ -20,7 +20,7 @@ export const performSummaryOperations = async (
     servicesToDisplay.push("datahaven-alice");
   }
 
-  logger.trace("Services to display", servicesToDisplay);
+  logger.trace(`Services to display: ${servicesToDisplay}`);
 
   const displayData: {
     service: string;
@@ -33,7 +33,7 @@ export const performSummaryOperations = async (
     const serviceInfo = service.startsWith("datahaven-")
       ? undefined
       : await getServiceFromKurtosis(service, options.kurtosisEnclaveName);
-    logger.trace("Service info", serviceInfo);
+    logger.trace(`Service info: ${serviceInfo}`);
     switch (true) {
       case service.startsWith("cl-"): {
         invariant(serviceInfo, `❌ Service info for ${service} is not available`);

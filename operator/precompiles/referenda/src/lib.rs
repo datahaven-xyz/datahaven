@@ -227,7 +227,9 @@ where
             .as_bytes()
             .iter()
             .rposition(|&b| b != 0)
-            .map_or(track_info.name.as_bytes(), |pos| &track_info.name.as_bytes()[..=pos]);
+            .map_or(track_info.name.as_bytes(), |pos| {
+                &track_info.name.as_bytes()[..=pos]
+            });
 
         Ok(TrackInfo {
             name: track_name_trimmed.into(),
@@ -251,11 +253,12 @@ where
         let origin = if track_info.name == "root" {
             frame_system::RawOrigin::Root.into()
         } else {
-            GovOrigin::from_str(track_info.name).map_err(|_| {
-                RevertReason::custom("Custom origin does not exist for {track_info.name}")
-                    .in_field("trackId")
-            })?
-            .into()
+            GovOrigin::from_str(track_info.name)
+                .map_err(|_| {
+                    RevertReason::custom("Custom origin does not exist for {track_info.name}")
+                        .in_field("trackId")
+                })?
+                .into()
         };
         Ok(Box::new(origin))
     }

@@ -131,6 +131,7 @@ pallet-evm-precompile-conviction-voting = { workspace = true }
 pallet-evm-precompile-identity = { workspace = true }
 pallet-evm-precompile-preimage = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
+pallet-evm-precompile-referenda = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -207,6 +208,7 @@ std = [
     "pallet-evm-precompile-conviction-voting/std",
     "pallet-evm-precompile-identity/std",
     "pallet-evm-precompile-proxy/std",
+    "pallet-evm-precompile-referenda/std",
     "pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",

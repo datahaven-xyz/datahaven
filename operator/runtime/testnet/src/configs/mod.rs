@@ -745,8 +745,10 @@ fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
             | PrecompileName::TechnicalCommitteeInstance
             | PrecompileName::TreasuryCouncilInstance
             | PrecompileName::PreimagePrecompile
+            | PrecompileName::ReferendaPrecompile
     )
 }
+
 
 impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
     fn is_evm_proxy_call_allowed(

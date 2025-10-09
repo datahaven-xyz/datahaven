@@ -278,7 +278,9 @@ async function runTestsWithConcurrencyLimit() {
   // Get all test files dynamically
   const testFiles = await getTestFiles();
   logger.info(`📋 Found ${testFiles.length} test files:`);
-  testFiles.forEach((file) => logger.info(`  - ${file}`));
+  testFiles.forEach((file) => {
+    logger.info(`  - ${file}`);
+  });
 
   // Create a queue of test files
   const testQueue = [...testFiles];

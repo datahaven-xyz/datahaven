@@ -39,6 +39,7 @@ pallet-evm-precompile-collective = { path = "./precompiles/collective", default-
 pallet-evm-precompile-conviction-voting = { path = "./precompiles/conviction-voting", default-features = false }
 pallet-evm-precompile-identity = { path = "./precompiles/identity", default-features = false }
 pallet-evm-precompile-proxy = { path = "./precompiles/proxy", default-features = false }
+pallet-evm-precompile-referenda = { path = "./precompiles/referenda", default-features = false }
 pallet-evm-precompile-registry = { path = "./precompiles/precompile-registry", default-features = false }
 pallet-evm-precompile-preimage = { path = "./precompiles/preimage", default-features = false }
 

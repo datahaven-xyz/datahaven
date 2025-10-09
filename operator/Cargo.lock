@@ -2950,6 +2950,7 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
+ "pallet-evm-precompile-referenda",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
@@ -3232,6 +3233,7 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
+ "pallet-evm-precompile-referenda",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
@@ -3378,6 +3380,7 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
+ "pallet-evm-precompile-referenda",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
@@ -9318,6 +9321,29 @@ dependencies = [
  "pallet-balances",
  "pallet-evm",
  "pallet-proxy",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-evm-precompile-referenda"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-preimage",
+ "pallet-referenda",
+ "pallet-scheduler",
  "pallet-timestamp",
  "parity-scale-codec",
  "precompile-utils",

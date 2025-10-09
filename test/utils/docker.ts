@@ -16,7 +16,7 @@ function createDockerConnection(): Docker {
       const url = new URL(dockerHost);
       return new Docker({
         host: url.hostname,
-        port: Number.parseInt(url.port) || 2375,
+        port: Number.parseInt(url.port, 10) || 2375,
         protocol: "http"
       });
     }

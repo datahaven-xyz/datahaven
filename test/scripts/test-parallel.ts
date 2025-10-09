@@ -62,7 +62,7 @@ async function killAllProcesses() {
             .split("\n")
             .filter((p) => p)
         ]
-          .map((p) => Number.parseInt(p.toString()))
+          .map((p) => Number.parseInt(p.toString(), 10))
           .filter((p) => !Number.isNaN(p));
 
         logger.info(`Found PIDs to kill: ${allPids.join(", ")}`);

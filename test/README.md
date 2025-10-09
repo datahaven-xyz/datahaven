@@ -1,6 +1,8 @@
 # DataHaven E2E Testing
 
-Quick start guide for running DataHaven end-to-end tests. For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUIDE.md).
+End-to-end testing framework for DataHaven, providing automated network deployment, contract interaction, and cross-chain scenario testing. This directory contains all tools needed to launch a complete local DataHaven network with Ethereum, Snowbridge relayers, and run comprehensive integration tests.
+
+For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUIDE.md).
 
 ## Pre-requisites
 
@@ -51,20 +53,68 @@ bun test:e2e:parallel
 
 # Run a specific test suite
 bun test suites/some-test.test.ts
-
 ```
+
+## What Gets Launched
+
+The `bun cli launch` command deploys a complete local environment:
+
+1. **Ethereum Network** (via Kurtosis):
+   - 2x Execution Layer clients (reth)
+   - 2x Consensus Layer clients (lodestar)
+   - Blockscout Explorer (optional: `--blockscout`)
+   - Dora Consensus Explorer
+
+2. **DataHaven Network**:
+   - Single validator solochain
+   - EVM compatibility via Frontier
+   - Fast block times (3s with `--fast-runtime`)
+
+3. **Smart Contracts**:
+   - EigenLayer AVS contracts deployed to Ethereum
+   - Optional Blockscout verification (`--verified`)
+
+4. **Snowbridge Relayers**:
+   - Beacon relay (Ethereum → DataHaven)
+   - BEEFY relay (DataHaven → Ethereum)
+   - Execution relay (Ethereum → DataHaven)
+   - Solochain relay (DataHaven → Ethereum)
+
+5. **Network Configuration**:
+   - Validator registration and funding
+   - Parameter initialization
+   - Validator set updates
 
 For more information on the E2E testing framework, see the [E2E Testing Framework Overview](./docs/E2E_FRAMEWORK_OVERVIEW.md).
 
-## Other Common Commands
+## Common Commands
 
-| Command                   | Description                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `bun cli stop`            | Stop all local DataHaven networks (interactive, will ask for confirmation on each component of the network) |
-| `bun cli deploy`          | Deploy the DataHaven network to a remote Kubernetes cluster                                                 |
-| `bun generate:wagmi`      | Generate contract TypeScript bindings for the contracts in the `contracts` directory                        |
-| `bun generate:types`      | Generate Polkadot API types                                                                                 |
-| `bun generate:types:fast` | Generate Polkadot API types with the `--fast-runtime` feature enabled                                       |
+| Command                   | Description                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Network Management**    |                                                                                                    |
+| `bun cli`                 | Interactive CLI menu for all operations                                                            |
+| `bun cli launch`          | Launch full local network (interactive options)                                                    |
+| `bun start:e2e:local`     | Launch local network (non-interactive)                                                             |
+| `bun start:e2e:verified`  | Launch with Blockscout and contract verification                                                   |
+| `bun start:e2e:ci`        | CI-optimized network launch                                                                        |
+| `bun cli stop`            | Stop all services (interactive)                                                                    |
+| `bun stop:dh`             | Stop DataHaven only                                                                                |
+| `bun stop:sb`             | Stop Snowbridge relayers only                                                                      |
+| `bun stop:eth`            | Stop Ethereum network only                                                                         |
+| **Testing**               |                                                                                                    |
+| `bun test:e2e`            | Run all E2E test suites                                                                            |
+| `bun test:e2e:parallel`   | Run tests with limited concurrency                                                                 |
+| `bun test <file>`         | Run specific test file                                                                             |
+| **Code Generation**       |                                                                                                    |
+| `bun generate:wagmi`      | Generate TypeScript contract bindings (after contract changes)                                     |
+| `bun generate:types`      | Generate Polkadot-API types from runtime                                                           |
+| `bun generate:types:fast` | Generate types with fast-runtime feature                                                           |
+| **Code Quality**          |                                                                                                    |
+| `bun fmt:fix`             | Fix TypeScript formatting with Biome                                                               |
+| `bun typecheck`           | TypeScript type checking                                                                           |
+| **Deployment**            |                                                                                                    |
+| `bun cli deploy`          | Deploy to Kubernetes cluster (interactive)                                                         |
+| `bun build:docker:operator` | Build local Docker image (`datahavenxyz/datahaven:local`)                                        |
 
 ## Local Network Deployment
 
@@ -178,8 +228,56 @@ This script will:
 >
 > The script uses the `--release` flag by default, meaning it uses the WASM binary from `./operator/target/release`. If you need to use a different build target, you may need to adjust the script or run the steps manually.
 
+## Project Structure
+
+```
+test/
+├── suites/                              # E2E test suites
+│   ├── contracts.test.ts               # Contract deployment & configuration
+│   ├── cross-chain.test.ts             # Cross-chain message passing
+│   ├── datahaven-substrate.test.ts     # Block production & finality
+│   ├── ethereum-basic.test.ts          # Ethereum network validation
+│   ├── native-token-transfer.test.ts   # Cross-chain token transfers
+│   ├── rewards-message.test.ts         # Validator rewards distribution
+│   └── validator-set-update.test.ts    # Dynamic validator set updates
+├── framework/                           # Test utilities & helpers
+│   ├── connectors.ts                   # Network connectors
+│   ├── manager.ts                      # Test environment manager
+│   ├── suite.ts                        # Test suite utilities
+│   └── index.ts                        # Framework exports
+├── launcher/                            # Network deployment tools
+│   ├── kurtosis/                       # Ethereum network launcher
+│   ├── snowbridge/                     # Relayer management
+│   └── datahaven/                      # DataHaven node management
+├── generated/                           # Generated types
+│   ├── wagmi/                          # Contract bindings
+│   └── polkadot-api/                   # Runtime types
+└── docs/                                # Testing documentation
+    ├── E2E_TESTING_GUIDE.md
+    └── E2E_FRAMEWORK_OVERVIEW.md
+```
+
+## Test Suites
+
+- **contracts.test.ts**: Contract deployment and configuration validation
+- **cross-chain.test.ts**: Cross-chain message passing between Ethereum and DataHaven
+- **datahaven-substrate.test.ts**: Block production, finalization, and consensus
+- **ethereum-basic.test.ts**: Ethereum network health and basic functionality
+- **native-token-transfer.test.ts**: Cross-chain token transfers via Snowbridge
+- **rewards-message.test.ts**: Validator reward distribution from Ethereum to DataHaven
+- **validator-set-update.test.ts**: Dynamic validator registration/deregistration via EigenLayer
+
+Run individual suites:
+```bash
+bun test suites/rewards-message.test.ts
+bun test suites/native-token-transfer.test.ts
+bun test suites/validator-set-update.test.ts
+```
+
 ## Further Information
 
-- [Kurtosis](https://docs.kurtosis.com/): Used for launching a full Ethereum network
-- [Zombienet](https://paritytech.github.io/zombienet/): Used for launching a Polkadot-SDK based network
-- [Bun](https://bun.sh/): TypeScript runtime and ecosystem tooling
+- [Kurtosis](https://docs.kurtosis.com/): Ethereum network orchestration
+- [Zombienet](https://paritytech.github.io/zombienet/): Polkadot-SDK network testing
+- [Bun](https://bun.sh/): TypeScript runtime and tooling
+- [Foundry](https://book.getfoundry.sh/): Solidity development framework
+- [Polkadot-API](https://papi.how/): Type-safe Substrate interactions

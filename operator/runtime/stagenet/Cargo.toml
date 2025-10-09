@@ -64,6 +64,8 @@ pallet-outbound-commitment-store = { workspace = true }
 pallet-datahaven-native-transfer = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
+pallet-safe-mode = { workspace = true }
+pallet-tx-pause = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -124,6 +126,10 @@ xcm-executor = { workspace = true }
 pallet-evm-precompile-balances-erc20 = { workspace = true }
 pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
+pallet-evm-precompile-preimage = { workspace = true }
+pallet-evm-precompile-collective = { workspace = true }
+pallet-evm-precompile-conviction-voting = { workspace = true }
+pallet-evm-precompile-identity = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
@@ -194,9 +200,12 @@ std = [
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
 	"pallet-evm-precompile-balances-erc20/std",
-"pallet-evm-precompile-registry/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
+    "pallet-evm-precompile-preimage/std",
+    "pallet-evm-precompile-collective/std",
+    "pallet-evm-precompile-conviction-voting/std",
+    "pallet-evm-precompile-identity/std",
     "pallet-evm-precompile-proxy/std",
 	"pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
@@ -212,6 +221,8 @@ std = [
     "pallet-offences/std",
     "pallet-parameters/std",
     "pallet-preimage/std",
+    "pallet-safe-mode/std",
+    "pallet-tx-pause/std",
     "pallet-referenda/std",
     "pallet-proxy/std",
     "pallet-scheduler/std",
@@ -311,6 +322,8 @@ runtime-benchmarks = [
     "pallet-offences/runtime-benchmarks",
     "pallet-parameters/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
+    "pallet-safe-mode/runtime-benchmarks",
+    "pallet-tx-pause/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
@@ -359,6 +372,8 @@ try-runtime = [
     "pallet-offences/try-runtime",
     "pallet-parameters/try-runtime",
     "pallet-preimage/try-runtime",
+    "pallet-safe-mode/try-runtime",
+    "pallet-tx-pause/try-runtime",
     "pallet-referenda/try-runtime",
     "pallet-proxy/try-runtime",
     "pallet-scheduler/try-runtime",

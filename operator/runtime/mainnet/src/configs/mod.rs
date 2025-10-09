@@ -742,10 +742,10 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
 fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
     matches!(
         precompile_name,
-        PrecompileName::PreimagePrecompile // | PrecompileName::ConvictionVotingPrecompile
-                                           // | PrecompileName::ReferendaPrecompile
-                                           // | PrecompileName::Op   enTechCommitteeInstance
-                                           // | PrecompileName::TreasuryCouncilInstance
+        PrecompileName::ConvictionVotingPrecompile
+            | PrecompileName::TechnicalCommitteeInstance
+            | PrecompileName::TreasuryCouncilInstance
+            | PrecompileName::PreimagePrecompile
     )
 }
 

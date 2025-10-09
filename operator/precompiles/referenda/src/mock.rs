@@ -14,45 +14,57 @@
 // You should have received a copy of the GNU General Public License
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
-//! A minimal precompile runtime including the pallet-randomness pallet
+//! A minimal precompile runtime including the pallet-referenda
 
 use super::*;
-use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
+
+use frame_support::pallet_prelude::*;
+use frame_support::traits::VoteTally;
 use frame_support::{
     construct_runtime, parameter_types,
-    traits::{ConstU32, EqualPrivilegeOnly, Everything, SortedMembers, VoteTally},
-    weights::Weight,
+    traits::{EqualPrivilegeOnly, Everything, Get},
+    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
-use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy, RawOrigin};
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider};
-use pallet_referenda::{Curve, Track, TrackInfo};
-use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
-use precompile_utils::{precompile_set::*, testing::*};
-use scale_info::TypeInfo;
-use sp_core::H256;
-use sp_runtime::str_array as s;
+use frame_system::RawOrigin;
+use pallet_evm::{
+    EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider, SubstrateBlockHashMapping,
+};
+use pallet_referenda::{Curve, TrackInfo, TracksInfo};
+use precompile_utils::{mock_account, precompile_set::*, testing::MockAccount};
+use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     BuildStorage, Perbill,
 };
-use sp_std::convert::{TryFrom, TryInto};
-use std::borrow::Cow;
+use sp_std::{str::FromStr, vec::Vec};
 
 pub type AccountId = MockAccount;
 pub type Balance = u128;
 
+pub struct GovOrigin;
+impl FromStr for GovOrigin {
+    type Err = ();
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
+        Err(())
+    }
+}
+
+impl From<GovOrigin> for OriginCaller {
+    fn from(_o: GovOrigin) -> OriginCaller {
+        OriginCaller::system(RawOrigin::Root)
+    }
+}
+
 type Block = frame_system::mocking::MockBlockU32<Runtime>;
 
-// Configure a mock runtime to test the pallet.
 construct_runtime!(
-    pub enum Runtime
-    {
+    pub enum Runtime {
         System: frame_system,
         Balances: pallet_balances,
         Evm: pallet_evm,
         Timestamp: pallet_timestamp,
-        Preimage: pallet_preimage,
         Scheduler: pallet_scheduler,
+        Preimage: pallet_preimage,
         Referenda: pallet_referenda,
     }
 );
@@ -67,6 +79,7 @@ parameter_types! {
     pub const AvailableBlockRatio: Perbill = Perbill::one();
     pub const SS58Prefix: u8 = 42;
 }
+
 impl frame_system::Config for Runtime {
     type BaseCallFilter = Everything;
     type DbWeight = ();
@@ -101,8 +114,9 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = 0;
+    pub const ExistentialDeposit: u128 = 1;
 }
+
 impl pallet_balances::Config for Runtime {
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 4];
@@ -163,7 +177,7 @@ impl pallet_evm::Config for Runtime {
     type ChainId = ();
     type OnChargeTransaction = ();
     type BlockGasLimit = BlockGasLimit;
-    type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
+    type BlockHashMapping = SubstrateBlockHashMapping<Self>;
     type FindAuthor = ();
     type OnCreate = ();
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
@@ -171,13 +185,12 @@ impl pallet_evm::Config for Runtime {
     type Timestamp = Timestamp;
     type WeightInfo = pallet_evm::weights::SubstrateWeight<Runtime>;
     type AccountProvider = FrameSystemAccountProvider<Runtime>;
-    type CreateOriginFilter = ();
-    type CreateInnerOriginFilter = ();
 }
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
 }
+
 impl pallet_timestamp::Config for Runtime {
     type Moment = u64;
     type OnTimestampSet = ();
@@ -185,61 +198,86 @@ impl pallet_timestamp::Config for Runtime {
     type WeightInfo = ();
 }
 
-impl pallet_preimage::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-    type Currency = Balances;
-    type ManagerOrigin = EnsureRoot<AccountId>;
-    type Consideration = ();
+parameter_types! {
+    pub MaximumSchedulerWeight: Weight = Weight::from_parts(50, 0);
+    pub const MaxScheduledPerBlock: u32 = 50;
 }
+
 impl pallet_scheduler::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeOrigin = RuntimeOrigin;
     type PalletsOrigin = OriginCaller;
     type RuntimeCall = RuntimeCall;
-    type MaximumWeight = MaximumBlockWeight;
-    type ScheduleOrigin = EnsureRoot<AccountId>;
-    type MaxScheduledPerBlock = ConstU32<100>;
+    type MaximumWeight = MaximumSchedulerWeight;
+    type ScheduleOrigin = frame_system::EnsureRoot<AccountId>;
+    type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = ();
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type Preimages = Preimage;
-    type BlockNumberProvider = System;
 }
 
+// Preimage configuration
 parameter_types! {
-    pub static AlarmInterval: u32 = 1;
+    pub const PreimageMaxSize: u32 = 2 * 1024 * 1024; // 2 MB
+    pub const PreimageBaseDeposit: Balance = 1;
+    pub const PreimageByteDeposit: Balance = 1;
 }
-pub struct OneToFive;
-impl SortedMembers<AccountId> for OneToFive {
-    fn sorted_members() -> Vec<AccountId> {
-        vec![
-            Alice.into(),
-            Bob.into(),
-            Charlie.into(),
-            David.into(),
-            Zero.into(),
-        ]
-    }
-    #[cfg(feature = "runtime-benchmarks")]
-    fn add(_m: &AccountId) {}
+
+impl pallet_preimage::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = ();
+    type Currency = Balances;
+    type ManagerOrigin = frame_system::EnsureRoot<AccountId>;
+    type Consideration = ();
+}
+
+// Track configuration for referenda
+parameter_types! {
+    pub const SubmissionDeposit: Balance = 15;
+    pub const MaxQueued: u32 = 100;
+    pub const UndecidingTimeout: u32 = 20;
 }
 
 pub struct TestTracksInfo;
-impl TracksInfo<u128, u32> for TestTracksInfo {
-    type Id = u8;
-    type RuntimeOrigin = <RuntimeOrigin as OriginTrait>::PalletsOrigin;
-    fn tracks() -> impl Iterator<Item = Cow<'static, Track<Self::Id, Balance, u32>>> {
-        static DATA: [Track<u8, u128, u32>; 2] = [
-            Track {
-                id: 0u8,
-                info: TrackInfo {
-                    name: s("root"),
+
+// Simple tally implementation for testing
+#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub struct Tally {
+    pub ayes: u128,
+    pub nays: u128,
+}
+
+impl<Class> VoteTally<u128, Class> for Tally {
+    fn new(_: Class) -> Self {
+        Self { ayes: 0, nays: 0 }
+    }
+
+    fn ayes(&self, _: Class) -> u128 {
+        self.ayes
+    }
+
+    fn approval(&self, _: Class) -> Perbill {
+        Perbill::from_rational(self.ayes, self.ayes + self.nays)
+    }
+
+    fn support(&self, _: Class) -> Perbill {
+        Perbill::from_rational(self.ayes, self.ayes + self.nays)
+    }
+}
+
+impl Get<Vec<(u8, TrackInfo<Balance, u32>)>> for TestTracksInfo {
+    fn get() -> Vec<(u8, TrackInfo<Balance, u32>)> {
+        vec![
+            (
+                0,
+                TrackInfo {
+                    name: "root",
                     max_deciding: 1,
                     decision_deposit: 10,
-                    prepare_period: 4,
-                    decision_period: 4,
-                    confirm_period: 2,
-                    min_enactment_period: 4,
+                    prepare_period: 2,
+                    decision_period: 8,
+                    confirm_period: 1,
+                    min_enactment_period: 1,
                     min_approval: Curve::LinearDecreasing {
                         length: Perbill::from_percent(100),
                         floor: Perbill::from_percent(50),
@@ -248,157 +286,135 @@ impl TracksInfo<u128, u32> for TestTracksInfo {
                     min_support: Curve::LinearDecreasing {
                         length: Perbill::from_percent(100),
                         floor: Perbill::from_percent(0),
-                        ceil: Perbill::from_percent(100),
+                        ceil: Perbill::from_percent(50),
                     },
                 },
-            },
-            Track {
-                id: 1u8,
-                info: TrackInfo {
-                    name: s("none"),
-                    max_deciding: 3,
-                    decision_deposit: 1,
+            ),
+            (
+                1,
+                TrackInfo {
+                    name: "none",
+                    max_deciding: 1,
+                    decision_deposit: 10,
                     prepare_period: 2,
-                    decision_period: 2,
+                    decision_period: 8,
                     confirm_period: 1,
-                    min_enactment_period: 2,
+                    min_enactment_period: 1,
                     min_approval: Curve::LinearDecreasing {
                         length: Perbill::from_percent(100),
-                        floor: Perbill::from_percent(95),
+                        floor: Perbill::from_percent(50),
                         ceil: Perbill::from_percent(100),
                     },
                     min_support: Curve::LinearDecreasing {
                         length: Perbill::from_percent(100),
-                        floor: Perbill::from_percent(90),
-                        ceil: Perbill::from_percent(100),
+                        floor: Perbill::from_percent(0),
+                        ceil: Perbill::from_percent(50),
                     },
                 },
-            },
+            ),
+        ]
+    }
+}
+
+impl TracksInfo<Balance, u32> for TestTracksInfo {
+    type Id = u8;
+    type RuntimeOrigin = OriginCaller;
+
+    fn tracks() -> &'static [(Self::Id, TrackInfo<Balance, u32>)] {
+        static TRACKS: &[(u8, TrackInfo<Balance, u32>)] = &[
+            (
+                0,
+                TrackInfo {
+                    name: "root",
+                    max_deciding: 1,
+                    decision_deposit: 10,
+                    prepare_period: 2,
+                    decision_period: 8,
+                    confirm_period: 1,
+                    min_enactment_period: 1,
+                    min_approval: Curve::LinearDecreasing {
+                        length: Perbill::from_percent(100),
+                        floor: Perbill::from_percent(50),
+                        ceil: Perbill::from_percent(100),
+                    },
+                    min_support: Curve::LinearDecreasing {
+                        length: Perbill::from_percent(100),
+                        floor: Perbill::from_percent(0),
+                        ceil: Perbill::from_percent(50),
+                    },
+                },
+            ),
+            (
+                1,
+                TrackInfo {
+                    name: "none",
+                    max_deciding: 1,
+                    decision_deposit: 10,
+                    prepare_period: 2,
+                    decision_period: 8,
+                    confirm_period: 1,
+                    min_enactment_period: 1,
+                    min_approval: Curve::LinearDecreasing {
+                        length: Perbill::from_percent(100),
+                        floor: Perbill::from_percent(50),
+                        ceil: Perbill::from_percent(100),
+                    },
+                    min_support: Curve::LinearDecreasing {
+                        length: Perbill::from_percent(100),
+                        floor: Perbill::from_percent(0),
+                        ceil: Perbill::from_percent(50),
+                    },
+                },
+            ),
         ];
-        DATA.iter().map(Cow::Borrowed)
+        TRACKS
     }
-    fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
-        if let Ok(system_origin) = frame_system::RawOrigin::try_from(id.clone()) {
-            match system_origin {
-                frame_system::RawOrigin::Root => Ok(0),
-                frame_system::RawOrigin::None => Ok(1),
-                _ => Err(()),
-            }
-        } else {
-            Err(())
+
+    fn track_for(origin: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
+        match origin {
+            OriginCaller::system(frame_system::RawOrigin::Root) => Ok(0),
+            _ => Err(()),
         }
     }
 }
 
-#[derive(
-    Encode, Debug, Decode, TypeInfo, Eq, PartialEq, Clone, MaxEncodedLen, DecodeWithMemTracking,
-)]
-pub struct Tally {
-    pub ayes: u32,
-    pub nays: u32,
-}
-
-impl<Class> VoteTally<u32, Class> for Tally {
-    fn new(_: Class) -> Self {
-        Self { ayes: 0, nays: 0 }
-    }
-
-    fn ayes(&self, _: Class) -> u32 {
-        self.ayes
-    }
-
-    fn support(&self, _: Class) -> Perbill {
-        Perbill::from_percent(self.ayes)
-    }
-
-    fn approval(&self, _: Class) -> Perbill {
-        if self.ayes + self.nays > 0 {
-            Perbill::from_rational(self.ayes, self.ayes + self.nays)
-        } else {
-            Perbill::zero()
-        }
-    }
-
-    #[cfg(feature = "runtime-benchmarks")]
-    fn unanimity(_: Class) -> Self {
-        Self { ayes: 100, nays: 0 }
-    }
-
-    #[cfg(feature = "runtime-benchmarks")]
-    fn rejection(_: Class) -> Self {
-        Self { ayes: 0, nays: 100 }
-    }
-
-    #[cfg(feature = "runtime-benchmarks")]
-    fn from_requirements(support: Perbill, approval: Perbill, _: Class) -> Self {
-        let ayes = support.mul_ceil(100u32);
-        let nays = ((ayes as u64) * 1_000_000_000u64 / approval.deconstruct() as u64) as u32 - ayes;
-        Self { ayes, nays }
-    }
-
-    #[cfg(feature = "runtime-benchmarks")]
-    fn setup(_: Class, _: Perbill) {}
-}
-parameter_types! {
-    pub const SubmissionDeposit: u128 = 15;
-}
 impl pallet_referenda::Config for Runtime {
     type WeightInfo = ();
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;
-    type Currency = pallet_balances::Pallet<Self>;
-    type SubmitOrigin = EnsureSigned<AccountId>;
-    type CancelOrigin = EnsureSignedBy<OneToFive, AccountId>;
-    type KillOrigin = EnsureRoot<AccountId>;
+    type Currency = Balances;
+    type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
+    type CancelOrigin = frame_system::EnsureSigned<AccountId>;
+    type KillOrigin = frame_system::EnsureSigned<AccountId>;
     type Slash = ();
-    type Votes = u32;
+    type Votes = u128;
     type Tally = Tally;
     type SubmissionDeposit = SubmissionDeposit;
-    type MaxQueued = ConstU32<3>;
-    type UndecidingTimeout = ConstU32<20>;
-    type AlarmInterval = AlarmInterval;
+    type MaxQueued = MaxQueued;
+    type UndecidingTimeout = UndecidingTimeout;
+    type AlarmInterval = ();
     type Tracks = TestTracksInfo;
     type Preimages = Preimage;
-    type BlockNumberProvider = System;
 }
 
-pub struct GovOrigin;
-impl FromStr for GovOrigin {
-    type Err = ();
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        Err(())
-    }
-}
-
-impl From<GovOrigin> for OriginCaller {
-    fn from(_o: GovOrigin) -> OriginCaller {
-        OriginCaller::system(RawOrigin::Root)
-    }
-}
-
-/// Externality builder for pallet referenda mock runtime
 pub(crate) struct ExtBuilder {
-    /// Balance amounts per AccountId
+    // endowed accounts with balances
     balances: Vec<(AccountId, Balance)>,
 }
 
 impl Default for ExtBuilder {
     fn default() -> ExtBuilder {
-        ExtBuilder {
-            balances: Vec::new(),
-        }
+        ExtBuilder { balances: vec![] }
     }
 }
 
 impl ExtBuilder {
-    #[allow(dead_code)]
     pub(crate) fn with_balances(mut self, balances: Vec<(AccountId, Balance)>) -> Self {
         self.balances = balances;
         self
     }
 
-    #[allow(dead_code)]
     pub(crate) fn build(self) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::<Runtime>::default()
             .build_storage()
@@ -406,13 +422,18 @@ impl ExtBuilder {
 
         pallet_balances::GenesisConfig::<Runtime> {
             balances: self.balances,
-            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .expect("Pallet balances storage can be assimilated");
 
         let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
+        ext.execute_with(|| {
+            System::set_block_number(1);
+            pallet_evm::Pallet::<Runtime>::create_account(
+                Revert.into(),
+                vec![0x14, 0x60, 0x00, 0x60, 0x00, 0xfd],
+            );
+        });
         ext
     }
 }

@@ -2943,8 +2943,12 @@ dependencies = [
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
+ "pallet-evm-precompile-collective",
+ "pallet-evm-precompile-conviction-voting",
  "pallet-evm-precompile-file-system",
+ "pallet-evm-precompile-identity",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -3221,8 +3225,12 @@ dependencies = [
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
+ "pallet-evm-precompile-collective",
+ "pallet-evm-precompile-conviction-voting",
  "pallet-evm-precompile-file-system",
+ "pallet-evm-precompile-identity",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -3363,8 +3371,12 @@ dependencies = [
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-call-permit",
+ "pallet-evm-precompile-collective",
+ "pallet-evm-precompile-conviction-voting",
  "pallet-evm-precompile-file-system",
+ "pallet-evm-precompile-identity",
  "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-preimage",
  "pallet-evm-precompile-proxy",
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
@@ -9235,6 +9247,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-evm-precompile-collective"
+version = "0.1.0"
+dependencies = [
+ "evm",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-collective",
+ "pallet-evm",
+ "pallet-timestamp",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-evm-precompile-conviction-voting"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-conviction-voting",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-evm-precompile-file-system"
 version = "0.1.0"
 source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.0.6-alpha#05d269a26d11c1ed8a6d917b3e08ff3b5d3d4b22"
@@ -9255,12 +9310,52 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-evm-precompile-identity"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-identity",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-evm-precompile-modexp"
 version = "2.0.0-dev"
 source = "git+https://github.com/polkadot-evm/frontier?branch=stable2412#75329a2df49e2cc7981485392c31160929d1bd48"
 dependencies = [
  "fp-evm",
  "num",
+]
+
+[[package]]
+name = "pallet-evm-precompile-preimage"
+version = "0.1.0"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-preimage",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "precompile-utils",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

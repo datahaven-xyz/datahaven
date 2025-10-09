@@ -30,7 +30,7 @@ use pallet_evm::{
     EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider, SubstrateBlockHashMapping,
 };
 use pallet_referenda::{Curve, TrackInfo, TracksInfo};
-use precompile_utils::{mock_account, precompile_set::*, testing::MockAccount};
+use precompile_utils::{precompile_set::*, testing::MockAccount};
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -427,13 +427,7 @@ impl ExtBuilder {
         .expect("Pallet balances storage can be assimilated");
 
         let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| {
-            System::set_block_number(1);
-            pallet_evm::Pallet::<Runtime>::create_account(
-                Revert.into(),
-                vec![0x14, 0x60, 0x00, 0x60, 0x00, 0xfd],
-            );
-        });
+        ext.execute_with(|| System::set_block_number(1));
         ext
     }
 }

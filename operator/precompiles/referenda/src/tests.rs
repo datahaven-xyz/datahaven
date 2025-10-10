@@ -27,11 +27,11 @@ use pallet_referenda::Call as ReferendaCall;
 use sp_core::{Hasher, H256, U256};
 use sp_runtime::traits::Dispatchable;
 
-fn precompiles() -> TestPrecompiles<Test> {
+fn precompiles() -> TestPrecompiles<Runtime> {
     PrecompilesValue::get()
 }
 
-fn evm_call(input: Vec<u8>) -> EvmCall<Test> {
+fn evm_call(input: Vec<u8>) -> EvmCall<Runtime> {
     EvmCall::call {
         source: Alice.into(),
         target: Precompile1.into(),
@@ -295,7 +295,7 @@ fn submit_track_id_oob_fails() {
         .execute_with(|| {
             let proposal = vec![1, 2, 3];
             let proposal_hash = sp_runtime::traits::BlakeTwo256::hash(&proposal);
-            let oob_track_id = <Test as pallet_referenda::Config>::Tracks::tracks().len();
+            let oob_track_id = <Runtime as pallet_referenda::Config>::Tracks::tracks().len();
 
             // submit with an invalid track_id
             let input: Vec<u8> = PCall::submit_at {

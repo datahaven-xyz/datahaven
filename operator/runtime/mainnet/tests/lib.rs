@@ -5,6 +5,7 @@ pub mod governance;
 mod migrations;
 mod native_token_transfer;
 mod proxy;
+mod safe_mode_tx_pause;
 
 use common::*;
 use datahaven_mainnet_runtime::{

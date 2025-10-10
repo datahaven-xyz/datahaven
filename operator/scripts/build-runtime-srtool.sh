@@ -10,6 +10,7 @@
 CMD="docker run \
   -i \
   --rm \
+  --user $(id -u):$(id -g) \
   -e CARGO_NET_GIT_FETCH_WITH_CLI=true \
   -e PACKAGE=datahaven-${GH_WORKFLOW_MATRIX_CHAIN}-runtime \
   -e RUNTIME_DIR=operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN} \

@@ -81,8 +81,9 @@ jobs:
           GH_WORKFLOW_MATRIX_SRTOOL_IMAGE_TAG: ${{ matrix.srtool_image_tag }}
           RUNTIME_BUILD_OPTS: "--features=on-chain-release-build"
           RUNTIME_BUILD_PROFILE: "production"
+          IS_PODMAN: true
         run: |
-          # Ensure we have permissions to write to the runtime folder target for the docker user
+          # Ensure we have permissions to write to the runtime folder target for the container user
           mkdir -p operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
           chmod uog+rwX operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN}/target
 

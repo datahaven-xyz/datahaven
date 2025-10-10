@@ -45,7 +45,11 @@ describeSuite({
       title: "should be accessible by hash",
       test: async () => {
         const block = await context.viem().getBlock({ blockNumber: 0n });
-        const blockByHash = await context.viem().getBlock({ blockHash: block.hash! });
+        const { hash } = block;
+        if (!hash) {
+          throw new Error("Expected genesis block to have a hash");
+        }
+        const blockByHash = await context.viem().getBlock({ blockHash: hash });
 
         expect(blockByHash).to.include({
           difficulty: 0n,

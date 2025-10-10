@@ -24,7 +24,7 @@ pub type MultiBlockMigrationList<T> = (evm_alias::EvmAliasMigration<T>,);
 
 /// During benchmarking we switch to the pallet-provided mocked migrations to guarantee success.
 #[cfg(feature = "runtime-benchmarks")]
-pub type MultiBlockMigrationList<T> = pallet_migrations::mock_helpers::MockedMigrations;
+pub type MultiBlockMigrationList = pallet_migrations::mock_helpers::MockedMigrations;
 
 /// Placeholder handler for migration status notifications. We do not emit any extra signals yet.
 pub type MigrationStatusHandler = ();

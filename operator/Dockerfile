@@ -44,12 +44,10 @@ WORKDIR /datahaven
 COPY --from=planner /datahaven/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/local/sccache,sharing=locked \
     cargo chef cook --recipe-path recipe.json --release
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/local/sccache,sharing=locked \
     if [ "$FAST_RUNTIME" = "TRUE" ]; then \
         cargo build --locked --release --features fast-runtime; \
     else \

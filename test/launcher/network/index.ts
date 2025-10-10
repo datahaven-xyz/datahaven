@@ -117,7 +117,7 @@ const createCleanupFunction = (networkId: string) => {
 
       logger.success(`Cleanup completed for network: ${networkId}`);
     } catch (error) {
-      logger.error(`❌ Cleanup failed for network ${networkId}: ${error}`);
+      logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
       // Continue cleanup, don't throw
     }
   };
@@ -265,7 +265,7 @@ export const launchNetwork = async (
       cleanup
     };
   } catch (error) {
-    logger.error(`❌ Failed to launch network: ${error}`);
+    logger.error("❌ Failed to launch network", error);
 
     // Run cleanup if we created it
     if (cleanup) {

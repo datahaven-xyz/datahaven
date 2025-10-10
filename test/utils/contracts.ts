@@ -69,7 +69,7 @@ export const parseDeploymentsFile = async (network = "anvil"): Promise<Deploymen
     logger.debug(`Successfully parsed ${network} deployments file.`);
     return parsedDeployments;
   } catch (error) {
-    logger.error(`Failed to parse ${network} deployments file: ${error}`);
+    logger.error(`Failed to parse ${network} deployments file:`, error);
     throw new Error(`Invalid ${network} deployments file format`);
   }
 };
@@ -87,7 +87,7 @@ export const parseRewardsInfoFile = async (network = "anvil"): Promise<RewardsIn
     logger.debug(`Successfully parsed ${network} rewards info file.`);
     return parsedRewardsInfo;
   } catch (error) {
-    logger.error(`Failed to parse ${network} rewards info file: ${error}`);
+    logger.error(`Failed to parse ${network} rewards info file:`, error);
     throw new Error(`Invalid ${network} rewards info file format`);
   }
 };

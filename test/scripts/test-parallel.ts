@@ -37,7 +37,7 @@ async function ensureLogDirectory() {
       }
     }
   } catch (error) {
-    logger.warn(`Failed to clear existing log files: ${error}`);
+    logger.warn("Failed to clear existing log files:", error);
   }
   return logPath;
 }
@@ -62,7 +62,7 @@ async function killAllProcesses() {
             .split("\n")
             .filter((p) => p)
         ]
-          .map((p) => Number.parseInt(p.toString(), 10))
+          .map((p) => Number.parseInt(p.toString()))
           .filter((p) => !Number.isNaN(p));
 
         logger.info(`Found PIDs to kill: ${allPids.join(", ")}`);
@@ -105,7 +105,7 @@ async function killAllProcesses() {
         // Process already dead
       }
     } catch (error) {
-      logger.error(`Error killing process: ${error}`);
+      logger.error("Error killing process:", error);
     }
   });
 
@@ -159,14 +159,14 @@ process.on("SIGTERM", async () => {
 
 // Handle uncaught exceptions
 process.on("uncaughtException", async (error) => {
-  logger.error(`💥 Uncaught exception: ${error}`);
+  logger.error("💥 Uncaught exception:", error);
   await killAllProcesses();
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", async (reason, _promise) => {
-  logger.error(`💥 Unhandled promise rejection: ${reason}`);
+  logger.error("💥 Unhandled promise rejection:", reason);
   await killAllProcesses();
   process.exit(1);
 });
@@ -258,7 +258,7 @@ async function runTest(
     return { file, success: false, duration, logFile, exitCode };
   } catch (error) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    logger.error({ err: error }, `❌ ${file} crashed (${duration}s) - Log: ${logFile}:`);
+    logger.error(`❌ ${file} crashed (${duration}s) - Log: ${logFile}:`, error);
 
     // Write error to log file
     const errorLog = Bun.file(logFile);
@@ -278,9 +278,7 @@ async function runTestsWithConcurrencyLimit() {
   // Get all test files dynamically
   const testFiles = await getTestFiles();
   logger.info(`📋 Found ${testFiles.length} test files:`);
-  testFiles.forEach((file) => {
-    logger.info(`  - ${file}`);
-  });
+  testFiles.forEach((file) => logger.info(`  - ${file}`));
 
   // Create a queue of test files
   const testQueue = [...testFiles];
@@ -353,7 +351,7 @@ async function runTestsWithConcurrencyLimit() {
 
 // Run the tests
 runTestsWithConcurrencyLimit().catch(async (error) => {
-  logger.error(`Failed to run tests: ${error}`);
+  logger.error("Failed to run tests:", error);
   await killAllProcesses();
   process.exit(1);
 });

@@ -88,9 +88,7 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
     const exists = await deploymentsFile.exists();
 
     if (!exists) {
-      contracts.forEach(({ name }) => {
-        logger.info(`  ❌ ${name}: Not deployed`);
-      });
+      contracts.forEach(({ name }) => logger.info(`  ❌ ${name}: Not deployed`));
       return;
     }
 

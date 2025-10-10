@@ -71,7 +71,7 @@ export abstract class BaseTestSuite {
 
         logger.success(`Test suite setup complete: ${this.options.suiteName}`);
       } catch (error) {
-        logger.error(`Failed to setup test suite: ${this.options.suiteName} ${error}`);
+        logger.error(`Failed to setup test suite: ${this.options.suiteName}`, error);
         this.manager.failSuite(this.options.suiteName);
         throw error;
       }
@@ -104,7 +104,7 @@ export abstract class BaseTestSuite {
 
         logger.success(`Test suite teardown complete: ${this.options.suiteName}`);
       } catch (error) {
-        logger.error(`Error during test suite teardown: ${this.options.suiteName} ${error}`);
+        logger.error(`Error during test suite teardown: ${this.options.suiteName}`, error);
         this.manager.failSuite(this.options.suiteName);
       }
     });
@@ -176,7 +176,7 @@ export abstract class BaseTestSuite {
         }
       }
     } catch (e) {
-      logger.warn(`Could not print network info: ${e}`);
+      logger.warn("Could not print network info", e as Error);
     }
   }
 

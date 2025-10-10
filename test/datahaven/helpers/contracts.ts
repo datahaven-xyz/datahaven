@@ -78,29 +78,3 @@ export const fetchCompiledContract = (
     sourceCode: artifactJson.sourceCode
   } satisfies CompiledContractArtifact;
 };
-
-export async function deployedContractsInLatestBlock(context: DevModeContext): Promise<string[]> {
-  const latestBlockNumber = await context.viem().getBlockNumber();
-  const collectedAddresses = new Set<`0x${string}`>();
-
-  const latestBlock = await context
-    .viem()
-    .getBlock({ blockNumber: latestBlockNumber, includeTransactions: true });
-
-  if (!latestBlock?.transactions?.length) {
-    return Array.from(collectedAddresses);
-  }
-
-  const transactionHashes = latestBlock.transactions.map((tx: any) =>
-    typeof tx === "string" ? tx : tx.hash
-  );
-
-  for (const hash of transactionHashes) {
-    const receipt = await context.viem().getTransactionReceipt({ hash });
-    if (receipt.contractAddress && receipt.contractAddress !== "0x0000000000000000000000000000000000000000") {
-      collectedAddresses.add(receipt.contractAddress.toLowerCase() as `0x${string}`);
-    }
-  }
-
-  return Array.from(collectedAddresses);
-}

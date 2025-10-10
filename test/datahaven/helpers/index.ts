@@ -10,3 +10,6 @@ export * from "./constants";
 export * from "./contracts";
 export * from "./deploy";
 export * from "./evm";
+export * from "./fees";
+export * from "./block";
+export * from "./parameters";

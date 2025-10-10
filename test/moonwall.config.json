@@ -19,9 +19,7 @@
         "compile-contracts.sh compile"
       ],
       "envVars": [
-        "DEBUG_COLORS=1",
-        "RUST_BACKTRACE=1",
-        "RUST_LOG=info"
+        "DEBUG_COLORS=1"
       ],
       "reporters": [
         "basic",

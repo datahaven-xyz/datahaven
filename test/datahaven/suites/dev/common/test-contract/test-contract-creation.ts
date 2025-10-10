@@ -1,101 +1,149 @@
-import { describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
+import {
+  TransactionTypes,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect,
+  fetchCompiledContract,
+} from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { hexToU8a } from "@polkadot/util";
 import { encodeDeployData, keccak256, numberToHex, toRlp } from "viem";
-import { deployedContractsInLatestBlock } from "../../../../helpers";
+import { verifyLatestBlockFees } from "../../../../helpers";
 
 describeSuite({
   id: "D010201",
   title: "Contract creation",
   foundationMethods: "dev",
   testCases: ({ context, it }) => {
+    for (const txnType of TransactionTypes) {
+      it({
+        id: `T0-${TransactionTypes.indexOf(txnType) + 1}`,
+        title: `should return the ${txnType} transaction hash`,
+        test: async function () {
+          const { hash } = await deployCreateCompiledContract(
+            context,
+            "MultiplyBy7",
+            {
+              txnType: txnType as any,
+            },
+          );
+          await context.createBlock();
+          expect(hash).toBeTruthy();
+        },
+      });
+
+      it({
+        id: `T0-${TransactionTypes.indexOf(txnType) + 4}`,
+        title: `${txnType} should return the contract code`,
+        test: async () => {
+          const contractData = fetchCompiledContract("MultiplyBy7");
+          const callCode = (
+            await context.viem().call({ data: contractData.bytecode })
+          ).data;
+          const { contractAddress } = await deployCreateCompiledContract(
+            context,
+            "MultiplyBy7",
+            {
+              txnType: txnType as any,
+              gas: 5_000_000n,
+            },
+          );
+          const deployedCode = await context
+            .viem()
+            .getCode({ address: contractAddress! });
+          expect(callCode).to.be.eq(deployedCode);
+        },
+      });
+
+      it({
+        id: `T0-${TransactionTypes.indexOf(txnType) + 7}`,
+        title: `should not contain ${txnType}  contract at genesis`,
+        test: async function () {
+          const { contractAddress } = await deployCreateCompiledContract(
+            context,
+            "MultiplyBy7",
+            {
+              txnType: txnType as any,
+            },
+          );
+          expect(
+            await context
+              .viem()
+              .getCode({ address: contractAddress!, blockNumber: 0n }),
+          ).toBeUndefined();
+        },
+      });
+
+      it({
+        id: `T0-${TransactionTypes.indexOf(txnType) + 10}`,
+        title: `${txnType} deployed contracts should store the code on chain`,
+        test: async function () {
+          // This is to enable pending tag support
+          await context.createBlock();
+          const compiled = fetchCompiledContract("MultiplyBy7");
+          const callData = encodeDeployData({
+            abi: compiled.abi,
+            bytecode: compiled.bytecode,
+            args: [],
+          }) as `0x${string}`;
+
+          const nonce = await context
+            .viem("public")
+            .getTransactionCount({ address: ALITH_ADDRESS });
+
+          await context.viem().sendTransaction({
+            data: callData,
+            nonce,
+            txnType: txnType as any,
+            gas: 5_000_000n,
+          });
+
+          const contractAddress = ("0x" +
+            keccak256(hexToU8a(toRlp([ALITH_ADDRESS, numberToHex(nonce)])))
+              .slice(12)
+              .substring(14)) as `0x${string}`;
+
+          expect(
+            await context
+              .viem("public")
+              .getCode({ address: contractAddress, blockTag: "pending" }),
+          ).to.deep.equal(compiled.deployedBytecode);
+
+          await context.createBlock();
+
+          expect(
+            await context
+              .viem("public")
+              .getCode({ address: contractAddress, blockTag: "latest" }),
+          ).to.deep.equal(compiled.deployedBytecode);
+        },
+      });
+
+      it({
+        id: `T0-${TransactionTypes.indexOf(txnType) + 13}`,
+        title: `should check latest block fees for ${txnType}`,
+        test: async function () {
+          await context.createBlock();
+          await deployCreateCompiledContract(context, "Fibonacci", {
+            maxPriorityFeePerGas: 0n,
+            txnType: txnType as any,
+          });
+          await verifyLatestBlockFees(context);
+        },
+      });
+    }
+
     it({
-      id: "T01",
-      title: "should return transaction hash for contract deployment",
-      test: async function () {
-        const { contractAddress, hash } = await context.deployContract!("MultiplyBy7");
-        await context.createBlock();
-
-        expect(hash).toBeTruthy();
-        expect(contractAddress).toBeTruthy();
-      },
-    });
-
-    it({
-      id: "T02",
-      title: "should return the contract code after deployment",
-      test: async () => {
-        const contractData = fetchCompiledContract("MultiplyBy7");
-        const callCode = (await context.viem().call({ data: contractData.bytecode })).data;
-        const { contractAddress } = await context.deployContract!("MultiplyBy7");
-        await context.createBlock();
-
-        const deployedCode = await context
-          .viem("public")
-          .getCode({ address: contractAddress!, blockTag: "latest" });
-        expect(deployedCode).toBe(callCode);
-      },
-    });
-
-    it({
-      id: "T03",
-      title: "should not contain contract at genesis",
-      test: async function () {
-        const { contractAddress } = await context.deployContract!("MultiplyBy7");
-        expect(
-          await context.viem().getCode({ address: contractAddress!, blockNumber: 0n })
-        ).toBeUndefined();
-      },
-    });
-
-    it({
-      id: "T04",
-      title: "deployed contracts should store the code on chain",
-      test: async function () {
-        // This is to enable pending tag support
-        await context.createBlock();
-        const compiled = fetchCompiledContract("MultiplyBy7");
-        const callData = encodeDeployData({
-          abi: compiled.abi,
-          bytecode: compiled.bytecode,
-          args: [],
-        }) as `0x${string}`;
-
-        const nonce = await context
-          .viem("public")
-          .getTransactionCount({ address: ALITH_ADDRESS });
-
-        await context.viem().sendTransaction({
-          data: callData,
-          nonce,
-        });
-
-        await context.createBlock();
-
-        const contractAddress = ("0x" +
-          keccak256(hexToU8a(toRlp([ALITH_ADDRESS, numberToHex(nonce)])))
-            .slice(12)
-            .substring(14)) as `0x${string}`;
-
-        const deployedCode = await context
-          .viem("public")
-          .getCode({ address: contractAddress, blockTag: "latest" });
-        expect(deployedCode).toEqual(compiled.deployedBytecode);
-      },
-    });
-
-    it({
-      id: "T05",
-      title: "Check smart-contract nonce increase when calling CREATE/CREATE2 opcodes",
+      id: `T1`,
+      title: `Check smart-contract nonce increase when calling CREATE/CREATE2 opcodes`,
       test: async function () {
         const factory = await context.deployContract!("SimpleContractFactory");
-        expect(await deployedContractsInLatestBlock(context)).toContain(factory.contractAddress);
 
-        // Factory deploys 2 contracts in constructor (1 with CREATE, 1 with CREATE2)
-        // So nonce should be 3 (1 for deployment + 2 for constructor deployments)
-        expect(await context.viem().getTransactionCount({ address: factory.contractAddress })).toBe(
-          3
-        );
+        expect(
+          await context
+            .viem()
+            .getTransactionCount({ address: factory.contractAddress }),
+        ).eq(3);
 
         await context.writeContract!({
           contractName: "SimpleContractFactory",
@@ -105,10 +153,11 @@ describeSuite({
         });
         await context.createBlock();
 
-        // After one more CREATE call, nonce should be 4
-        expect(await context.viem().getTransactionCount({ address: factory.contractAddress })).toBe(
-          4
-        );
+        expect(
+          await context
+            .viem()
+            .getTransactionCount({ address: factory.contractAddress }),
+        ).eq(4);
 
         const deployedWithCreate = (await context.readContract!({
           contractName: "SimpleContractFactory",
@@ -116,7 +165,7 @@ describeSuite({
           functionName: "getDeployedWithCreate",
           args: [],
         })) as string[];
-        expect(deployedWithCreate.length).toBe(2);
+        expect(deployedWithCreate.length).eq(2);
 
         await context.writeContract!({
           contractName: "SimpleContractFactory",
@@ -127,11 +176,11 @@ describeSuite({
         });
         await context.createBlock();
 
-        // After CREATE2 call, nonce should be 5
-        // Note: CREATE2 also increments nonce even though it uses salt-based addressing
-        expect(await context.viem().getTransactionCount({ address: factory.contractAddress })).toBe(
-          5
-        );
+        expect(
+          await context
+            .viem()
+            .getTransactionCount({ address: factory.contractAddress }),
+        ).eq(5);
 
         const deployedWithCreate2 = (await context.readContract!({
           contractName: "SimpleContractFactory",
@@ -139,9 +188,8 @@ describeSuite({
           functionName: "getDeployedWithCreate2",
           args: [],
         })) as string[];
-        expect(deployedWithCreate2.length).toBe(2);
+        expect(deployedWithCreate2.length).eq(2);
       },
     });
   },
 });
-

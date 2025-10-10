@@ -10,13 +10,11 @@
 CMD="docker run \
   -i \
   --rm \
-  --user $(id -u):$(id -g) \
   -e CARGO_NET_GIT_FETCH_WITH_CLI=true \
   -e PACKAGE=datahaven-${GH_WORKFLOW_MATRIX_CHAIN}-runtime \
   -e RUNTIME_DIR=operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN} \
   -e BUILD_OPTS=${RUNTIME_BUILD_OPTS} \
   -e PROFILE=${RUNTIME_BUILD_PROFILE} \
-  -e WASM_BUILD_STD=0 \
   -v "${PWD}:/build" \
   ${GH_WORKFLOW_MATRIX_SRTOOL_IMAGE}:${GH_WORKFLOW_MATRIX_SRTOOL_IMAGE_TAG} \
     build --app --json -cM"

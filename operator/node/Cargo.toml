@@ -166,3 +166,9 @@ try-runtime = [
     "datahaven-testnet-runtime/try-runtime",
     "sp-runtime/try-runtime",
 ]
+
+metadata-hash = [
+	"datahaven-stagenet-runtime/metadata-hash",
+	"datahaven-mainnet-runtime/metadata-hash",
+	"datahaven-testnet-runtime/metadata-hash",
+]

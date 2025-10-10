@@ -823,7 +823,7 @@ impl pallet_parameters::Config for Runtime {
 
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;

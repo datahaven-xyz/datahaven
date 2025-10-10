@@ -199,7 +199,13 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-    pub MaximumSchedulerWeight: Weight = Weight::from_parts(50, 0);
+    // Use a more realistic weight similar to production runtimes
+    // MaximumSchedulerWeight should be NORMAL_DISPATCH_RATIO * MaximumBlockWeight
+    // In production: 0.75 * (2 * WEIGHT_REF_TIME_PER_SECOND)
+    pub MaximumSchedulerWeight: Weight = Weight::from_parts(
+        WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2).saturating_mul(75) / 100,
+        MAX_POV_SIZE as u64,
+    );
     pub const MaxScheduledPerBlock: u32 = 50;
 }
 

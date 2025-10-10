@@ -3,7 +3,6 @@
 //! The types and constants defined here keep the pallet configuration consistent between
 //! networks while leaving each runtime free to decide which migrations should actually run.
 
-use core::marker::PhantomData;
 use frame_support::pallet_prelude::*;
 
 /// Maximum encoded length permitted for a migration cursor.
@@ -24,10 +23,8 @@ pub type MigrationIdentifierMaxLen = ConstU32<MIGRATION_IDENTIFIER_MAX_LEN>;
 pub type MultiBlockMigrationList<T> = (evm_alias::EvmAliasMigration<T>,);
 
 /// During benchmarking we switch to the pallet-provided mocked migrations to guarantee success.
-///
-/// Note: The type parameter `T` is unused in benchmarking mode but kept for API consistency.
 #[cfg(feature = "runtime-benchmarks")]
-pub type MultiBlockMigrationList<T = ()> = pallet_migrations::mock_helpers::MockedMigrations;
+pub type MultiBlockMigrationList = pallet_migrations::mock_helpers::MockedMigrations;
 
 /// Placeholder handler for migration status notifications. We do not emit any extra signals yet.
 pub type MigrationStatusHandler = ();

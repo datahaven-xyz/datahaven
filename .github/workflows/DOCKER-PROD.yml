@@ -93,7 +93,6 @@ jobs:
           path: |
             **/cargo-registry
             **/cargo-git
-            **/sccache
           key: cache-mount-${{ hashFiles('./operator/Dockerfile') }}-${{ hashFiles('./operator/Cargo.lock') }}-${{hashFiles('./operator/runtime/**/*.rs','./operator/pallets/**/*.rs', './operator/node/**/*.rs')}}
           restore-keys: |
             cache-mount-${{ hashFiles('./operator/Dockerfile') }}-${{ hashFiles('./operator/Cargo.lock') }}
@@ -106,7 +105,6 @@ jobs:
             {
               "cargo-registry": { "target": "/usr/local/cargo/registry" },
               "cargo-git":      { "target": "/usr/local/cargo/git" },
-              "sccache":        { "target": "/usr/local/sccache" }
             }
           skip-extraction: ${{ steps.cache.outputs.cache-hit }}
       - name: Build and push Docker image

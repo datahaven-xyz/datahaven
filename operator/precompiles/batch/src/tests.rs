@@ -662,7 +662,7 @@ fn evm_batch_some_transfers_enough() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_some {
                     to: vec![Address(Bob.into()), Address(Charlie.into())].into(),
@@ -682,7 +682,7 @@ fn evm_batch_some_until_failure_transfers_enough() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_some_until_failure {
                     to: vec![Address(Bob.into()), Address(Charlie.into())].into(),
@@ -702,7 +702,7 @@ fn evm_batch_all_transfers_enough() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_all {
                     to: vec![Address(Bob.into()), Address(Charlie.into())].into(),
@@ -725,7 +725,7 @@ fn evm_batch_some_transfers_too_much() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_some {
                     to: vec![
@@ -760,7 +760,7 @@ fn evm_batch_some_until_failure_transfers_too_much() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_some_until_failure {
                     to: vec![
@@ -795,7 +795,7 @@ fn evm_batch_all_transfers_too_much() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_all {
                     to: vec![
@@ -830,7 +830,7 @@ fn evm_batch_some_contract_revert() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_some {
                     to: vec![
@@ -865,7 +865,7 @@ fn evm_batch_some_until_failure_contract_revert() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_some_until_failure {
                     to: vec![
@@ -900,7 +900,7 @@ fn evm_batch_all_contract_revert() {
         .with_balances(vec![(Alice.into(), 10_000)])
         .build()
         .execute_with(|| {
-            assert_ok!(RuntimeCall::Evm(evm_call(
+            assert_ok!(RuntimeCall::EVM(evm_call(
                 Alice,
                 PCall::batch_all {
                     to: vec![
@@ -954,7 +954,7 @@ fn evm_batch_recursion_under_limit() {
             }
             .into();
 
-            assert_ok!(RuntimeCall::Evm(evm_call(Alice, input)).dispatch(RuntimeOrigin::root()));
+            assert_ok!(RuntimeCall::EVM(evm_call(Alice, input)).dispatch(RuntimeOrigin::root()));
 
             assert_eq!(balance(Alice), 9_000); // gasprice = 0
             assert_eq!(balance(Bob), 1_000);
@@ -993,7 +993,7 @@ fn evm_batch_recursion_over_limit() {
             )
             .into();
 
-            assert_ok!(RuntimeCall::Evm(evm_call(Alice, input)).dispatch(RuntimeOrigin::root()));
+            assert_ok!(RuntimeCall::EVM(evm_call(Alice, input)).dispatch(RuntimeOrigin::root()));
 
             assert_eq!(balance(Alice), 10_000); // gasprice = 0
             assert_eq!(balance(Bob), 0);
@@ -1030,7 +1030,7 @@ fn batch_is_not_callable_by_dummy_code() {
             }
             .into();
 
-            match RuntimeCall::Evm(evm_call(Alice, input)).dispatch(RuntimeOrigin::root()) {
+            match RuntimeCall::EVM(evm_call(Alice, input)).dispatch(RuntimeOrigin::root()) {
                 Err(DispatchErrorWithPostInfo {
                     error:
                         DispatchError::Module(ModuleError {

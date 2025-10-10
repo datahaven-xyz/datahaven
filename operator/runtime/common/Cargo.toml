@@ -9,8 +9,10 @@ codec = { workspace = true }
 fp-account = { workspace = true, features = ["serde"] }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+log = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-timestamp = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
 pallet-migrations = { workspace = true }
@@ -22,6 +24,7 @@ polkadot-runtime-common = { workspace = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true }
 sp-core = { workspace = true, features = ["serde"] }
+sp-io = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }
 sp-std = { workspace = true }
 xcm = { workspace = true }
@@ -31,8 +34,10 @@ default = ["std"]
 std = [
     "codec/std",
     "frame-support/std",
+    "log/std",
     "pallet-authorship/std",
     "pallet-balances/std",
+    "pallet-timestamp/std",
     "pallet-evm/std",
     "pallet-evm-precompile-proxy/std",
     "pallet-migrations/std",
@@ -44,6 +49,7 @@ std = [
     "precompile-utils/std",
     "scale-info/std",
     "sp-core/std",
+    "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
     "xcm/std",
@@ -57,6 +63,16 @@ runtime-benchmarks = [
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
+]
+
+try-runtime = [
+    "frame-support/try-runtime",
+    "pallet-migrations/try-runtime",
+    "pallet-safe-mode/try-runtime",
+    "pallet-tx-pause/try-runtime",
+    "pallet-timestamp/try-runtime",
+    "polkadot-runtime-common/try-runtime",
+    "sp-runtime/try-runtime",
 ]
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.

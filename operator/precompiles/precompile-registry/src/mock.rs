@@ -36,7 +36,7 @@ construct_runtime!(
     pub enum Runtime	{
         System: frame_system,
         Balances: pallet_balances,
-        Evm: pallet_evm,
+        EVM: pallet_evm,
         Timestamp: pallet_timestamp,
     }
 );

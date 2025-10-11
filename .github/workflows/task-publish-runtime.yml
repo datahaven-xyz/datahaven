@@ -46,8 +46,7 @@ jobs:
 
   build-srtool-runtimes:
     needs: ["setup-scripts", "read-rust-version"]
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     strategy:

@@ -104,7 +104,7 @@ jobs:
           cache-map: |
             {
               "cargo-registry": { "target": "/usr/local/cargo/registry" },
-              "cargo-git":      { "target": "/usr/local/cargo/git" },
+              "cargo-git":      { "target": "/usr/local/cargo/git" }
             }
           skip-extraction: ${{ steps.cache.outputs.cache-hit }}
       - name: Build and push Docker image

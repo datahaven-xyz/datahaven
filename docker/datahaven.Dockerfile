@@ -4,7 +4,7 @@
 
 FROM debian:stable AS builder
 
-RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
+RUN apt-get update && apt-get install -y libpq5 ca-certificates && update-ca-certificates
 
 FROM debian:stable-slim
 LABEL maintainer="steve@moonsonglabs.com"

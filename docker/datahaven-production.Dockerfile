@@ -43,6 +43,8 @@ FROM debian:stable-slim
 LABEL maintainer="steve@moonsonglabs.com"
 LABEL description="Production Binary for DataHaven Nodes"
 
+RUN apt-get update && apt-get install -y libpq5
+
 RUN useradd -m -u 1000 -U -s /bin/sh -d /datahaven datahaven && \
 	mkdir -p /datahaven/.local/share && \
 	mkdir /data && \

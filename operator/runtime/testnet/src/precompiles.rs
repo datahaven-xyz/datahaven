@@ -27,6 +27,7 @@ use pallet_evm_precompile_file_system::FileSystemPrecompile;
 use pallet_evm_precompile_identity::IdentityPrecompile;
 use pallet_evm_precompile_modexp::Modexp;
 use pallet_evm_precompile_proxy::{OnlyIsProxyAndProxy, ProxyPrecompile};
+use pallet_evm_precompile_randomness::RandomnessPrecompile;
 use pallet_evm_precompile_registry::PrecompileRegistry;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
@@ -87,6 +88,11 @@ type DataHavenPrecompilesAt<R> = (
             // Batch is the only precompile allowed to call Batch.
             CallableByPrecompile<OnlyFrom<AddressU64<2056>>>,
         ),
+    >,
+    PrecompileAt<
+        AddressU64<2057>,
+        RandomnessPrecompile<R>,
+        (CallableByContract, CallableByPrecompile),
     >,
     PrecompileAt<
         AddressU64<2058>,

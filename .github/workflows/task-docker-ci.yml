@@ -72,15 +72,15 @@ jobs:
       - name: Build and push Docker image
         uses: ./.github/workflow-templates/publish-docker
         with:
-          dockerfile: ./docker/datahaven-dev.Dockerfile
+          dockerfile: ./operator/Dockerfile
           context: .
           registry: ghcr.io
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
           image_tags: ${{ steps.meta.outputs.tags }}
-          image_title: "DataHaven Node - Development/CI"
-          image_description: "Development and CI/E2E testing build of DataHaven node"
-          cache_scope: datahaven-dev-build
+          image_title: "DataHaven Node - CI"
+          image_description: "CI build of DataHaven operator node"
+          cache_scope: datahaven-ci-build
 
       # --- Smoke tests ---
 

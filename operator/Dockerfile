@@ -1,13 +1,19 @@
-# Release Build Image for DataHaven Node
+# DataHaven Operator Image
 #
-# This is a minimal image for release builds.
-# Expects pre-built binary in build/ directory.
+# This is the standard operator image used for CI and release builds.
+# It's a minimal image that accepts a pre-built binary.
 #
-# Expected Binary:
+# Usage:
+#   - CI builds: Binary from build-operator workflow artifact
+#   - Release builds: Binary from build-operator workflow artifact
+#   - Local builds: Binary from local cargo build
+#
+# Expected Binary Location:
 #   build/datahaven-node
 #
-# The GitHub Actions workflow should handle building multiple CPU-optimized
-# binaries using a matrix strategy, each creating a separate image tag.
+# Registries:
+#   - GHCR: ghcr.io/datahaven-xyz/datahaven/datahaven (CI)
+#   - DockerHub: datahavenxyz/datahaven (releases)
 
 FROM debian:stable AS builder
 

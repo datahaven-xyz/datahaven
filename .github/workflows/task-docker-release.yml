@@ -147,14 +147,14 @@ jobs:
         if: github.event_name == 'workflow_call'
         uses: ./.github/workflow-templates/publish-docker
         with:
-          dockerfile: ./docker/datahaven-release.Dockerfile
+          dockerfile: ./operator/Dockerfile
           context: .
           registry: docker.io
           registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
           registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
           image_tags: ${{ steps.meta-ci.outputs.tags }}
           image_title: "DataHaven Node - Release"
-          image_description: "Release build of DataHaven blockchain node"
+          image_description: "Release build of DataHaven operator node"
           cache_scope: datahaven-release-ci
 
       # --- Smoke tests ---

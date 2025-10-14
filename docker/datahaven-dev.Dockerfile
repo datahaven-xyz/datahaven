@@ -1,7 +1,9 @@
-# Development/CI/E2E Testing Image for DataHaven Node
+# DataHaven Development/Troubleshooting Image
 #
-# This image is optimized for fast CI builds and E2E testing.
-# It accepts pre-built binaries and supports optional debug mode.
+# This image is ONLY for local development and troubleshooting purposes.
+# It includes additional debugging tools and dependencies not needed in production.
+#
+# DO NOT USE for CI or production builds - use operator/Dockerfile instead.
 #
 # Build Args:
 #   DEBUG_MODE - Set to "true" to include debugging tools (default: false)
@@ -9,7 +11,12 @@
 # Expected Binary Location:
 #   ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
 #
-# Registry: ghcr.io/datahaven-xyz/datahaven/datahaven
+# Features:
+#   - Ubuntu base with additional system tools
+#   - librocksdb-dev for local development
+#   - Optional gdb, strace, vim for debugging
+#   - RUST_BACKTRACE enabled by default
+#   - Additional directories (/specs, /storage) for testing
 
 FROM ubuntu:noble
 

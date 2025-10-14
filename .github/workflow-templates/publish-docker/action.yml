@@ -79,7 +79,6 @@ runs:
 
     - name: Login to Container Registry
       uses: docker/login-action@v3
-      shell: bash
       with:
         registry: ${{ inputs.registry }}
         username: ${{ inputs.registry_username }}

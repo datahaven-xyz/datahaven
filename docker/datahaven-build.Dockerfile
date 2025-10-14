@@ -57,8 +57,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest
 
-RUN apt-get update && apt-get install -y libpq5
-
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libpq.so* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /datahaven/target/release/datahaven-node /usr/local/bin
 
 USER root

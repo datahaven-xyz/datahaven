@@ -61,7 +61,6 @@ jobs:
       - name: Prepare binary (CI build)
         if: github.event_name == 'workflow_call'
         run: |
-          mv ./build/datahaven-node ./build/datahaven-node
           chmod +x ./build/datahaven-node
           ls -la ./build/
 

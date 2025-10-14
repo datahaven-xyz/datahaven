@@ -40,12 +40,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: datahaven-node-${{ inputs.binary-hash }}
-          path: ./operator/target/x86_64-unknown-linux-gnu/release/
+          path: ./build/
 
       - name: Prepare binary
         run: |
-          chmod +x ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
-          ls -la ./operator/target/x86_64-unknown-linux-gnu/release/
+          chmod +x ./build/datahaven-node
+          ls -la ./build/
 
       - name: Docker meta
         id: meta

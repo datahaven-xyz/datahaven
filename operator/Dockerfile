@@ -32,9 +32,24 @@ LABEL version="0.3.0"
 LABEL description="DataHaven Node - Release Build"
 LABEL maintainer="steve@moonsonglabs.com"
 
-# Copy CA certificates and libpq5 libraries from builder
+# Copy CA certificates and shared libraries from builder
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libpq.so* /usr/lib/x86_64-linux-gnu/
+COPY --from=builder \
+    /lib/x86_64-linux-gnu/libpq.so.5 \
+    /lib/x86_64-linux-gnu/libssl.so.3 \
+    /lib/x86_64-linux-gnu/libcrypto.so.3 \
+    /lib/x86_64-linux-gnu/libgssapi_krb5.so.2 \
+    /lib/x86_64-linux-gnu/libldap.so.2 \
+    /lib/x86_64-linux-gnu/libz.so.1 \
+    /lib/x86_64-linux-gnu/libzstd.so.1 \
+    /lib/x86_64-linux-gnu/libkrb5.so.3 \
+    /lib/x86_64-linux-gnu/libk5crypto.so.3 \
+    /lib/x86_64-linux-gnu/libcom_err.so.2 \
+    /lib/x86_64-linux-gnu/libkrb5support.so.0 \
+    /lib/x86_64-linux-gnu/liblber.so.2 \
+    /lib/x86_64-linux-gnu/libsasl2.so.2 \
+    /lib/x86_64-linux-gnu/libkeyutils.so.1 \
+    /lib/x86_64-linux-gnu/
 
 # Create datahaven user and directories
 RUN useradd -m -u 1000 -U -s /bin/sh -d /datahaven datahaven && \

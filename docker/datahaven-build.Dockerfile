@@ -57,7 +57,25 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # --- Create final lightweight runtime image ---
 FROM docker.io/parity/base-bin:latest
 
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libpq.so* /usr/lib/x86_64-linux-gnu/
+# Copy CA certificates and shared libraries from builder
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder \
+    /lib/x86_64-linux-gnu/libpq.so.5 \
+    /lib/x86_64-linux-gnu/libssl.so.3 \
+    /lib/x86_64-linux-gnu/libcrypto.so.3 \
+    /lib/x86_64-linux-gnu/libgssapi_krb5.so.2 \
+    /lib/x86_64-linux-gnu/libldap.so.2 \
+    /lib/x86_64-linux-gnu/libz.so.1 \
+    /lib/x86_64-linux-gnu/libzstd.so.1 \
+    /lib/x86_64-linux-gnu/libkrb5.so.3 \
+    /lib/x86_64-linux-gnu/libk5crypto.so.3 \
+    /lib/x86_64-linux-gnu/libcom_err.so.2 \
+    /lib/x86_64-linux-gnu/libkrb5support.so.0 \
+    /lib/x86_64-linux-gnu/liblber.so.2 \
+    /lib/x86_64-linux-gnu/libsasl2.so.2 \
+    /lib/x86_64-linux-gnu/libkeyutils.so.1 \
+    /lib/x86_64-linux-gnu/
+
 COPY --from=builder /datahaven/target/release/datahaven-node /usr/local/bin
 
 USER root
@@ -69,7 +87,7 @@ RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
 
 USER datahaven
 
-EXPOSE 30333 9933 9944 9615
+EXPOSE 30333 9944 9615
 VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/local/bin/datahaven-node"]

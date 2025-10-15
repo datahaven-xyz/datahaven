@@ -90,24 +90,29 @@ jobs:
 
       - name: Extract tag for job output
         id: extract_tag
+        env:
+          META_JSON: ${{ steps.meta-dispatch.outputs.json || steps.meta-ci.outputs.json }}
+          META_TAGS: ${{ steps.meta-dispatch.outputs.tags || steps.meta-ci.outputs.tags }}
         run: |
-          # Get the JSON output from whichever meta step ran
-          META_DISPATCH='${{ steps.meta-dispatch.outputs.json }}'
-          META_CI='${{ steps.meta-ci.outputs.json }}'
+          set -euo pipefail
 
-          if [ -n "$META_DISPATCH" ]; then
-            FULL_TAG=$(echo "$META_DISPATCH" | jq -r '.tags[-1]')
-          elif [ -n "$META_CI" ]; then
-            FULL_TAG=$(echo "$META_CI" | jq -r '.tags[-1]')
+          # Prefer JSON (stable structure); fall back to multiline 'tags'
+          if [[ -n "${META_JSON:-}" ]]; then
+            FULL_TAG="$(printf '%s' "$META_JSON" | jq -r '.tags[-1]')"
           else
-            echo "ERROR: No meta output found!"
-            exit 1
+            # docker/metadata-action 'tags' output is newline-separated
+            FULL_TAG="$(printf '%s\n' "$META_TAGS" | tail -n 1)"
           fi
+          echo "Full tag: $FULL_TAG"
 
-          TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
-          echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
-          echo "image-name=datahavenxyz/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
+          TAG_ONLY="${FULL_TAG##*:}"
+          echo "Tag only: $TAG_ONLY"
 
+          {
+            echo "image-tag=$TAG_ONLY"
+            echo "image-name=datahavenxyz/datahaven:$TAG_ONLY"
+          } >> "$GITHUB_OUTPUT"
+      
       # --- Conditional: Cargo cache for full builds ---
       - name: Set up cargo cache (full build)
         if: github.event_name == 'workflow_dispatch'

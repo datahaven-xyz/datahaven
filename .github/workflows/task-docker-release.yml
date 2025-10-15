@@ -91,11 +91,19 @@ jobs:
       - name: Extract tag for job output
         id: extract_tag
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            FULL_TAG=$(echo '${{ steps.meta-dispatch.outputs.json }}' | jq -r '.tags[-1]')
+          # Get the JSON output from whichever meta step ran
+          META_DISPATCH='${{ steps.meta-dispatch.outputs.json }}'
+          META_CI='${{ steps.meta-ci.outputs.json }}'
+
+          if [ -n "$META_DISPATCH" ]; then
+            FULL_TAG=$(echo "$META_DISPATCH" | jq -r '.tags[-1]')
+          elif [ -n "$META_CI" ]; then
+            FULL_TAG=$(echo "$META_CI" | jq -r '.tags[-1]')
           else
-            FULL_TAG=$(echo '${{ steps.meta-ci.outputs.json }}' | jq -r '.tags[-1]')
+            echo "ERROR: No meta output found!"
+            exit 1
           fi
+
           TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
           echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
           echo "image-name=datahavenxyz/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT

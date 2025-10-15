@@ -61,10 +61,9 @@ RUN useradd -m -u 1000 -U -s /bin/sh -d /datahaven datahaven && \
 USER datahaven
 
 # Copy pre-built binary
-COPY --chown=datahaven:datahaven build/* /datahaven
-
+COPY --chown=datahaven:datahaven build/* /usr/local/bin
 # Make binary executable
-RUN chmod uog+x /datahaven/datahaven*
+RUN chmod uog+x /usr/local/bin/datahaven*
 
 # Expose ports
 # 30333: p2p networking
@@ -74,4 +73,4 @@ EXPOSE 30333 9944 9615
 
 VOLUME ["/data"]
 
-ENTRYPOINT ["/datahaven/datahaven-node"]
+ENTRYPOINT ["/usr/local/bin/datahaven-node"]

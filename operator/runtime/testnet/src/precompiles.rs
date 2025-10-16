@@ -15,15 +15,21 @@
 // along with DataHaven. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::configs::MaxAdditionalFields;
+use crate::governance::councils::{TechnicalCommitteeInstance, TreasuryCouncilInstance};
+use crate::governance::custom_origins::Origin;
 use pallet_evm_precompile_balances_erc20::{Erc20BalancesPrecompile, Erc20Metadata};
 use pallet_evm_precompile_batch::BatchPrecompile;
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_call_permit::CallPermitPrecompile;
+use pallet_evm_precompile_collective::CollectivePrecompile;
+use pallet_evm_precompile_conviction_voting::ConvictionVotingPrecompile;
 use pallet_evm_precompile_file_system::FileSystemPrecompile;
 use pallet_evm_precompile_identity::IdentityPrecompile;
 use pallet_evm_precompile_modexp::Modexp;
+use pallet_evm_precompile_preimage::PreimagePrecompile;
 use pallet_evm_precompile_proxy::{OnlyIsProxyAndProxy, ProxyPrecompile};
+use pallet_evm_precompile_referenda::ReferendaPrecompile;
 use pallet_evm_precompile_registry::PrecompileRegistry;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
@@ -99,6 +105,31 @@ type DataHavenPrecompilesAt<R> = (
             // Batch is the only precompile allowed to call Proxy.
             CallableByPrecompile<OnlyFrom<AddressU64<2056>>>,
         ),
+    >,
+    PrecompileAt<
+        AddressU64<2064>,
+        CollectivePrecompile<R, TreasuryCouncilInstance>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2065>,
+        ReferendaPrecompile<R, Origin>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2066>,
+        ConvictionVotingPrecompile<R>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2067>,
+        PreimagePrecompile<R>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2068>,
+        CollectivePrecompile<R, TechnicalCommitteeInstance>,
+        (CallableByContract, CallableByPrecompile),
     >,
     PrecompileAt<
         AddressU64<2069>,

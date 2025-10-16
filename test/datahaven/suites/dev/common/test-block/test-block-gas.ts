@@ -49,8 +49,12 @@ describeSuite({
           gas: 500_000n
         });
 
+        if (!contractAddress) {
+          throw new Error("Expected deployed contract to have an address");
+        }
+
         const gasLimit = await context.viem().readContract({
-          address: contractAddress!,
+          address: contractAddress,
           abi,
           args: [],
           functionName: "getGasLimit"

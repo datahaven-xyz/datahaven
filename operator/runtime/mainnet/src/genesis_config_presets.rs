@@ -1,5 +1,5 @@
 use crate::{
-    configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, BalancesConfig, EvmConfig, Precompiles,
+    configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, BalancesConfig, EVMConfig, Precompiles,
     RuntimeGenesisConfig, SessionKeys, Signature, SudoConfig, TechnicalCommitteeConfig,
     TreasuryCouncilConfig,
 };
@@ -44,7 +44,7 @@ fn testnet_genesis(
             epoch_config: BABE_GENESIS_EPOCH_CONFIG,
             ..Default::default()
         },
-        evm: EvmConfig {
+        evm: EVMConfig {
             // We need _some_ code inserted at the precompile address so that
             // the evm will actually call the address.
             accounts: Precompiles::used_addresses()

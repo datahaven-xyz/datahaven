@@ -62,7 +62,7 @@ fn author_does_receive_priority_fee() {
             Balances::make_free_balance_be(&author, 100 * HAVE);
 
             // EVM transfer.
-            assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
+            assert_ok!(RuntimeCall::EVM(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
@@ -104,7 +104,7 @@ fn total_issuance_after_evm_transaction_with_priority_fee() {
             let _author = get_validator_by_index(0);
 
             // EVM transfer.
-            assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
+            assert_ok!(RuntimeCall::EVM(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
@@ -174,7 +174,7 @@ fn total_issuance_after_evm_transaction_without_priority_fee() {
             set_block_author_by_index(0);
             let issuance_before = <Runtime as pallet_evm::Config>::Currency::total_issuance();
             // EVM transfer.
-            assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
+            assert_ok!(RuntimeCall::EVM(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),

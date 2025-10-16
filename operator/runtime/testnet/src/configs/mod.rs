@@ -231,7 +231,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
             // See https://github.com/PureStake/sr-moonbeam/issues/30
             // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
             // this can be seen as an additional security
-            RuntimeCall::Evm(_) => false,
+            RuntimeCall::EVM(_) => false,
             _ => true,
         }
     }
@@ -745,6 +745,7 @@ fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
             | PrecompileName::TechnicalCommitteeInstance
             | PrecompileName::TreasuryCouncilInstance
             | PrecompileName::PreimagePrecompile
+            | PrecompileName::ReferendaPrecompile
     )
 }
 
@@ -822,6 +823,9 @@ impl pallet_parameters::Config for Runtime {
 
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;

@@ -42,7 +42,6 @@ export const deployCompiledContract = async (
       if (options.gasPrice !== undefined) tx.gasPrice = options.gasPrice;
       tx.accessList = [];
       break;
-    case "eip1559":
     default:
       tx.type = "eip1559";
       if (options.maxFeePerGas !== undefined) tx.maxFeePerGas = options.maxFeePerGas;

@@ -1,0 +1,192 @@
+name: Docker Build & Publish (Release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: "Label for the Docker image"
+        required: true
+        type: string
+      branch:
+        description: "Branch to checkout and build"
+        required: true
+        type: string
+      fast_runtime:
+        description: "Enable fast runtime features"
+        required: false
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      binary-hash:
+        description: "The hash of the operator binary (for CI builds)"
+        required: true
+        type: string
+    outputs:
+      image-tag:
+        description: "The tag portion of the docker image (without registry)"
+        value: "${{ jobs.build-test-push.outputs.image-tag }}"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-build-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.extract_tag.outputs.image-tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - uses: ./.github/workflows/actions/cleanup-runner
+        if: github.event_name == 'workflow_dispatch'
+
+      # --- Conditional: Download binary for CI builds ---
+      - name: Download binary artifact (CI build)
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-node-${{ inputs.binary-hash }}
+          path: ./build/
+
+      - name: Prepare binary (CI build)
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          chmod +x ./build/datahaven-node
+          ls -la ./build/
+
+      # --- Docker metadata ---
+      - name: Docker meta (dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        id: meta-dispatch
+        uses: docker/metadata-action@v5
+        with:
+          images: datahavenxyz/datahaven
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ github.event.inputs.label }}
+
+      - name: Docker meta (CI - main push)
+        if: github.event_name != 'workflow_dispatch'
+        id: meta-ci
+        uses: docker/metadata-action@v5
+        with:
+          images: datahavenxyz/datahaven
+          flavor: |
+            latest=true
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short,prefix=sha-
+
+      - name: Extract tag for job output
+        id: extract_tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            FULL_TAG=$(echo '${{ steps.meta-dispatch.outputs.json }}' | jq -r '.tags[-1]')
+          else
+            FULL_TAG=$(echo '${{ steps.meta-ci.outputs.json }}' | jq -r '.tags[-1]')
+          fi
+          TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
+          echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
+          echo "image-name=datahavenxyz/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
+      
+      # --- Conditional: Cargo cache for full builds ---
+      - name: Set up cargo cache (full build)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            **/cargo-registry
+            **/cargo-git
+          key: cache-mount-${{ hashFiles('./docker/datahaven-build.Dockerfile') }}-${{ hashFiles('./operator/Cargo.lock') }}-${{hashFiles('./operator/runtime/**/*.rs','./operator/pallets/**/*.rs', './operator/node/**/*.rs')}}
+          restore-keys: |
+            cache-mount-${{ hashFiles('./docker/datahaven-build.Dockerfile') }}-${{ hashFiles('./operator/Cargo.lock') }}
+            cache-mount-${{ hashFiles('./docker/datahaven-build.Dockerfile') }}
+            cache-mount-
+
+      - name: Inject cache into docker (full build)
+        if: github.event_name == 'workflow_dispatch'
+        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+        with:
+          cache-map: |
+            {
+              "cargo-registry": { "target": "/usr/local/cargo/registry" },
+              "cargo-git":      { "target": "/usr/local/cargo/git" }
+            }
+          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
+
+      # --- Build and push: Full build (workflow_dispatch) ---
+      - name: Build and push Docker image (full build)
+        if: github.event_name == 'workflow_dispatch'
+        uses: ./.github/workflow-templates/publish-docker
+        with:
+          dockerfile: ./docker/datahaven-build.Dockerfile
+          context: ./operator
+          registry: docker.io
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          image_tags: ${{ steps.meta-dispatch.outputs.tags }}
+          image_title: "DataHaven Node - Release"
+          image_description: "Release build of DataHaven blockchain node"
+          cache_scope: datahaven-release-build
+          build_args: |
+            FAST_RUNTIME=${{ github.event.inputs.fast_runtime == 'true' && 'TRUE' || 'FALSE' }}
+
+      # --- Build and push: CI binary reuse (workflow_call) ---
+      - name: Build and push Docker image (CI binary)
+        if: github.event_name != 'workflow_dispatch'
+        uses: ./.github/workflow-templates/publish-docker
+        with:
+          dockerfile: ./operator/Dockerfile
+          context: .
+          registry: docker.io
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          image_tags: ${{ steps.meta-ci.outputs.tags }}
+          image_title: "DataHaven Node - Release"
+          image_description: "Release build of DataHaven operator node"
+          cache_scope: datahaven-release-ci
+
+      # --- Smoke tests ---
+      - name: Pull and test node --help
+        run: |
+          docker pull ${{ steps.extract_tag.outputs.image-name }}
+          docker run --rm ${{ steps.extract_tag.outputs.image-name }} --help
+
+      - name: Integration test (dev chain starts)
+        run: |
+          docker run --rm -d -p 9944:9944 --name local-dh-node \
+            ${{ steps.extract_tag.outputs.image-name }} --dev --unsafe-rpc-external
+
+      - name: Wait for node to be healthy and test
+        run: |
+          echo "Waiting for node to start..."
+          for i in {1..30}; do # Retry for 30 * 5s = 150 seconds
+            if curl --fail --location 'http://127.0.0.1:9944' \
+              --header 'Content-Type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"system_chain","params":[]}' ; then
+              echo "Node is healthy!"
+              docker logs local-dh-node --tail 100
+              exit 0
+            fi
+            echo "Attempt $i: Node not ready yet, sleeping 5s..."
+            sleep 5
+          done
+          echo "Node failed to start or respond in time."
+          docker logs local-dh-node --tail 100
+          exit 1
+
+      - name: Cleanup integration test container
+        if: always()
+        run: docker rm -f local-dh-node

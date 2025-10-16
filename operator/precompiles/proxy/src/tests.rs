@@ -541,7 +541,7 @@ fn test_nested_evm_bypass_proxy_should_allow_elevating_proxy_type() {
             }
             .into();
 
-            let evm_call = RuntimeCall::Evm(EvmCall::call {
+            let evm_call = RuntimeCall::EVM(EvmCall::call {
                 source: Alice.into(),
                 target: Precompile1.into(),
                 input: add_proxy_precompile,

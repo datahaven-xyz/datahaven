@@ -6,11 +6,20 @@
 # self-hosted runner uses user `maintenance` to match srtool `builder` user 1001
 # $(~/srtool/uid-gid-mapping.sh 1001 | xargs) is used to map the user and group
 
-# Docker command to generate JSON blob of the runtime
-CMD="docker run \
+# Determine whether to use Podman or Docker
+if [ "${IS_PODMAN}" = "true" ]; then
+  CONTAINER_ENGINE="podman"
+  USER_FLAG="--userns=keep-id"
+else
+  CONTAINER_ENGINE="docker"
+  USER_FLAG="--user $(id -u):$(id -g)"
+fi
+
+# Container command to generate JSON blob of the runtime
+CMD="${CONTAINER_ENGINE} run \
   -i \
   --rm \
-  --user $(id -u):$(id -g) \
+  ${USER_FLAG} \
   -e CARGO_NET_GIT_FETCH_WITH_CLI=true \
   -e PACKAGE=datahaven-${GH_WORKFLOW_MATRIX_CHAIN}-runtime \
   -e RUNTIME_DIR=operator/runtime/${GH_WORKFLOW_MATRIX_CHAIN} \

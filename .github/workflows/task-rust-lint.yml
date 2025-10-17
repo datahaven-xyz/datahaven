@@ -34,7 +34,6 @@ jobs:
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: FMT
-          cache-targets: false
           install-deps: false  # Self-hosted runners have deps pre-installed
 
       - name: Run cargo fmt

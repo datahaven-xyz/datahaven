@@ -4,6 +4,7 @@ pub mod common;
 pub mod governance;
 mod native_token_transfer;
 mod proxy;
+mod safe_mode_tx_pause;
 
 use common::*;
 use datahaven_stagenet_runtime::{

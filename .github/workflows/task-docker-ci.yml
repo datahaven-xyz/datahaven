@@ -1,4 +1,4 @@
-name: Docker Build & Publish
+name: Docker Build & Publish (CI)
 
 on:
   workflow_dispatch:
@@ -23,28 +23,29 @@ permissions:
   packages: write
 
 concurrency:
-  group: docker-build-${{ github.ref }}
+  group: docker-build-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ steps.last_tag_extractor.outputs.image-tag }}
+      image-tag: ${{ steps.extract_tag.outputs.image-tag }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Download binary artifact
         uses: actions/download-artifact@v4
         with:
           name: datahaven-node-${{ inputs.binary-hash }}
-          path: ./operator/target/x86_64-unknown-linux-gnu/release/
+          path: ./build/
 
       - name: Prepare binary
         run: |
-          chmod +x ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
-          ls -la ./operator/target/x86_64-unknown-linux-gnu/release/
+          chmod +x ./build/datahaven-node
+          ls -la ./build/
 
       - name: Docker meta
         id: meta
@@ -61,67 +62,37 @@ jobs:
             type=ref,event=pr
 
       - name: Extract tag for job output
-        id: last_tag_extractor
+        id: extract_tag
         run: |
           FULL_TAG=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')
           TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
           echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
           echo "image-name=ghcr.io/datahaven-xyz/datahaven/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
 
-      - name: Log Docker Metadata
-        run: |
-          echo "Generated tags: ${{ steps.meta.outputs.tags }}"
-          echo "Generated labels: ${{ steps.meta.outputs.labels }}"
-          echo "Generated JSON: ${{ steps.meta.outputs.json }}"
-
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            image=moby/buildkit:master
-            network=host
-          buildkitd-flags: |
-            --allow-insecure-entitlement network.host
-            --allow-insecure-entitlement security.insecure
-            
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and push Docker image
-        id: build
-        uses: docker/build-push-action@v5
+        uses: ./.github/workflow-templates/publish-docker
         with:
+          dockerfile: ./operator/Dockerfile
           context: .
-          file: ./test/docker/datahaven-node-local.dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64
-          cache-from: type=gha,scope=datahaven-local-build
-          cache-to: type=gha,mode=max,scope=datahaven-local-build
-          provenance: mode=max
-          sbom: true
-
-      - name: Log build cache statistics
-        run: |
-          echo "Build cache statistics:"
-          docker buildx du --verbose
+          registry: ghcr.io
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+          image_tags: ${{ steps.meta.outputs.tags }}
+          image_title: "DataHaven Node - CI"
+          image_description: "CI build of DataHaven operator node"
+          cache_scope: datahaven-ci-build
 
       # --- Smoke tests ---
 
       - name: Pull and test node --help
         run: |
-          docker pull ${{ steps.last_tag_extractor.outputs.image-name }}
-          docker run --rm ${{ steps.last_tag_extractor.outputs.image-name }} --help
+          docker pull ${{ steps.extract_tag.outputs.image-name }}
+          docker run --rm ${{ steps.extract_tag.outputs.image-name }} --help
 
       - name: Integration test (dev chain starts)
         run: |
           docker run --rm -d -p 9944:9944 --name local-dh-node \
-            ${{ steps.last_tag_extractor.outputs.image-name }} --dev --unsafe-rpc-external
+            ${{ steps.extract_tag.outputs.image-name }} --dev --unsafe-rpc-external
 
       - name: Wait for node to be healthy and test
         run: |

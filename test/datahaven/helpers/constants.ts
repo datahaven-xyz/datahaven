@@ -32,15 +32,25 @@ class RuntimeConstant<T> {
 }
 
 // Fees and gas limits
+// Values derived from Rust runtime configuration in operator/runtime/*/src/lib.rs
 export const RUNTIME_CONSTANTS = {
   "DATAHAVEN-STAGENET": {
-    GAS_LIMIT: new RuntimeConstant(60_000_000n)
+    GAS_LIMIT: new RuntimeConstant(60_000_000n),
+    EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
+    BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
+    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
   },
   "DATAHAVEN-MAINNET": {
-    GAS_LIMIT: new RuntimeConstant(60_000_000n)
+    GAS_LIMIT: new RuntimeConstant(60_000_000n),
+    EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
+    BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
+    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
   },
   "DATAHAVEN-TESTNET": {
-    GAS_LIMIT: new RuntimeConstant(60_000_000n)
+    GAS_LIMIT: new RuntimeConstant(60_000_000n),
+    EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
+    BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
+    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
   }
 };
 

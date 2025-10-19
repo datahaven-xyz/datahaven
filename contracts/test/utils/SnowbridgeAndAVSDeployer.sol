@@ -13,8 +13,9 @@ import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {AVSDeployer} from "./AVSDeployer.sol";
 import {TestUtils} from "./TestUtils.sol";
-import {IAllocationManagerTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
@@ -210,12 +211,12 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
             // Register the validator as an operator for the DataHaven service.
             uint32[] memory operatorSetIds = new uint32[](1);
             operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
-            IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-                .RegisterParams({
-                avs: address(serviceManager),
-                operatorSetIds: operatorSetIds,
-                data: abi.encodePacked(address(uint160(uint256(initialValidatorHashes[i]))))
-            });
+            IAllocationManagerTypes.RegisterParams memory registerParams =
+                IAllocationManagerTypes.RegisterParams({
+                    avs: address(serviceManager),
+                    operatorSetIds: operatorSetIds,
+                    data: abi.encodePacked(address(uint160(uint256(initialValidatorHashes[i]))))
+                });
             allocationManager.registerForOperatorSets(validatorsAllowlist[i], registerParams);
             cheats.stopPrank();
 

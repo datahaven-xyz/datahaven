@@ -15,13 +15,15 @@ import {
 } from "snowbridge/src/v2/Types.sol";
 import {BeefyVerification} from "snowbridge/src/BeefyVerification.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
-import {IAllocationManager} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
 import {MerkleUtils} from "../src/libraries/MerkleUtils.sol";
 import {
-    IRewardsRegistryEvents, IRewardsRegistryErrors
+    IRewardsRegistryEvents,
+    IRewardsRegistryErrors
 } from "../src/interfaces/IRewardsRegistry.sol";
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
 import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
@@ -253,10 +255,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         commands[0] = updateRewardsCommand;
 
         return InboundMessageV2({
-            origin: REWARDS_MESSAGE_ORIGIN,
-            nonce: 0,
-            topic: bytes32(0),
-            commands: commands
+            origin: REWARDS_MESSAGE_ORIGIN, nonce: 0, topic: bytes32(0), commands: commands
         });
     }
 
@@ -269,10 +268,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
         // The second message is a dummy message with a different origin.
         messages[1] = InboundMessageV2({
-            origin: WRONG_MESSAGE_ORIGIN,
-            nonce: 1,
-            topic: bytes32(0),
-            commands: new CommandV2[](0)
+            origin: WRONG_MESSAGE_ORIGIN, nonce: 1, topic: bytes32(0), commands: new CommandV2[](0)
         });
 
         // The third message is an attempt at setting the new rewards root, but with a wrong origin
@@ -296,10 +292,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
 
         // The second message is a dummy message with a different origin.
         messages[1] = InboundMessageV2({
-            origin: WRONG_MESSAGE_ORIGIN,
-            nonce: 1,
-            topic: bytes32(0),
-            commands: new CommandV2[](0)
+            origin: WRONG_MESSAGE_ORIGIN, nonce: 1, topic: bytes32(0), commands: new CommandV2[](0)
         });
 
         // The third message is an attempt at setting the new rewards root, but with a wrong origin

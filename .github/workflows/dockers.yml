@@ -9,4 +9,4 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - run: cd operator && docker build -t datahaven --file Dockerfile .
+      - run: cd docker && docker build -t datahaven --file datahaven-build.Dockerfile .

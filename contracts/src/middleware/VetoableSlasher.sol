@@ -3,8 +3,9 @@ pragma solidity ^0.8.27;
 
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IServiceManager} from "../interfaces/IServiceManager.sol";
-import {IAllocationManager} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {SlasherBase} from "./SlasherBase.sol";
 import {IVetoableSlasher, IVetoableSlasherTypes} from "../interfaces/IVetoableSlasher.sol";
 
@@ -65,9 +66,7 @@ contract VetoableSlasher is IVetoableSlasher, SlasherBase {
     ) internal virtual {
         uint256 requestId = nextRequestId++;
         slashingRequests[requestId] = IVetoableSlasherTypes.VetoableSlashingRequest({
-            params: params,
-            requestBlock: block.number,
-            isPending: true
+            params: params, requestBlock: block.number, isPending: true
         });
 
         emit SlashingRequested(

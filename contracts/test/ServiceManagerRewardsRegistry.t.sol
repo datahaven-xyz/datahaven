@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 /* solhint-disable func-name-mixedcase */
 
 import {Test, console, stdError} from "forge-std/Test.sol";
-import {IAllocationManager} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {RewardsRegistry} from "../src/middleware/RewardsRegistry.sol";

@@ -32,9 +32,7 @@ export interface CompiledContractArtifact {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const fetchCompiledContract = (
-  contractName: string
-): CompiledContractArtifact => {
+export const fetchCompiledContract = (contractName: string): CompiledContractArtifact => {
   let artifactPath = path.join(__dirname, "../", "contracts", "out", `${contractName}.json`);
   if (!existsSync(artifactPath)) {
     const folder = contractName
@@ -66,7 +64,8 @@ export const fetchCompiledContract = (
   const bytecodeFromContract = artifactJson.contract.bytecode;
   const bytecodeObject = artifactJson.contract.evm?.bytecode?.object;
   const bytecode =
-    bytecodeFromContract ?? (bytecodeObject ? (`0x${bytecodeObject}` as const) : artifactJson.byteCode);
+    bytecodeFromContract ??
+    (bytecodeObject ? (`0x${bytecodeObject}` as const) : artifactJson.byteCode);
   if (!bytecode) {
     throw new Error(`Missing bytecode for compiled contract: ${contractName}`);
   }

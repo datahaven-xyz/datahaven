@@ -6,7 +6,7 @@ import {
   BALTATHAR_PRIVATE_KEY,
   CHARLETH_ADDRESS,
   createViemTransaction,
-  sendRawTransaction,
+  sendRawTransaction
 } from "@moonwall/util";
 import { encodeFunctionData, fromHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -26,7 +26,7 @@ describeSuite({
     it({
       id: "T01",
       title: "all batch functions should consume similar gas",
-      test: async function () {
+      test: async () => {
         const { abi: batchInterface } = fetchCompiledContract("Batch");
 
         // each tx have a different gas limit to ensure it doesn't impact gas used
@@ -40,9 +40,9 @@ describeSuite({
               [BALTATHAR_ADDRESS, CHARLETH_ADDRESS],
               ["1000000000000000000", "2000000000000000000"],
               [],
-              [],
-            ],
-          }),
+              []
+            ]
+          })
         });
 
         const batchSomeTx = await createViemTransaction(context, {
@@ -56,9 +56,9 @@ describeSuite({
               [BALTATHAR_ADDRESS, CHARLETH_ADDRESS],
               ["1000000000000000000", "2000000000000000000"],
               [],
-              [],
-            ],
-          }),
+              []
+            ]
+          })
         });
 
         const batchSomeUntilFailureTx = await createViemTransaction(context, {
@@ -72,9 +72,9 @@ describeSuite({
               [BALTATHAR_ADDRESS, CHARLETH_ADDRESS],
               ["1000000000000000000", "2000000000000000000"],
               [],
-              [],
-            ],
-          }),
+              []
+            ]
+          })
         });
 
         const batchAllResult = await sendRawTransaction(context, batchAllTx);
@@ -106,13 +106,13 @@ describeSuite({
         expect(batchAllReceipt.gasUsed).toBe(expectedGas);
         expect(batchSomeReceipt.gasUsed).toBe(expectedGas);
         expect(batchSomeUntilFailureReceipt.gasUsed).toBe(expectedGas);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "batch should be able to call itself",
-      test: async function () {
+      test: async () => {
         const { abi: batchInterface } = fetchCompiledContract("Batch");
 
         const batchAll = await context.writeContract!({
@@ -130,24 +130,24 @@ describeSuite({
                   [BALTATHAR_ADDRESS, CHARLETH_ADDRESS],
                   ["1000000000000000000", "2000000000000000000"],
                   [],
-                  [],
-                ],
-              }),
+                  []
+                ]
+              })
             ],
-            [],
+            []
           ],
-          rawTxOnly: true,
+          rawTxOnly: true
         });
 
         const { result } = await context.createBlock(batchAll);
         expectEVMResult(result!.events, "Succeed");
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "batch should be callable from call permit precompile",
-      test: async function () {
+      test: async () => {
         const { abi: batchInterface } = fetchCompiledContract("Batch");
         const { abi: callPermitAbi } = fetchCompiledContract("CallPermit");
 
@@ -157,8 +157,8 @@ describeSuite({
             data: encodeFunctionData({
               abi: callPermitAbi,
               functionName: "nonces",
-              args: [ALITH_ADDRESS],
-            }),
+              args: [ALITH_ADDRESS]
+            })
           })
         ).data;
 
@@ -169,8 +169,8 @@ describeSuite({
             [BALTATHAR_ADDRESS, CHARLETH_ADDRESS],
             ["1000000000000000000", "2000000000000000000"],
             [],
-            [],
-          ],
+            []
+          ]
         });
 
         const chainId = await context.viem().getChainId();
@@ -179,58 +179,58 @@ describeSuite({
             EIP712Domain: [
               {
                 name: "name",
-                type: "string",
+                type: "string"
               },
               {
                 name: "version",
-                type: "string",
+                type: "string"
               },
               {
                 name: "chainId",
-                type: "uint256",
+                type: "uint256"
               },
               {
                 name: "verifyingContract",
-                type: "address",
-              },
+                type: "address"
+              }
             ],
             CallPermit: [
               {
                 name: "from",
-                type: "address",
+                type: "address"
               },
               {
                 name: "to",
-                type: "address",
+                type: "address"
               },
               {
                 name: "value",
-                type: "uint256",
+                type: "uint256"
               },
               {
                 name: "data",
-                type: "bytes",
+                type: "bytes"
               },
               {
                 name: "gaslimit",
-                type: "uint64",
+                type: "uint64"
               },
               {
                 name: "nonce",
-                type: "uint256",
+                type: "uint256"
               },
               {
                 name: "deadline",
-                type: "uint256",
-              },
-            ],
+                type: "uint256"
+              }
+            ]
           },
           primaryType: "CallPermit",
           domain: {
             name: "Call Permit Precompile",
             version: "1",
             chainId: Number(chainId),
-            verifyingContract: PRECOMPILE_CALL_PERMIT_ADDRESS,
+            verifyingContract: PRECOMPILE_CALL_PERMIT_ADDRESS
           },
           message: {
             from: ALITH_ADDRESS,
@@ -239,8 +239,8 @@ describeSuite({
             data: batchData,
             gaslimit: 200_000n,
             nonce: fromHex(alithNonceResult!, "bigint"),
-            deadline: 9999999999n,
-          },
+            deadline: 9999999999n
+          }
         });
         const { v, r, s } = getSignatureParameters(signature);
 
@@ -260,13 +260,13 @@ describeSuite({
                 9999999999,
                 v,
                 r,
-                s,
-              ],
-            }),
+                s
+              ]
+            })
           })
         );
         expectEVMResult(baltatharForAlithResult!.events, "Succeed");
-      },
+      }
     });
-  },
+  }
 });

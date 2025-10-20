@@ -7,14 +7,14 @@
     {
       "name": "dev_datahaven",
       "testFileDir": [
-        "datahaven/suites/dev"
+        "suites/dev"
       ],
       "include": [
         "**/*test*.ts"
       ],
       "timeout": 180000,
       "multiThreads": 4,
-      "contracts": "datahaven/contracts/",
+      "contracts": "contracts/",
       "runScripts": [
         "compile-contracts.sh compile"
       ],

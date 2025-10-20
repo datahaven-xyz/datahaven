@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.27;
 
-import {IAllocationManager} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 interface ISlasherErrors {
     /// @notice Thrown when a caller without slasher privileges attempts a restricted operation

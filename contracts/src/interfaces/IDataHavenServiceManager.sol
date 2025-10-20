@@ -137,7 +137,10 @@ interface IDataHavenServiceManager is
      * @param executionFee The execution fee for the Snowbridge message
      * @param relayerFee The relayer fee for the Snowbridge message
      */
-    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external payable;
+    function sendNewValidatorSet(
+        uint128 executionFee,
+        uint128 relayerFee
+    ) external payable;
 
     /**
      * @notice Builds a new validator set message to be sent to the Snowbridge Gateway

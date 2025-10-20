@@ -35,8 +35,8 @@ use super::{
     ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
     Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
     Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
-    BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
+    RuntimeTask, SafeMode, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
+    TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
     NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -90,6 +90,10 @@ use datahaven_runtime_common::{
     migrations::{
         FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
         MigrationIdentifierMaxLen, MigrationStatusHandler,
+    },
+    safe_mode::{
+        ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
+        SafeModeExtendDeposit, TxPauseWhitelistedCalls,
     },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
@@ -227,11 +231,41 @@ impl Contains<RuntimeCall> for NormalCallFilter {
             // See https://github.com/PureStake/sr-moonbeam/issues/30
             // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
             // this can be seen as an additional security
-            RuntimeCall::Evm(_) => false,
+            RuntimeCall::EVM(_) => false,
             _ => true,
         }
     }
 }
+
+/// Calls that can bypass the safe-mode pallet.
+/// These calls are essential for emergency governance and system maintenance.
+pub struct SafeModeWhitelistedCalls;
+impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
+    fn contains(call: &RuntimeCall) -> bool {
+        match call {
+            // Core system calls
+            RuntimeCall::System(_) => true,
+            // Safe mode management
+            RuntimeCall::SafeMode(_) => true,
+            // Transaction pause management
+            RuntimeCall::TxPause(_) => true,
+            // Emergency admin access (testnet/dev only)
+            RuntimeCall::Sudo(_) => true,
+            // Governance infrastructure - critical for emergency responses
+            RuntimeCall::Whitelist(_) => true,
+            RuntimeCall::Preimage(_) => true,
+            RuntimeCall::Scheduler(_) => true,
+            RuntimeCall::ConvictionVoting(_) => true,
+            RuntimeCall::Referenda(_) => true,
+            RuntimeCall::TechnicalCommittee(_) => true,
+            RuntimeCall::TreasuryCouncil(_) => true,
+            _ => false,
+        }
+    }
+}
+
+pub type MainnetRuntimeCallFilter =
+    RuntimeCallFilter<RuntimeCall, NormalCallFilter, SafeMode, TxPause>;
 
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
@@ -265,8 +299,8 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = mainnet_weights::frame_system::WeightInfo<Runtime>;
     type MultiBlockMigrator = MultiBlockMigrations;
-    /// Use the NormalCallFilter to restrict certain runtime calls
-    type BaseCallFilter = NormalCallFilter;
+    /// Use the combined call filter to apply Normal, SafeMode, and TxPause restrictions
+    type BaseCallFilter = MainnetRuntimeCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -705,17 +739,15 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
 }
 
 /// Helper function to identify governance precompiles (copied from Moonbeam)
-fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
-    // TODO: Uncomment when DataHaven implements these governance precompiles
-    // matches!(
-    //     precompile_name,
-    //     PrecompileName::ConvictionVotingPrecompile
-    //         | PrecompileName::PreimagePrecompile
-    //         | PrecompileName::ReferendaPrecompile
-    //         | PrecompileName::OpenTechCommitteeInstance
-    //         | PrecompileName::TreasuryCouncilInstance
-    // )
-    false // Temporarily disabled until governance precompiles are added
+fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
+    matches!(
+        precompile_name,
+        PrecompileName::ConvictionVotingPrecompile
+            | PrecompileName::TechnicalCommitteeInstance
+            | PrecompileName::TreasuryCouncilInstance
+            | PrecompileName::PreimagePrecompile
+            | PrecompileName::ReferendaPrecompile
+    )
 }
 
 impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
@@ -792,6 +824,9 @@ impl pallet_parameters::Config for Runtime {
 
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
@@ -923,10 +958,12 @@ where
 
 datahaven_runtime_common::impl_on_charge_evm_transaction!();
 
+pub type Precompiles = DataHavenPrecompiles<Runtime>;
+
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
+    pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
     /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
@@ -952,7 +989,7 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesType = Precompiles;
     type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
@@ -1476,6 +1513,38 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type FeeRecipient = TreasuryAccount;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = mainnet_weights::pallet_datahaven_native_transfer::WeightInfo<Runtime>;
+}
+
+//╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                          SAFE MODE & TX PAUSE PALLETS                                           ║
+//╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+impl pallet_safe_mode::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type WhitelistedCalls = SafeModeWhitelistedCalls;
+    type EnterDuration = SafeModeDuration;
+    type ExtendDuration = SafeModeDuration;
+    type EnterDepositAmount = SafeModeEnterDeposit;
+    type ExtendDepositAmount = SafeModeExtendDeposit;
+    type ForceEnterOrigin = EnsureRootWithSuccess<AccountId, SafeModeDuration>;
+    type ForceExtendOrigin = EnsureRootWithSuccess<AccountId, SafeModeDuration>;
+    type ForceExitOrigin = EnsureRoot<AccountId>;
+    type ForceDepositOrigin = EnsureRoot<AccountId>;
+    type ReleaseDelay = ReleaseDelayNone;
+    type Notify = ();
+    type WeightInfo = mainnet_weights::pallet_safe_mode::WeightInfo<Runtime>;
+}
+
+impl pallet_tx_pause::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type UnpauseOrigin = EnsureRoot<AccountId>;
+    type WhitelistedCalls = TxPauseWhitelistedCalls<Runtime>;
+    type MaxNameLen = ConstU32<256>;
+    type WeightInfo = mainnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 
 #[cfg(test)]

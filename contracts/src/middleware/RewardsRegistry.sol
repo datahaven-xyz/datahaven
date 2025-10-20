@@ -16,7 +16,10 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @param _avs Address of the AVS (Service Manager)
      * @param _rewardsAgent Address of the rewards agent contract
      */
-    constructor(address _avs, address _rewardsAgent) RewardsRegistryStorage(_avs, _rewardsAgent) {}
+    constructor(
+        address _avs,
+        address _rewardsAgent
+    ) RewardsRegistryStorage(_avs, _rewardsAgent) {}
 
     /**
      * @notice Modifier to restrict function access to the rewards agent only
@@ -221,7 +224,10 @@ contract RewardsRegistry is RewardsRegistryStorage {
      * @param operatorAddress Address of the operator to receive rewards
      * @param rewardsAmount Amount of rewards to transfer
      */
-    function _transferRewards(address operatorAddress, uint256 rewardsAmount) internal {
+    function _transferRewards(
+        address operatorAddress,
+        uint256 rewardsAmount
+    ) internal {
         // Transfer rewards to the operator
         (bool success,) = operatorAddress.call{value: rewardsAmount}("");
         if (!success) {

@@ -14,6 +14,7 @@ pub mod weights;
 
 // Re-export governance for tests
 pub use configs::governance;
+pub use configs::Precompiles;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -125,7 +126,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 200,
+    spec_version: 300,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -379,6 +380,12 @@ mod runtime {
 
     #[runtime::pallet_index(39)]
     pub type MultiBlockMigrations = pallet_migrations;
+
+    #[runtime::pallet_index(103)]
+    pub type SafeMode = pallet_safe_mode;
+
+    #[runtime::pallet_index(104)]
+    pub type TxPause = pallet_tx_pause;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔═════════════════════════ Governance Pallets ════════════════════╗
@@ -406,7 +413,7 @@ mod runtime {
     pub type Ethereum = pallet_ethereum;
 
     #[runtime::pallet_index(51)]
-    pub type Evm = pallet_evm;
+    pub type EVM = pallet_evm;
 
     #[runtime::pallet_index(52)]
     pub type EvmChainId = pallet_evm_chain_id;
@@ -1272,6 +1279,9 @@ impl_runtime_apis! {
         }
         fn get_providers_with_payment_streams_with_user(user_account: &AccountId) -> Vec<ProviderIdFor<Runtime>> {
             PaymentStreams::get_providers_with_payment_streams_with_user(user_account)
+        }
+        fn get_current_price_per_giga_unit_per_tick() -> Balance {
+            PaymentStreams::get_current_price_per_giga_unit_per_tick()
         }
     }
 

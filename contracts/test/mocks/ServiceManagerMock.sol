@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {IAllocationManager} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IPermissionController
+} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
 import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";

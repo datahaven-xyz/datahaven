@@ -2,8 +2,9 @@
 pragma solidity ^0.8.27;
 
 // EigenLayer imports
-import {IAllocationManagerTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
 
 // OpenZeppelin imports
@@ -148,12 +149,12 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
         // Register the operator as operator for the DataHaven service.
         uint32[] memory operatorSetIds = new uint32[](1);
         operatorSetIds[0] = _getOperatorSetId();
-        IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-            .RegisterParams({
-            avs: address(serviceManager),
-            operatorSetIds: operatorSetIds,
-            data: abi.encodePacked(_operatorSolochainAddress)
-        });
+        IAllocationManagerTypes.RegisterParams memory registerParams =
+            IAllocationManagerTypes.RegisterParams({
+                avs: address(serviceManager),
+                operatorSetIds: operatorSetIds,
+                data: abi.encodePacked(_operatorSolochainAddress)
+            });
 
         vm.broadcast(_operatorPrivateKey);
         allocationManager.registerForOperatorSets(_operator, registerParams);

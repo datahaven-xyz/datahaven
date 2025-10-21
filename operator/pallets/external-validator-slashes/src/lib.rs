@@ -74,6 +74,7 @@ pub struct SlashData<AccountId> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SlashDataUtils<AccountId>(pub Vec<SlashData<AccountId>>);
 
+// FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
 pub trait SendMessage<AccountId> {
     type Message;
     type Ticket;
@@ -344,6 +345,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+            dbg!("on_initialize");
+
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
             T::WeightInfo::process_slashes_queue(processed)
         }

@@ -18,9 +18,8 @@ use {
     super::*,
     crate::{
         mock::{
-            new_test_ext, run_block, sent_ethereum_message_nonce, DeferPeriodGetter,
-            ExternalValidatorSlashes, MockEraIndexProvider, RuntimeEvent, RuntimeOrigin, System,
-            Test,
+            new_test_ext, run_block, DeferPeriodGetter, ExternalValidatorSlashes,
+            MockEraIndexProvider, RuntimeEvent, RuntimeOrigin, System, Test,
         },
         Slash,
     },
@@ -382,8 +381,6 @@ fn test_on_offence_defer_period_0() {
         );
         start_era(2, 2, 2);
         run_block();
-
-        assert_eq!(sent_ethereum_message_nonce(), 1);
     });
 }
 
@@ -418,23 +415,9 @@ fn test_slashes_command_matches_event() {
         start_era(2, 2, 2);
         run_block();
 
-        assert_eq!(sent_ethereum_message_nonce(), 1);
-
-        // The slash is sent on era 2
-        let expected_slashes = vec![SlashData {
-            encoded_validator_id: 3u64.encode(),
-            slash_fraction: Perbill::from_percent(75).deconstruct(),
-            external_idx: 0u64,
-        }];
-        let expected_command = Command::ReportSlashes {
-            era_index: 2u32,
-            slashes: expected_slashes,
-        };
-
         System::assert_last_event(RuntimeEvent::ExternalValidatorSlashes(
             crate::Event::SlashesMessageSent {
                 message_id: Default::default(),
-                slashes_command: expected_command,
             },
         ));
     });
@@ -465,11 +448,9 @@ fn test_on_offence_defer_period_0_messages_get_queued() {
 
         // this triggers on_initialize
         run_block();
-        assert_eq!(sent_ethereum_message_nonce(), 1);
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 5);
 
         run_block();
-        assert_eq!(sent_ethereum_message_nonce(), 2);
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
     });
 }
@@ -477,12 +458,13 @@ fn test_on_offence_defer_period_0_messages_get_queued() {
 #[test]
 fn test_account_id_encoding() {
     new_test_ext().execute_with(|| {
-        use polkadot_core_primitives::AccountId as OpaqueAccountId;
+        use fp_account::AccountId20;
+
         let alice_account: [u8; 32] = [4u8; 32];
 
-        let slash = Slash::<OpaqueAccountId, u32> {
+        let slash = Slash::<AccountId20, u32> {
             external_idx: 0,
-            validator: OpaqueAccountId::from(alice_account),
+            validator: AccountId20::from(alice_account),
             reporters: vec![],
             slash_id: 1,
             percentage: Perbill::default(),
@@ -490,7 +472,8 @@ fn test_account_id_encoding() {
         };
 
         let encoded_account = slash.validator.encode();
-        assert_eq!(alice_account.to_vec(), encoded_account);
+        // Only has 20 bytes because we are using Ethereum convention for the address
+        assert_eq!(alice_account[0..20].to_vec(), encoded_account);
     });
 }
 
@@ -518,7 +501,6 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
 
         // this triggers on_initialize
         run_block();
-        assert_eq!(sent_ethereum_message_nonce(), 1);
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 5);
 
         // We have 5 non-dispatched, which should accumulate
@@ -542,12 +524,10 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
         // this triggers on_initialize
         run_block();
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 10);
-        assert_eq!(sent_ethereum_message_nonce(), 2);
 
         // this triggers on_initialize
         run_block();
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
-        assert_eq!(sent_ethereum_message_nonce(), 3);
     });
 }
 

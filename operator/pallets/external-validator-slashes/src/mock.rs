@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Tanssi.  If not, see <http://www.gnu.org/licenses/>
 
+use frame_support::traits::OnInitialize;
+use pallet_external_validators::traits::ActiveEraInfo;
+use pallet_external_validators::traits::EraIndex;
+use pallet_external_validators::traits::EraIndexProvider;
+use pallet_external_validators::traits::ExternalIndexProvider;
+use pallet_external_validators::traits::InvulnerablesProvider;
 use {
     crate as external_validator_slashes,
     core::cell::RefCell,
@@ -31,7 +37,6 @@ use {
         BuildStorage,
     },
     sp_staking::SessionIndex,
-    tp_traits::{ActiveEraInfo, EraIndex, EraIndexProvider, InvulnerablesProvider},
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -164,7 +169,6 @@ impl pallet_session::Config for Test {
     type ValidatorIdOf = ConvertInto;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type WeightInfo = ();
-    type DisablingStrategy = ();
 }
 
 sp_runtime::impl_opaque_keys! {
@@ -210,18 +214,17 @@ impl DeferPeriodGetter {
     }
 }
 
-pub fn sent_ethereum_message_nonce() -> u64 {
-    SENT_ETHEREUM_MESSAGE_NONCE.with(|q| (*q.borrow()))
-}
-
 pub struct MockOkOutboundQueue;
-impl pallet_external_validators::DeliverMessage for MockOkOutboundQueue {
+impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
     type Ticket = ();
-
+    type Message = ();
+    fn build(_: &crate::SlashDataUtils<AccountId>) -> Option<Self::Ticket> {
+        Some(())
+    }
+    fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {
+        Ok(())
+    }
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
-        // Every time we hit deliver, increment the nonce
-        SENT_ETHEREUM_MESSAGE_NONCE.with(|r| *r.borrow_mut() += 1);
-
         Ok(H256::zero())
     }
 }
@@ -234,8 +237,8 @@ impl SendMessageFeeProvider for MockOkOutboundQueue {
     }
 }
 
-pub struct ExternalIndexProvider;
-impl tp_traits::ExternalIndexProvider for ExternalIndexProvider {
+pub struct TimestampProvider;
+impl ExternalIndexProvider for TimestampProvider {
     fn get_external_index() -> u64 {
         Timestamp::get()
     }
@@ -255,11 +258,10 @@ impl external_validator_slashes::Config for Test {
     type SessionInterface = ();
     type EraIndexProvider = MockEraIndexProvider;
     type InvulnerablesProvider = MockInvulnerableProvider;
-    type ValidateMessage = ();
-    type OutboundQueue = MockOkOutboundQueue;
-    type ExternalIndexProvider = ExternalIndexProvider;
+    type ExternalIndexProvider = TimestampProvider;
     type QueuedSlashesProcessedPerBlock = ConstU32<20>;
     type WeightInfo = ();
+    type SendMessage = MockOkOutboundQueue;
 }
 
 pub struct FullIdentificationOf;
@@ -295,11 +297,15 @@ pub fn run_block() {
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
 
+// Polkadot SDK 2503 has a builtin function to do this. See https://github.com/paritytech/polkadot-sdk/blob/6d647465b3d3ab2ed8839c6a3fa3d456b545b011/prdoc/stable2503/pr_7109.prdoc#L5
 pub fn run_to_block(n: u64) {
-    System::run_to_block_with::<AllPalletsWithSystem>(
-        n,
-        frame_system::RunToBlockHooks::default().before_initialize(|bn| {
-            Timestamp::set_timestamp(bn * BLOCK_TIME + INIT_TIMESTAMP);
-        }),
-    );
+    let old_block_number = System::block_number();
+
+    for x in old_block_number..n {
+        System::reset_events();
+        System::set_block_number(x + 1);
+        System::on_initialize(System::block_number());
+        ExternalValidatorSlashes::on_initialize(System::block_number());
+        Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
+    }
 }

@@ -30,6 +30,7 @@ sp-staking = { workspace = true }
 
 [dev-dependencies]
 pallet-timestamp = { workspace = true, features = ["std"] }
+fp-account = { workspace = true, features = ["serde"] }
 sp-io = { workspace = true }
 
 [features]

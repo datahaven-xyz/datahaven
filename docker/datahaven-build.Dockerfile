@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM base AS builder
 WORKDIR /datahaven
 
-COPY . .
+COPY . /datahaven
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     if [ "$FAST_RUNTIME" = "TRUE" ]; then \

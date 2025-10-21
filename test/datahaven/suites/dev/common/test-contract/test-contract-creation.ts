@@ -37,7 +37,7 @@ describeSuite({
           const callCode = (await context.viem().call({ data: compiled.bytecode })).data;
           const { contractAddress } = await deployContractHelper(context, "MultiplyBy7", {
             type: txnType as any,
-            gas: 5_000_000n
+            gas: 10_000_000n
           });
           const deployedCode = await context.viem().getCode({ address: contractAddress! });
           expect(callCode).to.be.eq(deployedCode);

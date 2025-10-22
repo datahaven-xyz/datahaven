@@ -99,9 +99,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     ) external payable onlyOwner {
         // Send the new validator set message to the Snowbridge Gateway
         bytes memory message = buildNewValidatorSetMessage();
-        _snowbridgeGateway.v2_sendMessage{
-            value: msg.value
-        }(
+        _snowbridgeGateway.v2_sendMessage{value: msg.value}(
             message,
             new bytes[](0), // No assets to send
             bytes(""), // No claimer

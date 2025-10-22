@@ -1,4 +1,4 @@
-import type { Abi } from "viem";
+import type { Abi, AccessList } from "viem";
 import { fetchCompiledContract } from "./contracts";
 
 export const TransactionTypes = ["legacy", "eip1559", "eip2930"] as const;
@@ -10,6 +10,7 @@ export interface DeployCompiledContractOptions {
   maxFeePerGas?: bigint;
   maxPriorityFeePerGas?: bigint;
   value?: bigint;
+  accessList?: AccessList;
 }
 
 export interface DeployCompiledContractResult {
@@ -35,18 +36,18 @@ export const deployCompiledContract = async (
   switch (options.type) {
     case "legacy":
       tx.type = "legacy";
-      if (options.gasPrice !== undefined) tx.gasPrice = options.gasPrice;
+      tx.gasPrice = options.gasPrice ?? (await context.viem().getGasPrice());
       break;
     case "eip2930":
       tx.type = "eip2930";
-      if (options.gasPrice !== undefined) tx.gasPrice = options.gasPrice;
-      tx.accessList = [];
+      tx.gasPrice = options.gasPrice ?? (await context.viem().getGasPrice());
+      tx.accessList = options.accessList ?? [];
       break;
     default:
       tx.type = "eip1559";
-      if (options.maxFeePerGas !== undefined) tx.maxFeePerGas = options.maxFeePerGas;
-      if (options.maxPriorityFeePerGas !== undefined)
-        tx.maxPriorityFeePerGas = options.maxPriorityFeePerGas;
+      tx.maxFeePerGas = options.maxFeePerGas ?? (await context.viem().getGasPrice());
+      tx.maxPriorityFeePerGas =
+        options.maxPriorityFeePerGas ?? tx.maxFeePerGas;
       break;
   }
 

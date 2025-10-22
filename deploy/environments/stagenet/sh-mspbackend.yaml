@@ -1,0 +1,71 @@
+# StorageHub MSP Backend API configuration for Stagenet environment
+
+global:
+  environment: stagenet
+  namespace: datahaven-stagenet
+
+# Stagenet image configuration
+image:
+  repository: moonsonglabs/storage-hub-msp-backend
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+# Backend configuration for stagenet
+backend:
+  database:
+    url: postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven
+
+  rpc:
+    endpoint: ws://sh-mspnode-0:9955
+
+  auth:
+    jwtSecret: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
+  # CLI arguments for production
+  args:
+    - "--config"
+    - "/configs/config.toml"
+
+# Production-ready resources
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Enable ingress with SSL
+ingress:
+  enabled: true
+  host: sh-mspbackend.datahaven-kt.xyz
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-name: sh-mspbackend
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
+    external-dns.alpha.kubernetes.io/hostname: sh-mspbackend.datahaven-kt.xyz
+    meta.helm.sh/release-name: sh-mspbackend
+    meta.helm.sh/release-namespace: kt-datahaven-stagenet
+  hosts:
+    - host: sh-mspbackend.datahaven-kt.xyz
+      paths:
+        - path: /
+          pathType: Prefix

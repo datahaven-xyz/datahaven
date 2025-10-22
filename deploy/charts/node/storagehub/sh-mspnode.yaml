@@ -1,0 +1,49 @@
+name: sh-mspnode
+description: Datahaven MSP node
+fullnameOverride: sh-mspnode
+
+image:
+  repository: datahavenxyz/datahaven
+  tag: main
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+node:
+  command: datahaven-node
+  customChainspecUrl: http://dh-bootnode:8080/chainspec.json
+  forceDownloadChainspec: true
+  role: full
+  replicas: 2
+  chainData:
+    pruning: 1000
+    storageClass: "gp2"
+  chainKeystore:
+    storageClass: "gp2"
+  keys:
+    # This is Alice seed. To generate new seed run: docker run --rm datahavenxyz/datahaven:latest key generate
+    - seed: "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+      type: bcsv
+      scheme: ecdsa
+      # ${HOSTNAME##*-} will be evaluated as the pod index, pod-0: //Charlie, pod-1: //Dave
+      extraDerivation: '$([ "${HOSTNAME##*-}" = "0" ] && echo "//Charlie" || echo "//Dave")'
+  persistGeneratedNodeKey: true
+  allowUnsafeRpcMethods: true
+  flags:
+    - "--allow-private-ipv4"
+    - "--discover-local"
+    - "--network-backend libp2p"
+    - "--provider"
+    - "--provider-type msp"
+    - "--msp-charging-period 100" # in blocks, 100 blocks = 10 minutes
+    - "--max-storage-capacity 10737418240" # 10 GiB
+    - "--jump-capacity=1073741824" # 1 GiB
+
+ingress:
+  enabled: false
+  perReplica: true
+  wildcardDomain: datahaven.local
+  # If enabled, this would generate:
+  # - sh-mspnode-0.datahaven.local
+  # - sh-mspnode-1.datahaven.local

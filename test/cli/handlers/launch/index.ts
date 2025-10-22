@@ -10,6 +10,7 @@ import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
+import { launchStorageHubComponents } from "./storagehub";
 import { performSummaryOperations } from "./summary";
 import { performValidatorOperations } from "./validator";
 
@@ -44,6 +45,7 @@ export interface LaunchOptions {
   setParameters?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
+  storagehub?: boolean;
   cleanNetwork?: boolean;
 }
 
@@ -94,6 +96,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
+  await launchStorageHubComponents(options, launchedNetwork);
+
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
   const fullMinutes = ((fullEnd - timeStart) / (1000 * 60)).toFixed(1);
@@ -119,7 +123,8 @@ export const launchPreActionHook = (
     buildDatahaven,
     launchKurtosis,
     relayer,
-    setParameters
+    setParameters,
+    storagehub
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag
@@ -132,10 +137,11 @@ export const launchPreActionHook = (
       fundValidators === false ||
       setupValidators === false ||
       setParameters === false ||
-      relayer === false)
+      relayer === false ||
+      storagehub === false)
   ) {
     thisCmd.error(
-      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, or --no-relayer"
+      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, --no-relayer, or --no-storagehub"
     );
   }
 
@@ -149,6 +155,7 @@ export const launchPreActionHook = (
     thisCmd.setOptionValue("setupValidators", true);
     thisCmd.setOptionValue("setParameters", true);
     thisCmd.setOptionValue("relayer", true);
+    thisCmd.setOptionValue("storagehub", true);
     thisCmd.setOptionValue("cleanNetwork", true);
   }
 

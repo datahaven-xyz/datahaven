@@ -2,12 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Abi } from "viem";
+
 /**
  * Contract-related helper utilities for DataHaven tests
  * Adapted from Moonbeam test helpers
  */
-
-import type { DevModeContext } from "@moonwall/cli";
 
 interface ArtifactContract {
   abi?: Abi;

@@ -9,7 +9,6 @@ import { ALITH_ADDRESS } from "@moonwall/util";
 import { hexToU8a } from "@polkadot/util";
 import { encodeDeployData, keccak256, numberToHex, toRlp } from "viem";
 import { verifyLatestBlockFees } from "../../../../helpers";
-import { deployCompiledContract as deployContractHelper } from "../../../../helpers/deploy";
 
 describeSuite({
   id: "D010201",
@@ -35,9 +34,10 @@ describeSuite({
         test: async () => {
           const compiled = fetchCompiledContract("MultiplyBy7");
           const callCode = (await context.viem().call({ data: compiled.bytecode })).data;
-          const { contractAddress } = await deployContractHelper(context, "MultiplyBy7", {
-            type: txnType as any,
-            gas: 10_000_000n
+          await context.createBlock();
+          const { contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7", {
+            txnType: txnType as any,
+            gas: 5_000_000n
           });
           const deployedCode = await context.viem().getCode({ address: contractAddress! });
           expect(callCode).to.be.eq(deployedCode);
@@ -49,7 +49,8 @@ describeSuite({
         title: `should not contain ${txnType}  contract at genesis`,
         test: async () => {
           const { contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7", {
-            txnType: txnType as any
+            type: txnType as any,
+            gas: 5_000_000n
           });
           expect(
             await context.viem().getCode({ address: contractAddress!, blockNumber: 0n })

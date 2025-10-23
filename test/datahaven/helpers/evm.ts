@@ -49,7 +49,7 @@ export function expectEVMResult<T extends Errors, Type extends keyof T>(
 
   const ethereumResult = ethereumExecuted!.event.data[3] as EvmCoreErrorExitReason;
 
-  const foundReason = ethereumResult.isError
+  const _foundReason = ethereumResult.isError
     ? ethereumResult.asError.type
     : ethereumResult.isFatal
       ? ethereumResult.asFatal.type

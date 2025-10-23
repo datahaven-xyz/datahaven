@@ -10,6 +10,8 @@ import {
   deployPreActionHook,
   launch,
   launchPreActionHook,
+  registerWhaveToken,
+  registerWhaveTokenPreActionHook,
   stop,
   stopPreActionHook,
   updateAVSMetadataURI
@@ -274,6 +276,30 @@ contractsCommand
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);
+
+// ===== Register wHAVE Token =====
+program
+  .command("register-whave-token")
+  .addHelpText(
+    "before",
+    `🫎  DataHaven: Register wHAVE Token CLI for registering the native HAVE token with Snowbridge
+    
+    This command registers the DataHaven native token (HAVE) as a wrapped ERC20 token (wHAVE) on Ethereum
+    through the Snowbridge bridge system. This is a one-time operation that must be completed before
+    any cross-chain transfers can occur.
+    
+    The target Ethereum network is determined by the DataHaven runtime configuration, not by this command.
+    
+    Common options:
+    --rpc-url: DataHaven RPC URL (optional, defaults to ws://localhost:9944)
+    --private-key: Private key for sudo account (required)
+    `
+  )
+  .description("Register DataHaven native token (HAVE) as wHAVE on Ethereum via Snowbridge")
+  .option("--rpc-url <value>", "DataHaven RPC URL (optional, defaults to ws://localhost:9944)")
+  .option("--private-key <value>", "Private key for sudo account", process.env.PRIVATE_KEY || "")
+  .hook("preAction", registerWhaveTokenPreActionHook)
+  .action(registerWhaveToken);
 
 // ===== Exec ======
 // Disabled until need arises

@@ -1,4 +1,4 @@
-# Validator-specific settings for stagenet
+# Fisherman-specific settings for stagenet
 
 global:
   environment: stagenet
@@ -16,21 +16,21 @@ ingress:
   perReplica: true
   wildcardDomain: datahaven-kt.xyz
   # This will generate:
-  # - dh-validator-0.datahaven-kt.xyz
-  # - dh-validator-1.datahaven-kt.xyz
+  # - sh-fisherman-0.datahaven-kt.xyz
+  # - sh-fisherman-1.datahaven-kt.xyz
   # (based on replica count)
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-    alb.ingress.kubernetes.io/load-balancer-name: dh-validator
+    alb.ingress.kubernetes.io/load-balancer-name: sh-fisherman
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
-    external-dns.alpha.kubernetes.io/hostname: dh-validator.datahaven-kt.xyz
-    meta.helm.sh/release-name: dh-validator
+    external-dns.alpha.kubernetes.io/hostname: sh-fisherman.datahaven-kt.xyz
+    meta.helm.sh/release-name: sh-fisherman
     meta.helm.sh/release-namespace: kt-datahaven-stagenet
 
 node:

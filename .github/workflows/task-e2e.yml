@@ -46,6 +46,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -129,16 +130,16 @@ jobs:
           chmod +x tmp/bin/snowbridge-relay
           docker rm -fv temp
           tmp/bin/snowbridge-relay --help
-      
-      - name: Pull DataHaven node image 
+
+      - name: Pull DataHaven node image
         run: |
           docker pull ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }}
           docker tag ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
-      
+
       - run: bun install
       - name: Run E2E tests
         run: bun test:e2e
-      
+
       - name: Delete volumes not used
         if: always()
         run: podman system prune --volumes -f

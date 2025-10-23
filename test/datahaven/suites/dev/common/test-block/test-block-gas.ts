@@ -1,5 +1,11 @@
-import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
-import { ConstantStore, TransactionTypes } from "../../../../helpers";
+import {
+  beforeAll,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect,
+  TransactionTypes
+} from "@moonwall/cli";
+import { ConstantStore } from "../../../../helpers";
 
 describeSuite({
   id: "D010103",

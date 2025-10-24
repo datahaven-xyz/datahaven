@@ -236,7 +236,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 }
 
 /// Calls that can bypass the safe-mode pallet.
-/// These calls are essential for emergency governance and system maintenance.
+/// These calls are essential for emergency governance, system maintenance, and basic operation.
 pub struct SafeModeWhitelistedCalls;
 impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
     fn contains(call: &RuntimeCall) -> bool {
@@ -247,8 +247,6 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
             RuntimeCall::SafeMode(_) => true,
             // Transaction pause management
             RuntimeCall::TxPause(_) => true,
-            // Emergency admin access (testnet/dev only)
-            RuntimeCall::Sudo(_) => true,
             // Governance infrastructure - critical for emergency responses
             RuntimeCall::Whitelist(_) => true,
             RuntimeCall::Preimage(_) => true,
@@ -257,6 +255,8 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
             RuntimeCall::Referenda(_) => true,
             RuntimeCall::TechnicalCommittee(_) => true,
             RuntimeCall::TreasuryCouncil(_) => true,
+            // Block production - needed to continue producing blocks in safe mode
+            RuntimeCall::Randomness(_) => true,
             _ => false,
         }
     }

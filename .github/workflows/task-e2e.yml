@@ -139,16 +139,6 @@ jobs:
       - name: Run E2E tests
         run: bun test:e2e
       
-      # Try to collect all docker logs and upload it
-      - name: Collect docker logs
+      - name: Delete volumes not used
         if: always()
-        run: |
-          mkdir ./logs
-          for name in `docker ps -a --format '{{.Names}}'`; do docker logs $name > ./logs/$name.log 2>&1; done
-      - name: Upload logs to GitHub
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs
-          path: logs/
-          retention-days: 1
+        run: podman system prune --volumes -f

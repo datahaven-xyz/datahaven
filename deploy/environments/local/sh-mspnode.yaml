@@ -1,4 +1,4 @@
-# Bootnode-specific settings for local development
+# MSP-specific settings for Local environment
 
 global:
   environment: local
@@ -15,13 +15,17 @@ imagePullSecrets:
 ingress:
   enabled: false
   ingressClassName: traefik
-  host: dh-bootnode-0.datahaven.local
+  perReplica: true
+  wildcardDomain: datahaven.local
+  # If enabled, this would generate:
+  # - sh-mspnode-0.datahaven.local
+  # - sh-mspnode-1.datahaven.local
 
 node:
   chain: local
-  customChainspec: false
+  customChainspecUrl:
+  forceDownloadChainspec: false
   chainData:
-    pruning: archive
     storageClass: "hostpath"
     persistence:
       size: 10Gi
@@ -34,12 +38,7 @@ node:
     limits:
       memory: "512Mi"
       cpu: "200m"
-  enableOffchainIndexing: true
   perNodeServices:
     apiService:
       enabled: true
-
-# Local development settings
-development:
-  debug: true
-  fastRuntime: true
+      type: NodePort

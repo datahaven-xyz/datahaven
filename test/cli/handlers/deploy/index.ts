@@ -9,6 +9,7 @@ import { deployDataHavenSolochain } from "./datahaven";
 import { deployKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
 import { deployRelayers } from "./relayer";
+import { deployStorageHubComponents } from "./storagehub";
 import { performValidatorOperations } from "./validator";
 
 // Non-optional properties determined by having default values
@@ -39,6 +40,7 @@ export interface DeployOptions {
   skipValidatorOperations: boolean;
   skipSetParameters: boolean;
   skipRelayers: boolean;
+  skipStorageHub: boolean;
 }
 
 const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedNetwork) => {
@@ -81,6 +83,8 @@ const deployFunction = async (options: DeployOptions, launchedNetwork: LaunchedN
   });
 
   await deployRelayers(options, launchedNetwork);
+
+  await deployStorageHubComponents(options, launchedNetwork);
 
   // Cleaning up the port forwarding for the validator.
   await validatorPortForwardCleanup();

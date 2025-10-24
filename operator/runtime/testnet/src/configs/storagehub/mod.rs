@@ -184,7 +184,7 @@ impl pallet_storage_providers::Config for Runtime {
     type SpMinCapacity = ConstU64<2>;
     type DepositPerData = ConstU128<2>;
     type MaxFileSize = ConstU64<{ u64::MAX }>;
-    type MaxMultiAddressSize = ConstU32<100>;
+    type MaxMultiAddressSize = ConstU32<200>;
     type MaxMultiAddressAmount = ConstU32<5>;
     type MaxProtocols = ConstU32<100>;
     type BucketDeposit = BucketDeposit;

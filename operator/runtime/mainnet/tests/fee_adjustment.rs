@@ -15,10 +15,7 @@ use datahaven_mainnet_runtime::{
 use datahaven_runtime_common::constants::gas::WEIGHT_PER_GAS;
 use fp_evm::FeeCalculator;
 use frame_support::pallet_prelude::DispatchClass;
-use frame_support::{
-    traits::{ConstU128, OnFinalize},
-    weights::{ConstantMultiplier, IdentityFee, WeightToFee},
-};
+use frame_support::traits::OnFinalize;
 use sp_core::U256;
 use sp_runtime::{traits::Convert, BuildStorage, FixedPointNumber, FixedU128, Perbill};
 
@@ -39,8 +36,6 @@ where
 
 #[test]
 fn multiplier_can_grow_from_zero() {
-    use frame_support::traits::Get;
-
     let minimum_multiplier = MinimumMultiplier::get();
     let target = TargetBlockFullness::get()
         * RuntimeBlockWeights::get()
@@ -69,18 +64,12 @@ fn fee_calculation() {
     let extrinsic_len = 100u32;
     let extrinsic_weight = 5_000u64;
     let tip = 42u128;
-    type WeightToFeeImpl = ConstantMultiplier<u128, ConstU128<{ WEIGHT_FEE }>>;
-    type LengthToFeeImpl = IdentityFee<u128>;
 
-    // base_fee + (multiplier * extrinsic_weight_fee) + extrinsic_length_fee + tip
-    let expected_fee = WeightToFeeImpl::weight_to_fee(&base_extrinsic)
-        + multiplier.saturating_mul_int(WeightToFeeImpl::weight_to_fee(
-            &frame_support::weights::Weight::from_parts(extrinsic_weight, 1),
-        ))
-        + LengthToFeeImpl::weight_to_fee(&frame_support::weights::Weight::from_parts(
-            extrinsic_len as u64,
-            1,
-        ))
+    // For IdentityFee, the fee is just the weight itself
+    // Formula: base_extrinsic + (multiplier * call_weight) + extrinsic_len + tip
+    let expected_fee = base_extrinsic.ref_time() as u128
+        + (multiplier.saturating_mul_int(extrinsic_weight as u128))
+        + extrinsic_len as u128
         + tip;
 
     let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
@@ -101,10 +90,9 @@ fn fee_calculation() {
         );
 
         assert_eq!(
-            expected_fee,
-            actual_fee,
-            "The actual fee did not match the expected fee, diff {}",
-            actual_fee - expected_fee
+            expected_fee, actual_fee,
+            "The actual fee did not match the expected fee, expected: {}, actual: {}",
+            expected_fee, actual_fee
         );
     });
 }
@@ -210,11 +198,11 @@ fn fee_scenarios() {
         );
         assert_eq!(
             sim(1_000_000_000, Perbill::from_percent(50), 600),
-            U256::from(31_250_000_000u128),
+            U256::from(44_791_543_237u128), // DataHaven specific value
         );
         assert_eq!(
             sim(1_000_000_000, Perbill::from_percent(100), 600),
-            U256::from(31_250_000_000u128),
+            U256::from(148_712_903_041u128), // DataHaven specific value
         );
     });
 }

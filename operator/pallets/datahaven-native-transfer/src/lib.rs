@@ -281,18 +281,10 @@ pub mod pallet {
             let balance = T::Currency::balance(&sovereign);
 
             // Explicit defensive check for sufficient sovereign balance
-            ensure!(
-                balance >= amount,
-                Error::<T>::InsufficientSovereignBalance
-            );
+            ensure!(balance >= amount, Error::<T>::InsufficientSovereignBalance);
 
             // Transfer from the Ethereum sovereign account
-            T::Currency::transfer(
-                &sovereign,
-                who,
-                amount,
-                Preservation::Preserve,
-            )?;
+            T::Currency::transfer(&sovereign, who, amount, Preservation::Preserve)?;
 
             Self::deposit_event(Event::TokensUnlocked {
                 account: who.clone(),

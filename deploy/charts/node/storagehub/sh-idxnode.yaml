@@ -1,0 +1,38 @@
+name: sh-idxnode
+description: Datahaven Indexer node
+fullnameOverride: sh-idxnode
+
+image:
+  repository: datahavenxyz/datahaven
+  tag: main
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+node:
+  command: datahaven-node
+  customChainspecUrl: http://dh-bootnode:8080/chainspec.json
+  forceDownloadChainspec: true
+  role: full
+  replicas: 1
+  chainData:
+    pruning: 1000
+    storageClass: "gp2"
+  chainKeystore:
+    storageClass: "gp2"
+  persistGeneratedNodeKey: true
+  flags:
+    - "--allow-private-ipv4"
+    - "--discover-local"
+    - "--network-backend libp2p"
+    - "--indexer"
+    - "--indexer-mode full"
+    - "--indexer-database-url postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven"
+
+ingress:
+  enabled: false
+  perReplica: false
+  wildcardDomain: datahaven.local
+  # If enabled, this would generate:
+  # - sh-idxnode-0.datahaven.local

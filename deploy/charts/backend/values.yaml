@@ -1,0 +1,122 @@
+# Default values for backend.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: storagehub/backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: api.storagehub.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Backend API Configuration
+backend:
+  # Port the backend listens on
+  port: 3000
+  
+  # Database configuration
+  database:
+    # Full database connection URL
+    url: "postgresql://storagehub:storagehub@sh-indexer-db:5432/storagehub"
+    # Use existing secret for database URL
+    existingSecret: ""
+    # Key in the secret containing the DATABASE_URL
+    existingSecretUrlKey: "database-url"
+    
+  # RPC Node configuration
+  rpc:
+    endpoint: "ws://sh-idxnode:9944"
+    # Alternative HTTP endpoint if needed
+    httpEndpoint: "http://sh-idxnode:9933"
+    
+  # API configuration
+  api:
+    defaultPageSize: 20
+    maxPageSize: 100
+
+  # Authentication configuration
+  auth:
+    jwtSecret: ""
+    
+  # Environment variables
+  env:
+    NODE_ENV: "production"
+    LOG_LEVEL: "info"
+    
+  # Additional environment variables from ConfigMap or Secret
+  envFrom: []
+  
+  # CLI arguments to pass to the backend application
+  args: []
+  # Example:
+  # args:
+  #   - "--config"
+  #   - "/app/config.toml"
+  #   - "--log-level"
+  #   - "debug"
+
+# ConfigMap for configuration files
+configMap:
+  enabled: true
+  # Additional configuration to merge into config.json
+  extraConfig: {}
+  # Additional files to add to ConfigMap
+  data: {}
+
+# Secrets for sensitive data
+secrets:
+  enabled: false
+  data: {}

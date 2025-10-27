@@ -135,8 +135,11 @@ jobs:
       - name: Cargo build
         uses: ./.github/workflow-templates/publish-docker
         with:
-          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-          dockerhub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          dockerfile: ./operator/Dockerfile
+          context: .
+          registry: docker.io
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
           image_tags: ${{ steps.prep.outputs.tags }}
           image_title: ${{ github.event.repository.name }}
           image_description: ${{ github.event.repository.description }}

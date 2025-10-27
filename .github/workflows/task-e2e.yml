@@ -73,6 +73,10 @@ jobs:
           fi
           kurtosis analytics disable
           kurtosis version
+      - name: Stop any existing Kurtosis engine
+        run: |
+          kurtosis engine stop 2>/dev/null || true
+          kurtosis clean 2>/dev/null || true
       - name: Configure Kurtosis cluster = podman
         run: |
           # Get the config path from Kurtosis itself (portable)
@@ -90,8 +94,6 @@ jobs:
           kurtosis cluster get
       - name: Start Kurtosis engine with Podman
         run: |
-          kurtosis engine stop
-          kurtosis clean
           kurtosis engine start
           kurtosis engine status
       - uses: actions/cache@v4

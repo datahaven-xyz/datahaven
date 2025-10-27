@@ -50,14 +50,14 @@ COPY --from=builder \
     /lib/x86_64-linux-gnu/libssl.so.3 \
     /lib/x86_64-linux-gnu/libcrypto.so.3 \
     /lib/x86_64-linux-gnu/libgssapi_krb5.so.2 \
-    /lib/x86_64-linux-gnu/libldap.so.2 \
+    /lib/x86_64-linux-gnu/libldap-2.5.so.0 \
     /lib/x86_64-linux-gnu/libz.so.1 \
     /lib/x86_64-linux-gnu/libzstd.so.1 \
     /lib/x86_64-linux-gnu/libkrb5.so.3 \
     /lib/x86_64-linux-gnu/libk5crypto.so.3 \
     /lib/x86_64-linux-gnu/libcom_err.so.2 \
     /lib/x86_64-linux-gnu/libkrb5support.so.0 \
-    /lib/x86_64-linux-gnu/liblber.so.2 \
+    /lib/x86_64-linux-gnu/liblber-2.5.so.0 \
     /lib/x86_64-linux-gnu/libsasl2.so.2 \
     /lib/x86_64-linux-gnu/libkeyutils.so.1 \
     /lib/x86_64-linux-gnu/

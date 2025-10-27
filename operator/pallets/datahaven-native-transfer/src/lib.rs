@@ -135,6 +135,8 @@ pub mod pallet {
         ZeroFee,
         /// Native token has not been registered on Ethereum yet
         TokenNotRegistered,
+        /// Insufficient balance in Ethereum sovereign account
+        InsufficientSovereignBalance,
     }
 
     #[pallet::call]
@@ -275,9 +277,18 @@ pub mod pallet {
         ///
         /// Transfers tokens from the Ethereum sovereign account back to user
         pub fn unlock_tokens(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            let sovereign = T::EthereumSovereignAccount::get();
+            let balance = T::Currency::balance(&sovereign);
+
+            // Explicit defensive check for sufficient sovereign balance
+            ensure!(
+                balance >= amount,
+                Error::<T>::InsufficientSovereignBalance
+            );
+
             // Transfer from the Ethereum sovereign account
             T::Currency::transfer(
-                &T::EthereumSovereignAccount::get(),
+                &sovereign,
                 who,
                 amount,
                 Preservation::Preserve,

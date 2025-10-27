@@ -262,7 +262,7 @@ fn unlock_insufficient_sovereign_balance_fails() {
         // Try to unlock without any locked tokens
         assert_noop!(
             DataHavenNativeTransfer::<Test>::unlock_tokens(&BOB, 1000),
-            DispatchError::Token(sp_runtime::TokenError::FundsUnavailable)
+            Error::<Test>::InsufficientSovereignBalance
         );
     });
 }

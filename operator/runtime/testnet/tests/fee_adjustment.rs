@@ -15,10 +15,7 @@ use datahaven_testnet_runtime::{
 };
 use fp_evm::FeeCalculator;
 use frame_support::pallet_prelude::DispatchClass;
-use frame_support::{
-    traits::{ConstU128, OnFinalize},
-    weights::{ConstantMultiplier, IdentityFee, WeightToFee},
-};
+use frame_support::traits::OnFinalize;
 use sp_core::U256;
 use sp_runtime::{traits::Convert, BuildStorage, FixedPointNumber, FixedU128, Perbill};
 
@@ -39,8 +36,6 @@ where
 
 #[test]
 fn multiplier_can_grow_from_zero() {
-    use frame_support::traits::Get;
-
     let minimum_multiplier = MinimumMultiplier::get();
     let target = TargetBlockFullness::get()
         * RuntimeBlockWeights::get()
@@ -175,35 +170,58 @@ fn fee_scenarios() {
         // If a test fails when nothing specific to fees has changed,
         // it may indicate an unexpected collateral effect and should be investigated
 
-        // Note: The test uses different initialization than mainnet/stagenet
-        // The sim function calculates fees dynamically, so we verify they behave correctly
-        let val0 = sim(1_000_000_000, Perbill::from_percent(0), 1);
-        let val50 = sim(1_000_000_000, Perbill::from_percent(50), 1);
-        let val100 = sim(1_000_000_000, Perbill::from_percent(100), 1);
-        let val600 = sim(1_000_000_000, Perbill::from_percent(50), 600);
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(0), 1),
+            U256::from(998_600_980),
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(25), 1),
+            U256::from(999_600_080),
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(50), 1),
+            U256::from(1_000_600_180),
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(100), 1),
+            U256::from(1_002_603_380),
+        );
 
-        // All values should be reasonable (within expected ranges)
-        assert!(
-            val0 > U256::from(100u128) && val0 < U256::from(100_000_000_000_000u128),
-            "Fee at 0% should be reasonable, got: {}",
-            val0
+        // 1 "real" hour (at 6-second blocks)
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(0), 600),
+            U256::from(431_710_642),
         );
-        assert!(
-            val50 > val0,
-            "Fee at 50% fullness should be higher than at 0%, got: {} and {}",
-            val0,
-            val50
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(25), 600),
+            U256::from(786_627_866),
         );
-        assert!(
-            val100 > val50,
-            "Fee at 100% fullness should be higher than at 50%, got: {} and {}",
-            val50,
-            val100
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(50), 600),
+            U256::from(1_433_329_383u128),
         );
-        assert!(
-            val600 > U256::from(100u128) && val600 < U256::from(1_000_000_000_000_000u128),
-            "Fee after 600 blocks should be reasonable, got: {}",
-            val600
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(100), 600),
+            U256::from(4_758_812_897u128),
+        );
+
+        // 1 "real" day (at 6-second blocks)
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(0), 14400),
+            U256::from(312_500_000), // lower bound enforced
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(25), 14400),
+            U256::from(312_500_000), // lower bound enforced if threshold not reached
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(50), 14400),
+            U256::from(5_653_326_895_069u128),
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(100), 14400),
+            U256::from(31_250_000_000_000u128),
+            // upper bound enforced (min_gas_price * MaximumMultiplier)
         );
     });
 }

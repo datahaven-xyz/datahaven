@@ -204,5 +204,24 @@ fn fee_scenarios() {
             sim(1_000_000_000, Perbill::from_percent(100), 600),
             U256::from(148_712_903_041u128), // DataHaven specific value
         );
+
+        // 1 "real" day (at 12-second blocks)
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(0), 14400),
+            U256::from(31_250_000_000u128), // lower bound enforced
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(25), 14400),
+            U256::from(31_250_000_000u128), // lower bound enforced if threshold not reached
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(50), 14400),
+            U256::from(176_666_465_470_908u128),
+        );
+        assert_eq!(
+            sim(1_000_000_000, Perbill::from_percent(100), 14400),
+            U256::from(3_125_000_000_000_000u128),
+            // upper bound enforced (min_gas_price * MaximumMultiplier)
+        );
     });
 }

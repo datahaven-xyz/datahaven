@@ -1559,7 +1559,7 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
         let calldata = Vec::new();
 
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get(), // TODO: get the slash registry address
+            target: runtime_params::dynamic_params::runtime_config::DatahavenAddress::get(),
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,

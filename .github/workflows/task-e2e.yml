@@ -65,6 +65,7 @@ jobs:
             # rm kurtosis-cli.tar.gz
             # For now, we use a patched version of Kurtosis CLI & Engine that supports Podman properly
             wget -q -O ~/.local/bin/kurtosis https://github.com/stiiifff/kurtosis/releases/download/1.11.99/kurtosis
+            chmod +x ~/.local/bin/kurtosis
             echo "$HOME/.local/bin" >> $GITHUB_PATH
             export PATH="$HOME/.local/bin:$PATH"
           else

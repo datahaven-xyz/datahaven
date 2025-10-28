@@ -243,7 +243,10 @@ fn unlock_tokens_works() {
         ));
 
         assert_eq!(Balances::balance(&BOB), INITIAL_BALANCE + unlock_amount);
-        assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), 1); // Existential deposit remains
+        assert_eq!(
+            Balances::balance(&ETHEREUM_SOVEREIGN),
+            Balances::minimum_balance()
+        ); // Existential deposit remains
 
         // Check event
         assert_eq!(
@@ -268,6 +271,20 @@ fn unlock_insufficient_sovereign_balance_fails() {
 }
 
 #[test]
+fn unlock_fails_if_existential_deposit_would_be_consumed() {
+    new_test_ext().execute_with(|| {
+        let amount = 10u128;
+        assert_ok!(DataHavenNativeTransfer::<Test>::lock_tokens(&ALICE, amount));
+
+        // Attempt to withdraw the full sovereign balance, which should leave the account below ED
+        assert_noop!(
+            DataHavenNativeTransfer::<Test>::unlock_tokens(&BOB, amount),
+            Error::<Test>::InsufficientSovereignBalance
+        );
+    });
+}
+
+#[test]
 fn lock_unlock_different_amounts() {
     new_test_ext().execute_with(|| {
         // Lock 5000
@@ -283,7 +300,10 @@ fn lock_unlock_different_amounts() {
             &CHARLIE, 2999
         ));
 
-        assert_eq!(Balances::balance(&ETHEREUM_SOVEREIGN), 1); // Existential deposit remains
+        assert_eq!(
+            Balances::balance(&ETHEREUM_SOVEREIGN),
+            Balances::minimum_balance()
+        ); // Existential deposit remains
         assert_eq!(Balances::balance(&BOB), INITIAL_BALANCE + 2000);
         assert_eq!(Balances::balance(&CHARLIE), INITIAL_BALANCE + 2999);
     });

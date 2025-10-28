@@ -26,7 +26,7 @@ use frame_support::{
 use snowbridge_core::TokenId;
 use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage, SendMessage};
 use sp_core::{H160, H256};
-use sp_runtime::BoundedVec;
+use sp_runtime::{traits::Saturating, BoundedVec};
 use sp_std::vec;
 
 pub use pallet::*;
@@ -279,9 +279,14 @@ pub mod pallet {
         pub fn unlock_tokens(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
             let sovereign = T::EthereumSovereignAccount::get();
             let balance = T::Currency::balance(&sovereign);
+            let minimum_balance = T::Currency::minimum_balance();
+            let available_balance = balance.saturating_sub(minimum_balance);
 
-            // Explicit defensive check for sufficient sovereign balance
-            ensure!(balance >= amount, Error::<T>::InsufficientSovereignBalance);
+            // Allow unlocking only from funds that exceed the existential buffer.
+            ensure!(
+                available_balance >= amount,
+                Error::<T>::InsufficientSovereignBalance
+            );
 
             // Transfer from the Ethereum sovereign account
             T::Currency::transfer(&sovereign, who, amount, Preservation::Preserve)?;

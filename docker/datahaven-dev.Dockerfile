@@ -46,7 +46,7 @@ RUN apt-get update && \
     find /var/lib/apt/lists/ -type f -not -name lock -delete
 
 # Create datahaven user and directories
-RUN useradd -m -u 1000 -U -s /bin/sh -d /datahaven datahaven && \
+RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
     mkdir -p /data /datahaven/.local/share /specs /storage && \
     chown -R datahaven:datahaven /data /storage && \
     ln -s /data /datahaven/.local/share/datahaven-node

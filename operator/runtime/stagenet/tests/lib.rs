@@ -1,6 +1,7 @@
 //! Integration tests for DataHaven stagenet runtime
 
 pub mod common;
+mod fee_adjustment;
 pub mod governance;
 mod native_token_transfer;
 mod proxy;

@@ -1,6 +1,7 @@
 //! Integration tests for DataHaven mainnet runtime
 
 pub mod common;
+mod fee_adjustment;
 pub mod governance;
 mod migrations;
 mod native_token_transfer;

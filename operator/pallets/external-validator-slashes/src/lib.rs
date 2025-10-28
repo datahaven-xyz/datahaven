@@ -39,7 +39,6 @@ use {
         derive_storage_traits,
         traits::{EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider, OnEraStart},
     },
-    pallet_staking::SessionInterface,
     parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, FullCodec},
     sp_core::H256,
     sp_runtime::{
@@ -142,9 +141,6 @@ pub mod pallet {
             + One
             + Ord
             + MaxEncodedLen;
-
-        /// Interface for interacting with a session pallet.
-        type SessionInterface: SessionInterface<Self::AccountId>;
 
         type SendMessage: SendMessage<Self::AccountId>;
 
@@ -498,7 +494,10 @@ where
     }
 }
 
-impl<T: Config> OnEraStart for Pallet<T> {
+impl<T: Config> OnEraStart for Pallet<T>
+where
+    T: pallet_session::historical::Config,
+{
     fn on_era_start(era_index: EraIndex, session_start: SessionIndex, external_idx: u64) {
         // This should be small, as slashes are limited by the num of validators
         // let's put 1000 as a conservative measure
@@ -532,7 +531,7 @@ impl<T: Config> OnEraStart for Pallet<T> {
                 }
 
                 if let Some(&(_, first_session, _)) = bonded.first() {
-                    T::SessionInterface::prune_historical_up_to(first_session);
+                    <pallet_session::historical::Pallet<T>>::prune_up_to(first_session);
                 }
             }
         });

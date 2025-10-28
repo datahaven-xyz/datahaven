@@ -1627,7 +1627,6 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type SlashDeferDuration = SlashDeferDuration;
     type BondingDuration = BondingDuration;
     type SlashId = u32;
-    type SessionInterface = (); // FIXME
     type EraIndexProvider = ExternalValidators;
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;

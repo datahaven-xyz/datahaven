@@ -255,7 +255,6 @@ impl external_validator_slashes::Config for Test {
     type SlashDeferDuration = DeferPeriodGetter;
     type BondingDuration = BondingDuration;
     type SlashId = u32;
-    type SessionInterface = ();
     type EraIndexProvider = MockEraIndexProvider;
     type InvulnerablesProvider = MockInvulnerableProvider;
     type ExternalIndexProvider = TimestampProvider;

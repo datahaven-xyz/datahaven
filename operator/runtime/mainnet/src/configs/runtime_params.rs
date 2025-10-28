@@ -321,7 +321,8 @@ pub mod dynamic_params {
 
         #[codec(index = 36)]
         #[allow(non_upper_case_globals)]
-        pub static DatahavenAddress: H160 = H160::repeat_byte(0x0);
+        /// The AVS ethereum address for Datahaven. Via this address we relay slashing requests or other requests.
+        pub static DatahavenAVSAddress: H160 = H160::repeat_byte(0x0);
     }
 }
 

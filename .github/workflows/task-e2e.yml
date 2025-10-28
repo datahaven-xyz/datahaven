@@ -82,6 +82,8 @@ jobs:
           config-version: 6
           should-send-metrics: true
           kurtosis-clusters:
+            docker:
+              type: "docker"
             podman:
               type: "podman"
           YML

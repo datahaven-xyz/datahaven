@@ -123,7 +123,7 @@ use pallet_evm::{
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_transaction_payment::{
-    ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
+    FungibleAdapter, Multiplier, Pallet as TransactionPayment, TargetedFeeAdjustment,
 };
 use polkadot_primitives::Moment;
 use runtime_params::RuntimeParameters;
@@ -144,10 +144,8 @@ use sp_consensus_beefy::{
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
-    traits::{
-        Convert, ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto,
-    },
-    FixedPointNumber, Perbill,
+    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
+    FixedPointNumber, Perbill, Perquintill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -450,8 +448,38 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-    pub FeeMultiplier: Multiplier = Multiplier::one();
+    /// The portion of the `NORMAL_DISPATCH_RATIO` that we adjust the fees with. Blocks filled less
+    /// than this will decrease the weight and more will increase.
+    pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(35);
+    /// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+    /// change the fees more rapidly. This low value causes changes to occur slowly over time.
+    pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(4, 1_000);
+    /// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+    /// that combined with `AdjustmentVariable`, we can recover from the minimum.
+    /// See `multiplier_can_grow_from_zero` in integration_tests.rs.
+    pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 10);
+    /// Maximum multiplier. We pick a value that is expensive but not impossibly so; it should act
+    /// as a safety net.
+    pub MaximumMultiplier: Multiplier = Multiplier::from(100_000u128);
 }
+
+/// FastAdjustingFeeUpdate implements a dynamic fee adjustment mechanism similar to Ethereum's EIP-1559.
+/// It adjusts transaction fees based on network congestion to prevent DoS attacks.
+///
+/// The algorithm works as follows:
+/// diff = (previous_block_weight - target) / maximum_block_weight
+/// next_multiplier = prev_multiplier * (1 + (v * diff) + ((v * diff)^2 / 2))
+/// assert(next_multiplier > min)
+///     where: v is AdjustmentVariable
+///            target is TargetBlockFullness
+///            min is MinimumMultiplier
+pub type FastAdjustingFeeUpdate<R> = TargetedFeeAdjustment<
+    R,
+    TargetBlockFullness,
+    AdjustmentVariable,
+    MinimumMultiplier,
+    MaximumMultiplier,
+>;
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -471,7 +499,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = IdentityFee<Balance>;
     #[cfg(feature = "runtime-benchmarks")]
     type LengthToFee = benchmark_helpers::BenchmarkWeightToFee;
-    type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
+    type FeeMultiplierUpdate = FastAdjustingFeeUpdate<Runtime>;
     type WeightInfo = stagenet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 

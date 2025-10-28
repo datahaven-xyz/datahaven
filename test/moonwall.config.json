@@ -7,21 +7,19 @@
     {
       "name": "dev_datahaven",
       "testFileDir": [
-        "suites/dev"
+        "datahaven/suites/dev"
       ],
       "include": [
         "**/*test*.ts"
       ],
       "timeout": 180000,
       "multiThreads": 4,
-      "contracts": "contracts/",
+      "contracts": "datahaven/contracts/",
       "runScripts": [
         "compile-contracts.sh compile"
       ],
       "envVars": [
-        "DEBUG_COLORS=1",
-        "RUST_BACKTRACE=1",
-        "RUST_LOG=info"
+        "DEBUG_COLORS=1"
       ],
       "reporters": [
         "basic",

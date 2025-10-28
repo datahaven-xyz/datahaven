@@ -1,63 +1,55 @@
+/**
+ * Runtime constants for DataHaven networks
+ * Adapted from Moonbeam test helpers
+ */
+
 import type { GenericContext } from "@moonwall/cli";
 
-/**
- * Class allowing to store multiple value for a runtime constant based on the runtime version
- */
 class RuntimeConstant<T> {
-  private values: { [version: number]: T };
+  private readonly values: Map<number, T>;
 
-  /*
-   * Get the expected value for a given runtime version. Lookup for the closest smaller runtime
-   */
-  get(runtimeVersion: number): T {
-    const versions = Object.keys(this.values).map(Number); // slow but easier to maintain
-    let value: T | undefined;
-    for (let i = 0; i < versions.length; i++) {
-      if (versions[i] > runtimeVersion) {
-        break;
+  constructor(valuesByVersion: Record<number, T>) {
+    this.values = new Map(Object.entries(valuesByVersion).map(([k, v]) => [Number(k), v]));
+  }
+
+  get(version: number): T {
+    const sortedVersions = Array.from(this.values.keys()).sort((a, b) => b - a);
+    for (const v of sortedVersions) {
+      if (version >= v) {
+        return this.values.get(v)!;
       }
-      value = this.values[versions[i]];
     }
-    return value as T;
-  }
-
-  // Builds RuntimeConstant with single or multiple values
-  constructor(values: { [version: number]: T } | T) {
-    if (values instanceof Object) {
-      this.values = values;
-    } else {
-      this.values = { 0: values };
-    }
+    return this.values.get(0)!;
   }
 }
 
-// Fees and gas limits
-// Values derived from Rust runtime configuration in operator/runtime/*/src/lib.rs
-export const RUNTIME_CONSTANTS = {
-  "DATAHAVEN-STAGENET": {
-    GAS_LIMIT: new RuntimeConstant(60_000_000n),
-    EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
-    BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
-  },
-  "DATAHAVEN-MAINNET": {
-    GAS_LIMIT: new RuntimeConstant(60_000_000n),
-    EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
-    BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
-  },
-  "DATAHAVEN-TESTNET": {
-    GAS_LIMIT: new RuntimeConstant(60_000_000n),
-    EXTRINSIC_GAS_LIMIT: new RuntimeConstant(52_000_000n),
-    BLOCK_WEIGHT_LIMIT: new RuntimeConstant(2_000_000_000_000n),
-    MAX_POV_SIZE: new RuntimeConstant(10_485_760n) // 10MB in bytes (matching Moonbeam)
+const DATAHAVEN_CONSTANTS = {
+  BLOCK_WEIGHT_LIMIT: new RuntimeConstant({
+    0: 2_000_000_000_000n
+  }),
+  GAS_LIMIT: new RuntimeConstant({
+    0: 60_000_000n
+  }),
+  EXTRINSIC_GAS_LIMIT: new RuntimeConstant({
+    0: 52_000_000n
+  }),
+  WEIGHT_TO_GAS_RATIO: 25_000n,
+  STORAGE_READ_COST: 25_000_000n,
+  STORAGE_WRITE_COST: 50_000_000n,
+  SUPPLY_FACTOR: 1n,
+  PRECOMPILE_ADDRESSES: {
+    BATCH: "0x0000000000000000000000000000000000000808" as const,
+    CALL_PERMIT: "0x000000000000000000000000000000000000080a" as const,
+    PROXY: "0x000000000000000000000000000000000000080b" as const,
+    ERC20_BALANCES: "0x0000000000000000000000000000000000000802" as const,
+    PRECOMPILE_REGISTRY: "0x0000000000000000000000000000000000000815" as const
   }
-};
+} as const;
 
-type ConstantStoreType = (typeof RUNTIME_CONSTANTS)["DATAHAVEN-STAGENET"];
+type ConstantStoreType = typeof DATAHAVEN_CONSTANTS;
 
-export function ConstantStore(context: GenericContext): ConstantStoreType {
-  const runtime = context.polkadotJs().consts.system.version.specName.toUpperCase();
-  console.log("runtime", runtime);
-  return RUNTIME_CONSTANTS[runtime];
+export function ConstantStore(_context: GenericContext): ConstantStoreType {
+  return DATAHAVEN_CONSTANTS;
 }
+
+export { RuntimeConstant };

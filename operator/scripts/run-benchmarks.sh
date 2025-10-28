@@ -53,11 +53,11 @@ if [ ! -f "$TEMPLATE_PATH" ]; then
 fi
 
 # Build the runtime WASM
-echo -e "${YELLOW}Building runtime $RUNTIME with features: $FEATURES${NC}"
-cargo build --release --features "$FEATURES" -p datahaven-$RUNTIME-runtime
+echo -e "${YELLOW}Building runtime $RUNTIME (production profile) with features: $FEATURES${NC}"
+cargo build --profile production --features "$FEATURES" -p datahaven-$RUNTIME-runtime
 
 # Get the WASM path
-WASM_PATH="target/release/wbuild/datahaven-$RUNTIME-runtime/datahaven_${RUNTIME}_runtime.compact.compressed.wasm"
+WASM_PATH="target/production/wbuild/datahaven-$RUNTIME-runtime/datahaven_${RUNTIME}_runtime.compact.compressed.wasm"
 
 if [ ! -f "$WASM_PATH" ]; then
     echo -e "${RED}Error: WASM runtime not found at $WASM_PATH${NC}"

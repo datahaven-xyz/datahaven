@@ -47,6 +47,32 @@ use {
     },
 };
 
+pub use macro_rules_attribute::apply;
+
+pub mod __reexports {
+    pub use {
+        frame_support::{CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound},
+        parity_scale_codec::DecodeWithMemTracking,
+        scale_info::TypeInfo,
+        sp_core::{Decode, Encode, RuntimeDebug},
+    };
+}
+
+#[macro_export]
+macro_rules! derive_storage_traits {
+    ( $( $tt:tt )* ) => {
+        #[derive(
+            $crate::__reexports::RuntimeDebug,
+            ::core::cmp::PartialEq,
+            ::core::cmp::Eq,
+            ::core::clone::Clone,
+            $crate::__reexports::Encode,
+            $crate::__reexports::Decode,
+            $crate::__reexports::TypeInfo,
+        )]
+        $($tt)*
+    }
+}
 #[cfg(test)]
 mod mock;
 pub mod traits;

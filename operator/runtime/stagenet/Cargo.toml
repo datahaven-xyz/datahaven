@@ -36,7 +36,7 @@ num-bigint = { workspace = true }
 num_enum = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
-pallet-balances = { workspace = true, features = ["insecure_zero_ed"]}
+pallet-balances = { workspace = true, features = ["insecure_zero_ed"] }
 pallet-beefy = { workspace = true }
 pallet-beefy-mmr = { workspace = true }
 pallet-collective = { workspace = true }
@@ -52,6 +52,7 @@ pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
+pallet-external-validator-slashes = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -200,7 +201,7 @@ std = [
     "pallet-ethereum/std",
     "pallet-evm-chain-id/std",
     "pallet-evm/std",
-	"pallet-evm-precompile-balances-erc20/std",
+    "pallet-evm-precompile-balances-erc20/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
     "pallet-evm-precompile-preimage/std",
@@ -213,6 +214,7 @@ std = [
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
+    "pallet-external-validator-slashes/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
@@ -274,27 +276,26 @@ std = [
     "substrate-wasm-builder",
     "pallet-outbound-commitment-store/std",
     "pallet-datahaven-native-transfer/std",
-
     # StorageHub
-	"pallet-bucket-nfts/std",
+    "pallet-bucket-nfts/std",
     "pallet-nfts/std",
-	"pallet-cr-randomness/std",
-	"pallet-file-system/std",
-	"pallet-file-system-runtime-api/std",
-	"pallet-payment-streams/std",
-	"pallet-payment-streams-runtime-api/std",
-	"pallet-proofs-dealer/std",
-	"pallet-proofs-dealer-runtime-api/std",
-	"pallet-randomness/std",
-	"pallet-storage-providers/std",
-	"pallet-storage-providers-runtime-api/std",
+    "pallet-cr-randomness/std",
+    "pallet-file-system/std",
+    "pallet-file-system-runtime-api/std",
+    "pallet-payment-streams/std",
+    "pallet-payment-streams-runtime-api/std",
+    "pallet-proofs-dealer/std",
+    "pallet-proofs-dealer-runtime-api/std",
+    "pallet-randomness/std",
+    "pallet-storage-providers/std",
+    "pallet-storage-providers-runtime-api/std",
     "dep:shc-common",
-	"shc-common/std",
+    "shc-common/std",
     "shp-constants/std",
-	"shp-file-metadata/std",
-	"shp-forest-verifier/std",
-	"shp-traits/std",
-	"shp-treasury-funding/std",
+    "shp-file-metadata/std",
+    "shp-forest-verifier/std",
+    "shp-traits/std",
+    "shp-treasury-funding/std",
     "shp-file-key-verifier/std",
     "pallet-evm-precompile-file-system/std",
 ]
@@ -314,6 +315,7 @@ runtime-benchmarks = [
     "pallet-evm/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
     "pallet-external-validators-rewards/runtime-benchmarks",
+    "pallet-external-validator-slashes/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
@@ -364,6 +366,7 @@ try-runtime = [
     "pallet-evm/try-runtime",
     "pallet-external-validators/try-runtime",
     "pallet-external-validators-rewards/try-runtime",
+    "pallet-external-validator-slashes/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",

@@ -27,6 +27,7 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 pallet-external-validators = { workspace = true }
 sp-staking = { workspace = true }
+serde = { features = ["alloc", "derive"], workspace = true }
 
 [dev-dependencies]
 pallet-timestamp = { workspace = true, features = ["std"] }

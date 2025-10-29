@@ -186,7 +186,9 @@ pub mod pallet {
     }
 
     #[apply(derive_storage_traits)]
-    #[derive(MaxEncodedLen, DecodeWithMemTracking, Default)]
+    #[derive(
+        MaxEncodedLen, DecodeWithMemTracking, serde::Deserialize, serde::Serialize, Default,
+    )]
     pub enum SlashingModeOption {
         Enabled,
         LogOnly,
@@ -234,6 +236,22 @@ pub mod pallet {
     // Turns slashing on or off
     #[pallet::storage]
     pub type SlashingMode<T: Config> = StorageValue<_, SlashingModeOption, ValueQuery>;
+
+    #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        // Slashing mode
+        pub slashing_mode: SlashingModeOption,
+        #[serde(skip)]
+        pub _config: PhantomData<T>,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+        fn build(&self) {
+            <SlashingMode<T>>::put(self.slashing_mode.clone());
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {

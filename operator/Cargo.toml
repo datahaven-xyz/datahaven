@@ -27,6 +27,11 @@ datahaven-runtime-common = { path = "./runtime/common", default-features = false
 datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = false }
 datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
+pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
+pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
+pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
+pallet-external-validator-slashes = { path = "./pallets/external-validator-slashes", default-features = false }
+pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 pallet-datahaven-native-transfer = { path = "./pallets/datahaven-native-transfer", default-features = false }
 pallet-evm-precompile-balances-erc20 = { path = "./precompiles/erc20-balances", default-features = false }
 pallet-evm-precompile-batch = { path = "./precompiles/batch", default-features = false }
@@ -38,10 +43,6 @@ pallet-evm-precompile-preimage = { path = "./precompiles/preimage", default-feat
 pallet-evm-precompile-proxy = { path = "./precompiles/proxy", default-features = false }
 pallet-evm-precompile-referenda = { path = "./precompiles/referenda", default-features = false }
 pallet-evm-precompile-registry = { path = "./precompiles/precompile-registry", default-features = false }
-pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
-pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
-pallet-external-validators-rewards-runtime-api = { path = "./pallets/external-validators-rewards/runtime-api", default-features = false }
-pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }
@@ -66,6 +67,7 @@ impl-trait-for-tuples = { version = "0.2.2" }
 jsonrpsee = { version = "0.24.3" }
 libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
+macro_rules_attribute = { version = "0.2.0" }
 milagro-bls = { version = "1.5.4", default-features = false, package = "snowbridge-milagro-bls" }
 num-bigint = { version = "0.4.3", default-features = false }
 num_enum = { version = "0.7.3", default-features = false }
@@ -89,7 +91,7 @@ ssz_rs = { version = "0.9.0", default-features = false }
 ssz_rs_derive = { version = "0.9.0", default-features = false }
 static_assertions = { version = "1.1.0", default-features = false }
 strum = { version = "0.26.3", default-features = false, features = ["derive"] }
-strum_macros = "0.24"
+strum_macros = "0.26.4"
 toml = "0.8.19"
 tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "=0.3.19", features = [
@@ -135,6 +137,7 @@ pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", tag = "
 pallet-safe-mode = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+pallet-staking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }

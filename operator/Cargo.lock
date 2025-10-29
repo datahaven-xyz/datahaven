@@ -2954,6 +2954,7 @@ dependencies = [
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-external-validator-slashes",
  "pallet-external-validators",
  "pallet-external-validators-rewards",
  "pallet-external-validators-rewards-runtime-api",
@@ -3043,7 +3044,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "strum 0.26.3",
- "strum_macros 0.24.3",
+ "strum_macros 0.26.4",
  "substrate-wasm-builder",
 ]
 
@@ -3240,6 +3241,7 @@ dependencies = [
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-external-validator-slashes",
  "pallet-external-validators",
  "pallet-external-validators-rewards",
  "pallet-external-validators-rewards-runtime-api",
@@ -3329,7 +3331,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "strum 0.26.3",
- "strum_macros 0.24.3",
+ "strum_macros 0.26.4",
  "substrate-wasm-builder",
 ]
 
@@ -3387,6 +3389,7 @@ dependencies = [
  "pallet-evm-precompile-registry",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-external-validator-slashes",
  "pallet-external-validators",
  "pallet-external-validators-rewards",
  "pallet-external-validators-rewards-runtime-api",
@@ -3476,7 +3479,7 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "strum 0.26.3",
- "strum_macros 0.24.3",
+ "strum_macros 0.26.4",
  "substrate-wasm-builder",
 ]
 
@@ -7831,6 +7834,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "macro_rules_attribute"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65049d7923698040cd0b1ddcced9b0eb14dd22c5f86ae59c3740eab64a676520"
+dependencies = [
+ "macro_rules_attribute-proc_macro",
+ "paste",
+]
+
+[[package]]
+name = "macro_rules_attribute-proc_macro"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "670fdfda89751bc4a84ac13eaa63e205cf0fd22b4c9a5fbfa085b63c1f1d3a30"
+
+[[package]]
 name = "match-lookup"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9446,6 +9465,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-external-validator-slashes"
+version = "0.1.0"
+dependencies = [
+ "fp-account",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-external-validators",
+ "pallet-session",
+ "pallet-staking",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "snowbridge-core 0.3.1",
+ "snowbridge-outbound-queue-primitives",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-external-validators"
 version = "0.3.1"
 dependencies = [
@@ -9454,12 +9497,14 @@ dependencies = [
  "frame-system",
  "impl-trait-for-tuples",
  "log",
+ "macro_rules_attribute",
  "pallet-balances",
  "pallet-session",
  "pallet-timestamp",
  "parity-scale-codec",
  "rand 0.8.5",
  "scale-info",
+ "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
  "sp-runtime",

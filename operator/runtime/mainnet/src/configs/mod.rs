@@ -32,12 +32,12 @@ use super::{
     precompiles::{DataHavenPrecompiles, PrecompileName},
     AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
     EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, MultiBlockMigrations,
-    Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda,
-    Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin,
-    RuntimeTask, SafeMode, Scheduler, Session, SessionKeys, Signature, System, Timestamp, Treasury,
-    TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT,
-    NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+    ExternalValidatorsRewards, ExternalValidatorsSlashes, Hash, Historical, ImOnline, MessageQueue,
+    MultiBlockMigrations, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo,
+    Preimage, Referenda, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, SafeMode, Scheduler, Session, SessionKeys,
+    Signature, System, Timestamp, Treasury, TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
+    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -123,7 +123,7 @@ use pallet_evm::{
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_transaction_payment::{
-    ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
+    FungibleAdapter, Multiplier, Pallet as TransactionPayment, TargetedFeeAdjustment,
 };
 use polkadot_primitives::Moment;
 use runtime_params::RuntimeParameters;
@@ -144,10 +144,8 @@ use sp_consensus_beefy::{
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
-    traits::{
-        Convert, ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto,
-    },
-    FixedPointNumber, Perbill,
+    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
+    FixedPointNumber, Perbill, Perquintill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -423,7 +421,7 @@ impl pallet_im_online::Config for Runtime {
     type NextSessionRotation = Babe;
     type ReportUnresponsiveness = Offences;
     type UnsignedPriority = ImOnlineUnsignedPriority;
-    type WeightInfo = ();
+    type WeightInfo = crate::weights::pallet_im_online::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -451,8 +449,40 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-    pub FeeMultiplier: Multiplier = Multiplier::one();
+    /// The portion of the `NORMAL_DISPATCH_RATIO` that we adjust the fees with. Blocks filled less
+    /// than this will decrease the weight and more will increase.
+    pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(35);
+    /// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+    /// change the fees more rapidly. This fast multiplier responds by doubling/halving in
+    /// approximately one hour at extreme block congestion levels.
+    pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(4, 1_000);
+    /// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+    /// that combined with `AdjustmentVariable`, we can recover from the minimum.
+    /// See `multiplier_can_grow_from_zero` in integration_tests.rs.
+    pub MinimumMultiplier: Multiplier = Multiplier::from(1u128);
+    /// Maximum multiplier. We pick a value that is expensive but not impossibly so; it should act
+    /// as a safety net.
+    pub MaximumMultiplier: Multiplier = Multiplier::from(100_000u128);
 }
+
+/// SlowAdjustingFeeUpdate implements a dynamic fee adjustment mechanism similar to Ethereum's EIP-1559.
+/// It adjusts transaction fees based on network congestion to prevent DoS attacks.
+/// This version uses a higher minimum multiplier for more conservative fee adjustments.
+///
+/// The algorithm works as follows:
+/// diff = (previous_block_weight - target) / maximum_block_weight
+/// next_multiplier = prev_multiplier * (1 + (v * diff) + ((v * diff)^2 / 2))
+/// assert(next_multiplier > min)
+///     where: v is AdjustmentVariable
+///            target is TargetBlockFullness
+///            min is MinimumMultiplier
+pub type SlowAdjustingFeeUpdate<R> = TargetedFeeAdjustment<
+    R,
+    TargetBlockFullness,
+    AdjustmentVariable,
+    MinimumMultiplier,
+    MaximumMultiplier,
+>;
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -472,7 +502,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = IdentityFee<Balance>;
     #[cfg(feature = "runtime-benchmarks")]
     type LengthToFee = benchmark_helpers::BenchmarkWeightToFee;
-    type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
+    type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Runtime>;
     type WeightInfo = mainnet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
@@ -1376,7 +1406,7 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
@@ -1545,6 +1575,68 @@ impl pallet_tx_pause::Config for Runtime {
     type WhitelistedCalls = TxPauseWhitelistedCalls<Runtime>;
     type MaxNameLen = ConstU32<256>;
     type WeightInfo = mainnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
+}
+
+// Stub SendMessage implementation for slash pallet
+pub struct SlashesSendAdapter;
+impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(
+        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
+    ) -> Option<Self::Message> {
+        let calldata = Vec::new();
+
+        let command = Command::CallContract {
+            target: runtime_params::dynamic_params::runtime_config::DatahavenAVSAddress::get(),
+            calldata,
+            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
+            // TODO: Determine appropriate id value
+            id: unique(1).into(),
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => {
+                    log::error!(
+                        target: "slashes_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        EthereumOutboundQueueV2::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        EthereumOutboundQueueV2::deliver(message)
+    }
+}
+
+impl pallet_external_validator_slashes::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type SlashDeferDuration = SlashDeferDuration;
+    type BondingDuration = BondingDuration;
+    type SlashId = u32;
+    type EraIndexProvider = ExternalValidators;
+    type InvulnerablesProvider = ExternalValidators;
+    type ExternalIndexProvider = ExternalValidators;
+    type QueuedSlashesProcessedPerBlock = ConstU32<10>;
+    type WeightInfo = (); // TODO: calculate weights
+    type SendMessage = SlashesSendAdapter;
+}
+
+parameter_types! {
+    pub const SlashDeferDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(0, 0);
 }
 
 #[cfg(test)]

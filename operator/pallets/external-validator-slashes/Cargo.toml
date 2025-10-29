@@ -1,0 +1,76 @@
+[package]
+name = "pallet-external-validator-slashes"
+authors = { workspace = true }
+description = "External validator info slashes"
+edition = "2021"
+license = "GPL-3.0-only"
+version = "0.1.0"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[lints]
+workspace = true
+
+[dependencies]
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+log = { workspace = true }
+pallet-session = { workspace = true }
+pallet-staking = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["derive", "max-encoded-len"] }
+scale-info = { workspace = true }
+snowbridge-core = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+pallet-external-validators = { workspace = true }
+sp-staking = { workspace = true }
+serde = { features = ["alloc", "derive"], workspace = true }
+
+[dev-dependencies]
+pallet-timestamp = { workspace = true, features = ["std"] }
+fp-account = { workspace = true, features = ["serde"] }
+sp-io = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "frame-benchmarking/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-session/std",
+    "pallet-staking/std",
+    "pallet-timestamp/std",
+    "parity-scale-codec/std",
+    "pallet-external-validators/std",
+    "scale-info/std",
+    "snowbridge-core/std",
+    "snowbridge-outbound-queue-primitives/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-staking/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-staking/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "pallet-external-validators/runtime-benchmarks",
+    "snowbridge-core/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "sp-staking/runtime-benchmarks",
+]
+
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-session/try-runtime",
+    "pallet-staking/try-runtime",
+    "pallet-timestamp/try-runtime",
+    "sp-runtime/try-runtime",
+]

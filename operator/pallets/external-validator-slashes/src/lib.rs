@@ -188,9 +188,9 @@ pub mod pallet {
     #[apply(derive_storage_traits)]
     #[derive(MaxEncodedLen, DecodeWithMemTracking, Default)]
     pub enum SlashingModeOption {
+        #[default]
         Enabled,
         LogOnly,
-        #[default]
         Disabled,
     }
 

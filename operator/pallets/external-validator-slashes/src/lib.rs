@@ -190,9 +190,9 @@ pub mod pallet {
         MaxEncodedLen, DecodeWithMemTracking, serde::Deserialize, serde::Serialize, Default,
     )]
     pub enum SlashingModeOption {
+        #[default]
         Enabled,
         LogOnly,
-        #[default]
         Disabled,
     }
 

@@ -1,5 +1,5 @@
 [workspace.package]
-authors = ["MoonsongLabs <dev@moonsonglabs.com>"]
+authors = ["Moonsong Labs"]
 edition = "2021"
 homepage = "https://datahaven.xyz/"
 license = "GPL-3"

@@ -1,6 +1,6 @@
 [package]
 name = "pallet-evm-precompile-registry"
-authors = ["The DataHaven Team"]
+authors = { workspace = true }
 description = "Registry of active precompiles"
 edition = "2021"
 version = "0.1.0"

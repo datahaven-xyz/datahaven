@@ -565,7 +565,7 @@ fn deposit(data: Vec<u8>) {
             // Deposit
             // We need to call using EVM pallet so we can check the EVM correctly sends the amount
             // to the precompile.
-            Evm::call(
+            EVM::call(
                 RuntimeOrigin::root(),
                 CryptoAlith.into(),
                 Precompile1.into(),
@@ -602,7 +602,7 @@ fn deposit(data: Vec<u8>) {
                         amount: 500
                     }),
                     // Log is correctly emited.
-                    RuntimeEvent::Evm(pallet_evm::Event::Log {
+                    RuntimeEvent::EVM(pallet_evm::Event::Log {
                         log: log2(
                             Precompile1,
                             SELECTOR_LOG_DEPOSIT,
@@ -610,7 +610,7 @@ fn deposit(data: Vec<u8>) {
                             solidity::encode_event_data(U256::from(500)),
                         )
                     }),
-                    RuntimeEvent::Evm(pallet_evm::Event::Executed {
+                    RuntimeEvent::EVM(pallet_evm::Event::Executed {
                         address: Precompile1.into()
                     }),
                 ]
@@ -681,7 +681,7 @@ fn deposit_zero() {
             // Deposit
             // We need to call using EVM pallet so we can check the EVM correctly sends the amount
             // to the precompile.
-            Evm::call(
+            EVM::call(
                 RuntimeOrigin::root(),
                 CryptoAlith.into(),
                 Precompile1.into(),
@@ -697,7 +697,7 @@ fn deposit_zero() {
 
             assert_eq!(
                 events(),
-                vec![RuntimeEvent::Evm(pallet_evm::Event::ExecutedFailed {
+                vec![RuntimeEvent::EVM(pallet_evm::Event::ExecutedFailed {
                     address: Precompile1.into()
                 }),]
             );

@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 512.
+#![recursion_limit = "512"]
 
 extern crate alloc;
 #[cfg(feature = "std")]
@@ -14,6 +14,7 @@ pub mod weights;
 
 // Re-export governance for tests
 pub use configs::governance;
+pub use configs::Precompiles;
 
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
@@ -22,7 +23,7 @@ use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::{TransactionValidity, TransactionValidityError},
     parameter_types,
-    traits::{KeyOwnerProofSystem, OnFinalize},
+    traits::{Contains, KeyOwnerProofSystem, OnFinalize},
     weights::{
         constants::ExtrinsicBaseWeight, constants::WEIGHT_REF_TIME_PER_SECOND, Weight,
         WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -62,7 +63,7 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{Block as BlockT, DispatchInfoOf, Dispatchable, PostDispatchInfoOf},
-    transaction_validity::TransactionSource,
+    transaction_validity::{InvalidTransaction, TransactionSource},
     ApplyExtrinsicResult, Perbill, Permill,
 };
 use sp_std::collections::btree_map::BTreeMap;
@@ -120,9 +121,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
-    // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
+    // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 100,
+    spec_version: 400,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -374,6 +375,15 @@ mod runtime {
 
     #[runtime::pallet_index(38)]
     pub type Proxy = pallet_proxy;
+
+    #[runtime::pallet_index(39)]
+    pub type MultiBlockMigrations = pallet_migrations;
+
+    #[runtime::pallet_index(103)]
+    pub type SafeMode = pallet_safe_mode;
+
+    #[runtime::pallet_index(104)]
+    pub type TxPause = pallet_tx_pause;
     // ╚═════════════════ Polkadot SDK Utility Pallets ══════════════════╝
 
     // ╔═════════════════════════ Governance Pallets ════════════════════╗
@@ -401,7 +411,7 @@ mod runtime {
     pub type Ethereum = pallet_ethereum;
 
     #[runtime::pallet_index(51)]
-    pub type Evm = pallet_evm;
+    pub type EVM = pallet_evm;
 
     #[runtime::pallet_index(52)]
     pub type EvmChainId = pallet_evm_chain_id;
@@ -469,6 +479,8 @@ mod runtime {
     #[runtime::pallet_index(102)]
     pub type DataHavenNativeTransfer = pallet_datahaven_native_transfer;
 
+    #[runtime::pallet_index(105)]
+    pub type ExternalValidatorsSlashes = pallet_external_validator_slashes;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
 
@@ -609,6 +621,11 @@ impl_runtime_apis! {
             tx: <Block as BlockT>::Extrinsic,
             block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
+            // Filtered calls should not enter the tx pool as they'll fail if inserted.
+            // If this call is not allowed, we return early.
+            if !<Runtime as frame_system::Config>::BaseCallFilter::contains(&tx.0.function) {
+                return InvalidTransaction::Call.into();
+            }
             Executive::validate_transaction(source, tx, block_hash)
         }
     }
@@ -1045,40 +1062,13 @@ impl_runtime_apis! {
             let is_transactional = false;
             let validate = true;
 
-            // Estimated encoded transaction size must be based on the heaviest transaction
-            // type (EIP1559Transaction) to be compatible with all transaction types.
-            let mut estimated_transaction_len = data.len() +
-                // pallet ethereum index: 1
-                // transact call index: 1
-                // Transaction enum variant: 1
-                // chain_id 8 bytes
-                // nonce: 32
-                // max_priority_fee_per_gas: 32
-                // max_fee_per_gas: 32
-                // gas_limit: 32
-                // action: 21 (enum varianrt + call address)
-                // value: 32
-                // access_list: 1 (empty vec size)
-                // 65 bytes signature
-                258;
-
-            if access_list.is_some() {
-                estimated_transaction_len += access_list.encoded_size();
-            }
-
             let gas_limit = gas_limit.min(u64::MAX.into()).low_u64();
             let without_base_extrinsic_weight = true;
 
-            let (weight_limit, proof_size_base_cost) =
-                match <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
-                    gas_limit,
-                    without_base_extrinsic_weight
-                ) {
-                    weight_limit if weight_limit.proof_size() > 0 => {
-                        (Some(weight_limit), Some(estimated_transaction_len as u64))
-                    }
-                    _ => (None, None),
-                };
+            let weight_limit = <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
+                gas_limit,
+                without_base_extrinsic_weight
+            );
 
             <Runtime as pallet_evm::Config>::Runner::call(
                 from,
@@ -1092,8 +1082,8 @@ impl_runtime_apis! {
                 access_list.unwrap_or_default(),
                 is_transactional,
                 validate,
-                weight_limit,
-                proof_size_base_cost,
+                Some(weight_limit),
+                None,
                 config.as_ref().unwrap_or(<Runtime as pallet_evm::Config>::config()),
             ).map_err(|err| err.error.into())
         }
@@ -1125,7 +1115,11 @@ impl_runtime_apis! {
                 gas_limit.low_u64()
             };
 
-            let (weight_limit, proof_size_base_cost) = (None, None);
+            let without_base_extrinsic_weight = true;
+            let weight_limit = <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
+                gas_limit,
+                without_base_extrinsic_weight
+            );
 
             #[allow(clippy::or_fun_call)]
             <Runtime as pallet_evm::Config>::Runner::create(
@@ -1139,8 +1133,8 @@ impl_runtime_apis! {
                 access_list.unwrap_or_default(),
                 is_transactional,
                 validate,
-                weight_limit,
-                proof_size_base_cost,
+                Some(weight_limit),
+                None,
                 config.as_ref().unwrap_or(<Runtime as pallet_evm::Config>::config()),
             ).map_err(|err| err.error.into())
         }
@@ -1216,7 +1210,7 @@ impl_runtime_apis! {
     //║                                        STORAGEHUB APIS                                                        ║
     //╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-    impl pallet_file_system_runtime_api::FileSystemApi<Block, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>> for Runtime {
+    impl pallet_file_system_runtime_api::FileSystemApi<Block, AccountId, BackupStorageProviderId<Runtime>, MainStorageProviderId<Runtime>, H256, BlockNumber, ChunkId, BucketId<Runtime>, StorageRequestMetadata<Runtime>, BucketId<Runtime>, StorageDataUnit<Runtime>, H256> for Runtime {
         fn is_storage_request_open_to_volunteers(file_key: H256) -> Result<bool, IsStorageRequestOpenToVolunteersError> {
             FileSystem::is_storage_request_open_to_volunteers(file_key)
         }
@@ -1233,12 +1227,23 @@ impl_runtime_apis! {
             FileSystem::query_msp_confirm_chunks_to_prove_for_file(msp_id, file_key)
         }
 
-       fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
+        fn query_bsps_volunteered_for_file(file_key: H256) -> Result<Vec<BackupStorageProviderId<Runtime>>, QueryBspsVolunteeredForFileError> {
+            FileSystem::query_bsps_volunteered_for_file(file_key)
+        }
+
+        fn decode_generic_apply_delta_event_info(encoded_event_info: Vec<u8>) -> Result<BucketId<Runtime>, GenericApplyDeltaEventInfoError> {
             FileSystem::decode_generic_apply_delta_event_info(encoded_event_info)
+        }
+
+        fn storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
+            FileSystem::storage_requests_by_msp(msp_id)
         }
 
         fn pending_storage_requests_by_msp(msp_id: MainStorageProviderId<Runtime>) -> BTreeMap<H256, StorageRequestMetadata<Runtime>> {
             FileSystem::pending_storage_requests_by_msp(msp_id)
+        }
+        fn query_incomplete_storage_request_metadata(file_key: H256) -> Result<pallet_file_system_runtime_api::IncompleteStorageRequestMetadataResponse<AccountId, BucketId<Runtime>, StorageDataUnit<Runtime>, H256, BackupStorageProviderId<Runtime>>, QueryIncompleteStorageRequestMetadataError> {
+            FileSystem::query_incomplete_storage_request_metadata(file_key)
         }
     }
 
@@ -1251,6 +1256,9 @@ impl_runtime_apis! {
         }
         fn get_providers_with_payment_streams_with_user(user_account: &AccountId) -> Vec<ProviderIdFor<Runtime>> {
             PaymentStreams::get_providers_with_payment_streams_with_user(user_account)
+        }
+        fn get_current_price_per_giga_unit_per_tick() -> Balance {
+            PaymentStreams::get_current_price_per_giga_unit_per_tick()
         }
     }
 

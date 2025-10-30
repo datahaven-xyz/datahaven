@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "datahaven-testnet-runtime"
 publish = false
 repository = { workspace = true }
-version = "0.1.0"
+version = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -47,22 +47,27 @@ pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
 pallet-evm-chain-id = { workspace = true }
 pallet-evm-precompile-blake2 = { workspace = true }
 pallet-evm-precompile-bn128 = { workspace = true }
+pallet-evm-precompile-conviction-voting = { workspace = true }
 pallet-evm-precompile-modexp = { workspace = true }
 pallet-evm-precompile-sha3fips = { workspace = true }
 pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
 pallet-external-validators-rewards-runtime-api = { workspace = true }
+pallet-external-validator-slashes = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
 pallet-message-queue = { workspace = true }
+pallet-migrations = { workspace = true }
 pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-offences = { workspace = true }
 pallet-outbound-commitment-store = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
+pallet-safe-mode = { workspace = true }
+pallet-tx-pause = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -123,7 +128,11 @@ strum_macros = { workspace = true }
 pallet-evm-precompile-balances-erc20 = { workspace = true }
 pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
+pallet-evm-precompile-preimage = { workspace = true }
+pallet-evm-precompile-collective = { workspace = true }
+pallet-evm-precompile-identity = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
+pallet-evm-precompile-referenda = { workspace = true }
 pallet-evm-precompile-registry = { workspace = true }
 
 # StorageHub
@@ -195,18 +204,26 @@ std = [
     "pallet-evm-precompile-balances-erc20/std",
     "pallet-evm-precompile-batch/std",
     "pallet-evm-precompile-call-permit/std",
+    "pallet-evm-precompile-preimage/std",
+    "pallet-evm-precompile-collective/std",
+    "pallet-evm-precompile-conviction-voting/std",
+    "pallet-evm-precompile-identity/std",
     "pallet-evm-precompile-proxy/std",
+    "pallet-evm-precompile-referenda/std",
     "pallet-evm-precompile-registry/std",
     "pallet-evm-precompile-file-system/std",
     "pallet-grandpa/std",
     "pallet-identity/std",
     "pallet-im-online/std",
     "pallet-message-queue/std",
+    "pallet-migrations/std",
     "pallet-mmr/std",
     "pallet-multisig/std",
     "pallet-offences/std",
     "pallet-parameters/std",
     "pallet-preimage/std",
+    "pallet-safe-mode/std",
+    "pallet-tx-pause/std",
     "pallet-referenda/std",
     "pallet-proxy/std",
     "pallet-scheduler/std",
@@ -218,10 +235,8 @@ std = [
     "pallet-treasury/std",
     "pallet-utility/std",
     "pallet-whitelist/std",
-    "precompile-utils/std",
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
-    "precompile-utils/std",
     "scale-info/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",
@@ -259,30 +274,29 @@ std = [
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
     "pallet-external-validators-rewards-runtime-api/std",
+    "pallet-external-validator-slashes/std",
     "pallet-datahaven-native-transfer/std",
-
     # StorageHub
-	"pallet-bucket-nfts/std",
+    "pallet-bucket-nfts/std",
     "pallet-nfts/std",
-	"pallet-cr-randomness/std",
-	"pallet-file-system/std",
-	"pallet-file-system-runtime-api/std",
-	"pallet-payment-streams/std",
-	"pallet-payment-streams-runtime-api/std",
-	"pallet-proofs-dealer/std",
-	"pallet-proofs-dealer-runtime-api/std",
-	"pallet-randomness/std",
-	"pallet-storage-providers/std",
-	"pallet-storage-providers-runtime-api/std",
+    "pallet-cr-randomness/std",
+    "pallet-file-system/std",
+    "pallet-file-system-runtime-api/std",
+    "pallet-payment-streams/std",
+    "pallet-payment-streams-runtime-api/std",
+    "pallet-proofs-dealer/std",
+    "pallet-proofs-dealer-runtime-api/std",
+    "pallet-randomness/std",
+    "pallet-storage-providers/std",
+    "pallet-storage-providers-runtime-api/std",
     "dep:shc-common",
-	"shc-common/std",
+    "shc-common/std",
     "shp-constants/std",
-	"shp-file-metadata/std",
-	"shp-forest-verifier/std",
-	"shp-traits/std",
-	"shp-treasury-funding/std",
+    "shp-file-metadata/std",
+    "shp-forest-verifier/std",
+    "shp-traits/std",
+    "shp-treasury-funding/std",
     "shp-file-key-verifier/std",
-    "pallet-evm-precompile-file-system/std",
 ]
 
 runtime-benchmarks = [
@@ -302,11 +316,14 @@ runtime-benchmarks = [
     "pallet-identity/runtime-benchmarks",
     "pallet-im-online/runtime-benchmarks",
     "pallet-message-queue/runtime-benchmarks",
+    "pallet-migrations/runtime-benchmarks",
     "pallet-mmr/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
     "pallet-parameters/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
+    "pallet-safe-mode/runtime-benchmarks",
+    "pallet-tx-pause/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
@@ -327,6 +344,7 @@ runtime-benchmarks = [
     "pallet-outbound-commitment-store/runtime-benchmarks",
     "pallet-external-validators/runtime-benchmarks",
     "pallet-external-validators-rewards/runtime-benchmarks",
+    "pallet-external-validator-slashes/runtime-benchmarks",
     "pallet-datahaven-native-transfer/runtime-benchmarks",
 ]
 
@@ -349,11 +367,14 @@ try-runtime = [
     "pallet-identity/try-runtime",
     "pallet-im-online/try-runtime",
     "pallet-message-queue/try-runtime",
+    "pallet-migrations/try-runtime",
     "pallet-mmr/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-offences/try-runtime",
     "pallet-parameters/try-runtime",
     "pallet-preimage/try-runtime",
+    "pallet-safe-mode/try-runtime",
+    "pallet-tx-pause/try-runtime",
     "pallet-referenda/try-runtime",
     "pallet-proxy/try-runtime",
     "pallet-scheduler/try-runtime",
@@ -374,6 +395,7 @@ try-runtime = [
     "pallet-outbound-commitment-store/try-runtime",
     "pallet-external-validators/try-runtime",
     "pallet-external-validators-rewards/try-runtime",
+    "pallet-external-validator-slashes/try-runtime",
     "pallet-datahaven-native-transfer/try-runtime",
 ]
 

@@ -43,6 +43,8 @@ export interface WaitForDataHavenEventOptions<T = unknown> {
   timeout?: number;
   /** Callback for matched event */
   onEvent?: (event: T) => void;
+  /** Callback for timeout */
+  failOnTimeout?: boolean;
 }
 
 /**
@@ -53,7 +55,15 @@ export interface WaitForDataHavenEventOptions<T = unknown> {
 export async function waitForDataHavenEvent<T = unknown>(
   options: WaitForDataHavenEventOptions<T>
 ): Promise<DataHavenEventResult<T>> {
-  const { api, pallet, event, filter, timeout: timeoutMs = 30000, onEvent } = options;
+  const {
+    api,
+    pallet,
+    event,
+    filter,
+    timeout: timeoutMs = 30000,
+    onEvent,
+    failOnTimeout
+  } = options;
 
   const eventWatcher = (api.event as any)?.[pallet]?.[event];
   if (!eventWatcher?.watch) {
@@ -88,6 +98,9 @@ export async function waitForDataHavenEvent<T = unknown>(
         timeout({
           first: timeoutMs,
           with: () => {
+            if (failOnTimeout) {
+              throw new Error(`Timeout waiting for event ${pallet}.${event} after ${timeoutMs}ms`);
+            }
             logger.debug(`Timeout waiting for event ${pallet}.${event} after ${timeoutMs}ms`);
             return of(null);
           }

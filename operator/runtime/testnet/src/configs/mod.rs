@@ -32,12 +32,12 @@ use super::{
     precompiles::{DataHavenPrecompiles, PrecompileName},
     AccountId, Babe, Balance, Balances, BeefyMmrLeaf, Block, BlockNumber, EthereumBeaconClient,
     EthereumOutboundQueueV2, EvmChainId, ExistentialDeposit, ExternalValidators,
-    ExternalValidatorsRewards, Hash, Historical, ImOnline, MessageQueue, Nonce, Offences,
-    OriginCaller, OutboundCommitmentStore, PalletInfo, Preimage, Referenda, Runtime, RuntimeCall,
-    RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Scheduler,
-    Session, SessionKeys, Signature, System, Timestamp, Treasury, BLOCK_HASH_COUNT,
-    EXTRINSIC_BASE_WEIGHT, MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
-    SLOT_DURATION, VERSION,
+    ExternalValidatorsRewards, ExternalValidatorsSlashes, Hash, Historical, ImOnline, MessageQueue,
+    MultiBlockMigrations, Nonce, Offences, OriginCaller, OutboundCommitmentStore, PalletInfo,
+    Preimage, Referenda, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+    RuntimeHoldReason, RuntimeOrigin, RuntimeTask, SafeMode, Scheduler, Session, SessionKeys,
+    Signature, System, Timestamp, Treasury, TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
+    MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -87,6 +87,14 @@ use datahaven_runtime_common::{
         DealWithEthereumBaseFees, DealWithEthereumPriorityFees, DealWithSubstrateFeesAndTip,
     },
     gas::WEIGHT_PER_GAS,
+    migrations::{
+        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
+        MigrationIdentifierMaxLen, MigrationStatusHandler,
+    },
+    safe_mode::{
+        ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
+        SafeModeExtendDeposit, TxPauseWhitelistedCalls,
+    },
     time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
@@ -98,8 +106,8 @@ use frame_support::{
     traits::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, EqualPrivilegeOnly, FindAuthor,
-        KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
+        ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -115,7 +123,7 @@ use pallet_evm::{
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_transaction_payment::{
-    ConstFeeMultiplier, FungibleAdapter, Multiplier, Pallet as TransactionPayment,
+    FungibleAdapter, Multiplier, Pallet as TransactionPayment, TargetedFeeAdjustment,
 };
 use polkadot_primitives::Moment;
 use runtime_params::RuntimeParameters;
@@ -136,10 +144,8 @@ use sp_consensus_beefy::{
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
-    traits::{
-        Convert, ConvertInto, IdentityLookup, Keccak256, One, OpaqueKeys, UniqueSaturatedInto,
-    },
-    FixedPointNumber, Perbill,
+    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
+    FixedPointNumber, Perbill, Perquintill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -203,6 +209,64 @@ parameter_types! {
     pub const SS58Prefix: u16 = SS58_FORMAT;
 }
 
+parameter_types! {
+    pub MaxServiceWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
+}
+
+/// Normal Call Filter
+pub struct NormalCallFilter;
+impl Contains<RuntimeCall> for NormalCallFilter {
+    fn contains(c: &RuntimeCall) -> bool {
+        match c {
+            RuntimeCall::Proxy(method) => match method {
+                pallet_proxy::Call::proxy { real, .. } => {
+                    !pallet_evm::AccountCodes::<Runtime>::contains_key(H160::from(*real))
+                }
+                _ => true,
+            },
+            // Filtering the EVM prevents possible re-entrancy from the precompiles which could
+            // lead to unexpected scenarios.
+            // See https://github.com/PureStake/sr-moonbeam/issues/30
+            // Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
+            // this can be seen as an additional security
+            RuntimeCall::EVM(_) => false,
+            _ => true,
+        }
+    }
+}
+
+/// Calls that can bypass the safe-mode pallet.
+/// These calls are essential for emergency governance, system maintenance, and basic operation.
+pub struct SafeModeWhitelistedCalls;
+impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
+    fn contains(call: &RuntimeCall) -> bool {
+        match call {
+            // Core system calls
+            RuntimeCall::System(_) => true,
+            // Safe mode management
+            RuntimeCall::SafeMode(_) => true,
+            // Transaction pause management
+            RuntimeCall::TxPause(_) => true,
+            // Emergency admin access (testnet/dev only)
+            RuntimeCall::Sudo(_) => true,
+            // Governance infrastructure - critical for emergency responses
+            RuntimeCall::Whitelist(_) => true,
+            RuntimeCall::Preimage(_) => true,
+            RuntimeCall::Scheduler(_) => true,
+            RuntimeCall::ConvictionVoting(_) => true,
+            RuntimeCall::Referenda(_) => true,
+            RuntimeCall::TechnicalCommittee(_) => true,
+            RuntimeCall::TreasuryCouncil(_) => true,
+            // Block production - needed to continue producing blocks in safe mode
+            RuntimeCall::Randomness(_) => true,
+            _ => false,
+        }
+    }
+}
+
+pub type TestnetRuntimeCallFilter =
+    RuntimeCallFilter<RuntimeCall, NormalCallFilter, SafeMode, TxPause>;
+
 /// The default types are being injected by [`derive_impl`](`frame_support::derive_impl`) from
 /// [`SoloChainDefaultConfig`](`struct@frame_system::config_preludes::SolochainDefaultConfig`),
 /// but overridden as needed.
@@ -234,6 +298,9 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     type SystemWeightInfo = testnet_weights::frame_system::WeightInfo<Runtime>;
+    type MultiBlockMigrator = MultiBlockMigrations;
+    /// Use the combined call filter to apply Normal, SafeMode, and TxPause restrictions
+    type BaseCallFilter = TestnetRuntimeCallFilter;
 }
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -355,7 +422,7 @@ impl pallet_im_online::Config for Runtime {
     type NextSessionRotation = Babe;
     type ReportUnresponsiveness = Offences;
     type UnsignedPriority = ImOnlineUnsignedPriority;
-    type WeightInfo = ();
+    type WeightInfo = crate::weights::pallet_im_online::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -383,8 +450,41 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-    pub FeeMultiplier: Multiplier = Multiplier::one();
+    /// The portion of the `NORMAL_DISPATCH_RATIO` that we adjust the fees with. Blocks filled less
+    /// than this will decrease the weight and more will increase.
+    pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(35);
+    /// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+    /// change the fees more rapidly. This low value causes changes to occur slowly over time.
+    pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(4, 1_000);
+    /// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+    /// that combined with `AdjustmentVariable`, we can recover from the minimum.
+    /// See `multiplier_can_grow_from_zero` in integration_tests.rs.
+    /// This value is currently only used by pallet-transaction-payment as an assertion that the
+    /// next multiplier is always > min value.
+    pub MinimumMultiplier: Multiplier = Multiplier::from(1u128);
+    /// Maximum multiplier. We pick a value that is expensive but not impossibly so; it should act
+    /// as a safety net.
+    pub MaximumMultiplier: Multiplier = Multiplier::from(100_000u128);
 }
+
+/// SlowAdjustingFeeUpdate implements a dynamic fee adjustment mechanism similar to Ethereum's EIP-1559.
+/// It adjusts transaction fees based on network congestion to prevent DoS attacks.
+/// This version uses a higher minimum multiplier for more conservative fee adjustments.
+///
+/// The algorithm works as follows:
+/// diff = (previous_block_weight - target) / maximum_block_weight
+/// next_multiplier = prev_multiplier * (1 + (v * diff) + ((v * diff)^2 / 2))
+/// assert(next_multiplier > min)
+///     where: v is AdjustmentVariable
+///            target is TargetBlockFullness
+///            min is MinimumMultiplier
+pub type SlowAdjustingFeeUpdate<R> = TargetedFeeAdjustment<
+    R,
+    TargetBlockFullness,
+    AdjustmentVariable,
+    MinimumMultiplier,
+    MaximumMultiplier,
+>;
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -404,7 +504,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = IdentityFee<Balance>;
     #[cfg(feature = "runtime-benchmarks")]
     type LengthToFee = benchmark_helpers::BenchmarkWeightToFee;
-    type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
+    type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Runtime>;
     type WeightInfo = testnet_weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
@@ -671,17 +771,15 @@ impl frame_support::traits::InstanceFilter<RuntimeCall> for ProxyType {
 }
 
 /// Helper function to identify governance precompiles (copied from Moonbeam)
-fn is_governance_precompile(_precompile_name: &PrecompileName) -> bool {
-    // TODO: Uncomment when DataHaven implements these governance precompiles
-    // matches!(
-    //     precompile_name,
-    //     PrecompileName::ConvictionVotingPrecompile
-    //         | PrecompileName::PreimagePrecompile
-    //         | PrecompileName::ReferendaPrecompile
-    //         | PrecompileName::OpenTechCommitteeInstance
-    //         | PrecompileName::TreasuryCouncilInstance
-    // )
-    false // Temporarily disabled until governance precompiles are added
+fn is_governance_precompile(precompile_name: &PrecompileName) -> bool {
+    matches!(
+        precompile_name,
+        PrecompileName::ConvictionVotingPrecompile
+            | PrecompileName::TechnicalCommitteeInstance
+            | PrecompileName::TreasuryCouncilInstance
+            | PrecompileName::PreimagePrecompile
+            | PrecompileName::ReferendaPrecompile
+    )
 }
 
 impl pallet_evm_precompile_proxy::EvmProxyCallFilter for ProxyType {
@@ -754,6 +852,21 @@ impl pallet_parameters::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeParameters = RuntimeParameters;
     type WeightInfo = testnet_weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+impl pallet_migrations::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
+    type CursorMaxLen = MigrationCursorMaxLen;
+    type IdentifierMaxLen = MigrationIdentifierMaxLen;
+    type MigrationStatusHandler = MigrationStatusHandler;
+    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
+    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type MaxServiceWeight = MaxServiceWeight;
+    type WeightInfo = testnet_weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -877,10 +990,12 @@ where
 
 datahaven_runtime_common::impl_on_charge_evm_transaction!();
 
+pub type Precompiles = DataHavenPrecompiles<Runtime>;
+
 parameter_types! {
     pub BlockGasLimit: U256
         = U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS);
-    pub PrecompilesValue: DataHavenPrecompiles<Runtime> = DataHavenPrecompiles::<_>::new();
+    pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
     /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
@@ -906,7 +1021,7 @@ impl pallet_evm::Config for Runtime {
     type AddressMapping = IdentityAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type PrecompilesType = DataHavenPrecompiles<Self>;
+    type PrecompilesType = Precompiles;
     type PrecompilesValue = PrecompilesValue;
     type ChainId = EvmChainId;
     type BlockGasLimit = BlockGasLimit;
@@ -1293,7 +1408,7 @@ impl pallet_external_validators::Config for Runtime {
     type ValidatorRegistration = Session;
     type UnixTime = Timestamp;
     type SessionsPerEra = SessionsPerEra;
-    type OnEraStart = ExternalValidatorsRewards;
+    type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type WeightInfo = testnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
@@ -1430,6 +1545,100 @@ impl pallet_datahaven_native_transfer::Config for Runtime {
     type FeeRecipient = TreasuryAccount;
     type PauseOrigin = EnsureRoot<AccountId>;
     type WeightInfo = testnet_weights::pallet_datahaven_native_transfer::WeightInfo<Runtime>;
+}
+
+//╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                          SAFE MODE & TX PAUSE PALLETS                                           ║
+//╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+impl pallet_safe_mode::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type WhitelistedCalls = SafeModeWhitelistedCalls;
+    type EnterDuration = SafeModeDuration;
+    type ExtendDuration = SafeModeDuration;
+    type EnterDepositAmount = SafeModeEnterDeposit;
+    type ExtendDepositAmount = SafeModeExtendDeposit;
+    type ForceEnterOrigin = EnsureRootWithSuccess<AccountId, SafeModeDuration>;
+    type ForceExtendOrigin = EnsureRootWithSuccess<AccountId, SafeModeDuration>;
+    type ForceExitOrigin = EnsureRoot<AccountId>;
+    type ForceDepositOrigin = EnsureRoot<AccountId>;
+    type ReleaseDelay = ReleaseDelayNone;
+    type Notify = ();
+    type WeightInfo = testnet_weights::pallet_safe_mode::WeightInfo<Runtime>;
+}
+
+impl pallet_tx_pause::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type UnpauseOrigin = EnsureRoot<AccountId>;
+    type WhitelistedCalls = TxPauseWhitelistedCalls<Runtime>;
+    type MaxNameLen = ConstU32<256>;
+    type WeightInfo = testnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
+}
+
+// Stub SendMessage implementation for slash pallet
+pub struct SlashesSendAdapter;
+impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(
+        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
+    ) -> Option<Self::Message> {
+        let calldata = Vec::new();
+
+        let command = Command::CallContract {
+            target: runtime_params::dynamic_params::runtime_config::DatahavenAVSAddress::get(),
+            calldata,
+            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
+            // TODO: Determine appropriate id value
+            id: unique(1).into(),
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => {
+                    log::error!(
+                        target: "slashes_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        EthereumOutboundQueueV2::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        EthereumOutboundQueueV2::deliver(message)
+    }
+}
+
+impl pallet_external_validator_slashes::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ValidatorId = AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type SlashDeferDuration = SlashDeferDuration;
+    type BondingDuration = BondingDuration;
+    type SlashId = u32;
+    type EraIndexProvider = ExternalValidators;
+    type InvulnerablesProvider = ExternalValidators;
+    type ExternalIndexProvider = ExternalValidators;
+    type QueuedSlashesProcessedPerBlock = ConstU32<10>;
+    type WeightInfo = (); // TODO: calculate weights
+    type SendMessage = SlashesSendAdapter;
+}
+
+parameter_types! {
+    pub const SlashDeferDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(0, 0);
 }
 
 #[cfg(test)]

@@ -31,6 +31,8 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.3
 
       - name: Cache Foundry libraries
         uses: actions/cache@v4

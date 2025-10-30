@@ -7,10 +7,12 @@ import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IPermissionController
+} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
@@ -344,16 +346,13 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
             new IAllocationManagerTypes.CreateSetParams[](3);
         operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID,
-            strategies: validatorsStrategies
+            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
         });
         operatorSets[1] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: BSPS_SET_ID,
-            strategies: bspsStrategies
+            operatorSetId: BSPS_SET_ID, strategies: bspsStrategies
         });
         operatorSets[2] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: MSPS_SET_ID,
-            strategies: mspsStrategies
+            operatorSetId: MSPS_SET_ID, strategies: mspsStrategies
         });
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }

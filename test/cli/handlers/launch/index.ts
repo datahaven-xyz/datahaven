@@ -10,8 +10,9 @@ import { launchDataHavenSolochain } from "./datahaven";
 import { launchKurtosis } from "./kurtosis";
 import { setParametersFromCollection } from "./parameters";
 import { launchRelayers } from "./relayer";
+import { launchStorageHubComponents } from "./storagehub";
 import { performSummaryOperations } from "./summary";
-import { performValidatorOperations, performValidatorSetUpdate } from "./validator";
+import { performValidatorOperations } from "./validator";
 
 export const NETWORK_ID = "cli-launch";
 
@@ -41,10 +42,10 @@ export interface LaunchOptions {
   deployContracts?: boolean;
   fundValidators?: boolean;
   setupValidators?: boolean;
-  updateValidatorSet?: boolean;
   setParameters?: boolean;
   relayer?: boolean;
   relayerImageTag: string;
+  storagehub?: boolean;
   cleanNetwork?: boolean;
 }
 
@@ -95,7 +96,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await performValidatorSetUpdate(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  await launchStorageHubComponents(options, launchedNetwork);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();
@@ -123,7 +124,7 @@ export const launchPreActionHook = (
     launchKurtosis,
     relayer,
     setParameters,
-    updateValidatorSet
+    storagehub
   } = thisCmd.opts();
 
   // Check for conflicts with --all flag
@@ -135,12 +136,12 @@ export const launchPreActionHook = (
       deployContracts === false ||
       fundValidators === false ||
       setupValidators === false ||
-      updateValidatorSet === false ||
       setParameters === false ||
-      relayer === false)
+      relayer === false ||
+      storagehub === false)
   ) {
     thisCmd.error(
-      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, or --no-relayer"
+      "--all cannot be used with --no-datahaven, --no-build-datahaven, --no-launch-kurtosis, --no-deploy-contracts, --no-fund-validators, --no-setup-validators, --no-update-validator-set, --no-set-parameters, --no-relayer, or --no-storagehub"
     );
   }
 
@@ -152,9 +153,9 @@ export const launchPreActionHook = (
     thisCmd.setOptionValue("deployContracts", true);
     thisCmd.setOptionValue("fundValidators", true);
     thisCmd.setOptionValue("setupValidators", true);
-    thisCmd.setOptionValue("updateValidatorSet", true);
     thisCmd.setOptionValue("setParameters", true);
     thisCmd.setOptionValue("relayer", true);
+    thisCmd.setOptionValue("storagehub", true);
     thisCmd.setOptionValue("cleanNetwork", true);
   }
 

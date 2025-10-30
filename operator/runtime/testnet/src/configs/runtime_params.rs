@@ -16,7 +16,6 @@ pub mod dynamic_params {
     #[dynamic_pallet_params]
     #[codec(index = 0)]
     pub mod runtime_config {
-
         use super::*;
 
         #[codec(index = 0)]
@@ -205,7 +204,7 @@ pub mod dynamic_params {
         /// volunteered BSPs is ~1%.
         #[codec(index = 23)]
         #[allow(non_upper_case_globals)]
-        pub static BasicReplicationTarget: ReplicationTargetType = 7;
+        pub static BasicReplicationTarget: ReplicationTargetType = 1;
 
         /// The amount of BSPs that a standard security storage request should use as the replication target.
         ///
@@ -214,7 +213,7 @@ pub mod dynamic_params {
         /// volunteered BSPs is ~0.1%.
         #[codec(index = 24)]
         #[allow(non_upper_case_globals)]
-        pub static StandardReplicationTarget: ReplicationTargetType = 12;
+        pub static StandardReplicationTarget: ReplicationTargetType = 2;
 
         /// The amount of BSPs that a high security storage request should use as the replication target.
         ///
@@ -223,7 +222,7 @@ pub mod dynamic_params {
         /// volunteered BSPs is ~0.01%.
         #[codec(index = 25)]
         #[allow(non_upper_case_globals)]
-        pub static HighSecurityReplicationTarget: ReplicationTargetType = 17;
+        pub static HighSecurityReplicationTarget: ReplicationTargetType = 3;
 
         /// The amount of BSPs that a super high security storage request should use as the replication target.
         ///
@@ -232,7 +231,7 @@ pub mod dynamic_params {
         /// volunteered BSPs is ~0.001%.
         #[codec(index = 26)]
         #[allow(non_upper_case_globals)]
-        pub static SuperHighSecurityReplicationTarget: ReplicationTargetType = 22;
+        pub static SuperHighSecurityReplicationTarget: ReplicationTargetType = 4;
 
         /// The amount of BSPs that an ultra high security storage request should use as the replication target.
         ///
@@ -241,7 +240,7 @@ pub mod dynamic_params {
         /// volunteered BSPs is ~0.0001%.
         #[codec(index = 27)]
         #[allow(non_upper_case_globals)]
-        pub static UltraHighSecurityReplicationTarget: ReplicationTargetType = 26;
+        pub static UltraHighSecurityReplicationTarget: ReplicationTargetType = 5;
 
         /// The maximum amount of BSPs that a user can require a storage request to use as the replication target.
         ///
@@ -314,6 +313,17 @@ pub mod dynamic_params {
         /// 50 GIGAWEIs per gigabyte per tick * 12 BSPs * 72k ticks * 1 GB = 0.0432 HAVEs
         pub static UpfrontTicksToPay: BlockNumber = 72_000;
         // ╚══════════════════════ StorageHub Pallets ═══════════════════════╝
+
+        #[codec(index = 35)]
+        #[allow(non_upper_case_globals)]
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
+        pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
+            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+
+        #[codec(index = 36)]
+        #[allow(non_upper_case_globals)]
+        /// The AVS ethereum address for Datahaven. Via this address we relay slashing requests or other requests.
+        pub static DatahavenAVSAddress: H160 = H160::repeat_byte(0x0);
     }
 }
 

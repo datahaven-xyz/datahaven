@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Moonsong-Labs/moonwall/main/packages/types/config_schema.json",
+  "label": "DataHaven Tests 🔷",
+  "defaultTestTimeout": 180000,
+  "scriptsDir": "scripts/",
+  "environments": [
+    {
+      "name": "dev_datahaven",
+      "testFileDir": [
+        "datahaven/suites/dev"
+      ],
+      "include": [
+        "**/*test*.ts"
+      ],
+      "timeout": 180000,
+      "multiThreads": 4,
+      "contracts": "datahaven/contracts/",
+      "runScripts": [
+        "compile-contracts.sh compile"
+      ],
+      "envVars": [
+        "DEBUG_COLORS=1"
+      ],
+      "reporters": [
+        "basic",
+        "html",
+        "json"
+      ],
+      "reportFile": {
+        "json": "./tmp/testResults.json"
+      },
+      "foundation": {
+        "type": "dev",
+        "launchSpec": [
+          {
+            "name": "datahaven",
+            "binPath": "../operator/target/release/datahaven-node",
+            "newRpcBehaviour": true,
+            "options": [
+              "--dev",
+              "--no-telemetry",
+              "--unsafe-force-node-key-generation",
+              "--reserved-only",
+              "--no-grandpa",
+              "--no-prometheus",
+              "--sealing=manual"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

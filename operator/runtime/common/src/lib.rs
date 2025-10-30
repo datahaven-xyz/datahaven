@@ -22,6 +22,10 @@ pub use constants::*;
 pub mod benchmarking;
 pub mod deal_with_fees;
 pub mod impl_on_charge_evm_transaction;
+pub mod migrations;
+pub use migrations::*;
+pub mod safe_mode;
+pub use safe_mode::*;
 
 use fp_account::EthereumSignature;
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;

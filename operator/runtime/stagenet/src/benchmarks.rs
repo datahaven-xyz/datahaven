@@ -53,6 +53,8 @@ frame_benchmarking::define_benchmarks!(
     [pallet_transaction_payment, TransactionPayment]
     [pallet_parameters, Parameters]
     [pallet_message_queue, MessageQueue]
+    [pallet_safe_mode, SafeMode]
+    [pallet_tx_pause, TxPause]
 
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]
@@ -62,7 +64,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_whitelist, Whitelist]
 
     // EVM pallets
-    [pallet_evm, Evm]
+    [pallet_evm, EVM]
 
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]

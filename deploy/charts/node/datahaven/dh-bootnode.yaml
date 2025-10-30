@@ -26,6 +26,7 @@ node:
     - "--allow-private-ipv4"
     - "--discover-local"
     - "--network-backend libp2p"
+    - "--pool-type fork-aware"
 
 ingress:
   enabled: false

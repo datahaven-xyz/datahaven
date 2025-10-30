@@ -10,7 +10,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { fundValidators, setupValidators, updateValidatorSet } from "../validators";
+import { fundValidators, setupValidators } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -172,7 +172,7 @@ export const launchNetwork = async (
         datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
         relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
         authorityIds: TEST_AUTHORITY_IDS,
-        buildDatahaven: options.buildDatahaven ?? true,
+        buildDatahaven: options.buildDatahaven ?? !isCI, // if not specified, default to false for CI, true for local testing
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
       },
       launchedNetwork
@@ -244,12 +244,6 @@ export const launchNetwork = async (
       launchedNetwork
     );
 
-    // 8. Update validator set (after relayers are running)
-    logger.info("🔄 Updating validator set...");
-    await updateValidatorSet({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
-
     // Log success
     const endTime = performance.now();
     const minutes = ((endTime - startTime) / (1000 * 60)).toFixed(1);
@@ -282,3 +276,5 @@ export const launchNetwork = async (
     throw error;
   }
 };
+
+export const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";

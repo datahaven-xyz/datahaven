@@ -5,8 +5,10 @@ import {console} from "forge-std/console.sol";
 
 library Logging {
     // Logging helper constants
-    string private constant HEADER1 = "============================================================";
-    string private constant HEADER2 = "                                                            ";
+    string private constant HEADER1 =
+        "============================================================";
+    string private constant HEADER2 =
+        "                                                            ";
     string private constant FOOTER = "============================================================";
     string private constant SEPARATOR =
         "------------------------------------------------------------";
@@ -28,15 +30,24 @@ library Logging {
         console.log(SEPARATOR);
     }
 
-    function logContractDeployed(string memory name, address contractAddress) internal pure {
+    function logContractDeployed(
+        string memory name,
+        address contractAddress
+    ) internal pure {
         console.log("|  [+] %s: %s", name, contractAddress);
     }
 
-    function logAgentOrigin(string memory name, string memory agentOrigin) internal pure {
+    function logAgentOrigin(
+        string memory name,
+        string memory agentOrigin
+    ) internal pure {
         console.log("|  [+] %s: %s", name, agentOrigin);
     }
 
-    function logFunctionSelector(string memory name, string memory selector) internal pure {
+    function logFunctionSelector(
+        string memory name,
+        string memory selector
+    ) internal pure {
         console.log("|  [+] %s: %s", name, selector);
     }
 
@@ -57,7 +68,10 @@ library Logging {
         console.log("");
     }
 
-    function logProgress(uint16 step, uint16 totalSteps) internal pure {
+    function logProgress(
+        uint16 step,
+        uint16 totalSteps
+    ) internal pure {
         console.log("");
         console.log(
             "Progress: Step %d/%d completed (%d%%)", step, totalSteps, (step * 100) / totalSteps

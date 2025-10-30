@@ -5,6 +5,7 @@ LICENSES=(
     "(MIT OR Apache-2.0) AND Unicode-DFS-2016"
     "(MIT OR Apache-2.0) AND Unicode-3.0"
     "0BSD OR Apache-2.0 OR MIT"
+    "Apache-2.0 AND ISC"
     "Apache-2.0 AND MIT"
     "Apache-2.0 OR LGPL-2.1-or-later OR MIT"
     "Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT"
@@ -21,15 +22,18 @@ LICENSES=(
     "Apache-2.0 OR ISC OR MIT"
     "Apache-2.0 OR MIT OR Zlib"
     "Apache-2.0 OR MIT"
+    "(Apache-2.0 OR MIT) AND Apache-2.0"
     "Apache-2.0 WITH LLVM-exception"
     "Apache-2.0"
     "BSD-2-Clause"
     "BSD-3-Clause OR MIT"
     "BSD-3-Clause"
     "CC0-1.0"
+    "CDLA-Permissive-2.0"
     "GPL-3.0-only"
     "GPL-3.0-or-later WITH Classpath-exception-2.0"
     "ISC"
+    "LGPL-3.0 OR MPL-2.0"
     "MIT OR Unlicense"
     "MIT"
     "MPL-2.0"
@@ -47,12 +51,7 @@ AUTHORS=(
     "StorageHub Team"
 )
 NAMES=(
-    "webpki"
-    "webpki-roots"
-    "webpki-root-certs"
-    "rustls-webpki"
-    "ring"
-    "priority-queue"
+    "ring"  # v0.16.20 has null license metadata but contains Apache-2.0 AND ISC LICENSE file
 )
 licenses_filter=$(printf ' .license != "%s" and' "${LICENSES[@]}")
 authors_filter=$(printf ' .authors != "%s" and' "${AUTHORS[@]}")

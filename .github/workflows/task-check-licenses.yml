@@ -20,4 +20,4 @@ jobs:
         working-directory: operator
         run: |
           cargo install cargo-license@0.7.0
-          ./operator/scripts/verify-licenses.sh
+          ./scripts/verify-licenses.sh

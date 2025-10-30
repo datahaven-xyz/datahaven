@@ -247,6 +247,8 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
             RuntimeCall::SafeMode(_) => true,
             // Transaction pause management
             RuntimeCall::TxPause(_) => true,
+            // Emergency admin access (testnet/dev only)
+            RuntimeCall::Sudo(_) => true,
             // Governance infrastructure - critical for emergency responses
             RuntimeCall::Whitelist(_) => true,
             RuntimeCall::Preimage(_) => true,

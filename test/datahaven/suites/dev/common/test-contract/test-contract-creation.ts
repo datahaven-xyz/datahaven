@@ -37,7 +37,6 @@ describeSuite({
           await context.createBlock();
           const { contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7", {
             txnType: txnType as any,
-            gas: 5_000_000n
           });
           const deployedCode = await context.viem().getCode({ address: contractAddress! });
           expect(callCode).to.be.eq(deployedCode);
@@ -50,7 +49,6 @@ describeSuite({
         test: async () => {
           const { contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7", {
             type: txnType as any,
-            gas: 5_000_000n
           });
           expect(
             await context.viem().getCode({ address: contractAddress!, blockNumber: 0n })
@@ -79,7 +77,6 @@ describeSuite({
             data: callData,
             nonce,
             txnType: txnType as any,
-            gas: 5_000_000n
           });
 
           const contractAddress = ("0x" +

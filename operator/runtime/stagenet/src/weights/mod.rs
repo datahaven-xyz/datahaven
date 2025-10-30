@@ -35,7 +35,7 @@ pub mod pallet_balances;
 pub mod pallet_beefy_mmr;
 pub mod pallet_evm;
 // pub mod pallet_identity;
-// pub mod pallet_im_online;
+pub mod pallet_im_online;
 pub mod pallet_message_queue;
 pub mod pallet_migrations;
 pub mod pallet_mmr;

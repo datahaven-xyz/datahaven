@@ -236,7 +236,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 }
 
 /// Calls that can bypass the safe-mode pallet.
-/// These calls are essential for emergency governance and system maintenance.
+/// These calls are essential for emergency governance, system maintenance, and basic operation.
 pub struct SafeModeWhitelistedCalls;
 impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
     fn contains(call: &RuntimeCall) -> bool {
@@ -257,6 +257,8 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
             RuntimeCall::Referenda(_) => true,
             RuntimeCall::TechnicalCommittee(_) => true,
             RuntimeCall::TreasuryCouncil(_) => true,
+            // Block production - needed to continue producing blocks in safe mode
+            RuntimeCall::Randomness(_) => true,
             _ => false,
         }
     }
@@ -421,7 +423,7 @@ impl pallet_im_online::Config for Runtime {
     type NextSessionRotation = Babe;
     type ReportUnresponsiveness = Offences;
     type UnsignedPriority = ImOnlineUnsignedPriority;
-    type WeightInfo = ();
+    type WeightInfo = crate::weights::pallet_im_online::WeightInfo<Runtime>;
 }
 
 parameter_types! {

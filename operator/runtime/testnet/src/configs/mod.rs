@@ -323,7 +323,7 @@ impl pallet_babe::Config for Runtime {
     type ExpectedBlockTime = ExpectedBlockTime;
     type EpochChangeTrigger = pallet_babe::ExternalTrigger;
     type DisabledValidators = Session;
-    type WeightInfo = ();
+    type WeightInfo = pallet_babe::weights::SubstrateWeight<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
 
@@ -435,7 +435,7 @@ parameter_types! {
 impl pallet_grandpa::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 
-    type WeightInfo = ();
+    type WeightInfo = pallet_grandpa::weights::SubstrateWeight<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
@@ -519,7 +519,7 @@ impl pallet_beefy::Config for Runtime {
     type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
     type OnNewValidatorSet = BeefyMmrLeaf;
     type AncestryHelper = BeefyMmrLeaf;
-    type WeightInfo = ();
+    type WeightInfo = pallet_beefy::weights::SubstrateWeight<Runtime>;
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
     type EquivocationReportSystem = ();
 }
@@ -645,7 +645,7 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = PendingUsernameExpiration;
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_identity::WeightInfo<Runtime>;
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
@@ -1633,7 +1633,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
-    type WeightInfo = (); // TODO: calculate weights
+    type WeightInfo = pallet_external_validator_slashes::weights::SubstrateWeight<Runtime>; // wired to pallet weights
     type SendMessage = SlashesSendAdapter;
 }
 

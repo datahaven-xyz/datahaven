@@ -36,7 +36,7 @@ describeSuite({
           const callCode = (await context.viem().call({ data: compiled.bytecode })).data;
           await context.createBlock();
           const { contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7", {
-            txnType: txnType as any,
+            txnType: txnType as any
           });
           const deployedCode = await context.viem().getCode({ address: contractAddress! });
           expect(callCode).to.be.eq(deployedCode);
@@ -48,7 +48,7 @@ describeSuite({
         title: `should not contain ${txnType}  contract at genesis`,
         test: async () => {
           const { contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7", {
-            type: txnType as any,
+            type: txnType as any
           });
           expect(
             await context.viem().getCode({ address: contractAddress!, blockNumber: 0n })
@@ -76,7 +76,7 @@ describeSuite({
           await context.viem().sendTransaction({
             data: callData,
             nonce,
-            txnType: txnType as any,
+            txnType: txnType as any
           });
 
           const contractAddress = ("0x" +

@@ -519,7 +519,7 @@ impl pallet_beefy::Config for Runtime {
     type MaxSetIdSessionEntries = BeefySetIdSessionEntries;
     type OnNewValidatorSet = BeefyMmrLeaf;
     type AncestryHelper = BeefyMmrLeaf;
-    type WeightInfo = pallet_beefy::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
     type EquivocationReportSystem = ();
 }

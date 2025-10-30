@@ -9479,6 +9479,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "snowbridge-core 0.3.1",
  "snowbridge-outbound-queue-primitives",
  "sp-core",

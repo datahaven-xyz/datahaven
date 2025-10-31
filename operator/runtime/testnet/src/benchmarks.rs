@@ -36,6 +36,9 @@ frame_benchmarking::define_benchmarks!(
     // Consensus pallets
     [pallet_mmr, Mmr]
     [pallet_beefy_mmr, BeefyMmrLeaf]
+    [pallet_babe, Babe]
+    [pallet_grandpa, Grandpa]
+    [pallet_randomness, Randomness]
 
     // Substrate pallets
     [pallet_balances, Balances]

@@ -336,6 +336,7 @@ runtime-benchmarks = [
     "pallet-treasury/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "pallet-whitelist/runtime-benchmarks",
+    "pallet-randomness/runtime-benchmarks",
     "polkadot-primitives/runtime-benchmarks",
     "polkadot-runtime-common/runtime-benchmarks",
     "snowbridge-inbound-queue-primitives/runtime-benchmarks",

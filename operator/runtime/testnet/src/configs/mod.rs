@@ -323,7 +323,7 @@ impl pallet_babe::Config for Runtime {
     type ExpectedBlockTime = ExpectedBlockTime;
     type EpochChangeTrigger = pallet_babe::ExternalTrigger;
     type DisabledValidators = Session;
-    type WeightInfo = pallet_babe::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_babe::WeightInfo<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
 
@@ -435,7 +435,7 @@ parameter_types! {
 impl pallet_grandpa::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 
-    type WeightInfo = pallet_grandpa::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_grandpa::WeightInfo<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
@@ -645,7 +645,7 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = PendingUsernameExpiration;
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
-    type WeightInfo = testnet_weights::pallet_identity::WeightInfo<Runtime>;
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 

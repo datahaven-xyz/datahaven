@@ -328,6 +328,7 @@ runtime-benchmarks = [
     "pallet-preimage/runtime-benchmarks",
     "pallet-safe-mode/runtime-benchmarks",
     "pallet-tx-pause/runtime-benchmarks",
+    "pallet-randomness/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",

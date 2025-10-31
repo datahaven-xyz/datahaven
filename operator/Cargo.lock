@@ -9887,6 +9887,7 @@ name = "pallet-randomness"
 version = "0.1.0"
 source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.0.6-alpha#05d269a26d11c1ed8a6d917b3e08ff3b5d3d4b22"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",

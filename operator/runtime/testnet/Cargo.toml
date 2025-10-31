@@ -321,6 +321,7 @@ runtime-benchmarks = [
     "pallet-multisig/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
     "pallet-parameters/runtime-benchmarks",
+    "pallet-randomness/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
     "pallet-safe-mode/runtime-benchmarks",
     "pallet-tx-pause/runtime-benchmarks",

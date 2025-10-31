@@ -37,7 +37,7 @@ use sp_std::marker::PhantomData;
 
 /// Weights for `pallet_external_validator_slashes`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_external_validator_slashes::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_external_validator_slashes::weights::WeightInfo for WeightInfo<T> {
 	/// Storage: `ExternalValidators::ActiveEra` (r:1 w:0)
 	/// Proof: `ExternalValidators::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `MaxEncodedLen`)
 	/// Storage: `ExternalValidatorsSlashes::Slashes` (r:1 w:1)
@@ -105,5 +105,11 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::WeightInfo for 
 		// Minimum execution time: 3_748_000 picoseconds.
 		Weight::from_parts(3_946_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+
+	fn root_test_send_msg_to_eth() -> Weight {
+		Weight::from_parts(1_015_195_000, 3601)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
 }

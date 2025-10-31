@@ -106,4 +106,10 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::WeightInfo for 
 		Weight::from_parts(3_892_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+
+	fn root_test_send_msg_to_eth() -> Weight {
+		Weight::from_parts(1_015_195_000, 3601)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
+	}
 }

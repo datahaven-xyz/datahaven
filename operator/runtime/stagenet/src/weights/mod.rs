@@ -34,7 +34,6 @@ pub mod frame_system;
 pub mod pallet_babe;
 pub mod pallet_grandpa;
 pub mod pallet_randomness;
-// Removed local BABE/GRANDPA weights; use upstream defaults or configs
 pub mod pallet_balances;
 pub mod pallet_beefy_mmr;
 pub mod pallet_evm;

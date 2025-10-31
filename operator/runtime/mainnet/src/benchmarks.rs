@@ -39,7 +39,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_babe, Babe]
     [pallet_grandpa, Grandpa]
     [pallet_randomness, Randomness]
-    
+
     // Substrate pallets
     [pallet_balances, Balances]
     // FIXME: benchmarking identity fail

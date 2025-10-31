@@ -2982,6 +2982,7 @@ dependencies = [
  "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-session-benchmarking",
  "pallet-storage-providers",
  "pallet-storage-providers-runtime-api",
  "pallet-sudo",
@@ -3269,6 +3270,7 @@ dependencies = [
  "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-session-benchmarking",
  "pallet-storage-providers",
  "pallet-storage-providers-runtime-api",
  "pallet-sudo",
@@ -3417,6 +3419,7 @@ dependencies = [
  "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-session-benchmarking",
  "pallet-storage-providers",
  "pallet-storage-providers-runtime-api",
  "pallet-sudo",
@@ -9974,6 +9977,22 @@ dependencies = [
  "sp-staking",
  "sp-state-machine",
  "sp-trie",
+]
+
+[[package]]
+name = "pallet-session-benchmarking"
+version = "39.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-session",
+ "pallet-staking",
+ "parity-scale-codec",
+ "rand 0.8.5",
+ "sp-runtime",
+ "sp-session",
 ]
 
 [[package]]

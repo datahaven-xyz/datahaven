@@ -84,12 +84,13 @@ contract SlasherBaseTest is AVSDeployer {
         });
 
         // Mock the allocationManager.slashOperator call
+        uint256[] memory slashedShares = new uint256[](strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         uint256 requestId = 5;
@@ -136,12 +137,13 @@ contract SlasherBaseTest is AVSDeployer {
         });
 
         // Mock the allocationManager.slashOperator call
+        uint256[] memory slashedShares = new uint256[](strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         uint256 requestId = 2;
@@ -175,12 +177,13 @@ contract SlasherBaseTest is AVSDeployer {
         });
 
         // Mock the allocationManager.slashOperator call
+        uint256[] memory slashedShares = new uint256[](strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         uint256 requestId = 3;

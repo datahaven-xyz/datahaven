@@ -44,7 +44,6 @@ LICENSES=(
 AUTHORS=(
     "PureStake"
     "Parity Technologies <admin@parity.io>"
-    "Moonsong-Labs"
     "Moonsong Labs"
     "moonbeam-foundation"
     "Frontier developers <legal@bitarray.dev>"

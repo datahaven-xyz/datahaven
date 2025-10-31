@@ -19,9 +19,9 @@
 
 // DataHaven pallets
 pub mod pallet_datahaven_native_transfer;
+pub mod pallet_external_validator_slashes;
 pub mod pallet_external_validators;
 pub mod pallet_external_validators_rewards;
-pub mod pallet_external_validator_slashes;
 
 // Snowbridge pallets
 pub mod snowbridge_pallet_ethereum_client;

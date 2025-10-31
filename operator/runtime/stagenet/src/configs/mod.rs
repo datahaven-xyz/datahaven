@@ -1632,7 +1632,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
-    type WeightInfo = pallet_external_validator_slashes::weights::SubstrateWeight<Runtime>; // wired to pallet weights
+    type WeightInfo = stagenet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
 }
 

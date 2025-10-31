@@ -72,6 +72,7 @@ frame_benchmarking::define_benchmarks!(
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]
     [pallet_external_validators_rewards, ExternalValidatorsRewards]
+    [pallet_external_validator_slashes, ExternalValidatorsSlashes]
     [pallet_datahaven_native_transfer, DataHavenNativeTransfer]
 
     // Snowbridge pallets

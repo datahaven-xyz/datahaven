@@ -159,6 +159,10 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+
+        /// Slashing mode option configuration
+        #[pallet::constant]
+        type SlashingMode: Get<SlashingModeOption>;
     }
 
     #[pallet::error]

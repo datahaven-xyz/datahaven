@@ -48,7 +48,7 @@ jobs:
           path: |
             contracts/out
             contracts/cache
-          key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol') }}
+          key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol', 'contracts/.gitmodules', 'contracts/lib/**') }}
           restore-keys: |
             ${{ runner.os }}-foundry-build-
 

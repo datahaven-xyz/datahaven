@@ -34,21 +34,13 @@ jobs:
         with:
           version: v1.4.3
 
-      - name: Cache Foundry libraries
-        uses: actions/cache@v4
-        with:
-          path: contracts/lib
-          key: ${{ runner.os }}-foundry-libs-${{ hashFiles('contracts/.gitmodules') }}
-          restore-keys: |
-            ${{ runner.os }}-foundry-libs-
-
       - name: Cache Foundry build artifacts
         uses: actions/cache@v4
         with:
           path: |
             contracts/out
             contracts/cache
-          key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol', 'contracts/.gitmodules', 'contracts/lib/**') }}
+          key: ${{ runner.os }}-foundry-build-${{ hashFiles('contracts/foundry.toml', 'contracts/**/*.sol') }}
           restore-keys: |
             ${{ runner.os }}-foundry-build-
 

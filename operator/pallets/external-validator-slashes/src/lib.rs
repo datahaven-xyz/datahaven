@@ -366,6 +366,11 @@ pub mod pallet {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
             T::WeightInfo::process_slashes_queue(processed)
         }
+
+        fn on_runtime_upgrade() -> Weight {
+            SlashingMode::<T>::put(T::SlashingMode::get());
+            T::DbWeight::get().reads(1)
+        }
     }
 }
 

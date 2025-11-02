@@ -369,7 +369,7 @@ pub mod pallet {
 
         fn on_runtime_upgrade() -> Weight {
             SlashingMode::<T>::put(T::SlashingMode::get());
-            T::DbWeight::get().reads(1)
+            T::DbWeight::get().writes(1)
         }
     }
 }

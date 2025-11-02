@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Tanssi.  If not, see <http://www.gnu.org/licenses/>
 
+use crate::SlashingModeOption;
 use frame_support::traits::OnInitialize;
 use pallet_external_validators::traits::ActiveEraInfo;
 use pallet_external_validators::traits::EraIndex;
@@ -261,6 +262,14 @@ impl external_validator_slashes::Config for Test {
     type QueuedSlashesProcessedPerBlock = ConstU32<20>;
     type WeightInfo = ();
     type SendMessage = MockOkOutboundQueue;
+    type SlashingMode = SlashingMode;
+}
+
+pub struct SlashingMode;
+impl Get<SlashingModeOption> for SlashingMode {
+    fn get() -> SlashingModeOption {
+        SlashingModeOption::Enabled
+    }
 }
 
 pub struct FullIdentificationOf;

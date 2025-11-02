@@ -1,6 +1,6 @@
 [workspace.package]
-authors = ["MoonsongLabs <dev@moonsonglabs.com>"]
-description = "DataHaven: A decentralized storage network with Ethereum and IPFS integration."
+authors = ["Moonsong Labs"]
+description = "DataHaven: A decentralized storage network with Ethereum and EigenLayer integration."
 edition = "2021"
 homepage = "https://datahaven.xyz/"
 license = "GPL-3"

@@ -27,6 +27,7 @@ frame-metadata-hash-extension = { workspace = true }
 frame-support = { workspace = true, features = ["experimental"] }
 frame-system = { workspace = true }
 frame-system-benchmarking = { workspace = true, optional = true }
+pallet-session-benchmarking = { workspace = true, optional = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { workspace = true, optional = true }
 hex = { workspace = true }
@@ -188,6 +189,7 @@ std = [
     "frame-metadata-hash-extension/std",
     "frame-support/std",
     "frame-system-benchmarking?/std",
+    "pallet-session-benchmarking?/std",
     "frame-system-rpc-runtime-api/std",
     "frame-system/std",
     "frame-try-runtime?/std",
@@ -328,9 +330,11 @@ runtime-benchmarks = [
     "pallet-preimage/runtime-benchmarks",
     "pallet-safe-mode/runtime-benchmarks",
     "pallet-tx-pause/runtime-benchmarks",
+    "pallet-randomness/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
     "pallet-proxy/runtime-benchmarks",
     "pallet-scheduler/runtime-benchmarks",
+    "pallet-session-benchmarking/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-treasury/runtime-benchmarks",

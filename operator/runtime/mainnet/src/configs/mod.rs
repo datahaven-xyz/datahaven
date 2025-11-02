@@ -324,7 +324,7 @@ impl pallet_babe::Config for Runtime {
     type ExpectedBlockTime = ExpectedBlockTime;
     type EpochChangeTrigger = pallet_babe::ExternalTrigger;
     type DisabledValidators = Session;
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_babe::WeightInfo<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
 
@@ -408,7 +408,7 @@ impl pallet_session::Config for Runtime {
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
-    type WeightInfo = ();
+    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -437,7 +437,7 @@ parameter_types! {
 impl pallet_grandpa::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 
-    type WeightInfo = ();
+    type WeightInfo = mainnet_weights::pallet_grandpa::WeightInfo<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
@@ -646,7 +646,7 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = PendingUsernameExpiration;
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
-    type WeightInfo = ();
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
@@ -1634,7 +1634,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
-    type WeightInfo = (); // TODO: calculate weights
+    type WeightInfo = mainnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
     type SlashingMode = SlashingMode;
 }

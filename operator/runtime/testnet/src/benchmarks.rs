@@ -28,6 +28,7 @@
 use pallet_collective as pallet_collective_treasury_council;
 #[allow(unused_imports)]
 use pallet_collective as pallet_collective_technical_committee;
+use pallet_external_validator_slashes as pallet_external_validators_slashes;
 
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
@@ -36,6 +37,9 @@ frame_benchmarking::define_benchmarks!(
     // Consensus pallets
     [pallet_mmr, Mmr]
     [pallet_beefy_mmr, BeefyMmrLeaf]
+    [pallet_babe, Babe]
+    [pallet_grandpa, Grandpa]
+    [pallet_randomness, Randomness]
 
     // Substrate pallets
     [pallet_balances, Balances]
@@ -68,6 +72,7 @@ frame_benchmarking::define_benchmarks!(
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]
     [pallet_external_validators_rewards, ExternalValidatorsRewards]
+    [pallet_external_validator_slashes, ExternalValidatorsSlashes]
     [pallet_datahaven_native_transfer, DataHavenNativeTransfer]
 
     // Snowbridge pallets

@@ -36,6 +36,9 @@ frame_benchmarking::define_benchmarks!(
     // Consensus pallets
     [pallet_mmr, Mmr]
     [pallet_beefy_mmr, BeefyMmrLeaf]
+    [pallet_babe, Babe]
+    [pallet_grandpa, Grandpa]
+    [pallet_randomness, Randomness]
 
     // Substrate pallets
     [pallet_balances, Balances]
@@ -69,6 +72,7 @@ frame_benchmarking::define_benchmarks!(
     // DataHaven custom pallets
     [pallet_external_validators, ExternalValidators]
     [pallet_external_validators_rewards, ExternalValidatorsRewards]
+    [pallet_external_validator_slashes, ExternalValidatorsSlashes]
     [pallet_datahaven_native_transfer, DataHavenNativeTransfer]
 
     // Snowbridge pallets

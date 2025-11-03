@@ -1,4 +1,5 @@
 [package]
+authors = { workspace = true }
 description = "Common code used through the DataHaven network"
 edition = { workspace = true }
 name = "datahaven-runtime-common"

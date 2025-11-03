@@ -1,5 +1,5 @@
 import { beforeAll, describeSuite, expect } from "@moonwall/cli";
-import { ApiPromise } from "@polkadot/api";
+import type { ApiPromise } from "@polkadot/api";
 
 describeSuite({
   id: "D010105",
@@ -149,4 +149,3 @@ describeSuite({
     });
   }
 });
-

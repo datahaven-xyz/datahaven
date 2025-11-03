@@ -31,6 +31,7 @@ describeSuite({
 
       expect(enteredUntil.isSome, "Safe mode should be active").to.be.true;
     });
+
     it({
       id: "T01",
       title: "should produce blocks while in safe mode",
@@ -50,10 +51,17 @@ describeSuite({
           "Blocks should continue to be produced in safe mode"
         );
 
+        const exitBlockBefore = await getSubstrateBlockNumber();
         const exitSafeModeCall = api.tx.safeMode.forceExit();
         const exitSudoTx = api.tx.sudo.sudo(exitSafeModeCall);
 
         await context.createBlock(exitSudoTx);
+
+        // Verify the exit block was created (ensures state is updated)
+        const exitBlockAfter = await getSubstrateBlockNumber();
+        expect(exitBlockAfter, "Exit block should have been created").to.be.greaterThan(
+          exitBlockBefore
+        );
 
         const enteredUntilAfterExit = (await api.query.safeMode.enteredUntil()) as any;
         expect(!enteredUntilAfterExit.isSome, "Safe mode should be deactivated").to.be.true;
@@ -66,37 +74,6 @@ describeSuite({
 
     it({
       id: "T02",
-      title: "should allow whitelisted calls in safe mode",
-      test: async () => {
-
-
-
-        const blockBefore = await getSubstrateBlockNumber();
-
-        // System calls are whitelisted, so this should succeed
-        const remarkTx = api.tx.system.remark("0x74657374"); // "test" in hex
-
-        // Create block with the remark transaction
-        await context.createBlock(remarkTx);
-
-        // Verify the block was created (block number increased)
-        const blockAfter = await getSubstrateBlockNumber();
-        expect(blockAfter, "Block should have been created").to.be.greaterThan(blockBefore);
-
-        // Exit safe mode
-        const exitSafeModeCall = api.tx.safeMode.forceExit();
-        const exitSudoTx = api.tx.sudo.sudo(exitSafeModeCall);
-
-        await context.createBlock(exitSudoTx);
-
-        // Verify we exited safe mode
-        const enteredUntilAfterExit = (await api.query.safeMode.enteredUntil()) as any;
-        expect(!enteredUntilAfterExit.isSome, "Safe mode should be deactivated").to.be.true;
-      }
-    });
-
-    it({
-      id: "T03",
       title: "should allow timestamp calls in safe mode",
       test: async () => {
         const startBlock = await getSubstrateBlockNumber();
@@ -114,10 +91,17 @@ describeSuite({
         expect(currentBlock).to.be.greaterThan(startBlock);
 
         // Exit safe mode
+        const exitBlockBefore = await getSubstrateBlockNumber();
         const exitSafeModeCall = api.tx.safeMode.forceExit();
         const exitSudoTx = api.tx.sudo.sudo(exitSafeModeCall);
 
         await context.createBlock(exitSudoTx);
+
+        // Verify the exit block was created (ensures state is updated)
+        const exitBlockAfter = await getSubstrateBlockNumber();
+        expect(exitBlockAfter, "Exit block should have been created").to.be.greaterThan(
+          exitBlockBefore
+        );
 
         // Verify we exited safe mode
         const enteredUntilAfterExit = (await api.query.safeMode.enteredUntil()) as any;

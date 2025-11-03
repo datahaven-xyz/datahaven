@@ -1248,6 +1248,9 @@ impl_runtime_apis! {
         fn query_incomplete_storage_request_metadata(file_key: H256) -> Result<pallet_file_system_runtime_api::IncompleteStorageRequestMetadataResponse<AccountId, BucketId<Runtime>, StorageDataUnit<Runtime>, H256, BackupStorageProviderId<Runtime>>, QueryIncompleteStorageRequestMetadataError> {
             FileSystem::query_incomplete_storage_request_metadata(file_key)
         }
+        fn list_incomplete_storage_request_keys(start_after: Option<H256>, limit: u32) -> Vec<H256> {
+            FileSystem::list_incomplete_storage_request_keys(start_after, limit)
+        }
     }
 
     impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {

@@ -996,13 +996,10 @@ parameter_types! {
     pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
-    /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
-    /// it with the pov_size for a block. E.g.
-    /// ceil(
-    ///     (max_extrinsic.ref_time() / max_extrinsic.proof_size()) / WEIGHT_PER_GAS
-    /// )
+    /// The amount of gas per pov. Set to 0 because DataHaven is a solo chain and we don't
+    /// account for POV (Proof-of-Validity) size constraints like parachains do.
     /// We should re-check `xcm_config::Erc20XcmBridgeTransferGasLimit` when changing this value
-    pub const GasLimitPovSizeRatio: u64 = 16;
+    pub const GasLimitPovSizeRatio: u64 = 0;
     /// The amount of gas per storage (in bytes): BLOCK_GAS_LIMIT / BLOCK_STORAGE_LIMIT
     /// (60_000_000 / 160 kb)
     pub GasLimitStorageGrowthRatio: u64 = 366;

@@ -105,7 +105,7 @@ impl pallet_randomness::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type BabeDataGetter = BabeDataGetter;
     type BabeBlockGetter = BlockNumberGetter;
-    type WeightInfo = ();
+    type WeightInfo = crate::weights::pallet_randomness::WeightInfo<Runtime>;
     type BabeDataGetterBlockNumber = BlockNumber;
 }
 

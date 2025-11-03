@@ -244,6 +244,8 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
         match call {
             // Core system calls
             RuntimeCall::System(_) => true,
+            RuntimeCall::Timestamp(_) => true,
+            RuntimeCall::Randomness(_) => true,
             // Safe mode management
             RuntimeCall::SafeMode(_) => true,
             // Transaction pause management
@@ -258,8 +260,6 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
             RuntimeCall::Referenda(_) => true,
             RuntimeCall::TechnicalCommittee(_) => true,
             RuntimeCall::TreasuryCouncil(_) => true,
-            // Block production - needed to continue producing blocks in safe mode
-            RuntimeCall::Randomness(_) => true,
             _ => false,
         }
     }

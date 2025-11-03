@@ -1,4 +1,4 @@
-import { beforeAll, describeSuite, expect } from "@moonwall/cli";
+import { beforeAll, beforeEach, describeSuite, expect } from "@moonwall/cli";
 import type { ApiPromise } from "@polkadot/api";
 
 describeSuite({
@@ -17,24 +17,25 @@ describeSuite({
       return blockNumber.toNumber();
     }
 
+    beforeEach(async () => {
+      // Check if safe mode is already active from genesis
+      let enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
+
+      if (!enteredUntil.isSome) {
+        const enterSafeModeCall = api.tx.safeMode.forceEnter();
+        const sudoTx = api.tx.sudo.sudo(enterSafeModeCall);
+        await context.createBlock(sudoTx);
+
+        enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
+      }
+
+      expect(enteredUntil.isSome, "Safe mode should be active").to.be.true;
+    });
     it({
       id: "T01",
       title: "should produce blocks while in safe mode",
       test: async () => {
         const startBlock = await getSubstrateBlockNumber();
-
-        // Check if safe mode is already active from genesis
-        let enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
-
-        if (!enteredUntil.isSome) {
-          const enterSafeModeCall = api.tx.safeMode.forceEnter();
-          const sudoTx = api.tx.sudo.sudo(enterSafeModeCall);
-          await context.createBlock(sudoTx);
-
-          enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
-        }
-
-        expect(enteredUntil.isSome, "Safe mode should be active").to.be.true;
 
         const blocksToCreate = 5;
         for (let i = 0; i < blocksToCreate; i++) {
@@ -67,17 +68,8 @@ describeSuite({
       id: "T02",
       title: "should allow whitelisted calls in safe mode",
       test: async () => {
-        let enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
 
-        if (!enteredUntil.isSome) {
-          const enterSafeModeCall = api.tx.safeMode.forceEnter();
-          const sudoTx = api.tx.sudo.sudo(enterSafeModeCall);
-          await context.createBlock(sudoTx);
 
-          enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
-        }
-
-        expect(enteredUntil.isSome, "Safe mode should be active").to.be.true;
 
         const blockBefore = await getSubstrateBlockNumber();
 
@@ -108,21 +100,6 @@ describeSuite({
       title: "should allow timestamp calls in safe mode",
       test: async () => {
         const startBlock = await getSubstrateBlockNumber();
-
-        // Check if safe mode is already active from genesis
-        let enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
-
-        if (!enteredUntil.isSome) {
-          // Not in safe mode, so enter it
-          const enterSafeModeCall = api.tx.safeMode.forceEnter();
-          const sudoTx = api.tx.sudo.sudo(enterSafeModeCall);
-          await context.createBlock(sudoTx);
-
-          enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
-        }
-
-        // Verify safe mode is active
-        expect(enteredUntil.isSome, "Safe mode should be active").to.be.true;
 
         // Create a block - this implicitly includes timestamp extrinsic
         // The fact that this succeeds proves Timestamp is whitelisted

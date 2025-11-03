@@ -40,6 +40,7 @@ use super::{
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
+use pallet_external_validator_slashes::SlashingModeOption;
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 
@@ -236,13 +237,15 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 }
 
 /// Calls that can bypass the safe-mode pallet.
-/// These calls are essential for emergency governance and system maintenance.
+/// These calls are essential for emergency governance, system maintenance, and basic operation.
 pub struct SafeModeWhitelistedCalls;
 impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
     fn contains(call: &RuntimeCall) -> bool {
         match call {
             // Core system calls
             RuntimeCall::System(_) => true,
+            RuntimeCall::Timestamp(_) => true,
+            RuntimeCall::Randomness(_) => true,
             // Safe mode management
             RuntimeCall::SafeMode(_) => true,
             // Transaction pause management
@@ -321,7 +324,7 @@ impl pallet_babe::Config for Runtime {
     type ExpectedBlockTime = ExpectedBlockTime;
     type EpochChangeTrigger = pallet_babe::ExternalTrigger;
     type DisabledValidators = Session;
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_babe::WeightInfo<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
 
@@ -433,7 +436,7 @@ parameter_types! {
 impl pallet_grandpa::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
 
-    type WeightInfo = ();
+    type WeightInfo = testnet_weights::pallet_grandpa::WeightInfo<Runtime>;
     type MaxAuthorities = MaxAuthorities;
     type MaxNominators = ConstU32<0>;
     type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
@@ -643,7 +646,7 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = PendingUsernameExpiration;
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
-    type WeightInfo = ();
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
@@ -1631,12 +1634,15 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
-    type WeightInfo = (); // TODO: calculate weights
+    type WeightInfo = testnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
+    type SlashingMode = SlashingMode;
 }
 
 parameter_types! {
     pub const SlashDeferDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(0, 0);
+    pub const SlashingMode: SlashingModeOption = polkadot_runtime_common::prod_or_fast!(SlashingModeOption::Disabled, SlashingModeOption::Disabled);
+
 }
 
 #[cfg(test)]

@@ -508,25 +508,15 @@ contract DeployLocal is DeployBase {
         ProxyAdmin proxyAdmin
     ) internal {
         // Initialize DelegationManager
-        {
-            IStrategy[] memory strategies;
-            uint256[] memory withdrawalDelayBlocks;
-
-            vm.broadcast(_deployerPrivateKey);
-            proxyAdmin.upgradeAndCall(
-                ITransparentUpgradeableProxy(payable(address(delegation))),
-                address(delegationImplementation),
-                abi.encodeWithSelector(
-                    DelegationManager.initialize.selector,
-                    config.executorMultisig,
-                    config.delegationInitPausedStatus,
-                    config.delegationWithdrawalDelayBlocks,
-                    strategies,
-                    withdrawalDelayBlocks
-                )
-            );
-            Logging.logStep("DelegationManager initialized");
-        }
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(delegation))),
+            address(delegationImplementation),
+            abi.encodeWithSelector(
+                DelegationManager.initialize.selector, config.delegationInitPausedStatus
+            )
+        );
+        Logging.logStep("DelegationManager initialized");
 
         // Initialize StrategyManager
         vm.broadcast(_deployerPrivateKey);

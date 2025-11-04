@@ -1,7 +1,7 @@
 import { $ } from "bun";
 import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
-import { deployContracts } from "../contracts";
+import { deployContracts } from "../../cli/handlers/launch/contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";

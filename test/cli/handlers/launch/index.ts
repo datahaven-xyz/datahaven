@@ -157,7 +157,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await launchStorageHubComponents(options, launchedNetwork);
+  // Skip launching locally the storage hubs components. FIXME: `launchStorageHubComponents` only works when deploying but not when launching locally. 
+  // await launchStorageHubComponents(options, launchedNetwork);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

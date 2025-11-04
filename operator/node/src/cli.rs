@@ -600,6 +600,19 @@ pub struct FishermanConfigurations {
         required_if_eq("fisherman", "true")
     )]
     pub fisherman_database_url: Option<String>,
+
+    /// Maximum number of incomplete storage requests to process after the first block processed coming out of syncing mode.
+    #[arg(long, value_name = "COUNT", default_value = "10000", value_parser = clap::value_parser!(u32).range(1..))]
+    pub fisherman_incomplete_sync_max: u32,
+
+    /// Page size for incomplete storage request pagination.
+    /// Must be at least 1.
+    #[arg(long, value_name = "SIZE", default_value = "256", value_parser = clap::value_parser!(u32).range(1..))]
+    pub fisherman_incomplete_sync_page_size: u32,
+
+    /// The minimum number of blocks between the last processed block and the current best block to consider the fisherman out of sync.
+    #[arg(long, default_value = "5")]
+    pub fisherman_sync_mode_min_blocks_behind: u32,
 }
 
 impl FishermanConfigurations {
@@ -610,6 +623,9 @@ impl FishermanConfigurations {
                     .fisherman_database_url
                     .clone()
                     .expect("Fisherman database URL is required"),
+                incomplete_sync_max: self.fisherman_incomplete_sync_max,
+                incomplete_sync_page_size: self.fisherman_incomplete_sync_page_size,
+                sync_mode_min_blocks_behind: self.fisherman_sync_mode_min_blocks_behind,
                 maintenance_mode: false, // Skipping maintenance mode for now
             })
         } else {

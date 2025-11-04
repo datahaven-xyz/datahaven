@@ -19,7 +19,7 @@ export const EIP7623_GAS_CONSTANTS = {
 
   // Standard (pre-EIP-7623) costs
   STANDARD_COST_PER_ZERO_BYTE: 4n,
-  STANDARD_COST_PER_NON_ZERO_BYTE: 16n,
+  STANDARD_COST_PER_NON_ZERO_BYTE: 16n
 } as const;
 
 /**
@@ -32,14 +32,14 @@ export const EIP7623_GAS_CONSTANTS = {
 export function calculateEIP7623Gas(
   numZeroBytes: number,
   numNonZeroBytes: number,
-  executionGas: bigint = 0n
+  executionGas = 0n
 ): bigint {
   const {
     BASE_TX_COST,
     COST_FLOOR_PER_ZERO_BYTE,
     COST_FLOOR_PER_NON_ZERO_BYTE,
     STANDARD_COST_PER_ZERO_BYTE,
-    STANDARD_COST_PER_NON_ZERO_BYTE,
+    STANDARD_COST_PER_NON_ZERO_BYTE
   } = EIP7623_GAS_CONSTANTS;
 
   // Floor cost calculation
@@ -84,6 +84,6 @@ export const calculateFeePortions = (
 
   return {
     burnt: BigInt(burntBN.toString()),
-    treasury: BigInt(treasuryBN.toString()),
+    treasury: BigInt(treasuryBN.toString())
   };
 };

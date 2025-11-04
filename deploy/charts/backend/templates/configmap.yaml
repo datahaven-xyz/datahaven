@@ -1,0 +1,48 @@
+{{- if .Values.configMap.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "backend.fullname" . }}-config
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+data:
+  config.toml: |
+    # StorageHub Backend Configuration
+    host = "0.0.0.0"
+    port = {{ .Values.backend.port }}
+    
+    [api]
+    default_page_size = {{ .Values.backend.api.defaultPageSize | default 20 }}
+    max_page_size = {{ .Values.backend.api.maxPageSize | default 100 }}
+    
+    [storage_hub]
+    {{- if .Values.backend.rpc.endpoint }}
+    rpc_url = {{ .Values.backend.rpc.endpoint | quote }}
+    {{- end }}
+
+    msp_callback_url = "http://{{ include "backend.fullname" . }}:8080"
+
+    timeout_secs = 30
+    max_concurrent_requests = 100
+    verify_tls = true
+    mock_mode = false
+
+    [auth]
+    {{- if .Values.backend.auth.jwtSecret }}
+    jwt_secret = {{ .Values.backend.auth.jwtSecret | quote }}
+    {{- end }}
+
+    [database]
+    {{- if .Values.backend.database.url }}
+    url = {{ .Values.backend.database.url | quote }}
+    {{- else if .Values.backend.database.host }}
+    url = "postgresql://{{ .Values.backend.database.user | default "indexer" }}:{{ .Values.backend.database.password | default "password" }}@{{ .Values.backend.database.host }}:{{ .Values.backend.database.port | default 5432 }}/{{ .Values.backend.database.name | default "storagehub" }}"
+    {{- else }}
+    url = "postgresql://indexer:password@sh-indexer-db:5432/storagehub"
+    {{- end }}
+    
+    mock_mode = false
+  {{- range $key, $value := .Values.configMap.data }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}

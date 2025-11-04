@@ -15,7 +15,7 @@ imagePullSecrets:
 ingress:
   enabled: false
   ingressClassName: traefik
-  host: dh-bootnode-0.datahaven-kt.local
+  host: dh-bootnode-0.datahaven.local
 
 node:
   chain: local

@@ -1,0 +1,44 @@
+# BSP-specific settings for Local environment
+
+global:
+  environment: local
+  namespace: kt-datahaven-local
+
+image:
+  tag: local
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+# Ingress disabled for local (can be enabled for testing)
+ingress:
+  enabled: false
+  ingressClassName: traefik
+  perReplica: true
+  wildcardDomain: datahaven.local
+  # If enabled, this would generate:
+  # - sh-bspnode-0.datahaven.local
+  # - sh-bspnode-1.datahaven.local
+
+node:
+  chain: local
+  customChainspecUrl:
+  forceDownloadChainspec: false
+  chainData:
+    storageClass: "hostpath"
+    persistence:
+      size: 10Gi
+  chainKeystore:
+    storageClass: "hostpath"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort

@@ -1,31 +1,21 @@
-import "@moonbeam-network/api-augment/moonbase";
 import { type DevModeContext, expect } from "@moonwall/cli";
 import {
   type BlockRangeOption,
   EXTRINSIC_BASE_WEIGHT,
-  WEIGHT_PER_GAS,
   mapExtrinsics,
+  WEIGHT_PER_GAS
 } from "@moonwall/util";
 import type { ApiPromise } from "@polkadot/api";
 import type { TxWithEvent } from "@polkadot/api-derive/types";
-import type { Option, u128, u32 } from "@polkadot/types";
-import type { ITuple } from "@polkadot/types-codec/types";
+import type { u128 } from "@polkadot/types";
 import type { BlockHash, DispatchInfo, RuntimeDispatchInfo } from "@polkadot/types/interfaces";
 import type { RuntimeDispatchInfoV1 } from "@polkadot/types/interfaces/payment";
-import type { AccountId20, Block } from "@polkadot/types/interfaces/runtime/types";
-import chalk from "chalk";
-import type { Debugger } from "debug";
+import type { Block } from "@polkadot/types/interfaces/runtime/types";
 import Debug from "debug";
-import { calculateFeePortions, split } from "./fees.ts";
-import { getFeesTreasuryProportion } from "./parameters.ts";
+import { calculateFeePortions } from "./fees";
+import { getFeesTreasuryProportion } from "./parameters";
 
 const debug = Debug("test:blocks");
-
-// Given a deposit amount, returns the amount burned (80%) and deposited to treasury (20%).
-// This is meant to precisely mimic the logic in the Moonbeam runtimes where the burn amount
-// is calculated and the treasury is treated as the remainder. This precision is important to
-// avoid off-by-one errors.
-
 export interface TxWithEventAndFee extends TxWithEvent {
   fee: RuntimeDispatchInfo | RuntimeDispatchInfoV1;
 }
@@ -43,7 +33,7 @@ export const getBlockDetails = async (
 
   const [{ block }, records] = await Promise.all([
     api.rpc.chain.getBlock(blockHash),
-    await (await api.at(blockHash)).query.system.events(),
+    await (await api.at(blockHash)).query.system.events()
   ]);
 
   const fees = await Promise.all(
@@ -59,7 +49,7 @@ export const getBlockDetails = async (
 
   return {
     block,
-    txWithEvents,
+    txWithEvents
   } as any as BlockDetails;
 };
 
@@ -179,8 +169,8 @@ export const verifyBlockFees = async (
                   await context.viem().getBlock({ blockNumber: BigInt(number - 1) })
                 ).baseFeePerGas!;
 
-                let priorityFee;
-                let gasFee;
+                let priorityFee: bigint;
+                let gasFee: bigint;
                 // Transaction is an enum now with as many variants as supported transaction types.
                 if (ethTxWrapper.isLegacy) {
                   priorityFee = ethTxWrapper.asLegacy.gasPrice.toBigInt();
@@ -191,6 +181,8 @@ export const verifyBlockFees = async (
                 } else if (ethTxWrapper.isEip1559) {
                   priorityFee = ethTxWrapper.asEip1559.maxPriorityFeePerGas.toBigInt();
                   gasFee = ethTxWrapper.asEip1559.maxFeePerGas.toBigInt();
+                } else {
+                  throw new Error(`Unsupported Ethereum transaction type`);
                 }
 
                 const hash = events
@@ -247,9 +239,9 @@ export const verifyBlockFees = async (
                     "refTime" in fee.weight
                       ? fee.weight
                       : {
-                          refTime: fee.weight,
-                          proofSize: 0n,
-                        }
+                        refTime: fee.weight,
+                        proofSize: 0n
+                      }
                   )
                 ).toBigInt();
                 const multiplier = await apiAt.query.transactionPayment.nextFeeMultiplier();
@@ -259,7 +251,7 @@ export const verifyBlockFees = async (
                 const baseFee = (
                   (await apiAt.call.transactionPaymentApi.queryWeightToFee({
                     refTime: EXTRINSIC_BASE_WEIGHT,
-                    proofSize: 0n,
+                    proofSize: 0n
                   })) as any
                 ).toBigInt();
 
@@ -328,7 +320,7 @@ export const verifyLatestBlockFees = async (
 
 export async function jumpToRound(context: DevModeContext, round: number): Promise<string | null> {
   let lastBlockHash = "";
-  for (;;) {
+  for (; ;) {
     const currentRound = (
       await context.polkadotJs().query.parachainStaking.round()
     ).current.toNumber();
@@ -341,81 +333,4 @@ export async function jumpToRound(context: DevModeContext, round: number): Promi
 
     lastBlockHash = (await context.createBlock()).block.hash.toString();
   }
-}
-
-export async function jumpBlocks(context: DevModeContext, blockCount: number) {
-  let blocksToCreate = blockCount;
-  while (blocksToCreate > 0) {
-    (await context.createBlock()).block.hash.toString();
-    blocksToCreate--;
-  }
-}
-
-export async function jumpRounds(context: DevModeContext, count: number): Promise<string | null> {
-  const round = (await context.polkadotJs().query.parachainStaking.round()).current
-    .addn(count.valueOf())
-    .toNumber();
-
-  return jumpToRound(context, round);
-}
-
-export function extractPreimageDeposit(
-  request:
-    | Option<ITuple<[AccountId20, u128]>>
-    | {
-        readonly deposit: ITuple<[AccountId20, u128]>;
-        readonly len: u32;
-      }
-    | {
-        readonly deposit: Option<ITuple<[AccountId20, u128]>>;
-        readonly count: u32;
-        readonly len: Option<u32>;
-      }
-) {
-  const deposit = "deposit" in request ? request.deposit : request;
-  if ("isSome" in deposit && deposit.isSome) {
-    return {
-      accountId: deposit.unwrap()[0].toHex(),
-      amount: deposit.unwrap()[1],
-    };
-  }
-  if ("isNone" in deposit && deposit.isNone) {
-    return undefined;
-  }
-
-  return {
-    accountId: (deposit as any)[0].toHex(),
-    amount: (deposit as any)[1],
-  };
-}
-
-export async function countExtrinsics(
-  context: DevModeContext,
-  method: string,
-  logger: Debugger
-): Promise<[number, number, number]> {
-  const block = await context.polkadotJs().rpc.chain.getBlock();
-  const extrinsicCount = block.block.extrinsics.reduce(
-    (acc, ext) =>
-      acc + (ext.method.section === "parachainStaking" && ext.method.method === method ? 1 : 0),
-    0
-  );
-
-  const maxBlockWeights = context.polkadotJs().consts.system.blockWeights;
-  const blockWeights = await context.polkadotJs().query.system.blockWeight();
-
-  const weightUtil =
-    blockWeights.normal.refTime.toNumber() /
-    maxBlockWeights.perClass.normal.maxTotal.unwrap().refTime.toNumber();
-  const proofUtil =
-    blockWeights.normal.proofSize.toNumber() /
-    maxBlockWeights.perClass.normal.maxTotal.unwrap().proofSize.toNumber();
-
-  logger(
-    `  ${chalk.yellow("○")} ${chalk.gray(method)} max ${chalk.green(
-      extrinsicCount
-    )} per block (w: ${(weightUtil * 100).toFixed(1)}%, p: ${(proofUtil * 100).toFixed(1)}%)`
-  );
-
-  return [extrinsicCount, weightUtil, proofUtil];
 }

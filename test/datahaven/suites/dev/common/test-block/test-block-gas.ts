@@ -1,5 +1,11 @@
-import { beforeAll, describeSuite, expect } from "@moonwall/cli";
-import { ConstantStore, deployCompiledContract, TransactionTypes } from "../../../../helpers";
+import {
+  beforeAll,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect,
+  TransactionTypes
+} from "@moonwall/cli";
+import { ConstantStore } from "../../../../helpers";
 
 describeSuite({
   id: "D010103",
@@ -17,7 +23,7 @@ describeSuite({
         id: `T0${TransactionTypes.indexOf(txnType) + 1}`,
         title: `${txnType} should be allowed to the max block gas`,
         test: async () => {
-          const { hash, status } = await deployCompiledContract(context, "MultiplyBy7", {
+          const { hash, status } = await deployCreateCompiledContract(context, "MultiplyBy7", {
             type: txnType,
             gas: ConstantStore(context).EXTRINSIC_GAS_LIMIT.get(specVersion)
           });
@@ -32,7 +38,7 @@ describeSuite({
         title: `${txnType} should fail setting it over the max block gas`,
         test: async () => {
           await expect(async () =>
-            deployCompiledContract(context, "MultiplyBy7", {
+            deployCreateCompiledContract(context, "MultiplyBy7", {
               type: txnType,
               gas: ConstantStore(context).EXTRINSIC_GAS_LIMIT.get(specVersion) + 1n
             })
@@ -45,9 +51,13 @@ describeSuite({
       id: "T07",
       title: "should be accessible within a contract",
       test: async () => {
-        const { contractAddress, abi } = await deployCompiledContract(context, "BlockVariables", {
-          gas: 500_000n
-        });
+        const { contractAddress, abi } = await deployCreateCompiledContract(
+          context,
+          "BlockVariables",
+          {
+            gas: 500_000n
+          }
+        );
 
         if (!contractAddress) {
           throw new Error("Expected deployed contract to have an address");

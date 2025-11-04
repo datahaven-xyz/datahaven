@@ -2,7 +2,7 @@ import type { DevModeContext } from "@moonwall/cli";
 
 export const getFeesTreasuryProportion = async (context: DevModeContext): Promise<bigint> => {
   const parameter = await context.polkadotJs().query.parameters.parameters({
-    RuntimeConfig: "FeesTreasuryProportion",
+    RuntimeConfig: "FeesTreasuryProportion"
   });
 
   // 20% default value

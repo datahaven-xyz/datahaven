@@ -6,6 +6,7 @@ use crate::{
 use alloc::{format, vec, vec::Vec};
 use fp_evm::GenesisAccount;
 use hex_literal::hex;
+use pallet_external_validator_slashes::SlashingModeOption;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use serde_json::Value;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -105,6 +106,10 @@ fn testnet_genesis(
         treasury_council: TreasuryCouncilConfig {
             phantom: Default::default(),
             members: treasury_council_members,
+        },
+        external_validators_slashes: pallet_external_validator_slashes::GenesisConfig {
+            slashing_mode: SlashingModeOption::LogOnly,
+            ..Default::default()
         },
         ..Default::default()
     };

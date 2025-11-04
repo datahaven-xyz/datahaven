@@ -374,9 +374,10 @@ fn processing_fails_with_insufficient_sovereign_balance() {
 
         setup_sovereign_balance(TRANSFER_AMOUNT / 2); // Insufficient balance
 
-        let result =
-            snowbridge_pallet_inbound_queue_v2::Pallet::<Runtime>::process_message(alice, message);
-        assert!(result.is_err());
+        assert_noop!(
+            snowbridge_pallet_inbound_queue_v2::Pallet::<Runtime>::process_message(alice, message),
+            pallet_datahaven_native_transfer::Error::<Runtime>::InsufficientSovereignBalance
+        );
     });
 }
 

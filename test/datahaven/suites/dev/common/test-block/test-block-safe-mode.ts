@@ -1,4 +1,4 @@
-import { beforeAll, describeSuite, expect } from "@moonwall/cli";
+import { beforeAll, beforeEach, afterEach, describeSuite, expect } from "@moonwall/cli";
 import type { ApiPromise } from "@polkadot/api";
 
 describeSuite({
@@ -12,12 +12,8 @@ describeSuite({
       api = context.polkadotJs();
     });
 
-    async function getSubstrateBlockNumber(): Promise<number> {
-      const blockNumber = await api.query.system.number();
-      return blockNumber.toNumber();
-    }
-
-    async function ensureSafeModeActive(): Promise<void> {
+    beforeEach(async () => {
+      // Ensure safe mode is active
       let enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
 
       if (!enteredUntil.isSome) {
@@ -30,16 +26,18 @@ describeSuite({
         enteredUntil = (await api.query.safeMode.enteredUntil()) as any;
         expect(enteredUntil.isSome, "Safe mode should be active after entering").to.be.true;
       }
-    }
+    });
 
-    async function exitSafeModeAndVerify(): Promise<void> {
+    afterEach(async () => {
+      // Exit safe mode and verify
       const exitBlockBefore = await getSubstrateBlockNumber();
       const exitSafeModeCall = api.tx.safeMode.forceExit();
       const exitSudoTx = api.tx.sudo.sudo(exitSafeModeCall);
 
       const blockHash = await context.createBlock(exitSudoTx);
 
-      const blockHashStr = typeof blockHash === "string" ? blockHash : (await api.rpc.chain.getBlockHash()).toString();
+      const blockHashStr =
+        typeof blockHash === "string" ? blockHash : (await api.rpc.chain.getBlockHash()).toString();
       const apiAtBlock = await api.at(blockHashStr);
 
       const events = await apiAtBlock.query.system.events();
@@ -66,7 +64,7 @@ describeSuite({
 
       expect(
         !enteredUntilAtExitBlock.isSome,
-        "Safe mode should be deactivated in the block where forceExit executed"
+        "Safe mode should be deactivated."
       ).to.be.true;
 
       await context.createBlock();
@@ -74,13 +72,17 @@ describeSuite({
       expect(exitBlockAfter, "Should be able to create blocks after exit").to.be.greaterThan(
         exitBlockBefore
       );
+    });
+
+    async function getSubstrateBlockNumber(): Promise<number> {
+      const blockNumber = await api.query.system.number();
+      return blockNumber.toNumber();
     }
 
     it({
       id: "T01",
       title: "should produce blocks while in safe mode",
       test: async () => {
-        await ensureSafeModeActive();
         const startBlock = await getSubstrateBlockNumber();
 
         const blocksToCreate = 5;
@@ -95,13 +97,6 @@ describeSuite({
           blocksToCreate,
           "Blocks should continue to be produced in safe mode"
         );
-
-        await exitSafeModeAndVerify();
-
-        const beforeFinalBlock = await getSubstrateBlockNumber();
-        await context.createBlock();
-        const finalBlock = await getSubstrateBlockNumber();
-        expect(finalBlock).to.be.greaterThan(beforeFinalBlock);
       }
     });
 
@@ -109,7 +104,6 @@ describeSuite({
       id: "T02",
       title: "should allow timestamp calls in safe mode",
       test: async () => {
-        await ensureSafeModeActive();
         const startBlock = await getSubstrateBlockNumber();
 
         await context.createBlock();
@@ -119,8 +113,6 @@ describeSuite({
 
         const currentBlock = await getSubstrateBlockNumber();
         expect(currentBlock).to.be.greaterThan(startBlock);
-
-        await exitSafeModeAndVerify();
       }
     });
   }

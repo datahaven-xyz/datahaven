@@ -368,8 +368,13 @@ pub mod pallet {
         }
 
         fn on_runtime_upgrade() -> Weight {
-            SlashingMode::<T>::put(T::SlashingMode::get());
-            T::DbWeight::get().writes(1)
+            // Set configured slashing mode when upgrading to runtime RT400
+            if T::RuntimeVersion::get().spec_version < 400 {
+                SlashingMode::<T>::put(T::SlashingMode::get());
+                T::DbWeight::get().writes(1)
+            } else {
+                0
+            }
         }
     }
 }

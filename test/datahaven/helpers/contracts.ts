@@ -1,7 +1,7 @@
+import type { Abi } from "viem";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Abi } from "viem";
 
 interface ArtifactEvmBytecode {
   object?: string;
@@ -59,6 +59,6 @@ export const fetchCompiledContract = async (
     abi,
     bytecode,
     contract: artifactJson.contract,
-    sourceCode: artifactJson.sourceCode
+    sourceCode: artifactJson.sourceCode,
   } satisfies CompiledContractArtifact;
 };

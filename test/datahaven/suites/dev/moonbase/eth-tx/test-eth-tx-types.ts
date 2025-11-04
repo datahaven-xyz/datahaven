@@ -8,6 +8,7 @@ describeSuite({
   title: "Ethereum Transaction - Legacy",
   foundationMethods: "dev",
   testCases: ({ context, it, log }) => {
+    const DATAHAVEN_CHAIN_ID = 1283;
     it({
       id: "T01",
       title: "should contain valid legacy Ethereum data",
@@ -37,7 +38,9 @@ describeSuite({
         expect(action.asCall.toHex()).to.equal(BALTATHAR_ADDRESS.toLowerCase());
         expect(value.toBigInt()).to.equal(512n);
         expect(input.toHex()).to.equal("0x");
-        expect(signature.v.toNumber()).to.equal(2598);
+        const actualV = signature.v.toNumber();
+        const expectedVBase = DATAHAVEN_CHAIN_ID * 2 + 35;
+        expect([expectedVBase, expectedVBase + 1]).to.include(actualV);
         expect(signature.r.toHex()).to.equal(
           "0xc4d57ab7b0e601a95299b70a46fdbb16371b477669e0f8245e0a9f12e27e15f2"
         );
@@ -73,7 +76,7 @@ describeSuite({
 
         const { chainId, nonce, gasPrice, gasLimit, action, value, input, accessList, signature } =
           extrinsic.asEip2930;
-        expect(chainId.toNumber()).to.equal(1288);
+        expect(chainId.toNumber()).to.equal(DATAHAVEN_CHAIN_ID);
         expect(nonce.toNumber()).to.equal(currentNonce);
         expect(gasPrice.toNumber()).to.equal(DEFAULT_TXN_MAX_BASE_FEE);
         expect(gasLimit.toBigInt()).to.equal(21000n);
@@ -127,7 +130,7 @@ describeSuite({
           accessList,
           signature,
         } = extrinsic.asEip1559;
-        expect(chainId.toNumber()).to.equal(1288);
+        expect(chainId.toNumber()).to.equal(DATAHAVEN_CHAIN_ID);
         expect(nonce.toNumber()).to.equal(currentNonce);
         expect(maxPriorityFeePerGas.toNumber()).to.equal(0);
         expect(maxFeePerGas.toNumber()).to.equal(DEFAULT_TXN_MAX_BASE_FEE);

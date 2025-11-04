@@ -4,6 +4,6 @@ export * from "./contracts";
 export * from "./eth-transactions";
 export * from "./expect";
 export * from "./transactions";
-export * from "./fees.ts";
-export * from "./parameters.ts";
 export * from "./deploy";
+export * from "./fees";
+export * from "./parameters";

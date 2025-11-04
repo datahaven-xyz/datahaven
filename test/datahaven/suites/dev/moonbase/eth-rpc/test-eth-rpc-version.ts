@@ -5,21 +5,22 @@ describeSuite({
   title: "Version RPC",
   foundationMethods: "dev",
   testCases: ({ context, it }) => {
+    const DATAHAVEN_CHAIN_ID = 1283n;
     it({
       id: "T01",
-      title: "should return 1288 for eth_chainId",
+      title: "should return 1283 for eth_chainId",
       test: async function () {
         expect(await customDevRpcRequest("eth_chainId")).to.equal(
-          "0x" + BigInt(1288n).toString(16)
+          `0x${DATAHAVEN_CHAIN_ID.toString(16)}`
         );
       },
     });
 
     it({
       id: "T02",
-      title: "should return 1288 for net_version",
+      title: "should return 1283 for net_version",
       test: async function () {
-        expect(await customDevRpcRequest("net_version")).to.equal("1288");
+        expect(await customDevRpcRequest("net_version")).to.equal(DATAHAVEN_CHAIN_ID.toString());
       },
     });
 

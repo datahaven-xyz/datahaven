@@ -4,7 +4,8 @@ describeSuite({
   id: "D021201",
   title: "RPC Constants",
   foundationMethods: "dev",
-  testCases: ({ it, context }) => {
+  testCases: ({ it }) => {
+    const DATAHAVEN_CHAIN_ID = 1283n;
     it({
       id: "T01",
       title: "should have 0 hashrate",
@@ -15,9 +16,9 @@ describeSuite({
 
     it({
       id: "T02",
-      title: "should have chainId 1288",
+      title: "should have chainId 1283",
       test: async function () {
-        expect(BigInt(await customDevRpcRequest("eth_chainId"))).toBe(1288n);
+        expect(BigInt(await customDevRpcRequest("eth_chainId"))).toBe(DATAHAVEN_CHAIN_ID);
       },
     });
 

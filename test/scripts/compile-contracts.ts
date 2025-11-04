@@ -36,7 +36,7 @@ yargs(hideBin(process.argv))
       type: "string",
       alias: "o",
       description: "Output directory for compiled contracts",
-      default: "datahaven/contracts/out"
+      default: "contracts/out"
     },
     SourceDirectory: {
       type: "string",
@@ -65,6 +65,7 @@ async function main(args: ArgumentsCamelCase<CompileCommandOptions>) {
   const outputDirectory = path.join(process.cwd(), args.OutputDirectory);
   const sourceDirectory = path.join(process.cwd(), args.SourceDirectory);
   const tempFile = path.join(process.cwd(), args.OutputDirectory, ".compile.tmp");
+  const deprecatedOutputDirectory = path.join(process.cwd(), "datahaven", "contracts", "out");
 
   console.log(`🧪  Solc version: ${solcVersion}`);
   const precompilesDirectoryExists = await fs
@@ -80,6 +81,9 @@ async function main(args: ArgumentsCamelCase<CompileCommandOptions>) {
   console.log(`🗃️  Source directory: ${sourceDirectory}`);
 
   await fs.mkdir(outputDirectory, { recursive: true });
+  if (path.resolve(deprecatedOutputDirectory) !== path.resolve(outputDirectory)) {
+    await fs.rm(deprecatedOutputDirectory, { recursive: true, force: true }).catch(() => { });
+  }
 
   // Order is important so precompiles are available first
   const contractSourcePaths: Array<{

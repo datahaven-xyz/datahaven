@@ -37,7 +37,7 @@ const __dirname = path.dirname(__filename);
 export const fetchCompiledContract = async (
   contractName: string
 ): Promise<CompiledContractArtifact> => {
-  const artifactPath = path.join(__dirname, "../", "contracts", "out", `${contractName}.json`);
+  const artifactPath = path.join(__dirname, "..", "..", "contracts", "out", `${contractName}.json`);
   const artifactContent = await readFile(artifactPath, "utf-8");
   const artifactJson = JSON.parse(artifactContent) as CompiledContractArtifactJson;
 

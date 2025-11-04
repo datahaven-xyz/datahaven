@@ -7,13 +7,13 @@ import {
   DOROTHY_ADDRESS,
   GOLIATH_ADDRESS,
   GOLIATH_PRIVATE_KEY,
+  GLMR,
   createEthersTransaction,
   createRawTransfer,
   sendRawTransaction,
 } from "@moonwall/util";
 import { parseGwei } from "viem";
 import { ALITH_GENESIS_TRANSFERABLE_BALANCE, ConstantStore } from "../../../../helpers";
-import { UNIT } from "../test-parameters/test-parameters";
 
 describeSuite({
   id: "D021102",
@@ -157,7 +157,7 @@ describeSuite({
       title: "insufficient funds for gas * price + value",
       test: async function () {
         const CHARLETH_GENESIS_TRANSFERABLE_BALANCE =
-          ALITH_GENESIS_TRANSFERABLE_BALANCE + 1000n * UNIT + 10n * 100_000_000_000_000n;
+          ALITH_GENESIS_TRANSFERABLE_BALANCE + 1000n * GLMR + 10n * 100_000_000_000_000n;
         const amount = CHARLETH_GENESIS_TRANSFERABLE_BALANCE - 21000n * 10_000_000_000n + 1n;
         const tx = await createRawTransfer(context, BALTATHAR_ADDRESS, amount, {
           privateKey: CHARLETH_PRIVATE_KEY,

@@ -1246,7 +1246,9 @@ async fn configure_and_spawn_fisherman<Runtime: StorageEnableRuntime>(
     fisherman_builder.with_indexer_db_pool(Some(db_pool.clone()));
 
     // Spawn the fisherman service
-    fisherman_builder.with_fisherman(client.clone()).await;
+    fisherman_builder
+        .with_fisherman(client.clone(), &fisherman_options)
+        .await;
 
     // All variables below are not needed for the fisherman service to operate but required by the StorageHubHandler
     // TODO: Refactor this once we have a proper setup to support role based StorageHubHandler builder

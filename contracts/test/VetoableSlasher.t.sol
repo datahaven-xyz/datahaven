@@ -230,12 +230,13 @@ contract VetoableSlasherTest is AVSDeployer {
         IAllocationManagerTypes.SlashingParams memory params;
         (params,,) = _getSlashingRequest(requestId);
 
+        uint256[] memory slashedShares = new uint256[](params.strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         // Fast forward past veto period
@@ -324,12 +325,13 @@ contract VetoableSlasherTest is AVSDeployer {
         vetoableSlasher.cancelSlashingRequest(requestId1);
 
         // Setup the mock for slashing the second request
+        uint256[] memory slashedShares = new uint256[](params2.strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params2
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         // Fast forward past veto period

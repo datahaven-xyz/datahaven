@@ -155,19 +155,23 @@ describeSuite({
 
     it({
       id: "T05",
-      title: "should allow scheduler.schedule calls in safe mode",
+      title: "should allow scheduler calls in safe mode",
       test: async () => {
         const currentBlock = await getSubstrateBlockNumber();
         const scheduleAtBlock = currentBlock + 10;
 
+        const taskId = new Uint8Array(32).fill(0);
+        taskId.set(new TextEncoder().encode("testTask"), 0);
         const call = api.tx.system.remarkWithEvent("0xabcd");
-        const scheduleTx = api.tx.scheduler.schedule(scheduleAtBlock, null, 0, call);
+        const scheduleTx = api.tx.scheduler.scheduleNamed(taskId, scheduleAtBlock, null, 0, call);
+        const sudoTx = api.tx.sudo.sudo(scheduleTx);
+        const blockHash = await context.createBlock(sudoTx);
 
-        const blockHash = await context.createBlock(scheduleTx);
+        const sudoExecuted = await checkEvent("sudo.Sudid", blockHash);
+        const scheduled = await checkEvent("scheduler.Scheduled", blockHash);
 
-        const extrinsicSuccess = await checkEvent("system.ExtrinsicSuccess", blockHash);
-
-        expect(extrinsicSuccess, "Extrinsic should have succeeded").to.be.true;
+        expect(sudoExecuted, "Sudo.Sudid event should be present").to.be.true;
+        expect(scheduled, "Scheduler.Scheduled event should be present").to.be.true;
       }
     });
 

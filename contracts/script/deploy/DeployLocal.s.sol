@@ -61,6 +61,7 @@ import {
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {EigenStrategy} from "eigenlayer-contracts/src/contracts/strategies/EigenStrategy.sol";
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {EigenPod} from "eigenlayer-contracts/src/contracts/pods/EigenPod.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
@@ -92,6 +93,7 @@ contract DeployLocal is DeployBase {
     EigenPod public eigenPodImplementation;
     StrategyBaseTVLLimits public baseStrategyImplementation;
     StrategyInfo[] public deployedStrategies;
+    IStrategy public eigenStrategy;
 
     // EigenLayer required semver
     string public constant SEMVER = "v1.0.0";
@@ -135,15 +137,18 @@ contract DeployLocal is DeployBase {
         _deployProxies(proxyAdmin);
         Logging.logStep("Initial proxies deployed successfully");
 
+        vm.broadcast(_deployerPrivateKey);
+        eigenStrategy =
+            IStrategy(address(new EigenStrategy(strategyManager, pauserRegistry, SEMVER)));
+        Logging.logContractDeployed("EigenStrategy", address(eigenStrategy));
+
         // Setup ETH2 deposit contract for EigenPod functionality
         ethPOSDeposit = IETHPOSDeposit(getETHPOSDepositAddress());
         Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
 
         // Deploy EigenPod implementation and beacon
         vm.broadcast(_deployerPrivateKey);
-        eigenPodImplementation = new EigenPod(
-            ethPOSDeposit, eigenPodManager, eigenLayerConfig.beaconChainGenesisTimestamp, SEMVER
-        );
+        eigenPodImplementation = new EigenPod(ethPOSDeposit, eigenPodManager, SEMVER);
         vm.broadcast(_deployerPrivateKey);
         eigenPodBeacon = new UpgradeableBeacon(address(eigenPodImplementation));
         Logging.logContractDeployed("EigenPod Implementation", address(eigenPodImplementation));
@@ -231,6 +236,7 @@ contract DeployLocal is DeployBase {
         Logging.logContractDeployed("EigenPodBeacon", address(eigenPodBeacon));
         Logging.logContractDeployed("RewardsCoordinator", address(rewardsCoordinator));
         Logging.logContractDeployed("AllocationManager", address(allocationManager));
+        Logging.logContractDeployed("EigenStrategy", address(eigenStrategy));
         Logging.logContractDeployed("PermissionController", address(permissionController));
         Logging.logContractDeployed("ETHPOSDeposit", address(ethPOSDeposit));
 
@@ -437,7 +443,8 @@ contract DeployLocal is DeployBase {
         );
 
         vm.broadcast(_deployerPrivateKey);
-        strategyManagerImplementation = new StrategyManager(delegation, pauserRegistry, SEMVER);
+        strategyManagerImplementation =
+            new StrategyManager(allocationManager, delegation, pauserRegistry, SEMVER);
         Logging.logContractDeployed(
             "StrategyManager Implementation", address(strategyManagerImplementation)
         );
@@ -478,6 +485,7 @@ contract DeployLocal is DeployBase {
         vm.broadcast(_deployerPrivateKey);
         allocationManagerImplementation = new AllocationManager(
             delegation,
+            eigenStrategy,
             pauserRegistry,
             permissionController,
             config.deallocationDelay,
@@ -500,25 +508,15 @@ contract DeployLocal is DeployBase {
         ProxyAdmin proxyAdmin
     ) internal {
         // Initialize DelegationManager
-        {
-            IStrategy[] memory strategies;
-            uint256[] memory withdrawalDelayBlocks;
-
-            vm.broadcast(_deployerPrivateKey);
-            proxyAdmin.upgradeAndCall(
-                ITransparentUpgradeableProxy(payable(address(delegation))),
-                address(delegationImplementation),
-                abi.encodeWithSelector(
-                    DelegationManager.initialize.selector,
-                    config.executorMultisig,
-                    config.delegationInitPausedStatus,
-                    config.delegationWithdrawalDelayBlocks,
-                    strategies,
-                    withdrawalDelayBlocks
-                )
-            );
-            Logging.logStep("DelegationManager initialized");
-        }
+        vm.broadcast(_deployerPrivateKey);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(address(delegation))),
+            address(delegationImplementation),
+            abi.encodeWithSelector(
+                DelegationManager.initialize.selector, config.delegationInitPausedStatus
+            )
+        );
+        Logging.logStep("DelegationManager initialized");
 
         // Initialize StrategyManager
         vm.broadcast(_deployerPrivateKey);
@@ -582,9 +580,7 @@ contract DeployLocal is DeployBase {
             ITransparentUpgradeableProxy(payable(address(allocationManager))),
             address(allocationManagerImplementation),
             abi.encodeWithSelector(
-                AllocationManager.initialize.selector,
-                config.executorMultisig,
-                config.allocationManagerInitPausedStatus
+                AllocationManager.initialize.selector, config.allocationManagerInitPausedStatus
             )
         );
         Logging.logStep("AllocationManager initialized");

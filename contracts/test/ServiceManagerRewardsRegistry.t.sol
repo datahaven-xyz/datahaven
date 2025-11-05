@@ -479,10 +479,10 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         vm.prank(operatorAddress);
         vm.expectRevert(abi.encodeWithSelector(IRewardsRegistryErrors.ArrayLengthMismatch.selector));
 
-        uint256[] memory numberOfLeaves = new uint256[](3);
-        numberOfLeaves[0] = 2;
-        numberOfLeaves[1] = 2;
-        numberOfLeaves[2] = 2;
+        uint256[] memory numLeaves = new uint256[](3);
+        numLeaves[0] = 2;
+        numLeaves[1] = 2;
+        numLeaves[2] = 2;
 
         uint256[] memory leafIndices = new uint256[](3);
         leafIndices[0] = 0;
@@ -490,7 +490,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
         leafIndices[2] = 0;
 
         serviceManager.claimOperatorRewardsBatch(
-            operatorSetId, rootIndices, points, numberOfLeaves, leafIndices, proofs
+            operatorSetId, rootIndices, points, numLeaves, leafIndices, proofs
         );
     }
 
@@ -530,16 +530,16 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodeWithSelector(IRewardsRegistryErrors.RewardsAlreadyClaimedForIndex.selector)
         );
 
-        uint256[] memory numberOfLeaves = new uint256[](2);
-        numberOfLeaves[0] = 2;
-        numberOfLeaves[1] = 2;
+        uint256[] memory numLeaves = new uint256[](2);
+        numLeaves[0] = 2;
+        numLeaves[1] = 2;
 
         uint256[] memory leafIndices = new uint256[](2);
         leafIndices[0] = 0;
         leafIndices[1] = 0;
 
         serviceManager.claimOperatorRewardsBatch(
-            operatorSetId, rootIndices, points, numberOfLeaves, leafIndices, proofs
+            operatorSetId, rootIndices, points, numLeaves, leafIndices, proofs
         );
     }
 
@@ -556,12 +556,12 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
         uint256 initialBalance = operatorAddress.balance;
 
-        uint256[] memory numberOfLeaves = new uint256[](0);
+        uint256[] memory numLeaves = new uint256[](0);
         uint256[] memory leafIndices = new uint256[](0);
 
         vm.prank(operatorAddress);
         serviceManager.claimOperatorRewardsBatch(
-            operatorSetId, rootIndices, points, numberOfLeaves, leafIndices, proofs
+            operatorSetId, rootIndices, points, numLeaves, leafIndices, proofs
         );
 
         // Balance should remain unchanged

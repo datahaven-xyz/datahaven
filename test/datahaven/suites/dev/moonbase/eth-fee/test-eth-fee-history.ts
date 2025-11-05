@@ -2,6 +2,7 @@ import { describeSuite, expect, fetchCompiledContract, customDevRpcRequest } fro
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { hexToNumber, numberToHex } from "@polkadot/util";
 import { parseGwei } from "viem";
+import { CHAIN_ID } from "utils";
 
 // We use ethers library in this test as apparently web3js's types are not fully EIP-1559
 // compliant yet.
@@ -35,7 +36,7 @@ describeSuite({
             accessList: [],
             nonce: nonce,
             gasLimit: "0x100000",
-            chainId: 1288,
+            chainId: CHAIN_ID,
           });
           nonce++;
         }

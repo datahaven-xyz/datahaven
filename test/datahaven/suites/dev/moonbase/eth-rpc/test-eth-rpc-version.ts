@@ -1,14 +1,15 @@
 import { describeSuite, expect, customDevRpcRequest } from "@moonwall/cli";
+import { CHAIN_ID } from "utils";
 
 describeSuite({
   id: "D021207",
   title: "Version RPC",
   foundationMethods: "dev",
   testCases: ({ context, it }) => {
-    const DATAHAVEN_CHAIN_ID = 1283n;
+    const DATAHAVEN_CHAIN_ID = BigInt(CHAIN_ID);
     it({
       id: "T01",
-      title: "should return 1283 for eth_chainId",
+      title: `should return ${CHAIN_ID} for eth_chainId`,
       test: async function () {
         expect(await customDevRpcRequest("eth_chainId")).to.equal(
           `0x${DATAHAVEN_CHAIN_ID.toString(16)}`
@@ -18,7 +19,7 @@ describeSuite({
 
     it({
       id: "T02",
-      title: "should return 1283 for net_version",
+      title: `should return ${CHAIN_ID} for net_version`,
       test: async function () {
         expect(await customDevRpcRequest("net_version")).to.equal(DATAHAVEN_CHAIN_ID.toString());
       },

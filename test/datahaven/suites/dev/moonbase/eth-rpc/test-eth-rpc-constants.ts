@@ -1,11 +1,12 @@
 import { describeSuite, expect, customDevRpcRequest } from "@moonwall/cli";
+import { CHAIN_ID } from "utils";
 
 describeSuite({
   id: "D021201",
   title: "RPC Constants",
   foundationMethods: "dev",
   testCases: ({ it }) => {
-    const DATAHAVEN_CHAIN_ID = 1283n;
+    const DATAHAVEN_CHAIN_ID = BigInt(CHAIN_ID);
     it({
       id: "T01",
       title: "should have 0 hashrate",
@@ -16,7 +17,7 @@ describeSuite({
 
     it({
       id: "T02",
-      title: "should have chainId 1283",
+      title: `should have chainId ${CHAIN_ID}`,
       test: async function () {
         expect(BigInt(await customDevRpcRequest("eth_chainId"))).toBe(DATAHAVEN_CHAIN_ID);
       },

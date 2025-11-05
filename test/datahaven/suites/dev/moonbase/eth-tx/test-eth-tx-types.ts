@@ -2,13 +2,14 @@ import { describeSuite, expect } from "@moonwall/cli";
 import { ALITH_ADDRESS, BALTATHAR_ADDRESS, createEthersTransaction } from "@moonwall/util";
 import type { EthereumTransactionTransactionV2 } from "@polkadot/types/lookup";
 import { DEFAULT_TXN_MAX_BASE_FEE } from "../../../../helpers";
+import { CHAIN_ID } from "utils";
 
 describeSuite({
   id: "D021304",
   title: "Ethereum Transaction - Legacy",
   foundationMethods: "dev",
   testCases: ({ context, it, log }) => {
-    const DATAHAVEN_CHAIN_ID = 1283;
+    const DATAHAVEN_CHAIN_ID = CHAIN_ID;
     it({
       id: "T01",
       title: "should contain valid legacy Ethereum data",

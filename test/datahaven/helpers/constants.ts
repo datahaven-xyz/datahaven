@@ -7,7 +7,7 @@ import type { GenericContext } from "@moonwall/cli";
 import {
   ALITH_GENESIS_FREE_BALANCE,
   ALITH_GENESIS_LOCK_BALANCE,
-  ALITH_GENESIS_RESERVE_BALANCE,
+  ALITH_GENESIS_RESERVE_BALANCE
 } from "@moonwall/util";
 
 export const ALITH_GENESIS_TRANSFERABLE_COUNT =

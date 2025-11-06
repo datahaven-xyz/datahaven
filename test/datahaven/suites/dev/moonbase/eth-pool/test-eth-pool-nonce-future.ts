@@ -1,10 +1,10 @@
-import { TransactionTypes, describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
+import { describeSuite, expect, fetchCompiledContract, TransactionTypes } from "@moonwall/cli";
 import {
   ALITH_ADDRESS,
   BALTATHAR_ADDRESS,
   createEthersTransaction,
   createRawTransfer,
-  sendRawTransaction,
+  sendRawTransaction
 } from "@moonwall/util";
 
 import { encodeDeployData } from "viem";
@@ -18,34 +18,34 @@ describeSuite({
       it({
         id: `T0${TransactionTypes.indexOf(txnType) + 1}`,
         title: "should not be executed until condition is met",
-        test: async function () {
+        test: async () => {
           const { bytecode, abi } = fetchCompiledContract("MultiplyBy7");
           const callData = encodeDeployData({
             abi,
             bytecode,
-            args: [],
+            args: []
           });
           const rawSigned = await createEthersTransaction(context, {
             data: callData,
-            txnType,
+            txnType
           });
           const txHash = await sendRawTransaction(context, rawSigned);
           const transaction = await context.viem().getTransaction({ hash: txHash });
           expect(transaction.blockNumber).to.be.null;
           await context.createBlock();
-        },
+        }
       });
 
       // TODO: Add txpool_content once implemented
       it({
         id: `T0${TransactionTypes.indexOf(txnType) + 4}`,
         title: "should be executed after condition is met",
-        test: async function () {
+        test: async () => {
           const { bytecode, abi } = fetchCompiledContract("MultiplyBy7");
           const callData = encodeDeployData({
             abi,
             bytecode,
-            args: [],
+            args: []
           });
           const nonce = await context
             .viem("public")
@@ -53,7 +53,7 @@ describeSuite({
           const rawSigned = await createEthersTransaction(context, {
             data: callData,
             txnType,
-            nonce: nonce + 1,
+            nonce: nonce + 1
           });
           const txHash = await sendRawTransaction(context, rawSigned);
           await context.createBlock(
@@ -61,8 +61,8 @@ describeSuite({
           );
           const transaction = await context.viem().getTransaction({ hash: txHash });
           expect(transaction.blockNumber! > 0n).toBe(true);
-        },
+        }
       });
     }
-  },
+  }
 });

@@ -1,4 +1,4 @@
-import { describeSuite, expect, customDevRpcRequest } from "@moonwall/cli";
+import { customDevRpcRequest, describeSuite, expect } from "@moonwall/cli";
 
 describeSuite({
   id: "D021202",
@@ -10,21 +10,21 @@ describeSuite({
       { method: "eth_compileLLL", params: ["(returnlll (suicide (caller)))"] },
       {
         method: "eth_compileSolidity",
-        params: ["contract test { function multiply(uint a) returns(uint d) {return a * 7;}}"],
+        params: ["contract test { function multiply(uint a) returns(uint d) {return a * 7;}}"]
       },
-      { method: "eth_compileSerpent", params: ["/* some serpent 🐍🐍🐍 */"] },
+      { method: "eth_compileSerpent", params: ["/* some serpent 🐍🐍🐍 */"] }
     ];
 
     for (const { method, params } of deprecatedMethods) {
       it({
         id: `T0${deprecatedMethods.findIndex((item) => item.method === method) + 1}`,
         title: `${method} should be mark as not found`,
-        test: async function () {
+        test: async () => {
           await expect(async () => await customDevRpcRequest(method, params)).rejects.toThrowError(
             "Method not found"
           );
-        },
+        }
       });
     }
-  },
+  }
 });

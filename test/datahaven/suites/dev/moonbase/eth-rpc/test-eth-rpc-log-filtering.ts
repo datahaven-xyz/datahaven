@@ -1,9 +1,9 @@
 import {
-  describeSuite,
-  expect,
   beforeAll,
-  deployCreateCompiledContract,
   customDevRpcRequest,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect
 } from "@moonwall/cli";
 import type { TransactionReceipt } from "viem";
 
@@ -20,28 +20,28 @@ describeSuite({
         {
           fromBlock: "0x0",
           toBlock: "latest",
-          address: "0x0000000000000000000000000000000000000000",
+          address: "0x0000000000000000000000000000000000000000"
         },
         // Non-existant topic.
         {
           fromBlock: "0x0",
           toBlock: "latest",
-          topics: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
+          topics: ["0x0000000000000000000000000000000000000000000000000000000000000000"]
         },
         // Existant address + non-existant topic.
         {
           fromBlock: "0x0",
           toBlock: "latest",
           address: receipt.contractAddress,
-          topics: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
+          topics: ["0x0000000000000000000000000000000000000000000000000000000000000000"]
         },
         // Non-existant address + existant topic.
         {
           fromBlock: "0x0",
           toBlock: "latest",
           address: "0x0000000000000000000000000000000000000000",
-          topics: receipt.logs[0].topics,
-        },
+          topics: receipt.logs[0].topics
+        }
       ];
     };
 
@@ -54,7 +54,7 @@ describeSuite({
     it({
       id: "T01",
       title: "EthFilterApi::getFilterLogs - should filter out non-matching cases.",
-      test: async function () {
+      test: async () => {
         const filterLogs = await Promise.all(
           nonMatchingCases.map(async (item) => {
             const filter = await customDevRpcRequest("eth_newFilter", [item]);
@@ -63,17 +63,17 @@ describeSuite({
         );
 
         expect(filterLogs.flat(1).length).toBe(0);
-      },
+      }
     });
     it({
       id: "T02",
       title: "EthApi::getLogs - should filter out non-matching cases.",
-      test: async function () {
+      test: async () => {
         const logs = await Promise.all(
           nonMatchingCases.map(async (item) => await customDevRpcRequest("eth_getLogs", [item]))
         );
         expect(logs.flat(1).length).toBe(0);
-      },
+      }
     });
-  },
+  }
 });

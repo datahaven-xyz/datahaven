@@ -1,8 +1,8 @@
-import { describeSuite, expect, fetchCompiledContract, customDevRpcRequest } from "@moonwall/cli";
+import { customDevRpcRequest, describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { hexToNumber, numberToHex } from "@polkadot/util";
-import { parseGwei } from "viem";
 import { CHAIN_ID } from "utils";
+import { parseGwei } from "viem";
 
 // We use ethers library in this test as apparently web3js's types are not fully EIP-1559
 // compliant yet.
@@ -36,7 +36,7 @@ describeSuite({
             accessList: [],
             nonce: nonce,
             gasLimit: "0x100000",
-            chainId: CHAIN_ID,
+            chainId: CHAIN_ID
           });
           nonce++;
         }
@@ -45,9 +45,7 @@ describeSuite({
     }
 
     function getPercentile(percentile: number, array: number[]) {
-      array.sort(function (a, b) {
-        return a - b;
-      });
+      array.sort((a, b) => a - b);
       const index = (percentile / 100) * array.length - 1;
       if (Math.floor(index) === index) {
         return array[index];
@@ -83,7 +81,7 @@ describeSuite({
       id: "T01",
       title: "result length should match spec",
       timeout: 40_000,
-      test: async function () {
+      test: async () => {
         const block_count = 2;
         const reward_percentiles = [20, 50, 70];
         const priority_fees = [1, 2, 3];
@@ -96,26 +94,26 @@ describeSuite({
                 const result = (await customDevRpcRequest("eth_feeHistory", [
                   "0x2",
                   "latest",
-                  reward_percentiles,
+                  reward_percentiles
                 ])) as FeeHistory;
                 unwatch();
                 resolve(result);
               }
-            },
+            }
           });
         });
 
         await createBlocks(block_count, priority_fees, parseGwei("10").toString());
 
         matchExpectations(await feeHistory, block_count, reward_percentiles);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should calculate percentiles",
       timeout: 40_000,
-      test: async function () {
+      test: async () => {
         const max_fee_per_gas = parseGwei("10").toString();
         const block_count = 11;
         const reward_percentiles = [20, 50, 70, 85, 100];
@@ -129,13 +127,13 @@ describeSuite({
                 const result = (await customDevRpcRequest("eth_feeHistory", [
                   "0xA",
                   "latest",
-                  reward_percentiles,
+                  reward_percentiles
                 ])) as FeeHistory;
 
                 unwatch();
                 resolve(result);
               }
-            },
+            }
           });
         });
 
@@ -163,14 +161,14 @@ describeSuite({
           failures.length,
           "each block should have rewards matching the requested percentile list"
         ).toBe(0);
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "result length should match spec using an integer block count",
       timeout: 40_000,
-      test: async function () {
+      test: async () => {
         const block_count = 2;
         const reward_percentiles = [20, 50, 70];
         const priority_fees = [1, 2, 3];
@@ -183,19 +181,19 @@ describeSuite({
                 const result = (await customDevRpcRequest("eth_feeHistory", [
                   block_count,
                   "latest",
-                  reward_percentiles,
+                  reward_percentiles
                 ])) as FeeHistory;
                 unwatch();
                 resolve(result);
               }
-            },
+            }
           });
         });
 
         await createBlocks(block_count, priority_fees, parseGwei("10").toString());
 
         matchExpectations(await feeHistory, block_count, reward_percentiles);
-      },
+      }
     });
-  },
+  }
 });

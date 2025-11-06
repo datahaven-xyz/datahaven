@@ -1,4 +1,4 @@
-import { TransactionTypes, describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
+import { describeSuite, expect, fetchCompiledContract, TransactionTypes } from "@moonwall/cli";
 import { encodeDeployData } from "viem";
 import { getTransactionReceiptWithRetry } from "../../../../helpers/eth-transactions";
 
@@ -11,12 +11,12 @@ describeSuite({
       it({
         id: `T0${TransactionTypes.indexOf(txnType) + 1}`,
         title: "should be able to call fibonacci",
-        test: async function () {
+        test: async () => {
           //TODO: replace this with txnType deploy fn when available
           const { abi, bytecode } = fetchCompiledContract("Fibonacci");
           const data = encodeDeployData({
             abi,
-            bytecode,
+            bytecode
           });
 
           const { result } = await context.createBlock(
@@ -24,7 +24,7 @@ describeSuite({
               data,
               txnType,
               libraryType: "ethers",
-              gasLimit: 260_000n,
+              gasLimit: 260_000n
             })
           );
 
@@ -37,7 +37,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [0],
+              args: [0]
             })
           ).toBe(0n);
           expect(
@@ -45,7 +45,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [1],
+              args: [1]
             })
           ).toBe(1n);
           expect(
@@ -53,7 +53,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [2],
+              args: [2]
             })
           ).toBe(1n);
           expect(
@@ -61,7 +61,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [3],
+              args: [3]
             })
           ).toBe(2n);
           expect(
@@ -69,7 +69,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [4],
+              args: [4]
             })
           ).toBe(3n);
           expect(
@@ -77,7 +77,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [5],
+              args: [5]
             })
           ).toBe(5n);
           expect(
@@ -85,7 +85,7 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [20],
+              args: [20]
             })
           ).toBe(6765n);
 
@@ -97,28 +97,28 @@ describeSuite({
               contractName: "Fibonacci",
               contractAddress,
               functionName: "fib2",
-              args: [370],
+              args: [370]
             })
           ).toBe(94611056096305838013295371573764256526437182762229865607320618320601813254535n);
-        },
+        }
       });
 
       it({
         id: `T0${TransactionTypes.indexOf(txnType) + 4}`,
         title: "should be able to call fibonacci[370] in txn",
-        test: async function () {
+        test: async () => {
           //TODO: replace this with txnType deploy fn when available
           const { abi, bytecode } = fetchCompiledContract("Fibonacci");
           const data = encodeDeployData({
             abi,
-            bytecode,
+            bytecode
           });
 
           const { result } = await context.createBlock(
             context.createTxn!({
               data,
               txnType,
-              libraryType: "ethers",
+              libraryType: "ethers"
             })
           );
 
@@ -133,14 +133,14 @@ describeSuite({
             contractAddress,
             functionName: "fib2",
             args: [370],
-            value: 0n,
+            value: 0n
           });
 
           await context.createBlock();
           const receipt2 = await getTransactionReceiptWithRetry(context, hash as `0x${string}`);
           expect(receipt2.status).toBe("success");
-        },
+        }
       });
     }
-  },
+  }
 });

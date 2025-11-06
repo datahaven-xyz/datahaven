@@ -1,6 +1,6 @@
+import { error } from "node:console";
 import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
 import { createViemTransaction } from "@moonwall/util";
-import { error } from "node:console";
 
 describeSuite({
   id: "D021301",
@@ -14,14 +14,14 @@ describeSuite({
     beforeAll(async () => {
       helper = await deployCreateCompiledContract(context, "AccessListHelper");
       helperProxy = await deployCreateCompiledContract(context, "AccessListHelperProxy", {
-        args: [helper.contractAddress],
+        args: [helper.contractAddress]
       });
     });
 
     it({
       id: "T01",
       title: "after the 4th one, additional storage keys should cost 1900 gas",
-      test: async function () {
+      test: async () => {
         const keys = generateSequentialStorageKeys(100);
 
         interface Results {
@@ -42,9 +42,9 @@ describeSuite({
             accessList: [
               {
                 address: helper.contractAddress,
-                storageKeys: keys.slice(0, n),
-              },
-            ],
+                storageKeys: keys.slice(0, n)
+              }
+            ]
           });
 
           await context.createBlock(txWithAL);
@@ -58,7 +58,7 @@ describeSuite({
           results.push({
             keys: n,
             size: txSize,
-            gasWithAL: gasCostWithAL,
+            gasWithAL: gasCostWithAL
           });
         }
 
@@ -71,13 +71,13 @@ describeSuite({
             ).toBe(1900n);
           }
         });
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "after the 4th one, additional addresses should cost 2400 gas",
-      test: async function () {
+      test: async () => {
         const addresses = randomAddresses(100);
 
         interface Results {
@@ -100,7 +100,7 @@ describeSuite({
           for (let i = 0; i < n; i++) {
             accessList.push({
               address: addresses[i],
-              storageKeys: [],
+              storageKeys: []
             });
           }
 
@@ -108,7 +108,7 @@ describeSuite({
             to: helperProxy.contractAddress,
             data: data,
             gas: 1000000n,
-            accessList,
+            accessList
           });
 
           await context.createBlock(txWithAL);
@@ -122,7 +122,7 @@ describeSuite({
           results.push({
             addresses: n,
             size: txSize,
-            gasWithAL: gasCostWithAL,
+            gasWithAL: gasCostWithAL
           });
         }
 
@@ -135,13 +135,13 @@ describeSuite({
             ).toBe(2400n);
           }
         });
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "transaction should not be gossiped if it exceeds the gas limit",
-      test: async function () {
+      test: async () => {
         const keys = generateSequentialStorageKeys(100);
 
         const bigTxWithAL = await createViemTransaction(context, {
@@ -151,9 +151,9 @@ describeSuite({
           accessList: [
             {
               address: helper.contractAddress,
-              storageKeys: keys,
-            },
-          ],
+              storageKeys: keys
+            }
+          ]
         });
 
         try {
@@ -162,9 +162,9 @@ describeSuite({
         } catch (e) {
           expect(e.message).toContain("exceeds block gas limit");
         }
-      },
+      }
     });
-  },
+  }
 });
 
 function generateSequentialStorageKeys(n: number): `0x${string}`[] {

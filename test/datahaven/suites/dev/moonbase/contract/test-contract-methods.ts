@@ -1,6 +1,6 @@
 import { beforeAll, describeSuite, expect } from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
-import { encodeFunctionData, type Abi } from "viem";
+import { type Abi, encodeFunctionData } from "viem";
 
 describeSuite({
   id: "D020508",
@@ -11,7 +11,7 @@ describeSuite({
     let multiplyAbi: Abi;
     let deployHash: `0x${string}`;
 
-    beforeAll(async function () {
+    beforeAll(async () => {
       const { contractAddress, abi, hash } = await context.deployContract!("MultiplyBy7");
 
       multiplyAddress = contractAddress;
@@ -29,7 +29,7 @@ describeSuite({
         const block = await context.viem().getBlock();
         const txHash = block.transactions[0];
         expect(txHash).toBe(deployHash);
-      },
+      }
     });
 
     it({
@@ -38,29 +38,29 @@ describeSuite({
       test: async () => {
         const tx = await context.viem().getTransaction({ hash: deployHash });
         expect(tx.hash).to.equal(deployHash);
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should provide callable methods",
-      test: async function () {
+      test: async () => {
         expect(
           await context.readContract!({
             contractName: "MultiplyBy7",
             contractAddress: multiplyAddress,
             functionName: "multiply",
-            args: [3],
+            args: [3]
           })
           // multiplyContract.read.multiply([3])
         ).toBe(21n);
-      },
+      }
     });
 
     it({
       id: "T04",
       title: "should fail for call method with missing parameters",
-      test: async function () {
+      test: async () => {
         await expect(
           async () =>
             await context.viem().call({
@@ -69,18 +69,18 @@ describeSuite({
               data: encodeFunctionData({
                 abi: [{ ...multiplyAbi[0], inputs: [] }],
                 functionName: "multiply",
-                args: [],
-              }),
+                args: []
+              })
             }),
           "Execution succeeded but should have failed"
         ).rejects.toThrowError("VM Exception while processing transaction: revert");
-      },
+      }
     });
 
     it({
       id: "T05",
       title: "should fail for too many parameters",
-      test: async function () {
+      test: async () => {
         await expect(
           async () =>
             await context.viem().call({
@@ -92,23 +92,23 @@ describeSuite({
                     ...multiplyAbi[0],
                     inputs: [
                       { internalType: "uint256", name: "a", type: "uint256" },
-                      { internalType: "uint256", name: "b", type: "uint256" },
-                    ],
-                  },
+                      { internalType: "uint256", name: "b", type: "uint256" }
+                    ]
+                  }
                 ],
                 functionName: "multiply",
-                args: [3, 4],
-              }),
+                args: [3, 4]
+              })
             }),
           "Execution succeeded but should have failed"
         ).rejects.toThrowError("VM Exception while processing transaction: revert");
-      },
+      }
     });
 
     it({
       id: "T06",
       title: "should fail for invalid parameters",
-      test: async function () {
+      test: async () => {
         await expect(
           async () =>
             await context.viem().call({
@@ -122,18 +122,18 @@ describeSuite({
                       {
                         internalType: "address",
                         name: "a",
-                        type: "address",
-                      },
-                    ],
-                  },
+                        type: "address"
+                      }
+                    ]
+                  }
                 ],
                 functionName: "multiply",
-                args: ["0x0123456789012345678901234567890123456789"],
-              }),
+                args: ["0x0123456789012345678901234567890123456789"]
+              })
             }),
           "Execution succeeded but should have failed"
         ).rejects.toThrowError("VM Exception while processing transaction: revert");
-      },
+      }
     });
-  },
+  }
 });

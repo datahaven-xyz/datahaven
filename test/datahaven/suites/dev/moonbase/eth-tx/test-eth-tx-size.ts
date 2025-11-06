@@ -1,5 +1,5 @@
 import { customDevRpcRequest, describeSuite, expect } from "@moonwall/cli";
-import { EXTRINSIC_GAS_LIMIT, createEthersTransaction } from "@moonwall/util";
+import { createEthersTransaction, EXTRINSIC_GAS_LIMIT } from "@moonwall/util";
 import { EIP7623_GAS_CONSTANTS } from "../../../../helpers/fees";
 
 describeSuite({
@@ -21,7 +21,7 @@ describeSuite({
     it({
       id: "T01",
       title: "should accept txns up to known size",
-      test: async function () {
+      test: async () => {
         // Dynamically calculated: (13000000 - 21000) / 40 - 2000 = 322475
         expect(maxSize).to.equal(322475n); // max Ethereum TXN size with EIP-7623 floor cost
         // max_size - shanghai init cost - create cost
@@ -31,7 +31,7 @@ describeSuite({
         const rawSigned = await createEthersTransaction(context, {
           value: 0n,
           data,
-          gasLimit: EXTRINSIC_GAS_LIMIT,
+          gasLimit: EXTRINSIC_GAS_LIMIT
         });
 
         const { result } = await context.createBlock(rawSigned);
@@ -40,27 +40,27 @@ describeSuite({
           .getTransactionReceipt({ hash: result!.hash as `0x${string}` });
 
         expect(receipt.status, "Junk txn should be accepted by RPC but reverted").toBe("reverted");
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should reject txns which are too large to pay for",
-      test: async function () {
+      test: async () => {
         // Use exactMaxSize + 1 to ensure we exceed the gas limit
         const data = ("0x" + "FF".repeat(Number(exactMaxSize) + 1)) as `0x${string}`;
 
         const rawSigned = await createEthersTransaction(context, {
           value: 0n,
           data,
-          gasLimit: EXTRINSIC_GAS_LIMIT,
+          gasLimit: EXTRINSIC_GAS_LIMIT
         });
 
         await expect(
           async () => await customDevRpcRequest("eth_sendRawTransaction", [rawSigned]),
           "RPC must reject before gossiping to prevent spam"
         ).rejects.toThrowError("intrinsic gas too low");
-      },
+      }
     });
-  },
+  }
 });

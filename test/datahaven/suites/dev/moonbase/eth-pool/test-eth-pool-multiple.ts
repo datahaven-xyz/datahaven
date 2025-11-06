@@ -19,12 +19,12 @@ describeSuite({
   testCases: ({ context, it, log }) => {
     let txHashes: string[];
 
-    beforeAll(async function () {
+    beforeAll(async () => {
       const { bytecode, abi } = fetchCompiledContract("MultiplyBy7");
       const callData = encodeDeployData({
         abi,
         bytecode,
-        args: [],
+        args: []
       });
 
       txHashes = await Promise.all(
@@ -37,7 +37,7 @@ describeSuite({
     it({
       id: "T01",
       title: "should all be available by hash",
-      test: async function () {
+      test: async () => {
         const transactions = await Promise.all(
           txHashes.map((txHash) => context.viem().getTransaction({ hash: txHash as `0x${string}` }))
         );
@@ -46,13 +46,13 @@ describeSuite({
         expect(
           transactions.every((transaction, index) => transaction.hash === txHashes[index])
         ).toBe(true);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should all be marked as pending",
-      test: async function () {
+      test: async () => {
         const transactions = await Promise.all(
           txHashes.map((txHash) => context.viem().getTransaction({ hash: txHash as `0x${string}` }))
         );
@@ -62,13 +62,13 @@ describeSuite({
         expect(transactions.every((transaction) => transaction.transactionIndex === null)).toBe(
           true
         );
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should all be populated when included in a block",
-      test: async function () {
+      test: async () => {
         await context.createBlock();
         const transactions = await Promise.all(
           txHashes.map((txHash) => context.viem().getTransaction({ hash: txHash as `0x${string}` }))
@@ -79,7 +79,7 @@ describeSuite({
         expect(
           transactions.every((transaction, index) => transaction.transactionIndex === index)
         ).toBe(true);
-      },
+      }
     });
-  },
+  }
 });

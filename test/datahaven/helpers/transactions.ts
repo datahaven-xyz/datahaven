@@ -22,12 +22,12 @@ export async function rpcToLocalNode(
       id: 1,
       jsonrpc: "2.0",
       method,
-      params,
+      params
     }),
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    method: "POST",
+    method: "POST"
   })
     .then((response) => response.json())
     .then((data: any) => {
@@ -48,7 +48,7 @@ export const sendAllStreamAndWaitLast = async (
   { threshold = 500, batch = 200, timeout = 120000 } = {
     threshold: 500,
     batch: 200,
-    timeout: 120000,
+    timeout: 120000
   }
 ) => {
   const promises: any[] = [];
@@ -116,7 +116,7 @@ export async function sendPrecompileTx(
       value: 0n,
       gas: 200_000n,
       to: precompileContractAddress,
-      data,
+      data
     })
   );
 }

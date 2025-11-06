@@ -1,17 +1,17 @@
 import {
-  type EthTransactionType,
-  TransactionTypes,
   beforeAll,
   customDevRpcRequest,
   describeSuite,
+  type EthTransactionType,
   expect,
   fetchCompiledContract,
+  TransactionTypes
 } from "@moonwall/cli";
 import {
   ALITH_ADDRESS,
   createEthersTransaction,
   faith,
-  getAllCompiledContracts,
+  getAllCompiledContracts
 } from "@moonwall/util";
 import { randomBytes } from "ethers";
 import { encodeDeployData } from "viem";
@@ -24,7 +24,7 @@ describeSuite({
   testCases: ({ context, it, log }) => {
     const contractNames = getAllCompiledContracts("contracts/out", true);
 
-    beforeAll(async function () {
+    beforeAll(async () => {
       // Estimation for storage need to happen in a block > than genesis.
       // Otherwise contracts that uses block number as storage will remove instead of storing
       // (as block.number === H256::default).
@@ -34,9 +34,9 @@ describeSuite({
     it({
       id: "T01",
       title: "should have at least 1 contract to estimate",
-      test: async function () {
+      test: async () => {
         expect(contractNames).length.to.be.at.least(1);
-      },
+      }
     });
 
     const calculateTestCaseNumber = (contractName: string, txnType: EthTransactionType) =>
@@ -49,7 +49,7 @@ describeSuite({
         it({
           id: `T${calculateTestCaseNumber(contractName, txnType).toString().padStart(2, "0")}`,
           title: `should be enough for contract ${contractName} via ${txnType}`,
-          test: async function () {
+          test: async () => {
             const { bytecode, abi } = fetchCompiledContract(contractName);
             const constructorAbi = abi.find(
               (call) => call.type === "constructor"
@@ -89,7 +89,7 @@ describeSuite({
             const callData = encodeDeployData({
               abi,
               args,
-              bytecode,
+              bytecode
             });
 
             let estimate: bigint;
@@ -98,8 +98,8 @@ describeSuite({
               estimate = await customDevRpcRequest("eth_estimateGas", [
                 {
                   from: ALITH_ADDRESS,
-                  data: callData,
-                },
+                  data: callData
+                }
               ]);
               creationResult = "Succeed";
             } catch (e: any) {
@@ -115,7 +115,7 @@ describeSuite({
             const rawSigned = await createEthersTransaction(context, {
               data: callData,
               gasLimit: estimate,
-              txnType,
+              txnType
             });
             const { result } = await context.createBlock(rawSigned);
             const receipt = await context
@@ -124,9 +124,9 @@ describeSuite({
 
             expectEVMResult(result!.events, creationResult);
             expect(receipt.status === "success").to.equal(creationResult === "Succeed");
-          },
+          }
         });
       }
     }
-  },
+  }
 });

@@ -1,4 +1,5 @@
 import "@moonbeam-network/api-augment";
+import assert from "node:assert";
 import { type DevModeContext, expect } from "@moonwall/cli";
 import type { EventRecord } from "@polkadot/types/interfaces";
 import type {
@@ -6,9 +7,8 @@ import type {
   EvmCoreErrorExitFatal,
   EvmCoreErrorExitReason,
   EvmCoreErrorExitRevert,
-  EvmCoreErrorExitSucceed,
+  EvmCoreErrorExitSucceed
 } from "@polkadot/types/lookup";
-import assert from "node:assert";
 import { fromHex } from "viem";
 
 export type Errors = {
@@ -139,6 +139,6 @@ export function getSignatureParameters(signature: string) {
   return {
     r,
     s,
-    v,
+    v
   };
 }

@@ -1,8 +1,8 @@
 import { describeSuite, expect } from "@moonwall/cli";
 import { ALITH_ADDRESS, BALTATHAR_ADDRESS, createEthersTransaction } from "@moonwall/util";
 import type { EthereumTransactionTransactionV2 } from "@polkadot/types/lookup";
-import { DEFAULT_TXN_MAX_BASE_FEE } from "../../../../helpers";
 import { CHAIN_ID } from "utils";
+import { DEFAULT_TXN_MAX_BASE_FEE } from "../../../../helpers";
 
 describeSuite({
   id: "D021304",
@@ -13,14 +13,14 @@ describeSuite({
     it({
       id: "T01",
       title: "should contain valid legacy Ethereum data",
-      test: async function () {
+      test: async () => {
         await context.createBlock(
           await createEthersTransaction(context, {
             to: BALTATHAR_ADDRESS,
             gasLimit: 12_000_000,
             gasPrice: 10_000_000_000,
             value: 512,
-            txnType: "legacy",
+            txnType: "legacy"
           })
         );
 
@@ -48,13 +48,13 @@ describeSuite({
         expect(signature.s.toHex()).to.equal(
           "0x4186b0a32dd279fed20b1f20805845e24eff2a2a035801fe19419c09e861a62d"
         );
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should contain valid EIP2930 Ethereum data",
-      test: async function () {
+      test: async () => {
         const currentNonce = await context
           .viem("public")
           .getTransactionCount({ address: ALITH_ADDRESS });
@@ -64,7 +64,7 @@ describeSuite({
             accessList: [],
             value: 512,
             gasLimit: 21000,
-            txnType: "eip2930",
+            txnType: "eip2930"
           })
         );
 
@@ -92,13 +92,13 @@ describeSuite({
         expect(signature.s.toHex()).to.equal(
           "0x67c4d6d489d7d5180c8764eb4eff3e16e0330c9a0000b52756847b9ca14069e1"
         );
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should contain valid EIP1559 Ethereum data",
-      test: async function () {
+      test: async () => {
         const currentNonce = await context
           .viem("public")
           .getTransactionCount({ address: ALITH_ADDRESS });
@@ -108,7 +108,7 @@ describeSuite({
             accessList: [],
             value: 512,
             gasLimit: 21000,
-            txnType: "eip1559",
+            txnType: "eip1559"
           })
         );
 
@@ -129,7 +129,7 @@ describeSuite({
           value,
           input,
           accessList,
-          signature,
+          signature
         } = extrinsic.asEip1559;
         expect(chainId.toNumber()).to.equal(DATAHAVEN_CHAIN_ID);
         expect(nonce.toNumber()).to.equal(currentNonce);
@@ -147,7 +147,7 @@ describeSuite({
         expect(signature.s.toHex()).to.equal(
           "0x45ec58c0626fef976a5e3a9cbad8d3aadbad03a4784fd7ca0cd332d2f571a000"
         );
-      },
+      }
     });
-  },
+  }
 });

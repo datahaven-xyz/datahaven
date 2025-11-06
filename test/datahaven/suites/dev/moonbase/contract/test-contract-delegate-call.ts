@@ -1,10 +1,10 @@
-import { expect, describeSuite, beforeAll, deployCreateCompiledContract } from "@moonwall/cli";
+import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
-import { encodeFunctionData, type Abi } from "viem";
+import { type Abi, encodeFunctionData } from "viem";
 
 const PRECOMPILE_PREFIXES = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1026, 2048, 2049, 2050, 2052, 2053, 2054, 2055, 2056, 2057, 2058,
-  2059,
+  2059
 ];
 
 // Ethereum precompile 1-9 are pure and allowed to be called through DELEGATECALL
@@ -42,7 +42,7 @@ describeSuite({
       id: "T01",
       timeout: 10000,
       title: "should work for normal smart contract",
-      test: async function () {
+      test: async () => {
         const { contractAddress: dummyAddress, abi: dummyAbi } = await deployCreateCompiledContract(
           context,
           "MultiplyBy7"
@@ -56,9 +56,9 @@ describeSuite({
             functionName: "delegateCall",
             args: [
               dummyAddress,
-              encodeFunctionData({ abi: dummyAbi, functionName: "multiply", args: [42] }),
-            ],
-          }),
+              encodeFunctionData({ abi: dummyAbi, functionName: "multiply", args: [42] })
+            ]
+          })
         });
 
         expect(txCall.data).to.equal(
@@ -67,14 +67,14 @@ describeSuite({
             "0000000000000000000000000000000000000000000000000000000000000020" +
             "0000000000000000000000000000000000000000000000000000000000000126"
         );
-      },
+      }
     });
 
     for (const precompilePrefix of ALLOWED_PRECOMPILE_PREFIXES) {
       it({
         id: `T${ALLOWED_PRECOMPILE_PREFIXES.indexOf(precompilePrefix) + 1}`,
         title: `should succeed for standard precompile ${precompilePrefix}`,
-        test: async function () {
+        test: async () => {
           const precompileAddress = `0x${precompilePrefix.toString(16).padStart(40, "0")}`;
 
           const txCall = await context.viem().call({
@@ -83,11 +83,11 @@ describeSuite({
             data: encodeFunctionData({
               abi: forwardAbi,
               functionName: "delegateCall",
-              args: [precompileAddress, "0x00"],
-            }),
+              args: [precompileAddress, "0x00"]
+            })
           });
           expect(txCall.data).to.not.equal(DELEGATECALL_FORDIDDEN_MESSAGE);
-        },
+        }
       });
     }
 
@@ -95,7 +95,7 @@ describeSuite({
       it({
         id: `T${ALLOWED_PRECOMPILE_PREFIXES.indexOf(precompilePrefix) * 2 + 1}`,
         title: `should fail for non-standard precompile ${precompilePrefix}`,
-        test: async function () {
+        test: async () => {
           const precompileAddress = `0x${precompilePrefix.toString(16).padStart(40, "0")}`;
 
           const txCall = await context.viem().call({
@@ -104,12 +104,12 @@ describeSuite({
             data: encodeFunctionData({
               abi: forwardAbi,
               functionName: "delegateCall",
-              args: [precompileAddress, "0x00"],
-            }),
+              args: [precompileAddress, "0x00"]
+            })
           });
-          expect(txCall.data, `Call should be forbidden`).to.equal(DELEGATECALL_FORDIDDEN_MESSAGE);
-        },
+          expect(txCall.data, "Call should be forbidden").to.equal(DELEGATECALL_FORDIDDEN_MESSAGE);
+        }
       });
     }
-  },
+  }
 });

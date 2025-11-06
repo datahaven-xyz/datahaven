@@ -10,7 +10,7 @@ describeSuite({
     it({
       id: "T01",
       title: "SELFDESTRUCT must reset contract account",
-      test: async function () {
+      test: async () => {
         const { contractAddress, abi } = await context.deployContract!("SelfDestructAfterCreate2");
 
         const block = await context.createBlock([
@@ -19,31 +19,31 @@ describeSuite({
             data: encodeFunctionData({
               abi,
               functionName: "step1",
-              args: [],
+              args: []
             }),
             gasLimit: 100_000n,
-            nonce: 1,
+            nonce: 1
           }),
           await createEthersTransaction(context, {
             to: contractAddress,
             data: encodeFunctionData({
               abi,
               functionName: "step2",
-              args: [],
+              args: []
             }),
             gasLimit: 100_000n,
-            nonce: 2,
+            nonce: 2
           }),
           await createEthersTransaction(context, {
             to: contractAddress,
             data: encodeFunctionData({
               abi,
               functionName: "cannotRecreateInTheSameCall",
-              args: [],
+              args: []
             }),
             gasLimit: 100_000n,
-            nonce: 3,
-          }),
+            nonce: 3
+          })
         ]);
 
         for (const result of block.result) {
@@ -59,7 +59,7 @@ describeSuite({
           contractAddress: contractAddress,
           functionName: "deployed1",
           args: [],
-          rawTxOnly: true,
+          rawTxOnly: true
         });
 
         const deletedAccount = await context.polkadotJs().query.system.account(deployedAddress);
@@ -72,11 +72,11 @@ describeSuite({
             data: expect.objectContaining({
               free: 0,
               reserved: 0,
-              frozen: 0,
-            }),
+              frozen: 0
+            })
           })
         );
-      },
+      }
     });
-  },
+  }
 });

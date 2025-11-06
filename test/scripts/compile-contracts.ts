@@ -82,7 +82,7 @@ async function main(args: ArgumentsCamelCase<CompileCommandOptions>) {
 
   await fs.mkdir(outputDirectory, { recursive: true });
   if (path.resolve(deprecatedOutputDirectory) !== path.resolve(outputDirectory)) {
-    await fs.rm(deprecatedOutputDirectory, { recursive: true, force: true }).catch(() => { });
+    await fs.rm(deprecatedOutputDirectory, { recursive: true, force: true }).catch(() => {});
   }
 
   // Order is important so precompiles are available first

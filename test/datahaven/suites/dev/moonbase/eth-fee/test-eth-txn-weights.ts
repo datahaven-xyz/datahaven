@@ -3,14 +3,14 @@ import {
   ALITH_ADDRESS,
   BALTATHAR_ADDRESS,
   BALTATHAR_PRIVATE_KEY,
+  baltathar,
   CHARLETH_ADDRESS,
   CHARLETH_PRIVATE_KEY,
+  createRawTransfer,
+  createViemTransaction,
   EXTRINSIC_GAS_LIMIT,
   GLMR,
-  WEIGHT_PER_GAS,
-  baltathar,
-  createViemTransaction,
-  createRawTransfer,
+  WEIGHT_PER_GAS
 } from "@moonwall/util";
 
 // This tests an issue where pallet Ethereum in Frontier does not properly account for weight after
@@ -26,13 +26,13 @@ describeSuite({
       id: "T01",
       title: "should account for weight used",
       timeout: 10000,
-      test: async function () {
+      test: async () => {
         const { block, result } = await context.createBlock(
           await createViemTransaction(context, {
             gas: BigInt(EXTRINSIC_GAS_LIMIT),
             maxFeePerGas: 10_000_000_000n,
             maxPriorityFeePerGas: 0n,
-            to: baltathar.address,
+            to: baltathar.address
           })
         );
 
@@ -62,30 +62,30 @@ describeSuite({
         expect(extSuccessEvent).to.not.be.eq(null);
         const eventWeight = extSuccessEvent.event.data.dispatchInfo.weight.refTime.toBigInt();
         expect(eventWeight).to.eq(EXPECTED_WEIGHT);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should correctly refund weight from excess gas_limit supplied",
-      test: async function () {
+      test: async () => {
         const gasAmount = (EXTRINSIC_GAS_LIMIT * 8n) / 10n;
         const tx1 = await createRawTransfer(context, BALTATHAR_ADDRESS, GLMR, {
           gas: BigInt(gasAmount),
           maxFeePerGas: 10_000_000_000n,
-          maxPriorityFeePerGas: 0n,
+          maxPriorityFeePerGas: 0n
         });
         const tx2 = await createRawTransfer(context, CHARLETH_ADDRESS, GLMR, {
           privateKey: BALTATHAR_PRIVATE_KEY,
           gas: BigInt(gasAmount),
           maxFeePerGas: 10_000_000_000n,
-          maxPriorityFeePerGas: 0n,
+          maxPriorityFeePerGas: 0n
         });
         const tx3 = await createRawTransfer(context, ALITH_ADDRESS, GLMR, {
           privateKey: CHARLETH_PRIVATE_KEY,
           gas: BigInt(gasAmount),
           maxFeePerGas: 10_000_000_000n,
-          maxPriorityFeePerGas: 0n,
+          maxPriorityFeePerGas: 0n
         });
 
         const { result } = await context.createBlock([tx1, tx2, tx3]);
@@ -95,7 +95,7 @@ describeSuite({
           fails,
           `Transactions ${fails.map((a) => a.hash).join(", ")} have failed to be included`
         ).to.be.empty;
-      },
+      }
     });
-  },
+  }
 });

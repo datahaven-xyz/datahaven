@@ -7,9 +7,9 @@ describeSuite({
   testCases: ({ context, it, log }) => {
     let blockContract: `0x${string}`;
 
-    beforeAll(async function () {
+    beforeAll(async () => {
       const { contractAddress } = await context.deployContract!("BlockVariables", {
-        gas: 1000000n,
+        gas: 1000000n
       });
       blockContract = contractAddress;
     });
@@ -17,51 +17,51 @@ describeSuite({
     it({
       id: "T01",
       title: "should store the valid block number at creation",
-      test: async function () {
+      test: async () => {
         expect(
           await context.readContract!({
             contractName: "BlockVariables",
             contractAddress: blockContract,
-            functionName: "initialnumber",
+            functionName: "initialnumber"
           })
         ).toBe(1n);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should return parent block number + 1 when accessed by RPC call",
-      test: async function () {
+      test: async () => {
         const block = await context.viem().getBlock();
         expect(
           await context.readContract!({
             contractName: "BlockVariables",
             contractAddress: blockContract,
-            functionName: "getNumber",
+            functionName: "getNumber"
           })
         ).toBe(1n);
         expect(
           await context.readContract!({
             contractName: "BlockVariables",
             contractAddress: blockContract,
-            functionName: "getNumber",
+            functionName: "getNumber"
           })
         ).toBe(block.number);
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should store the valid chain id at creation",
-      test: async function () {
+      test: async () => {
         expect(
           await context.readContract!({
             contractName: "BlockVariables",
             contractAddress: blockContract,
-            functionName: "initialchainid",
+            functionName: "initialchainid"
           })
         ).toBe(1283n);
-      },
+      }
     });
-  },
+  }
 });

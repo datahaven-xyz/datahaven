@@ -2,7 +2,7 @@ import {
   customDevRpcRequest,
   deployCreateCompiledContract,
   describeSuite,
-  expect,
+  expect
 } from "@moonwall/cli";
 
 describeSuite({
@@ -13,20 +13,20 @@ describeSuite({
     it({
       id: "T01",
       title: "should return block information",
-      test: async function () {
+      test: async () => {
         const createFilter = await customDevRpcRequest("eth_newBlockFilter", []);
         const block = await context.viem().getBlock();
         const poll = await customDevRpcRequest("eth_getFilterChanges", [createFilter]);
 
         expect(poll.length).to.be.eq(1);
         expect(poll[0]).to.be.eq(block.hash);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should not retrieve previously polled",
-      test: async function () {
+      test: async () => {
         const filterId = await customDevRpcRequest("eth_newBlockFilter", []);
 
         await context.createBlock();
@@ -42,13 +42,13 @@ describeSuite({
         expect(poll.length).to.be.eq(2);
         expect(poll[0]).to.be.eq(block2.hash);
         expect(poll[1]).to.be.eq(block3.hash);
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should be empty after already polling",
-      test: async function () {
+      test: async () => {
         const filterId = await customDevRpcRequest("eth_newBlockFilter", []);
 
         await context.createBlock();
@@ -56,13 +56,13 @@ describeSuite({
         const poll = await customDevRpcRequest("eth_getFilterChanges", [filterId]);
 
         expect(poll.length).to.be.eq(0);
-      },
+      }
     });
 
     it({
       id: "T04",
       title: "should support filtering created contract",
-      test: async function () {
+      test: async () => {
         const { contractAddress, hash } = await deployCreateCompiledContract(
           context,
           "EventEmitter"
@@ -74,15 +74,15 @@ describeSuite({
             fromBlock: "0x0",
             toBlock: "latest",
             address: contractAddress,
-            topics: receipt.logs[0].topics,
-          },
+            topics: receipt.logs[0].topics
+          }
         ]);
         const poll = await customDevRpcRequest("eth_getFilterChanges", [filterId]);
 
         expect(poll.length).to.be.eq(1);
         expect(poll[0].address).to.be.eq(contractAddress);
         expect(poll[0].topics).to.be.deep.eq(receipt.logs[0].topics);
-      },
+      }
     });
-  },
+  }
 });

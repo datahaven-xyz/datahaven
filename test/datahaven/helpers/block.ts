@@ -182,7 +182,7 @@ export const verifyBlockFees = async (
                   priorityFee = ethTxWrapper.asEip1559.maxPriorityFeePerGas.toBigInt();
                   gasFee = ethTxWrapper.asEip1559.maxFeePerGas.toBigInt();
                 } else {
-                  throw new Error(`Unsupported Ethereum transaction type`);
+                  throw new Error("Unsupported Ethereum transaction type");
                 }
 
                 const hash = events
@@ -239,9 +239,9 @@ export const verifyBlockFees = async (
                     "refTime" in fee.weight
                       ? fee.weight
                       : {
-                        refTime: fee.weight,
-                        proofSize: 0n
-                      }
+                          refTime: fee.weight,
+                          proofSize: 0n
+                        }
                   )
                 ).toBigInt();
                 const multiplier = await apiAt.query.transactionPayment.nextFeeMultiplier();
@@ -320,7 +320,7 @@ export const verifyLatestBlockFees = async (
 
 export async function jumpToRound(context: DevModeContext, round: number): Promise<string | null> {
   let lastBlockHash = "";
-  for (; ;) {
+  for (;;) {
     const currentRound = (
       await context.polkadotJs().query.parachainStaking.round()
     ).current.toNumber();

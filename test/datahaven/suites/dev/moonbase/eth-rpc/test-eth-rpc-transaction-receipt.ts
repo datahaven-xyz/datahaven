@@ -1,6 +1,6 @@
-import { describeSuite, expect, beforeAll } from "@moonwall/cli";
-import type { ApiPromise } from "@polkadot/api";
+import { beforeAll, describeSuite, expect } from "@moonwall/cli";
 import { BALTATHAR_ADDRESS, createViemTransaction, extractFee } from "@moonwall/util";
+import type { ApiPromise } from "@polkadot/api";
 
 describeSuite({
   id: "D021205",
@@ -17,7 +17,7 @@ describeSuite({
       id: "T01",
       title:
         "should have correct effectiveGasPrice when fee multiplier changes in consecutive blocks",
-      test: async function () {
+      test: async () => {
         const prevBlockNextFeeMultiplier = (
           await polkadotJs.query.transactionPayment.nextFeeMultiplier()
         ).toBigInt();
@@ -28,7 +28,7 @@ describeSuite({
             maxFeePerGas: 1_000_000_000_000_000n,
             maxPriorityFeePerGas: 1n,
             type: "eip1559",
-            to: BALTATHAR_ADDRESS,
+            to: BALTATHAR_ADDRESS
           })
         );
         const txHash = result?.hash;
@@ -48,7 +48,7 @@ describeSuite({
         expect(prevBlockNextFeeMultiplier).not.toEqual(txBlockNextFeeMultiplier);
 
         expect(txReceiptFee).toEqual(txFee);
-      },
+      }
     });
-  },
+  }
 });

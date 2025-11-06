@@ -15,10 +15,10 @@ describeSuite({
     it({
       id: "T01",
       title: "should fail with out of gas",
-      test: async function () {
+      test: async () => {
         const bytecode = new Uint8Array([
           65, 65, 4, 97, 89, 134, 65, 65, 65, 65, 65, 52, 57, 51, 52, 51, 70, 70, 1, 0, 0, 0, 40,
-          249, 0, 224, 111, 1, 0, 0, 0, 247, 30, 1, 0, 0, 0, 0, 0, 0,
+          249, 0, 224, 111, 1, 0, 0, 0, 247, 30, 1, 0, 0, 0, 0, 0, 0
         ]);
 
         const value = `0x${993452714685890559n.toString(16)}`;
@@ -31,7 +31,7 @@ describeSuite({
           gasPrice: 10_000_000_000,
           data:
             "0x4141046159864141414141343933343346" +
-            "460100000028F900E06F01000000F71E01000000000000",
+            "460100000028F900E06F01000000F71E01000000000000"
         });
 
         const { result } = await context.createBlock(rawSigned);
@@ -41,7 +41,7 @@ describeSuite({
           .getTransactionReceipt({ hash: result?.hash as `0x${string}` });
 
         expect(receipt.status).toBe("reverted");
-      },
+      }
     });
-  },
+  }
 });

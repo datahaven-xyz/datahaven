@@ -1,6 +1,6 @@
 import { describeSuite, expect, TransactionTypes } from "@moonwall/cli";
-import { encodeFunctionData } from "viem";
 import { createEthersTransaction } from "@moonwall/util";
+import { encodeFunctionData } from "viem";
 
 describeSuite({
   id: "D020507",
@@ -12,16 +12,16 @@ describeSuite({
     const TestParameters = [
       {
         loop: 1n,
-        gas: 43_774n,
+        gas: 43_774n
       },
       {
         loop: 500n,
-        gas: 241_390n,
+        gas: 241_390n
       },
       {
         loop: 600n,
-        gas: 280_990n,
-      },
+        gas: 280_990n
+      }
     ];
 
     TestParameters.forEach(({ loop, gas }, index) => {
@@ -30,14 +30,14 @@ describeSuite({
         it({
           id: `T${testNumber > 9 ? testNumber : "0" + testNumber}`,
           title: `should consume ${gas} for ${loop} loop for ${txnType}`,
-          test: async function () {
+          test: async () => {
             const { abi, contractAddress } = await context.deployContract!("Looper");
 
             const rawSigned = await createEthersTransaction(context, {
               to: contractAddress,
               data: encodeFunctionData({ abi, functionName: "incrementalLoop", args: [loop] }),
               gasLimit: 10_000_000,
-              txnType,
+              txnType
             });
 
             await context.createBlock(rawSigned);
@@ -46,14 +46,14 @@ describeSuite({
               await context.readContract!({
                 contractName: "Looper",
                 contractAddress,
-                functionName: "count",
+                functionName: "count"
               })
             ).toBe(loop);
             const block = await context.viem().getBlock();
             expect(block.gasUsed).toBe(gas);
-          },
+          }
         });
       }
     });
-  },
+  }
 });

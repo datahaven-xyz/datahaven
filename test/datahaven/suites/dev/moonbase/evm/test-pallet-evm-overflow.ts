@@ -13,7 +13,7 @@ describeSuite({
     it({
       id: "T01",
       title: "should not overflow",
-      test: async function () {
+      test: async () => {
         const { result } = await context.createBlock(
           context
             .polkadotJs()
@@ -44,7 +44,7 @@ describeSuite({
         const account = await context.polkadotJs().query.system.account(randomAddress);
         expect(account.data.free.toBigInt()).to.equal(0n);
         expect(account.data.reserved.toBigInt()).to.equal(0n);
-      },
+      }
     });
-  },
+  }
 });

@@ -9,11 +9,10 @@
 export * from "./block";
 export * from "./constants";
 export * from "./contracts";
+// Export unique functions from eth-transactions that aren't in evm.ts
+export { extractRevertReason } from "./eth-transactions";
 export * from "./evm";
 export * from "./expect";
 export * from "./fees";
 export * from "./parameters";
 export * from "./transactions";
-
-// Export unique functions from eth-transactions that aren't in evm.ts
-export { extractRevertReason } from "./eth-transactions";

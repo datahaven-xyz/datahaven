@@ -1,11 +1,11 @@
 import { type BlockCreationResponse, type DevModeContext, expect } from "@moonwall/cli";
-import type { EventRecord } from "@polkadot/types/interfaces";
 import type {
   ApiTypes,
   AugmentedEvent,
   AugmentedEvents,
-  SubmittableExtrinsic,
+  SubmittableExtrinsic
 } from "@polkadot/api/types";
+import type { EventRecord } from "@polkadot/types/interfaces";
 import type { IEvent } from "@polkadot/types/types";
 
 export type ExtractTuple<P> = P extends AugmentedEvent<"rxjs", infer T> ? T : never;
@@ -22,7 +22,7 @@ export async function expectOk<
     ApiType,
     // @ts-expect-error TODO: fix this
     Calls extends Call[] ? Awaited<Call>[] : Awaited<Call>
-  >,
+  >
 >(call: Promise<BlockCreation>): Promise<BlockCreation> {
   const block = await call;
   if (Array.isArray(block.result)) {
@@ -56,7 +56,7 @@ export function expectSubstrateEvent<
   Event extends AugmentedEvents<ApiType>,
   Section extends keyof Event,
   Method extends keyof Event[Section],
-  Tuple extends ExtractTuple<Event[Section][Method]>,
+  Tuple extends ExtractTuple<Event[Section][Method]>
 >(
   //@ts-expect-error TODO: fix this
   block: BlockCreationResponse<ApiType, Calls extends Call[] ? Awaited<Call>[] : Awaited<Call>>,
@@ -119,7 +119,7 @@ export function expectSubstrateEvents<
   Event extends AugmentedEvents<ApiType>,
   Section extends keyof Event,
   Method extends keyof Event[Section],
-  Tuple extends ExtractTuple<Event[Section][Method]>,
+  Tuple extends ExtractTuple<Event[Section][Method]>
 >(
   //@ts-expect-error TODO: fix this
   block: BlockCreationResponse<ApiType, Calls extends Call[] ? Awaited<Call>[] : Awaited<Call>>,

@@ -25,26 +25,26 @@ describeSuite({
     it({
       id: "T01",
       title: "creation  be initialized at 0",
-      test: async function () {
+      test: async () => {
         expect(
           await context.readContract!({
             contractName: "Incrementor",
             contractAddress: incrementorAddress,
-            functionName: "count",
+            functionName: "count"
           })
         ).toBe(0n);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should increment contract state",
-      test: async function () {
+      test: async () => {
         await context.writeContract!({
           contractName: "Incrementor",
           contractAddress: incrementorAddress,
           functionName: "incr",
-          value: 0n,
+          value: 0n
         });
         await context.createBlock();
 
@@ -52,19 +52,19 @@ describeSuite({
           await context.readContract!({
             contractName: "Incrementor",
             contractAddress: incrementorAddress,
-            functionName: "count",
+            functionName: "count"
           })
         ).toBe(1n);
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should increment contract state (check fees)",
-      test: async function () {
+      test: async () => {
         const data = encodeFunctionData({
           abi: fetchCompiledContract("Incrementor").abi,
-          functionName: "incr",
+          functionName: "incr"
         });
 
         await context.createBlock(
@@ -73,12 +73,12 @@ describeSuite({
             to: incrementorAddress,
             value: 0n,
             maxPriorityFeePerGas: 0n,
-            txnType: "eip1559",
+            txnType: "eip1559"
           })
         );
 
         await verifyLatestBlockFees(context);
-      },
+      }
     });
-  },
+  }
 });

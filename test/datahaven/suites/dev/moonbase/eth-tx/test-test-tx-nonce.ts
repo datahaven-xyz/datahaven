@@ -3,14 +3,14 @@ import {
   customDevRpcRequest,
   describeSuite,
   expect,
-  fetchCompiledContract,
+  fetchCompiledContract
 } from "@moonwall/cli";
 import {
   ALITH_ADDRESS,
   BALTATHAR_ADDRESS,
   BALTATHAR_PRIVATE_KEY,
   CHARLETH_ADDRESS,
-  createRawTransfer,
+  createRawTransfer
 } from "@moonwall/util";
 import { encodeFunctionData } from "viem";
 
@@ -22,36 +22,36 @@ describeSuite({
     it({
       id: "T01",
       title: "should be at 0 before using it",
-      test: async function () {
+      test: async () => {
         expect(await context.viem().getTransactionCount({ address: BALTATHAR_ADDRESS })).toBe(0);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should be at 0 for genesis account",
-      test: async function () {
+      test: async () => {
         expect(await context.viem().getTransactionCount({ address: ALITH_ADDRESS })).toBe(0);
-      },
+      }
     });
 
     it({
       id: "T03",
       title: "should stay at 0 before block is created",
-      test: async function () {
+      test: async () => {
         await customDevRpcRequest("eth_sendRawTransaction", [
-          await createRawTransfer(context, ALITH_ADDRESS, 512),
+          await createRawTransfer(context, ALITH_ADDRESS, 512)
         ]);
 
         expect(await context.viem().getTransactionCount({ address: ALITH_ADDRESS })).toBe(0);
         await context.createBlock();
-      },
+      }
     });
 
     it({
       id: "T04",
       title: "should stay at previous before block is created",
-      test: async function () {
+      test: async () => {
         const blockNumber = await context.viem().getBlockNumber();
         const nonce = await context.viem().getTransactionCount({ address: ALITH_ADDRESS });
         await context.createBlock(await createRawTransfer(context, ALITH_ADDRESS, 512));
@@ -59,18 +59,18 @@ describeSuite({
         expect(
           await context.viem().getTransactionCount({ address: ALITH_ADDRESS, blockNumber })
         ).toBe(nonce);
-      },
+      }
     });
 
     it({
       id: "T05",
       title: "pending transaction nonce",
-      test: async function () {
+      test: async () => {
         const blockNumber = await context.viem().getBlockNumber();
         const nonce = await context.viem().getTransactionCount({ address: ALITH_ADDRESS });
 
         await customDevRpcRequest("eth_sendRawTransaction", [
-          await createRawTransfer(context, CHARLETH_ADDRESS, 512),
+          await createRawTransfer(context, CHARLETH_ADDRESS, 512)
         ]);
 
         expect(
@@ -90,13 +90,13 @@ describeSuite({
           "should increase transaction count in pending block"
         ).toBe(nonce + 1);
         await context.createBlock();
-      },
+      }
     });
 
     it({
       id: "T06",
       title: "transferring Nonce",
-      test: async function () {
+      test: async () => {
         const nonce = await context.viem().getTransactionCount({ address: ALITH_ADDRESS });
 
         await context.createBlock([await createRawTransfer(context, BALTATHAR_ADDRESS, 512)]);
@@ -110,9 +110,9 @@ describeSuite({
           "should not increase the receiver nonce"
         ).toBe(0);
         await context.createBlock();
-      },
+      }
     });
-  },
+  }
 });
 
 describeSuite({
@@ -137,18 +137,18 @@ describeSuite({
     it({
       id: "T01",
       title: "should be at 0 before using it",
-      test: async function () {
+      test: async () => {
         expect(await context.viem().getTransactionCount({ address: BALTATHAR_ADDRESS })).toBe(0);
-      },
+      }
     });
 
     it({
       id: "T01",
       title: "should increment to 1",
-      test: async function () {
+      test: async () => {
         const data = encodeFunctionData({
           abi: fetchCompiledContract("Incrementor").abi,
-          functionName: "incr",
+          functionName: "incr"
         });
         await context.createBlock(
           context.createTxn!({
@@ -157,7 +157,7 @@ describeSuite({
             data,
             value: 0n,
             gasLimit: 21000,
-            txnType: "legacy",
+            txnType: "legacy"
           })
         );
         const block = await context.viem().getBlock({ blockTag: "latest" });
@@ -168,7 +168,7 @@ describeSuite({
           await context.viem().getTransactionCount({ address: BALTATHAR_ADDRESS }),
           "should increase the sender nonce"
         ).toBe(1);
-      },
+      }
     });
-  },
+  }
 });

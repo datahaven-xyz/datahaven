@@ -1,7 +1,7 @@
 import { beforeEach, describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
-import { expectEVMResult, expectSubstrateEvent } from "../../../../helpers";
-import { GLMR, BALTATHAR_ADDRESS } from "@moonwall/util";
+import { BALTATHAR_ADDRESS, GLMR } from "@moonwall/util";
 import { decodeEventLog } from "viem";
+import { expectEVMResult, expectSubstrateEvent } from "../../../../helpers";
 
 describeSuite({
   id: "D020510",
@@ -10,9 +10,9 @@ describeSuite({
   testCases: ({ context, it }) => {
     let contract: `0x${string}`;
 
-    beforeEach(async function () {
+    beforeEach(async () => {
       const { contractAddress } = await context.deployContract!("Suicide", {
-        gas: 45_000_000n,
+        gas: 45_000_000n
       });
       contract = contractAddress;
     });
@@ -22,7 +22,7 @@ describeSuite({
       title:
         "Should not delete contract when self-destruct is not called in the same " +
         "transaction that created the contract",
-      test: async function () {
+      test: async () => {
         // Get Code
         const code = (await context.polkadotJs().query.evm.accountCodes(contract)).toHex();
 
@@ -40,7 +40,7 @@ describeSuite({
           contractAddress: contract,
           functionName: "destroy",
           args: [BALTATHAR_ADDRESS],
-          rawTxOnly: true,
+          rawTxOnly: true
         });
 
         const { result } = await context.createBlock(rawTx);
@@ -69,7 +69,7 @@ describeSuite({
         ).data.free.toBigInt();
 
         expect(balanceBaltatharAfter).to.be.eq(balanceBaltatharBefore + 10n * GLMR);
-      },
+      }
     });
 
     it({
@@ -77,7 +77,7 @@ describeSuite({
       title:
         "Should not burn funds if contract is not deleted in the same create tx and" +
         "funds are sent to deleted contract",
-      test: async function () {
+      test: async () => {
         // transfer some tokens to the contract
         await context.createBlock(
           context.polkadotJs().tx.balances.transferAllowDeath(contract, 10n * GLMR)
@@ -88,7 +88,7 @@ describeSuite({
           contractAddress: contract,
           functionName: "destroy",
           args: [contract],
-          rawTxOnly: true,
+          rawTxOnly: true
         });
 
         const { result } = await context.createBlock(rawTx);
@@ -97,7 +97,7 @@ describeSuite({
         expect(
           (await context.polkadotJs().query.system.account(contract)).data.free.toBigInt()
         ).to.eq(10n * GLMR);
-      },
+      }
     });
 
     it({
@@ -105,9 +105,9 @@ describeSuite({
       title:
         "Should delete contract when self-destruct is called in the same transaction" +
         "that created the contract",
-      test: async function () {
+      test: async () => {
         const { contractAddress } = await context.deployContract!("ProxyDeployer", {
-          gas: 1000000n,
+          gas: 1000000n
         });
 
         const block = await context.createBlock(
@@ -116,7 +116,7 @@ describeSuite({
             contractAddress,
             functionName: "deployAndDestroy",
             rawTxOnly: true,
-            args: [BALTATHAR_ADDRESS],
+            args: [BALTATHAR_ADDRESS]
           })
         );
 
@@ -124,7 +124,7 @@ describeSuite({
         const evmLog = decodeEventLog({
           abi: fetchCompiledContract("ProxyDeployer").abi,
           topics: data[0].topics.map((t) => t.toHex()) as any,
-          data: data[0].data.toHex(),
+          data: data[0].data.toHex()
         }) as any;
         const suicideAddress: `0x${string}` = evmLog.args.destroyedAddress.toLowerCase();
 
@@ -147,7 +147,7 @@ describeSuite({
         expect(
           (await context.polkadotJs().query.system.account(suicideAddress)).nonce.toBigInt()
         ).to.eq(0n);
-      },
+      }
     });
-  },
+  }
 });

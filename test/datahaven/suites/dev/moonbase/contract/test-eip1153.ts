@@ -7,9 +7,9 @@ describeSuite({
   testCases: ({ context, it, log }) => {
     let contract: `0x${string}`;
 
-    beforeAll(async function () {
+    beforeAll(async () => {
       const { contractAddress } = await context.deployContract!("ReentrancyProtected", {
-        gas: 1000000n,
+        gas: 1000000n
       });
       contract = contractAddress;
     });
@@ -17,12 +17,12 @@ describeSuite({
     it({
       id: "T01",
       title: "should detect reentrant call and revert",
-      test: async function () {
+      test: async () => {
         try {
           await context.writeContract!({
             contractName: "ReentrancyProtected",
             contractAddress: contract,
-            functionName: "test",
+            functionName: "test"
           });
         } catch (error) {
           return expect(error.details).to.be.eq(
@@ -30,7 +30,7 @@ describeSuite({
           );
         }
         expect.fail("Expected the contract call to fail");
-      },
+      }
     });
-  },
+  }
 });

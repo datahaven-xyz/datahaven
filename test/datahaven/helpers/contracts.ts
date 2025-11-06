@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import type { Abi } from "viem";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Abi } from "viem";
 
 /**
  * Contract-related helper utilities for DataHaven tests
@@ -76,6 +76,6 @@ export const fetchCompiledContract = (contractName: string): CompiledContractArt
     abi,
     bytecode,
     contract: artifactJson.contract,
-    sourceCode: artifactJson.sourceCode,
+    sourceCode: artifactJson.sourceCode
   } satisfies CompiledContractArtifact;
 };

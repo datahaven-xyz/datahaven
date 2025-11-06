@@ -1,10 +1,10 @@
-import { describeSuite, expect, beforeEach } from "@moonwall/cli";
+import { beforeEach, describeSuite, expect } from "@moonwall/cli";
 import {
   ALITH_ADDRESS,
   BALTATHAR_ADDRESS,
-  GLMR,
-  createViemTransaction,
   checkBalance,
+  createViemTransaction,
+  GLMR
 } from "@moonwall/util";
 
 describeSuite({
@@ -15,7 +15,7 @@ describeSuite({
     let initialAlithBalance: bigint;
     let initialBaltatharBalance: bigint;
 
-    beforeEach(async function () {
+    beforeEach(async () => {
       initialAlithBalance = await checkBalance(context, ALITH_ADDRESS);
       initialBaltatharBalance = await checkBalance(context, BALTATHAR_ADDRESS);
     });
@@ -23,7 +23,7 @@ describeSuite({
     it({
       id: "T01",
       title: "Native transfer with fixed gas limit (21000) should succeed",
-      test: async function () {
+      test: async () => {
         const amountToTransfer = 1n * GLMR;
         const gasLimit = 21000n;
 
@@ -33,7 +33,7 @@ describeSuite({
             from: ALITH_ADDRESS,
             to: BALTATHAR_ADDRESS,
             value: amountToTransfer,
-            gas: gasLimit,
+            gas: gasLimit
           })
         );
 
@@ -55,21 +55,21 @@ describeSuite({
 
         // Verify gas used matches our fixed gas limit
         expect(receipt.gasUsed).to.equal(gasLimit);
-      },
+      }
     });
 
     it({
       id: "T02",
       title: "should estimate 21000 gas for native transfer",
-      test: async function () {
+      test: async () => {
         const estimatedGas = await context.viem().estimateGas({
           account: ALITH_ADDRESS,
           to: BALTATHAR_ADDRESS,
-          value: 1n * GLMR,
+          value: 1n * GLMR
         });
 
         expect(estimatedGas).to.equal(21000n);
-      },
+      }
     });
-  },
+  }
 });

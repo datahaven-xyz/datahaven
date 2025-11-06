@@ -10,10 +10,10 @@ describeSuite({
       id: "T01",
       title: "should not be supported",
       // Looks like this is now supported 🎉
-      test: async function () {
+      test: async () => {
         const resp = await customDevRpcRequest("eth_newPendingTransactionFilter", []);
         expect(fromHex(resp, "bigint")).toBeGreaterThanOrEqual(0n);
-      },
+      }
     });
-  },
+  }
 });

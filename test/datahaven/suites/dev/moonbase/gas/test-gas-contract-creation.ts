@@ -9,15 +9,15 @@ describeSuite({
     it({
       id: "T01",
       title: "should return contract creation gas cost",
-      test: async function () {
+      test: async () => {
         const { bytecode } = fetchCompiledContract("MultiplyBy7");
         expect(
           await context.viem().estimateGas({
             account: ALITH_ADDRESS,
-            data: bytecode,
-          }),
+            data: bytecode
+          })
         ).to.equal(210450n);
-      },
+      }
     });
-  },
+  }
 });

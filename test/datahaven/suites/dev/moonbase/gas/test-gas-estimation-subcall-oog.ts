@@ -1,4 +1,9 @@
-import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
+import {
+  beforeAll,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect,
+} from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { type Abi, decodeEventLog, encodeFunctionData } from "viem";
 
@@ -15,23 +20,23 @@ describeSuite({
     const MAX_BLOATED_CONTRACTS = 15;
 
     beforeAll(async function () {
-      const { contractAddress: contractAddress2 } = await deployCreateCompiledContract(
-        context,
-        "Looper"
-      );
+      const { contractAddress: contractAddress2 } =
+        await deployCreateCompiledContract(context, "Looper");
       looperAddress = contractAddress2;
 
-      const { abi, contractAddress: contractAddress3 } = await deployCreateCompiledContract(
-        context,
-        "SubCallOOG"
-      );
+      const { abi, contractAddress: contractAddress3 } =
+        await deployCreateCompiledContract(context, "SubCallOOG");
       subCallOogAbi = abi;
       subCallOogAddress = contractAddress3;
 
       // Deploy bloated contracts (test won't use more than what is needed for reaching max pov)
       for (let i = 0; i <= MAX_BLOATED_CONTRACTS; i++) {
-        const { contractAddress } = await deployCreateCompiledContract(context, "BloatedContract");
+        const { contractAddress } = await deployCreateCompiledContract(
+          context,
+          "BloatedContract",
+        );
         bloatedContracts.push(contractAddress);
+        await context.createBlock();
       }
     });
 
@@ -62,7 +67,9 @@ describeSuite({
 
         await context.createBlock();
 
-        const receipt = await context.viem().getTransactionReceipt({ hash: txHash });
+        const receipt = await context
+          .viem()
+          .getTransactionReceipt({ hash: txHash });
 
         const decoded = decodeEventLog({
           abi: subCallOogAbi,
@@ -103,7 +110,9 @@ describeSuite({
 
         await context.createBlock();
 
-        const receipt = await context.viem().getTransactionReceipt({ hash: txHash });
+        const receipt = await context
+          .viem()
+          .getTransactionReceipt({ hash: txHash });
         const decoded = decodeEventLog({
           abi: subCallOogAbi,
           data: receipt.logs[bloatedContracts.length - 1].data,

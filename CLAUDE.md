@@ -335,71 +335,38 @@ describe("My Tests", () => {
 
 ### Runtime Configurations
 
-DataHaven supports **three runtime configurations** in `operator/runtime/`:
-- **mainnet/**: Production runtime (6s block time, BABE + GRANDPA consensus)
-- **stagenet/**: Staging environment for pre-production testing
-- **testnet/**: Development runtime with `fast-runtime` feature support
+Three runtime configurations in `operator/runtime/`:
+- **mainnet/**: Production (6s blocks, BABE + GRANDPA)
+- **stagenet/**: Pre-production testing
+- **testnet/**: Development with `fast-runtime` support
 
-**Block Time**: All runtimes use **6 seconds per block** (6000ms)
+**`fast-runtime` feature** (available in all runtimes, recommended for development):
+- Epoch duration: 1 hour → 1 minute (600 → 10 blocks)
+- Era duration: 6 hours → 3 minutes (6 → 3 sessions)
+- Bonding duration: 28 → 3 eras
+- Block time: Unchanged at 6 seconds
 
-The `fast-runtime` feature (available in all runtimes) accelerates validator rotation by modifying:
-- **Epoch duration**: 1 hour (600 blocks) → 1 minute (10 blocks)
-- **Sessions per era**: 6 sessions → 3 sessions
-- **Bonding duration**: 28 eras → 3 eras
-
-This means with `fast-runtime`:
-- Epochs complete in 1 minute instead of 1 hour
-- Eras complete in 3 minutes instead of 6 hours
-- Validator set rotations happen much faster
-
-**Usage**: Always develop with `--features fast-runtime` for faster validator rotation testing. Block time stays the same (6s), but governance/staking timings are dramatically reduced.
+**Usage**: Always develop with `--features fast-runtime` for faster validator rotation testing.
 
 ### EigenLayer Operator Sets
 
-`DataHavenServiceManager` manages **three operator sets**:
-- **`VALIDATORS_SET_ID = 0`**: Validators securing the network
-- **`BSPS_SET_ID = 1`**: Backup Storage Providers (future use)
-- **`MSPS_SET_ID = 2`**: Main Storage Providers (future use)
-
-When sending cross-chain messages, always use the correct operator set ID. Validator updates use `VALIDATORS_SET_ID`.
+Three operator sets in `DataHavenServiceManager`:
+- **`VALIDATORS_SET_ID = 0`**: Network validators
+- **`BSPS_SET_ID = 1`**: Backup Storage Providers (future)
+- **`MSPS_SET_ID = 2`**: Main Storage Providers (future)
 
 ### SCALE Encoding for Cross-Chain Messages
 
-Messages from Ethereum → DataHaven must be SCALE-encoded. The `DataHavenSnowbridgeMessages` library provides encoding helpers:
+Ethereum → DataHaven messages must be SCALE-encoded via `DataHavenSnowbridgeMessages`:
 
 ```solidity
-// Build validator set update message
 bytes memory message = DataHavenSnowbridgeMessages.buildValidatorSetUpdate(
-    operatorAddresses,
-    block.timestamp
+    operatorAddresses, block.timestamp
 );
-
-// Send via Snowbridge Gateway
-IGatewayV2(gateway).sendMessage{value: msg.value}(
-    destination,  // DataHaven location on Snowbridge
-    message
-);
+IGatewayV2(gateway).sendMessage{value: msg.value}(destination, message);
 ```
-
-DataHaven decodes these messages in the inbound-queue-v2 pallet using parity-scale-codec.
 
 ### Docker Images
 
-**Two Dockerfiles** for different purposes:
-
-1. **Production** (`operator/Dockerfile`):
-   - Minimal Debian-slim image
-   - Expects pre-built binary in `build/` directory
-   - Used for releases and CI (binary compiled separately in GitHub Actions)
-   - Multi-stage build for minimal final image size
-
-2. **Development** (`docker/datahaven-dev.Dockerfile`):
-   - Ubuntu-based with debugging tools (optional)
-   - Expects pre-built binary from local `cargo build`
-   - Includes librocksdb-dev for local development
-   - Built via: `bun build:docker:operator` (from `/test` directory)
-
-**Build Optimization** (GitHub Actions):
-- **sccache**: Used in CI workflows to cache Rust compilation artifacts between runs
-- Binary compiled once, then copied into minimal Docker image
-- Typical build times: ~30 minutes (first) → ~10 minutes (cached)
+- **Production** (`operator/Dockerfile`): Minimal Debian-slim, expects pre-built binary in `build/`, used for CI/releases
+- **Development** (`docker/datahaven-dev.Dockerfile`): Ubuntu-based with debug tools, built via `bun build:docker:operator` from `/test`

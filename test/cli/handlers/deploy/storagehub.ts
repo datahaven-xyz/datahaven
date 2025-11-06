@@ -205,12 +205,18 @@ const registerStorageHubNodes = async (launchedNetwork: LaunchedNetwork): Promis
  */
 const checkTagExists = async (tag: string) => {
   const cleanTag = tag.trim();
-  logger.debug(`Checking if image ${cleanTag} is available on Docker Hub`);
-  const result = await $`docker manifest inspect ${cleanTag}`.nothrow().quiet();
-  invariant(
-    result.exitCode === 0,
-    `❌ Image ${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
-  );
+  logger.debug(`Checking if image ${cleanTag} is available locally`);
+  const localResult = await $`docker image inspect ${cleanTag}`.nothrow().quiet();
 
-  logger.success(`Image ${cleanTag} found on Docker Hub`);
+  if (localResult.exitCode !== 0) {
+    logger.debug(`Checking if image ${cleanTag} is available on Docker Hub`);
+    const remoteResult = await $`docker manifest inspect ${cleanTag}`.nothrow().quiet();
+    invariant(
+      remoteResult.exitCode === 0,
+      `❌ Image ${tag} not found.\n Does this image exist?\n Are you logged and have access to the repository?`
+    );
+    logger.success(`Image ${cleanTag} found on Docker Hub`);
+  } else {
+    logger.success(`Image ${cleanTag} found locally`);
+  }
 };

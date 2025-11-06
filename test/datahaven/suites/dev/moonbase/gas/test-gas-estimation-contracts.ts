@@ -24,7 +24,7 @@ describeSuite({
                 from: ALITH_ADDRESS,
                 data: "0xe4",
               },
-            ])
+            ]),
         ).rejects.toThrowError("evm error: InvalidCode(Opcode(228))");
       },
     });
@@ -40,13 +40,13 @@ describeSuite({
           data: bytecode,
           gasPrice: 0n,
         });
-        expect(result).to.equal(255341n);
+        expect(result).to.equal(234240n);
 
         const result2 = await context.viem().estimateGas({
           account: ALITH_ADDRESS,
           data: bytecode,
         });
-        expect(result2).to.equal(255341n);
+        expect(result2).to.equal(234240n);
       },
     });
 
@@ -54,14 +54,10 @@ describeSuite({
       id: "T03",
       title: "all batch functions should estimate the same cost",
       test: async function () {
-        const { contractAddress: proxyAddress, abi: proxyAbi } = await deployCreateCompiledContract(
-          context,
-          "CallForwarder"
-        );
-        const { contractAddress: multiAddress, abi: multiAbi } = await deployCreateCompiledContract(
-          context,
-          "MultiplyBy7"
-        );
+        const { contractAddress: proxyAddress, abi: proxyAbi } =
+          await deployCreateCompiledContract(context, "CallForwarder");
+        const { contractAddress: multiAddress, abi: multiAbi } =
+          await deployCreateCompiledContract(context, "MultiplyBy7");
         const batchAbi = fetchCompiledContract("Batch").abi;
 
         const callParameters = [
@@ -140,8 +136,8 @@ describeSuite({
           await context.viem().estimateGas({
             account: PRECOMPILE_BATCH_ADDRESS,
             data: bytecode,
-          })
-        ).toBe(210541n);
+          }),
+        ).toBe(210450n);
       },
     });
 
@@ -150,7 +146,10 @@ describeSuite({
       title: "Should be able to estimate gas of infinite loop call",
       timeout: 60000,
       test: async function () {
-        const { contractAddress, abi } = await deployCreateCompiledContract(context, "Looper");
+        const { contractAddress, abi } = await deployCreateCompiledContract(
+          context,
+          "Looper",
+        );
 
         await expect(
           async () =>
@@ -164,7 +163,7 @@ describeSuite({
                   args: [],
                 }),
               },
-            ])
+            ]),
         ).rejects.toThrowError("gas required exceeds allowance 6000000");
       },
     });

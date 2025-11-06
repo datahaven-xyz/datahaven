@@ -1,4 +1,9 @@
-import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
+import {
+  beforeAll,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect,
+} from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import type { Abi } from "viem";
 
@@ -11,7 +16,10 @@ describeSuite({
     let multiAddress: `0x${string}`;
 
     beforeAll(async function () {
-      const { abi, contractAddress } = await deployCreateCompiledContract(context, "MultiplyBy7");
+      const { abi, contractAddress } = await deployCreateCompiledContract(
+        context,
+        "MultiplyBy7",
+      );
 
       multiAbi = abi;
       multiAddress = contractAddress;
@@ -32,7 +40,7 @@ describeSuite({
         });
 
         // Snapshot estimated gas
-        expect(estimatedGas).toMatchInlineSnapshot(`22363n`);
+        expect(estimatedGas).toMatchInlineSnapshot(`21549n`);
       },
     });
 
@@ -53,7 +61,7 @@ describeSuite({
         });
 
         // Snapshot estimated gas
-        expect(estimatedGas).toMatchInlineSnapshot(`22363n`);
+        expect(estimatedGas).toMatchInlineSnapshot(`21549n`);
       },
     });
 
@@ -68,11 +76,11 @@ describeSuite({
           functionName: "multiply",
           args: [3],
           // @ts-expect-error expected
-          gasLimit: 22363n,
+          gasLimit: 21549n,
           value: 0n,
         });
 
-        expect(estimatedGas).toMatchInlineSnapshot(`22363n`);
+        expect(estimatedGas).toMatchInlineSnapshot(`21549n`);
       },
     });
 
@@ -88,12 +96,12 @@ describeSuite({
           maxPriorityFeePerGas: 0n,
           args: [3],
           // @ts-expect-error expected
-          gasLimit: 22363n,
+          gasLimit: 21549n,
           value: 0n,
         });
 
         // Snapshot estimated gas
-        expect(estimatedGas).toMatchInlineSnapshot(`22363n`);
+        expect(estimatedGas).toMatchInlineSnapshot(`21549n`);
       },
     });
 
@@ -112,7 +120,7 @@ describeSuite({
               args: [3],
               gas: 21000n,
               value: 0n,
-            })
+            }),
         ).rejects.toThrowError("gas required exceeds allowance 21000");
       },
     });

@@ -164,7 +164,7 @@ use datahaven_runtime_common::benchmarking::BenchmarkHelper;
 
 pub(crate) use crate::weights as stagenet_weights;
 
-const EVM_CHAIN_ID: u64 = 1283;
+const EVM_CHAIN_ID: u64 = 55932;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

@@ -857,7 +857,10 @@ impl pallet_migrations::Config for Runtime {
     #[cfg(not(feature = "runtime-benchmarks"))]
     type Migrations = (
         datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>,
-        datahaven_runtime_common::migrations::evm_chain_id::EvmChainIdMigration<Runtime, EVM_CHAIN_ID>,
+        datahaven_runtime_common::migrations::evm_chain_id::EvmChainIdMigration<
+            Runtime,
+            EVM_CHAIN_ID,
+        >,
     );
     #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;

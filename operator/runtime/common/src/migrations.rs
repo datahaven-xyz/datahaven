@@ -106,8 +106,8 @@ pub mod evm_chain_id {
         fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
             use codec::Decode;
 
-            let old_chain_id = u64::decode(&mut &state[..])
-                .map_err(|_| "Failed to decode old chain ID")?;
+            let old_chain_id =
+                u64::decode(&mut &state[..]).map_err(|_| "Failed to decode old chain ID")?;
             let new_chain_id = pallet_evm_chain_id::ChainId::<T>::get();
 
             log::info!(

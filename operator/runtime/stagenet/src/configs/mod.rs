@@ -1188,10 +1188,14 @@ parameter_types! {
     };
 }
 
+parameter_types! {
+    pub const FreeHeadersInterval: u32 = 32; // 1 epoch = 6.4 minutes
+}
+
 impl snowbridge_pallet_ethereum_client::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ForkVersions = ChainForkVersions;
-    type FreeHeadersInterval = ();
+    type FreeHeadersInterval = FreeHeadersInterval;
     type WeightInfo = stagenet_weights::snowbridge_pallet_ethereum_client::WeightInfo<Runtime>;
 }
 

@@ -318,6 +318,11 @@ pub struct ProviderConfigurations {
     )]
     pub msp_move_bucket_max_tip: Option<u128>,
 
+    /// Enable MSP file distribution to BSPs (disabled by default unless set via config/CLI).
+    /// Only applicable when running as an MSP provider.
+    #[arg(long, value_name = "BOOLEAN")]
+    pub msp_distribute_files: bool,
+
     // ============== BSP Upload File task options ==============
     /// Enable and configure BSP Upload File task.
     #[arg(long)]
@@ -490,32 +495,42 @@ impl ProviderConfigurations {
             }
         }
 
+        // Configure blockchain service options
         let mut blockchain_service = None;
+        let mut bs_options = BlockchainServiceOptions::default();
+        let mut bs_changed = false;
+
         if let Some(extrinsic_retry_timeout) = self.extrinsic_retry_timeout {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.extrinsic_retry_timeout = Some(extrinsic_retry_timeout);
-            blockchain_service = Some(default_config);
+            bs_options.extrinsic_retry_timeout = Some(extrinsic_retry_timeout);
+            bs_changed = true;
         }
 
         if let Some(sync_mode_min_blocks_behind) = self.sync_mode_min_blocks_behind {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
-            blockchain_service = Some(default_config);
+            bs_options.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
+            bs_changed = true;
         }
 
         if let Some(check_for_pending_proofs_period) = self.check_for_pending_proofs_period {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
-            blockchain_service = Some(default_config);
+            bs_options.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
+            bs_changed = true;
         }
 
         if let Some(max_blocks_behind_to_catch_up_root_changes) =
             self.max_blocks_behind_to_catch_up_root_changes
         {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.max_blocks_behind_to_catch_up_root_changes =
+            bs_options.max_blocks_behind_to_catch_up_root_changes =
                 Some(max_blocks_behind_to_catch_up_root_changes);
-            blockchain_service = Some(default_config);
+            bs_changed = true;
+        }
+
+        // Set MSP distribution flag if provided on CLI and role is MSP
+        if self.msp_distribute_files && provider_type == ProviderType::Msp {
+            bs_options.enable_msp_distribute_files = Some(true);
+            bs_changed = true;
+        }
+
+        if bs_changed {
+            blockchain_service = Some(bs_options);
         }
 
         ProviderOptions {

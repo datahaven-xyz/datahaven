@@ -1,8 +1,11 @@
-import { Binary } from "polkadot-api";
 import { logger } from "utils";
 import { SUBSTRATE_FUNDED_ACCOUNTS } from "utils/constants";
 import { createPapiConnectors, getEvmEcdsaSigner } from "utils/papi";
 import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
+import type { FixedSizeBinary } from "polkadot-api";
+import { Binary } from "polkadot-api";
+import { blake2b } from "@noble/hashes/blake2";
+import { hexToBytes } from "viem";
 
 export interface RegisterProvidersOptions {
   launchedNetwork: LaunchedNetwork;
@@ -34,6 +37,20 @@ const PROVIDERS = {
 } as const;
 
 /**
+ * Generates a deterministic provider ID from an account ID.
+ * For dev/testing purposes, we use blake2b_256(accountId) as the provider ID.
+ *
+ * @param accountId - The account ID (20-byte Ethereum address)
+ * @returns A 32-byte provider ID
+ */
+function generateProviderId(accountId: string): FixedSizeBinary<32> {
+  const accountBytes = hexToBytes(accountId as `0x${string}`);
+  const hash = blake2b(accountBytes, { dkLen: 32 });
+  const binary = Binary.fromBytes(hash);
+  return binary as FixedSizeBinary<32>;
+}
+
+/**
  * Registers StorageHub providers (MSP and BSP) using force extrinsics.
  *
  * This function calls `force_msp_sign_up` and `force_bsp_sign_up` extrinsics
@@ -47,82 +64,50 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
 
   const aliceContainerName = `datahaven-alice-${options.launchedNetwork.networkId}`;
   const alicePort = options.launchedNetwork.getContainerPort(aliceContainerName);
-
   const { client, typedApi } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
 
   try {
-    // Create signer for Alice (sudo account in dev chain)
-    const _aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
+    const aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
 
     // Register MSP
     logger.info(`Registering MSP (${PROVIDERS.msp.name})...`);
+    const mspId = generateProviderId(PROVIDERS.msp.accountId);
+    logger.debug(`MSP ID: ${mspId}`);
 
-    try {
-      // Note: The exact extrinsic signature will depend on the pallet-storage-providers implementation
-      // This is a placeholder structure based on the investigation findings
-      const _mspTx = typedApi.tx.Sudo.sudo({
-        call: Binary.fromBytes(
-          // The actual call bytes would be constructed from the Providers pallet extrinsic
-          // This is a simplified representation and will need to be adjusted based on actual runtime types
-          new Uint8Array([])
-        )
-      });
+    const mspCall = typedApi.tx.Providers.force_msp_sign_up({
+      who: PROVIDERS.msp.accountId,
+      msp_id: mspId,
+      capacity: PROVIDERS.msp.capacity,
+      multiaddresses: [],
+      value_prop_price_per_giga_unit_of_data_per_block: BigInt(1000),
+      commitment: Binary.fromText(`msp-${PROVIDERS.msp.name.toLowerCase()}`),
+      value_prop_max_data_limit: BigInt(1_000_000),
+      payment_account: PROVIDERS.msp.accountId
+    });
 
-      logger.info("⚠️  Note: MSP registration requires runtime types to be generated.");
-      logger.info("Please run: bun generate:types");
-      logger.info("Then update this script with the actual Providers.force_msp_sign_up call.");
-
-      // Uncomment when runtime types are available:
-      // const mspTx = typedApi.tx.Sudo.sudo({
-      //   call: typedApi.tx.Providers.force_msp_sign_up({
-      //     who: PROVIDERS.msp.accountId,
-      //     msp_id: null, // Let runtime generate
-      //     capacity: PROVIDERS.msp.capacity,
-      //     multiaddresses: PROVIDERS.msp.multiaddresses,
-      //     value_prop: {
-      //       identifier: `msp-${PROVIDERS.msp.name.toLowerCase()}`,
-      //       data_limit: 1_000_000,
-      //       protocols: []
-      //     },
-      //     payment_account: PROVIDERS.msp.accountId
-      //   })
-      // });
-      //
-      // await mspTx.signSubmitAndWatch(aliceSigner);
-      // logger.success(`MSP (${PROVIDERS.msp.name}) registered successfully`);
-    } catch (error) {
-      logger.error(`Failed to register MSP: ${error}`);
-      logger.warn("This is expected if runtime types haven't been generated yet.");
-    }
+    const mspTx = typedApi.tx.Sudo.sudo({ call: mspCall.decodedCall });
+    await mspTx.signSubmitAndWatch(aliceSigner);
+    logger.success(`✅ MSP (${PROVIDERS.msp.name}) registered successfully`);
 
     // Register BSP
     logger.info(`Registering BSP (${PROVIDERS.bsp.name})...`);
+    const bspId = generateProviderId(PROVIDERS.bsp.accountId);
+    logger.debug(`BSP ID: ${bspId}`);
 
-    try {
-      logger.info("⚠️  Note: BSP registration requires runtime types to be generated.");
-      logger.info("Please run: bun generate:types");
-      logger.info("Then update this script with the actual Providers.force_bsp_sign_up call.");
+    const bspCall = typedApi.tx.Providers.force_bsp_sign_up({
+      who: PROVIDERS.bsp.accountId,
+      bsp_id: bspId,
+      capacity: PROVIDERS.bsp.capacity,
+      multiaddresses: [],
+      payment_account: PROVIDERS.bsp.accountId,
+      weight: undefined
+    });
 
-      // Uncomment when runtime types are available:
-      // const bspTx = typedApi.tx.Sudo.sudo({
-      //   call: typedApi.tx.Providers.force_bsp_sign_up({
-      //     who: PROVIDERS.bsp.accountId,
-      //     bsp_id: null, // Let runtime generate
-      //     capacity: PROVIDERS.bsp.capacity,
-      //     multiaddresses: PROVIDERS.bsp.multiaddresses,
-      //     payment_account: PROVIDERS.bsp.accountId
-      //   })
-      // });
-      //
-      // await bspTx.signSubmitAndWatch(aliceSigner);
-      // logger.success(`BSP (${PROVIDERS.bsp.name}) registered successfully`);
-    } catch (error) {
-      logger.error(`Failed to register BSP: ${error}`);
-      logger.warn("This is expected if runtime types haven't been generated yet.");
-    }
+    const bspTx = typedApi.tx.Sudo.sudo({ call: bspCall.decodedCall });
+    await bspTx.signSubmitAndWatch(aliceSigner);
+    logger.success(`✅ BSP (${PROVIDERS.bsp.name}) registered successfully`);
 
-    logger.info("Provider registration process completed");
-    logger.info("Note: Actual registration will work once runtime types are available.");
+    logger.success("✅ All providers registered successfully");
   } catch (error) {
     logger.error(`Provider registration failed: ${error}`);
     throw error;
@@ -145,28 +130,34 @@ export async function verifyProvidersRegistered(
   const aliceContainerName = `datahaven-alice-${options.launchedNetwork.networkId}`;
   const alicePort = options.launchedNetwork.getContainerPort(aliceContainerName);
 
-  const { client } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
+  const { client, typedApi } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
 
   try {
     // Check if MSP is registered
     logger.debug("Checking MSP registration...");
+    const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
+      PROVIDERS.msp.accountId
+    );
 
-    // This will need to be updated once runtime types are available:
-    // const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
-    //   PROVIDERS.msp.accountId
-    // );
+    if (!mspId) {
+      logger.error(`❌ MSP (${PROVIDERS.msp.name}) is NOT registered`);
+      return false;
+    }
+    logger.success(`✅ MSP registered with ID: ${mspId}`);
 
     // Check if BSP is registered
     logger.debug("Checking BSP registration...");
+    const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
+      PROVIDERS.bsp.accountId
+    );
 
-    // This will need to be updated once runtime types are available:
-    // const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
-    //   PROVIDERS.bsp.accountId
-    // );
+    if (!bspId) {
+      logger.error(`❌ BSP (${PROVIDERS.bsp.name}) is NOT registered`);
+      return false;
+    }
+    logger.success(`✅ BSP registered with ID: ${bspId}`);
 
-    logger.info("⚠️  Provider verification requires runtime types to be generated.");
-    logger.success("Verification check completed (types pending)");
-
+    logger.success("✅ All providers verified successfully");
     return true;
   } catch (error) {
     logger.error(`Provider verification failed: ${error}`);

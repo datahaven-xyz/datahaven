@@ -28,6 +28,11 @@ export const COMPONENTS = {
     imageName: "datahavenxyz/snowbridge-relay",
     componentName: "Snowbridge Relayers",
     optionName: "relayer"
+  },
+  storagehub: {
+    imageName: "storagehub",
+    componentName: "StorageHub Components",
+    optionName: "datahaven" // Use datahaven option since they're part of the same network
   }
 } as const;
 

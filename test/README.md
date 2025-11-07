@@ -66,9 +66,9 @@ The `bun cli launch` command deploys a complete local environment:
    - Dora Consensus Explorer
 
 2. **DataHaven Network**:
-   - Single validator solochain
+   - 2x Validator nodes (Alice & Bob) with keys (babe, grandpa, imonline, beefy)
    - EVM compatibility via Frontier
-   - Fast block times (3s with `--fast-runtime`)
+   - Fast block times (2-3s in dev mode)
 
 3. **Smart Contracts**:
    - EigenLayer AVS contracts deployed to Ethereum
@@ -80,7 +80,14 @@ The `bun cli launch` command deploys a complete local environment:
    - Execution relay (Ethereum → DataHaven)
    - Solochain relay (DataHaven → Ethereum)
 
-5. **Network Configuration**:
+5. **StorageHub Components** (optional: `--storagehub`):
+   - 1x MSP (Main Storage Provider) node with bcsv ecdsa key
+   - 1x BSP (Backup Storage Provider) node with bcsv ecdsa key
+   - 1x Indexer node with PostgreSQL database
+   - 1x Fisherman node
+   - Automatic provider registration via `force_msp_sign_up` / `force_bsp_sign_up`
+
+6. **Network Configuration**:
    - Validator registration and funding
    - Parameter initialization
    - Validator set updates
@@ -94,6 +101,8 @@ For more information on the E2E testing framework, see the [E2E Testing Framewor
 | **Network Management**    |                                                                                                    |
 | `bun cli`                 | Interactive CLI menu for all operations                                                            |
 | `bun cli launch`          | Launch full local network (interactive options)                                                    |
+| `bun cli launch --all`     | Launch all components including StorageHub                                                         |
+| `bun cli launch --storagehub` | Launch with StorageHub nodes (MSP, BSP, Indexer, Fisherman)                                    |
 | `bun start:e2e:local`     | Launch local network (non-interactive)                                                             |
 | `bun start:e2e:verified`  | Launch with Blockscout and contract verification                                                   |
 | `bun start:e2e:ci`        | CI-optimized network launch                                                                        |
@@ -149,6 +158,12 @@ Follow these steps to set up and interact with your local network:
 
    - Block Explorer: [http://127.0.0.1:3000](http://127.0.0.1:3000).
    - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
+   - StorageHub Nodes (if launched with `--storagehub`):
+     - Alice (Validator): [ws://127.0.0.1:9944](ws://127.0.0.1:9944)
+     - MSP Node: [ws://127.0.0.1:9945](ws://127.0.0.1:9945)
+     - BSP Node: [ws://127.0.0.1:9946](ws://127.0.0.1:9946)
+     - Indexer Node: [ws://127.0.0.1:9947](ws://127.0.0.1:9947)
+     - Fisherman Node: [ws://127.0.0.1:9948](ws://127.0.0.1:9948)
 
 ## Troubleshooting
 

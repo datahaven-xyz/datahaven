@@ -3171,6 +3171,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-evm",
+ "pallet-evm-chain-id",
  "pallet-evm-precompile-proxy",
  "pallet-migrations",
  "pallet-safe-mode",

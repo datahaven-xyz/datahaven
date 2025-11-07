@@ -16,7 +16,7 @@ use sp_core::{ecdsa, Pair, Public};
 use sp_genesis_builder::{self, PresetId};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
-const MAINNET_EVM_CHAIN_ID: u64 = 1289;
+const MAINNET_EVM_CHAIN_ID: u64 = 55930;
 
 // Returns the genesis config presets populated with given parameters.
 fn testnet_genesis(

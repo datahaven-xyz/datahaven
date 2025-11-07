@@ -3,7 +3,7 @@ use sc_service::ChainType;
 
 use super::ChainSpec;
 
-const EVM_CHAIN_ID: u64 = 1289;
+const EVM_CHAIN_ID: u64 = 55930;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 const TOKEN_DECIMALS: u8 = 18;
 const TOKEN_SYMBOL: &str = "HAVE";

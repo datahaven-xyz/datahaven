@@ -48,6 +48,101 @@ pub type MigrationStatusHandler = ();
 /// Default handler triggered on migration failures.
 pub type FailedMigrationHandler = frame_support::migrations::FreezeChainOnFailedMigration;
 
+/// Multi-block migration for updating the EVM chain ID to the new value.
+pub mod evm_chain_id {
+    use core::marker::PhantomData;
+    use frame_support::{
+        migrations::{MigrationId, SteppedMigration, SteppedMigrationError},
+        pallet_prelude::*,
+        weights::WeightMeter,
+    };
+
+    #[cfg(feature = "try-runtime")]
+    use codec::Encode;
+
+    /// Multi-block migration that updates the stored EVM chain ID to match the new configuration.
+    pub struct EvmChainIdMigration<T, const NEW_CHAIN_ID: u64>(PhantomData<T>);
+
+    impl<T, const NEW_CHAIN_ID: u64> SteppedMigration for EvmChainIdMigration<T, NEW_CHAIN_ID>
+    where
+        T: pallet_evm_chain_id::Config,
+    {
+        type Cursor = ();
+        type Identifier = MigrationId<20>;
+
+        fn id() -> Self::Identifier {
+            MigrationId {
+                pallet_id: *b"dh-evm-chain-id-v1  ",
+                version_from: 0,
+                version_to: 1,
+            }
+        }
+
+        fn step(
+            cursor: Option<Self::Cursor>,
+            meter: &mut WeightMeter,
+        ) -> Result<Option<Self::Cursor>, SteppedMigrationError> {
+            // This migration completes in a single step
+            if cursor.is_some() {
+                return Ok(None);
+            }
+
+            let required = T::DbWeight::get().reads_writes(1, 1);
+            if meter.try_consume(required).is_err() {
+                return Err(SteppedMigrationError::InsufficientWeight { required });
+            }
+
+            log::info!(
+                "🔄 [EVM Chain ID Migration] Updating chain ID to {}",
+                NEW_CHAIN_ID
+            );
+
+            // Update the chain ID storage
+            pallet_evm_chain_id::ChainId::<T>::put(NEW_CHAIN_ID);
+
+            log::info!(
+                "✅ [EVM Chain ID Migration] Successfully updated chain ID to {}",
+                NEW_CHAIN_ID
+            );
+
+            Ok(None)
+        }
+
+        #[cfg(feature = "try-runtime")]
+        fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+            let old_chain_id = pallet_evm_chain_id::ChainId::<T>::get();
+            log::info!(
+                "📋 [EVM Chain ID Migration] Current chain ID: {}",
+                old_chain_id
+            );
+            Ok(old_chain_id.encode())
+        }
+
+        #[cfg(feature = "try-runtime")]
+        fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+            use codec::Decode;
+
+            let old_chain_id =
+                u64::decode(&mut &state[..]).map_err(|_| "Failed to decode old chain ID")?;
+            let new_chain_id = pallet_evm_chain_id::ChainId::<T>::get();
+
+            log::info!(
+                "🔍 [EVM Chain ID Migration] Chain ID updated from {} to {}",
+                old_chain_id,
+                new_chain_id
+            );
+
+            if new_chain_id != NEW_CHAIN_ID {
+                return Err(sp_runtime::TryRuntimeError::Other(
+                    "Chain ID was not updated correctly",
+                ));
+            }
+
+            Ok(())
+        }
+    }
+}
+
 /// Multi-block migration for renaming the EVM pallet alias.
 pub mod evm_alias {
     use core::marker::PhantomData;
@@ -248,6 +343,7 @@ mod tests {
             Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
             Timestamp: pallet_timestamp::{Pallet, Call, Storage},
             EVM: pallet_evm::{Pallet, Call, Storage, Config<T>, Event<T>},
+            EvmChainId: pallet_evm_chain_id::{Pallet, Storage},
         }
     );
 
@@ -295,6 +391,8 @@ mod tests {
         type PrecompilesType = MockPrecompileSet;
         type PrecompilesValue = MockPrecompiles;
     }
+
+    impl pallet_evm_chain_id::Config for TestRuntime {}
 
     pub struct FixedGasPrice;
     impl pallet_evm::FeeCalculator for FixedGasPrice {
@@ -389,6 +487,79 @@ mod tests {
                 0
             );
             assert_eq!(count_keys(&old_storage_prefix(b"AccountStorages")[..]), 0);
+        });
+    }
+
+    #[test]
+    fn evm_chain_id_migration_updates_storage() {
+        use super::evm_chain_id::EvmChainIdMigration;
+
+        let mut storage = frame_system::GenesisConfig::<TestRuntime>::default()
+            .build_storage()
+            .unwrap();
+        pallet_balances::GenesisConfig::<TestRuntime>::default()
+            .assimilate_storage(&mut storage)
+            .unwrap();
+        let mut ext = sp_io::TestExternalities::new(storage);
+
+        ext.execute_with(|| {
+            // Set an old chain ID value
+            const OLD_CHAIN_ID: u64 = 12345;
+            const NEW_CHAIN_ID: u64 = 55931;
+
+            pallet_evm_chain_id::ChainId::<TestRuntime>::put(OLD_CHAIN_ID);
+            assert_eq!(
+                pallet_evm_chain_id::ChainId::<TestRuntime>::get(),
+                OLD_CHAIN_ID
+            );
+
+            // Run the migration
+            let mut meter = WeightMeter::with_limit(Weight::MAX);
+            let result = EvmChainIdMigration::<TestRuntime, NEW_CHAIN_ID>::step(None, &mut meter);
+
+            // Verify migration succeeded and completed in one step
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), None);
+
+            // Verify the chain ID was updated
+            assert_eq!(
+                pallet_evm_chain_id::ChainId::<TestRuntime>::get(),
+                NEW_CHAIN_ID
+            );
+        });
+    }
+
+    #[test]
+    fn evm_chain_id_migration_is_idempotent() {
+        use super::evm_chain_id::EvmChainIdMigration;
+
+        let mut storage = frame_system::GenesisConfig::<TestRuntime>::default()
+            .build_storage()
+            .unwrap();
+        pallet_balances::GenesisConfig::<TestRuntime>::default()
+            .assimilate_storage(&mut storage)
+            .unwrap();
+        let mut ext = sp_io::TestExternalities::new(storage);
+
+        ext.execute_with(|| {
+            const NEW_CHAIN_ID: u64 = 55932;
+
+            // Run the migration twice
+            let mut meter = WeightMeter::with_limit(Weight::MAX);
+            let result1 = EvmChainIdMigration::<TestRuntime, NEW_CHAIN_ID>::step(None, &mut meter);
+
+            let mut meter = WeightMeter::with_limit(Weight::MAX);
+            let result2 = EvmChainIdMigration::<TestRuntime, NEW_CHAIN_ID>::step(None, &mut meter);
+
+            // Both should succeed
+            assert!(result1.is_ok());
+            assert!(result2.is_ok());
+
+            // Chain ID should be set correctly
+            assert_eq!(
+                pallet_evm_chain_id::ChainId::<TestRuntime>::get(),
+                NEW_CHAIN_ID
+            );
         });
     }
 }

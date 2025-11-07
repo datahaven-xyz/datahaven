@@ -19,10 +19,10 @@ use sc_service::ChainType;
 
 use super::ChainSpec;
 
-const EVM_CHAIN_ID: u64 = 1283;
+const EVM_CHAIN_ID: u64 = 55932;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 const TOKEN_DECIMALS: u8 = 18;
-const TOKEN_SYMBOL: &str = "HAVE";
+const TOKEN_SYMBOL: &str = "STAGE";
 
 pub fn development_chain_spec() -> Result<ChainSpec, String> {
     // Give the token a unit name and decimal places

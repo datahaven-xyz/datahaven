@@ -41,11 +41,11 @@ pub struct NativeErc20Metadata;
 
 impl Erc20Metadata for NativeErc20Metadata {
     fn name() -> &'static str {
-        "HAVE"
+        "MOCK"
     }
 
     fn symbol() -> &'static str {
-        "HAVE"
+        "MOCK"
     }
 
     fn decimals() -> u8 {

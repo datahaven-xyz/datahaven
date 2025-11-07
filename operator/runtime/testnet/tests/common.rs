@@ -218,8 +218,8 @@ pub fn root_origin() -> RuntimeOrigin {
 #[allow(dead_code)]
 pub fn datahaven_token_metadata() -> snowbridge_core::AssetMetadata {
     snowbridge_core::AssetMetadata {
-        name: b"HAVE".to_vec().try_into().unwrap(),
-        symbol: b"wHAVE".to_vec().try_into().unwrap(),
+        name: b"MOCK".to_vec().try_into().unwrap(),
+        symbol: b"wMOCK".to_vec().try_into().unwrap(),
         decimals: 18,
     }
 }

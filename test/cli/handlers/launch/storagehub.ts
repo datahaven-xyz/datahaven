@@ -1,13 +1,13 @@
 import { logger, printHeader } from "utils";
-import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import type { DataHavenOptions } from "../../../launcher/datahaven";
 import {
-  launchStorageHubPostgres,
-  launchMspNode,
   launchBspNode,
+  launchFishermanNode,
   launchIndexerNode,
-  launchFishermanNode
+  launchMspNode,
+  launchStorageHubPostgres
 } from "../../../launcher/storagehub-docker";
+import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
 import { fundProviders } from "../../../scripts/fund-providers";
 import { registerProviders } from "../../../scripts/register-providers";
 import { deployStorageHubComponents } from "../deploy/storagehub";

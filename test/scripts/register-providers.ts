@@ -1,7 +1,7 @@
 import { Binary } from "polkadot-api";
 import { logger } from "utils";
-import { createPapiConnectors, getEvmEcdsaSigner } from "utils/papi";
 import { SUBSTRATE_FUNDED_ACCOUNTS } from "utils/constants";
+import { createPapiConnectors, getEvmEcdsaSigner } from "utils/papi";
 import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 
 export interface RegisterProvidersOptions {
@@ -10,7 +10,7 @@ export interface RegisterProvidersOptions {
 
 /**
  * Provider registration information.
- * 
+ *
  * These accounts must have BCSV ECDSA keys injected into their keystores.
  * DataHaven uses AccountId20 (Ethereum-style 20-byte addresses).
  */
@@ -52,15 +52,15 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
 
   try {
     // Create signer for Alice (sudo account in dev chain)
-    const aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
+    const _aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
 
     // Register MSP
     logger.info(`Registering MSP (${PROVIDERS.msp.name})...`);
-    
+
     try {
       // Note: The exact extrinsic signature will depend on the pallet-storage-providers implementation
       // This is a placeholder structure based on the investigation findings
-      const mspTx = typedApi.tx.Sudo.sudo({
+      const _mspTx = typedApi.tx.Sudo.sudo({
         call: Binary.fromBytes(
           // The actual call bytes would be constructed from the Providers pallet extrinsic
           // This is a simplified representation and will need to be adjusted based on actual runtime types
@@ -71,7 +71,7 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       logger.info("⚠️  Note: MSP registration requires runtime types to be generated.");
       logger.info("Please run: bun generate:types");
       logger.info("Then update this script with the actual Providers.force_msp_sign_up call.");
-      
+
       // Uncomment when runtime types are available:
       // const mspTx = typedApi.tx.Sudo.sudo({
       //   call: typedApi.tx.Providers.force_msp_sign_up({
@@ -90,7 +90,6 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       //
       // await mspTx.signSubmitAndWatch(aliceSigner);
       // logger.success(`MSP (${PROVIDERS.msp.name}) registered successfully`);
-
     } catch (error) {
       logger.error(`Failed to register MSP: ${error}`);
       logger.warn("This is expected if runtime types haven't been generated yet.");
@@ -98,12 +97,12 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
 
     // Register BSP
     logger.info(`Registering BSP (${PROVIDERS.bsp.name})...`);
-    
+
     try {
       logger.info("⚠️  Note: BSP registration requires runtime types to be generated.");
       logger.info("Please run: bun generate:types");
       logger.info("Then update this script with the actual Providers.force_bsp_sign_up call.");
-      
+
       // Uncomment when runtime types are available:
       // const bspTx = typedApi.tx.Sudo.sudo({
       //   call: typedApi.tx.Providers.force_bsp_sign_up({
@@ -117,7 +116,6 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       //
       // await bspTx.signSubmitAndWatch(aliceSigner);
       // logger.success(`BSP (${PROVIDERS.bsp.name}) registered successfully`);
-
     } catch (error) {
       logger.error(`Failed to register BSP: ${error}`);
       logger.warn("This is expected if runtime types haven't been generated yet.");
@@ -125,7 +123,6 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
 
     logger.info("Provider registration process completed");
     logger.info("Note: Actual registration will work once runtime types are available.");
-    
   } catch (error) {
     logger.error(`Provider registration failed: ${error}`);
     throw error;
@@ -148,20 +145,20 @@ export async function verifyProvidersRegistered(
   const aliceContainerName = `datahaven-alice-${options.launchedNetwork.networkId}`;
   const alicePort = options.launchedNetwork.getContainerPort(aliceContainerName);
 
-  const { client, typedApi } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
+  const { client } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
 
   try {
     // Check if MSP is registered
     logger.debug("Checking MSP registration...");
-    
+
     // This will need to be updated once runtime types are available:
     // const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
     //   PROVIDERS.msp.accountId
     // );
-    
+
     // Check if BSP is registered
     logger.debug("Checking BSP registration...");
-    
+
     // This will need to be updated once runtime types are available:
     // const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
     //   PROVIDERS.bsp.accountId
@@ -169,7 +166,7 @@ export async function verifyProvidersRegistered(
 
     logger.info("⚠️  Provider verification requires runtime types to be generated.");
     logger.success("Verification check completed (types pending)");
-    
+
     return true;
   } catch (error) {
     logger.error(`Provider verification failed: ${error}`);
@@ -178,4 +175,3 @@ export async function verifyProvidersRegistered(
     client.destroy();
   }
 }
-

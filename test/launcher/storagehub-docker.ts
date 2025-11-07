@@ -1,15 +1,9 @@
 import { $ } from "bun";
-import invariant from "tiny-invariant";
-import {
-  getPublicPort,
-  killExistingContainers,
-  logger,
-  waitForContainerToStart
-} from "utils";
+import { getPublicPort, killExistingContainers, logger, waitForContainerToStart } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { waitFor } from "utils/waits";
-import { isNetworkReady } from "./datahaven";
 import type { DataHavenOptions } from "./datahaven";
+import { isNetworkReady } from "./datahaven";
 import type { LaunchedNetwork } from "./types/launchedNetwork";
 
 /**
@@ -41,8 +35,10 @@ export const launchStorageHubPostgres = async (
   const dockerNetworkName = `datahaven-${options.networkId}`;
 
   // Check if container already exists
-  const existingContainer =
-    await $`docker ps -a -q --filter name=^${containerName}$`.nothrow().quiet().text();
+  const existingContainer = await $`docker ps -a -q --filter name=^${containerName}$`
+    .nothrow()
+    .quiet()
+    .text();
 
   if (existingContainer.trim()) {
     logger.info(`📦 PostgreSQL container ${containerName} already exists, removing...`);
@@ -89,7 +85,11 @@ export const launchStorageHubPostgres = async (
 
   // Register in launched network
   const publicPort = await getPublicPort(containerName, POSTGRES_CONFIG.port);
-  launchedNetwork.addContainer(containerName, { postgres: publicPort }, { postgres: POSTGRES_CONFIG.port });
+  launchedNetwork.addContainer(
+    containerName,
+    { postgres: publicPort },
+    { postgres: POSTGRES_CONFIG.port }
+  );
 
   logger.success(`PostgreSQL database started on port ${publicPort}`);
 };
@@ -137,7 +137,7 @@ export const injectStorageHubKey = async (
  *
  * For local development with Docker, nodes on the same network can discover each other
  * via mDNS (--discover-local flag), so explicit bootnodes are optional.
- * 
+ *
  * To use explicit bootnodes, we'd need to extract the peer ID from the validator node,
  * which requires querying the RPC endpoint. For simplicity in local dev, we skip this.
  *
@@ -508,11 +508,10 @@ export const launchFishermanNode = async (
  *
  * @param networkId - The network ID to identify containers
  */
-export const cleanStorageHubContainers = async (networkId: string): Promise<void> => {
+export const cleanStorageHubContainers = async (_networkId: string): Promise<void> => {
   logger.info("🧹 Stopping and removing StorageHub containers...");
 
   await killExistingContainers("storagehub-");
 
   logger.success("StorageHub containers stopped and removed");
 };
-

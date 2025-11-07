@@ -90,7 +90,6 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
   }
 
-
   await setParametersFromCollection({
     launchedNetwork,
     collection: parameterCollection,

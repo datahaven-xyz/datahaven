@@ -78,15 +78,18 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     );
   }
 
-  const contractsDeployed = await deployContracts({
-    rpcUrl: launchedNetwork.elRpcUrl,
-    verified: options.verified,
-    blockscoutBackendUrl,
-    deployContracts: options.deployContracts,
-    parameterCollection
-  });
+  if (options.deployContracts) {
+    const contractsDeployed = await deployContracts({
+      rpcUrl: launchedNetwork.elRpcUrl,
+      verified: options.verified,
+      blockscoutBackendUrl,
+      deployContracts: options.deployContracts,
+      parameterCollection
+    });
 
-  await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
+    await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  }
+
 
   await setParametersFromCollection({
     launchedNetwork,

@@ -132,6 +132,10 @@ serde = { workspace = true, default-features = true }
 cumulus-client-service = { workspace = true }
 toml = { workspace = true }
 
+# Static linking
+#### Needed to build static binaries ####
+pq-sys = { workspace = true }
+
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
 

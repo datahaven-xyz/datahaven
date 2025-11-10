@@ -9283,6 +9283,7 @@ name = "pallet-evm-precompile-collective"
 version = "0.1.0"
 dependencies = [
  "evm",
+ "fp-account",
  "fp-evm",
  "frame-support",
  "frame-system",

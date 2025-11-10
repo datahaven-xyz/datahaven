@@ -163,7 +163,7 @@ use datahaven_runtime_common::benchmarking::BenchmarkHelper;
 
 pub(crate) use crate::weights as mainnet_weights;
 
-const EVM_CHAIN_ID: u64 = 1289;
+const EVM_CHAIN_ID: u64 = 55930;
 const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

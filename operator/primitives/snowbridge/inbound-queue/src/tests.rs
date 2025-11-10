@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+
 use super::EthereumLocationsConverterFor;
 use crate::{
 	mock::*, Command, ConvertMessage, Destination, MessageV1, VersionedMessage, H160,

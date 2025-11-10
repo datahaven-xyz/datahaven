@@ -1,9 +1,9 @@
 [package]
 authors = { workspace = true }
-description = "A solochain node template built with Substrate, part of Polkadot Sdk."
+description = { workspace = true }
 edition = { workspace = true }
 homepage = { workspace = true }
-license = "Unlicense"
+license = { workspace = true }
 name = "datahaven-node"
 publish = false
 repository = { workspace = true }

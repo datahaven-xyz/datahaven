@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+
 #[cfg(test)]
 mod tests {
     use frame_support::traits::Contains;

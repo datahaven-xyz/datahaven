@@ -4,3 +4,14 @@ opt-level = 2
 
 [registries.crates-io]
 protocol = "sparse" 
+
+[target.x86_64-unknown-linux-gnu]
+# Only statically link the final binary, not build dependencies
+rustflags = [
+    "-C", "link-arg=-s",
+    "-C", "target-feature=-crt-static",
+]
+
+# Allow dynamic linking for build scripts and proc-macros
+[build]
+rustflags = []

@@ -1,18 +1,20 @@
-FROM alpine:latest AS build
+## Fresh container that reproduce the build with the deps needed to build our binary.
+
+FROM ubuntu:latest AS build
 WORKDIR /datahaven
 
-ENV RUSTUP_HOME="/usr/local/rustup" CARGO_HOME="/usr/local/cargo" PATH="/usr/local/cargo/bin:$PATH" RUSTFLAGS="-C target-feature=-crt-static"
-RUN apk add git curl cmake make g++ clang clang-dev perl protobuf libc-dev openssl openssl-dev linux-headers rocksdb-dev libc6-compat
-
-# RUN ln -s /usr/bin/x86_64-alpine-linux-musl-gcc /usr/bin/musl-gcc
-# RUN ln -s /usr/bin/x86_64-alpine-linux-musl-g++ /usr/bin/musl-g++
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable-x86_64-unknown-linux-gnu
+# Install deps needed for building the binary
+RUN apt update && apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev
+# Install cargo
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 
 COPY . /datahaven
 RUN cargo build --release
 
+# Make sure the build work
+RUN /datahaven/target/release/datahaven-node --version
+
 EXPOSE 30333 9944 9615
 VOLUME ["/data"]
 
-ENTRYPOINT ["/usr/local/bin/datahaven-node"]
+ENTRYPOINT ["/datahaven/target/release/datahaven-node"]

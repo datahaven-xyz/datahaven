@@ -39,6 +39,8 @@ jobs:
           cache-key: BUILD-RELEASE
           install-deps: false
 
+      - run: sudo apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev
+
       - name: Set build flags
         run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 

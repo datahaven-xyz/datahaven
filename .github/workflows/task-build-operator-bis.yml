@@ -1,0 +1,31 @@
+name: DataHaven Operator Binary Build Bis
+
+on:
+  - push
+
+jobs:
+  build-node:
+    name: Build operator binary bis
+    runs-on:
+      group: DH-runners
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: sudo apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
+      - run: cargo build --release

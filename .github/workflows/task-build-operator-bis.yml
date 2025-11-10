@@ -6,8 +6,7 @@ on:
 jobs:
   build-node:
     name: Build operator binary bis
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./operator

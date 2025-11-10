@@ -31,7 +31,6 @@ use super::{
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
-use pallet_external_validator_slashes::SlashingModeOption;
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 
@@ -1637,13 +1636,10 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
     type WeightInfo = testnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;
-    type SlashingMode = SlashingMode;
 }
 
 parameter_types! {
     pub const SlashDeferDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(0, 0);
-    pub const SlashingMode: SlashingModeOption = polkadot_runtime_common::prod_or_fast!(SlashingModeOption::Disabled, SlashingModeOption::Disabled);
-
 }
 
 #[cfg(test)]

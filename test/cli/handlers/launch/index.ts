@@ -96,7 +96,7 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchRelayers(options, launchedNetwork);
 
-  await launchStorageHubComponents(options, launchedNetwork);
+  // await launchStorageHubComponents(options, launchedNetwork);
 
   await performSummaryOperations(options, launchedNetwork);
   const fullEnd = performance.now();

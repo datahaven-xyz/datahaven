@@ -4,7 +4,7 @@ FROM ubuntu:latest AS build
 WORKDIR /datahaven
 
 # Install deps needed for building the binary
-RUN apt update && apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev
+RUN apt update && apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev mold
 # Install cargo
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 

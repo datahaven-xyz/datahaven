@@ -9,6 +9,7 @@ import {
 } from "utils";
 import { parse, stringify } from "yaml";
 import type { LaunchedNetwork } from "./types/launchedNetwork";
+import { z } from "zod";
 
 /**
  * Configuration options for Kurtosis-related operations.
@@ -18,6 +19,7 @@ export interface KurtosisOptions {
   blockscout?: boolean;
   slotTime?: number;
   kurtosisNetworkArgs?: string;
+  injectContracts?: boolean,
 }
 
 /**
@@ -50,7 +52,7 @@ export interface KurtosisLaunchResult {
 export const launchKurtosisNetwork = async (
   options: KurtosisOptions,
   launchedNetwork: LaunchedNetwork,
-  configFilePath = "configs/kurtosis/minimal.yaml"
+  configFilePath = "configs/kurtosis/minimal.yaml",
 ): Promise<void> => {
   logger.info("🚀 Launching Kurtosis Ethereum network...");
 
@@ -192,6 +194,7 @@ export const modifyConfig = async (
     slotTime?: number;
     kurtosisNetworkArgs?: string;
     kurtosisEnclaveName?: string;
+    injectContracts?: boolean;
   },
   configFile: string
 ): Promise<string> => {
@@ -222,6 +225,39 @@ export const modifyConfig = async (
     for (const arg of args) {
       const [key, value] = arg.split("=");
       parsedConfig.network_params[key] = value;
+    }
+  }
+
+  // Load and validate pre-deployed contracts
+  if (options.injectContracts) {
+    try {
+      const preDeployedFile = Bun.file("../contracts/deployments/state-diff.json");
+      if (await preDeployedFile.exists()) {
+        logger.debug(`Pre-deployed contracts file: ${preDeployedFile.name}`);
+        const preDeployedRaw = await preDeployedFile.text();
+        logger.trace(`Raw pre-deployed contracts data: ${preDeployedRaw}`);
+
+        const preDeployedData = JSON.parse(preDeployedRaw);
+        const validatedContracts = preDeployedContractsSchema.parse(preDeployedData);
+        logger.trace(`Validated contracts: ${JSON.stringify(validatedContracts, null, 2)}`);
+
+        const kurtosisFormattedContracts = transformToKurtosisFormat(validatedContracts);
+        logger.trace(
+          `Kurtosis formatted contracts: ${JSON.stringify(kurtosisFormattedContracts, null, 2)}`
+        );
+
+        parsedConfig.network_params.additional_preloaded_contracts = JSON.stringify(
+          kurtosisFormattedContracts,
+          null,
+          0
+        );
+        logger.debug("Pre-deployed contracts loaded and validated successfully");
+      } else {
+        logger.warn("Pre-deployed contracts file not found, skipping");
+      }
+    } catch (error) {
+      logger.error(`Failed to load pre-deployed contracts: ${error}`);
+      throw new Error("❌ Invalid pre-deployed contracts configuration");
     }
   }
 
@@ -343,4 +379,35 @@ export const getBlockscoutUrl = async (enclaveName: string): Promise<string> => 
   const blockscoutPort = await getPortFromKurtosis("blockscout", "http", enclaveName);
   invariant(blockscoutPort, "❌ Could not find Blockscout service port");
   return `http://127.0.0.1:${blockscoutPort}`;
+};
+
+const preDeployedContractsSchema = z.record(
+  z.string(),
+  z.object({
+    address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
+    code: z.string().regex(/^0x[a-fA-F0-9]*$/, "Invalid hex code"),
+    storage: z.union([
+      z.record(z.string(), z.string()),
+      z.string() // Allow empty string for contracts with no storage
+    ])
+  })
+);
+
+const transformToKurtosisFormat = (contracts: z.infer<typeof preDeployedContractsSchema>) => {
+  const transformed: Record<string, any> = {};
+
+  for (const [_name, contract] of Object.entries(contracts)) {
+    // Handle storage - convert empty string to empty object
+    const storage =
+      typeof contract.storage === "string" && contract.storage === "" ? {} : contract.storage;
+
+    transformed[contract.address] = {
+      balance: "0ETH",
+      code: contract.code,
+      storage: storage,
+      nonce: "0x0" // Default nonce to 0
+    };
+  }
+
+  return transformed;
 };

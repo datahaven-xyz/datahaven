@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
+import { getContainersMatchingImage, getPortFromKurtosis, logger, parseDeploymentsFile, parseRewardsInfoFile } from "utils";
 import { ParameterCollection } from "utils/parameters";
 import { deployContracts } from "../contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
@@ -186,13 +186,14 @@ export const launchNetwork = async (
         kurtosisEnclaveName: kurtosisEnclaveName,
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
-        kurtosisNetworkArgs: options.kurtosisNetworkArgs
+        kurtosisNetworkArgs: options.kurtosisNetworkArgs,
+        injectContracts: true // Forcing it to be true to run e2e tests
       },
       launchedNetwork
     );
 
     // 3. Deploy contracts
-    logger.info("📄 Deploying smart contracts...");
+    logger.info("📄 Injecting smart contracts...");
     let blockscoutBackendUrl: string | undefined;
     if (options.blockscout) {
       const blockscoutPort = await getPortFromKurtosis("blockscout", "http", kurtosisEnclaveName);
@@ -203,24 +204,79 @@ export const launchNetwork = async (
       throw new Error("Ethereum RPC URL not available");
     }
 
-    await deployContracts({
-      rpcUrl: launchedNetwork.elRpcUrl,
-      verified: options.verified ?? false,
-      blockscoutBackendUrl,
-      parameterCollection
-    });
+    // await deployContracts({
+    //   rpcUrl: launchedNetwork.elRpcUrl,
+    //   verified: options.verified ?? false,
+    //   blockscoutBackendUrl,
+    //   parameterCollection
+    // });
 
     // 4. Fund validators
-    logger.info("💰 Funding validators...");
-    await fundValidators({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
+    // logger.info("💰 Funding validators...");
+    // await fundValidators({
+    //   rpcUrl: launchedNetwork.elRpcUrl
+    // });
 
     // 5. Setup validators
-    logger.info("🔐 Setting up validators...");
-    await setupValidators({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
+    // logger.info("🔐 Setting up validators...");
+    // await setupValidators({
+    //   rpcUrl: launchedNetwork.elRpcUrl
+    // });
+
+    // We are injecting contracts but we still need the addresses
+    try {
+      const deployments = await parseDeploymentsFile();
+      const rewardsInfo = await parseRewardsInfoFile();
+      const gatewayAddress = deployments.Gateway;
+      const rewardsRegistryAddress = deployments.RewardsRegistry;
+      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+
+      if (gatewayAddress) {
+        logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+
+        parameterCollection.addParameter({
+          name: "EthereumGatewayAddress",
+          value: gatewayAddress
+        });
+      } else {
+        logger.warn("⚠️ Gateway address not found in deployments file");
+      }
+
+      if (rewardsRegistryAddress) {
+        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+        parameterCollection.addParameter({
+          name: "RewardsRegistryAddress",
+          value: rewardsRegistryAddress
+        });
+      } else {
+        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+      }
+
+      if (updateRewardsMerkleRootSelector) {
+        logger.debug(
+          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
+        );
+        parameterCollection.addParameter({
+          name: "RewardsUpdateSelector",
+          value: updateRewardsMerkleRootSelector
+        });
+      } else {
+        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+      }
+
+      if (rewardsAgentOrigin) {
+        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+        parameterCollection.addParameter({
+          name: "RewardsAgentOrigin",
+          value: rewardsAgentOrigin
+        });
+      } else {
+        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+      }
+    } catch (error) {
+      logger.error(`Failed to read parameters from deployment: ${error}`);
+    }
 
     // 6. Set DataHaven runtime parameters
     logger.info("⚙️ Setting DataHaven parameters...");

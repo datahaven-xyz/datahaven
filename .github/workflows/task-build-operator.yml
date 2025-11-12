@@ -39,8 +39,6 @@ jobs:
           cache-key: BUILD-RELEASE
           install-deps: false
 
-      - run: echo "RustFlags=${{ env.RUSTFLAGS }}"
-
       - name: Set build flags
         run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 

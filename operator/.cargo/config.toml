@@ -7,8 +7,6 @@ protocol = "sparse"
 
 [target.x86_64-unknown-linux-gnu]
 rustflags = [
-    "-C", "linker=clang",
-    "-C", "link-arg=-fuse-ld=mold",
     "-C", "link-arg=-s",
     "-C", "target-feature=-crt-static",
 ]

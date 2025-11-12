@@ -68,109 +68,109 @@ runs:
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     
-    # Auto-install missing dependencies when install-deps is false (for self-hosted runners)
-    - name: Setup system dependencies (self-hosted)
-      if: inputs.install-deps == 'false'
-      shell: bash
-      run: |
-        echo "Checking and installing system dependencies locally if needed..."
+    # # Auto-install missing dependencies when install-deps is false (for self-hosted runners)
+    # - name: Setup system dependencies (self-hosted)
+    #   if: inputs.install-deps == 'false'
+    #   shell: bash
+    #   run: |
+    #     echo "Checking and installing system dependencies locally if needed..."
         
-        # Setup local directories
-        LOCAL_DIR="$HOME/.local"
-        LOCAL_BIN="$LOCAL_DIR/bin"
-        LOCAL_LIB="$LOCAL_DIR/lib"
-        LOCAL_INCLUDE="$LOCAL_DIR/include"
-        LOCAL_PKG_CONFIG="$LOCAL_DIR/lib/pkgconfig"
+    #     # Setup local directories
+    #     LOCAL_DIR="$HOME/.local"
+    #     LOCAL_BIN="$LOCAL_DIR/bin"
+    #     LOCAL_LIB="$LOCAL_DIR/lib"
+    #     LOCAL_INCLUDE="$LOCAL_DIR/include"
+    #     LOCAL_PKG_CONFIG="$LOCAL_DIR/lib/pkgconfig"
         
-        mkdir -p "$LOCAL_BIN" "$LOCAL_LIB" "$LOCAL_INCLUDE" "$LOCAL_PKG_CONFIG"
+    #     mkdir -p "$LOCAL_BIN" "$LOCAL_LIB" "$LOCAL_INCLUDE" "$LOCAL_PKG_CONFIG"
         
-        # Export paths for future steps (avoid duplication)
-        echo "$LOCAL_BIN" >> $GITHUB_PATH
-        echo "LD_LIBRARY_PATH=$LOCAL_LIB:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=$LOCAL_PKG_CONFIG:${PKG_CONFIG_PATH:-}" >> $GITHUB_ENV
-        echo "C_INCLUDE_PATH=$LOCAL_INCLUDE:${C_INCLUDE_PATH:-}" >> $GITHUB_ENV
-        echo "CPLUS_INCLUDE_PATH=$LOCAL_INCLUDE:${CPLUS_INCLUDE_PATH:-}" >> $GITHUB_ENV
+    #     # Export paths for future steps (avoid duplication)
+    #     echo "$LOCAL_BIN" >> $GITHUB_PATH
+    #     echo "LD_LIBRARY_PATH=$LOCAL_LIB:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+    #     echo "PKG_CONFIG_PATH=$LOCAL_PKG_CONFIG:${PKG_CONFIG_PATH:-}" >> $GITHUB_ENV
+    #     echo "C_INCLUDE_PATH=$LOCAL_INCLUDE:${C_INCLUDE_PATH:-}" >> $GITHUB_ENV
+    #     echo "CPLUS_INCLUDE_PATH=$LOCAL_INCLUDE:${CPLUS_INCLUDE_PATH:-}" >> $GITHUB_ENV
         
-        # Check and install PostgreSQL client libraries if needed
-        if ! pkg-config --exists libpq 2>/dev/null; then
-          echo "Installing libpq..."
-          ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
-          WORK_DIR="$LOCAL_DIR/tmp"
-          mkdir -p "$WORK_DIR" && cd "$WORK_DIR"
+    #     # Check and install PostgreSQL client libraries if needed
+    #     if ! pkg-config --exists libpq 2>/dev/null; then
+    #       echo "Installing libpq..."
+    #       ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+    #       WORK_DIR="$LOCAL_DIR/tmp"
+    #       mkdir -p "$WORK_DIR" && cd "$WORK_DIR"
           
-          # Download PostgreSQL 18 packages
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.0-1.pgdg+3_${ARCH}.deb"
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_18.0-1.pgdg+3_${ARCH}.deb"
+    #       # Download PostgreSQL 18 packages
+    #       wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.0-1.pgdg+3_${ARCH}.deb"
+    #       wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_18.0-1.pgdg+3_${ARCH}.deb"
           
-          # Extract and install
-          for pkg in *.deb; do
-            ar p "$pkg" data.tar.xz | tar -xJ --no-same-owner 2>/dev/null || true
-          done
+    #       # Extract and install
+    #       for pkg in *.deb; do
+    #         ar p "$pkg" data.tar.xz | tar -xJ --no-same-owner 2>/dev/null || true
+    #       done
           
-          cp -r usr/lib/*/libpq* usr/lib/libpq* "$LOCAL_LIB/" 2>/dev/null || true
-          cp -r usr/include/* "$LOCAL_INCLUDE/" 2>/dev/null || true
-          find usr -name "*.pc" -exec cp {} "$LOCAL_PKG_CONFIG/" \; 2>/dev/null || true
+    #       cp -r usr/lib/*/libpq* usr/lib/libpq* "$LOCAL_LIB/" 2>/dev/null || true
+    #       cp -r usr/include/* "$LOCAL_INCLUDE/" 2>/dev/null || true
+    #       find usr -name "*.pc" -exec cp {} "$LOCAL_PKG_CONFIG/" \; 2>/dev/null || true
           
-          # Fix pkg-config paths
-          sed -i "s|/usr|$LOCAL_DIR|g" "$LOCAL_PKG_CONFIG"/*.pc 2>/dev/null || true
+    #       # Fix pkg-config paths
+    #       sed -i "s|/usr|$LOCAL_DIR|g" "$LOCAL_PKG_CONFIG"/*.pc 2>/dev/null || true
           
-          cd "$HOME" && rm -rf "$WORK_DIR"
+    #       cd "$HOME" && rm -rf "$WORK_DIR"
           
-          # Export build flags for libpq
-          echo "LDFLAGS=-L$LOCAL_LIB ${LDFLAGS:-}" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$LOCAL_INCLUDE ${CPPFLAGS:-}" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$LOCAL_LIB:${LIBRARY_PATH:-}" >> $GITHUB_ENV
-          echo "RUSTFLAGS=-L $LOCAL_LIB" >> $GITHUB_ENV
+    #       # Export build flags for libpq
+    #       echo "LDFLAGS=-L$LOCAL_LIB ${LDFLAGS:-}" >> $GITHUB_ENV
+    #       echo "CPPFLAGS=-I$LOCAL_INCLUDE ${CPPFLAGS:-}" >> $GITHUB_ENV
+    #       echo "LIBRARY_PATH=$LOCAL_LIB:${LIBRARY_PATH:-}" >> $GITHUB_ENV
+    #       echo "RUSTFLAGS=-L $LOCAL_LIB" >> $GITHUB_ENV
           
-          echo "✓ libpq installed"
-        else
-          echo "✓ libpq found: $(pkg-config --modversion libpq 2>/dev/null || echo 'version unknown')"
-        fi
+    #       echo "✓ libpq installed"
+    #     else
+    #       echo "✓ libpq found: $(pkg-config --modversion libpq 2>/dev/null || echo 'version unknown')"
+    #     fi
         
-        # Check and install LLVM/Clang if needed
-        if ! command -v clang &> /dev/null || ! ls $LOCAL_LIB/libclang* 2>/dev/null && ! ldconfig -p 2>/dev/null | grep -q libclang; then
-          echo "LLVM/Clang not found, installing locally..."
-          LLVM_VERSION="18.1.8"
-          ARCH=$(uname -m)
+    #     # Check and install LLVM/Clang if needed
+    #     if ! command -v clang &> /dev/null || ! ls $LOCAL_LIB/libclang* 2>/dev/null && ! ldconfig -p 2>/dev/null | grep -q libclang; then
+    #       echo "LLVM/Clang not found, installing locally..."
+    #       LLVM_VERSION="18.1.8"
+    #       ARCH=$(uname -m)
           
-          # Map architecture names
-          case "$ARCH" in
-            x86_64) LLVM_ARCH="x86_64-linux-gnu-ubuntu-22.04" ;;
-            aarch64) LLVM_ARCH="aarch64-linux-gnu" ;;
-            *) LLVM_ARCH="$ARCH-linux-gnu" ;;
-          esac
+    #       # Map architecture names
+    #       case "$ARCH" in
+    #         x86_64) LLVM_ARCH="x86_64-linux-gnu-ubuntu-22.04" ;;
+    #         aarch64) LLVM_ARCH="aarch64-linux-gnu" ;;
+    #         *) LLVM_ARCH="$ARCH-linux-gnu" ;;
+    #       esac
           
-          # Download pre-built LLVM/Clang binaries
-          echo "Downloading LLVM ${LLVM_VERSION} for ${LLVM_ARCH}..."
-          wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-${LLVM_ARCH}.tar.xz" | \
-            tar -xJf - -C /tmp --strip-components=1 || {
-              echo "Failed to download pre-built binaries, trying alternative version..."
-              # Try an older, more widely available version
-              LLVM_VERSION="17.0.6"
-              wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-${LLVM_ARCH}.tar.xz" | \
-                tar -xJf - -C /tmp --strip-components=1
-          }
+    #       # Download pre-built LLVM/Clang binaries
+    #       echo "Downloading LLVM ${LLVM_VERSION} for ${LLVM_ARCH}..."
+    #       wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-${LLVM_ARCH}.tar.xz" | \
+    #         tar -xJf - -C /tmp --strip-components=1 || {
+    #           echo "Failed to download pre-built binaries, trying alternative version..."
+    #           # Try an older, more widely available version
+    #           LLVM_VERSION="17.0.6"
+    #           wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-${LLVM_ARCH}.tar.xz" | \
+    #             tar -xJf - -C /tmp --strip-components=1
+    #       }
           
-          # Copy required files
-          if [ -d "/tmp/bin" ]; then
-            cp /tmp/bin/clang* "$LOCAL_BIN/" 2>/dev/null || true
-            cp /tmp/bin/llvm-config "$LOCAL_BIN/" 2>/dev/null || true
-            cp -r /tmp/lib/libclang* "$LOCAL_LIB/" 2>/dev/null || true
-            cp -r /tmp/lib/clang "$LOCAL_LIB/" 2>/dev/null || true
-            cp -r /tmp/include/clang* "$LOCAL_INCLUDE/" 2>/dev/null || true
-            rm -rf /tmp/bin /tmp/lib /tmp/include /tmp/share
+    #       # Copy required files
+    #       if [ -d "/tmp/bin" ]; then
+    #         cp /tmp/bin/clang* "$LOCAL_BIN/" 2>/dev/null || true
+    #         cp /tmp/bin/llvm-config "$LOCAL_BIN/" 2>/dev/null || true
+    #         cp -r /tmp/lib/libclang* "$LOCAL_LIB/" 2>/dev/null || true
+    #         cp -r /tmp/lib/clang "$LOCAL_LIB/" 2>/dev/null || true
+    #         cp -r /tmp/include/clang* "$LOCAL_INCLUDE/" 2>/dev/null || true
+    #         rm -rf /tmp/bin /tmp/lib /tmp/include /tmp/share
             
-            # Set LIBCLANG_PATH for rust bindgen
-            echo "LIBCLANG_PATH=$LOCAL_LIB" >> $GITHUB_ENV
-            echo "LLVM_CONFIG_PATH=$LOCAL_BIN/llvm-config" >> $GITHUB_ENV
-          fi
+    #         # Set LIBCLANG_PATH for rust bindgen
+    #         echo "LIBCLANG_PATH=$LOCAL_LIB" >> $GITHUB_ENV
+    #         echo "LLVM_CONFIG_PATH=$LOCAL_BIN/llvm-config" >> $GITHUB_ENV
+    #       fi
           
-          echo "✓ LLVM/Clang ${LLVM_VERSION} installed locally"
-        else
-          echo "✓ clang found: $(clang --version 2>/dev/null | head -n1 || echo 'installed')"
-        fi
+    #       echo "✓ LLVM/Clang ${LLVM_VERSION} installed locally"
+    #     else
+    #       echo "✓ clang found: $(clang --version 2>/dev/null | head -n1 || echo 'installed')"
+    #     fi
         
-        echo "All required system dependencies ready!"
+    #     echo "All required system dependencies ready!"
     
     # Install protoc only when install-deps is true
     - name: Install Protoc

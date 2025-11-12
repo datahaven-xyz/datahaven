@@ -15,7 +15,10 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
-      
+
+      - run: sudo apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev mold
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
 
@@ -28,6 +31,4 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: sudo apt install -y curl build-essential protobuf-compiler pkg-config libssl-dev mold
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
       - run: cargo build --release

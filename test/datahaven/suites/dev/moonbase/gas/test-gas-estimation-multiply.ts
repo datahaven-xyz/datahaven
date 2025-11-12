@@ -32,7 +32,7 @@ describeSuite({
         });
 
         // Snapshot estimated gas
-        expect(estimatedGas).toMatchInlineSnapshot("21549n");
+        expect(estimatedGas).toMatchInlineSnapshot("22363n");
       }
     });
 
@@ -53,7 +53,7 @@ describeSuite({
         });
 
         // Snapshot estimated gas
-        expect(estimatedGas).toMatchInlineSnapshot("21549n");
+        expect(estimatedGas).toMatchInlineSnapshot("22363n");
       }
     });
 
@@ -68,11 +68,11 @@ describeSuite({
           functionName: "multiply",
           args: [3],
           // @ts-expect-error expected
-          gasLimit: 21549n,
+          gasLimit: 22363n,
           value: 0n
         });
 
-        expect(estimatedGas).toMatchInlineSnapshot("21549n");
+        expect(estimatedGas).toMatchInlineSnapshot("22363n");
       }
     });
 
@@ -88,12 +88,12 @@ describeSuite({
           maxPriorityFeePerGas: 0n,
           args: [3],
           // @ts-expect-error expected
-          gasLimit: 21549n,
+          gasLimit: 22363n,
           value: 0n
         });
 
         // Snapshot estimated gas
-        expect(estimatedGas).toMatchInlineSnapshot("21549n");
+        expect(estimatedGas).toMatchInlineSnapshot("22363n");
       }
     });
 

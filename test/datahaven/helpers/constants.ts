@@ -45,6 +45,9 @@ const DATAHAVEN_CONSTANTS = {
   EXTRINSIC_GAS_LIMIT: new RuntimeConstant({
     0: 52_000_000n
   }),
+  GENESIS_BASE_FEE: new RuntimeConstant({
+    0: 312_500_000n
+  }),
   WEIGHT_TO_GAS_RATIO: 25_000n,
   STORAGE_READ_COST: 25_000_000n,
   STORAGE_WRITE_COST: 50_000_000n,

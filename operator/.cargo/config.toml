@@ -10,7 +10,3 @@ rustflags = [
     "-C", "link-arg=-s",
     "-C", "target-feature=-crt-static",
 ]
-
-# Allow dynamic linking for build scripts and proc-macros
-[build]
-rustflags = []

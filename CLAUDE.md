@@ -252,6 +252,11 @@ describe("My Tests", () => {
 - Network naming: `{suiteName}-{timestamp}` (e.g., `my-test-1699234567890`)
 - Port allocation: Alice node uses `9944` (RPC) / `30333` (P2P), others random
 
+#### Moonwall Logging
+- Run Moonwall commands with `LOG_LEVEL=debug` (or `trace`) and append `-- --printlogs` to surface debug output, e.g. `LOG_LEVEL=debug bun moonwall:test -- --printlogs`.
+- Logs are written under `tmp/node_logs` relative to the launch directory (`test/tmp/node_logs` in this repo). Override with `MOON_LOG_LOCATION` or `MOON_ZOMBIE_DIR` when needed.
+- `clearNodeLogs` wipes the directory between runs; otherwise delete files manually to reset log history.
+
 ### Development Workflow
 
 **Standard Development Cycle**:

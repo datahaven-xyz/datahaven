@@ -39,6 +39,7 @@ node:
     - "--msp-charging-period 100" # in blocks, 100 blocks = 10 minutes
     - "--max-storage-capacity 10737418240" # 10 GiB
     - "--jump-capacity=1073741824" # 1 GiB
+    - "--msp-distribute-files"
 
 ingress:
   enabled: false

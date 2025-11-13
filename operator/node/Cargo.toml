@@ -1,9 +1,9 @@
 [package]
 authors = { workspace = true }
-description = "A solochain node template built with Substrate, part of Polkadot Sdk."
+description = { workspace = true }
 edition = { workspace = true }
 homepage = { workspace = true }
-license = "Unlicense"
+license = { workspace = true }
 name = "datahaven-node"
 publish = false
 repository = { workspace = true }
@@ -92,7 +92,7 @@ fc-cli = { workspace = true }
 fc-consensus = { workspace = true }
 fc-db = { workspace = true }
 fc-mapping-sync = { workspace = true, features = ["sql"] }
-fc-rpc = { workspace = true, features = ["txpool"] }
+fc-rpc = { workspace = true, features = ["txpool", "rpc-binary-search-estimate"] }
 fc-rpc-core = { workspace = true, features = ["txpool"] }
 fc-storage = { workspace = true }
 fp-account = { workspace = true }

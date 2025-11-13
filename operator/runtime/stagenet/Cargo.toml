@@ -3,7 +3,7 @@ authors = { workspace = true }
 description = "DataHaven Stagenet runtime"
 edition = { workspace = true }
 homepage = { workspace = true }
-license = "Unlicense"
+license = { workspace = true }
 name = "datahaven-stagenet-runtime"
 publish = false
 repository = { workspace = true }

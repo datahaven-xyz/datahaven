@@ -92,7 +92,7 @@ fc-cli = { workspace = true }
 fc-consensus = { workspace = true }
 fc-db = { workspace = true }
 fc-mapping-sync = { workspace = true, features = ["sql"] }
-fc-rpc = { workspace = true, features = ["txpool"] }
+fc-rpc = { workspace = true, features = ["txpool", "rpc-binary-search-estimate"] }
 fc-rpc-core = { workspace = true, features = ["txpool"] }
 fc-storage = { workspace = true }
 fp-account = { workspace = true }

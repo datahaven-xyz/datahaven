@@ -3,7 +3,7 @@ authors = { workspace = true }
 description = "DataHaven Mainnet runtime"
 edition = { workspace = true }
 homepage = { workspace = true }
-license = "Unlicense"
+license = { workspace = true }
 name = "datahaven-mainnet-runtime"
 publish = false
 repository = { workspace = true }

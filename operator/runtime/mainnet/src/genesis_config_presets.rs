@@ -1,3 +1,19 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 use crate::{
     configs::BABE_GENESIS_EPOCH_CONFIG, AccountId, BalancesConfig, EVMConfig, Precompiles,
     RuntimeGenesisConfig, SessionKeys, Signature, SudoConfig, TechnicalCommitteeConfig,
@@ -16,7 +32,7 @@ use sp_core::{ecdsa, Pair, Public};
 use sp_genesis_builder::{self, PresetId};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
-const MAINNET_EVM_CHAIN_ID: u64 = 1289;
+const MAINNET_EVM_CHAIN_ID: u64 = 55930;
 
 // Returns the genesis config presets populated with given parameters.
 fn testnet_genesis(

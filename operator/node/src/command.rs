@@ -1,3 +1,19 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 use std::sync::Arc;
 
 use crate::config;
@@ -15,8 +31,7 @@ use sc_service::{ChainType, DatabaseSource};
 use serde::Deserialize;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
-    BspUploadFileOptions, FishermanOptions, IndexerOptions, MspChargeFeesOptions,
-    MspMoveBucketOptions,
+    BspUploadFileOptions, FishermanOptions, MspChargeFeesOptions, MspMoveBucketOptions,
 };
 use shc_rpc::RpcConfig;
 use shp_types::StorageDataUnit;
@@ -63,6 +78,15 @@ pub struct ProviderOptions {
     pub blockchain_service: Option<BlockchainServiceOptions>,
     // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
     // pub maintenance_mode: bool,
+}
+
+/// Role configuration enum that ensures mutual exclusivity between Provider and Fisherman roles.
+#[derive(Debug, Clone)]
+pub enum RoleOptions {
+    /// Storage Provider configuration
+    Provider(ProviderOptions),
+    /// Fisherman configuration
+    Fisherman(FishermanOptions),
 }
 
 impl SubstrateCli for Cli {
@@ -317,9 +341,8 @@ pub fn run() -> sc_cli::Result<()> {
             runner.sync_run(|config| cmd.run::<Block>(&config))
         }
         None => {
-            let mut provider_options: Option<ProviderOptions> = None;
-            let mut indexer_options: Option<IndexerOptions> = None;
-            let mut fisherman_options: Option<FishermanOptions> = None;
+            let mut role_options = None;
+            let mut indexer_options = None;
             let runner = cli.create_runner(&cli.run)?;
 
             // If we have a provider config file
@@ -339,10 +362,10 @@ pub fn run() -> sc_cli::Result<()> {
 
                     if has_provider {
                         let provider = c.provider;
-                        provider_options = Some(provider);
+                        role_options = Some(RoleOptions::Provider(provider));
                     } else if has_fisherman {
                         let fisherman = c.fisherman;
-                        fisherman_options = Some(fisherman);
+                        role_options = Some(RoleOptions::Fisherman(fisherman));
                     }
 
                     indexer_options = Some(c.indexer);
@@ -357,7 +380,9 @@ pub fn run() -> sc_cli::Result<()> {
             }
 
             if cli.provider_config.provider {
-                provider_options = Some(cli.provider_config.provider_options());
+                role_options = Some(RoleOptions::Provider(
+                    cli.provider_config.provider_options(),
+                ));
             };
 
             if cli.indexer_config.indexer {
@@ -365,7 +390,11 @@ pub fn run() -> sc_cli::Result<()> {
             };
 
             if cli.fisherman_config.fisherman {
-                fisherman_options = cli.fisherman_config.fisherman_options();
+                role_options = Some(RoleOptions::Fisherman(
+                    cli.fisherman_config
+                        .fisherman_options()
+                        .expect("Clap/TOML configurations should prevent this from ever failing"),
+                ));
             };
 
             runner.run_node_until_exit(|config| async move {
@@ -391,12 +420,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(
-                                    config,
-                                    cli.eth,
-                                    provider_options,
-                                    indexer_options,
-                                    fisherman_options,
-                                    sealing_mode,
+                                    config, cli.eth, role_options, indexer_options, sealing_mode
                                 )
                                 .await
                             }
@@ -406,12 +430,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(
-                                    config,
-                                    cli.eth,
-                                    provider_options,
-                                    indexer_options,
-                                    fisherman_options,
-                                    sealing_mode,
+                                    config, cli.eth, role_options, indexer_options, sealing_mode
                                 )
                                 .await
                             }
@@ -421,12 +440,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::NetworkWorker<_, _>,
                                 >(
-                                    config,
-                                    cli.eth,
-                                    provider_options,
-                                    indexer_options,
-                                    fisherman_options,
-                                    sealing_mode,
+                                    config, cli.eth, role_options, indexer_options, sealing_mode
                                 )
                                 .await
                             }
@@ -441,12 +455,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_mainnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
                                 >(
-                                    config,
-                                    cli.eth,
-                                    provider_options,
-                                    indexer_options,
-                                    fisherman_options,
-                                    sealing_mode,
+                                    config, cli.eth, role_options, indexer_options, sealing_mode
                                 )
                                 .await
                             }
@@ -456,12 +465,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_testnet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
                                 >(
-                                    config,
-                                    cli.eth,
-                                    provider_options,
-                                    indexer_options,
-                                    fisherman_options,
-                                    sealing_mode,
+                                    config, cli.eth, role_options, indexer_options, sealing_mode
                                 )
                                 .await
                             }
@@ -471,12 +475,7 @@ pub fn run() -> sc_cli::Result<()> {
                                     datahaven_stagenet_runtime::RuntimeApi,
                                     sc_network::Litep2pNetworkBackend,
                                 >(
-                                    config,
-                                    cli.eth,
-                                    provider_options,
-                                    indexer_options,
-                                    fisherman_options,
-                                    sealing_mode,
+                                    config, cli.eth, role_options, indexer_options, sealing_mode
                                 )
                                 .await
                             }

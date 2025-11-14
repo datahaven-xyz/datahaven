@@ -76,7 +76,7 @@ Each directory contains its own README with detailed information. See:
 ### Prerequisites
 
 - [Kurtosis](https://docs.kurtosis.com/install) - Network orchestration
-- [Bun](https://bun.sh/) v1.2+ - TypeScript runtime
+- [Bun](https://bun.sh/) v1.3.2+ - TypeScript runtime
 - [Docker](https://www.docker.com/) - Container management
 - [Foundry](https://getfoundry.sh/) - Solidity toolkit
 - [Rust](https://www.rust-lang.org/tools/install) - For building the operator

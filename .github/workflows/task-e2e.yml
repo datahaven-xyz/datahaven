@@ -48,6 +48,8 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: test/.bun-version
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
       - name: Pull Kurtosis images
@@ -98,7 +100,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
       - name: Cache Foundry libraries

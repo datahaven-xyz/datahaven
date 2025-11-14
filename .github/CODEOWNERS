@@ -1,0 +1,9 @@
+# Default code owners for the repo
+# (This restriction will be lifted at some point)
+* @datahaven-xyz/moonsong-perm @datahaven-xyz/moonsong-coredev
+
+# Specific code owners for sensitive folders
+/.github/ @datahaven-xyz/moonsong-perm @datahaven-xyz/opslayer-devops
+/docker/ @datahaven-xyz/moonsong-perm @datahaven-xyz/opslayer-devops
+/operator/scripts/ @datahaven-xyz/moonsong-perm @datahaven-xyz/opslayer-devops
+/tools/github/ @datahaven-xyz/moonsong-perm @datahaven-xyz/opslayer-devops

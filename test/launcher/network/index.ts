@@ -204,24 +204,11 @@ export const launchNetwork = async (
       throw new Error("Ethereum RPC URL not available");
     }
 
-    // await deployContracts({
-    //   rpcUrl: launchedNetwork.elRpcUrl,
-    //   verified: options.verified ?? false,
-    //   blockscoutBackendUrl,
-    //   parameterCollection
-    // });
-
     // 4. Fund validators
     logger.info("💰 Funding validators...");
     await fundValidators({
       rpcUrl: launchedNetwork.elRpcUrl
     });
-
-    // // 5. Setup validators
-    // logger.info("🔐 Setting up validators...");
-    // await setupValidators({
-    //   rpcUrl: launchedNetwork.elRpcUrl
-    // });
 
     // We are injecting contracts but we still need the addresses
     try {

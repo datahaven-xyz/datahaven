@@ -1,7 +1,11 @@
 import { $ } from "bun";
-import { getContainersMatchingImage, getPortFromKurtosis, logger, parseDeploymentsFile, parseRewardsInfoFile } from "utils";
+import {
+  getContainersMatchingImage,
+  logger,
+  parseDeploymentsFile,
+  parseRewardsInfoFile
+} from "utils";
 import { ParameterCollection } from "utils/parameters";
-import { deployContracts } from "../contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
@@ -10,7 +14,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { fundValidators, setupValidators } from "../validators";
+import { fundValidators } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -193,12 +197,7 @@ export const launchNetwork = async (
     );
 
     // 3. Deploy contracts
-    logger.info("📄 Injecting smart contracts...");
-    let blockscoutBackendUrl: string | undefined;
-    if (options.blockscout) {
-      const blockscoutPort = await getPortFromKurtosis("blockscout", "http", kurtosisEnclaveName);
-      blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPort}`;
-    }
+    logger.info("📄 Smart contracts injected.");
 
     if (!launchedNetwork.elRpcUrl) {
       throw new Error("Ethereum RPC URL not available");

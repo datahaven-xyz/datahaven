@@ -8,8 +8,8 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import { parse, stringify } from "yaml";
-import type { LaunchedNetwork } from "./types/launchedNetwork";
 import { z } from "zod";
+import type { LaunchedNetwork } from "./types/launchedNetwork";
 
 /**
  * Configuration options for Kurtosis-related operations.
@@ -19,7 +19,7 @@ export interface KurtosisOptions {
   blockscout?: boolean;
   slotTime?: number;
   kurtosisNetworkArgs?: string;
-  injectContracts?: boolean,
+  injectContracts?: boolean;
 }
 
 /**
@@ -52,7 +52,7 @@ export interface KurtosisLaunchResult {
 export const launchKurtosisNetwork = async (
   options: KurtosisOptions,
   launchedNetwork: LaunchedNetwork,
-  configFilePath = "configs/kurtosis/minimal.yaml",
+  configFilePath = "configs/kurtosis/minimal.yaml"
 ): Promise<void> => {
   logger.info("🚀 Launching Kurtosis Ethereum network...");
 

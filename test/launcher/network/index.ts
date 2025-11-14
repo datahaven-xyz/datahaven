@@ -12,7 +12,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { fundValidators } from "../validators";
+import { fundValidators, setupValidators } from "../validators";
 import { updateParameters } from "../../scripts/deploy-contracts";
 
 // Authority IDs for test networks
@@ -205,6 +205,12 @@ export const launchNetwork = async (
     // 4. Fund validators
     logger.info("💰 Funding validators...");
     await fundValidators({
+      rpcUrl: launchedNetwork.elRpcUrl
+    });
+
+    // 5. Setup validators
+    logger.info("🔐 Setting up validators...");
+    await setupValidators({
       rpcUrl: launchedNetwork.elRpcUrl
     });
 

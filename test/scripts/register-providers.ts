@@ -1,11 +1,11 @@
+import { blake2b } from "@noble/hashes/blake2";
+import type { FixedSizeBinary } from "polkadot-api";
+import { Binary } from "polkadot-api";
 import { logger } from "utils";
 import { SUBSTRATE_FUNDED_ACCOUNTS } from "utils/constants";
 import { createPapiConnectors, getEvmEcdsaSigner } from "utils/papi";
-import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
-import type { FixedSizeBinary } from "polkadot-api";
-import { Binary } from "polkadot-api";
-import { blake2b } from "@noble/hashes/blake2";
 import { hexToBytes } from "viem";
+import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 
 export interface RegisterProvidersOptions {
   launchedNetwork: LaunchedNetwork;

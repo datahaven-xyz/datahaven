@@ -2,8 +2,6 @@ import { $ } from "bun";
 import {
   getContainersMatchingImage,
   logger,
-  parseDeploymentsFile,
-  parseRewardsInfoFile
 } from "utils";
 import { ParameterCollection } from "utils/parameters";
 import { launchLocalDataHavenSolochain } from "../datahaven";
@@ -15,6 +13,7 @@ import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
 import { fundValidators } from "../validators";
+import { updateParameters } from "../../scripts/deploy-contracts";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -210,59 +209,7 @@ export const launchNetwork = async (
     });
 
     // We are injecting contracts but we still need the addresses
-    try {
-      const deployments = await parseDeploymentsFile();
-      const rewardsInfo = await parseRewardsInfoFile();
-      const gatewayAddress = deployments.Gateway;
-      const rewardsRegistryAddress = deployments.RewardsRegistry;
-      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
-      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
-
-      if (gatewayAddress) {
-        logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
-
-        parameterCollection.addParameter({
-          name: "EthereumGatewayAddress",
-          value: gatewayAddress
-        });
-      } else {
-        logger.warn("⚠️ Gateway address not found in deployments file");
-      }
-
-      if (rewardsRegistryAddress) {
-        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
-        parameterCollection.addParameter({
-          name: "RewardsRegistryAddress",
-          value: rewardsRegistryAddress
-        });
-      } else {
-        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
-      }
-
-      if (updateRewardsMerkleRootSelector) {
-        logger.debug(
-          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
-        );
-        parameterCollection.addParameter({
-          name: "RewardsUpdateSelector",
-          value: updateRewardsMerkleRootSelector
-        });
-      } else {
-        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
-      }
-
-      if (rewardsAgentOrigin) {
-        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
-        parameterCollection.addParameter({
-          name: "RewardsAgentOrigin",
-          value: rewardsAgentOrigin
-        });
-      } else {
-        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
-      }
-    } catch (error) {
-      logger.error(`Failed to read parameters from deployment: ${error}`);
-    }
+    await updateParameters(parameterCollection);
 
     // 6. Set DataHaven runtime parameters
     logger.info("⚙️ Setting DataHaven parameters...");

@@ -99,6 +99,17 @@ export const executeDeployment = async (
   // - RewardsAgentOrigin (bytes32)
   // and add it to parameters if collection is provided
   if (parameterCollection) {
+    await updateParameters(parameterCollection, chain);
+  }
+
+  logger.success("Contracts deployed successfully");
+};
+
+/**
+ * Read the parameters from the deployed contracts and add it to the collection.
+ */ 
+export const updateParameters = async (parameterCollection: ParameterCollection,
+  chain?: string) => {
     try {
       const deployments = await parseDeploymentsFile(chain);
       const rewardsInfo = await parseRewardsInfoFile(chain);
@@ -152,10 +163,7 @@ export const executeDeployment = async (
     } catch (error) {
       logger.error(`Failed to read parameters from deployment: ${error}`);
     }
-  }
-
-  logger.success("Contracts deployed successfully");
-};
+}
 
 /**
  * Main function to deploy contracts with simplified interface

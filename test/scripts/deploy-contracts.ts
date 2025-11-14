@@ -40,8 +40,6 @@ export const buildContracts = async () => {
     stdout: buildStdout
   } = await $`forge build`.cwd("../contracts").nothrow().quiet();
 
-  await $`bun run biome format --files-max-size=2000000 --write ../contracts/deployments/state-diff.json`;
-
   if (buildExitCode !== 0) {
     logger.error(buildStderr.toString());
     throw Error("❌ Contracts have failed to build properly.");

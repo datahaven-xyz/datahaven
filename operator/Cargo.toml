@@ -305,7 +305,7 @@ pallet-evm-precompile-file-system = { git = "https://github.com/Moonsong-Labs/st
 
 # Static linking
 #### Needed to build static binaries ####
-pq-sys = { version = "0.7.2", features = ["bundled"] }
+pq-sys = { version = "0.7.2" }
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
 # that are suspected to be CPU-intensive, and that are unlikely to require debugging (as some of

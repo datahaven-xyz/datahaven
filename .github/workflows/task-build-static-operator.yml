@@ -1,0 +1,46 @@
+name: DataHaven Operator Static Build
+
+on:
+  pull_request:
+    paths:
+      # Only check the build if we are adding a dependency to save runner time
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+jobs:
+  build-node:
+    name: Build operator binary
+    runs-on:
+      group: DH-runners
+    env:
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      SCCACHE_GHA_ENABLED: "true"
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: BUILD-RELEASE
+          install-deps: false
+          skip-libpq: true
+
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+
+      - name: Build node binary
+        run: |
+          cargo build --release --locked --features fast-runtime,static
+
+      - name: Test binary
+        run: |
+          ldd ./target/release/datahaven-node
+          ./target/release/datahaven-node --version
+

@@ -134,7 +134,7 @@ toml = { workspace = true }
 
 # Static linking
 #### Needed to build static binaries ####
-pq-sys = { workspace = true }
+pq-sys = { workspace = true, optional = true }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
@@ -148,6 +148,7 @@ std = [
     "datahaven-testnet-runtime/std",
     "shp-opaque/std"
 ]
+static = ["pq-sys", "pq-sys/bundled"]
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [

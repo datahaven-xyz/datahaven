@@ -28,7 +28,6 @@
 use pallet_collective as pallet_collective_treasury_council;
 #[allow(unused_imports)]
 use pallet_collective as pallet_collective_technical_committee;
-use pallet_external_validator_slashes as pallet_external_validators_slashes;
 
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
@@ -61,6 +60,9 @@ frame_benchmarking::define_benchmarks!(
 
     // EVM pallets
     [pallet_evm, EVM]
+
+    // StorageHub pallets
+    [pallet_nfts, Nfts]
 
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]

@@ -139,7 +139,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 600,
+    spec_version: 700,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1385,6 +1385,29 @@ impl_runtime_apis! {
 
         fn query_buckets_of_user_stored_by_msp(msp_id: &ProviderIdFor<Runtime>, user: &AccountId) -> Result<sp_runtime::Vec<BucketId<Runtime>>, QueryBucketsOfUserStoredByMspError> {
             Ok(sp_runtime::Vec::from_iter(Providers::query_buckets_of_user_stored_by_msp(msp_id, user)?))
+        }
+    }
+
+    impl shp_tx_implicits_runtime_api::TxImplicitsApi<Block> for Runtime {
+        fn compute_signed_extra_implicit(
+            era: sp_runtime::generic::Era,
+            enable_metadata: bool,
+        ) -> Result<sp_std::vec::Vec<u8>, sp_runtime::transaction_validity::TransactionValidityError> {
+            // Build the SignedExtra tuple with minimal values; only `era` and `enable_metadata`
+            // influence the implicit. Other extensions have `()` implicit.
+            let extra: SignedExtra = (
+                frame_system::CheckNonZeroSender::<Runtime>::new(),
+                frame_system::CheckSpecVersion::<Runtime>::new(),
+                frame_system::CheckTxVersion::<Runtime>::new(),
+                frame_system::CheckGenesis::<Runtime>::new(),
+                frame_system::CheckEra::<Runtime>::from(era),
+                frame_system::CheckNonce::<Runtime>::from(<Nonce as Default>::default()),
+                frame_system::CheckWeight::<Runtime>::new(),
+                pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(<Balance as Default>::default()),
+                frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(enable_metadata),
+            );
+            let implicit = <SignedExtra as sp_runtime::traits::TransactionExtension<RuntimeCall>>::implicit(&extra)?;
+            Ok(implicit.encode())
         }
     }
 }

@@ -159,10 +159,6 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
-
-        /// Slashing mode option configuration
-        #[pallet::constant]
-        type SlashingMode: Get<SlashingModeOption>;
     }
 
     #[pallet::error]
@@ -365,11 +361,6 @@ pub mod pallet {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
             T::WeightInfo::process_slashes_queue(processed)
-        }
-
-        fn on_runtime_upgrade() -> Weight {
-            SlashingMode::<T>::put(T::SlashingMode::get());
-            T::DbWeight::get().writes(1)
         }
     }
 }

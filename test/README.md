@@ -7,7 +7,7 @@ For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUID
 ## Pre-requisites
 
 - [Kurtosis](https://docs.kurtosis.com/install): For launching test networks
-- [Bun](https://bun.sh/) v1.2 or higher: TypeScript runtime and package manager
+- [Bun](https://bun.sh/) v1.3.2 or higher: TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 - [Foundry](https://getfoundry.sh/introduction/installation/): To deploy contracts
 - [Helm](https://helm.sh/docs/intro/install/): The Kubernetes Package Manager 

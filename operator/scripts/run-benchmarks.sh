@@ -109,6 +109,7 @@ benchmark_pallet() {
         --runtime "$WASM_PATH" \
         --pallet "$PALLET" \
         --extrinsic "" \
+        --header ../file_header.txt \
         --template "$TEMPLATE_PATH" \
         --output "$WEIGHTS_DIR/$OUTPUT_FILE.rs" \
         --steps "$STEPS" \

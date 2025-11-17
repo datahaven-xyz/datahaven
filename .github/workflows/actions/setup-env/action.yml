@@ -99,8 +99,8 @@ runs:
           mkdir -p "$WORK_DIR" && cd "$WORK_DIR"
           
           # Download PostgreSQL 18 packages
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.0-1.pgdg+3_${ARCH}.deb"
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_18.0-1.pgdg+3_${ARCH}.deb"
+          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.1-1.pgdg+2_${ARCH}.deb"
+          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_18.1-1.pgdg+2_${ARCH}.deb"
           
           # Extract and install
           for pkg in *.deb; do

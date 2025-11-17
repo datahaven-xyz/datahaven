@@ -3,7 +3,7 @@ name = "pallet-datahaven-native-transfer"
 authors = { workspace = true }
 description = "Pallet for transferring DataHaven native tokens to and from Ethereum."
 edition = "2021"
-license = "GPL-3.0-only"
+license = { workspace = true }
 version = { workspace = true }
 
 [package.metadata.docs.rs]

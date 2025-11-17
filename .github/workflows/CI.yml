@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - perm-*
   pull_request:
     branches: [main]
 

@@ -1,4 +1,4 @@
-// Copyright 2019-2025 The DataHaven Team
+// Copyright 2025 DataHaven
 // This file is part of DataHaven.
 
 // DataHaven is free software: you can redistribute it and/or modify
@@ -8,11 +8,11 @@
 
 // DataHaven is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with DataHaven. If not, see <http://www.gnu.org/licenses/>.
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::configs::MaxAdditionalFields;
 use crate::governance::councils::{TechnicalCommitteeInstance, TreasuryCouncilInstance};
@@ -41,11 +41,11 @@ pub struct NativeErc20Metadata;
 
 impl Erc20Metadata for NativeErc20Metadata {
     fn name() -> &'static str {
-        "HAVE"
+        "STAGE"
     }
 
     fn symbol() -> &'static str {
-        "HAVE"
+        "STAGE"
     }
 
     fn decimals() -> u8 {

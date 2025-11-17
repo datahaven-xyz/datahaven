@@ -42,13 +42,15 @@ jobs:
             --sealing=manual 2>&1 | head -50 || echo "Node startup test completed"
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: test/.bun-version
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 

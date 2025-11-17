@@ -146,8 +146,8 @@ describe("Native Token Transfer", () => {
       sender: { type: "V5", value: { parents: 0, interior: { type: "Here", value: undefined } } },
       asset_id: { type: "V5", value: { parents: 0, interior: { type: "Here", value: undefined } } },
       metadata: {
-        name: Binary.fromText("HAVE"),
-        symbol: Binary.fromText("wHAVE"),
+        name: Binary.fromText("STAGE"),
+        symbol: Binary.fromText("wSTAGE"),
         decimals: 18
       }
     });
@@ -220,8 +220,8 @@ describe("Native Token Transfer", () => {
       }) as Promise<number>
     ]);
 
-    expect(tokenName).toBe("HAVE");
-    expect(tokenSymbol).toBe("wHAVE");
+    expect(tokenName).toBe("STAGE");
+    expect(tokenSymbol).toBe("wSTAGE");
     expect(tokenDecimals).toBe(18);
   }, 300_000); // 5 minute timeout for registration
 

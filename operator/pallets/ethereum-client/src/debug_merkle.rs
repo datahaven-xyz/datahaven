@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 // Debug helper for merkle proof validation
 use hex_literal::hex;
 use snowbridge_beacon_primitives::{

@@ -15,6 +15,7 @@ pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-evm = { workspace = true }
+pallet-evm-chain-id = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
 pallet-migrations = { workspace = true }
 pallet-safe-mode = { workspace = true }
@@ -40,6 +41,7 @@ std = [
     "pallet-balances/std",
     "pallet-timestamp/std",
     "pallet-evm/std",
+    "pallet-evm-chain-id/std",
     "pallet-evm-precompile-proxy/std",
     "pallet-migrations/std",
     "pallet-safe-mode/std",

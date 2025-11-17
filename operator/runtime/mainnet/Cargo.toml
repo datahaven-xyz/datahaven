@@ -83,6 +83,7 @@ polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
+k256 = { workspace = true, optional = true }
 serde_json = { workspace = true, default-features = false, features = [
     "alloc",
 ] }
@@ -355,6 +356,9 @@ runtime-benchmarks = [
     "snowbridge-pallet-system/runtime-benchmarks",
     "pallet-outbound-commitment-store/runtime-benchmarks",
     "pallet-datahaven-native-transfer/runtime-benchmarks",
+    # StorageHub pallets
+    "pallet-nfts/runtime-benchmarks",
+    "dep:k256",
 ]
 
 try-runtime = [

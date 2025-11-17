@@ -106,8 +106,63 @@ impl pallet_nfts::Config for Runtime {
     type OffchainPublic = <Signature as Verify>::Signer;
     type WeightInfo = pallet_nfts::weights::SubstrateWeight<Runtime>;
     type Locker = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = benchmark_helpers::NftHelper;
 }
 /****** ****** ****** ******/
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmark_helpers {
+    use crate::{AccountId, Signature};
+    use k256::ecdsa::SigningKey;
+    use sp_runtime::traits::{IdentifyAccount, Verify};
+    use sp_runtime::MultiSignature;
+
+    const BENCH_SIGNING_KEY: [u8; 32] = [1u8; 32];
+
+    fn bench_signing_key() -> SigningKey {
+        SigningKey::from_bytes(&BENCH_SIGNING_KEY.into())
+            .expect("benchmark signing key is valid; qed")
+    }
+
+    /// Benchmark helper for NFTs pallet
+    pub struct NftHelper;
+
+    impl pallet_nfts::BenchmarkHelper<u32, u32, <Signature as Verify>::Signer, AccountId, Signature>
+        for NftHelper
+    {
+        fn collection(i: u16) -> u32 {
+            i.into()
+        }
+
+        fn item(i: u16) -> u32 {
+            i.into()
+        }
+
+        fn signer() -> (<Signature as Verify>::Signer, AccountId) {
+            let signing_key = bench_signing_key();
+            let verifying_key = signing_key.verifying_key();
+            let encoded = verifying_key.to_encoded_point(true);
+            let public =
+                sp_core::ecdsa::Public::from_full(encoded.as_bytes()).expect("valid key; qed");
+            let public_key: <Signature as Verify>::Signer = public.into();
+            let account: AccountId = public_key.clone().into_account();
+            (public_key, account)
+        }
+
+        fn sign(_public: &<Signature as Verify>::Signer, message: &[u8]) -> Signature {
+            let digest = sp_io::hashing::keccak_256(message);
+            let (sig, recovery_id) = bench_signing_key()
+                .sign_prehash_recoverable(&digest)
+                .expect("signing with fixed key never fails; qed");
+            let mut sig_bytes = [0u8; 65];
+            sig_bytes[..64].copy_from_slice(&sig.to_bytes());
+            sig_bytes[64] = recovery_id.to_byte();
+            let sig = sp_core::ecdsa::Signature::from_raw(sig_bytes);
+            Signature::from(MultiSignature::Ecdsa(sig))
+        }
+    }
+}
 
 /****** Relay Randomness pallet ******/
 impl pallet_randomness::Config for Runtime {

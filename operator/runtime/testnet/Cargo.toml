@@ -82,6 +82,7 @@ pallet-utility = { workspace = true }
 pallet-whitelist = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+k256 = { workspace = true, optional = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
 serde_json = { workspace = true, default-features = false, features = [
@@ -354,6 +355,9 @@ runtime-benchmarks = [
     "pallet-external-validators-rewards/runtime-benchmarks",
     "pallet-external-validator-slashes/runtime-benchmarks",
     "pallet-datahaven-native-transfer/runtime-benchmarks",
+    # StorageHub pallets
+    "pallet-nfts/runtime-benchmarks",
+    "dep:k256",
 ]
 
 try-runtime = [

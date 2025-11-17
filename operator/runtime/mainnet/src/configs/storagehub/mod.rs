@@ -104,7 +104,7 @@ impl pallet_nfts::Config for Runtime {
     type Features = Features;
     type OffchainSignature = Signature;
     type OffchainPublic = <Signature as Verify>::Signer;
-    type WeightInfo = pallet_nfts::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_nfts::WeightInfo<Runtime>;
     type Locker = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = benchmark_helpers::NftHelper;

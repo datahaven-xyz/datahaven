@@ -624,7 +624,7 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = PendingUsernameExpiration;
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
-    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_identity::WeightInfo<Runtime>;
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 

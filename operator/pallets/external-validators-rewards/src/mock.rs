@@ -151,6 +151,34 @@ parameter_types! {
     pub const TreasuryAccount: u64 = 999;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
+    // Inflation scaling parameters for tests
+    // Assuming 6 second block time and 1 hour era = 600 blocks per era
+    pub const ExpectedBlocksPerEra: u32 = 600;
+    pub const MinInflationPercent: u32 = 20; // 20% minimum even with 0 blocks
+    pub const MaxInflationPercent: u32 = 100; // 100% maximum
+}
+
+pub struct MockValidatorSet;
+impl frame_support::traits::ValidatorSet<u64> for MockValidatorSet {
+    type ValidatorId = u64;
+    type ValidatorIdOf = sp_runtime::traits::ConvertInto;
+
+    fn session_index() -> sp_staking::SessionIndex {
+        0
+    }
+
+    fn validators() -> Vec<Self::ValidatorId> {
+        // Return empty vec for now - tests will populate via reward_by_ids
+        vec![]
+    }
+}
+
+pub struct MockIsOnline;
+impl frame_support::traits::Contains<u64> for MockIsOnline {
+    fn contains(_: &u64) -> bool {
+        // For tests, assume all validators are online
+        true
+    }
 }
 
 impl pallet_external_validators_rewards::Config for Test {
@@ -162,6 +190,13 @@ impl pallet_external_validators_rewards::Config for Test {
     type EraInflationProvider = EraInflationProvider;
     type ExternalIndexProvider = TimestampProvider;
     type GetWhitelistedValidators = ();
+    type ValidatorSet = MockValidatorSet;
+    type LivenessCheck = MockIsOnline;
+    type SlashingCheck = (); // No slashes in tests
+    type AuthorBaseRewardPoints = ConstU32<20>;
+    type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
+    type MinInflationPercent = MinInflationPercent;
+    type MaxInflationPercent = MaxInflationPercent;
     type Hashing = Keccak256;
     type SendMessage = MockOkOutboundQueue;
     type HandleInflation = InflationMinter;

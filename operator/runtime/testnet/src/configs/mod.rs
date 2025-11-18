@@ -352,22 +352,9 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
-pub struct RewardsPoints;
-
-impl pallet_authorship::EventHandler<AccountId, BlockNumber> for RewardsPoints {
-    fn note_author(author: AccountId) {
-        let whitelisted_validators =
-            pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get();
-        // Do not reward whitelisted validators
-        if !whitelisted_validators.contains(&author) {
-            ExternalValidatorsRewards::reward_by_ids(vec![(author, AuthorRewardPoints::get())])
-        }
-    }
-}
-
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-    type EventHandler = (RewardsPoints, ImOnline);
+    type EventHandler = (ExternalValidatorsRewards, ImOnline);
 }
 
 impl pallet_offences::Config for Runtime {
@@ -393,7 +380,10 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
+    type SessionManager = pallet_external_validators_rewards::SessionPerformanceManager<
+        Runtime,
+        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>,
+    >;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -1481,18 +1471,17 @@ impl Get<u128> for ExternalRewardsEraInflationProvider {
             return 0;
         }
 
-        // Calculate per-era inflation:
-        // per_era_inflation = (total_issuance * annual_rate) / eras_per_year
+        // Calculate per-era inflation
         let annual_inflation = annual_inflation_rate.mul_floor(total_issuance);
-        let base_per_era_inflation = annual_inflation.saturating_div(eras_per_year);
+        let per_era_inflation = annual_inflation.saturating_div(eras_per_year);
 
         log::info!(
             target: "ext_validators_rewards",
-            "Inflation: base={}",
-            base_per_era_inflation
+            "Per-era inflation: {}",
+            per_era_inflation
         );
 
-        base_per_era_inflation
+        per_era_inflation
     }
 }
 
@@ -1642,6 +1631,46 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 }
 
+/// Wrapper to check if a validator sent a heartbeat in the current session
+/// Note: This only checks for actual heartbeats, not block production
+pub struct ValidatorIsOnline;
+impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
+    fn contains(account: &AccountId) -> bool {
+        let validators = Session::validators();
+        if let Some(index) = validators.iter().position(|v| v == account) {
+            // Check if this validator sent a heartbeat (not just produced blocks)
+            ImOnline::received_heartbeat_in_current_session(index as u32)
+        } else {
+            // Not a validator in current session, consider offline
+            false
+        }
+    }
+}
+
+/// Wrapper to check if a validator has been slashed in a given era
+pub struct ValidatorSlashChecker;
+impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorSlashChecker {
+    fn is_slashed(era_index: u32, validator: &AccountId) -> bool {
+        pallet_external_validator_slashes::ValidatorSlashInEra::<Runtime>::contains_key(
+            era_index, validator,
+        )
+    }
+}
+
+parameter_types! {
+    /// Expected number of blocks per era for inflation scaling
+    /// Calculation: SessionsPerEra × EpochDurationInBlocks
+    /// - Production: 6 sessions × 600 blocks = 3600 blocks (6 hours at 6s/block)
+    /// - Fast runtime: 1 session × 10 blocks = 10 blocks (for testing)
+    pub const ExpectedBlocksPerEra: u32 = polkadot_runtime_common::prod_or_fast!(3600, 10);
+
+    /// Minimum inflation percentage even with zero block production (network halt protection)
+    pub const MinInflationPercent: u32 = 20;
+
+    /// Maximum inflation percentage (caps at 100% even if blocks exceed expectations)
+    pub const MaxInflationPercent: u32 = 100;
+}
+
 impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
@@ -1656,6 +1685,13 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
+    type ValidatorSet = Session;
+    type LivenessCheck = ValidatorIsOnline;
+    type SlashingCheck = ValidatorSlashChecker;
+    type AuthorBaseRewardPoints = ConstU32<20>;
+    type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
+    type MinInflationPercent = MinInflationPercent;
+    type MaxInflationPercent = MaxInflationPercent;
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;

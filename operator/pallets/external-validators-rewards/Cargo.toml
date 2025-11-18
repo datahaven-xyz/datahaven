@@ -26,6 +26,7 @@ sp-std = { workspace = true }
 
 frame-benchmarking = { workspace = true }
 
+pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true, optional = true }
 pallet-external-validators = { workspace = true }
 pallet-session = { workspace = true, features = [ "historical" ] }
@@ -49,7 +50,9 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-authorship/std",
 	"pallet-balances/std",
+	"pallet-external-validators/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"parity-scale-codec/std",
@@ -70,6 +73,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-external-validators/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
@@ -81,7 +85,9 @@ runtime-benchmarks = [
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-authorship/try-runtime",
 	"pallet-balances?/try-runtime",
+	"pallet-external-validators/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"runtime-parachains/try-runtime",

@@ -27,6 +27,7 @@ runs:
           --tag prod --no-cache \
           --build-arg="COMMIT=${{ github.event.inputs.sha }}" \
           --build-arg="RUSTFLAGS=-C target-cpu=${{ inputs.target }}" \
+          --build-arg="BUILD=${{ inputs.build }}" \
           --file ./docker/datahaven-production.Dockerfile \
           .
 

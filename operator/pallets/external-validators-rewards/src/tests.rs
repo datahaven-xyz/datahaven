@@ -276,7 +276,8 @@ fn test_inflation_calculation_with_different_rates() {
         run_to_block(1);
 
         // Test with different inflation amounts
-        for (era, inflation_amount) in [(1, 1_000_000u128), (2, 5_000_000u128), (3, 10_000_000u128)] {
+        for (era, inflation_amount) in [(1, 1_000_000u128), (2, 5_000_000u128), (3, 10_000_000u128)]
+        {
             Mock::mutate(|mock| {
                 mock.active_era = Some(ActiveEraInfo {
                     index: era,
@@ -521,13 +522,11 @@ fn test_performance_multiplier_with_zero_participation() {
         // With zero total points, the implementation skips minting entirely
         // This is intentional - network halt should not mint rewards
         assert_eq!(
-            final_rewards_balance,
-            initial_rewards_balance,
+            final_rewards_balance, initial_rewards_balance,
             "Zero points (network halt) should result in no inflation to rewards account"
         );
         assert_eq!(
-            final_treasury_balance,
-            initial_treasury_balance,
+            final_treasury_balance, initial_treasury_balance,
             "Zero points (network halt) should result in no inflation to treasury"
         );
     })
@@ -1117,12 +1116,14 @@ fn test_performance_multiplier_gradual_degradation() {
                 era, base_inflation, total_minted
             );
             assert_eq!(
-                rewards_minted, base_inflation * 80 / 100,
+                rewards_minted,
+                base_inflation * 80 / 100,
                 "Era {}: Rewards should be 80% of inflation",
                 era
             );
             assert_eq!(
-                treasury_minted, base_inflation * 20 / 100,
+                treasury_minted,
+                base_inflation * 20 / 100,
                 "Era {}: Treasury should be 20% of inflation",
                 era
             );
@@ -2129,11 +2130,9 @@ fn test_inflation_scaling_blocks_tracked_per_era() {
         assert_eq!(blocks_era2, 450, "Era 2 should have 450 blocks tracked");
 
         // Verify Era 1 blocks are still tracked separately
-        let blocks_era1_after = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
-        assert_eq!(
-            blocks_era1_after, 300,
-            "Era 1 blocks should remain at 300"
-        );
+        let blocks_era1_after =
+            pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
+        assert_eq!(blocks_era1_after, 300, "Era 1 blocks should remain at 300");
     })
 }
 
@@ -2285,8 +2284,7 @@ fn test_inflation_scaling_with_zero_points_no_minting() {
 
         // Even with 100% block production, zero points should result in no minting
         assert_eq!(
-            final_balance,
-            initial_balance,
+            final_balance, initial_balance,
             "Zero points should prevent minting regardless of block production"
         );
     })

@@ -371,10 +371,7 @@ pub mod pallet {
 
             // Calculate performance ratio (capped at 100%)
             let performance_ratio = if expected_blocks > 0 {
-                Perbill::from_rational(
-                    blocks_produced.min(expected_blocks),
-                    expected_blocks
-                )
+                Perbill::from_rational(blocks_produced.min(expected_blocks), expected_blocks)
             } else {
                 // If no expected blocks configured, use full inflation
                 Perbill::one()
@@ -383,11 +380,12 @@ pub mod pallet {
             // Scale from min to max based on performance
             // inflation_percent = min + (performance_ratio × (max - min))
             let inflation_percent = min_percent.saturating_add(
-                performance_ratio.mul_floor(max_percent.saturating_sub(min_percent))
+                performance_ratio.mul_floor(max_percent.saturating_sub(min_percent)),
             );
 
             // Apply percentage to base inflation
-            let scaled_inflation = Perbill::from_percent(inflation_percent).mul_floor(base_inflation);
+            let scaled_inflation =
+                Perbill::from_percent(inflation_percent).mul_floor(base_inflation);
 
             log::debug!(
                 target: "ext_validators_rewards",

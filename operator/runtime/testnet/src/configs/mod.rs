@@ -32,7 +32,7 @@ use super::{
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::AccountIdConversion, PerThing, RuntimeDebug, Saturating};
+use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
 /// A description of our proxy types.
 /// Proxy types are used to restrict the calls that can be made by a proxy account.

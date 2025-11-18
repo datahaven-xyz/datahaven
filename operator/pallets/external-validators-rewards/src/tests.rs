@@ -15,8 +15,8 @@
 // along with Tanssi.  If not, see <http://www.gnu.org/licenses/>
 
 use {
-    frame_support::traits::fungible::Mutate,
     crate::{self as pallet_external_validators_rewards, mock::*},
+    frame_support::traits::fungible::Mutate,
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_std::collections::btree_map::BTreeMap,
 };

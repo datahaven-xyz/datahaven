@@ -1495,7 +1495,6 @@ impl Get<u128> for ExternalRewardsEraInflationProvider {
     }
 }
 
-
 /// Handles the minting of inflation tokens for validator rewards.
 ///
 /// Implements the following:

@@ -43,6 +43,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
+    event ValidatorsSlashedTest();
+
     IGatewayV2 private _snowbridgeGateway;
 
     /// @inheritdoc IDataHavenServiceManager
@@ -291,5 +293,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
         });
         _allocationManager.createOperatorSets(address(this), operatorSets);
+    }
+
+    function slashValidatorsOperator() external {
+        emit ValidatorsSlashedTest();   
     }
 }

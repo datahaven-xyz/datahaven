@@ -15,7 +15,7 @@
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, HAVE,
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, HAVE, TreasuryAccount,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
@@ -65,14 +65,6 @@ pub type StorageDataUnit = u64;
 pub type StorageProofsMerkleTrieLayout = LayoutV1<BlakeTwo256>;
 
 pub type Hashing = BlakeTwo256;
-
-// TODO: remove this and replace with pallet treasury
-pub struct TreasuryAccount;
-impl Get<AccountId> for TreasuryAccount {
-    fn get() -> AccountId {
-        AccountId::from([0; 32])
-    }
-}
 
 /****** NFTs pallet ******/
 parameter_types! {

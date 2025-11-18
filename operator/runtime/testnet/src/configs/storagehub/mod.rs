@@ -15,7 +15,8 @@
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, HAVE, TreasuryAccount,
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
+    TreasuryAccount, HAVE,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{

@@ -105,63 +105,63 @@ export const executeDeployment = async (
 
 /**
  * Read the parameters from the deployed contracts and add it to the collection.
- */ 
-export const updateParameters = async (parameterCollection: ParameterCollection,
-  chain?: string) => {
-    try {
-      const deployments = await parseDeploymentsFile(chain);
-      const rewardsInfo = await parseRewardsInfoFile(chain);
-      const gatewayAddress = deployments.Gateway;
-      const rewardsRegistryAddress = deployments.RewardsRegistry;
-      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
-      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+ */
+export const updateParameters = async (
+  parameterCollection: ParameterCollection,
+  chain?: string
+) => {
+  try {
+    const deployments = await parseDeploymentsFile(chain);
+    const rewardsInfo = await parseRewardsInfoFile(chain);
+    const gatewayAddress = deployments.Gateway;
+    const rewardsRegistryAddress = deployments.RewardsRegistry;
+    const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+    const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
 
-      if (gatewayAddress) {
-        logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+    if (gatewayAddress) {
+      logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
 
-        parameterCollection.addParameter({
-          name: "EthereumGatewayAddress",
-          value: gatewayAddress
-        });
-      } else {
-        logger.warn("⚠️ Gateway address not found in deployments file");
-      }
-
-      if (rewardsRegistryAddress) {
-        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
-        parameterCollection.addParameter({
-          name: "RewardsRegistryAddress",
-          value: rewardsRegistryAddress
-        });
-      } else {
-        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
-      }
-
-      if (updateRewardsMerkleRootSelector) {
-        logger.debug(
-          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
-        );
-        parameterCollection.addParameter({
-          name: "RewardsUpdateSelector",
-          value: updateRewardsMerkleRootSelector
-        });
-      } else {
-        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
-      }
-
-      if (rewardsAgentOrigin) {
-        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
-        parameterCollection.addParameter({
-          name: "RewardsAgentOrigin",
-          value: rewardsAgentOrigin
-        });
-      } else {
-        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
-      }
-    } catch (error) {
-      logger.error(`Failed to read parameters from deployment: ${error}`);
+      parameterCollection.addParameter({
+        name: "EthereumGatewayAddress",
+        value: gatewayAddress
+      });
+    } else {
+      logger.warn("⚠️ Gateway address not found in deployments file");
     }
-}
+
+    if (rewardsRegistryAddress) {
+      logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+      parameterCollection.addParameter({
+        name: "RewardsRegistryAddress",
+        value: rewardsRegistryAddress
+      });
+    } else {
+      logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+    }
+
+    if (updateRewardsMerkleRootSelector) {
+      logger.debug(`📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`);
+      parameterCollection.addParameter({
+        name: "RewardsUpdateSelector",
+        value: updateRewardsMerkleRootSelector
+      });
+    } else {
+      logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+    }
+
+    if (rewardsAgentOrigin) {
+      logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+      parameterCollection.addParameter({
+        name: "RewardsAgentOrigin",
+        value: rewardsAgentOrigin
+      });
+    } else {
+      logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+    }
+  } catch (error) {
+    logger.error(`Failed to read parameters from deployment: ${error}`);
+  }
+};
 
 /**
  * Main function to deploy contracts with simplified interface

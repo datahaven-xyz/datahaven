@@ -1,9 +1,7 @@
 import { $ } from "bun";
-import {
-  getContainersMatchingImage,
-  logger,
-} from "utils";
+import { getContainersMatchingImage, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
+import { updateParameters } from "../../scripts/deploy-contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
@@ -13,7 +11,6 @@ import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
 import { fundValidators, setupValidators } from "../validators";
-import { updateParameters } from "../../scripts/deploy-contracts";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;

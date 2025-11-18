@@ -327,15 +327,16 @@ pub mod dynamic_params {
 
         #[codec(index = 35)]
         #[allow(non_upper_case_globals)]
-        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator()")
         pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
-            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+            BoundedVec::truncate_from(vec![0xb3, 0x45, 0x13, 0xdc]);
 
         #[codec(index = 36)]
         #[allow(non_upper_case_globals)]
         /// The Ethereum address of the DataHavenServiceManager contract.
         /// This address is used both for authorized slashing requests and validator-set update messages.
-        pub static DatahavenServiceManagerAddress: H160 = H160::repeat_byte(0x0);
+        pub static DatahavenServiceManagerAddress: H160 =
+            H160::from_slice(&hex!("809d550fca64d94Bd9F66E60752A544199cfAC3D"));
 
         // ╔══════════════════════ Validator Rewards Inflation ═══════════════════════╗
 
@@ -393,6 +394,7 @@ pub mod dynamic_params {
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
 
+<<<<<<< HEAD
         // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
 
         #[codec(index = 42)]
@@ -421,6 +423,8 @@ pub mod dynamic_params {
             BoundedVec::truncate_from(vec![]);
 
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
+=======
+>>>>>>> 7c5c3dab (wip)
     }
 }
 

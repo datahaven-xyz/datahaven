@@ -60,7 +60,7 @@ describeSuite({
             contractAddress: blockContract,
             functionName: "initialchainid"
           })
-        ).toBe(1283n);
+        ).toBe(55932n);
       }
     });
   }

@@ -10,7 +10,7 @@ describeSuite({
       id: "T01",
       title: "should get correct network ids",
       test: async () => {
-        expect((await context.ethers().provider!.getNetwork()).chainId).to.equal(1283n);
+        expect((await context.ethers().provider!.getNetwork()).chainId).to.equal(55932n);
       }
     });
 

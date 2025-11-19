@@ -21,8 +21,8 @@ use super::*;
 use frame_support::traits::Everything;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, FrameSystemAccountProvider};
-use precompile_utils::{mock_account, precompile_set::*, testing::MockAccount};
 use parity_scale_codec::{Decode, Encode};
+use precompile_utils::{mock_account, precompile_set::*, testing::MockAccount};
 use snowbridge_core::TokenId;
 use snowbridge_outbound_queue_primitives::v1::Ticket;
 use snowbridge_outbound_queue_primitives::v2::{Message, SendMessage};
@@ -218,7 +218,9 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureAccountZero {
 
     fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
         match o.clone().into() {
-            Ok(frame_system::RawOrigin::Signed(account)) if account == MockAccount::zero().into() => {
+            Ok(frame_system::RawOrigin::Signed(account))
+                if account == MockAccount::zero().into() =>
+            {
                 Ok(account)
             }
             _ => Err(o),

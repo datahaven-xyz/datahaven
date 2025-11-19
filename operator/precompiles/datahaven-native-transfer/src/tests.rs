@@ -54,7 +54,8 @@ fn test_function_modifiers() {
         .with_balances(vec![(Alice.into(), 1000)])
         .build()
         .execute_with(|| {
-            let mut tester = PrecompilesModifierTester::new(precompiles(), Alice, precompile_address());
+            let mut tester =
+                PrecompilesModifierTester::new(precompiles(), Alice, precompile_address());
 
             // transferToEthereum - non-view, non-payable
             tester.test_default_modifier(PCall::transfer_to_ethereum_selectors());
@@ -118,10 +119,7 @@ fn test_transfer_to_ethereum_success() {
             assert_eq!(balance(FeeRecipient), 100);
 
             // Amount should be locked in sovereign account
-            assert_eq!(
-                balance(EthereumSovereign),
-                initial_sovereign_balance + 1000
-            );
+            assert_eq!(balance(EthereumSovereign), initial_sovereign_balance + 1000);
         });
 }
 
@@ -145,9 +143,7 @@ fn test_transfer_to_ethereum_zero_address() {
                         fee,
                     },
                 )
-                .execute_reverts(|output| {
-                    output == b"Recipient cannot be zero address"
-                });
+                .execute_reverts(|output| output == b"Recipient cannot be zero address");
         });
 }
 
@@ -171,9 +167,7 @@ fn test_transfer_to_ethereum_zero_amount() {
                         fee,
                     },
                 )
-                .execute_reverts(|output| {
-                    output == b"Amount must be greater than zero"
-                });
+                .execute_reverts(|output| output == b"Amount must be greater than zero");
         });
 }
 
@@ -197,9 +191,7 @@ fn test_transfer_to_ethereum_zero_fee() {
                         fee,
                     },
                 )
-                .execute_reverts(|output| {
-                    output == b"Fee must be greater than zero"
-                });
+                .execute_reverts(|output| output == b"Fee must be greater than zero");
         });
 }
 
@@ -242,11 +234,7 @@ fn test_transfer_to_ethereum_when_paused() {
         .execute_with(|| {
             // First pause the pallet as root
             precompiles()
-                .prepare_test(
-                    Root,
-                    precompile_address(),
-                    PCall::pause {},
-                )
+                .prepare_test(Root, precompile_address(), PCall::pause {})
                 .execute_returns(());
 
             // Now try to transfer
@@ -314,10 +302,7 @@ fn test_transfer_to_ethereum_multiple_transfers() {
                 .execute_returns(());
 
             // Verify sovereign account has both amounts locked
-            assert_eq!(
-                balance(EthereumSovereign),
-                initial_sovereign + 2000
-            );
+            assert_eq!(balance(EthereumSovereign), initial_sovereign + 2000);
 
             // Verify fee recipient got both fees
             assert_eq!(balance(FeeRecipient), 200);
@@ -357,80 +342,58 @@ fn test_transfer_to_ethereum_large_amount() {
 
 #[test]
 fn test_pause_success() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            // Root account can pause
-            precompiles()
-                .prepare_test(
-                    Root,
-                    precompile_address(),
-                    PCall::pause {},
-                )
-                .execute_returns(());
+    ExtBuilder::default().build().execute_with(|| {
+        // Root account can pause
+        precompiles()
+            .prepare_test(Root, precompile_address(), PCall::pause {})
+            .execute_returns(());
 
-            // Verify paused state
-            assert!(NativeTransfer::is_paused());
-        });
+        // Verify paused state
+        assert!(NativeTransfer::is_paused());
+    });
 }
 
 #[test]
 fn test_pause_unauthorized() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            // Non-root account cannot pause
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::pause {})
-                .execute_reverts(|output| {
-                    // Should get BadOrigin error from pallet
-                    from_utf8_lossy(output).contains("BadOrigin")
-                });
-        });
+    ExtBuilder::default().build().execute_with(|| {
+        // Non-root account cannot pause
+        precompiles()
+            .prepare_test(Alice, precompile_address(), PCall::pause {})
+            .execute_reverts(|output| {
+                // Should get BadOrigin error from pallet
+                from_utf8_lossy(output).contains("BadOrigin")
+            });
+    });
 }
 
 #[test]
 fn test_unpause_success() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            // First pause
-            precompiles()
-                .prepare_test(
-                    Root,
-                    precompile_address(),
-                    PCall::pause {},
-                )
-                .execute_returns(());
+    ExtBuilder::default().build().execute_with(|| {
+        // First pause
+        precompiles()
+            .prepare_test(Root, precompile_address(), PCall::pause {})
+            .execute_returns(());
 
-            assert!(NativeTransfer::is_paused());
+        assert!(NativeTransfer::is_paused());
 
-            // Then unpause
-            precompiles()
-                .prepare_test(
-                    Root,
-                    precompile_address(),
-                    PCall::unpause {},
-                )
-                .execute_returns(());
+        // Then unpause
+        precompiles()
+            .prepare_test(Root, precompile_address(), PCall::unpause {})
+            .execute_returns(());
 
-            // Verify unpaused state
-            assert!(!NativeTransfer::is_paused());
-        });
+        // Verify unpaused state
+        assert!(!NativeTransfer::is_paused());
+    });
 }
 
 #[test]
 fn test_unpause_unauthorized() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            // Non-root account cannot unpause
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::unpause {})
-                .execute_reverts(|output| {
-                    from_utf8_lossy(output).contains("BadOrigin")
-                });
-        });
+    ExtBuilder::default().build().execute_with(|| {
+        // Non-root account cannot unpause
+        precompiles()
+            .prepare_test(Alice, precompile_address(), PCall::unpause {})
+            .execute_reverts(|output| from_utf8_lossy(output).contains("BadOrigin"));
+    });
 }
 
 #[test]
@@ -477,9 +440,7 @@ fn test_pause_unpause_cycle() {
                         fee,
                     },
                 )
-                .execute_reverts(|output| {
-                    from_utf8_lossy(output).contains("TransfersDisabled")
-                });
+                .execute_reverts(|output| from_utf8_lossy(output).contains("TransfersDisabled"));
 
             // Unpause
             precompiles()
@@ -508,45 +469,35 @@ fn test_pause_unpause_cycle() {
 
 #[test]
 fn test_is_paused_false() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::is_paused {})
-                .execute_returns(false);
-        });
+    ExtBuilder::default().build().execute_with(|| {
+        precompiles()
+            .prepare_test(Alice, precompile_address(), PCall::is_paused {})
+            .execute_returns(false);
+    });
 }
 
 #[test]
 fn test_is_paused_true() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            // Pause the pallet
-            precompiles()
-                .prepare_test(
-                    Root,
-                    precompile_address(),
-                    PCall::pause {},
-                )
-                .execute_returns(());
+    ExtBuilder::default().build().execute_with(|| {
+        // Pause the pallet
+        precompiles()
+            .prepare_test(Root, precompile_address(), PCall::pause {})
+            .execute_returns(());
 
-            // Check paused state
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::is_paused {})
-                .execute_returns(true);
-        });
+        // Check paused state
+        precompiles()
+            .prepare_test(Alice, precompile_address(), PCall::is_paused {})
+            .execute_returns(true);
+    });
 }
 
 #[test]
 fn test_total_locked_balance_zero() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::total_locked_balance {})
-                .execute_returns(U256::zero());
-        });
+    ExtBuilder::default().build().execute_with(|| {
+        precompiles()
+            .prepare_test(Alice, precompile_address(), PCall::total_locked_balance {})
+            .execute_returns(U256::zero());
+    });
 }
 
 #[test]
@@ -643,15 +594,17 @@ fn test_total_locked_balance_after_multiple_transfers() {
 
 #[test]
 fn test_ethereum_sovereign_account() {
-    ExtBuilder::default()
-        .build()
-        .execute_with(|| {
-            let expected: H160 = EthereumSovereign.into();
+    ExtBuilder::default().build().execute_with(|| {
+        let expected: H160 = EthereumSovereign.into();
 
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::ethereum_sovereign_account {})
-                .execute_returns(Address(expected));
-        });
+        precompiles()
+            .prepare_test(
+                Alice,
+                precompile_address(),
+                PCall::ethereum_sovereign_account {},
+            )
+            .execute_returns(Address(expected));
+    });
 }
 
 // ============================================================================
@@ -706,7 +659,11 @@ fn test_view_functions_gas_costs() {
 
             // ethereumSovereignAccount should have minimal gas cost
             precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::ethereum_sovereign_account {})
+                .prepare_test(
+                    Alice,
+                    precompile_address(),
+                    PCall::ethereum_sovereign_account {},
+                )
                 .expect_cost(0) // TODO: Calculate actual expected cost
                 .execute_some();
         });
@@ -768,9 +725,7 @@ fn test_u256_to_balance_overflow() {
                         fee,
                     },
                 )
-                .execute_reverts(|output| {
-                    from_utf8_lossy(output).contains("Amount overflow")
-                });
+                .execute_reverts(|output| from_utf8_lossy(output).contains("Amount overflow"));
         });
 }
 
@@ -794,9 +749,7 @@ fn test_fee_overflow() {
                         fee,
                     },
                 )
-                .execute_reverts(|output| {
-                    from_utf8_lossy(output).contains("Fee overflow")
-                });
+                .execute_reverts(|output| from_utf8_lossy(output).contains("Fee overflow"));
         });
 }
 
@@ -804,4 +757,3 @@ fn test_fee_overflow() {
 fn from_utf8_lossy(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).to_string()
 }
-

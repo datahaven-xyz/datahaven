@@ -1429,155 +1429,38 @@ impl Get<Vec<AccountId>> for GetWhitelistedValidators {
     }
 }
 
-/// Calculates the inflation amount per era based on:
-/// - Current total token issuance
-/// - Annual inflation rate (from dynamic parameters)
-/// - Number of eras per year
+/// Type alias for the era inflation provider using common runtime implementation.
 ///
-/// Formula: per_era_inflation = (total_issuance * annual_rate) / eras_per_year
-pub struct ExternalRewardsEraInflationProvider;
-impl Get<u128> for ExternalRewardsEraInflationProvider {
-    fn get() -> u128 {
-        use sp_runtime::traits::Zero;
+/// Calculates per-era inflation based on:
+/// - Total token issuance (from Balances pallet)
+/// - Annual inflation rate (from InflationTargetedAnnualRate dynamic parameter)
+/// - Era duration calculated from SessionsPerEra, EpochDurationInBlocks, and MILLISECS_PER_BLOCK
+pub type ExternalRewardsEraInflationProvider =
+    datahaven_runtime_common::inflation::ExternalRewardsEraInflationProvider<
+        Balances,
+        runtime_params::dynamic_params::runtime_config::InflationTargetedAnnualRate,
+        SessionsPerEra,
+        EpochDurationInBlocks,
+        ConstU64<MILLISECS_PER_BLOCK>,
+    >;
 
-        let total_issuance = Balances::total_issuance();
-        if total_issuance.is_zero() {
-            return 0;
-        }
-
-        let annual_inflation_rate =
-            runtime_params::dynamic_params::runtime_config::InflationTargetedAnnualRate::get();
-
-        // Calculate eras per year
-        // - SessionsPerEra: number of sessions in an era
-        // - EpochDurationInBlocks: number of blocks in an epoch (session)
-        // - MILLISECS_PER_BLOCK: milliseconds per block (6000ms = 6s)
-        // - Year in milliseconds: 365.25 * 24 * 60 * 60 * 1000
-        const MILLISECONDS_PER_YEAR: u128 = 31_557_600_000; // 365.25 days
-
-        let sessions_per_era = SessionsPerEra::get() as u128;
-        let blocks_per_session = EpochDurationInBlocks::get() as u128;
-        let millisecs_per_block = MILLISECS_PER_BLOCK as u128;
-
-        let millisecs_per_era = sessions_per_era
-            .saturating_mul(blocks_per_session)
-            .saturating_mul(millisecs_per_block);
-
-        if millisecs_per_era.is_zero() {
-            log::error!(
-                target: "ext_validators_rewards",
-                "Invalid era duration configuration"
-            );
-            return 0;
-        }
-
-        let eras_per_year = MILLISECONDS_PER_YEAR.saturating_div(millisecs_per_era);
-        if eras_per_year.is_zero() {
-            log::error!(
-                target: "ext_validators_rewards",
-                "Eras per year is zero, check configuration"
-            );
-            return 0;
-        }
-
-        // Calculate per-era inflation with performance multiplier
-        let annual_inflation = annual_inflation_rate.mul_floor(total_issuance);
-        let base_per_era_inflation = annual_inflation.saturating_div(eras_per_year);
-
-        log::info!(
-            target: "ext_validators_rewards",
-            "Inflation: base={}",
-            base_per_era_inflation
-        );
-
-        base_per_era_inflation
-    }
-}
-
-/// Handles the minting of inflation tokens for validator rewards.
+/// Wrapper struct for the inflation handler using common runtime implementation.
 ///
-/// Implements the following:
-/// 1. Mints the specified amount to the rewards account
-/// 2. Optionally allocates a configurable proportion to the treasury
-///
-/// The treasury proportion is determined by the `InflationTreasuryProportion` runtime parameter.
+/// Handles minting of inflation tokens by:
+/// 1. Splitting total inflation between rewards and treasury based on InflationTreasuryProportion
+/// 2. Minting rewards portion to the rewards account
+/// 3. Minting treasury portion to the treasury account
 pub struct ExternalRewardsInflationHandler;
+
 impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
     for ExternalRewardsInflationHandler
 {
-    fn mint_inflation(
-        rewards_account: &AccountId,
-        total_amount: u128,
-    ) -> sp_runtime::DispatchResult {
-        use frame_support::traits::fungible::Mutate;
-        use sp_runtime::traits::Zero;
-
-        if total_amount.is_zero() {
-            log::error!(
-                target: "ext_validators_rewards",
-                "Attempted to mint zero inflation"
-            );
-            return Err(sp_runtime::DispatchError::Other(
-                "Cannot mint zero inflation",
-            ));
-        }
-
-        // Get treasury allocation proportion
-        let treasury_proportion =
-            runtime_params::dynamic_params::runtime_config::InflationTreasuryProportion::get();
-
-        // Calculate amounts
-        let treasury_amount = treasury_proportion.mul_floor(total_amount);
-        let rewards_amount = total_amount.saturating_sub(treasury_amount);
-
-        log::debug!(
-            target: "ext_validators_rewards",
-            "Minting inflation: total={}, treasury={}, rewards={}",
-            total_amount,
-            treasury_amount,
-            rewards_amount
-        );
-
-        // Mint rewards to the rewards account
-        if !rewards_amount.is_zero() {
-            Balances::mint_into(rewards_account, rewards_amount).map_err(|e| {
-                log::error!(
-                    target: "ext_validators_rewards",
-                    "Failed to mint rewards inflation: {:?}",
-                    e
-                );
-                sp_runtime::DispatchError::Other("Failed to mint rewards inflation")
-            })?;
-        }
-
-        // Mint treasury portion if non-zero
-        if !treasury_amount.is_zero() {
-            let treasury_account = TreasuryAccount::get();
-            Balances::mint_into(&treasury_account, treasury_amount).map_err(|e| {
-                log::error!(
-                    target: "ext_validators_rewards",
-                    "Failed to mint treasury inflation: {:?}",
-                    e
-                );
-                sp_runtime::DispatchError::Other("Failed to mint treasury inflation")
-            })?;
-
-            log::info!(
-                target: "ext_validators_rewards",
-                "Successfully minted {} to treasury from inflation",
-                treasury_amount
-            );
-        }
-
-        log::info!(
-            target: "ext_validators_rewards",
-            "Successfully minted {} total inflation ({} to rewards, {} to treasury)",
-            total_amount,
-            rewards_amount,
-            treasury_amount
-        );
-
-        Ok(())
+    fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult {
+        datahaven_runtime_common::inflation::ExternalRewardsInflationHandler::<
+            Balances,
+            runtime_params::dynamic_params::runtime_config::InflationTreasuryProportion,
+            TreasuryAccount,
+        >::mint_inflation(who, amount)
     }
 }
 

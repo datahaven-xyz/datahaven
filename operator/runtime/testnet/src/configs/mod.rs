@@ -1045,8 +1045,8 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    // TODO: Update with real genesis hash once testnet is deployed
-    pub const TestnetGenesisHash: [u8; 32] = [2u8; 32];
+    // Hoodi testnet genesis hash
+    pub const TestnetGenesisHash: [u8; 32] = hex_literal::hex!("bbe312868b376a3001692a646dd2d7d1e4406380dfd86b98aa8a34d1557c971b");
     pub UniversalLocation: InteriorLocation = [
         GlobalConsensus(ByGenesis(TestnetGenesisHash::get()))
     ].into();
@@ -1145,11 +1145,15 @@ parameter_types! {
             version: hex_literal::hex!("60000038"),
             epoch: 0,
         },
+        fulu: Fork {
+            version: hex_literal::hex!("70000038"),
+            epoch: 0,
+        },
     };
 }
 
-// Holesky: https://github.com/eth-clients/holesky
-// Fork versions: https://github.com/eth-clients/holesky/blob/main/metadata/config.yaml
+// Hoodi testnet fork versions
+// Source: https://github.com/eth-clients/hoodi/blob/main/metadata/config.yaml
 #[cfg(not(any(
     feature = "std",
     feature = "fast-runtime",
@@ -1159,28 +1163,32 @@ parameter_types! {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: hex_literal::hex!("01017000"), // 0x01017000
+            version: hex_literal::hex!("10000910"), // 0x10000910
             epoch: 0,
         },
         altair: Fork {
-            version: hex_literal::hex!("02017000"), // 0x02017000
+            version: hex_literal::hex!("20000910"), // 0x20000910
             epoch: 0,
         },
         bellatrix: Fork {
-            version: hex_literal::hex!("03017000"), // 0x03017000
+            version: hex_literal::hex!("30000910"), // 0x30000910
             epoch: 0,
         },
         capella: Fork {
-            version: hex_literal::hex!("04017000"), // 0x04017000
-            epoch: 256,
+            version: hex_literal::hex!("40000910"), // 0x40000910
+            epoch: 0,
         },
         deneb: Fork {
-            version: hex_literal::hex!("05017000"), // 0x05017000
-            epoch: 29696,
+            version: hex_literal::hex!("50000910"), // 0x50000910
+            epoch: 0,
         },
         electra: Fork {
-            version: hex_literal::hex!("06017000"), // 0x06017000
-            epoch: 115968,
+            version: hex_literal::hex!("60000910"), // 0x60000910
+            epoch: 2048,
+        },
+        fulu: Fork {
+            version: hex_literal::hex!("70000910"), // 0x70000910
+            epoch: 50688,
         },
     };
 }

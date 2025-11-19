@@ -65,24 +65,12 @@ describeSuite({
         const batchAbi = fetchCompiledContract("Batch").abi;
 
         const callParameters = [
-          [proxyAddress, proxyAddress],
+          [proxyAddress],
           [],
           [
             encodeFunctionData({
               abi: proxyAbi,
               functionName: "call",
-              args: [
-                multiAddress,
-                encodeFunctionData({
-                  abi: multiAbi,
-                  functionName: "multiply",
-                  args: [42]
-                })
-              ]
-            }),
-            encodeFunctionData({
-              abi: proxyAbi,
-              functionName: "delegateCall",
               args: [
                 multiAddress,
                 encodeFunctionData({

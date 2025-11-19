@@ -31,8 +31,7 @@ use sc_service::{ChainType, DatabaseSource};
 use serde::Deserialize;
 use shc_client::builder::{
     BlockchainServiceOptions, BspChargeFeesOptions, BspMoveBucketOptions, BspSubmitProofOptions,
-    BspUploadFileOptions, FishermanOptions, IndexerOptions, MspChargeFeesOptions,
-    MspMoveBucketOptions,
+    BspUploadFileOptions, FishermanOptions, MspChargeFeesOptions, MspMoveBucketOptions,
 };
 use shc_rpc::RpcConfig;
 use shp_types::StorageDataUnit;

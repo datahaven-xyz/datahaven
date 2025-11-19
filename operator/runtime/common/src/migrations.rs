@@ -45,8 +45,19 @@ pub type MultiBlockMigrationList = pallet_migrations::mock_helpers::MockedMigrat
 /// Placeholder handler for migration status notifications. We do not emit any extra signals yet.
 pub type MigrationStatusHandler = ();
 
-/// Default handler triggered on migration failures.
-pub type FailedMigrationHandler = frame_support::migrations::FreezeChainOnFailedMigration;
+/// Handler triggered on migration failures.
+///
+/// This handler attempts to enter SafeMode when a migration fails, allowing governance to
+/// intervene and fix the issue while preventing regular user transactions from interacting
+/// with potentially inconsistent storage state.
+///
+/// The handler is parameterized by the SafeMode pallet type from each runtime, with a fallback
+/// to freezing the chain if SafeMode cannot be entered.
+pub type FailedMigrationHandler<SafeMode> =
+    frame_support::migrations::EnterSafeModeOnFailedMigration<
+        SafeMode,
+        frame_support::migrations::FreezeChainOnFailedMigration,
+    >;
 
 /// Multi-block migration for updating the EVM chain ID to the new value.
 pub mod evm_chain_id {

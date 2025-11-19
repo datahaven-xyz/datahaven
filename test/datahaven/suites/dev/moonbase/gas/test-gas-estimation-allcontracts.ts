@@ -58,32 +58,32 @@ describeSuite({
 
             const args = constructorAbi
               ? constructorAbi.inputs.map((input: { type: string }) => {
-                  if (input.type === "bool") {
-                    return true;
-                  }
+                if (input.type === "bool") {
+                  return true;
+                }
 
-                  if (input.type === "address") {
-                    return faith.address;
-                  }
+                if (input.type === "address") {
+                  return faith.address;
+                }
 
-                  if (input.type.startsWith("uint")) {
-                    const rest = input.type.split("uint")[1];
-                    if (rest === "[]") {
-                      return [];
-                    }
-                    const length = Number(rest) || 256;
-                    return `0x${Buffer.from(randomBytes(length / 8)).toString("hex")}`;
+                if (input.type.startsWith("uint")) {
+                  const rest = input.type.split("uint")[1];
+                  if (rest === "[]") {
+                    return [];
                   }
+                  const length = Number(rest) || 256;
+                  return `0x${Buffer.from(randomBytes(length / 8)).toString("hex")}`;
+                }
 
-                  if (input.type.startsWith("bytes")) {
-                    const rest = input.type.split("bytes")[1];
-                    if (rest === "[]") {
-                      return [];
-                    }
-                    const length = Number(rest) || 1;
-                    return `0x${Buffer.from(randomBytes(length)).toString("hex")}`;
+                if (input.type.startsWith("bytes")) {
+                  const rest = input.type.split("bytes")[1];
+                  if (rest === "[]") {
+                    return [];
                   }
-                })
+                  const length = Number(rest) || 1;
+                  return `0x${Buffer.from(randomBytes(length)).toString("hex")}`;
+                }
+              })
               : [];
 
             const callData = encodeDeployData({
@@ -118,6 +118,7 @@ describeSuite({
               txnType
             });
             const { result } = await context.createBlock(rawSigned);
+            await context.createBlock();
             const receipt = await context
               .viem("public")
               .getTransactionReceipt({ hash: result!.hash as `0x${string}` });

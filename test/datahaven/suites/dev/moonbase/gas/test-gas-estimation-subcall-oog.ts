@@ -1,6 +1,12 @@
-import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
+import {
+  beforeAll,
+  deployCreateCompiledContract,
+  describeSuite,
+  expect,
+} from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { type Abi, decodeEventLog, encodeFunctionData } from "viem";
+import { deployContract } from "../../../../helpers/contracts";
 
 describeSuite({
   id: "D021805",
@@ -30,7 +36,7 @@ describeSuite({
 
       // Deploy bloated contracts (test won't use more than what is needed for reaching max pov)
       for (let i = 0; i <= MAX_BLOATED_CONTRACTS; i++) {
-        const { contractAddress } = await deployCreateCompiledContract(context, "BloatedContract");
+        const { contractAddress } = await deployContract(context as any, "BloatedContract");
         bloatedContracts.push(contractAddress);
         await context.createBlock();
       }

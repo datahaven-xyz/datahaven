@@ -1,6 +1,7 @@
 import { describeSuite, expect, TransactionTypes } from "@moonwall/cli";
 import { createEthersTransaction } from "@moonwall/util";
 import { encodeFunctionData } from "viem";
+import { deployContract } from "../../../../helpers/contracts";
 
 describeSuite({
   id: "D020507",
@@ -31,7 +32,7 @@ describeSuite({
           id: `T${testNumber > 9 ? testNumber : "0" + testNumber}`,
           title: `should consume ${gas} for ${loop} loop for ${txnType}`,
           test: async () => {
-            const { abi, contractAddress } = await context.deployContract!("Looper");
+            const { abi, contractAddress } = await deployContract(context as any, "Looper");
 
             const rawSigned = await createEthersTransaction(context, {
               to: contractAddress,

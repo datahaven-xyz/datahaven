@@ -350,9 +350,9 @@ pub mod dynamic_params {
         #[codec(index = 37)]
         #[allow(non_upper_case_globals)]
         /// Targeted annual inflation rate.
-        /// Default: 10% per annum
+        /// Default: 5% per annum
         /// This rate is divided across all eras in a year to calculate per-era inflation.
-        pub static InflationTargetedAnnualRate: Perbill = Perbill::from_percent(10);
+        pub static InflationTargetedAnnualRate: Perbill = Perbill::from_percent(5);
 
         #[codec(index = 38)]
         #[allow(non_upper_case_globals)]

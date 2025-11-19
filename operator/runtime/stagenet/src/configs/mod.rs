@@ -1682,7 +1682,10 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
     fn build(
         _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
     ) -> Option<Self::Message> {
-        let calldata = Vec::new();
+        let selector = runtime_params::dynamic_params::runtime_config::SlashOperatorSelector::get();
+
+        let mut calldata = Vec::new();
+        calldata.extend_from_slice(&selector);
 
         let command = Command::CallContract {
             target:

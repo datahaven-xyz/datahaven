@@ -373,8 +373,7 @@ impl pallet_authorship::Config for Runtime {
 impl pallet_offences::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
-    // TODO set to External Validators Slashs Pallet once it's added to the runtime
-    type OnOffenceHandler = ();
+    type OnOffenceHandler = ExternalValidatorsSlashes;
 }
 
 pub struct FullIdentificationOf;

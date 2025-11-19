@@ -1,0 +1,53 @@
+[package]
+name = "pallet-evm-precompile-datahaven-native-transfer"
+authors = { workspace = true }
+description = "Precompile to expose DataHaven Native Transfer pallet to EVM"
+edition = "2021"
+version = { workspace = true }
+
+[dependencies]
+# Substrate
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["max-encoded-len"] }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+# Frontier
+evm = { workspace = true, features = ["with-codec"] }
+fp-evm = { workspace = true }
+pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
+precompile-utils = { workspace = true }
+
+# Local
+pallet-datahaven-native-transfer = { workspace = true }
+
+[dev-dependencies]
+hex-literal = { workspace = true }
+pallet-balances = { workspace = true, features = ["insecure_zero_ed", "std"] }
+pallet-timestamp = { workspace = true, features = ["std"] }
+parity-scale-codec = { workspace = true, features = ["max-encoded-len", "std"] }
+precompile-utils = { workspace = true, features = ["std", "testing"] }
+scale-info = { workspace = true, features = ["derive", "std"] }
+sp-runtime = { workspace = true, features = ["std"] }
+snowbridge-core = { workspace = true, features = ["std"] }
+snowbridge-outbound-queue-primitives = { workspace = true, features = ["std"] }
+
+[features]
+default = ["std"]
+std = [
+	"fp-evm/std",
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-datahaven-native-transfer/std",
+	"pallet-evm/std",
+	"parity-scale-codec/std",
+	"precompile-utils/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+]
+

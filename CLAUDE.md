@@ -229,7 +229,7 @@ const suite = new MyTestSuite();
 
 describe("My Tests", () => {
   it("should verify cross-chain flow", async () => {
-    const { publicClient, dhApi } = suite.getTestConnectors();
+    const { publicClient, walletClient, dhApi } = suite.getTestConnectors();
 
     // Ethereum: Send transaction
     const hash = await walletClient.writeContract({...});

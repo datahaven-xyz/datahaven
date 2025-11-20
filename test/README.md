@@ -81,7 +81,7 @@ The `bun cli launch` command deploys a complete local environment:
 2. **DataHaven Network**:
    - Single validator solochain
    - EVM compatibility via Frontier
-   - Fast block times (3s with `--fast-runtime`)
+   - Fast churn settings (`--fast-runtime` gives 1-minute epochs and 3-session eras while block time stays 6s)
 
 3. **Smart Contracts**:
    - EigenLayer AVS contracts deployed to Ethereum

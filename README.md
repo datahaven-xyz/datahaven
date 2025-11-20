@@ -271,7 +271,7 @@ See `.github/workflows/` for workflow definitions.
 - **Type mismatches**: Regenerate with `bun generate:types` after runtime changes
 - **Contract changes not reflected**: Run `bun generate:wagmi` after modifications
 - **Kurtosis issues**: Ensure Docker is running and Kurtosis engine is started
-- **Slow development**: Use `--features fast-runtime` for faster block times
+- **Slow development**: Use `--features fast-runtime` for shorter epochs/eras (block time stays 6s)
 - **Network launch hangs**: Check Blockscout - forge output can appear frozen
 
 See [CLAUDE.md](./CLAUDE.md) for detailed development guidance.

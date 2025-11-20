@@ -4,7 +4,7 @@ describeSuite({
   id: "D020509",
   title: "Block Contract - Block variables",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let blockContract: `0x${string}`;
 
     beforeAll(async () => {

@@ -1,9 +1,4 @@
-import {
-  beforeAll,
-  deployCreateCompiledContract,
-  describeSuite,
-  expect,
-} from "@moonwall/cli";
+import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { type Abi, decodeEventLog, encodeFunctionData } from "viem";
 import { deployContract } from "../../../../helpers/contracts";

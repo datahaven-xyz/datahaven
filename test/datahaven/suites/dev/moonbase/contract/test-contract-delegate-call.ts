@@ -2,9 +2,7 @@ import { beforeAll, deployCreateCompiledContract, describeSuite, expect } from "
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { type Abi, encodeFunctionData } from "viem";
 
-const PRECOMPILE_PREFIXES = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1026, 2050, 2056, 2058, 2059
-];
+const PRECOMPILE_PREFIXES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1026, 2050, 2056, 2058, 2059];
 
 // Ethereum precompile 1-9 are pure and allowed to be called through DELEGATECALL
 const ALLOWED_PRECOMPILE_PREFIXES = PRECOMPILE_PREFIXES.filter((add) => add <= 9);
@@ -27,7 +25,7 @@ describeSuite({
   id: "D020501",
   title: "Delegate Call",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let forwardAddress: `0x${string}`;
     let forwardAbi: Abi;
 
@@ -62,9 +60,9 @@ describeSuite({
 
         expect(txCall.data).to.equal(
           "0x0000000000000000000000000000000000000000000000000000000000000001" +
-          "0000000000000000000000000000000000000000000000000000000000000040" +
-          "0000000000000000000000000000000000000000000000000000000000000020" +
-          "0000000000000000000000000000000000000000000000000000000000000126"
+            "0000000000000000000000000000000000000000000000000000000000000040" +
+            "0000000000000000000000000000000000000000000000000000000000000020" +
+            "0000000000000000000000000000000000000000000000000000000000000126"
         );
       }
     });

@@ -1,15 +1,9 @@
-import { ALITH_PRIVATE_KEY } from "@moonwall/util";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import {
-  type Abi,
-  createWalletClient,
-  http,
-  type Hex,
-  type Log,
-} from "viem";
+import { fileURLToPath } from "node:url";
+import { ALITH_PRIVATE_KEY } from "@moonwall/util";
+import { type Abi, createWalletClient, type Hex, http, type Log } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 /**
@@ -56,16 +50,8 @@ export interface DeployedContractResult extends CompiledContractArtifact {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const fetchCompiledContract = (
-  contractName: string,
-): CompiledContractArtifact => {
-  let artifactPath = path.join(
-    __dirname,
-    "../../",
-    "contracts",
-    "out",
-    `${contractName}.json`,
-  );
+export const fetchCompiledContract = (contractName: string): CompiledContractArtifact => {
+  let artifactPath = path.join(__dirname, "../../", "contracts", "out", `${contractName}.json`);
   if (!existsSync(artifactPath)) {
     const folder = contractName
       .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -79,21 +65,17 @@ export const fetchCompiledContract = (
       "out",
       "precompiles",
       folder,
-      `${contractName}.json`,
+      `${contractName}.json`
     );
     if (existsSync(candidate)) {
       artifactPath = candidate;
     }
   }
   if (!existsSync(artifactPath)) {
-    throw new Error(
-      `Contract artifact not found: ${contractName} (searched: ${artifactPath})`,
-    );
+    throw new Error(`Contract artifact not found: ${contractName} (searched: ${artifactPath})`);
   }
   const artifactContent = readFileSync(artifactPath, "utf-8");
-  const artifactJson = JSON.parse(
-    artifactContent,
-  ) as CompiledContractArtifactJson;
+  const artifactJson = JSON.parse(artifactContent) as CompiledContractArtifactJson;
 
   const abi = artifactJson.abi ?? artifactJson.contract.abi;
   if (!abi) {
@@ -113,7 +95,7 @@ export const fetchCompiledContract = (
     abi,
     bytecode,
     contract: artifactJson.contract,
-    sourceCode: artifactJson.sourceCode,
+    sourceCode: artifactJson.sourceCode
   } satisfies CompiledContractArtifact;
 };
 
@@ -135,7 +117,7 @@ export const deployContract = async (
     };
   },
   contractName: string,
-  options?: DeployContractOptions,
+  options?: DeployContractOptions
 ): Promise<DeployedContractResult> => {
   const compiled = fetchCompiledContract(contractName);
   const { abi, bytecode } = compiled;
@@ -147,7 +129,7 @@ export const deployContract = async (
   const walletClient = createWalletClient({
     account: privateKeyToAccount(signerKey),
     transport: http(transport.url),
-    chain: context.viem().chain as any,
+    chain: context.viem().chain as any
   });
 
   const deployOptions: {
@@ -158,7 +140,7 @@ export const deployContract = async (
     value?: bigint;
   } = {
     abi,
-    bytecode,
+    bytecode
   };
 
   if (options?.args) {
@@ -184,7 +166,7 @@ export const deployContract = async (
         contractAddress: receipt.contractAddress,
         hash,
         logs: receipt.logs,
-        status: receipt.status,
+        status: receipt.status
       };
     } catch (error) {
       if (attempt === 11) {

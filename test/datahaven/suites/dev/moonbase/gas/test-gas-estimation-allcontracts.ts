@@ -21,7 +21,7 @@ describeSuite({
   id: "D021802",
   title: "Estimate Gas - Multiply",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     const contractNames = getAllCompiledContracts("contracts/out", true);
 
     beforeAll(async () => {
@@ -58,32 +58,33 @@ describeSuite({
 
             const args = constructorAbi
               ? constructorAbi.inputs.map((input: { type: string }) => {
-                if (input.type === "bool") {
-                  return true;
-                }
-
-                if (input.type === "address") {
-                  return faith.address;
-                }
-
-                if (input.type.startsWith("uint")) {
-                  const rest = input.type.split("uint")[1];
-                  if (rest === "[]") {
-                    return [];
+                  if (input.type === "bool") {
+                    return true;
                   }
-                  const length = Number(rest) || 256;
-                  return `0x${Buffer.from(randomBytes(length / 8)).toString("hex")}`;
-                }
 
-                if (input.type.startsWith("bytes")) {
-                  const rest = input.type.split("bytes")[1];
-                  if (rest === "[]") {
-                    return [];
+                  if (input.type === "address") {
+                    return faith.address;
                   }
-                  const length = Number(rest) || 1;
-                  return `0x${Buffer.from(randomBytes(length)).toString("hex")}`;
-                }
-              })
+
+                  if (input.type.startsWith("uint")) {
+                    const rest = input.type.split("uint")[1];
+                    if (rest === "[]") {
+                      return [];
+                    }
+                    const length = Number(rest) || 256;
+                    return `0x${Buffer.from(randomBytes(length / 8)).toString("hex")}`;
+                  }
+
+                  if (input.type.startsWith("bytes")) {
+                    const rest = input.type.split("bytes")[1];
+                    if (rest === "[]") {
+                      return [];
+                    }
+                    const length = Number(rest) || 1;
+                    return `0x${Buffer.from(randomBytes(length)).toString("hex")}`;
+                  }
+                  return undefined;
+                })
               : [];
 
             const callData = encodeDeployData({

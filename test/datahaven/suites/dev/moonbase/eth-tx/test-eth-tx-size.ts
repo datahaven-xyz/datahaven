@@ -1,12 +1,11 @@
 import { customDevRpcRequest, describeSuite, expect } from "@moonwall/cli";
 import { createEthersTransaction, EXTRINSIC_GAS_LIMIT } from "@moonwall/util";
-import { EIP7623_GAS_CONSTANTS } from "../../../../helpers/fees";
 
 describeSuite({
   id: "D021303",
   title: "Ethereum Transaction - Large Transaction",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     // TODO: I'm not sure where this 2000 came from...
     const maxSize = (BigInt(EXTRINSIC_GAS_LIMIT) - 21000n) / 16n - 2000n;
 
@@ -17,7 +16,7 @@ describeSuite({
         expect(maxSize).to.equal(809187n); // max Ethereum TXN size with EIP-7623 floor cost
         // max_size - shanghai init cost - create cost
         const maxSizeShanghai = maxSize - 6474n;
-        const data = ("0x" + "FF".repeat(Number(maxSizeShanghai))) as `0x${string}`;
+        const data = `0x${"FF".repeat(Number(maxSizeShanghai))}` as `0x${string}`;
 
         const rawSigned = await createEthersTransaction(context, {
           value: 0n,
@@ -39,7 +38,7 @@ describeSuite({
       title: "should reject txns which are too large to pay for",
       test: async () => {
         // Use exactMaxSize + 1 to ensure we exceed the gas limit
-        const data = ("0x" + "FF".repeat(Number(maxSize) + 1)) as `0x${string}`;
+        const data = `0x${"FF".repeat(Number(maxSize) + 1)}` as `0x${string}`;
 
         const rawSigned = await createEthersTransaction(context, {
           value: 0n,

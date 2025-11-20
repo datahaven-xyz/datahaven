@@ -3,7 +3,7 @@ import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
 import { logger } from "./logger";
-import { StandardServiceMappings, type ServiceInfo } from "./service-mappings";
+import { type ServiceInfo, StandardServiceMappings } from "./service-mappings";
 
 function createDockerConnection(): Docker {
   const dockerHost = process.env.DOCKER_HOST;
@@ -17,7 +17,7 @@ function createDockerConnection(): Docker {
       const url = new URL(dockerHost);
       return new Docker({
         host: url.hostname,
-        port: Number.parseInt(url.port) || 2375,
+        port: Number.parseInt(url.port, 10) || 2375,
         protocol: "http"
       });
     }

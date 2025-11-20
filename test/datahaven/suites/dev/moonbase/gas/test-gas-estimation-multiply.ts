@@ -6,7 +6,7 @@ describeSuite({
   id: "D021804",
   title: "Estimate Gas - Multiply",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let multiAbi: Abi;
     let multiAddress: `0x${string}`;
 

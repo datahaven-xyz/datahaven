@@ -13,7 +13,7 @@ describeSuite({
   id: "D021104",
   title: "EthPool - Future Ethereum transaction",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     for (const txnType of TransactionTypes) {
       it({
         id: `T0${TransactionTypes.indexOf(txnType) + 1}`,

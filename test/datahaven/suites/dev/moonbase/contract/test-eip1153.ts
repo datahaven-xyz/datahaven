@@ -4,7 +4,7 @@ describeSuite({
   id: "D020511",
   title: "EIP-1153 - Transient storage",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let contract: `0x${string}`;
 
     beforeAll(async () => {

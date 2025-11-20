@@ -12,7 +12,7 @@ describeSuite({
   id: "D021803",
   title: "Estimate Gas - Contract estimation",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     it({
       id: "T01",
       title: "evm should return invalid opcode",

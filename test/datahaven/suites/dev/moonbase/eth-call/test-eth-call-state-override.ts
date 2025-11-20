@@ -15,7 +15,7 @@ describeSuite({
   id: "D020901",
   title: "Call - State Override",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let stateOverrideAddress: string;
     let contractAbi: Abi;
 

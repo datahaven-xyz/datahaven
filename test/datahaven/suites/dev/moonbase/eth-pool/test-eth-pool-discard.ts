@@ -4,7 +4,7 @@ describeSuite({
   id: "D021101",
   title: "Transaction Cost discards",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ it }) => {
     it({
       id: "T01",
       title: "should take transaction cost into account and not submit it to the pool",

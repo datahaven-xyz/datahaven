@@ -10,7 +10,7 @@ describeSuite({
   id: "D021001",
   title: "Fee History",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     interface FeeHistory {
       oldestBlock: string;
       baseFeePerGas: string[];
@@ -68,9 +68,9 @@ describeSuite({
         "should return two-dimensional reward list for the requested block range"
       ).to.be.eq(block_count);
 
-      const failures = feeResults.reward.filter((item) => {
-        item.length !== reward_percentiles.length;
-      });
+      const failures = feeResults.reward.filter(
+        (item) => item.length !== reward_percentiles.length
+      );
       expect(
         failures.length,
         "each block has a reward list which's size is the requested percentile list"
@@ -87,7 +87,7 @@ describeSuite({
         const priority_fees = [1, 2, 3];
         const startingBlock = await context.viem().getBlockNumber();
 
-        const feeHistory = new Promise<FeeHistory>((resolve, reject) => {
+        const feeHistory = new Promise<FeeHistory>((resolve, _reject) => {
           const unwatch = context.viem().watchBlocks({
             onBlock: async (block) => {
               if (Number(block.number! - startingBlock) === block_count) {
@@ -120,7 +120,7 @@ describeSuite({
         const priority_fees = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         const startingBlock = await context.viem().getBlockNumber();
 
-        const feeHistory = new Promise<FeeHistory>((resolve, reject) => {
+        const feeHistory = new Promise<FeeHistory>((resolve, _reject) => {
           const unwatch = context.viem().watchBlocks({
             onBlock: async (block) => {
               if (Number(block.number! - startingBlock) === block_count) {
@@ -189,7 +189,7 @@ describeSuite({
         const priority_fees = [1, 2, 3];
         const startingBlock = await context.viem().getBlockNumber();
 
-        const feeHistory = new Promise<FeeHistory>((resolve, reject) => {
+        const feeHistory = new Promise<FeeHistory>((resolve, _reject) => {
           const unwatch = context.viem().watchBlocks({
             onBlock: async (block) => {
               if (Number(block.number! - startingBlock) === block_count) {

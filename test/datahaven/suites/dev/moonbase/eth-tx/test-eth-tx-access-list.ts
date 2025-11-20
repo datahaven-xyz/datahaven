@@ -7,9 +7,10 @@ describeSuite({
   title: "Ethereum Transaction - Access List",
   foundationMethods: "dev",
   testCases: ({ context, it }) => {
-    let data;
-    let helper;
-    let helperProxy;
+    type DeployResult = Awaited<ReturnType<typeof deployCreateCompiledContract>>;
+    const data: `0x${string}` = "0x";
+    let helper: DeployResult;
+    let helperProxy: DeployResult;
 
     beforeAll(async () => {
       helper = await deployCreateCompiledContract(context, "AccessListHelper");
@@ -49,7 +50,9 @@ describeSuite({
 
           const { result } = await context.createBlock(txWithAL);
           await context.createBlock();
-          const receipt = await context.viem().getTransactionReceipt({ hash: result!.hash as `0x${string}` });
+          const receipt = await context
+            .viem()
+            .getTransactionReceipt({ hash: result!.hash as `0x${string}` });
           const gasCostWithAL = receipt.gasUsed;
           const txSize = txWithAL.length;
 
@@ -111,7 +114,9 @@ describeSuite({
 
           const { result } = await context.createBlock(txWithAL);
           await context.createBlock();
-          const receipt = await context.viem().getTransactionReceipt({ hash: result!.hash as `0x${string}` });
+          const receipt = await context
+            .viem()
+            .getTransactionReceipt({ hash: result!.hash as `0x${string}` });
           const gasCostWithAL = receipt.gasUsed;
           const txSize = txWithAL.length;
 

@@ -7,7 +7,7 @@ describeSuite({
   id: "D021002",
   title: "Ethereum - PaysFee",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     for (const txnType of TransactionTypes) {
       it({
         id: `T0${TransactionTypes.indexOf(txnType) + 1}`,

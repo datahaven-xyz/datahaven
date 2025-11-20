@@ -9,7 +9,7 @@ describeSuite({
   id: "D021703",
   title: "Filter Block API",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     it({
       id: "T01",
       title: "should return block information",

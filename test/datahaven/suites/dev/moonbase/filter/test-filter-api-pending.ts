@@ -5,7 +5,7 @@ describeSuite({
   id: "D021702",
   title: "Filter Pending Transaction API",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ it }) => {
     it({
       id: "T01",
       title: "should not be supported",

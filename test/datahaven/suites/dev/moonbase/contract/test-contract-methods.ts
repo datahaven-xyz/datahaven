@@ -6,7 +6,7 @@ describeSuite({
   id: "D020508",
   title: "Contract creation",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     let multiplyAddress: `0x${string}`;
     let multiplyAbi: Abi;
     let deployHash: `0x${string}`;

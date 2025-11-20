@@ -10,7 +10,7 @@ describeSuite({
   id: "D021701",
   title: "Filter API",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     it({
       id: "T01",
       title: "should be able to create a Log filter",

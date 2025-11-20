@@ -5,7 +5,7 @@ describeSuite({
   id: "D020504",
   title: "Contract - Excessive memory allocation",
   foundationMethods: "dev",
-  testCases: ({ context, it, log }) => {
+  testCases: ({ context, it }) => {
     // this tests a security vulnerability in our EVM which was patched in May 2021 or so.
     // The vulnerability allowed contract code to request an extremely large amount of memory,
     // causing a node to crash.
@@ -16,11 +16,6 @@ describeSuite({
       id: "T01",
       title: "should fail with out of gas",
       test: async () => {
-        const bytecode = new Uint8Array([
-          65, 65, 4, 97, 89, 134, 65, 65, 65, 65, 65, 52, 57, 51, 52, 51, 70, 70, 1, 0, 0, 0, 40,
-          249, 0, 224, 111, 1, 0, 0, 0, 247, 30, 1, 0, 0, 0, 0, 0, 0
-        ]);
-
         const value = `0x${993452714685890559n.toString(16)}`;
 
         const rawSigned = await createEthersTransaction(context, {

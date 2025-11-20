@@ -394,7 +394,6 @@ pub mod dynamic_params {
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
 
-<<<<<<< HEAD
         // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
 
         #[codec(index = 42)]
@@ -423,8 +422,6 @@ pub mod dynamic_params {
             BoundedVec::truncate_from(vec![]);
 
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
-=======
->>>>>>> 7c5c3dab (wip)
     }
 }
 

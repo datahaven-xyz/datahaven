@@ -296,6 +296,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     function slashValidatorsOperator() external {
-        emit ValidatorsSlashedTest();   
+        emit ValidatorsSlashedTest();
     }
 }

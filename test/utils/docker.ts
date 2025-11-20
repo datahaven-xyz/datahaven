@@ -2,7 +2,8 @@ import { existsSync } from "node:fs";
 import { type Duplex, PassThrough, Transform } from "node:stream";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
-import { logger, type ServiceInfo, StandardServiceMappings } from "utils";
+import { logger } from "./logger";
+import { StandardServiceMappings, type ServiceInfo } from "./service-mappings";
 
 function createDockerConnection(): Docker {
   const dockerHost = process.env.DOCKER_HOST;

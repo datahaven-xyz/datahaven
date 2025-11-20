@@ -9,6 +9,7 @@ export * from "./logger";
 export * from "./papi";
 export * from "./parameters";
 export * from "./parser";
+export * from "./service-mappings";
 export * from "./rpc";
 export * from "./shell";
 export * from "./validators";

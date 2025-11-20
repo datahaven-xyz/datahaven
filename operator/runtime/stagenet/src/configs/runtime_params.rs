@@ -364,6 +364,11 @@ pub mod dynamic_params {
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
 
+        #[codec(index = 39)]
+        #[allow(non_upper_case_globals)]
+        pub static SlashingAgentOrigin: H256 = H256::from_slice(&hex!(
+            "000000000000000000000000000000000000000000000000000000000000DEAD"
+        ));
     }
 }
 

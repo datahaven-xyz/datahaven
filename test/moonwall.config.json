@@ -14,7 +14,7 @@
       ],
       "timeout": 180000,
       "multiThreads": 4,
-      "contracts": "contracts/",
+      "contracts": "datahaven/contracts/",
       "runScripts": [
         "compile-contracts.sh compile"
       ],

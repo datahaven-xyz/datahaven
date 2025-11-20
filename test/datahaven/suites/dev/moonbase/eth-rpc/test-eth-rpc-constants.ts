@@ -1,5 +1,5 @@
 import { customDevRpcRequest, describeSuite, expect } from "@moonwall/cli";
-import { CHAIN_ID } from "utils";
+import { CHAIN_ID } from "utils/constants";
 
 describeSuite({
   id: "D021201",

@@ -38,6 +38,9 @@
       ],
       "utils/types": [
         "./utils/types.ts"
+      ],
+      "utils/constants": [
+        "./utils/constants.ts"
       ]
     }
   },

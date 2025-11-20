@@ -226,6 +226,118 @@ services:
       - bob
       - msp
 
+  postgres:
+    image: postgres:16-alpine
+    platform: linux/amd64
+    container_name: datahaven-postgres
+    hostname: postgres
+    networks:
+      - datahaven-network
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=indexer
+      - POSTGRES_PASSWORD=indexer
+      - POSTGRES_DB=datahaven
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indexer -d datahaven"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-indexer
+    hostname: indexer
+    networks:
+      - datahaven-network
+    ports:
+      - "9949:9944"   # WebSocket/RPC
+      - "9620:9615"   # Prometheus metrics
+      - "30338:30333" # P2P networking
+    environment:
+      - CHAIN=stagenet-local
+    command:
+      - --name=indexer
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --discover-local
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --no-prometheus
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+      - --indexer
+      - --indexer-mode=full
+      - --indexer-database-url=postgresql://indexer:indexer@postgres:5432/datahaven
+    volumes:
+      - indexer-data:/data
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      alice:
+        condition: service_started
+      bob:
+        condition: service_started
+
+  fisherman:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-fisherman
+    hostname: fisherman
+    user: "root"  # Run as root to allow key injection, entrypoint switches to datahaven user
+    networks:
+      - datahaven-network
+    ports:
+      - "9950:9944"   # WebSocket/RPC
+      - "9621:9615"   # Prometheus metrics
+      - "30339:30333" # P2P networking
+    environment:
+      - NODE_NAME=gustavo
+      - NODE_TYPE=fisherman
+      - CHAIN=stagenet-local
+      - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    entrypoint: ["/scripts/docker-entrypoint.sh"]
+    command:
+      - --name=fisherman
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --keystore-path=/data/keystore
+      - --discover-local
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --no-prometheus
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+      - --fisherman
+      - --fisherman-database-url=postgresql://indexer:indexer@postgres:5432/datahaven
+    volumes:
+      - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - fisherman-keystore:/data/keystore
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      alice:
+        condition: service_started
+      bob:
+        condition: service_started
+
 networks:
   datahaven-network:
     driver: bridge
@@ -237,3 +349,6 @@ volumes:
   msp-keystore:
   bsp01-keystore:
   bsp02-keystore:
+  postgres-data:
+  indexer-data:
+  fisherman-keystore:

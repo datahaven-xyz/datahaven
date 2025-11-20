@@ -4,6 +4,9 @@ This docker-compose configuration runs a local DataHaven network with:
 - **2 Validator nodes**: Alice and Bob
 - **1 Main Storage Provider (MSP)** node: Charlie (exposed as "msp")
 - **2 Backup Storage Provider (BSP)** nodes: Dave (bsp01) and Eve (bsp02)
+- **1 StorageHub Indexer** node: Full indexer with PostgreSQL database
+- **1 Fisherman** node: Gustavo - monitors and validates storage providers
+- **1 PostgreSQL database**: Shared database for indexer and fisherman
 
 ## Prerequisites
 
@@ -69,6 +72,9 @@ docker-compose logs -f bob
 docker-compose logs -f msp
 docker-compose logs -f bsp01
 docker-compose logs -f bsp02
+docker-compose logs -f postgres
+docker-compose logs -f indexer
+docker-compose logs -f fisherman
 ```
 
 ### Key Injection
@@ -86,7 +92,11 @@ Validators require 4 keys:
 Storage providers (both MSP and BSP) require 1 key:
 1. **BCSV** (`bcsv`) - ecdsa - Storage provider identity
 
-Keys are derived from a test seed phrase using the pattern: `<seed>//<NodeName>` (e.g., `//Alice`, `//Bob`, `//Charlie`, `//Dave`, `//Eve`).
+#### Fisherman Keys
+Fisherman nodes require 1 key:
+1. **BCSV** (`bcsv`) - ecdsa - Storage provider identity
+
+Keys are derived from a test seed phrase using the pattern: `<seed>//<NodeName>` (e.g., `//Alice`, `//Bob`, `//Charlie`, `//Dave`, `//Eve`, `//Gustavo`).
 
 **⚠️ Security Warning**: The default seed phrase is for **development only**. Never use this in production! To use custom seeds, modify the `SEED` environment variable in `docker-compose.yml`.
 
@@ -125,6 +135,25 @@ All nodes are accessible on the following ports:
 - **P2P**: `localhost:30337`
 - **Storage Capacity**: 1 GiB
 - **Jump Capacity**: 100 MiB
+
+### PostgreSQL Database
+- **Host**: `localhost:5432`
+- **Database**: `datahaven`
+- **Username**: `indexer`
+- **Password**: `indexer`
+- **Connection String**: `postgresql://indexer:indexer@localhost:5432/datahaven`
+
+### Indexer (StorageHub Indexer)
+- **WebSocket/RPC**: `ws://localhost:9949`
+- **Prometheus Metrics**: `http://localhost:9620`
+- **P2P**: `localhost:30338`
+- **Mode**: Full indexer with database persistence
+
+### Fisherman (Storage Provider Monitor - Gustavo)
+- **WebSocket/RPC**: `ws://localhost:9950`
+- **Prometheus Metrics**: `http://localhost:9621`
+- **P2P**: `localhost:30339`
+- **Role**: Monitors and validates storage provider behavior
 
 ## Network Communication
 
@@ -180,7 +209,7 @@ docker-compose down -v
 - `--msp-charging-period` - Charging period in blocks (MSP only)
 
 ### Node Types
-The docker-compose setup includes three node types:
+The docker-compose setup includes five node types:
 1. **Validators** (`NODE_TYPE=validator`) - Alice & Bob
    - Run consensus and produce blocks
    - Require 4 keys: gran, babe, imon, beef
@@ -192,10 +221,20 @@ The docker-compose setup includes three node types:
    - Backup Storage Provider with storage provider capabilities
    - Requires 1 key: bcsv
    - Additional flags: `--provider`, `--provider-type=bsp`, storage capacity settings
+4. **Indexer** (no NODE_TYPE required) - StorageHub Indexer
+   - Full indexer node with database persistence
+   - No keys required (non-validating node)
+   - Additional flags: `--indexer`, `--indexer-mode=full`, `--indexer-database-url`
+5. **Fisherman** (`NODE_TYPE=fisherman`) - Gustavo
+   - Monitors and validates storage provider behavior
+   - Requires 1 key: bcsv
+   - Additional flags: `--fisherman`, `--fisherman-database-url`
 
 ### Storage
 - **Chain data**: Persisted in Docker volumes at `/data` (not using `--tmp`)
-- **Keystore**: Persisted in Docker volumes at `/data/keystore` (`alice-keystore`, `bob-keystore`, `msp-keystore`, `bsp01-keystore`, `bsp02-keystore`)
+- **Keystore**: Persisted in Docker volumes at `/data/keystore` (`alice-keystore`, `bob-keystore`, `msp-keystore`, `bsp01-keystore`, `bsp02-keystore`, `fisherman-keystore`)
+- **PostgreSQL data**: Persisted in `postgres-data` volume
+- **Indexer data**: Persisted in `indexer-data` volume
 - To clear all data and start fresh: `docker-compose down -v`
 
 ### User Permissions
@@ -279,7 +318,24 @@ docker exec datahaven-msp ls -la /data/keystore
 # BSP keys (storage provider - 1 key)
 docker exec datahaven-bsp01 ls -la /data/keystore
 docker exec datahaven-bsp02 ls -la /data/keystore
+
+# Fisherman keys (storage provider monitor - 1 key)
+docker exec datahaven-fisherman ls -la /data/keystore
 ```
 
 Validators should show: `babe`, `gran`, `imon`, and `beef`
-Storage providers (MSP/BSP) should show: `bcsv`
+Storage providers (MSP/BSP) and Fisherman should show: `bcsv`
+
+### Checking Database Status
+To verify the PostgreSQL database is working:
+```bash
+# Check PostgreSQL is running
+docker exec datahaven-postgres pg_isready -U indexer -d datahaven
+
+# Connect to database
+docker exec -it datahaven-postgres psql -U indexer -d datahaven
+
+# View indexer tables (once running)
+docker exec datahaven-postgres psql -U indexer -d datahaven -c "\dt"
+```
+

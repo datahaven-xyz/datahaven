@@ -61,9 +61,16 @@ elif [ "${NODE_TYPE}" = "bsp" ]; then
     # BCSV (storage provider) - ecdsa
     inject_key "bcsv" "ecdsa"
 
+elif [ "${NODE_TYPE}" = "fisherman" ]; then
+    echo "📝 Injecting Fisherman provider key (1 key)..."
+    # Based on deploy/charts/node/storagehub/sh-fisherman.yaml
+
+    # BCSV (storage provider) - ecdsa
+    inject_key "bcsv" "ecdsa"
+
 else
     echo "⚠️  Unknown node type: ${NODE_TYPE}"
-    echo "Supported types: validator, msp, bsp"
+    echo "Supported types: validator, msp, bsp, fisherman"
     exit 1
 fi
 

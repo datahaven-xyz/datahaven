@@ -7,7 +7,7 @@ For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUID
 ## Pre-requisites
 
 - [Kurtosis](https://docs.kurtosis.com/install): For launching test networks
-- [Bun](https://bun.sh/) v1.2 or higher: TypeScript runtime and package manager
+- [Bun](https://bun.sh/) v1.3.2 or higher: TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 - [Foundry](https://getfoundry.sh/introduction/installation/): To deploy contracts
 - [Helm](https://helm.sh/docs/intro/install/): The Kubernetes Package Manager 
@@ -55,6 +55,19 @@ bun test:e2e:parallel
 bun test suites/some-test.test.ts
 ```
 
+
+## Generating Ethereum state
+
+To avoid deploying contracts everytime for each tests, you can generate and then inject state in the Ethereum client.
+
+### Generate state
+
+```
+$ bun cli launch --all
+$ make generate-ethereum-state
+$ bun cli stop --all
+```
+
 ## What Gets Launched
 
 The `bun cli launch` command deploys a complete local environment:
@@ -68,7 +81,7 @@ The `bun cli launch` command deploys a complete local environment:
 2. **DataHaven Network**:
    - Single validator solochain
    - EVM compatibility via Frontier
-   - Fast block times (3s with `--fast-runtime`)
+   - Fast churn settings (`--fast-runtime` gives 1-minute epochs and 3-session eras while block time stays 6s)
 
 3. **Smart Contracts**:
    - EigenLayer AVS contracts deployed to Ethereum

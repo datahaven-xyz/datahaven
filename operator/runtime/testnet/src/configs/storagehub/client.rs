@@ -1,3 +1,19 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 // This module implements the StorageHub client traits for the runtime types.
 // It is only compiled for native (std) builds to avoid pulling `shc-common` into the
 // no_std Wasm runtime.
@@ -33,20 +49,6 @@ impl ExtensionOperations<crate::RuntimeCall, crate::Runtime> for crate::SignedEx
                 minimal.tip,
             ),
             frame_metadata_hash_extension::CheckMetadataHash::new(false),
-        )
-    }
-
-    fn implicit(genesis_block_hash: Self::Hash, current_block_hash: Self::Hash) -> Self::Implicit {
-        (
-            (),
-            crate::VERSION.spec_version,
-            crate::VERSION.transaction_version,
-            genesis_block_hash,
-            current_block_hash,
-            (),
-            (),
-            (),
-            None,
         )
     }
 }

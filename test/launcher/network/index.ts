@@ -1,7 +1,7 @@
 import { $ } from "bun";
-import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
+import { getContainersMatchingImage, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
-import { deployContracts } from "../contracts";
+import { updateParameters } from "../../scripts/deploy-contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
@@ -186,29 +186,18 @@ export const launchNetwork = async (
         kurtosisEnclaveName: kurtosisEnclaveName,
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
-        kurtosisNetworkArgs: options.kurtosisNetworkArgs
+        kurtosisNetworkArgs: options.kurtosisNetworkArgs,
+        injectContracts: true // Forcing it to be true to run e2e tests
       },
       launchedNetwork
     );
 
     // 3. Deploy contracts
-    logger.info("📄 Deploying smart contracts...");
-    let blockscoutBackendUrl: string | undefined;
-    if (options.blockscout) {
-      const blockscoutPort = await getPortFromKurtosis("blockscout", "http", kurtosisEnclaveName);
-      blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPort}`;
-    }
+    logger.info("📄 Smart contracts injected.");
 
     if (!launchedNetwork.elRpcUrl) {
       throw new Error("Ethereum RPC URL not available");
     }
-
-    await deployContracts({
-      rpcUrl: launchedNetwork.elRpcUrl,
-      verified: options.verified ?? false,
-      blockscoutBackendUrl,
-      parameterCollection
-    });
 
     // 4. Fund validators
     logger.info("💰 Funding validators...");
@@ -221,6 +210,9 @@ export const launchNetwork = async (
     await setupValidators({
       rpcUrl: launchedNetwork.elRpcUrl
     });
+
+    // We are injecting contracts but we still need the addresses
+    await updateParameters(parameterCollection);
 
     // 6. Set DataHaven runtime parameters
     logger.info("⚙️ Setting DataHaven parameters...");

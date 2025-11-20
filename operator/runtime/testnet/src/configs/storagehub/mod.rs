@@ -1,5 +1,22 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, HAVE,
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
+    TreasuryAccount, HAVE,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
@@ -49,14 +66,6 @@ pub type StorageDataUnit = u64;
 pub type StorageProofsMerkleTrieLayout = LayoutV1<BlakeTwo256>;
 
 pub type Hashing = BlakeTwo256;
-
-// TODO: remove this and replace with pallet treasury
-pub struct TreasuryAccount;
-impl Get<AccountId> for TreasuryAccount {
-    fn get() -> AccountId {
-        AccountId::from([0; 32])
-    }
-}
 
 /****** NFTs pallet ******/
 parameter_types! {

@@ -18,6 +18,7 @@ sp-std = { workspace = true }
 
 # Frontier
 evm = { workspace = true, features = ["with-codec"] }
+fp-account = { workspace = true }
 fp-evm = { workspace = true }
 pallet-evm = { workspace = true, features = ["forbid-evm-reentrancy"] }
 precompile-utils = { workspace = true }

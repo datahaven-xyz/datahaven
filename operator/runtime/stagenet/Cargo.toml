@@ -3,7 +3,7 @@ authors = { workspace = true }
 description = "DataHaven Stagenet runtime"
 edition = { workspace = true }
 homepage = { workspace = true }
-license = "Unlicense"
+license = { workspace = true }
 name = "datahaven-stagenet-runtime"
 publish = false
 repository = { workspace = true }
@@ -159,6 +159,7 @@ shp-file-metadata = { workspace = true }
 shp-forest-verifier = { workspace = true }
 shp-traits = { workspace = true }
 shp-treasury-funding = { workspace = true }
+shp-tx-implicits-runtime-api = { workspace = true }
 sp-trie = { workspace = true }
 
 [build-dependencies]

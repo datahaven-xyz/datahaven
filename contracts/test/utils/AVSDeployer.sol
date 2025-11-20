@@ -24,6 +24,7 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
+import {EigenStrategy} from "eigenlayer-contracts/src/contracts/strategies/EigenStrategy.sol";
 import {EigenPodManagerMock} from "eigenlayer-contracts/src/test/mocks/EigenPodManagerMock.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
@@ -36,7 +37,6 @@ import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
 import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
-import {AllocationManagerMock} from "../mocks/AllocationManagerMock.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 
 import "forge-std/Test.sol";
@@ -71,6 +71,7 @@ contract AVSDeployer is Test {
     EigenPodManagerMock public eigenPodManagerMock;
     AllocationManager public allocationManager;
     AllocationManager public allocationManagerImplementation;
+    IStrategy public eigenStrategy;
     RewardsCoordinator public rewardsCoordinator;
     RewardsCoordinator public rewardsCoordinatorImplementation;
     RewardsCoordinatorMock public rewardsCoordinatorMock;
@@ -143,6 +144,12 @@ contract AVSDeployer is Test {
 
         console.log("AllocationManager and StrategyManager proxy contracts deployed");
 
+        cheats.prank(regularDeployer);
+        eigenStrategy =
+            IStrategy(address(new EigenStrategy(strategyManager, pauserRegistry, "v-mock")));
+
+        console.log("EigenStrategy deployed");
+
         // Deploying DelegationManager implementation and its proxy.
         cheats.prank(regularDeployer);
         delegationManagerImplementation = new DelegationManager(
@@ -166,6 +173,7 @@ contract AVSDeployer is Test {
         cheats.prank(regularDeployer);
         allocationManagerImplementation = new AllocationManager(
             delegationManager,
+            eigenStrategy,
             pauserRegistry,
             permissionControllerMock,
             uint32(7 days), // DEALLOCATION_DELAY
@@ -183,7 +191,7 @@ contract AVSDeployer is Test {
         // Deploying StrategyManager implementation and its proxy.
         cheats.prank(regularDeployer);
         strategyManagerImplementation =
-            new StrategyManager(delegationManager, pauserRegistry, "v-mock");
+            new StrategyManager(allocationManager, delegationManager, pauserRegistry, "v-mock");
         cheats.prank(proxyAdminOwner);
         uint256 allUnpaused = 0;
         proxyAdmin.upgradeAndCall(

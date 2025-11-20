@@ -1,0 +1,239 @@
+services:
+  alice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-alice
+    hostname: alice
+    user: "root"  # Run as root to allow key injection, entrypoint switches to datahaven user
+    networks:
+      - datahaven-network
+    ports:
+      # Alice gets the standard port mappings
+      - "9944:9944"   # WebSocket/RPC
+      - "9615:9615"   # Prometheus metrics
+      - "30333:30333" # P2P networking
+    environment:
+      - NODE_NAME=alice
+      - NODE_TYPE=validator
+      - CHAIN=stagenet-local
+      - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    entrypoint: ["/scripts/docker-entrypoint.sh"]
+    command:
+      - --alice
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --keystore-path=/data/keystore
+      - --validator
+      - --discover-local
+      - --no-prometheus
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --force-authoring
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+    volumes:
+      - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - alice-keystore:/data/keystore
+    restart: unless-stopped
+
+  bob:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-bob
+    hostname: bob
+    user: "root"  # Run as root to allow key injection, entrypoint switches to datahaven user
+    networks:
+      - datahaven-network
+    ports:
+      # Bob gets different ports to avoid conflicts with Alice
+      - "9945:9944"   # WebSocket/RPC
+      - "9616:9615"   # Prometheus metrics
+      - "30334:30333" # P2P networking
+    environment:
+      - NODE_NAME=bob
+      - NODE_TYPE=validator
+      - CHAIN=stagenet-local
+      - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    entrypoint: ["/scripts/docker-entrypoint.sh"]
+    command:
+      - --bob
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --keystore-path=/data/keystore
+      - --validator
+      - --discover-local
+      - --no-prometheus
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+    volumes:
+      - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - bob-keystore:/data/keystore
+    restart: unless-stopped
+    depends_on:
+      - alice
+
+  msp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-msp
+    hostname: msp
+    user: "root"  # Run as root to allow key injection, entrypoint switches to datahaven user
+    networks:
+      - datahaven-network
+    ports:
+      # MSP gets different ports to avoid conflicts with validators
+      - "9946:9944"   # WebSocket/RPC
+      - "9617:9615"   # Prometheus metrics
+      - "30335:30333" # P2P networking
+    environment:
+      - NODE_NAME=charlie
+      - NODE_TYPE=msp
+      - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    entrypoint: ["/scripts/docker-entrypoint.sh"]
+    command:
+      - --name=msp
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --keystore-path=/data/keystore
+      - --discover-local
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --no-prometheus
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+      - --provider
+      - --provider-type=msp
+      - --msp-charging-period=100
+      - --max-storage-capacity=1073741824
+      - --jump-capacity=104857600
+      - --msp-distribute-files
+    volumes:
+      - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - msp-keystore:/data/keystore
+    restart: unless-stopped
+    depends_on:
+      - alice
+      - bob
+
+  bsp01:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-bsp01
+    hostname: bsp01
+    user: "root"  # Run as root to allow key injection, entrypoint switches to datahaven user
+    networks:
+      - datahaven-network
+    ports:
+      # BSP gets different ports to avoid conflicts with validators
+      - "9947:9944"   # WebSocket/RPC
+      - "9618:9615"   # Prometheus metrics
+      - "30336:30333" # P2P networking
+    environment:
+      - NODE_NAME=dave
+      - NODE_TYPE=bsp
+      - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    entrypoint: ["/scripts/docker-entrypoint.sh"]
+    command:
+      - --name=bsp01
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --keystore-path=/data/keystore
+      - --discover-local
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --no-prometheus
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+      - --provider
+      - --provider-type=bsp
+      - --max-storage-capacity=1073741824
+      - --jump-capacity=104857600
+    volumes:
+      - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - bsp01-keystore:/data/keystore
+    restart: unless-stopped
+    depends_on:
+      - alice
+      - bob
+      - msp
+
+  bsp02:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datahavenxyz/datahaven:local
+    platform: linux/amd64
+    container_name: datahaven-bsp02
+    hostname: bsp02
+    user: "root"  # Run as root to allow key injection, entrypoint switches to datahaven user
+    networks:
+      - datahaven-network
+    ports:
+      # BSP gets different ports to avoid conflicts with validators
+      - "9948:9944"   # WebSocket/RPC
+      - "9619:9615"   # Prometheus metrics
+      - "30337:30333" # P2P networking
+    environment:
+      - NODE_NAME=eve
+      - NODE_TYPE=bsp
+      - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+    entrypoint: ["/scripts/docker-entrypoint.sh"]
+    command:
+      - --name=bsp02
+      - --chain=stagenet-local
+      - --unsafe-force-node-key-generation
+      - --base-path=/data
+      - --keystore-path=/data/keystore
+      - --discover-local
+      - --unsafe-rpc-external
+      - --rpc-cors=all
+      - --no-prometheus
+      - --no-telemetry
+      - --enable-offchain-indexing=true
+      - --pool-type=fork-aware
+      - --provider
+      - --provider-type=bsp
+      - --max-storage-capacity=1073741824
+      - --jump-capacity=104857600
+    volumes:
+      - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - bsp02-keystore:/data/keystore
+    restart: unless-stopped
+    depends_on:
+      - alice
+      - bob
+      - msp
+
+networks:
+  datahaven-network:
+    driver: bridge
+    name: datahaven-network
+
+volumes:
+  alice-keystore:
+  bob-keystore:
+  msp-keystore:
+  bsp01-keystore:
+  bsp02-keystore:

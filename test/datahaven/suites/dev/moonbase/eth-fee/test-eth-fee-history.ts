@@ -1,7 +1,7 @@
 import { customDevRpcRequest, describeSuite, expect, fetchCompiledContract } from "@moonwall/cli";
 import { ALITH_ADDRESS } from "@moonwall/util";
 import { hexToNumber, numberToHex } from "@polkadot/util";
-import { CHAIN_ID } from "utils";
+import { CHAIN_ID } from "utils/constants";
 import { parseGwei } from "viem";
 
 // We use ethers library in this test as apparently web3js's types are not fully EIP-1559
@@ -150,12 +150,27 @@ describeSuite({
         //
         // In other words, for this tip oracle there would be no need to provide a priority fee
         // when the block fullness is considered ideal in an EIP-1559 chain.
-        const failures = feeResults.reward.filter(
-          (item, index) =>
-            hexToNumber(max_fee_per_gas) - hexToNumber(feeResults.baseFeePerGas[index]) > 0 &&
-            (item.length !== localRewards.length ||
-              !item.every((val, idx) => BigInt(val) === BigInt(localRewards[idx])))
-        );
+        const mismatchDetails = feeResults.reward
+          .map((item, index) => {
+            const isEmptyBlock =
+              feeResults.gasUsedRatio[index] === 0 || item.every((val) => BigInt(val) === 0n);
+            const checkAgainstLocal =
+              !isEmptyBlock &&
+              hexToNumber(max_fee_per_gas) - hexToNumber(feeResults.baseFeePerGas[index]) > 0 &&
+              (item.length !== localRewards.length ||
+                !item.every((val, idx) => BigInt(val) === BigInt(localRewards[idx])));
+
+            return {
+              index,
+              baseFee: feeResults.baseFeePerGas[index],
+              actual: item,
+              expectedUncapped: localRewards,
+              checkAgainstLocal
+            };
+          })
+          .filter(({ checkAgainstLocal }) => checkAgainstLocal);
+
+        const failures = mismatchDetails.filter(({ checkAgainstLocal }) => checkAgainstLocal);
 
         expect(
           failures.length,

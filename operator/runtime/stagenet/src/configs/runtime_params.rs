@@ -394,7 +394,6 @@ pub mod dynamic_params {
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
 
-<<<<<<< HEAD
         // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
 
         #[codec(index = 42)]
@@ -416,8 +415,6 @@ pub mod dynamic_params {
         pub static RewardsDuration: u32 = 86400;
 
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
-=======
->>>>>>> 7c5c3dab (wip)
     }
 }
 

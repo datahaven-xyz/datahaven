@@ -1,40 +1,40 @@
 {
-	"validators": [
-		{
-			"publicKey": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-			"privateKey": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-			"solochainAddress": "0xE04CC55ebEE1cBCE552f250e85c57B70B2E2625b",
-			"solochainPrivateKey": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
-			"solochainAuthorityName": "alice"
-		},
-		{
-			"publicKey": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-			"privateKey": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-			"solochainAddress": "0x25451A4de12dcCc2D166922fA938E900fCc4ED24",
-			"solochainPrivateKey": "0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b",
-			"solochainAuthorityName": "bob"
-		},
-		{
-			"publicKey": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-			"privateKey": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
-			"solochainAddress": "0x9e250513a9f2f287d0cdd636dac97b2405098bd5",
-			"solochainPrivateKey": "0x0b6e18cafb6ed99687ec547bd28139cafdd2bffe70e6b688025de6b445aa5c5b",
-			"solochainAuthorityName": "charlie"
-		},
-		{
-			"publicKey": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-			"privateKey": "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
-			"solochainAddress": "0x6babb2c13fa50cbae5c7d256ff4e3064e3110dab",
-			"solochainPrivateKey": "0x39539ab1876910bbf3a223d84a29e28f1cb4e2e456503e7e91ed39b2e7223d68",
-			"solochainAuthorityName": "dave"
-		},
-		{
-			"publicKey": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
-			"privateKey": "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
-			"solochainAddress": "0x20e02a8ec521095e82b0cafa8ac5b22854eec7e8",
-			"solochainPrivateKey": "0x7dce9bc8babb68fec1409be38c8e1a52650206a7ed90ff956ae8a6d15eeaaef4",
-			"solochainAuthorityName": "eve"
-		}
-	],
-	"notes": "This validator set maps the first five anvil funded addresses with the Ethereum-compatible addresses of Substrate validators. Check conversion in compressedPubKeyToEthereumAddress() in cli/handlers/common/datahaven.ts"
+  "validators": [
+    {
+      "publicKey": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "privateKey": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+      "solochainAddress": "0xE04CC55ebEE1cBCE552f250e85c57B70B2E2625b",
+      "solochainPrivateKey": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+      "solochainAuthorityName": "alice"
+    },
+    {
+      "publicKey": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "privateKey": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      "solochainAddress": "0x25451A4de12dcCc2D166922fA938E900fCc4ED24",
+      "solochainPrivateKey": "0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b",
+      "solochainAuthorityName": "bob"
+    },
+    {
+      "publicKey": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "privateKey": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+      "solochainAddress": "0x9e250513a9f2f287d0cdd636dac97b2405098bd5",
+      "solochainPrivateKey": "0x0b6e18cafb6ed99687ec547bd28139cafdd2bffe70e6b688025de6b445aa5c5b",
+      "solochainAuthorityName": "charlie"
+    },
+    {
+      "publicKey": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "privateKey": "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+      "solochainAddress": "0x6babb2c13fa50cbae5c7d256ff4e3064e3110dab",
+      "solochainPrivateKey": "0x39539ab1876910bbf3a223d84a29e28f1cb4e2e456503e7e91ed39b2e7223d68",
+      "solochainAuthorityName": "dave"
+    },
+    {
+      "publicKey": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "privateKey": "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+      "solochainAddress": "0x20e02a8ec521095e82b0cafa8ac5b22854eec7e8",
+      "solochainPrivateKey": "0x7dce9bc8babb68fec1409be38c8e1a52650206a7ed90ff956ae8a6d15eeaaef4",
+      "solochainAuthorityName": "eve"
+    }
+  ],
+  "notes": "This validator set maps the first five anvil funded addresses with the Ethereum-compatible addresses of Substrate validators. Check conversion in compressedPubKeyToEthereumAddress() in cli/handlers/common/datahaven.ts"
 }

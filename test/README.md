@@ -55,6 +55,19 @@ bun test:e2e:parallel
 bun test suites/some-test.test.ts
 ```
 
+
+## Generating Ethereum state
+
+To avoid deploying contracts everytime for each tests, you can generate and then inject state in the Ethereum client.
+
+### Generate state
+
+```
+$ bun cli launch --all
+$ make generate-ethereum-state
+$ bun cli stop --all
+```
+
 ## What Gets Launched
 
 The `bun cli launch` command deploys a complete local environment:
@@ -69,6 +82,7 @@ The `bun cli launch` command deploys a complete local environment:
    - 2x Validator nodes (Alice & Bob) with keys (babe, grandpa, imonline, beefy)
    - EVM compatibility via Frontier
    - Fast block times (2-3s in dev mode)
+   - Fast churn settings (`--fast-runtime` gives 1-minute epochs and 3-session eras while block time stays 6s)
 
 3. **Smart Contracts**:
    - EigenLayer AVS contracts deployed to Ethereum

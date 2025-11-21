@@ -45,13 +45,13 @@ operator/
 
 ### Development Build (Fast Runtime)
 
-For local development with faster block times:
+For local development with shorter epochs and eras:
 
 ```bash
 cargo build --release --features fast-runtime
 ```
 
-This enables 3-second block times instead of the production 12-second blocks.
+This switches runtime parameters to the fast variants (1-minute epochs, 3 sessions per era) while the block time remains 6 seconds.
 
 ### Production Build
 

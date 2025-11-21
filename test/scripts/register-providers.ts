@@ -11,6 +11,27 @@ export interface RegisterProvidersOptions {
   launchedNetwork: LaunchedNetwork;
 }
 
+const JSON_RPC_HEADERS = {
+  "Content-Type": "application/json"
+} as const;
+
+async function getLocalPeerId(
+  containerName: string,
+  launchedNetwork: LaunchedNetwork
+): Promise<string | null> {
+  const port = launchedNetwork.getContainerPort(containerName);
+  const response = await fetch(`http://127.0.0.1:${port}`, {
+    method: "POST",
+    headers: JSON_RPC_HEADERS,
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "system_localPeerId", params: [] })
+  });
+  if (!response.ok) {
+    logger.error(`HTTP ${response.status} for ${containerName} on port ${port}`);
+    return "";
+  }
+  return (await response.json()) as string;
+}
+
 /**
  * Provider registration information.
  *
@@ -69,6 +90,32 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
   try {
     const aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
 
+    const networkId = options.launchedNetwork.networkId;
+    const mspContainerName = `storagehub-msp-${networkId}`;
+    const bspContainerName = `storagehub-bsp-${networkId}`;
+
+    const [mspPeerId, bspPeerId] = await Promise.all([
+      getLocalPeerId(mspContainerName, options.launchedNetwork),
+      getLocalPeerId(bspContainerName, options.launchedNetwork)
+    ]);
+
+    const mspMultiaddresses = mspPeerId
+      ? [`/dns/${mspContainerName}/tcp/30333/p2p/${mspPeerId}`]
+      : [];
+    if (mspMultiaddresses.length > 0) {
+      logger.info(`📡 MSP multiaddresses: ${mspMultiaddresses.join(", ")}`);
+    } else {
+      logger.warn("⚠️ MSP peer ID unavailable; registering without multiaddresses");
+    }
+    const bspMultiaddresses = bspPeerId
+      ? [`/dns/${bspContainerName}/tcp/30333/p2p/${bspPeerId}`]
+      : [];
+    if (bspMultiaddresses.length > 0) {
+      logger.info(`📡 BSP multiaddresses: ${bspMultiaddresses.join(", ")}`);
+    } else {
+      logger.warn("⚠️ BSP peer ID unavailable; registering without multiaddresses");
+    }
+
     // Register MSP
     logger.info(`Registering MSP (${PROVIDERS.msp.name})...`);
     const mspId = generateProviderId(PROVIDERS.msp.accountId);
@@ -78,16 +125,25 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       who: PROVIDERS.msp.accountId,
       msp_id: mspId,
       capacity: PROVIDERS.msp.capacity,
-      multiaddresses: [],
       value_prop_price_per_giga_unit_of_data_per_block: BigInt(1000),
+      multiaddresses: mspMultiaddresses.map((addr) => Binary.fromText(addr)),
       commitment: Binary.fromText(`msp-${PROVIDERS.msp.name.toLowerCase()}`),
       value_prop_max_data_limit: BigInt(1_000_000),
       payment_account: PROVIDERS.msp.accountId
     });
 
     const mspTx = typedApi.tx.Sudo.sudo({ call: mspCall.decodedCall });
-    await mspTx.signSubmitAndWatch(aliceSigner);
-    logger.success(`✅ MSP (${PROVIDERS.msp.name}) registered successfully`);
+    const mspResult = await mspTx.signAndSubmit(aliceSigner);
+    if (!mspResult.ok) {
+      logger.error(
+        `❌ MSP registration failed. Block: ${mspResult.block.hash}, tx: ${mspResult.txHash}`
+      );
+      logger.error(`Events: ${JSON.stringify(mspResult.events)}`);
+      throw new Error("MSP registration extrinsic failed");
+    }
+    logger.success(
+      `MSP (${PROVIDERS.msp.name}) registered successfully in block ${mspResult.block.hash}`
+    );
 
     // Register BSP
     logger.info(`Registering BSP (${PROVIDERS.bsp.name})...`);
@@ -98,18 +154,47 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       who: PROVIDERS.bsp.accountId,
       bsp_id: bspId,
       capacity: PROVIDERS.bsp.capacity,
-      multiaddresses: [],
+      multiaddresses: bspMultiaddresses.map((addr) => Binary.fromText(addr)),
       payment_account: PROVIDERS.bsp.accountId,
       weight: undefined
     });
 
     const bspTx = typedApi.tx.Sudo.sudo({ call: bspCall.decodedCall });
-    await bspTx.signSubmitAndWatch(aliceSigner);
-    logger.success(`✅ BSP (${PROVIDERS.bsp.name}) registered successfully`);
+    const bspResult = await bspTx.signAndSubmit(aliceSigner);
+    if (!bspResult.ok) {
+      logger.error(
+        `❌ BSP registration failed. Block: ${bspResult.block.hash}, tx: ${bspResult.txHash}`
+      );
+      logger.error(`Events: ${JSON.stringify(bspResult.events)}`);
+      throw new Error("BSP registration extrinsic failed");
+    }
+    logger.success(
+      `BSP(${ PROVIDERS.bsp.name }) registered successfully in block ${ bspResult.block.hash }`
+    );
 
-    logger.success("✅ All providers registered successfully");
+    const registeredMspId =
+      await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
+        PROVIDERS.msp.accountId
+      );
+    if (registeredMspId) {
+      logger.success(`🔎 Confirmed MSP AccountId mapping -> ${ registeredMspId }`);
+    } else {
+      logger.warn("⚠️ MSP account mapping missing immediately after registration");
+    }
+
+    const registeredBspId =
+      await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
+        PROVIDERS.bsp.accountId
+      );
+    if (registeredBspId) {
+      logger.success(`🔎 Confirmed BSP AccountId mapping -> ${ registeredBspId }`);
+    } else {
+      logger.warn("⚠️ BSP account mapping missing immediately after registration");
+    }
+
+    logger.success("All providers registered successfully");
   } catch (error) {
-    logger.error(`Provider registration failed: ${error}`);
+    logger.error(`Provider registration failed: ${ error }`);
     throw error;
   } finally {
     client.destroy();
@@ -127,42 +212,42 @@ export async function verifyProvidersRegistered(
 ): Promise<boolean> {
   logger.info("🔍 Verifying provider registration...");
 
-  const aliceContainerName = `datahaven-alice-${options.launchedNetwork.networkId}`;
+  const aliceContainerName = `datahaven - alice - ${ options.launchedNetwork.networkId } `;
   const alicePort = options.launchedNetwork.getContainerPort(aliceContainerName);
 
   const { client, typedApi } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
 
-  try {
-    // Check if MSP is registered
-    logger.debug("Checking MSP registration...");
-    const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
-      PROVIDERS.msp.accountId
-    );
+    try {
+      // Check if MSP is registered
+      logger.debug("Checking MSP registration...");
+      const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
+        PROVIDERS.msp.accountId
+      );
 
-    if (!mspId) {
-      logger.error(`❌ MSP (${PROVIDERS.msp.name}) is NOT registered`);
+      if (!mspId) {
+        logger.error(`❌ MSP (${PROVIDERS.msp.name}) is NOT registered`);
+        return false;
+      }
+      logger.success(`MSP registered with ID: ${mspId}`);
+
+      // Check if BSP is registered
+      logger.debug("Checking BSP registration...");
+      const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
+        PROVIDERS.bsp.accountId
+      );
+
+      if (!bspId) {
+        logger.error(`❌ BSP (${PROVIDERS.bsp.name}) is NOT registered`);
+        return false;
+      }
+      logger.success(`BSP registered with ID: ${bspId}`);
+
+      logger.success("All providers verified successfully");
+      return true;
+    } catch (error) {
+      logger.error(`Provider verification failed: ${error}`);
       return false;
+    } finally {
+        client.destroy();
     }
-    logger.success(`✅ MSP registered with ID: ${mspId}`);
-
-    // Check if BSP is registered
-    logger.debug("Checking BSP registration...");
-    const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
-      PROVIDERS.bsp.accountId
-    );
-
-    if (!bspId) {
-      logger.error(`❌ BSP (${PROVIDERS.bsp.name}) is NOT registered`);
-      return false;
-    }
-    logger.success(`✅ BSP registered with ID: ${bspId}`);
-
-    logger.success("✅ All providers verified successfully");
-    return true;
-  } catch (error) {
-    logger.error(`Provider verification failed: ${error}`);
-    return false;
-  } finally {
-    client.destroy();
   }
-}

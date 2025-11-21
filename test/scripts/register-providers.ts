@@ -125,10 +125,10 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       who: PROVIDERS.msp.accountId,
       msp_id: mspId,
       capacity: PROVIDERS.msp.capacity,
-      value_prop_price_per_giga_unit_of_data_per_block: BigInt(1000),
+      value_prop_price_per_giga_unit_of_data_per_block: BigInt(18_520_000_000),
       multiaddresses: mspMultiaddresses.map((addr) => Binary.fromText(addr)),
       commitment: Binary.fromText(`msp-${PROVIDERS.msp.name.toLowerCase()}`),
-      value_prop_max_data_limit: BigInt(1_000_000),
+      value_prop_max_data_limit: BigInt(1_073_741_824),
       payment_account: PROVIDERS.msp.accountId
     });
 

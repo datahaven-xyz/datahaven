@@ -22,7 +22,7 @@ describeSuite({
   title: "Estimate Gas - Multiply",
   foundationMethods: "dev",
   testCases: ({ context, it }) => {
-    const contractNames = getAllCompiledContracts("contracts/out", true);
+    const contractNames = getAllCompiledContracts("datahaven/contracts/out", true);
 
     beforeAll(async () => {
       // Estimation for storage need to happen in a block > than genesis.

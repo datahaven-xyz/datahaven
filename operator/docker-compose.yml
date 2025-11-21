@@ -252,7 +252,7 @@ services:
         condition: service_started
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     platform: linux/amd64
     container_name: datahaven-postgres
     hostname: postgres

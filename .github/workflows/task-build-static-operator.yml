@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       # Only check the build if we are adding a dependency to save runner time
-      - 'Cargo.toml'
-      - 'Cargo.lock'
+      - 'operator/Cargo.toml'
+      - 'operator/Cargo.lock'
 
 jobs:
   build-node:

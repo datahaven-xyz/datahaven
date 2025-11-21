@@ -169,7 +169,7 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
       throw new Error("BSP registration extrinsic failed");
     }
     logger.success(
-      `BSP(${ PROVIDERS.bsp.name }) registered successfully in block ${ bspResult.block.hash }`
+      `BSP(${PROVIDERS.bsp.name}) registered successfully in block ${bspResult.block.hash}`
     );
 
     const registeredMspId =
@@ -177,7 +177,7 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
         PROVIDERS.msp.accountId
       );
     if (registeredMspId) {
-      logger.success(`🔎 Confirmed MSP AccountId mapping -> ${ registeredMspId }`);
+      logger.success(`🔎 Confirmed MSP AccountId mapping -> ${registeredMspId}`);
     } else {
       logger.warn("⚠️ MSP account mapping missing immediately after registration");
     }
@@ -187,14 +187,14 @@ export async function registerProviders(options: RegisterProvidersOptions): Prom
         PROVIDERS.bsp.accountId
       );
     if (registeredBspId) {
-      logger.success(`🔎 Confirmed BSP AccountId mapping -> ${ registeredBspId }`);
+      logger.success(`🔎 Confirmed BSP AccountId mapping -> ${registeredBspId}`);
     } else {
       logger.warn("⚠️ BSP account mapping missing immediately after registration");
     }
 
     logger.success("All providers registered successfully");
   } catch (error) {
-    logger.error(`Provider registration failed: ${ error }`);
+    logger.error(`Provider registration failed: ${error}`);
     throw error;
   } finally {
     client.destroy();
@@ -212,42 +212,42 @@ export async function verifyProvidersRegistered(
 ): Promise<boolean> {
   logger.info("🔍 Verifying provider registration...");
 
-  const aliceContainerName = `datahaven - alice - ${ options.launchedNetwork.networkId } `;
+  const aliceContainerName = `datahaven - alice - ${options.launchedNetwork.networkId} `;
   const alicePort = options.launchedNetwork.getContainerPort(aliceContainerName);
 
   const { client, typedApi } = createPapiConnectors(`ws://127.0.0.1:${alicePort}`);
 
-    try {
-      // Check if MSP is registered
-      logger.debug("Checking MSP registration...");
-      const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
-        PROVIDERS.msp.accountId
-      );
+  try {
+    // Check if MSP is registered
+    logger.debug("Checking MSP registration...");
+    const mspId = await typedApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
+      PROVIDERS.msp.accountId
+    );
 
-      if (!mspId) {
-        logger.error(`❌ MSP (${PROVIDERS.msp.name}) is NOT registered`);
-        return false;
-      }
-      logger.success(`MSP registered with ID: ${mspId}`);
-
-      // Check if BSP is registered
-      logger.debug("Checking BSP registration...");
-      const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
-        PROVIDERS.bsp.accountId
-      );
-
-      if (!bspId) {
-        logger.error(`❌ BSP (${PROVIDERS.bsp.name}) is NOT registered`);
-        return false;
-      }
-      logger.success(`BSP registered with ID: ${bspId}`);
-
-      logger.success("All providers verified successfully");
-      return true;
-    } catch (error) {
-      logger.error(`Provider verification failed: ${error}`);
+    if (!mspId) {
+      logger.error(`❌ MSP (${PROVIDERS.msp.name}) is NOT registered`);
       return false;
-    } finally {
-        client.destroy();
     }
+    logger.success(`MSP registered with ID: ${mspId}`);
+
+    // Check if BSP is registered
+    logger.debug("Checking BSP registration...");
+    const bspId = await typedApi.query.Providers.AccountIdToBackupStorageProviderId.getValue(
+      PROVIDERS.bsp.accountId
+    );
+
+    if (!bspId) {
+      logger.error(`❌ BSP (${PROVIDERS.bsp.name}) is NOT registered`);
+      return false;
+    }
+    logger.success(`BSP registered with ID: ${bspId}`);
+
+    logger.success("All providers verified successfully");
+    return true;
+  } catch (error) {
+    logger.error(`Provider verification failed: ${error}`);
+    return false;
+  } finally {
+    client.destroy();
   }
+}

@@ -20,6 +20,7 @@ services:
       - NODE_TYPE=validator
       - CHAIN=stagenet-local
       - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+      - RPC_PORT=9944
     entrypoint: ["/scripts/docker-entrypoint.sh"]
     command:
       - --alice
@@ -38,7 +39,14 @@ services:
       - --pool-type=fork-aware
     volumes:
       - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - ./scripts/docker-healthcheck.sh:/scripts/docker-healthcheck.sh:ro
       - alice-keystore:/data/keystore
+    healthcheck:
+      test: ["CMD-SHELL", "/scripts/docker-healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   bob:
@@ -62,6 +70,7 @@ services:
       - NODE_TYPE=validator
       - CHAIN=stagenet-local
       - SEED=bottom drive obey lake curtain smoke basket hold race lonely fit walk
+      - RPC_PORT=9944
     entrypoint: ["/scripts/docker-entrypoint.sh"]
     command:
       - --bob
@@ -79,10 +88,18 @@ services:
       - --pool-type=fork-aware
     volumes:
       - ./scripts/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
+      - ./scripts/docker-healthcheck.sh:/scripts/docker-healthcheck.sh:ro
       - bob-keystore:/data/keystore
+    healthcheck:
+      test: ["CMD-SHELL", "/scripts/docker-healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     depends_on:
-      - alice
+      alice:
+        condition: service_healthy
 
   msp:
     build:
@@ -129,8 +146,10 @@ services:
       - msp-keystore:/data/keystore
     restart: unless-stopped
     depends_on:
-      - alice
-      - bob
+      alice:
+        condition: service_healthy
+      bob:
+        condition: service_healthy
 
   bsp01:
     build:
@@ -175,9 +194,12 @@ services:
       - bsp01-keystore:/data/keystore
     restart: unless-stopped
     depends_on:
-      - alice
-      - bob
-      - msp
+      alice:
+        condition: service_healthy
+      bob:
+        condition: service_healthy
+      msp:
+        condition: service_started
 
   bsp02:
     build:
@@ -222,9 +244,12 @@ services:
       - bsp02-keystore:/data/keystore
     restart: unless-stopped
     depends_on:
-      - alice
-      - bob
-      - msp
+      alice:
+        condition: service_healthy
+      bob:
+        condition: service_healthy
+      msp:
+        condition: service_started
 
   postgres:
     image: postgres:16-alpine
@@ -286,9 +311,9 @@ services:
       postgres:
         condition: service_healthy
       alice:
-        condition: service_started
+        condition: service_healthy
       bob:
-        condition: service_started
+        condition: service_healthy
 
   fisherman:
     build:
@@ -334,9 +359,9 @@ services:
       postgres:
         condition: service_healthy
       alice:
-        condition: service_started
+        condition: service_healthy
       bob:
-        condition: service_started
+        condition: service_healthy
 
 networks:
   datahaven-network:

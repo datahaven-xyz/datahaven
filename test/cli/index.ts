@@ -139,6 +139,8 @@ program
   .option("--nsp, --no-set-parameters", "Skip setting DataHaven runtime parameters")
   .option("--r, --relayer", "Launch Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
+  .option("--sh, --storagehub", "Launch StorageHub components")
+  .option("--nsh, --no-storagehub", "Skip launching StorageHub components")
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")

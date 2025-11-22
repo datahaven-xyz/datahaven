@@ -13,7 +13,9 @@
       "!**/*.spec.json",
       "!**/.papi/descriptors/**/*",
       "!**/contract-bindings/**/*",
-      "!**/html/**/*"
+      "!**/html/**/*",
+      "!**/datahaven/contracts/out/**/*",
+      "!**/contracts/out/**/*"
     ]
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
@@ -26,7 +28,7 @@
   },
   "json": {
     "formatter": {
-      "enabled": false
+      "enabled": true
     }
   },
   "javascript": {

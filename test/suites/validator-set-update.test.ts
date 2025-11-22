@@ -199,7 +199,7 @@ describe("Validator Set Update", () => {
     expect(charlieAllowlisted).toBe(true);
     expect(daveAllowlisted).toBe(true);
 
-    logger.success("✅ Both validators successfully added to allowlist");
+    logger.success("Both validators successfully added to allowlist");
   }, 60_000);
 
   it("should register new validators as operators", async () => {

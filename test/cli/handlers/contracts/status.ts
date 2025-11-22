@@ -25,7 +25,8 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
     await showEigenLayerContractStatus(
       config,
       deploymentParams.chainId.toString(),
-      deploymentParams.rpcUrl
+      deploymentParams.rpcUrl,
+      chain
     );
 
     printDivider();
@@ -107,27 +108,71 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
 /**
  * Shows the status of EigenLayer contracts (verification only)
  */
-const showEigenLayerContractStatus = async (config: any, chainId: string, rpcUrl: string) => {
+const showEigenLayerContractStatus = async (
+  config: any,
+  chainId: string,
+  rpcUrl: string,
+  chain: string
+) => {
   try {
+    // For local/anvil deployments, read addresses from deployments file
+    // For testnet/mainnet, use addresses from config file
+    let eigenLayerAddresses: Record<string, string> = {};
+    const isLocal = chain === "anvil" || chain === "local";
+
+    if (isLocal) {
+      try {
+        const deploymentsPath = `../contracts/deployments/${chain === "local" ? "anvil" : chain}.json`;
+        const deploymentsFile = Bun.file(deploymentsPath);
+        if (await deploymentsFile.exists()) {
+          const deployments = await deploymentsFile.json();
+          eigenLayerAddresses = {
+            DelegationManager: deployments.DelegationManager,
+            StrategyManager: deployments.StrategyManager,
+            EigenPodManager: deployments.EigenPodManager,
+            AVSDirectory: deployments.AVSDirectory,
+            RewardsCoordinator: deployments.RewardsCoordinator,
+            AllocationManager: deployments.AllocationManager,
+            PermissionController: deployments.PermissionController
+          };
+        }
+      } catch (error) {
+        logger.debug(`Could not read deployments file for EigenLayer contracts: ${error}`);
+      }
+    }
+
     const contracts = [
       {
         name: "DelegationManager",
-        address: config.eigenLayer.delegationManager
+        address:
+          eigenLayerAddresses.DelegationManager || config.eigenLayer?.delegationManager || ""
       },
-      { name: "StrategyManager", address: config.eigenLayer.strategyManager },
-      { name: "EigenPodManager", address: config.eigenLayer.eigenPodManager },
-      { name: "AVSDirectory", address: config.eigenLayer.avsDirectory },
+      {
+        name: "StrategyManager",
+        address: eigenLayerAddresses.StrategyManager || config.eigenLayer?.strategyManager || ""
+      },
+      {
+        name: "EigenPodManager",
+        address: eigenLayerAddresses.EigenPodManager || config.eigenLayer?.eigenPodManager || ""
+      },
+      {
+        name: "AVSDirectory",
+        address: eigenLayerAddresses.AVSDirectory || config.eigenLayer?.avsDirectory || ""
+      },
       {
         name: "RewardsCoordinator",
-        address: config.eigenLayer.rewardsCoordinator
+        address:
+          eigenLayerAddresses.RewardsCoordinator || config.eigenLayer?.rewardsCoordinator || ""
       },
       {
         name: "AllocationManager",
-        address: config.eigenLayer.allocationManager
+        address:
+          eigenLayerAddresses.AllocationManager || config.eigenLayer?.allocationManager || ""
       },
       {
         name: "PermissionController",
-        address: config.eigenLayer.permissionController
+        address:
+          eigenLayerAddresses.PermissionController || config.eigenLayer?.permissionController || ""
       }
     ];
 

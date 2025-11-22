@@ -11,9 +11,15 @@ export const runShellCommandWithLogger = async (
     env?: object;
     logLevel?: LogLevel;
     waitFor?: (...args: unknown[]) => Promise<void>;
+    throwOnError?: boolean;
   }
 ) => {
-  const { cwd = ".", env = {}, logLevel = "info" as LogLevel } = options || {};
+  const {
+    cwd = ".",
+    env = {},
+    logLevel = "info" as LogLevel,
+    throwOnError = true
+  } = options || {};
 
   try {
     if (!existsSync(cwd)) {
@@ -91,6 +97,10 @@ export const runShellCommandWithLogger = async (
         logger.error(
           trimmedStderr.includes("\n") ? `>_ \n${trimmedStderr}` : `>_ ${trimmedStderr}`
         );
+      }
+
+      if (throwOnError) {
+        throw new Error(`Command failed with exit code ${exitCode}`);
       }
     }
   } catch (err) {

@@ -9,7 +9,7 @@
       "testFileDir": ["datahaven/suites/dev"],
       "include": ["**/*test*.ts"],
       "timeout": 180000,
-      "multiThreads": 4,
+      "multiThreads": false,
       "contracts": "datahaven/contracts/",
       "runScripts": ["compile-contracts.sh compile"],
       "envVars": ["DEBUG_COLORS=1"],

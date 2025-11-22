@@ -54,7 +54,7 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
   const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
 
   const deploymentScript =
-    !chain || chain === "anvil" || chain === "local"
+    !chain || chain === "anvil"
       ? "script/deploy/DeployLocal.s.sol"
       : "script/deploy/DeployTestnet.s.sol";
 

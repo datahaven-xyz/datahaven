@@ -91,11 +91,11 @@ export const contractsPreActionHook = async (thisCommand: any) => {
   const privateKey = thisCommand.getOptionValue("privateKey");
 
   if (!chain) {
-    logger.error("❌ Chain is required. Use --chain option (hoodi, holesky, mainnet)");
+    logger.error("❌ Chain is required. Use --chain option (hoodi, holesky, mainnet, anvil)");
     process.exit(1);
   }
 
-  const supportedChains = ["hoodi", "holesky", "mainnet"];
+  const supportedChains = ["hoodi", "holesky", "mainnet", "anvil"];
   if (!supportedChains.includes(chain)) {
     logger.error(`❌ Unsupported chain: ${chain}. Supported chains: ${supportedChains.join(", ")}`);
     process.exit(1);

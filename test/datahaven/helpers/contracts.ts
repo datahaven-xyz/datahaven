@@ -51,7 +51,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const fetchCompiledContract = (contractName: string): CompiledContractArtifact => {
-  let artifactPath = path.join(__dirname, "../../", "contracts", "out", `${contractName}.json`);
+  let artifactPath = path.join(__dirname, "../", "contracts", "out", `${contractName}.json`);
   if (!existsSync(artifactPath)) {
     const folder = contractName
       .replace(/([a-z0-9])([A-Z])/g, "$1-$2")

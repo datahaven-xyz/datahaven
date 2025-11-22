@@ -101,7 +101,7 @@ export const contractsPreActionHook = async (thisCommand: any) => {
     process.exit(1);
   }
 
-  if (!privateKey) {
-    logger.warn("⚠️ Private key not provided. Will use PRIVATE_KEY environment variable");
+  if (!privateKey && !process.env.DEPLOYER_PRIVATE_KEY) {
+    logger.warn("⚠️ Private key not provided. Will use DEPLOYER_PRIVATE_KEY environment variable if set, or default Anvil key.");
   }
 };

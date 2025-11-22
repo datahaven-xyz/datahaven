@@ -32,7 +32,8 @@
     "assumeChangesOnlyAffectDirectDependencies": true,
     "paths": {
       "utils": ["./utils/index.ts"],
-      "utils/types": ["./utils/types.ts"]
+      "utils/types": ["./utils/types.ts"],
+      "utils/constants": ["./utils/constants.ts"]
     }
   },
   "include": [

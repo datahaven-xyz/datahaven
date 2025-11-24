@@ -340,6 +340,24 @@ pub mod dynamic_params {
         #[allow(non_upper_case_globals)]
         /// The AVS ethereum address for Datahaven. Via this address we relay slashing requests or other requests.
         pub static DatahavenAVSAddress: H160 = H160::repeat_byte(0x0);
+
+        // ╔══════════════════════ Validator Rewards Inflation ═══════════════════════╗
+
+        #[codec(index = 37)]
+        #[allow(non_upper_case_globals)]
+        /// Targeted annual inflation rate.
+        /// Default: 5% per annum
+        /// This rate is divided across all eras in a year to calculate per-era inflation.
+        pub static InflationTargetedAnnualRate: Perbill = Perbill::from_percent(5);
+
+        #[codec(index = 38)]
+        #[allow(non_upper_case_globals)]
+        /// Proportion of inflation rewards allocated to the treasury.
+        /// Default: 20% of minted rewards go to treasury, 80% to validator rewards
+        /// The treasury portion is minted separately and sent to the treasury account.
+        pub static InflationTreasuryProportion: Perbill = Perbill::from_percent(20);
+
+        // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
     }
 }
 

@@ -35,6 +35,10 @@ pub mod time {
     pub const HOURS: BlockNumber = MINUTES * 60;
     pub const DAYS: BlockNumber = HOURS * 24;
     pub const WEEKS: BlockNumber = DAYS * 7;
+
+    /// Milliseconds per year (365.25 days to account for leap years)
+    /// Used for inflation calculations
+    pub const MILLISECONDS_PER_YEAR: u128 = 31_557_600_000;
 }
 
 pub mod gas {

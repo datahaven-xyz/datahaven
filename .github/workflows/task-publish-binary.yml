@@ -30,8 +30,7 @@ jobs:
           retention-days: 1
 
   build-binary:
-    runs-on:
-      group: DH-runners
+    runs-on: ubuntu-latest
     needs: ["prepare-sources"]
     permissions:
       contents: read

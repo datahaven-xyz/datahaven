@@ -68,7 +68,7 @@ COPY --from=builder \
     /lib/x86_64-linux-gnu/
 
 # Create datahaven user and directories
-RUN useradd -m -u 1000 -U -s /bin/sh -d /datahaven datahaven && \
+RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
     mkdir -p /datahaven/.local/share /data && \
     chown -R datahaven:datahaven /data && \
     ln -s /data /datahaven/.local/share/datahaven && \

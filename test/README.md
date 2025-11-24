@@ -55,6 +55,7 @@ bun test:e2e:parallel
 bun test suites/some-test.test.ts
 ```
 
+NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the contracts when starting the tests to speed up setup.
 
 ## Generating Ethereum state
 

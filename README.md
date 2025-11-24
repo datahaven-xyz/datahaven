@@ -110,6 +110,8 @@ bun test:e2e              # Run all integration tests
 bun test:e2e:parallel     # Run with limited concurrency
 ```
 
+NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the contracts when starting the tests to speed up setup.
+
 ### Development Workflows
 
 **Smart Contract Development**:

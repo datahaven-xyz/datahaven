@@ -1,8 +1,8 @@
 import { $ } from "bun";
 import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
-import { deployContracts } from "../contracts";
 import { updateParameters } from "../../scripts/deploy-contracts";
+import { deployContracts } from "../contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
@@ -148,9 +148,9 @@ export const launchNetwork = async (
   launchedNetwork.networkName = networkId;
   let injectContracts = false;
 
-  // Using env to check 
-  if (process.env.INJECT_CONTRACTS == "true") {
-      injectContracts = true;
+  // Using env to check
+  if (process.env.INJECT_CONTRACTS === "true") {
+    injectContracts = true;
   }
 
   let cleanup: (() => Promise<void>) | undefined;

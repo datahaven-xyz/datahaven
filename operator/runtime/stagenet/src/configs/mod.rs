@@ -1555,10 +1555,10 @@ impl pallet_external_validators_rewards::Config for Runtime {
 parameter_types! {
     /// The Ethereum sovereign account derived from its XCM location
     /// This is a hardcoded value for performance, computed from:
-    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 3151908 })])
+    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 560048 })])
     /// using GlobalConsensusConvertsFor<UniversalLocation, AccountId>
     pub EthereumSovereignAccount: AccountId = AccountId::from(
-        hex_literal::hex!("d8030fb68aa5b447caec066f3c0bde23e6db0a05")
+        hex_literal::hex!("5300797dbea5b54078a4b3bf8230015ac47a55fa")
     );
 }
 

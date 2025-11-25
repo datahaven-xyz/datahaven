@@ -32,7 +32,7 @@ use super::{
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
 /// A description of our proxy types.
 /// Proxy types are used to restrict the calls that can be made by a proxy account.
@@ -903,6 +903,14 @@ parameter_types! {
     pub const TreasuryId: PalletId = PalletId(*b"pc/trsry");
     pub TreasuryAccount: AccountId = Treasury::account_id();
     pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
+
+    /// PalletId for the External Validator Rewards account.
+    /// This account receives minted inflation tokens before they are bridged to Ethereum
+    /// for distribution to validators via EigenLayer.
+    ///
+    /// Governance/Sudo can transfer funds using: pallet_balances::force_transfer
+    pub const ExternalValidatorRewardsId: PalletId = PalletId(*b"dh/evrew");
+    pub ExternalValidatorRewardsAccount: AccountId = ExternalValidatorRewardsId::get().into_account_truncating();
 }
 
 type RootOrTreasuryCouncilOrigin = EitherOfDiverse<
@@ -1422,6 +1430,41 @@ impl Get<Vec<AccountId>> for GetWhitelistedValidators {
     }
 }
 
+/// Type alias for the era inflation provider using common runtime implementation.
+///
+/// Calculates per-era inflation based on:
+/// - Total token issuance (from Balances pallet)
+/// - Annual inflation rate (from InflationTargetedAnnualRate dynamic parameter)
+/// - Era duration calculated from SessionsPerEra, EpochDurationInBlocks, and MILLISECS_PER_BLOCK
+pub type ExternalRewardsEraInflationProvider =
+    datahaven_runtime_common::inflation::ExternalRewardsEraInflationProvider<
+        Balances,
+        runtime_params::dynamic_params::runtime_config::InflationTargetedAnnualRate,
+        SessionsPerEra,
+        EpochDurationInBlocks,
+        ConstU64<MILLISECS_PER_BLOCK>,
+    >;
+
+/// Wrapper struct for the inflation handler using common runtime implementation.
+///
+/// Handles minting of inflation tokens by:
+/// 1. Splitting total inflation between rewards and treasury based on InflationTreasuryProportion
+/// 2. Minting rewards portion to the rewards account
+/// 3. Minting treasury portion to the treasury account
+pub struct ExternalRewardsInflationHandler;
+
+impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
+    for ExternalRewardsInflationHandler
+{
+    fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult {
+        datahaven_runtime_common::inflation::ExternalRewardsInflationHandler::<
+            Balances,
+            runtime_params::dynamic_params::runtime_config::InflationTreasuryProportion,
+            TreasuryAccount,
+        >::mint_inflation(who, amount)
+    }
+}
+
 // Stub SendMessage implementation for rewards pallet
 pub struct RewardsSendAdapter;
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
@@ -1485,17 +1528,22 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
     type HistoryDepth = ConstU32<64>;
-    type BackingPoints = ConstU32<20>;
-    type DisputeStatementPoints = ConstU32<20>;
-    type EraInflationProvider = ConstU128<0>;
+
+    // NOT USED: DataHaven is a solochain with BABE+GRANDPA consensus, not a parachain.
+    // Backing and dispute points are only relevant for parachain validation.
+    // These are set to 0 to make it explicit they're unused.
+    type BackingPoints = ConstU32<0>;
+    type DisputeStatementPoints = ConstU32<0>;
+
+    type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type Hashing = Keccak256;
     type Currency = Balances;
-    type RewardsEthereumSovereignAccount = TreasuryAccount;
+    type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
     type WeightInfo = testnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     type SendMessage = RewardsSendAdapter;
-    type HandleInflation = ();
+    type HandleInflation = ExternalRewardsInflationHandler;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }

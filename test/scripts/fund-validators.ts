@@ -147,7 +147,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     logger.debug(`Found token creator's private key for address ${tokenCreator}`);
 
     // Get the ERC20 balance of the token creator and its ETH balance as well
-    const getErc20BalanceCmd = `${castExecutable} balance --erc20 ${underlyingTokenAddress} ${tokenCreator} --rpc-url ${rpcUrl}`;
+    const getErc20BalanceCmd = `${castExecutable} call ${underlyingTokenAddress} "balanceOf(address)(uint256)" ${tokenCreator} --rpc-url ${rpcUrl}`;
     const getEthBalanceCmd = `${castExecutable} balance ${tokenCreator} --rpc-url ${rpcUrl}`;
     const { stdout: erc20BalanceOutput } = await $`sh -c ${getErc20BalanceCmd}`.quiet();
     const { stdout: ethBalanceOutput } = await $`sh -c ${getEthBalanceCmd}`.quiet();

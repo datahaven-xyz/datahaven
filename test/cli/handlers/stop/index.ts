@@ -38,6 +38,8 @@ export const stop = async (options: StopOptions) => {
 
   printHeader("Snowbridge Relayers");
   await stopDockerComponents("snowbridge", options);
+  printHeader("StorageHub Components");
+  await stopDockerComponents("storagehub", options);
   printHeader("Datahaven Network");
   await stopDockerComponents("datahaven", options);
   await removeDataHavenNetworks(options);

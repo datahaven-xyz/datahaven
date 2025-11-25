@@ -847,7 +847,7 @@ impl pallet_parameters::Config for Runtime {
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>;
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;

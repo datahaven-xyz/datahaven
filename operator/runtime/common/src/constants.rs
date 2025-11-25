@@ -23,18 +23,14 @@ pub mod time {
     pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 
     const ONE_HOUR: BlockNumber = HOURS;
-    const TEN_MINUTES: BlockNumber = 10 * MINUTES;
+    const ONE_MINUTE: BlockNumber = MINUTES;
 
     frame_support::parameter_types! {
         /// Session/epoch duration:
         /// - Production: 1 hour (600 blocks)
-        /// - Fast-runtime: 10 minutes (100 blocks)
-        ///
-        /// Note: Fast-runtime sessions must be at least 5-10 minutes to allow the BEEFY relay
-        /// sufficient time to complete its relay cycle to Ethereum (which takes ~2-4 minutes
-        /// including RandaoCommitDelay, bitfield submission, and final commitment).
-        pub const EpochDurationInBlocks: BlockNumber = prod_or_fast!(ONE_HOUR, TEN_MINUTES);
-        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 3);
+        /// - Fast-runtime: 1 minute (10 blocks)
+        pub const EpochDurationInBlocks: BlockNumber = prod_or_fast!(ONE_HOUR, ONE_MINUTE);
+        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
     }
 
     // These time units are defined in number of blocks.

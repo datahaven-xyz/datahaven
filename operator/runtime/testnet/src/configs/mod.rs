@@ -79,8 +79,8 @@ use datahaven_runtime_common::{
     },
     gas::WEIGHT_PER_GAS,
     migrations::{
-        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
-        MigrationIdentifierMaxLen, MigrationStatusHandler,
+        FailedMigrationHandler, MigrationCursorMaxLen, MigrationIdentifierMaxLen,
+        MigrationStatusHandler,
     },
     safe_mode::{
         ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
@@ -854,8 +854,7 @@ impl pallet_migrations::Config for Runtime {
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;
-    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
-    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type FailedMigrationHandler = FailedMigrationHandler<SafeMode>;
     type MaxServiceWeight = MaxServiceWeight;
     type WeightInfo = testnet_weights::pallet_migrations::WeightInfo<Runtime>;
 }

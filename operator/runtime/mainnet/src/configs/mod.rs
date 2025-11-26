@@ -79,14 +79,14 @@ use datahaven_runtime_common::{
     },
     gas::WEIGHT_PER_GAS,
     migrations::{
-        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
-        MigrationIdentifierMaxLen, MigrationStatusHandler,
+        FailedMigrationHandler, MigrationCursorMaxLen, MigrationIdentifierMaxLen,
+        MigrationStatusHandler,
     },
     safe_mode::{
         ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
         SafeModeExtendDeposit, TxPauseWhitelistedCalls,
     },
-    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
+    time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
@@ -138,7 +138,7 @@ use sp_runtime::{
     traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill, Perquintill,
 };
-use sp_staking::{EraIndex, SessionIndex};
+use sp_staking::EraIndex;
 use sp_std::{
     convert::{From, Into},
     prelude::*,
@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
     pub const AuthorRewardPoints: u32 = 20;
 }
 
@@ -511,7 +510,8 @@ impl pallet_beefy::Config for Runtime {
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem = ();
+    type EquivocationReportSystem =
+        pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 parameter_types! {
@@ -847,14 +847,13 @@ impl pallet_parameters::Config for Runtime {
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>;
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;
-    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
-    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type FailedMigrationHandler = FailedMigrationHandler<SafeMode>;
     type MaxServiceWeight = MaxServiceWeight;
     type WeightInfo = mainnet_weights::pallet_migrations::WeightInfo<Runtime>;
 }

@@ -101,7 +101,6 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
-const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
 /// Block storage limit in bytes. Set to 40 KB.
 const BLOCK_STORAGE_LIMIT: u64 = 40 * 1024;
 

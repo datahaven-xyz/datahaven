@@ -2,7 +2,7 @@
 pragma solidity >=0.8.3;
 
 /// @dev The DataHavenNativeTransfer precompile address.
-address constant DATAHAVEN_NATIVE_TRANSFER_ADDRESS = 0x00000000000000000000000000000000000007f5;
+address constant DATAHAVEN_NATIVE_TRANSFER_ADDRESS = 0x0000000000000000000000000000000000000819;
 
 /// @dev The DataHavenNativeTransfer precompile instance.
 DataHavenNativeTransfer constant DATAHAVEN_NATIVE_TRANSFER_CONTRACT =
@@ -11,7 +11,7 @@ DataHavenNativeTransfer constant DATAHAVEN_NATIVE_TRANSFER_CONTRACT =
 /// @author The DataHaven Team
 /// @title DataHaven Native Transfer Interface
 /// @notice Interface for transferring DataHaven native tokens to/from Ethereum via Snowbridge
-/// @custom:address 0x00000000000000000000000000000000000007F5
+/// @custom:address 0x0000000000000000000000000000000000000819
 interface DataHavenNativeTransfer {
     /// @notice Emitted when tokens are locked for transfer to Ethereum
     /// @param account The account that locked tokens

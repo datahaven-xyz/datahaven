@@ -86,7 +86,7 @@ use datahaven_runtime_common::{
         ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
         SafeModeExtendDeposit, TxPauseWhitelistedCalls,
     },
-    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
+    time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
@@ -138,7 +138,7 @@ use sp_runtime::{
     traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill, Perquintill,
 };
-use sp_staking::{EraIndex, SessionIndex};
+use sp_staking::EraIndex;
 use sp_std::{
     convert::{From, Into},
     prelude::*,
@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
     pub const AuthorRewardPoints: u32 = 20;
 }
 

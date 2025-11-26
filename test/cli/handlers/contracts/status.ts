@@ -146,8 +146,7 @@ const showEigenLayerContractStatus = async (
     const contracts = [
       {
         name: "DelegationManager",
-        address:
-          eigenLayerAddresses.DelegationManager || config.eigenLayer?.delegationManager || ""
+        address: eigenLayerAddresses.DelegationManager || config.eigenLayer?.delegationManager || ""
       },
       {
         name: "StrategyManager",
@@ -168,8 +167,7 @@ const showEigenLayerContractStatus = async (
       },
       {
         name: "AllocationManager",
-        address:
-          eigenLayerAddresses.AllocationManager || config.eigenLayer?.allocationManager || ""
+        address: eigenLayerAddresses.AllocationManager || config.eigenLayer?.allocationManager || ""
       },
       {
         name: "PermissionController",

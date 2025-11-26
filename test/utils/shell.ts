@@ -14,12 +14,7 @@ export const runShellCommandWithLogger = async (
     throwOnError?: boolean;
   }
 ) => {
-  const {
-    cwd = ".",
-    env = {},
-    logLevel = "info" as LogLevel,
-    throwOnError = true
-  } = options || {};
+  const { cwd = ".", env = {}, logLevel = "info" as LogLevel, throwOnError = true } = options || {};
 
   try {
     if (!existsSync(cwd)) {

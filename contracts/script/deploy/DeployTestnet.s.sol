@@ -57,7 +57,7 @@ contract DeployTestnet is DeployBase {
         );
 
         currentTestnet = _detectAndValidateNetwork(networkName);
-        totalSteps = 2; // Reduced steps since we're not deploying EigenLayer
+        totalSteps = 4;
 
         _executeSharedDeployment();
     }

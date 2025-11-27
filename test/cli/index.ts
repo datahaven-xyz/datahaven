@@ -198,7 +198,7 @@ const contractsCommand = program
     - update-metadata: Update the metadata URI of an existing AVS contract
     
     Common options:
-    --chain: Target chain (required: hoodi, holesky, mainnet)
+    --chain: Target chain (required: hoodi, holesky, mainnet, anvil)
     --rpc-url: Chain RPC URL (optional, defaults based on chain)
     --private-key: Private key for deployment
     --skip-verification: Skip contract verification
@@ -210,9 +210,13 @@ const contractsCommand = program
 contractsCommand
   .command("status")
   .description("Show deployment plan, configuration, and status")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option(
+    "--private-key <value>",
+    "Private key for deployment",
+    process.env.DEPLOYER_PRIVATE_KEY || ""
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);
@@ -221,9 +225,13 @@ contractsCommand
 contractsCommand
   .command("deploy")
   .description("Deploy DataHaven AVS contracts to specified chain")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option(
+    "--private-key <value>",
+    "Private key for deployment",
+    process.env.DEPLOYER_PRIVATE_KEY || ""
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsDeploy);
@@ -232,7 +240,7 @@ contractsCommand
 contractsCommand
   .command("verify")
   .description("Verify deployed contracts on block explorer")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
@@ -242,7 +250,7 @@ contractsCommand
 contractsCommand
   .command("update-metadata")
   .description("Update AVS metadata URI for the DataHaven Service Manager")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet, anvil)")
   .option("--uri <value>", "New metadata URI (required)")
   .option("--reset", "Use if you want to reset the metadata URI")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
@@ -270,9 +278,13 @@ contractsCommand
 // Default Contracts command (runs check)
 contractsCommand
   .description("Show deployment plan, configuration, and status")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key <value>", "Private key for deployment", process.env.PRIVATE_KEY || "")
+  .option(
+    "--private-key <value>",
+    "Private key for deployment",
+    process.env.DEPLOYER_PRIVATE_KEY || ""
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);

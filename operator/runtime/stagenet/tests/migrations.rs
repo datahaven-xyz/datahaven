@@ -18,7 +18,7 @@
 mod common;
 
 use common::*;
-use datahaven_mainnet_runtime::{
+use datahaven_stagenet_runtime::{
     Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SafeMode, System,
 };
 use frame_support::{assert_noop, assert_ok};

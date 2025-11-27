@@ -17,11 +17,6 @@ on:
         type: boolean
         default: false
   workflow_call:
-    inputs:
-      binary-hash:
-        description: "The hash of the operator binary (for CI builds)"
-        required: true
-        type: string
     outputs:
       image-tag:
         description: "The tag portion of the docker image (without registry)"
@@ -48,21 +43,6 @@ jobs:
           ref: ${{ github.event.inputs.branch || github.ref }}
 
       - uses: ./.github/workflows/actions/cleanup-runner
-        if: github.event_name == 'workflow_dispatch'
-
-      # --- Conditional: Download binary for CI builds ---
-      - name: Download binary artifact (CI build)
-        if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@v4
-        with:
-          name: datahaven-node-${{ inputs.binary-hash }}
-          path: ./build/
-
-      - name: Prepare binary (CI build)
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          chmod +x ./build/datahaven-node
-          ls -la ./build/
 
       # --- Docker metadata ---
       - name: Docker meta (dispatch)
@@ -100,9 +80,8 @@ jobs:
           echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
           echo "image-name=datahavenxyz/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
       
-      # --- Conditional: Cargo cache for full builds ---
-      - name: Set up cargo cache (full build)
-        if: github.event_name == 'workflow_dispatch'
+      # --- Cargo cache for full builds ---
+      - name: Set up cargo cache
         uses: actions/cache@v4
         id: cache
         with:
@@ -115,8 +94,7 @@ jobs:
             cache-mount-${{ hashFiles('./docker/datahaven-build.Dockerfile') }}
             cache-mount-
 
-      - name: Inject cache into docker (full build)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Inject cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3.1.0
         with:
           cache-map: |
@@ -126,9 +104,8 @@ jobs:
             }
           skip-extraction: ${{ steps.cache.outputs.cache-hit }}
 
-      # --- Build and push: Full build (workflow_dispatch) ---
-      - name: Build and push Docker image (full build)
-        if: github.event_name == 'workflow_dispatch'
+      # --- Build and push Docker image ---
+      - name: Build and push Docker image
         uses: ./.github/workflow-templates/publish-docker
         with:
           dockerfile: ./docker/datahaven-build.Dockerfile
@@ -136,27 +113,12 @@ jobs:
           registry: docker.io
           registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
           registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
-          image_tags: ${{ steps.meta-dispatch.outputs.tags }}
+          image_tags: ${{ steps.meta-dispatch.outputs.tags || steps.meta-ci.outputs.tags }}
           image_title: "DataHaven Node - Release"
           image_description: "Release build of DataHaven blockchain node"
           cache_scope: datahaven-release-build
           build_args: |
             FAST_RUNTIME=${{ github.event.inputs.fast_runtime == 'true' && 'TRUE' || 'FALSE' }}
-
-      # --- Build and push: CI binary reuse (workflow_call) ---
-      - name: Build and push Docker image (CI binary)
-        if: github.event_name != 'workflow_dispatch'
-        uses: ./.github/workflow-templates/publish-docker
-        with:
-          dockerfile: ./operator/Dockerfile
-          context: .
-          registry: docker.io
-          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
-          registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
-          image_tags: ${{ steps.meta-ci.outputs.tags }}
-          image_title: "DataHaven Node - Release"
-          image_description: "Release build of DataHaven operator node"
-          cache_scope: datahaven-release-ci
 
       # --- Smoke tests ---
       - name: Pull and test node --help

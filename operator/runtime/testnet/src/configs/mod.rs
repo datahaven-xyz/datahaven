@@ -79,14 +79,14 @@ use datahaven_runtime_common::{
     },
     gas::WEIGHT_PER_GAS,
     migrations::{
-        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
-        MigrationIdentifierMaxLen, MigrationStatusHandler,
+        FailedMigrationHandler, MigrationCursorMaxLen, MigrationIdentifierMaxLen,
+        MigrationStatusHandler,
     },
     safe_mode::{
         ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
         SafeModeExtendDeposit, TxPauseWhitelistedCalls,
     },
-    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
+    time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
@@ -138,7 +138,7 @@ use sp_runtime::{
     traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill, Perquintill,
 };
-use sp_staking::{EraIndex, SessionIndex};
+use sp_staking::EraIndex;
 use sp_std::{
     convert::{From, Into},
     prelude::*,
@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
     pub const AuthorRewardPoints: u32 = 20;
 }
 
@@ -501,7 +500,8 @@ impl pallet_beefy::Config for Runtime {
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem = ();
+    type EquivocationReportSystem =
+        pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 parameter_types! {
@@ -837,20 +837,13 @@ impl pallet_parameters::Config for Runtime {
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type Migrations = (
-        datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>,
-        datahaven_runtime_common::migrations::evm_chain_id::EvmChainIdMigration<
-            Runtime,
-            EVM_CHAIN_ID,
-        >,
-    );
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;
-    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
-    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type FailedMigrationHandler = FailedMigrationHandler<SafeMode>;
     type MaxServiceWeight = MaxServiceWeight;
     type WeightInfo = testnet_weights::pallet_migrations::WeightInfo<Runtime>;
 }
@@ -992,13 +985,10 @@ parameter_types! {
     pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
-    /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
-    /// it with the pov_size for a block. E.g.
-    /// ceil(
-    ///     (max_extrinsic.ref_time() / max_extrinsic.proof_size()) / WEIGHT_PER_GAS
-    /// )
+    /// The amount of gas per pov. Set to 0 because DataHaven is a solo chain and we don't
+    /// account for POV (Proof-of-Validity) size constraints like parachains do.
     /// We should re-check `xcm_config::Erc20XcmBridgeTransferGasLimit` when changing this value
-    pub const GasLimitPovSizeRatio: u64 = 16;
+    pub const GasLimitPovSizeRatio: u64 = 0;
     /// The amount of gas per storage (in bytes): BLOCK_GAS_LIMIT / BLOCK_STORAGE_LIMIT
     /// (60_000_000 / 160 kb)
     pub GasLimitStorageGrowthRatio: u64 = 366;

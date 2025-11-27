@@ -120,48 +120,6 @@ where
         Ok(())
     }
 
-    /// Pause the pallet
-    ///
-    /// Prevents all token transfers until the pallet is unpaused.
-    /// Only callable by accounts with the PauseOrigin permission.
-    #[precompile::public("pause()")]
-    fn pause(handle: &mut impl PrecompileHandle) -> EvmResult {
-        // Record db write cost
-        handle.record_cost(RuntimeHelper::<Runtime>::db_write_gas_cost())?;
-
-        // Convert caller address to substrate account
-        let caller = Runtime::AddressMapping::into_account_id(handle.context().caller);
-
-        // Build the call
-        let call = NativeTransferCall::<Runtime>::pause {}.into();
-
-        // Dispatch the call - this will fail if caller doesn't have permission
-        RuntimeHelper::<Runtime>::try_dispatch(handle, Some(caller).into(), call, 0)?;
-
-        Ok(())
-    }
-
-    /// Unpause the pallet
-    ///
-    /// Allows token transfers again after being paused.
-    /// Only callable by accounts with the PauseOrigin permission.
-    #[precompile::public("unpause()")]
-    fn unpause(handle: &mut impl PrecompileHandle) -> EvmResult {
-        // Record db write cost
-        handle.record_cost(RuntimeHelper::<Runtime>::db_write_gas_cost())?;
-
-        // Convert caller address to substrate account
-        let caller = Runtime::AddressMapping::into_account_id(handle.context().caller);
-
-        // Build the call
-        let call = NativeTransferCall::<Runtime>::unpause {}.into();
-
-        // Dispatch the call - this will fail if caller doesn't have permission
-        RuntimeHelper::<Runtime>::try_dispatch(handle, Some(caller).into(), call, 0)?;
-
-        Ok(())
-    }
-
     /// Check if the pallet is currently paused
     ///
     /// Returns:

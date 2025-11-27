@@ -43,16 +43,6 @@ interface DataHavenNativeTransfer {
     /// @custom:selector 0a3727e3
     function transferToEthereum(address recipient, uint256 amount, uint256 fee) external;
 
-    /// @notice Pause the pallet (admin only)
-    /// @dev Prevents all token transfers until unpaused
-    /// @custom:selector 8456cb59
-    function pause() external;
-
-    /// @notice Unpause the pallet (admin only)
-    /// @dev Allows token transfers again
-    /// @custom:selector 3f4ba83a
-    function unpause() external;
-
     /// @notice Check if the pallet is currently paused
     /// @return paused True if paused, false otherwise
     /// @custom:selector b187bd26

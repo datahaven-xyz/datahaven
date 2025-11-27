@@ -44,30 +44,6 @@ contract MyContract {
 }
 ```
 
-### `pause()`
-
-Pauses the pallet, preventing all token transfers.
-
-**Requirements:**
-- Caller must have the `PauseOrigin` permission (typically governance/root)
-
-**Example (Solidity):**
-```solidity
-DATAHAVEN_NATIVE_TRANSFER_CONTRACT.pause();
-```
-
-### `unpause()`
-
-Unpauses the pallet, allowing token transfers again.
-
-**Requirements:**
-- Caller must have the `PauseOrigin` permission (typically governance/root)
-
-**Example (Solidity):**
-```solidity
-DATAHAVEN_NATIVE_TRANSFER_CONTRACT.unpause();
-```
-
 ### `isPaused() view returns (bool)`
 
 Checks if the pallet is currently paused.

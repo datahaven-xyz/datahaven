@@ -43,8 +43,6 @@ type BalanceOf<Runtime> =
         <Runtime as frame_system::Config>::AccountId,
     >>::Balance;
 
-/// Storage read size for Paused storage value (bool = 1 byte + overhead)
-pub const PAUSED_STORAGE_SIZE: usize = 32;
 
 /// Precompile for DataHaven Native Transfer pallet
 pub struct DataHavenNativeTransferPrecompile<Runtime>(PhantomData<Runtime>);
@@ -173,7 +171,7 @@ where
     #[precompile::view]
     fn is_paused(handle: &mut impl PrecompileHandle) -> EvmResult<bool> {
         // Record storage read cost
-        handle.record_db_read::<Runtime>(PAUSED_STORAGE_SIZE)?;
+        handle.record_db_read::<Runtime>(1)?;
 
         // Read the paused state from storage
         let is_paused = NativeTransferPallet::<Runtime>::is_paused();

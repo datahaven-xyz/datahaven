@@ -76,9 +76,6 @@ where
         amount: U256,
         fee: U256,
     ) -> EvmResult {
-        // Ensure we're not in a static context
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
-
         // Convert caller address to substrate account
         let caller = Runtime::AddressMapping::into_account_id(handle.context().caller);
 

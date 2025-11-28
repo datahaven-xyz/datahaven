@@ -26,8 +26,11 @@ pub mod time {
     const ONE_MINUTE: BlockNumber = MINUTES;
 
     frame_support::parameter_types! {
+        /// Session/epoch duration:
+        /// - Production: 1 hour (600 blocks)
+        /// - Fast-runtime: 1 minute (10 blocks)
         pub const EpochDurationInBlocks: BlockNumber = prod_or_fast!(ONE_HOUR, ONE_MINUTE);
-        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 3);
+        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
     }
 
     // These time units are defined in number of blocks.

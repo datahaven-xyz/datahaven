@@ -54,7 +54,7 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
   const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
 
   const deploymentScript =
-    !chain || chain === "anvil" || chain === "local"
+    !chain || chain === "anvil"
       ? "script/deploy/DeployLocal.s.sol"
       : "script/deploy/DeployTestnet.s.sol";
 
@@ -83,12 +83,16 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
 export const executeDeployment = async (
   deployCommand: string,
   parameterCollection?: ParameterCollection,
-  chain?: string
+  chain?: string,
+  privateKey?: string
 ) => {
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
-  await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
+  await runShellCommandWithLogger(deployCommand, {
+    cwd: "../contracts",
+    env: privateKey ? { DEPLOYER_PRIVATE_KEY: privateKey } : undefined
+  });
 
   // After deployment, read the:
   // - Gateway address
@@ -198,7 +202,7 @@ export const deployContracts = async (options: {
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  await executeDeployment(deployCommand);
+  await executeDeployment(deployCommand, undefined, options.chain, options.privateKey);
 
   logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
 };
@@ -251,5 +255,5 @@ if (import.meta.main) {
   await buildContracts();
 
   const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand);
+  await executeDeployment(deployCommand, undefined, undefined, options.privateKey);
 }

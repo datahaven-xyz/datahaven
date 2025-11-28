@@ -252,16 +252,12 @@ contract AVSDeployer is Test {
             rewardsCoordinator, permissionControllerMock, allocationManager
         );
 
-        // Create arrays for the three sets of strategies required by DataHavenServiceManager
+        // Create array for validators strategies required by DataHavenServiceManager
         IStrategy[] memory validatorsStrategies = new IStrategy[](deployedStrategies.length);
-        IStrategy[] memory bspsStrategies = new IStrategy[](deployedStrategies.length);
-        IStrategy[] memory mspsStrategies = new IStrategy[](deployedStrategies.length);
 
-        // For testing purposes, we'll use the same strategies for all three sets
+        // For testing purposes, we'll use the deployed strategies for validators
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             validatorsStrategies[i] = deployedStrategies[i];
-            bspsStrategies[i] = deployedStrategies[i];
-            mspsStrategies[i] = deployedStrategies[i];
         }
 
         serviceManager = DataHavenServiceManager(
@@ -274,8 +270,6 @@ contract AVSDeployer is Test {
                         avsOwner,
                         rewardsInitiator,
                         validatorsStrategies,
-                        bspsStrategies,
-                        mspsStrategies,
                         address(0) // This deployment does not use Snowbridge
                     )
                 )

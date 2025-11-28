@@ -43,10 +43,6 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f, // Ninth pre-funded address in anvil
         0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 // Tenth pre-funded address in anvil
     ];
-    // The addresses of the Backup Storage Providers that are allowed to register to the DataHaven service.
-    address[] public bspsAllowlist;
-    // The addresses of the Main Storage Providers that are allowed to register to the DataHaven service.
-    address[] public mspsAllowlist;
 
     // Snowbridge contracts params
     // The hashes of the initial (current) Validators in the DataHaven solochain.

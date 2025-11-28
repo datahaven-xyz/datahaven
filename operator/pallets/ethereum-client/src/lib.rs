@@ -648,6 +648,9 @@ pub mod pallet {
 
         /// Returns the fork version based on the current epoch.
         pub(super) fn select_fork_version(fork_versions: &ForkVersions, epoch: u64) -> ForkVersion {
+            if epoch >= fork_versions.fulu.epoch {
+                return fork_versions.fulu.version;
+            }
             if epoch >= fork_versions.electra.epoch {
                 return fork_versions.electra.version;
             }

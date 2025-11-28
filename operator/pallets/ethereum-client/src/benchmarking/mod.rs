@@ -145,6 +145,10 @@ mod benchmarks {
                 version: hex!("05000000"),
                 epoch: 80000000000,
             },
+            fulu: Fork {
+                version: hex!("06000000"),
+                epoch: 90000000000,
+            },
         };
         let finalized_root_gindex = EthereumBeaconClient::<T>::finalized_root_gindex_at_slot(
             update.attested_header.slot,

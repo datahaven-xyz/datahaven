@@ -305,6 +305,10 @@ shp-types = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v
 ## Precompiles
 pallet-evm-precompile-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.1.4", default-features = false }
 
+# Static linking
+#### Needed to build static binaries ####
+pq-sys = { version = "0.7.4" }
+
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
 # that are suspected to be CPU-intensive, and that are unlikely to require debugging (as some of
 # their debug info might be missing) or to require to be frequently recompiled. We compile these

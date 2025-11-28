@@ -3101,6 +3101,7 @@ dependencies = [
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
+ "pq-sys",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -11949,6 +11950,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pq-src"
+version = "0.3.10+libpq-18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56ef39ce621f4993d6084fdcd4cbf1e01c84bdba53109cfad095d2cf441b85b9"
+dependencies = [
+ "cc",
+ "openssl-sys",
+]
+
+[[package]]
 name = "pq-sys"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11956,6 +11967,7 @@ checksum = "089d5dc8f44104b719912ad4478fd558b59a431ce19ef9101f637be8c656b90a"
 dependencies = [
  "libc",
  "pkg-config",
+ "pq-src",
  "vcpkg",
 ]
 

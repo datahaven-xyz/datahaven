@@ -66,6 +66,10 @@ impl-serde = { version = "0.5.0", default-features = false }
 impl-trait-for-tuples = { version = "0.2.2" }
 itoa = { version = "1.0" }
 jsonrpsee = { version = "0.24.3" }
+k256 = { version = "0.13.4", default-features = false, features = [
+    "ecdsa",
+    "alloc",
+] }
 libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
 macro_rules_attribute = { version = "0.2.0" }

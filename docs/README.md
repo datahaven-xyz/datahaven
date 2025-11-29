@@ -15,6 +15,12 @@ This directory contains comprehensive documentation for setting up and operating
 - [Indexer Setup](./storagehub-indexer.md) - Indexer node configuration and operations
 - [Fisherman Setup](./storagehub-fisherman.md) - Fisherman node configuration and operations
 
+### Snowbridge Relays
+- [Beacon Relay](./snowbridge-beacon-relay.md) - Ethereum beacon chain → DataHaven
+- [BEEFY Relay](./snowbridge-beefy-relay.md) - DataHaven BEEFY finality → Ethereum
+- [Execution Relay](./snowbridge-execution-relay.md) - Ethereum messages → DataHaven
+- [Solochain Relay](./snowbridge-solochain-relay.md) - DataHaven messages → Ethereum
+
 ## Quick Reference
 
 ### Node Types Overview
@@ -28,6 +34,15 @@ This directory contains comprehensive documentation for setting up and operating
 | **BSP** | Backup storage provider | 1 (BCSV ECDSA) | Yes (2-step: request + confirm) | No |
 | **Indexer** | Blockchain data indexer | None | No | Yes (PostgreSQL) |
 | **Fisherman** | Storage provider monitor | 1 (BCSV ECDSA) | No | Yes (PostgreSQL) |
+
+### Snowbridge Relays Overview
+
+| Relay | Direction | Keys Required | Persistent Storage |
+|-------|-----------|---------------|-------------------|
+| **Beacon Relay** | Ethereum → DataHaven | Substrate | Yes (datastore) |
+| **BEEFY Relay** | DataHaven → Ethereum | Ethereum | No |
+| **Execution Relay** | Ethereum → DataHaven | Substrate | Yes (datastore) |
+| **Solochain Relay** | DataHaven → Ethereum | Ethereum + Substrate | Yes (datastore) |
 
 ### Common CLI Flags
 
@@ -71,6 +86,8 @@ All node types support standard Substrate flags:
 
 - [Main Repository](https://github.com/Moonsong-Labs/datahaven)
 - [StorageHub Repository](https://github.com/Moonsong-Labs/storage-hub)
+- [Snowbridge Repository](https://github.com/datahaven-xyz/snowbridge) (solochain branch)
+- [Snowbridge Documentation](https://docs.snowbridge.network)
 - [E2E Testing Guide](../test/README.md)
 - [Docker Compose Guide](../operator/DOCKER-COMPOSE.md)
 - [Kubernetes Deployment](../deploy/charts/node/README.md)

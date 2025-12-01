@@ -47,6 +47,7 @@ export interface LaunchOptions {
   relayerImageTag: string;
   storagehub?: boolean;
   cleanNetwork?: boolean;
+  injectContracts?: boolean;
 }
 
 // =====  Launch Handler Functions  =====

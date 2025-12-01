@@ -111,7 +111,7 @@ const buildAndCopyLibpq = async (target: string, networkId?: string): Promise<vo
   );
 
   // Create container with unique name
-  const containerName = networkId ? `linux-libpq-container-${networkId}` : "linux-libpq-container";
+  const  = networkId ? `linux-libpq-container-${networkId}` : "linux-libpq-container";
   logger.debug(await $`docker create --name ${containerName} crossbuild-libpq`.text());
 
   const destPath = path.join(

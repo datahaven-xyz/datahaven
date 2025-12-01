@@ -61,7 +61,10 @@ export const launchKurtosisNetwork = async (
     await pullMacOSImages();
   }
 
-  await runKurtosisEnclave(options, configFilePath);
+  // Default injectContracts to true if not specified
+  const injectContracts = options.injectContracts !== undefined ? options.injectContracts : true;
+
+  await runKurtosisEnclave({ ...options, injectContracts }, configFilePath);
   await registerServices(launchedNetwork, options.kurtosisEnclaveName);
 
   logger.success("Kurtosis network launched successfully");
@@ -337,6 +340,7 @@ export const runKurtosisEnclave = async (
     blockscout?: boolean;
     slotTime?: number;
     kurtosisNetworkArgs?: string;
+    injectContracts?: boolean;
   },
   configFilePath: string
 ): Promise<void> => {

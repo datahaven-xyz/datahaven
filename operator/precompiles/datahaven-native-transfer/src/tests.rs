@@ -18,7 +18,7 @@
 
 use crate::mock::{
     balance, precompiles, Alice, Bob, EthereumSovereign, ExistentialDeposit, ExtBuilder,
-    FeeRecipient, NativeTransfer, NativeTransferPrecompile, PCall, Root,
+    FeeRecipient, NativeTransferPrecompile, PCall,
 };
 use precompile_utils::prelude::Address;
 use precompile_utils::testing::*;
@@ -37,9 +37,6 @@ fn precompile_address() -> H160 {
 fn test_selectors() {
     // Just verify that selectors are generated - actual values may vary
     assert!(!PCall::transfer_to_ethereum_selectors().is_empty());
-    assert!(!PCall::pause_selectors().is_empty());
-    assert!(!PCall::unpause_selectors().is_empty());
-    assert!(!PCall::is_paused_selectors().is_empty());
     assert!(!PCall::total_locked_balance_selectors().is_empty());
     assert!(!PCall::ethereum_sovereign_account_selectors().is_empty());
 }
@@ -59,15 +56,6 @@ fn test_function_modifiers() {
 
             // transferToEthereum - non-view, non-payable
             tester.test_default_modifier(PCall::transfer_to_ethereum_selectors());
-
-            // pause - non-view, non-payable
-            tester.test_default_modifier(PCall::pause_selectors());
-
-            // unpause - non-view, non-payable
-            tester.test_default_modifier(PCall::unpause_selectors());
-
-            // isPaused - view
-            tester.test_view_modifier(PCall::is_paused_selectors());
 
             // totalLockedBalance - view
             tester.test_view_modifier(PCall::total_locked_balance_selectors());
@@ -224,42 +212,6 @@ fn test_transfer_to_ethereum_insufficient_balance() {
 }
 
 #[test]
-fn test_transfer_to_ethereum_when_paused() {
-    ExtBuilder::default()
-        .with_balances(vec![
-            (Alice.into(), 10000),
-            (EthereumSovereign.into(), ExistentialDeposit::get()),
-        ])
-        .build()
-        .execute_with(|| {
-            // First pause the pallet as root
-            precompiles()
-                .prepare_test(Root, precompile_address(), PCall::pause {})
-                .execute_returns(());
-
-            // Now try to transfer
-            let recipient = H160::from_low_u64_be(0x1234);
-            let amount = U256::from(1000);
-            let fee = U256::from(100);
-
-            precompiles()
-                .prepare_test(
-                    Alice,
-                    precompile_address(),
-                    PCall::transfer_to_ethereum {
-                        recipient: recipient.into(),
-                        amount,
-                        fee,
-                    },
-                )
-                .execute_reverts(|output| {
-                    // Pallet will return TransfersDisabled error
-                    from_utf8_lossy(output).contains("TransfersDisabled")
-                });
-        });
-}
-
-#[test]
 fn test_transfer_to_ethereum_multiple_transfers() {
     ExtBuilder::default()
         .with_balances(vec![
@@ -337,159 +289,8 @@ fn test_transfer_to_ethereum_large_amount() {
 }
 
 // ============================================================================
-// Pause/Unpause Tests
-// ============================================================================
-
-#[test]
-fn test_pause_success() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Root account can pause
-        precompiles()
-            .prepare_test(Root, precompile_address(), PCall::pause {})
-            .execute_returns(());
-
-        // Verify paused state
-        assert!(NativeTransfer::is_paused());
-    });
-}
-
-#[test]
-fn test_pause_unauthorized() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Non-root account cannot pause
-        precompiles()
-            .prepare_test(Alice, precompile_address(), PCall::pause {})
-            .execute_reverts(|output| {
-                // Should get BadOrigin error from pallet
-                from_utf8_lossy(output).contains("BadOrigin")
-            });
-    });
-}
-
-#[test]
-fn test_unpause_success() {
-    ExtBuilder::default().build().execute_with(|| {
-        // First pause
-        precompiles()
-            .prepare_test(Root, precompile_address(), PCall::pause {})
-            .execute_returns(());
-
-        assert!(NativeTransfer::is_paused());
-
-        // Then unpause
-        precompiles()
-            .prepare_test(Root, precompile_address(), PCall::unpause {})
-            .execute_returns(());
-
-        // Verify unpaused state
-        assert!(!NativeTransfer::is_paused());
-    });
-}
-
-#[test]
-fn test_unpause_unauthorized() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Non-root account cannot unpause
-        precompiles()
-            .prepare_test(Alice, precompile_address(), PCall::unpause {})
-            .execute_reverts(|output| from_utf8_lossy(output).contains("BadOrigin"));
-    });
-}
-
-#[test]
-fn test_pause_unpause_cycle() {
-    ExtBuilder::default()
-        .with_balances(vec![
-            (Alice.into(), 10000),
-            (EthereumSovereign.into(), ExistentialDeposit::get()),
-        ])
-        .build()
-        .execute_with(|| {
-            let recipient = H160::from_low_u64_be(0x1234);
-            let amount = U256::from(1000);
-            let fee = U256::from(100);
-
-            // Initially not paused - transfer should work
-            assert!(!NativeTransfer::is_paused());
-            precompiles()
-                .prepare_test(
-                    Alice,
-                    precompile_address(),
-                    PCall::transfer_to_ethereum {
-                        recipient: recipient.into(),
-                        amount,
-                        fee,
-                    },
-                )
-                .execute_returns(());
-
-            // Pause
-            precompiles()
-                .prepare_test(Root, precompile_address(), PCall::pause {})
-                .execute_returns(());
-            assert!(NativeTransfer::is_paused());
-
-            // Transfer should fail when paused
-            precompiles()
-                .prepare_test(
-                    Alice,
-                    precompile_address(),
-                    PCall::transfer_to_ethereum {
-                        recipient: recipient.into(),
-                        amount,
-                        fee,
-                    },
-                )
-                .execute_reverts(|output| from_utf8_lossy(output).contains("TransfersDisabled"));
-
-            // Unpause
-            precompiles()
-                .prepare_test(Root, precompile_address(), PCall::unpause {})
-                .execute_returns(());
-            assert!(!NativeTransfer::is_paused());
-
-            // Transfer should work again
-            precompiles()
-                .prepare_test(
-                    Alice,
-                    precompile_address(),
-                    PCall::transfer_to_ethereum {
-                        recipient: recipient.into(),
-                        amount,
-                        fee,
-                    },
-                )
-                .execute_returns(());
-        });
-}
-
-// ============================================================================
 // View Function Tests
 // ============================================================================
-
-#[test]
-fn test_is_paused_false() {
-    ExtBuilder::default().build().execute_with(|| {
-        precompiles()
-            .prepare_test(Alice, precompile_address(), PCall::is_paused {})
-            .execute_returns(false);
-    });
-}
-
-#[test]
-fn test_is_paused_true() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Pause the pallet
-        precompiles()
-            .prepare_test(Root, precompile_address(), PCall::pause {})
-            .execute_returns(());
-
-        // Check paused state
-        precompiles()
-            .prepare_test(Alice, precompile_address(), PCall::is_paused {})
-            .execute_returns(true);
-    });
-}
 
 #[test]
 fn test_total_locked_balance_zero() {
@@ -645,12 +446,6 @@ fn test_view_functions_gas_costs() {
         .with_balances(vec![(EthereumSovereign.into(), 1000)])
         .build()
         .execute_with(|| {
-            // isPaused should have minimal gas cost
-            precompiles()
-                .prepare_test(Alice, precompile_address(), PCall::is_paused {})
-                .expect_cost(0) // TODO: Calculate actual expected cost
-                .execute_some();
-
             // totalLockedBalance should have minimal gas cost
             precompiles()
                 .prepare_test(Alice, precompile_address(), PCall::total_locked_balance {})

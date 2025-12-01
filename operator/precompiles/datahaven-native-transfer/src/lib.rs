@@ -43,7 +43,6 @@ type BalanceOf<Runtime> =
         <Runtime as frame_system::Config>::AccountId,
     >>::Balance;
 
-
 /// Precompile for DataHaven Native Transfer pallet
 pub struct DataHavenNativeTransferPrecompile<Runtime>(PhantomData<Runtime>);
 

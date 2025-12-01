@@ -1,1 +1,3 @@
+bun check
 bun ./scripts/check-generated-state.js
+cd operator && cargo fmt --check

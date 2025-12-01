@@ -1,6 +1,6 @@
-import { $ } from "bun";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { $ } from "bun";
 import { logger } from "utils";
 
 const CHAOS_VERSION = "v0.1.2";
@@ -16,16 +16,17 @@ async function findRethContainer(): Promise<string> {
   const containerName = stdout.toString().trim();
 
   if (!containerName) {
-    const setupCommand = "bun cli launch --launch-kurtosis --deploy-contracts --no-inject-contracts --no-datahaven --no-relayer --no-set-parameters";
+    const setupCommand =
+      "bun cli launch --launch-kurtosis --deploy-contracts --no-inject-contracts --no-datahaven --no-relayer --no-set-parameters";
     throw new Error(
-      `❌ Could not find Reth container with contracts deployed.\n\n` +
-      `To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n` +
-      `Run this command to launch the network and deploy contracts:\n\n` +
-      `   ${setupCommand}\n\n` +
-      `Note: The --no-inject-contracts flag ensures contracts are actually deployed\n` +
-      `instead of being injected from state-diff.json.\n\n` +
-      `If you already have a Kurtosis network running, you'll need to deploy contracts\n` +
-      `using the launch command with --no-launch-kurtosis --no-inject-contracts flags.`
+      "❌ Could not find Reth container with contracts deployed.\n\n" +
+        "To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n" +
+        "Run this command to launch the network and deploy contracts:\n\n" +
+        `   ${setupCommand}\n\n` +
+        "Note: The --no-inject-contracts flag ensures contracts are actually deployed\n" +
+        "instead of being injected from state-diff.json.\n\n" +
+        `If you already have a Kurtosis network running, you'll need to deploy contracts\n` +
+        "using the launch command with --no-launch-kurtosis --no-inject-contracts flags."
     );
   }
 
@@ -62,7 +63,8 @@ async function setupChaos(containerName: string): Promise<void> {
   await $`docker exec ${containerName} bash -c "dpkg --add-architecture amd64 && apt update && apt install -y libc6:amd64 || apt install -y libc6-x32 || true"`.quiet();
 
   // Download Chaos - always use amd64 version (Chaos only provides amd64)
-  const downloadResult = await $`docker exec ${containerName} bash -c "wget -q ${CHAOS_RELEASE_URL} || echo 'DOWNLOAD_FAILED'"`.quiet();
+  const downloadResult =
+    await $`docker exec ${containerName} bash -c "wget -q ${CHAOS_RELEASE_URL} || echo 'DOWNLOAD_FAILED'"`.quiet();
   if (downloadResult.stdout.toString().includes("DOWNLOAD_FAILED")) {
     throw new Error(`❌ Failed to download Chaos from ${CHAOS_RELEASE_URL}`);
   }
@@ -84,7 +86,10 @@ async function runChaos(containerName: string): Promise<void> {
   logger.info("🔍 Running Chaos to extract contract state...");
 
   // Try running chaos, with better error handling
-  const result = await $`docker exec ${containerName} bash -c "./target/release/chaos --database-path /data/reth/execution-data/db"`.nothrow().quiet();
+  const result =
+    await $`docker exec ${containerName} bash -c "./target/release/chaos --database-path /data/reth/execution-data/db"`
+      .nothrow()
+      .quiet();
 
   if (result.exitCode !== 0) {
     const stderr = result.stderr.toString();
@@ -96,16 +101,18 @@ async function runChaos(containerName: string): Promise<void> {
     // Check for architecture mismatch
     if (stderr.includes("rosetta") || stderr.includes("elf") || stderr.includes("ld-linux")) {
       throw new Error(
-        `❌ Architecture mismatch error. The Chaos binary may not be compatible with the container architecture.\n` +
-        `Error: ${stderr}\n\n` +
-        `Possible solutions:\n` +
-        `1. Ensure the container is running on linux/amd64 platform\n` +
-        `2. Check if Chaos has a release for your container's architecture\n` +
-        `3. Try running the container with --platform linux/amd64`
+        "❌ Architecture mismatch error. The Chaos binary may not be compatible with the container architecture.\n" +
+          `Error: ${stderr}\n\n` +
+          "Possible solutions:\n" +
+          "1. Ensure the container is running on linux/amd64 platform\n" +
+          `2. Check if Chaos has a release for your container's architecture\n` +
+          "3. Try running the container with --platform linux/amd64"
       );
     }
 
-    throw new Error(`❌ Chaos execution failed with exit code ${result.exitCode}: ${stderr || stdout}`);
+    throw new Error(
+      `❌ Chaos execution failed with exit code ${result.exitCode}: ${stderr || stdout}`
+    );
   }
 
   logger.info("✅ State extraction complete");
@@ -139,7 +146,8 @@ async function formatStateDiff(): Promise<void> {
   logger.info("🎨 Formatting state-diff.json...");
 
   // Use a higher max size (3MB) to handle the large state-diff.json file
-  const result = await $`bun run biome format --files-max-size=3000000 --write ${STATE_DIFF_PATH}`.quiet();
+  const result =
+    await $`bun run biome format --files-max-size=3000000 --write ${STATE_DIFF_PATH}`.quiet();
 
   if (result.exitCode !== 0) {
     logger.warn("⚠️ Biome formatting had issues, but continuing...");
@@ -166,7 +174,6 @@ function saveChecksum(checksum: string): void {
   writeFileSync(STATE_DIFF_CHECKSUM_PATH, checksum, "utf-8");
   logger.info(`✅ Checksum saved to ${STATE_DIFF_CHECKSUM_PATH}`);
 }
-
 
 /**
  * Main function to generate contracts state-diff
@@ -212,4 +219,3 @@ export async function generateContracts(): Promise<void> {
 if (import.meta.main) {
   await generateContracts();
 }
-

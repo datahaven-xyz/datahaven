@@ -1,7 +1,7 @@
 import invariant from "tiny-invariant";
 import { getServiceFromKurtosis, logger, printHeader } from "utils";
 import type { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
-import { BASE_SERVICES } from "../../../launcher/utils/constants";
+import { KURTOSIS_BASE_SERVICES } from "../../../launcher/utils/constants";
 import type { LaunchOptions } from ".";
 
 export const performSummaryOperations = async (
@@ -10,7 +10,7 @@ export const performSummaryOperations = async (
 ) => {
   printHeader("Service Endpoints");
 
-  const servicesToDisplay = BASE_SERVICES;
+  const servicesToDisplay = options.launchKurtosis ? KURTOSIS_BASE_SERVICES : [];
 
   if (options.blockscout === true) {
     servicesToDisplay.push(...["blockscout", "blockscout-frontend"]);

@@ -19,17 +19,17 @@
     "PragueTime": null,
     "terminalTotalDifficultyPassed": true,
     "blobSchedule": {
-        "cancun": {
-            "target": 3,
-            "max": 6,
-            "baseFeeUpdateFraction": 3338477
-	},
-	"prague": {
-            "target": 6,
-            "max": 9,
-           "baseFeeUpdateFraction": 5007716
+      "cancun": {
+        "target": 3,
+        "max": 6,
+        "baseFeeUpdateFraction": 3338477
+      },
+      "prague": {
+        "target": 6,
+        "max": 9,
+        "baseFeeUpdateFraction": 5007716
+      }
     }
-    }	
   },
   "difficulty": "0x9FFE0",
   "gasLimit": "80000000",

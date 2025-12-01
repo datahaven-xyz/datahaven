@@ -34,7 +34,6 @@ export const launchKurtosis = async (
   if (!shouldLaunchKurtosis) {
     logger.info("👍 Skipping Kurtosis Ethereum network launch. Done!");
 
-    await registerServices(launchedNetwork, options.kurtosisEnclaveName);
     printDivider();
     return;
   }

@@ -16,7 +16,6 @@ import { calculateFeePortions } from "./fees";
 import { getFeesTreasuryProportion } from "./parameters";
 
 const debug = Debug("test:blocks");
-
 export interface TxWithEventAndFee extends TxWithEvent {
   fee: RuntimeDispatchInfo | RuntimeDispatchInfoV1;
 }
@@ -182,6 +181,8 @@ export const verifyBlockFees = async (
                 } else if (ethTxWrapper.isEip1559) {
                   priorityFee = ethTxWrapper.asEip1559.maxPriorityFeePerGas.toBigInt();
                   gasFee = ethTxWrapper.asEip1559.maxFeePerGas.toBigInt();
+                } else {
+                  throw new Error("Unsupported Ethereum transaction type");
                 }
 
                 const hash = events

@@ -29,9 +29,9 @@ cd test && cp cli/handlers/contracts/.env.example .env
 Edit `.env` with your values:
 ```bash
 # Required: Private key with deployment funds
-PRIVATE_KEY=0x...
+DEPLOYER_PRIVATE_KEY=0x...
 
-# Required: AVS owner private key (can be same as PRIVATE_KEY)
+# Required: AVS owner private key (can be same as DEPLOYER_PRIVATE_KEY)
 AVS_OWNER_PRIVATE_KEY=0x...
 
 # Optional: For contract verification

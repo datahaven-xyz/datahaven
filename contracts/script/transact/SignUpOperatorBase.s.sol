@@ -20,7 +20,7 @@ import {Accounts} from "../utils/Accounts.sol";
 
 /**
  * @title SignUpOperatorBase
- * @notice Base contract for signing up different types of operators (Validators, BSPs, MSPs)
+ * @notice Base contract for signing up validators
  */
 abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage, Accounts {
     // Progress indicator

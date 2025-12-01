@@ -4,6 +4,18 @@
  */
 
 import type { GenericContext } from "@moonwall/cli";
+import {
+  ALITH_GENESIS_FREE_BALANCE,
+  ALITH_GENESIS_LOCK_BALANCE,
+  ALITH_GENESIS_RESERVE_BALANCE
+} from "@moonwall/util";
+
+export const ALITH_GENESIS_TRANSFERABLE_COUNT =
+  ALITH_GENESIS_FREE_BALANCE + ALITH_GENESIS_RESERVE_BALANCE - ALITH_GENESIS_LOCK_BALANCE;
+export const ALITH_GENESIS_TRANSFERABLE_BALANCE =
+  ALITH_GENESIS_FREE_BALANCE > ALITH_GENESIS_TRANSFERABLE_COUNT
+    ? ALITH_GENESIS_TRANSFERABLE_COUNT
+    : ALITH_GENESIS_FREE_BALANCE;
 
 class RuntimeConstant<T> {
   private readonly values: Map<number, T>;
@@ -32,6 +44,9 @@ const DATAHAVEN_CONSTANTS = {
   }),
   EXTRINSIC_GAS_LIMIT: new RuntimeConstant({
     0: 52_000_000n
+  }),
+  GENESIS_BASE_FEE: new RuntimeConstant({
+    0: 312_500_000n
   }),
   WEIGHT_TO_GAS_RATIO: 25_000n,
   STORAGE_READ_COST: 25_000_000n,

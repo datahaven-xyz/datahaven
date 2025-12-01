@@ -12,6 +12,11 @@ inputs:
     required: false
     default: "true"
 
+  skip-libpq:
+    description: "Indicate to skip postgres lib install or not"
+    required: false
+    default: "false"
+
 runs:
   using: "composite"
   steps:
@@ -68,9 +73,16 @@ runs:
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     
-    # Auto-install missing dependencies when install-deps is false (for self-hosted runners)
+    # Install protoc only when install-deps is true
+    - name: Install Protoc
+      if: inputs.install-deps == 'true'
+      uses: arduino/setup-protoc@v3
+      with:
+        repo-token: ${{ github.token }}
+
+    # Auto-install missing dependencies when install-deps is false (for self-hosted runners) can be skipped when statically build the node
     - name: Setup system dependencies (self-hosted)
-      if: inputs.install-deps == 'false'
+      if: inputs.install-deps == 'false' && inputs.skip-libpq == 'false'
       shell: bash
       run: |
         echo "Checking and installing system dependencies locally if needed..."
@@ -172,13 +184,7 @@ runs:
         
         echo "All required system dependencies ready!"
     
-    # Install protoc only when install-deps is true
-    - name: Install Protoc
-      if: inputs.install-deps == 'true'
-      uses: arduino/setup-protoc@v3
-      with:
-        repo-token: ${{ github.token }}
-    
+
     # Auto-install protoc when install-deps is false (for self-hosted runners)
     - name: Setup Protoc (self-hosted)
       if: inputs.install-deps == 'false'

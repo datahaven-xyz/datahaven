@@ -6,26 +6,14 @@
   "environments": [
     {
       "name": "dev_datahaven",
-      "testFileDir": [
-        "datahaven/suites/dev"
-      ],
-      "include": [
-        "**/*test*.ts"
-      ],
+      "testFileDir": ["datahaven/suites/dev"],
+      "include": ["**/*test*.ts"],
       "timeout": 180000,
-      "multiThreads": 4,
+      "multiThreads": false,
       "contracts": "datahaven/contracts/",
-      "runScripts": [
-        "compile-contracts.sh compile"
-      ],
-      "envVars": [
-        "DEBUG_COLORS=1"
-      ],
-      "reporters": [
-        "basic",
-        "html",
-        "json"
-      ],
+      "runScripts": ["compile-contracts.sh compile"],
+      "envVars": ["DEBUG_COLORS=1"],
+      "reporters": ["basic", "html", "json"],
       "reportFile": {
         "json": "./tmp/testResults.json"
       },

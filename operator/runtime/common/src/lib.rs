@@ -22,6 +22,7 @@ pub use constants::*;
 pub mod benchmarking;
 pub mod deal_with_fees;
 pub mod impl_on_charge_evm_transaction;
+pub mod inflation;
 pub mod migrations;
 pub use migrations::*;
 pub mod safe_mode;

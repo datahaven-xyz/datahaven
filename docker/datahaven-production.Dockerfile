@@ -7,6 +7,7 @@ FROM docker.io/library/ubuntu:22.04 AS builder
 # Branch or tag to build DataHaven from
 ARG COMMIT="main"
 ARG RUSTFLAGS=""
+ARG BUILD=""
 ENV RUSTFLAGS=$RUSTFLAGS
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PROTOC_VER=21.12
@@ -37,7 +38,11 @@ WORKDIR /datahaven
 RUN rustc --print target-cpus
 
 RUN echo "*** Building DataHaven ***"
-RUN cargo build --profile=production --all
+RUN if [ "$BUILD" = "static" ]; then \
+        cargo build --profile=production --all --features static
+    else \
+        cargo build --profile=production --all
+    fi
 
 FROM debian:stable-slim
 LABEL maintainer="steve@moonsonglabs.com"
@@ -63,7 +68,7 @@ COPY --from=builder \
     /lib/x86_64-linux-gnu/
 
 # Create datahaven user and directories
-RUN useradd -m -u 1000 -U -s /bin/sh -d /datahaven datahaven && \
+RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
     mkdir -p /datahaven/.local/share /data && \
     chown -R datahaven:datahaven /data && \
     ln -s /data /datahaven/.local/share/datahaven && \

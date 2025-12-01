@@ -194,8 +194,6 @@ contract DeployLocal is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            new IStrategy[](0), // FIXME remove when BSPs are removed
-            new IStrategy[](0), // FIXME remove when MSPs are removed
             params.gateway
         );
 
@@ -662,12 +660,8 @@ contract DeployLocal is DeployBase {
     ) internal pure {
         if (config.validatorsStrategies.length == 0) {
             config.validatorsStrategies = new address[](strategies.length);
-            config.bspsStrategies = new address[](strategies.length);
-            config.mspsStrategies = new address[](strategies.length);
             for (uint256 i = 0; i < strategies.length; i++) {
                 config.validatorsStrategies[i] = strategies[i].address_;
-                config.bspsStrategies[i] = strategies[i].address_;
-                config.mspsStrategies[i] = strategies[i].address_;
             }
         }
     }

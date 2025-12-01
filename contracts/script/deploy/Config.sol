@@ -20,8 +20,6 @@ contract Config {
         address vetoCommitteeMember;
         uint32 vetoWindowBlocks;
         address[] validatorsStrategies;
-        address[] bspsStrategies;
-        address[] mspsStrategies;
     }
 
     // EigenLayer parameters

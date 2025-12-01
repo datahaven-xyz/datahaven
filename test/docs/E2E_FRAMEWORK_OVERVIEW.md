@@ -138,6 +138,9 @@ bun fmt:fix
 bun typecheck
 ```
 
+NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the contracts when starting the tests to speed up setup.
+
+
 ## Network Configuration
 
 ### Default Test Network

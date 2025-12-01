@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
     // Enable latest features
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -33,12 +31,9 @@
     "tsBuildInfoFile": "tmp/tsconfig.tsbuildinfo",
     "assumeChangesOnlyAffectDirectDependencies": true,
     "paths": {
-      "utils": [
-        "./utils/index.ts"
-      ],
-      "utils/types": [
-        "./utils/types.ts"
-      ]
+      "utils": ["./utils/index.ts"],
+      "utils/types": ["./utils/types.ts"],
+      "utils/constants": ["./utils/constants.ts"]
     }
   },
   "include": [

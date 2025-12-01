@@ -51,12 +51,9 @@ jobs:
       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
 
   docker-build-release:
-    needs: [build-operator]
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/task-docker-release.yml
     secrets: inherit
-    with:
-      binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
 
   moonwall-tests:
     needs: [build-operator]

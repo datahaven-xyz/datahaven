@@ -32,7 +32,7 @@ use super::{
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
 /// A description of our proxy types.
 /// Proxy types are used to restrict the calls that can be made by a proxy account.
@@ -79,14 +79,14 @@ use datahaven_runtime_common::{
     },
     gas::WEIGHT_PER_GAS,
     migrations::{
-        FailedMigrationHandler as DefaultFailedMigrationHandler, MigrationCursorMaxLen,
-        MigrationIdentifierMaxLen, MigrationStatusHandler,
+        FailedMigrationHandler, MigrationCursorMaxLen, MigrationIdentifierMaxLen,
+        MigrationStatusHandler,
     },
     safe_mode::{
         ReleaseDelayNone, RuntimeCallFilter, SafeModeDuration, SafeModeEnterDeposit,
         SafeModeExtendDeposit, TxPauseWhitelistedCalls,
     },
-    time::{EpochDurationInBlocks, DAYS, MILLISECS_PER_BLOCK},
+    time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
 use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
@@ -138,7 +138,7 @@ use sp_runtime::{
     traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
     FixedPointNumber, Perbill, Perquintill,
 };
-use sp_staking::{EraIndex, SessionIndex};
+use sp_staking::EraIndex;
 use sp_std::{
     convert::{From, Into},
     prelude::*,
@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const SessionsPerEra: SessionIndex = polkadot_runtime_common::prod_or_fast!(6, 1);
     pub const AuthorRewardPoints: u32 = 20;
 }
 
@@ -373,8 +372,7 @@ impl pallet_authorship::Config for Runtime {
 impl pallet_offences::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
-    // TODO set to External Validators Slashs Pallet once it's added to the runtime
-    type OnOffenceHandler = ();
+    type OnOffenceHandler = ExternalValidatorsSlashes;
 }
 
 pub struct FullIdentificationOf;
@@ -509,7 +507,8 @@ impl pallet_beefy::Config for Runtime {
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem = ();
+    type EquivocationReportSystem =
+        pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 parameter_types! {
@@ -845,20 +844,13 @@ impl pallet_parameters::Config for Runtime {
 impl pallet_migrations::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type Migrations = (
-        datahaven_runtime_common::migrations::MultiBlockMigrationList<Runtime>,
-        datahaven_runtime_common::migrations::evm_chain_id::EvmChainIdMigration<
-            Runtime,
-            EVM_CHAIN_ID,
-        >,
-    );
+    type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     #[cfg(feature = "runtime-benchmarks")]
     type Migrations = datahaven_runtime_common::migrations::MultiBlockMigrationList;
     type CursorMaxLen = MigrationCursorMaxLen;
     type IdentifierMaxLen = MigrationIdentifierMaxLen;
     type MigrationStatusHandler = MigrationStatusHandler;
-    // TODO: Remove this once we have a proper failed migration handler (Safe mode)
-    type FailedMigrationHandler = DefaultFailedMigrationHandler;
+    type FailedMigrationHandler = FailedMigrationHandler<SafeMode>;
     type MaxServiceWeight = MaxServiceWeight;
     type WeightInfo = stagenet_weights::pallet_migrations::WeightInfo<Runtime>;
 }
@@ -901,6 +893,14 @@ parameter_types! {
     pub const TreasuryId: PalletId = PalletId(*b"pc/trsry");
     pub TreasuryAccount: AccountId = Treasury::account_id();
     pub const MaxSpendBalance: crate::Balance = crate::Balance::max_value();
+
+    /// PalletId for the External Validator Rewards account.
+    /// This account receives minted inflation tokens before they are bridged to Ethereum
+    /// for distribution to validators via EigenLayer.
+    ///
+    /// Governance/Sudo can transfer funds using: pallet_balances::force_transfer
+    pub const ExternalValidatorRewardsId: PalletId = PalletId(*b"dh/evrew");
+    pub ExternalValidatorRewardsAccount: AccountId = ExternalValidatorRewardsId::get().into_account_truncating();
 }
 
 type RootOrTreasuryCouncilOrigin = EitherOfDiverse<
@@ -992,13 +992,10 @@ parameter_types! {
     pub PrecompilesValue: Precompiles = DataHavenPrecompiles::<Runtime>::new();
     pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
     pub SuicideQuickClearLimit: u32 = 0;
-    /// The amount of gas per pov. A ratio of 16 if we convert ref_time to gas and we compare
-    /// it with the pov_size for a block. E.g.
-    /// ceil(
-    ///     (max_extrinsic.ref_time() / max_extrinsic.proof_size()) / WEIGHT_PER_GAS
-    /// )
+    /// The amount of gas per pov. Set to 0 because DataHaven is a solo chain and we don't
+    /// account for POV (Proof-of-Validity) size constraints like parachains do.
     /// We should re-check `xcm_config::Erc20XcmBridgeTransferGasLimit` when changing this value
-    pub const GasLimitPovSizeRatio: u64 = 16;
+    pub const GasLimitPovSizeRatio: u64 = 0;
     /// The amount of gas per storage (in bytes): BLOCK_GAS_LIMIT / BLOCK_STORAGE_LIMIT
     /// (60_000_000 / 160 kb)
     pub GasLimitStorageGrowthRatio: u64 = 366;
@@ -1422,6 +1419,41 @@ impl Get<Vec<AccountId>> for GetWhitelistedValidators {
     }
 }
 
+/// Type alias for the era inflation provider using common runtime implementation.
+///
+/// Calculates per-era inflation based on:
+/// - Total token issuance (from Balances pallet)
+/// - Annual inflation rate (from InflationTargetedAnnualRate dynamic parameter)
+/// - Era duration calculated from SessionsPerEra, EpochDurationInBlocks, and MILLISECS_PER_BLOCK
+pub type ExternalRewardsEraInflationProvider =
+    datahaven_runtime_common::inflation::ExternalRewardsEraInflationProvider<
+        Balances,
+        runtime_params::dynamic_params::runtime_config::InflationTargetedAnnualRate,
+        SessionsPerEra,
+        EpochDurationInBlocks,
+        ConstU64<MILLISECS_PER_BLOCK>,
+    >;
+
+/// Wrapper struct for the inflation handler using common runtime implementation.
+///
+/// Handles minting of inflation tokens by:
+/// 1. Splitting total inflation between rewards and treasury based on InflationTreasuryProportion
+/// 2. Minting rewards portion to the rewards account
+/// 3. Minting treasury portion to the treasury account
+pub struct ExternalRewardsInflationHandler;
+
+impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
+    for ExternalRewardsInflationHandler
+{
+    fn mint_inflation(who: &AccountId, amount: u128) -> sp_runtime::DispatchResult {
+        datahaven_runtime_common::inflation::ExternalRewardsInflationHandler::<
+            Balances,
+            runtime_params::dynamic_params::runtime_config::InflationTreasuryProportion,
+            TreasuryAccount,
+        >::mint_inflation(who, amount)
+    }
+}
+
 // Stub SendMessage implementation for rewards pallet
 pub struct RewardsSendAdapter;
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
@@ -1485,17 +1517,22 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
     type HistoryDepth = ConstU32<64>;
-    type BackingPoints = ConstU32<20>;
-    type DisputeStatementPoints = ConstU32<20>;
-    type EraInflationProvider = ConstU128<0>;
+
+    // NOT USED: DataHaven is a solochain with BABE+GRANDPA consensus, not a parachain.
+    // Backing and dispute points are only relevant for parachain validation.
+    // These are set to 0 to make it explicit they're unused.
+    type BackingPoints = ConstU32<0>;
+    type DisputeStatementPoints = ConstU32<0>;
+
+    type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type Hashing = Keccak256;
     type Currency = Balances;
-    type RewardsEthereumSovereignAccount = TreasuryAccount;
+    type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
     type WeightInfo = stagenet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     type SendMessage = RewardsSendAdapter;
-    type HandleInflation = ();
+    type HandleInflation = ExternalRewardsInflationHandler;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }

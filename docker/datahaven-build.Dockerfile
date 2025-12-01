@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y gcc libc6-dev libpq-dev && rm -rf /var/
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
     mkdir -p /data /datahaven/.local/share && \
     chown -R datahaven:datahaven /data && \
+    chown datahaven:datahaven /usr/local/bin/datahaven-node && \
     ln -s /data /datahaven/.local/share/datahaven && \
     /usr/local/bin/datahaven-node --version
 

@@ -16,6 +16,7 @@
 
 use {
     crate::{self as pallet_external_validators_rewards, mock::*},
+    frame_support::traits::fungible::Mutate,
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_std::collections::btree_map::BTreeMap,
 };
@@ -208,6 +209,553 @@ fn test_on_era_end_with_zero_points() {
                 .iter()
                 .any(|record| record.event == expected_not_thrown_event),
             "event should not have been thrown",
+        );
+    })
+}
+#[test]
+fn test_inflation_minting() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            // Set inflation amount directly for this test
+            mock.era_inflation = Some(10_000_000); // 10 million tokens per era
+        });
+
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let initial_rewards_balance = Balances::free_balance(&rewards_account);
+
+        // Reward some validators to create reward points
+        let points = vec![10u32, 30u32, 50u32];
+        let accounts = vec![1u64, 3u64, 5u64];
+        let accounts_points: Vec<(u64, crate::RewardPoints)> = accounts
+            .iter()
+            .cloned()
+            .zip(points.iter().cloned())
+            .collect();
+        ExternalValidatorsRewards::reward_by_ids(accounts_points);
+
+        // Trigger era end which should mint inflation
+        ExternalValidatorsRewards::on_era_end(1);
+
+        // Verify inflation was minted (80% to rewards, 20% to treasury)
+        let final_rewards_balance = Balances::free_balance(&rewards_account);
+        let inflation_amount =
+            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        let rewards_amount = inflation_amount * 80 / 100; // 80% goes to rewards
+
+        assert_eq!(
+            final_rewards_balance,
+            initial_rewards_balance + rewards_amount,
+            "Inflation should have been minted to rewards account"
+        );
+    })
+}
+
+#[test]
+fn test_inflation_calculation_with_different_rates() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Test with different inflation amounts
+        for inflation_amount in [1_000_000u128, 5_000_000u128, 10_000_000u128] {
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: 1,
+                    start: None,
+                });
+                mock.era_inflation = Some(inflation_amount);
+            });
+
+            let rewards_account = RewardsEthereumSovereignAccount::get();
+            let initial_balance = Balances::free_balance(&rewards_account);
+
+            // Add some reward points
+            ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+
+            // Trigger era end
+            ExternalValidatorsRewards::on_era_end(1);
+
+            // Verify correct amount was minted (80% to rewards, 20% to treasury)
+            let final_balance = Balances::free_balance(&rewards_account);
+            let rewards_amount = inflation_amount * 80 / 100;
+            assert_eq!(
+                final_balance - initial_balance,
+                rewards_amount,
+                "Incorrect inflation amount minted for rate {}",
+                inflation_amount
+            );
+
+            // Clean up for next iteration
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: 2,
+                    start: None,
+                });
+            });
+        }
+    })
+}
+
+#[test]
+fn test_no_inflation_with_zero_points() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(10_000_000);
+        });
+
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let initial_balance = Balances::free_balance(&rewards_account);
+
+        // Don't add any reward points (or add zero points)
+        // This should prevent inflation from being minted
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        // Verify no inflation was minted because there were no reward points
+        let final_balance = Balances::free_balance(&rewards_account);
+        assert_eq!(
+            final_balance, initial_balance,
+            "No inflation should be minted when there are no reward points"
+        );
+    })
+}
+
+#[test]
+fn test_inflation_calculation_accuracy() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Test that the inflation calculation doesn't lose precision
+        let expected_inflation = 12_345_678_901_234u128; // Large number with precision
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(expected_inflation);
+        });
+
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let initial_balance = Balances::free_balance(&rewards_account);
+
+        // Add reward points
+        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 200)]);
+
+        // Trigger era end
+        ExternalValidatorsRewards::on_era_end(1);
+
+        // Verify amount was minted (80% to rewards, minor rounding acceptable)
+        let final_balance = Balances::free_balance(&rewards_account);
+        let rewards_amount = expected_inflation * 80 / 100;
+        let actual_minted = final_balance - initial_balance;
+        // Allow 1 unit difference due to Perbill rounding in treasury calculation
+        assert!(
+            actual_minted >= rewards_amount.saturating_sub(1) &&
+            actual_minted <= rewards_amount + 1,
+            "Inflation calculation should maintain precision (within 1 unit). Expected: {}, Got: {}",
+            rewards_amount,
+            actual_minted
+        );
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Treasury Allocation Tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_treasury_receives_20_percent_of_inflation() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let base_inflation = 1_000_000u128;
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(base_inflation);
+        });
+
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let treasury_account = TreasuryAccount::get();
+
+        let initial_rewards = Balances::free_balance(&rewards_account);
+        let initial_treasury = Balances::free_balance(&treasury_account);
+
+        // Add validators to trigger inflation
+        ExternalValidatorsRewards::reward_by_ids([
+            (1, 100),
+            (2, 100),
+            (3, 100),
+            (4, 100),
+            (5, 100),
+        ]);
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let final_rewards = Balances::free_balance(&rewards_account);
+        let final_treasury = Balances::free_balance(&treasury_account);
+
+        let rewards_received = final_rewards - initial_rewards;
+        let treasury_received = final_treasury - initial_treasury;
+
+        // Treasury should receive 20% of total inflation
+        let expected_treasury = base_inflation * 20 / 100;
+        let expected_rewards = base_inflation * 80 / 100;
+
+        assert_eq!(
+            treasury_received, expected_treasury,
+            "Treasury should receive exactly 20% of inflation"
+        );
+        assert_eq!(
+            rewards_received, expected_rewards,
+            "Rewards account should receive exactly 80% of inflation"
+        );
+        assert_eq!(
+            treasury_received + rewards_received,
+            base_inflation,
+            "Total minted should equal base inflation"
+        );
+    })
+}
+
+#[test]
+fn test_treasury_allocation_with_different_amounts() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let treasury_account = TreasuryAccount::get();
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+
+        for (era, inflation) in [(1, 100_000u128), (2, 5_000_000u128), (3, 999_999_999u128)] {
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: era,
+                    start: None,
+                });
+                mock.era_inflation = Some(inflation);
+            });
+
+            let treasury_before = Balances::free_balance(&treasury_account);
+            let rewards_before = Balances::free_balance(&rewards_account);
+
+            ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+            ExternalValidatorsRewards::on_era_end(era);
+
+            let treasury_after = Balances::free_balance(&treasury_account);
+            let rewards_after = Balances::free_balance(&rewards_account);
+
+            let treasury_increase = treasury_after - treasury_before;
+            let rewards_increase = rewards_after - rewards_before;
+
+            // Treasury gets mul_floor of 20%, rewards gets the remainder
+            // So treasury + rewards should equal total inflation
+            assert_eq!(
+                treasury_increase + rewards_increase,
+                inflation,
+                "Era {}: Treasury + Rewards should equal total inflation",
+                era
+            );
+
+            // Treasury should be approximately 20% (within 1 unit due to rounding)
+            let expected_treasury = inflation * 20 / 100;
+            assert!(
+                treasury_increase >= expected_treasury.saturating_sub(1)
+                    && treasury_increase <= expected_treasury + 1,
+                "Era {}: Treasury should get approximately 20%",
+                era
+            );
+        }
+    })
+}
+
+#[test]
+fn test_treasury_allocation_maintains_precision() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Use prime number that doesn't divide evenly by 5 (20%)
+        let inflation = 1_234_567u128;
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(inflation);
+        });
+
+        let treasury_account = TreasuryAccount::get();
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+
+        let treasury_before = Balances::free_balance(&treasury_account);
+        let rewards_before = Balances::free_balance(&rewards_account);
+
+        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let treasury_after = Balances::free_balance(&treasury_account);
+        let rewards_after = Balances::free_balance(&rewards_account);
+
+        let treasury_increase = treasury_after - treasury_before;
+        let rewards_increase = rewards_after - rewards_before;
+        let total_minted = treasury_increase + rewards_increase;
+
+        // Total minted should equal total inflation (no rounding loss to exceed inflation)
+        assert!(
+            total_minted <= inflation,
+            "Total minted should not exceed inflation due to rounding"
+        );
+
+        // But should be very close (within 1 token for rounding)
+        assert!(
+            inflation - total_minted < 100,
+            "Rounding loss should be minimal"
+        );
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Edge Case Tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_single_validator_network() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(1_000_000);
+        });
+
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let initial_balance = Balances::free_balance(&rewards_account);
+
+        // Only one validator participates
+        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let final_balance = Balances::free_balance(&rewards_account);
+        let inflation_received = final_balance - initial_balance;
+
+        // Single validator should still trigger full inflation (for rewards portion)
+        assert!(
+            inflation_received > 0,
+            "Single validator should receive rewards"
+        );
+    })
+}
+
+#[test]
+fn test_very_large_inflation_no_overflow() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Use close to u128::MAX to test overflow protection
+        let large_inflation = u128::MAX / 2;
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(large_inflation);
+        });
+
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let treasury_account = TreasuryAccount::get();
+
+        let rewards_before = Balances::free_balance(&rewards_account);
+        let treasury_before = Balances::free_balance(&treasury_account);
+
+        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let rewards_after = Balances::free_balance(&rewards_account);
+        let treasury_after = Balances::free_balance(&treasury_account);
+
+        // Should not panic or overflow
+        assert!(rewards_after >= rewards_before, "Rewards should increase");
+        assert!(
+            treasury_after >= treasury_before,
+            "Treasury should increase"
+        );
+
+        // Total should not exceed input
+        let total_increase = (rewards_after - rewards_before) + (treasury_after - treasury_before);
+        assert!(
+            total_increase <= large_inflation,
+            "Total minted should not exceed inflation amount"
+        );
+    })
+}
+
+#[test]
+fn test_very_small_inflation_amounts() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        // Test with very small amounts
+        for tiny_amount in [1u128, 2u128, 5u128, 10u128] {
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: tiny_amount as u32,
+                    start: None,
+                });
+                mock.era_inflation = Some(tiny_amount);
+            });
+
+            let rewards_account = RewardsEthereumSovereignAccount::get();
+            let treasury_account = TreasuryAccount::get();
+
+            let rewards_before = Balances::free_balance(&rewards_account);
+            let treasury_before = Balances::free_balance(&treasury_account);
+
+            ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+            ExternalValidatorsRewards::on_era_end(tiny_amount as u32);
+
+            let rewards_after = Balances::free_balance(&rewards_account);
+            let treasury_after = Balances::free_balance(&treasury_account);
+
+            let total_minted =
+                (rewards_after - rewards_before) + (treasury_after - treasury_before);
+
+            // Should handle small amounts gracefully (may round to 0 for treasury)
+            assert!(
+                total_minted <= tiny_amount,
+                "Amount {} should not exceed inflation",
+                tiny_amount
+            );
+        }
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Integration and Regression Tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_consistent_inflation_across_eras() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let base_inflation = 5_000_000u128;
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+
+        // Run multiple eras with identical conditions
+        for era in 1..=5 {
+            Mock::mutate(|mock| {
+                mock.active_era = Some(ActiveEraInfo {
+                    index: era,
+                    start: None,
+                });
+                mock.era_inflation = Some(base_inflation);
+            });
+
+            let balance_before = Balances::free_balance(&rewards_account);
+
+            // Same participation every era
+            ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100), (3, 100)]);
+
+            ExternalValidatorsRewards::on_era_end(era);
+
+            let balance_after = Balances::free_balance(&rewards_account);
+            let inflation = balance_after - balance_before;
+
+            // Each era should mint the same amount given identical conditions
+            let expected = base_inflation * 80 / 100; // 80% to rewards account
+            assert_eq!(
+                inflation, expected,
+                "Era {}: Inflation should be consistent across eras",
+                era
+            );
+        }
+    })
+}
+
+#[test]
+fn test_no_unexpected_balance_changes() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(1_000_000);
+        });
+
+        // Check balances of non-participating accounts don't change
+        let observer_account = 99u64;
+        let _ = Balances::mint_into(&observer_account, 1000); // Give it some balance
+
+        let observer_balance_before = Balances::free_balance(&observer_account);
+
+        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let observer_balance_after = Balances::free_balance(&observer_account);
+
+        assert_eq!(
+            observer_balance_before, observer_balance_after,
+            "Non-participating accounts should not be affected"
+        );
+    })
+}
+
+#[test]
+fn test_total_issuance_increases_correctly() {
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let inflation = 10_000_000u128;
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(inflation);
+        });
+
+        let total_issuance_before = Balances::total_issuance();
+
+        ExternalValidatorsRewards::reward_by_ids([
+            (1, 100),
+            (2, 100),
+            (3, 100),
+            (4, 100),
+            (5, 100),
+        ]);
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let total_issuance_after = Balances::total_issuance();
+
+        // Total issuance should increase by exactly the inflation amount
+        assert_eq!(
+            total_issuance_after - total_issuance_before,
+            inflation,
+            "Total issuance should increase by inflation amount"
         );
     })
 }

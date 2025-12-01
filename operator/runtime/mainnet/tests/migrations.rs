@@ -18,7 +18,9 @@
 mod common;
 
 use common::*;
-use datahaven_mainnet_runtime::{Runtime, RuntimeCall, RuntimeOrigin};
+use datahaven_mainnet_runtime::{
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SafeMode, System,
+};
 use frame_support::{assert_noop, assert_ok};
 use pallet_migrations::{Call as MigrationsCall, HistoricCleanupSelector};
 use sp_runtime::{traits::Dispatchable, DispatchError};
@@ -67,5 +69,78 @@ fn migrations_force_calls_are_root_only() {
             DispatchError::BadOrigin
         );
         assert_ok!(clear_historic.dispatch(RuntimeOrigin::root()));
+    });
+}
+
+#[test]
+fn failed_migration_enters_safe_mode() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Verify SafeMode is not active initially
+        assert!(
+            !SafeMode::is_entered(),
+            "SafeMode should not be active initially"
+        );
+
+        // Simulate a failed migration by directly calling the FailedMigrationHandler
+        // This tests that when migrations fail, the system enters SafeMode
+        use frame_support::migrations::FailedMigrationHandler;
+        type Handler = <Runtime as pallet_migrations::Config>::FailedMigrationHandler;
+
+        // Call the failed handler (simulating a migration failure)
+        let result = Handler::failed(Some(0));
+
+        // The handler should indicate that SafeMode was entered
+        assert_eq!(
+            result,
+            frame_support::migrations::FailedMigrationHandling::KeepStuck,
+            "Handler should keep the chain stuck in SafeMode"
+        );
+
+        // Verify that SafeMode is now active
+        assert!(
+            SafeMode::is_entered(),
+            "SafeMode should be active after migration failure"
+        );
+
+        // Get the block number when SafeMode should expire
+        let entered_until = pallet_safe_mode::EnteredUntil::<Runtime>::get();
+        assert!(
+            entered_until.is_some(),
+            "SafeMode should have an expiry block"
+        );
+
+        // Verify that the SafeMode event was emitted
+        let events = System::events();
+        assert!(
+            events.iter().any(|e| matches!(
+                e.event,
+                RuntimeEvent::SafeMode(pallet_safe_mode::Event::Entered { .. })
+            )),
+            "SafeMode::Entered event should be emitted"
+        );
+    });
+}
+
+#[test]
+fn safe_mode_allows_governance_during_migration_failure() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Simulate a failed migration
+        use frame_support::migrations::FailedMigrationHandler;
+        type Handler = <Runtime as pallet_migrations::Config>::FailedMigrationHandler;
+        Handler::failed(Some(0));
+
+        // Verify SafeMode is active
+        assert!(SafeMode::is_entered(), "SafeMode should be active");
+
+        // Test that SafeMode management calls are still allowed
+        let force_exit_call = RuntimeCall::SafeMode(pallet_safe_mode::Call::force_exit {});
+        let result = force_exit_call.dispatch(RuntimeOrigin::root());
+        assert_ok!(result);
+
+        // Verify SafeMode is now inactive
+        assert!(
+            !SafeMode::is_entered(),
+            "SafeMode should be inactive after force exit"
+        );
     });
 }

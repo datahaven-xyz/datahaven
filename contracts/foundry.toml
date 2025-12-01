@@ -28,6 +28,8 @@
         "lib/snowbridge/contracts/:prb/math/=lib/snowbridge/contracts/lib/prb-math/",
         "openzeppelin/=lib/snowbridge/contracts/lib/openzeppelin-contracts/contracts/",
         "prb/math/=lib/snowbridge/contracts/lib/prb-math/",
+        "src/contracts/=lib/eigenlayer-contracts/src/contracts/",
+        "src/test/=lib/eigenlayer-contracts/src/test/",
     ]
     # Specifies the exact version of Solidity to use, overriding auto-detection.
     solc_version = '0.8.28'

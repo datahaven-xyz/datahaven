@@ -10,6 +10,7 @@ export * from "./papi";
 export * from "./parameters";
 export * from "./parser";
 export * from "./rpc";
+export * from "./service-mappings";
 export * from "./shell";
 export * from "./validators";
 export * from "./viem";

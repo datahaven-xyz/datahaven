@@ -91,8 +91,9 @@ export const launchLocalDataHavenSolochain = async (
 
   if (options.buildDatahaven) {
     await buildLocalImage(options);
+  } else {
+    await checkTagExists(options.datahavenImageTag);
   }
-  await checkTagExists(options.datahavenImageTag);
 
   // Create a unique Docker network name using the network ID
   const dockerNetworkName = `datahaven-${options.networkId}`;

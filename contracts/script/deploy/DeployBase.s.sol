@@ -114,7 +114,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         _logProgress();
 
         // Deploy Snowbridge (same for both modes)
-        Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
         (
             BeefyClient beefyClient,
             AgentExecutor agentExecutor,
@@ -170,6 +169,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     function _deploySnowbridge(
         SnowbridgeConfig memory config
     ) internal returns (BeefyClient, AgentExecutor, IGatewayV2, address payable) {
+        Logging.logHeader("SNOWBRIDGE DEPLOYMENT");
+
         Logging.logSection("Deploying Snowbridge Core Components");
 
         BeefyClient beefyClient = _deployBeefyClient(config);

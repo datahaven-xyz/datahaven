@@ -21,8 +21,7 @@ mod common;
 
 use common::{account_id, ExtBuilder, ALICE, BOB};
 use datahaven_stagenet_runtime::{
-    Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SafeMode, System, TxPause,
-    UncheckedExtrinsic,
+    Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, System, UncheckedExtrinsic,
 };
 use frame_support::{assert_noop, assert_ok, BoundedVec};
 use pallet_safe_mode::EnteredUntil;

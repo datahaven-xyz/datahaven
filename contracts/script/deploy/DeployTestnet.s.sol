@@ -57,7 +57,7 @@ contract DeployTestnet is DeployBase {
         );
 
         currentTestnet = _detectAndValidateNetwork(networkName);
-        totalSteps = 2; // Reduced steps since we're not deploying EigenLayer
+        totalSteps = 4;
 
         _executeSharedDeployment();
     }
@@ -132,8 +132,6 @@ contract DeployTestnet is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
-            new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
             params.gateway
         );
 

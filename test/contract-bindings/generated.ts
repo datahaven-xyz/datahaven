@@ -2048,22 +2048,8 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'BSPS_SET_ID',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'DATAHAVEN_AVS_METADATA',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MSPS_SET_ID',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
   },
   {
@@ -2075,48 +2061,8 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'bsp', internalType: 'address', type: 'address' }],
-    name: 'addBspToAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'msp', internalType: 'address', type: 'address' }],
-    name: 'addMspToAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'admin', internalType: 'address', type: 'address' }],
     name: 'addPendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'addStrategiesToBspsSupportedStrategies',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'addStrategiesToMspsSupportedStrategies',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2159,22 +2105,6 @@ export const dataHavenServiceManagerAbi = [
     inputs: [],
     name: 'avs',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'bspsAllowlist',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'bspsSupportedStrategies',
-    outputs: [
-      { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -2391,16 +2321,6 @@ export const dataHavenServiceManagerAbi = [
         type: 'address[]',
       },
       {
-        name: 'bspsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-      {
-        name: 'mspsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-      {
         name: '_snowbridgeGatewayAddress',
         internalType: 'address',
         type: 'address',
@@ -2409,22 +2329,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'initialise',
     outputs: [],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'mspsAllowlist',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'mspsSupportedStrategies',
-    outputs: [
-      { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
-    ],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -2518,50 +2422,10 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'bsp', internalType: 'address', type: 'address' }],
-    name: 'removeBspFromAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'msp', internalType: 'address', type: 'address' }],
-    name: 'removeMspFromAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'pendingAdmin', internalType: 'address', type: 'address' },
     ],
     name: 'removePendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'removeStrategiesFromBspsSupportedStrategies',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'removeStrategiesFromMspsSupportedStrategies',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2764,41 +2628,9 @@ export const dataHavenServiceManagerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'bsp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'BspAddedToAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'bsp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'BspRemovedFromAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
       { name: 'version', internalType: 'uint8', type: 'uint8', indexed: false },
     ],
     name: 'Initialized',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'msp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'MspAddedToAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'msp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'MspRemovedFromAllowlist',
   },
   {
     type: 'event',
@@ -11595,30 +11427,12 @@ export const readDataHavenServiceManager = /*#__PURE__*/ createReadContract({
 })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"BSPS_SET_ID"`
- */
-export const readDataHavenServiceManagerBspsSetId =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'BSPS_SET_ID',
-  })
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_AVS_METADATA"`
  */
 export const readDataHavenServiceManagerDatahavenAvsMetadata =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'DATAHAVEN_AVS_METADATA',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MSPS_SET_ID"`
- */
-export const readDataHavenServiceManagerMspsSetId =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'MSPS_SET_ID',
   })
 
 /**
@@ -11637,24 +11451,6 @@ export const readDataHavenServiceManagerAvs = /*#__PURE__*/ createReadContract({
   abi: dataHavenServiceManagerAbi,
   functionName: 'avs',
 })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"bspsAllowlist"`
- */
-export const readDataHavenServiceManagerBspsAllowlist =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'bspsAllowlist',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"bspsSupportedStrategies"`
- */
-export const readDataHavenServiceManagerBspsSupportedStrategies =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'bspsSupportedStrategies',
-  })
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessage"`
@@ -11681,24 +11477,6 @@ export const readDataHavenServiceManagerGetRestakeableStrategies =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'getRestakeableStrategies',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"mspsAllowlist"`
- */
-export const readDataHavenServiceManagerMspsAllowlist =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'mspsAllowlist',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"mspsSupportedStrategies"`
- */
-export const readDataHavenServiceManagerMspsSupportedStrategies =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'mspsSupportedStrategies',
   })
 
 /**
@@ -11781,48 +11559,12 @@ export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
 })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addBspToAllowlist"`
- */
-export const writeDataHavenServiceManagerAddBspToAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addBspToAllowlist',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addMspToAllowlist"`
- */
-export const writeDataHavenServiceManagerAddMspToAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addMspToAllowlist',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
  */
 export const writeDataHavenServiceManagerAddPendingAdmin =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'addPendingAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToBspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerAddStrategiesToBspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToMspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerAddStrategiesToMspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToMspsSupportedStrategies',
   })
 
 /**
@@ -11997,48 +11739,12 @@ export const writeDataHavenServiceManagerRemoveAppointee =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeBspFromAllowlist"`
- */
-export const writeDataHavenServiceManagerRemoveBspFromAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeBspFromAllowlist',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeMspFromAllowlist"`
- */
-export const writeDataHavenServiceManagerRemoveMspFromAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeMspFromAllowlist',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
  */
 export const writeDataHavenServiceManagerRemovePendingAdmin =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'removePendingAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromBspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerRemoveStrategiesFromBspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromMspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerRemoveStrategiesFromMspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromMspsSupportedStrategies',
   })
 
 /**
@@ -12183,48 +11889,12 @@ export const simulateDataHavenServiceManager =
   /*#__PURE__*/ createSimulateContract({ abi: dataHavenServiceManagerAbi })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addBspToAllowlist"`
- */
-export const simulateDataHavenServiceManagerAddBspToAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addBspToAllowlist',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addMspToAllowlist"`
- */
-export const simulateDataHavenServiceManagerAddMspToAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addMspToAllowlist',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
  */
 export const simulateDataHavenServiceManagerAddPendingAdmin =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'addPendingAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToBspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerAddStrategiesToBspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToMspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerAddStrategiesToMspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToMspsSupportedStrategies',
   })
 
 /**
@@ -12399,48 +12069,12 @@ export const simulateDataHavenServiceManagerRemoveAppointee =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeBspFromAllowlist"`
- */
-export const simulateDataHavenServiceManagerRemoveBspFromAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeBspFromAllowlist',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeMspFromAllowlist"`
- */
-export const simulateDataHavenServiceManagerRemoveMspFromAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeMspFromAllowlist',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
  */
 export const simulateDataHavenServiceManagerRemovePendingAdmin =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'removePendingAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromBspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerRemoveStrategiesFromBspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromMspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerRemoveStrategiesFromMspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromMspsSupportedStrategies',
   })
 
 /**
@@ -12585,48 +12219,12 @@ export const watchDataHavenServiceManagerEvent =
   /*#__PURE__*/ createWatchContractEvent({ abi: dataHavenServiceManagerAbi })
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"BspAddedToAllowlist"`
- */
-export const watchDataHavenServiceManagerBspAddedToAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'BspAddedToAllowlist',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"BspRemovedFromAllowlist"`
- */
-export const watchDataHavenServiceManagerBspRemovedFromAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'BspRemovedFromAllowlist',
-  })
-
-/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchDataHavenServiceManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'Initialized',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"MspAddedToAllowlist"`
- */
-export const watchDataHavenServiceManagerMspAddedToAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'MspAddedToAllowlist',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"MspRemovedFromAllowlist"`
- */
-export const watchDataHavenServiceManagerMspRemovedFromAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'MspRemovedFromAllowlist',
   })
 
 /**

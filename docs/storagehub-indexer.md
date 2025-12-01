@@ -16,9 +16,41 @@ Indexer nodes index blockchain data into a PostgreSQL database, enabling efficie
 
 - DataHaven node binary or Docker image
 - PostgreSQL 14+ database server
-- Sufficient storage for database (100+ GB recommended)
+- Sufficient storage for chain data and database
 - Stable network connection
 - Open network ports (30333, optionally 9944)
+
+## Hardware Requirements
+
+Indexer nodes have varying requirements depending on the indexing mode. Full mode requires more resources for complete historical data indexing.
+
+### Lite/Fishing Mode Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 physical cores @ 2.5 GHz |
+| **RAM** | 16 GB DDR4 |
+| **Storage (Chain Data)** | 100 GB NVMe SSD |
+| **Storage (Database)** | 100 GB NVMe SSD |
+| **Network** | 100 Mbit/s symmetric |
+
+### Full Mode Specifications (Recommended)
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8 physical cores @ 3.0 GHz (Intel Ice Lake+ or AMD Zen3+) |
+| **RAM** | 32 GB DDR4 |
+| **Storage (Chain Data)** | 300 GB NVMe SSD |
+| **Storage (Database)** | 500 GB NVMe SSD |
+| **Network** | 500 Mbit/s symmetric |
+
+### Important Considerations
+
+- **Archive mode**: Full indexers should run with `--pruning archive` for complete historical data
+- **Database performance**: Use NVMe SSD for PostgreSQL data directory
+- **Separate volumes**: Keep chain data and database on separate volumes for better I/O
+- **Database growth**: Plan for database growth; full mode can grow significantly over time
+- **Cloud compatible**: Indexer nodes work well on cloud VPS with dedicated storage
 
 ## Key Requirements
 
@@ -372,10 +404,10 @@ spec:
           mountPath: /data
         resources:
           requests:
-            memory: "8Gi"
+            memory: "16Gi"
             cpu: "4"
           limits:
-            memory: "16Gi"
+            memory: "32Gi"
             cpu: "8"
         args:
           - "--chain=stagenet-local"
@@ -394,8 +426,10 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 300Gi
+          storage: 500Gi
 ```
+
+**Note**: Database storage (200Gi in PostgreSQL StatefulSet) should be increased to 500Gi for full mode in production.
 
 ## On-Chain Registration
 
@@ -562,14 +596,6 @@ datahaven-node \
   --state-cache-size 268435456 \  # 256 MB
   --max-runtime-instances 8
 ```
-
-### Resource Requirements
-
-| Mode | CPU | RAM | Storage (Chain) | Storage (DB) | Network |
-|------|-----|-----|-----------------|--------------|---------|
-| Full | 4-8 cores | 16-32 GB | 200 GB | 200-500 GB | 100 Mbps |
-| Lite | 2-4 cores | 8-16 GB | 100 GB | 50-100 GB | 100 Mbps |
-| Fishing | 2-4 cores | 8-16 GB | 100 GB | 50-100 GB | 100 Mbps |
 
 ## Security Considerations
 

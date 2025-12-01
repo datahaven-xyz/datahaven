@@ -17,9 +17,31 @@ Backup Storage Providers (BSPs) provide redundant storage for files in the Stora
 
 - DataHaven node binary or Docker image
 - Funded account with sufficient balance for deposits
-- Storage capacity (minimum 2 data units, recommended 10+ GiB)
+- Storage capacity (minimum 1 TB, recommended 2+ TB)
 - Stable network connection
 - Open network ports (30333, optionally 9944)
+
+## Hardware Requirements
+
+BSPs have similar hardware requirements to MSPs as they store backup data and must reliably submit proofs of storage.
+
+### Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8 physical cores @ 3.4 GHz (Intel Ice Lake+ or AMD Zen3+) |
+| **RAM** | 32 GB DDR4 ECC |
+| **Storage (System)** | 500 GB NVMe SSD (chain data) |
+| **Storage (User Data)** | 1 TB NVMe SSD or HDD (minimum) |
+| **Network** | 500 Mbit/s symmetric |
+
+### Important Considerations
+
+- **Separate storage volumes**: Keep chain data and user data on separate volumes for better I/O performance
+- **Storage expansion**: Plan for growth; user data storage should be easily expandable
+- **max-storage-capacity**: Set this CLI flag to **80% of available physical disk space** to leave headroom for filesystem overhead and temporary files
+- **Cloud compatible**: BSPs can run effectively on cloud VPS with dedicated storage volumes
+- **Proof submission**: Ensure reliable network connectivity for timely proof submissions
 
 ## Key Requirements
 
@@ -67,12 +89,21 @@ The entrypoint script automatically injects the BCSV key.
 
 - **Purpose**: BSP registration, transaction fees, and deposits
 - **Required Balance**:
-  - Minimum deposit: 100 HAVE (SpMinDeposit)
-  - Deposit per data unit: 2 HAVE per unit
+  - Base deposit: 100 HAVE (`SpMinDeposit`)
+  - Deposit per GiB: 2 HAVE (`DepositPerData`)
   - Transaction fees: ~10 HAVE
-  - **Recommended**: 200+ HAVE for initial setup
 - **Funding**: Must be funded **before** BSP registration
 - **Account Type**: Ethereum-style 20-byte address (AccountId20)
+
+**Deposit Calculation by Capacity:**
+
+| Storage Capacity | Deposit Required | Recommended Balance |
+|------------------|------------------|---------------------|
+| 800 GiB (1 TB disk) | ~1,700 HAVE | 1,800+ HAVE |
+| 1.6 TiB (2 TB disk) | ~3,400 HAVE | 3,600+ HAVE |
+| 4 TiB (5 TB disk) | ~8,300 HAVE | 8,500+ HAVE |
+
+Formula: `100 + (capacity_in_gib × 2) + buffer`
 
 ### Generate Provider Account
 
@@ -110,8 +141,11 @@ datahaven-node \
 | `--storage-path <PATH>` | Storage path (required if rocksdb) | No | None |
 
 **Example Values:**
-- `--max-storage-capacity 10737418240` (10 GiB)
-- `--jump-capacity 1073741824` (1 GiB)
+- `--max-storage-capacity 858993459200` (800 GiB = 80% of 1 TB disk)
+- `--max-storage-capacity 1717986918400` (1.6 TiB = 80% of 2 TB disk)
+- `--jump-capacity 107374182400` (100 GiB)
+
+**Note**: Set `--max-storage-capacity` to approximately **80% of your available physical disk space** to leave headroom for filesystem overhead and temporary files.
 
 ### BSP-Specific Task Flags
 
@@ -174,9 +208,11 @@ datahaven-node key insert \
 
 ```bash
 # Transfer funds to BSP account
-# Minimum: 200 HAVE (100 deposit + 100 for operations)
+# For 800 GiB capacity: ~1,800 HAVE (1,700 deposit + 100 buffer)
+# For 1.6 TiB capacity: ~3,600 HAVE (3,400 deposit + 200 buffer)
 
 # Using Polkadot.js or a funded account, send HAVE tokens to $BSP_ACCOUNT
+# Formula: 100 + (capacity_in_gib × 2) + buffer
 ```
 
 ### 3. Start BSP Node
@@ -188,8 +224,8 @@ datahaven-node \
   --base-path /data/bsp \
   --provider \
   --provider-type bsp \
-  --max-storage-capacity 10737418240 \
-  --jump-capacity 1073741824 \
+  --max-storage-capacity 858993459200 \
+  --jump-capacity 107374182400 \
   --storage-layer rocksdb \
   --storage-path /data/bsp/storage \
   --bsp-upload-file-task \
@@ -235,8 +271,8 @@ services:
       - "--keystore-path=/data/keystore"
       - "--provider"
       - "--provider-type=bsp"
-      - "--max-storage-capacity=10737418240"
-      - "--jump-capacity=1073741824"
+      - "--max-storage-capacity=858993459200"
+      - "--jump-capacity=107374182400"
       - "--storage-layer=rocksdb"
       - "--storage-path=/data/storage"
       - "--bsp-upload-file-task"
@@ -304,8 +340,8 @@ spec:
           - "--chain=stagenet-local"
           - "--provider"
           - "--provider-type=bsp"
-          - "--max-storage-capacity=10737418240"
-          - "--jump-capacity=1073741824"
+          - "--max-storage-capacity=858993459200"
+          - "--jump-capacity=107374182400"
           - "--storage-layer=rocksdb"
           - "--storage-path=/data/storage"
           - "--bsp-upload-file-task"
@@ -319,14 +355,14 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 100Gi
+          storage: 500Gi
   - metadata:
       name: storage
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 500Gi
+          storage: 1000Gi
 ```
 
 ## On-Chain Registration
@@ -359,7 +395,7 @@ const typedApi = client.getTypedApi(datahaven);
 const bspSigner = /* your polkadot-api signer */;
 
 // BSP configuration
-const capacity = BigInt(10_737_418_240); // 10 GiB in bytes
+const capacity = BigInt(858_993_459_200); // 800 GiB (80% of 1 TB disk)
 const multiaddresses = [
   '/ip4/127.0.0.1/tcp/30333',
   '/dns/bsp01.example.com/tcp/30333'
@@ -467,7 +503,7 @@ const sudoSigner = /* sudo account signer */;
 const bspCall = typedApi.tx.Providers.force_bsp_sign_up({
   who: bspAccount,
   bsp_id: /* pre-generated provider ID */,
-  capacity: BigInt(10_737_418_240),
+  capacity: BigInt(858_993_459_200), // 800 GiB
   multiaddresses: multiaddresses,
   payment_account: bspAccount,
   weight: undefined  // Optional weight parameter
@@ -481,17 +517,21 @@ await sudoTx.signAndSubmit(sudoSigner);
 
 | Parameter | Type | Description | Example |
 |-----------|------|-------------|---------|
-| `capacity` | StorageDataUnit | Storage capacity in bytes | `10737418240` (10 GiB) |
+| `capacity` | StorageDataUnit | Storage capacity in bytes | `858993459200` (800 GiB) |
 | `multiaddresses` | Vec<Bytes> | P2P network addresses | `[Binary.fromText("/ip4/...")]` |
 | `payment_account` | AccountId | Account receiving payments | `0x...` (20-byte) |
 
 ### Deposit Requirements
 
 - **Base Deposit**: 100 HAVE (`SpMinDeposit`)
-- **Per Data Unit**: 2 HAVE per unit (`DepositPerData`)
-- **Total for 10 GiB**: ~100 HAVE + (10 GiB in units × 2 HAVE)
+- **Per GiB**: 2 HAVE (`DepositPerData`)
+- **Formula**: `100 + (capacity_in_gib × 2)`
 
-The deposit is **held (reserved)** from your account when you call `request_bsp_sign_up` and remains held while you operate as a BSP.
+**Examples:**
+- 800 GiB capacity: `100 + (800 × 2) = 1,700 HAVE`
+- 1.6 TiB capacity: `100 + (1,638 × 2) = 3,376 HAVE`
+
+The deposit is **held (reserved)** from your account when you call `request_bsp_sign_up` and remains held while you operate as a BSP. The deposit is returned when you deregister as a BSP.
 
 ## Monitoring
 

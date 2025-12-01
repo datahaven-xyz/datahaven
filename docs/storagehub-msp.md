@@ -17,10 +17,42 @@ Main Storage Providers (MSPs) are primary storage providers in the StorageHub ne
 
 - DataHaven node binary or Docker image
 - Funded account with sufficient balance for deposits
-- Storage capacity (minimum 2 data units, recommended 10+ GiB)
+- Storage capacity (minimum 1 TB, recommended 2+ TB)
 - Stable network connection
 - Open network ports (30333, optionally 9944)
 - Optional: PostgreSQL database for advanced features
+
+## Hardware Requirements
+
+MSPs have validator-level hardware requirements plus additional storage capacity for user data. Single-threaded CPU performance is important for block processing.
+
+### Minimum Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8 physical cores @ 3.4 GHz (Intel Ice Lake+ or AMD Zen3+) |
+| **RAM** | 32 GB DDR4 ECC |
+| **Storage (System)** | 500 GB NVMe SSD (chain data) |
+| **Storage (User Data)** | 1 TB NVMe SSD or HDD |
+| **Network** | 500 Mbit/s symmetric |
+
+### Recommended Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | Intel Xeon E-2386/E-2388 or AMD Ryzen 9 5950x/5900x |
+| **RAM** | 64 GB DDR4 ECC |
+| **Storage (System)** | 1 TB NVMe SSD (chain data) |
+| **Storage (User Data)** | 2+ TB NVMe SSD (expandable) |
+| **Network** | 1 Gbit/s symmetric |
+
+### Important Considerations
+
+- **Disable Hyper-Threading/SMT**: Single-threaded performance is prioritized over core count
+- **Separate storage volumes**: Keep chain data and user data on separate volumes for better I/O performance
+- **Storage expansion**: Plan for growth; user data storage should be easily expandable
+- **max-storage-capacity**: Set this CLI flag to **80% of available physical disk space** to leave headroom for filesystem overhead and temporary files
+- **Bare metal preferred**: Cloud VPS may have inconsistent performance; bare metal provides better I/O predictability
 
 ## Key Requirements
 
@@ -68,12 +100,21 @@ The entrypoint script automatically injects the BCSV key.
 
 - **Purpose**: MSP registration, transaction fees, and deposits
 - **Required Balance**:
-  - Minimum deposit: 100 HAVE (SpMinDeposit)
-  - Deposit per data unit: 2 HAVE per unit
+  - Base deposit: 100 HAVE (`SpMinDeposit`)
+  - Deposit per GiB: 2 HAVE (`DepositPerData`)
   - Transaction fees: ~10 HAVE
-  - **Recommended**: 200+ HAVE for initial setup
 - **Funding**: Must be funded **before** MSP registration
 - **Account Type**: Ethereum-style 20-byte address (AccountId20)
+
+**Deposit Calculation by Capacity:**
+
+| Storage Capacity | Deposit Required | Recommended Balance |
+|------------------|------------------|---------------------|
+| 800 GiB (1 TB disk) | ~1,700 HAVE | 1,800+ HAVE |
+| 1.6 TiB (2 TB disk) | ~3,400 HAVE | 3,600+ HAVE |
+| 4 TiB (5 TB disk) | ~8,300 HAVE | 8,500+ HAVE |
+
+Formula: `100 + (capacity_in_gib × 2) + buffer`
 
 ### Generate Provider Account
 
@@ -113,9 +154,12 @@ datahaven-node \
 | `--storage-path <PATH>` | Storage path (required if rocksdb) | No | None |
 
 **Example Values:**
-- `--max-storage-capacity 10737418240` (10 GiB)
-- `--jump-capacity 1073741824` (1 GiB)
+- `--max-storage-capacity 858993459200` (800 GiB = 80% of 1 TB disk)
+- `--max-storage-capacity 1717986918400` (1.6 TiB = 80% of 2 TB disk)
+- `--jump-capacity 107374182400` (100 GiB)
 - `--msp-charging-period 100` (100 blocks)
+
+**Note**: Set `--max-storage-capacity` to approximately **80% of your available physical disk space** to leave headroom for filesystem overhead and temporary files.
 
 ### MSP-Specific Task Flags
 
@@ -175,9 +219,11 @@ datahaven-node key insert \
 
 ```bash
 # Transfer funds to MSP account
-# Minimum: 200 HAVE (100 deposit + 100 for operations)
+# For 800 GiB capacity: ~1,800 HAVE (1,700 deposit + 100 buffer)
+# For 1.6 TiB capacity: ~3,600 HAVE (3,400 deposit + 200 buffer)
 
 # Using Polkadot.js or a funded account, send HAVE tokens to $MSP_ACCOUNT
+# Formula: 100 + (capacity_in_gib × 2) + buffer
 ```
 
 ### 3. Start MSP Node
@@ -360,19 +406,23 @@ const typedApi = client.getTypedApi(datahaven);
 const mspSigner = /* your polkadot-api signer */;
 
 // MSP configuration
-const capacity = BigInt(10_737_418_240); // 10 GiB in bytes
+const capacity = BigInt(858_993_459_200); // 800 GiB (80% of 1 TB disk)
 const multiaddresses = [
   '/ip4/127.0.0.1/tcp/30333',
   '/dns/msp01.example.com/tcp/30333'
 ].map(addr => Binary.fromText(addr));
 
+// Pricing: $0.20 / 50 GiB / month at HAVE = $0.01
+// See "Calculating Storage Pricing" section for formula
+const pricePerGibPerBlock = BigInt(926_000_000_000);
+
 // Step 1: Request MSP sign up
 const requestTx = typedApi.tx.Providers.request_msp_sign_up({
   capacity: capacity,
   multiaddresses: multiaddresses,
-  value_prop_price_per_giga_unit_of_data_per_block: BigInt(18_520_000_000),
+  value_prop_price_per_giga_unit_of_data_per_block: pricePerGibPerBlock,
   commitment: Binary.fromText('msp01'),
-  value_prop_max_data_limit: BigInt(1_073_741_824),
+  value_prop_max_data_limit: BigInt(53_687_091_200), // 50 GiB
   payment_account: mspSigner.publicKey  // Account receiving payments
 });
 
@@ -469,11 +519,11 @@ const sudoSigner = /* sudo account signer */;
 const mspCall = typedApi.tx.Providers.force_msp_sign_up({
   who: mspAccount,
   msp_id: /* pre-generated provider ID */,
-  capacity: BigInt(10_737_418_240),
-  value_prop_price_per_giga_unit_of_data_per_block: BigInt(18_520_000_000),
+  capacity: BigInt(858_993_459_200), // 800 GiB
+  value_prop_price_per_giga_unit_of_data_per_block: BigInt(926_000_000_000),
   multiaddresses: multiaddresses,
   commitment: Binary.fromText('msp01'),
-  value_prop_max_data_limit: BigInt(1_073_741_824),
+  value_prop_max_data_limit: BigInt(53_687_091_200), // 50 GiB
   payment_account: mspAccount
 });
 
@@ -485,20 +535,55 @@ await sudoTx.signAndSubmit(sudoSigner);
 
 | Parameter | Type | Description | Example |
 |-----------|------|-------------|---------|
-| `capacity` | StorageDataUnit | Storage capacity in bytes | `10737418240` (10 GiB) |
+| `capacity` | StorageDataUnit | Storage capacity in bytes | `858993459200` (800 GiB) |
 | `multiaddresses` | Vec<Bytes> | P2P network addresses | `[Binary.fromText("/ip4/...")]` |
-| `value_prop_price_per_giga_unit_of_data_per_block` | Balance | Price per GiB per block | `18520000000` |
+| `value_prop_price_per_giga_unit_of_data_per_block` | Balance | Price per GiB per block (18 decimals) | `926_000_000_000` |
 | `commitment` | Bytes | Service commitment identifier | `Binary.fromText("msp01")` |
-| `value_prop_max_data_limit` | StorageDataUnit | Max data per value prop | `1073741824` (1 GiB) |
+| `value_prop_max_data_limit` | StorageDataUnit | Max data per value prop | `53687091200` (50 GiB) |
 | `payment_account` | AccountId | Account receiving payments | `0x...` (20-byte) |
+
+### Calculating Storage Pricing
+
+The `value_prop_price_per_giga_unit_of_data_per_block` parameter sets your price per GiB of data stored per block. This value is in HAVE with 18 decimals.
+
+**Formula:**
+```
+price_per_gib_per_block = (target_monthly_price / storage_gb / blocks_per_month) / have_price × 10^18
+```
+
+**Example Calculation:**
+
+Given:
+- HAVE token price: **$0.01**
+- Target monthly revenue: **$0.20 per 50 GiB per month**
+- Block time: 6 seconds → **432,000 blocks per month** (30 days)
+
+Step-by-step:
+1. Price per GiB per month: `$0.20 / 50 GiB = $0.004 per GiB/month`
+2. Price per GiB per block: `$0.004 / 432,000 = $9.26 × 10⁻⁹ per GiB/block`
+3. Convert to HAVE: `$9.26 × 10⁻⁹ / $0.01 = 9.26 × 10⁻⁷ HAVE`
+4. Apply 18 decimals: `9.26 × 10⁻⁷ × 10¹⁸ = 926,000,000,000`
+
+**Result:** `value_prop_price_per_giga_unit_of_data_per_block: BigInt(926_000_000_000)`
+
+| Target Price | HAVE @ $0.01 | Value (18 decimals) |
+|-------------|--------------|---------------------|
+| $0.10 / 50 GiB / month | 0.463 µHAVE/GiB/block | `463_000_000_000` |
+| $0.20 / 50 GiB / month | 0.926 µHAVE/GiB/block | `926_000_000_000` |
+| $0.50 / 50 GiB / month | 2.315 µHAVE/GiB/block | `2_315_000_000_000` |
+| $1.00 / 50 GiB / month | 4.630 µHAVE/GiB/block | `4_630_000_000_000` |
 
 ### Deposit Requirements
 
 - **Base Deposit**: 100 HAVE (`SpMinDeposit`)
-- **Per Data Unit**: 2 HAVE per unit (`DepositPerData`)
-- **Total for 10 GiB**: ~100 HAVE + (10 GiB in units × 2 HAVE)
+- **Per GiB**: 2 HAVE (`DepositPerData`)
+- **Formula**: `100 + (capacity_in_gib × 2)`
 
-The deposit is **held (reserved)** from your account when you call `request_msp_sign_up` and remains held while you operate as an MSP.
+**Examples:**
+- 800 GiB capacity: `100 + (800 × 2) = 1,700 HAVE`
+- 1.6 TiB capacity: `100 + (1,638 × 2) = 3,376 HAVE`
+
+The deposit is **held (reserved)** from your account when you call `request_msp_sign_up` and remains held while you operate as an MSP. The deposit is returned when you deregister as an MSP.
 
 ## Monitoring
 

@@ -18,9 +18,30 @@ Fisherman nodes monitor and validate storage provider behavior, detecting violat
 - DataHaven node binary or Docker image
 - Funded account with sufficient balance for challenges
 - PostgreSQL 14+ database (can share with Indexer)
-- Sufficient storage for database (100+ GB recommended)
+- Sufficient storage for chain data
 - Stable network connection
 - Open network ports (30333, optionally 9944)
+
+## Hardware Requirements
+
+Fisherman nodes have moderate hardware requirements. They rely on a PostgreSQL database (typically shared with an Indexer node) to monitor provider behavior.
+
+### Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 physical cores @ 2.5 GHz |
+| **RAM** | 8 GB DDR4 |
+| **Storage (Chain Data)** | 200 GB NVMe SSD |
+| **Storage (Database)** | Shared with Indexer |
+| **Network** | 100 Mbit/s symmetric |
+
+### Important Considerations
+
+- **Database dependency**: Fisherman requires a running Indexer node in `fishing` or `full` mode
+- **Shared database**: Can share PostgreSQL with Indexer to reduce resource overhead
+- **Network reliability**: Stable connection required for timely challenge submissions
+- **Cloud compatible**: Works well on cloud VPS
 
 ## Key Requirements
 
@@ -365,11 +386,11 @@ spec:
           mountPath: /data
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "2"
-          limits:
             memory: "8Gi"
             cpu: "4"
+          limits:
+            memory: "16Gi"
+            cpu: "8"
         args:
           - "--chain=stagenet-local"
           - "--name=Fisherman-Gustavo"
@@ -386,7 +407,7 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 100Gi
+          storage: 200Gi
 ```
 
 ## On-Chain Registration
@@ -539,16 +560,6 @@ docker logs storagehub-fisherman 2>&1 | grep -i "challenge.*success"
 8. Monitor provider behavior patterns
 
 ## Performance Considerations
-
-### Resource Requirements
-
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| CPU | 2 cores | 4 cores |
-| RAM | 4 GB | 8 GB |
-| Storage (Chain Data) | 100 GB | 200 GB |
-| Storage (Database) | Shared with Indexer | Shared with Indexer |
-| Network | 100 Mbps | 1 Gbps |
 
 ### Tuning Parameters
 

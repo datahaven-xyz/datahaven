@@ -31,6 +31,7 @@ use super::{
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
+use pallet_external_validator_slashes::SlashData;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
@@ -1683,9 +1684,7 @@ pub struct SlashesSendAdapter;
 impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
-    fn build(
-        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
-    ) -> Option<Self::Message> {
+    fn build(_slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
         let calldata = Vec::new();
 
         let command = Command::CallContract {

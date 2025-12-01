@@ -31,6 +31,7 @@ use super::{
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
+use pallet_external_validator_slashes::SlashData;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
@@ -1679,13 +1680,18 @@ pub struct SlashesSendAdapter;
 impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
-    fn build(
-        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
-    ) -> Option<Self::Message> {
+    fn build(slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
         let selector = runtime_params::dynamic_params::runtime_config::SlashOperatorSelector::get();
 
         let mut calldata = Vec::new();
         calldata.extend_from_slice(&selector);
+
+        // Extend with operator address to slash
+        for slash_operator in slashes_utils.into_iter() {
+            let mut operator_address = [0_u8; 32];
+            operator_address.copy_from_slice(&slash_operator.validator.0);
+            calldata.extend_from_slice(&operator_address);
+        }
 
         let command = Command::CallContract {
             target:

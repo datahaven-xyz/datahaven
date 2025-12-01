@@ -69,16 +69,12 @@ pub struct SlashData<AccountId> {
     pub amount_to_slash: u128,
 }
 
-/// TODO: populate this with what we need
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SlashDataUtils<AccountId>(pub Vec<SlashData<AccountId>>);
-
 // FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
 pub trait SendMessage<AccountId> {
     type Message;
     type Ticket;
 
-    fn build(utils: &SlashDataUtils<AccountId>) -> Option<Self::Message>;
+    fn build(utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message>;
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
 
@@ -590,7 +586,7 @@ impl<T: Config> Pallet<T> {
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        let outbound = match T::SendMessage::build(&SlashDataUtils(slashes_to_send)) {
+        let outbound = match T::SendMessage::build(&slashes_to_send) {
             Some(send_msg) => send_msg,
             None => {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");

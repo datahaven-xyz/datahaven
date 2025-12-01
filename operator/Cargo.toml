@@ -382,7 +382,7 @@ lto = true
 [profile.release]
 debug-assertions = true # Enable debug-assert! for non-production profiles
 opt-level = 3
-# Moonbeam runtime requires unwinding.
+# Datahaven runtime requires unwinding.
 panic = "unwind"
 
 [profile.testnet]

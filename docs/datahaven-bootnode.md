@@ -17,6 +17,35 @@ A bootnode serves as an entry point for peer discovery in the DataHaven network.
 - Persistent storage for node key
 - Open network port (default: 30333)
 
+## Hardware Requirements
+
+Bootnodes have moderate hardware requirements as they only handle peer discovery and do not participate in consensus. Network bandwidth and uptime are the primary concerns.
+
+### Minimum Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 physical cores @ 2.0 GHz |
+| **RAM** | 8 GB DDR4 |
+| **Storage** | 100 GB NVMe SSD |
+| **Network** | 500 Mbit/s symmetric |
+
+### Recommended Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8 physical cores @ 3.0 GHz (Intel Ice Lake+ or AMD Zen3+) |
+| **RAM** | 16 GB DDR4 |
+| **Storage** | 250 GB NVMe SSD |
+| **Network** | 1 Gbit/s symmetric |
+
+### Important Considerations
+
+- **High availability**: Bootnodes should have excellent uptime as they are entry points for the network
+- **Geographic distribution**: Deploy bootnodes in multiple regions for network resilience
+- **Static IP**: Required for stable multiaddress that other nodes can reference
+- **DDoS protection**: Consider DDoS mitigation as bootnodes are publicly known endpoints
+
 ## Key Requirements
 
 ### Node Key

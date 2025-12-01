@@ -10,15 +10,45 @@ Validator nodes participate in consensus, produce blocks, and secure the DataHav
 - Sign GRANDPA finality votes
 - Submit ImOnline heartbeats
 - Participate in BEEFY bridge consensus
-- Earn rewards for block production
+- Earn rewards for block production and consensus participation
 
 ## Prerequisites
 
 - DataHaven node binary or Docker image
-- Funded account with staking balance
+- ECDSA keypair for operator registration on EigenLayer AVS
 - Persistent storage for chain data
 - Stable network connection
 - Open network ports (30333, optionally 9944)
+
+## Hardware Requirements
+
+Validators have the highest hardware requirements as they participate in block production and consensus. Single-threaded CPU performance is critical.
+
+### Minimum Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8 physical cores @ 3.4 GHz (Intel Ice Lake+ or AMD Zen3+) |
+| **RAM** | 32 GB DDR4 ECC |
+| **Storage** | 1 TB NVMe SSD (low latency) |
+| **Network** | 500 Mbit/s symmetric |
+
+### Recommended Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | Intel Xeon E-2386/E-2388 or AMD Ryzen 9 5950x/5900x |
+| **RAM** | 64 GB DDR4 ECC |
+| **Storage** | 2 TB NVMe SSD |
+| **Network** | 1 Gbit/s symmetric |
+
+### Important Considerations
+
+- **Disable Hyper-Threading/SMT**: Single-threaded performance is prioritized over core count
+- **Bare metal preferred**: Cloud VPS may have inconsistent performance due to shared resources
+- **Dedicated server**: Do not run other applications on the validator machine
+- **Docker not recommended**: Running in containers can significantly impact performance
+- **Redundancy**: Consider primary and backup servers in different data centers
 
 ## Key Requirements
 
@@ -100,17 +130,22 @@ The entrypoint script (`operator/scripts/docker-entrypoint.sh`) automatically in
 
 ## Wallet Requirements
 
-### Controller Account
+### Operator Account (ECDSA)
 
-- **Purpose**: Controls validator operations
-- **Required Balance**: Minimum staking amount + transaction fees
-- **Funding**: Must be funded before validator registration
+DataHaven validators are EigenLayer operators. The operator account is used to:
+- Register as an operator on the DataHaven AVS (on Ethereum)
+- Sign the `session.setKeys` extrinsic to associate session keys with the operator
 
-### Generate Controller Account
+**Important**:
+- The account **does NOT need to be funded** on DataHaven - staking happens via EigenLayer delegation on Ethereum
+- Token holders delegate stake to operators on EigenLayer, not on the DataHaven chain
+- The same private key that controls the operator address on the AVS must sign the session keys transaction
+
+### Generate Operator Account (ECDSA)
 
 ```bash
-# Generate new account
-datahaven-node key generate
+# Generate ECDSA keypair using datahaven-node
+datahaven-node key generate --scheme ecdsa
 
 # Output:
 # Secret phrase:       <your-seed-phrase>
@@ -118,7 +153,21 @@ datahaven-node key generate
 # Secret seed:         0x...
 # Public key (hex):    0x...
 # Account ID:          0x...  (20-byte Ethereum-style address)
-# SS58 Address:        ...
+
+# Derive Ethereum address from the hex public key using Foundry's cast
+cast wallet address <public_key_hex>
+
+# This gives you the Ethereum address to register on the AVS
+```
+
+### Alternative: Generate with cast (Foundry)
+
+```bash
+# Generate a new keypair
+cast wallet new
+
+# Or import from private key
+cast wallet address --private-key 0x...
 ```
 
 ## CLI Flags
@@ -157,13 +206,29 @@ datahaven-node \
 
 ## Complete Setup Example
 
-### 1. Generate Keys
+### 1. Generate Operator Account (ECDSA)
 
 ```bash
-# Generate controller account
-SEED="your secure seed phrase here"
-echo $SEED | datahaven-node key inspect
+# Generate ECDSA keypair for operator registration
+datahaven-node key generate --scheme ecdsa
 
+# Save the seed phrase and note the public key hex
+# Example output:
+# Secret phrase: "word1 word2 ... word12"
+# Public key (hex): 0x0123456789abcdef...
+
+# Get the Ethereum address for AVS registration
+OPERATOR_ETH_ADDRESS=$(cast wallet address 0x<public_key_hex>)
+echo "Operator ETH Address: $OPERATOR_ETH_ADDRESS"
+```
+
+### 2. Register as Operator on EigenLayer AVS
+
+Before setting session keys, register your operator address on the DataHaven AVS contract on Ethereum. See [On-Chain Registration](#on-chain-registration) for details.
+
+### 3. Generate Session Keys
+
+```bash
 # Start node to generate session keys via RPC
 datahaven-node \
   --chain stagenet-local \
@@ -186,17 +251,7 @@ echo "Session Keys: $SESSION_KEYS"
 pkill -f datahaven-node
 ```
 
-### 2. Fund Controller Account
-
-```bash
-# Get account address from seed
-CONTROLLER_ADDR=$(echo $SEED | datahaven-node key inspect --output-type json | jq -r '.ss58PublicKey')
-
-# Fund account via faucet or transfer from another account
-# Minimum: Staking amount + fees (e.g., 1000 HAVE + 10 HAVE fees)
-```
-
-### 3. Start Validator Node
+### 4. Start Validator Node
 
 ```bash
 datahaven-node \
@@ -211,7 +266,7 @@ datahaven-node \
   --log info
 ```
 
-### 4. Register Validator On-Chain
+### 5. Set Session Keys On-Chain
 
 See [On-Chain Registration](#on-chain-registration) section below.
 
@@ -314,7 +369,23 @@ spec:
 
 ## On-Chain Registration
 
-### Step 1: Set Session Keys
+### Step 1: Register as Operator on EigenLayer AVS
+
+Before setting session keys, you must register your operator address on the DataHaven AVS contract on Ethereum. This establishes your identity as a validator operator.
+
+```solidity
+// DataHavenServiceManager.sol
+function registerOperatorToAVS(
+    address operator,
+    ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature
+) external;
+```
+
+See `contracts/` directory and `test/scripts/` for registration scripts.
+
+### Step 2: Set Session Keys
+
+After registering on the AVS, submit your session keys to the DataHaven chain. **Important**: The transaction must be signed with the same private key used for AVS registration, so the session keys are associated with your operator address.
 
 Using Polkadot.js Apps or TypeScript:
 
@@ -326,29 +397,17 @@ const api = await ApiPromise.create({
   provider: new WsProvider('ws://localhost:9944')
 });
 
+// Use 'ethereum' keyring type for ECDSA keys
 const keyring = new Keyring({ type: 'ethereum' });
-const controller = keyring.addFromUri('your seed phrase');
+// Use the same seed phrase as your AVS operator account
+const operator = keyring.addFromUri('your operator seed phrase');
 
 // Set session keys (from author_rotateKeys RPC)
 const sessionKeys = '0x...'; // Combined public keys hex
 
 const setKeysTx = api.tx.session.setKeys(sessionKeys, []);
-await setKeysTx.signAndSend(controller);
+await setKeysTx.signAndSend(operator);
 ```
-
-### Step 2: Register with EigenLayer AVS
-
-Validators must register with the DataHaven AVS smart contract on Ethereum.
-
-```solidity
-// DataHavenServiceManager.sol
-function registerOperatorToAVS(
-    address operator,
-    ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature
-) external;
-```
-
-See `contracts/` directory and `test/scripts/` for registration scripts.
 
 ### Step 3: Verify Registration
 
@@ -423,10 +482,27 @@ curl -H "Content-Type: application/json" \
 ### Issue: Not in Active Validator Set
 
 **Check:**
-1. Sufficient stake amount
-2. Not slashed
-3. Session transition period
-4. Maximum validator count not exceeded
+1. Operator is registered on the DataHaven AVS contract (Ethereum)
+2. Operator has sufficient delegated stake on EigenLayer
+3. Session keys are correctly associated with operator address
+4. Not slashed on EigenLayer
+5. Session transition period (changes take effect in the next session)
+6. Maximum validator count not exceeded
+
+### Issue: Session Keys Not Linked to Operator
+
+**Check:**
+1. The `session.setKeys` transaction was signed with the same private key registered on the AVS
+2. Verify the signing address matches your operator address on the AVS contract
+3. Use `author_hasSessionKeys` RPC to confirm keys are stored locally
+
+**Solution:**
+```bash
+# Verify your operator address matches what's registered on AVS
+cast wallet address <your_operator_public_key_hex>
+
+# Re-submit session.setKeys with the correct operator account
+```
 
 ## Security Considerations
 

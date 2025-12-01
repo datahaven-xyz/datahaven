@@ -15,9 +15,38 @@ Full nodes synchronize with the DataHaven network and provide RPC endpoints for 
 ## Prerequisites
 
 - DataHaven node binary or Docker image
-- Sufficient storage for chain data (200+ GB recommended)
+- Sufficient storage for chain data
 - Stable network connection
 - Open network ports (30333, optionally 9944)
+
+## Hardware Requirements
+
+Full nodes have moderate hardware requirements as they sync the chain and serve RPC requests but do not participate in consensus.
+
+### Minimum Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 physical cores @ 2.5 GHz |
+| **RAM** | 16 GB DDR4 |
+| **Storage** | 500 GB NVMe SSD |
+| **Network** | 100 Mbit/s symmetric |
+
+### Recommended Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 8 physical cores @ 3.0 GHz (Intel Ice Lake+ or AMD Zen3+) |
+| **RAM** | 32 GB DDR4 |
+| **Storage** | 1 TB NVMe SSD |
+| **Network** | 500 Mbit/s symmetric |
+
+### Important Considerations
+
+- **Storage growth**: Plan for chain data growth over time; storage requirements will increase
+- **RPC load**: If serving many RPC requests, consider higher CPU and RAM specifications
+- **Archive node**: If running an archive node (full history), significantly more storage is required (2+ TB)
+- **Cloud compatible**: Unlike validators, full nodes can run effectively on cloud VPS
 
 ## Key Requirements
 

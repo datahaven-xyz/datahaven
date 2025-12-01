@@ -1,3 +1,2 @@
-bun check
-bun ./scripts/check-generated-state.js
-cd operator && cargo fmt --check
+cd test && bun fmt && bun ./scripts/check-generated-state.js
+cd ../operator && cargo fmt --check

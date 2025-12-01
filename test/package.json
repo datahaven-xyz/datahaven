@@ -33,7 +33,7 @@
     "typecheck": "tsc --noEmit",
     "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
     "postinstall": "papi",
-    "prepare": "husky"
+    "prepare": "cd .. && husky test/.husky"
   },
   "devDependencies": {
     "@types/bun": "latest",

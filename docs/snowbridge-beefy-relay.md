@@ -25,6 +25,97 @@ DataHaven → Ethereum
 - Ethereum account with ETH for gas fees
 - Deployed BeefyClient and Gateway contracts on Ethereum
 
+## Hardware Requirements
+
+### Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 cores |
+| **RAM** | 8 GB |
+| **Storage (Datastore)** | 5 GB SSD |
+| **Network** | 100 Mbit/s symmetric |
+
+### Important Considerations
+
+- **No persistent storage required**: BEEFY relay is stateless and recovers from on-chain state on restart
+- **Gas optimization**: The relay batches BEEFY proofs when possible to reduce Ethereum gas costs
+- **Network latency**: Low latency to Ethereum node is important for timely proof submission
+- **Reliable RPC endpoints**: Use enterprise-grade or self-hosted nodes for production deployments
+
+## RPC Endpoint Requirements
+
+### Ethereum Execution Layer
+
+The relay requires access to a **stable, reliable Ethereum WebSocket endpoint**. Endpoint instability or downtime will prevent the relay from functioning correctly.
+
+**Recommended providers:**
+- Self-hosted execution node (Geth, Nethermind, Besu, Erigon)
+- [Dwellir](https://www.dwellir.com/)
+- [Chainstack](https://chainstack.com/)
+- [QuickNode](https://www.quicknode.com/)
+- [Alchemy](https://www.alchemy.com/)
+
+**Requirements:**
+- WebSocket support (WSS for production)
+- Low latency (< 100ms recommended)
+- High availability (99.9%+ uptime)
+
+### DataHaven Node
+
+- Full node or archive node with WebSocket endpoint
+- Low latency connection for monitoring BEEFY finality
+
+## Relay Redundancy
+
+### Why Redundancy Matters
+
+Running multiple relay instances provides fault tolerance and ensures continuous bridge operation even if one relay fails. The BeefyClient contract handles duplicate submissions gracefully—only the first valid submission is processed.
+
+### Configuring Redundant Relays
+
+Deploy multiple relay instances pointing to **different RPC providers** for maximum fault tolerance:
+
+**Instance 1 (Primary):**
+```json
+{
+  "source": {
+    "polkadot": {
+      "endpoint": "wss://datahaven-rpc-1.example.com"
+    }
+  },
+  "sink": {
+    "ethereum": {
+      "endpoint": "wss://eth-provider-a.example.com"
+    }
+  }
+}
+```
+
+**Instance 2 (Backup):**
+```json
+{
+  "source": {
+    "polkadot": {
+      "endpoint": "wss://datahaven-rpc-2.example.com"
+    }
+  },
+  "sink": {
+    "ethereum": {
+      "endpoint": "wss://eth-provider-b.example.com"
+    }
+  }
+}
+```
+
+### Best Practices for Redundancy
+
+1. **Use different RPC providers**: Avoid single points of failure by using different Ethereum node providers for each relay instance
+2. **Geographic distribution**: Deploy relays in different regions/data centers
+3. **Independent infrastructure**: Run relays on separate machines or Kubernetes nodes
+4. **Separate funding accounts**: Use different relay accounts to avoid nonce conflicts
+5. **Monitor all instances**: Set up alerting for each relay independently
+
 ## Key Requirements
 
 ### Ethereum Private Key
@@ -40,6 +131,8 @@ The BEEFY Relay requires an **Ethereum private key** to sign and submit transact
 The relay account must be funded with ETH to pay for gas when submitting BEEFY proofs.
 
 **Recommended Balance**: 0.5+ ETH for continuous operations (gas costs vary with network conditions)
+
+For detailed operating cost estimates and optimization strategies, see the [Relay Operating Costs](./snowbridge-relay-costs.md) guide.
 
 ## CLI Flags
 
@@ -349,5 +442,6 @@ Relayers can earn incentives for successful proof submissions. See Snowbridge do
 - [Beacon Relay](./snowbridge-beacon-relay.md)
 - [Execution Relay](./snowbridge-execution-relay.md)
 - [Solochain Relay](./snowbridge-solochain-relay.md)
+- [Relay Operating Costs](./snowbridge-relay-costs.md)
 - [Snowbridge Documentation](https://docs.snowbridge.network)
 - [DataHaven Snowbridge Repository](https://github.com/datahaven-xyz/snowbridge)

@@ -28,6 +28,137 @@ DataHaven → Ethereum (with bidirectional monitoring)
 - Deployed BeefyClient, Gateway, and RewardsRegistry contracts on Ethereum
 - Persistent storage for relay datastore
 
+## Hardware Requirements
+
+The Solochain Relay handles more operations than other relays (bidirectional messaging + rewards), so additional resources are recommended.
+
+### Specifications
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 4 cores |
+| **RAM** | 8 GB |
+| **Storage (Datastore)** | 20 GB SSD |
+| **Network** | 100 Mbit/s symmetric |
+
+### Important Considerations
+
+- **Persistent storage**: The relay maintains a local datastore to track processed messages and reward operations; use persistent volumes in containerized deployments
+- **Bidirectional operations**: Handles both DataHaven → Ethereum messages and reward synchronization
+- **Network connectivity**: Requires connections to Ethereum (execution + beacon) and DataHaven nodes simultaneously
+- **Higher resource usage**: May use more resources during high message volumes or reward distribution periods
+- **Reliable RPC endpoints**: Use enterprise-grade or self-hosted nodes for production deployments
+
+## RPC Endpoint Requirements
+
+### Ethereum Execution Layer
+
+The relay requires access to a **stable, reliable Ethereum WebSocket endpoint**. Endpoint instability or downtime will prevent the relay from functioning correctly.
+
+**Recommended providers:**
+- Self-hosted execution node (Geth, Nethermind, Besu, Erigon)
+- [Dwellir](https://www.dwellir.com/)
+- [Chainstack](https://chainstack.com/)
+- [QuickNode](https://www.quicknode.com/)
+- [Alchemy](https://www.alchemy.com/)
+
+**Requirements:**
+- WebSocket support (WSS for production)
+- Full event log access for contract monitoring
+- Low latency (< 100ms recommended)
+- High availability (99.9%+ uptime)
+
+### Beacon Node API
+
+The relay also requires access to the Ethereum Beacon API for finality verification.
+
+**Recommended providers:**
+- Self-hosted beacon node (Lighthouse, Prysm, Teku, Nimbus, Lodestar)
+- Same providers as execution layer (with beacon API support)
+
+**Requirements:**
+- Full beacon API support (`/eth/v1/beacon/*` endpoints)
+- State endpoint access for sync committee data
+- Low latency (< 100ms recommended)
+
+### DataHaven Node
+
+- Full node or archive node with WebSocket endpoint
+- Low latency connection for monitoring outbound messages
+
+## Relay Redundancy
+
+### Why Redundancy Matters
+
+Running multiple relay instances provides fault tolerance and ensures continuous bridge operation even if one relay fails. The Gateway contract and on-chain pallets handle duplicate submissions gracefully—only the first valid submission is processed.
+
+### Configuring Redundant Relays
+
+Deploy multiple relay instances pointing to **different RPC providers** for maximum fault tolerance. Use the `schedule` configuration to coordinate between instances:
+
+**Instance 1 (Primary):**
+```json
+{
+  "source": {
+    "ethereum": {
+      "endpoint": "wss://eth-provider-a.example.com"
+    },
+    "solochain": {
+      "endpoint": "wss://datahaven-rpc-1.example.com"
+    },
+    "beacon": {
+      "endpoint": "https://beacon-provider-a.example.com"
+    }
+  },
+  "sink": {
+    "ethereum": {
+      "endpoint": "wss://eth-provider-a.example.com"
+    }
+  },
+  "schedule": {
+    "id": 0,
+    "totalRelayerCount": 2,
+    "sleepInterval": 10
+  }
+}
+```
+
+**Instance 2 (Backup):**
+```json
+{
+  "source": {
+    "ethereum": {
+      "endpoint": "wss://eth-provider-b.example.com"
+    },
+    "solochain": {
+      "endpoint": "wss://datahaven-rpc-2.example.com"
+    },
+    "beacon": {
+      "endpoint": "https://beacon-provider-b.example.com"
+    }
+  },
+  "sink": {
+    "ethereum": {
+      "endpoint": "wss://eth-provider-b.example.com"
+    }
+  },
+  "schedule": {
+    "id": 1,
+    "totalRelayerCount": 2,
+    "sleepInterval": 10
+  }
+}
+```
+
+### Best Practices for Redundancy
+
+1. **Use different RPC providers**: Avoid single points of failure by using different Ethereum and DataHaven node providers for each relay instance
+2. **Geographic distribution**: Deploy relays in different regions/data centers
+3. **Independent infrastructure**: Run relays on separate machines or Kubernetes nodes
+4. **Separate funding accounts**: Use different relay accounts (both Ethereum and Substrate) to avoid nonce conflicts
+5. **Coordinate with schedule IDs**: Use unique `schedule.id` values for each instance
+6. **Monitor all instances**: Set up alerting for each relay independently
+
 ## Key Requirements
 
 ### Both Ethereum and Substrate Private Keys
@@ -41,10 +172,14 @@ The Solochain Relay requires **both** an Ethereum private key and a Substrate pr
 
 ### Account Funding
 
-| Account | Funding Required |
-|---------|-----------------|
-| Ethereum | 0.5+ ETH for gas fees |
-| Substrate | 100+ HAVE for transaction fees |
+The Solochain Relay requires funded accounts on both Ethereum and DataHaven to operate continuously.
+
+| Account | Minimum | Recommended | Purpose |
+|---------|---------|-------------|---------|
+| Ethereum | 0.5 ETH | 2.0 ETH | Gas fees for Gateway contract calls |
+| Substrate (HAVE) | 100 HAVE | 500 HAVE | Transaction fees on DataHaven |
+
+For detailed operating cost estimates, annual forecasts, and cost optimization strategies, see the [Relay Operating Costs](./snowbridge-relay-costs.md) guide.
 
 ## CLI Flags
 
@@ -327,8 +462,44 @@ spec:
 
 ## Multi-Instance Deployment
 
-For high-availability, deploy multiple Solochain Relayers:
+For high-availability or load distribution, multiple Solochain Relayers can be deployed using the `schedule` configuration to coordinate between instances.
 
+### Schedule Configuration Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `schedule.id` | `number` | Unique identifier for this relay instance (0-indexed). |
+| `schedule.totalRelayerCount` | `number` | Total number of relay instances in the deployment. All instances must use the same value. |
+| `schedule.sleepInterval` | `number` | Seconds to wait between polling for new messages. Lower values = faster detection, higher resource usage. |
+
+### How Multi-Instance Scheduling Works
+
+When multiple relayers are deployed, the `schedule.id` and `totalRelayerCount` parameters work together to distribute message processing:
+
+1. **Message assignment**: Messages are assigned to relayers based on `message_nonce % totalRelayerCount == schedule.id`
+2. **Staggered processing**: Each relayer only processes messages assigned to its ID, preventing duplicate submissions
+3. **Failover**: If a relayer fails, its messages will eventually be picked up by other relayers after timeout
+
+**Example with 2 relayers:**
+- Instance 0 processes messages where `nonce % 2 == 0` (nonces: 0, 2, 4, 6, ...)
+- Instance 1 processes messages where `nonce % 2 == 1` (nonces: 1, 3, 5, 7, ...)
+
+### Configuration Examples
+
+**Single Instance (default):**
+```json
+{
+  "schedule": {
+    "id": 0,
+    "totalRelayerCount": 1,
+    "sleepInterval": 10
+  }
+}
+```
+
+**Two-Instance Deployment:**
+
+*Instance 0:*
 ```json
 {
   "schedule": {
@@ -339,15 +510,36 @@ For high-availability, deploy multiple Solochain Relayers:
 }
 ```
 
-**Instance 0**:
+*Instance 1:*
 ```json
-{ "schedule": { "id": 0, "totalRelayerCount": 2, "sleepInterval": 10 } }
+{
+  "schedule": {
+    "id": 1,
+    "totalRelayerCount": 2,
+    "sleepInterval": 10
+  }
+}
 ```
 
-**Instance 1**:
-```json
-{ "schedule": { "id": 1, "totalRelayerCount": 2, "sleepInterval": 10 } }
-```
+### Sleep Interval Tuning
+
+The `sleepInterval` parameter controls how frequently the relay polls for new messages:
+
+| Value | Use Case | Trade-offs |
+|-------|----------|------------|
+| `1` | Low latency required | Higher RPC usage, faster message detection |
+| `10` | Balanced (default) | Good balance of latency and resource usage |
+| `30` | Cost-sensitive | Lower RPC costs, slower message detection |
+
+**Recommendation**: The default `sleepInterval: 10` works well for most deployments. Decrease if message latency is critical; increase if RPC rate limits are a concern.
+
+### Deployment Checklist
+
+1. **Unique IDs**: Each instance must have a unique `schedule.id` (0 to `totalRelayerCount - 1`)
+2. **Consistent count**: All instances must use the same `totalRelayerCount` value
+3. **Separate accounts**: Use different Ethereum and Substrate accounts to avoid nonce conflicts
+4. **Independent storage**: Each instance needs its own persistent datastore volume
+5. **Different RPC endpoints**: Point instances to different RPC providers for fault tolerance
 
 ## Monitoring
 
@@ -414,5 +606,6 @@ Ensure both relays are operational before starting the Solochain Relay.
 - [Beacon Relay](./snowbridge-beacon-relay.md)
 - [BEEFY Relay](./snowbridge-beefy-relay.md)
 - [Execution Relay](./snowbridge-execution-relay.md)
+- [Relay Operating Costs](./snowbridge-relay-costs.md)
 - [Snowbridge Documentation](https://docs.snowbridge.network)
 - [DataHaven Snowbridge Repository](https://github.com/datahaven-xyz/snowbridge)

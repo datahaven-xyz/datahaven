@@ -63,6 +63,7 @@ use shc_client::{
     },
 };
 use shc_common::traits::StorageEnableRuntime;
+use shc_common::types::StorageHubClient;
 use shc_file_transfer_service::fetch_genesis_hash;
 use shc_indexer_db::DbPool;
 use shc_indexer_service::spawn_indexer_service;
@@ -77,11 +78,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{default::Default, path::Path, sync::Arc, time::Duration};
 
-pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
-    Block,
-    RuntimeApi,
-    sc_executor::WasmExecutor<cumulus_client_service::ParachainHostFunctions>,
->;
+pub(crate) type FullClient<RuntimeApi> = StorageHubClient<RuntimeApi>;
 
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -184,7 +181,7 @@ pub type Service<RuntimeApi> = sc_service::PartialComponents<
 
 // StorageHub Enable client
 pub(crate) type StorageEnableClient<Runtime> =
-    shc_common::types::ParachainClient<<Runtime as StorageEnableRuntime>::RuntimeApi>;
+    shc_common::types::StorageHubClient<<Runtime as StorageEnableRuntime>::RuntimeApi>;
 
 pub fn frontier_database_dir(config: &Configuration, path: &str) -> std::path::PathBuf {
     config

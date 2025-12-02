@@ -76,6 +76,8 @@ pub struct ProviderOptions {
     /// Configuration options for blockchain service.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blockchain_service: Option<BlockchainServiceOptions>,
+    /// MSP database URL.
+    pub msp_database_url: Option<String>,
     // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
     // pub maintenance_mode: bool,
 }

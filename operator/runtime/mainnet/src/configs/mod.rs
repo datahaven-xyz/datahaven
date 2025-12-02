@@ -1043,8 +1043,8 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    // TODO: Update with real genesis hash once mainnet is deployed
-    pub const MainnetGenesisHash: [u8; 32] = [1u8; 32];
+    // Ethereum mainnet genesis hash
+    pub const MainnetGenesisHash: [u8; 32] = hex_literal::hex!("d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
     pub UniversalLocation: InteriorLocation = [
         GlobalConsensus(ByGenesis(MainnetGenesisHash::get()))
     ].into();
@@ -1143,11 +1143,15 @@ parameter_types! {
             version: hex_literal::hex!("60000038"),
             epoch: 0,
         },
+        fulu: Fork {
+            version: hex_literal::hex!("70000038"),
+            epoch: 0,
+        },
     };
 }
 
-// Holesky: https://github.com/eth-clients/holesky
-// Fork versions: https://github.com/eth-clients/holesky/blob/main/metadata/config.yaml
+// Ethereum mainnet fork versions
+// Source: https://github.com/ethereum/consensus-specs/blob/dev/configs/mainnet.yaml
 #[cfg(not(any(
     feature = "std",
     feature = "fast-runtime",
@@ -1157,28 +1161,32 @@ parameter_types! {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: hex_literal::hex!("01017000"), // 0x01017000
+            version: hex_literal::hex!("00000000"), // 0x00000000
             epoch: 0,
         },
         altair: Fork {
-            version: hex_literal::hex!("02017000"), // 0x02017000
-            epoch: 0,
+            version: hex_literal::hex!("01000000"), // 0x01000000
+            epoch: 74240,
         },
         bellatrix: Fork {
-            version: hex_literal::hex!("03017000"), // 0x03017000
-            epoch: 0,
+            version: hex_literal::hex!("02000000"), // 0x02000000
+            epoch: 144896,
         },
         capella: Fork {
-            version: hex_literal::hex!("04017000"), // 0x04017000
-            epoch: 256,
+            version: hex_literal::hex!("03000000"), // 0x03000000
+            epoch: 194048,
         },
         deneb: Fork {
-            version: hex_literal::hex!("05017000"), // 0x05017000
-            epoch: 29696,
+            version: hex_literal::hex!("04000000"), // 0x04000000
+            epoch: 269568,
         },
         electra: Fork {
-            version: hex_literal::hex!("06017000"), // 0x06017000
-            epoch: 115968,
+            version: hex_literal::hex!("05000000"), // 0x05000000
+            epoch: 364032,
+        },
+        fulu: Fork {
+            version: hex_literal::hex!("06000000"), // 0x06000000
+            epoch: 411392, // Fusaka upgrade on December 3, 2025
         },
     };
 }

@@ -33,6 +33,15 @@ use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
 use sp_std::marker::PhantomData;
 
+/// Solidity selector for the TokensLocked event:
+/// keccak256("TokensLocked(address,uint256)")
+pub const SELECTOR_LOG_TOKENS_LOCKED: [u8; 32] = keccak256!("TokensLocked(address,uint256)");
+
+/// Solidity selector for the TokensTransferredToEthereum event:
+/// keccak256("TokensTransferredToEthereum(address,address,uint256)")
+pub const SELECTOR_LOG_TOKENS_TRANSFERRED_TO_ETHEREUM: [u8; 32] =
+    keccak256!("TokensTransferredToEthereum(address,address,uint256)");
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -102,6 +111,12 @@ where
             return Err(revert("Fee must be greater than zero"));
         }
 
+        // Reserve gas for emitting the two EVM logs we produce on success:
+        // - TokensLocked(address,uint256)  -> 2 topics
+        // - TokensTransferredToEthereum(address,address,uint256) -> 3 topics
+        handle.record_log_costs_manual(2, 32)?;
+        handle.record_log_costs_manual(3, 32)?;
+
         // Build the call
         let call = NativeTransferCall::<Runtime>::transfer_to_ethereum {
             recipient: recipient_h160,
@@ -112,6 +127,25 @@ where
 
         // Dispatch the call - this will handle gas costs and error reporting
         RuntimeHelper::<Runtime>::try_dispatch(handle, Some(caller).into(), call, 0)?;
+
+        // Emit EVM log mirroring the TokensLocked pallet event
+        log2(
+            handle.context().address,
+            SELECTOR_LOG_TOKENS_LOCKED,
+            handle.context().caller,
+            solidity::encode_event_data(amount),
+        )
+        .record(handle)?;
+
+        // Emit EVM log for the high-level transfer intent to Ethereum
+        log3(
+            handle.context().address,
+            SELECTOR_LOG_TOKENS_TRANSFERRED_TO_ETHEREUM,
+            handle.context().caller,
+            recipient_h160,
+            solidity::encode_event_data(amount),
+        )
+        .record(handle)?;
 
         Ok(())
     }

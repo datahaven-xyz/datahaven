@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+    // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.3;
 
 /// @dev The DataHavenNativeTransfer precompile address.
@@ -18,22 +18,11 @@ interface DataHavenNativeTransfer {
     /// @param amount The amount of tokens locked
     event TokensLocked(address indexed account, uint256 amount);
 
-    /// @notice Emitted when tokens are unlocked from Ethereum
-    /// @param account The account that received unlocked tokens
-    /// @param amount The amount of tokens unlocked
-    event TokensUnlocked(address indexed account, uint256 amount);
-
     /// @notice Emitted when tokens are transferred to Ethereum
     /// @param from The account initiating the transfer
     /// @param to The Ethereum address receiving the tokens
     /// @param amount The amount of tokens transferred
     event TokensTransferredToEthereum(address indexed from, address indexed to, uint256 amount);
-
-    /// @notice Emitted when the pallet is paused
-    event Paused();
-
-    /// @notice Emitted when the pallet is unpaused
-    event Unpaused();
 
     /// @notice Transfer DataHaven native tokens to Ethereum
     /// @dev Locks tokens in the sovereign account and sends message through Snowbridge

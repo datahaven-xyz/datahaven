@@ -123,4 +123,13 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::WeightInfo for 
 		Weight::from_parts(4_053_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
+
+	// Additional helper used only in testing environments to exercise the
+	// message-sending path. This comes from the upstream pallet benchmarks.
+	fn root_test_send_msg_to_eth() -> Weight {
+		// Minimum execution time: 994_654_000 picoseconds (from original benchmarks).
+		Weight::from_parts(1_015_195_000, 3601)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
+	}
 }

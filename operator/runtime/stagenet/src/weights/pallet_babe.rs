@@ -55,12 +55,13 @@ use sp_std::marker::PhantomData;
 /// Weights for `pallet_babe`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_babe::WeightInfo for WeightInfo<T> {
-	/// The range of component `x` is `[0, 1]`.
-	fn check_equivocation_proof(_x: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 89_112_000 picoseconds.
+	fn plan_config_change() -> Weight {
+		// Minimum execution time approximated from previous BABE benchmarking.
+		Weight::from_parts(89_692_226, 0)
+	}
+
+	fn report_equivocation(_x: u32, _y: u32) -> Weight {
+		// Approximated using the old `check_equivocation_proof` measurement.
 		Weight::from_parts(89_692_226, 0)
 	}
 }

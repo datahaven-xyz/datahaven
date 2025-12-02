@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_grandpa
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_grandpa.rs
+// runtime/mainnet/src/weights/pallet_grandpa.rs
 // --steps
 // 50
 // --repeat
@@ -44,12 +44,13 @@ impl<T: frame_system::Config> pallet_grandpa::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 3_827_000 picoseconds.
-		Weight::from_parts(3_954_000, 0)
+		// Minimum execution time: 3_687_000 picoseconds.
+		Weight::from_parts(3_903_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 
 	fn report_equivocation(_equivocations: u32, _key_owners: u32) -> Weight {
-		Weight::from_parts(79_198_467, 0)
+		// Based on previous check_equivocation_proof baseline; re-benchmark to refresh.
+		Weight::from_parts(79_601_142, 0)
 	}
 }

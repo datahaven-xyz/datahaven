@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_evm
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_evm.rs
+// runtime/mainnet/src/weights/pallet_evm.rs
 // --steps
 // 50
 // --repeat
@@ -42,7 +42,7 @@ impl<T: frame_system::Config> pallet_evm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 2_936_000 picoseconds.
-		Weight::from_parts(3_050_000, 0)
+		// Minimum execution time: 2_971_000 picoseconds.
+		Weight::from_parts(3_096_000, 0)
 	}
 }

@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_external_validators
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_external_validators.rs
+// runtime/mainnet/src/weights/pallet_external_validators.rs
 // --steps
 // 50
 // --repeat
@@ -44,8 +44,8 @@ impl<T: frame_system::Config> pallet_external_validators::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 3_371_000 picoseconds.
-		Weight::from_parts(3_620_000, 0)
+		// Minimum execution time: 3_401_000 picoseconds.
+		Weight::from_parts(3_504_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `Session::NextKeys` (r:1 w:0)
@@ -57,10 +57,10 @@ impl<T: frame_system::Config> pallet_external_validators::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `812 + b * (25 ±0)`
 		//  Estimated: `4257 + b * (26 ±0)`
-		// Minimum execution time: 25_014_000 picoseconds.
-		Weight::from_parts(30_866_197, 4257)
-			// Standard Error: 2_137
-			.saturating_add(Weight::from_parts(129_076, 0).saturating_mul(b.into()))
+		// Minimum execution time: 24_954_000 picoseconds.
+		Weight::from_parts(30_304_919, 4257)
+			// Standard Error: 2_129
+			.saturating_add(Weight::from_parts(120_469, 0).saturating_mul(b.into()))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 			.saturating_add(Weight::from_parts(0, 26).saturating_mul(b.into()))
@@ -72,10 +72,10 @@ impl<T: frame_system::Config> pallet_external_validators::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `252 + b * (20 ±0)`
 		//  Estimated: `3487`
-		// Minimum execution time: 14_000_000 picoseconds.
-		Weight::from_parts(17_990_319, 3487)
-			// Standard Error: 1_363
-			.saturating_add(Weight::from_parts(71_092, 0).saturating_mul(b.into()))
+		// Minimum execution time: 14_034_000 picoseconds.
+		Weight::from_parts(17_773_467, 3487)
+			// Standard Error: 1_303
+			.saturating_add(Weight::from_parts(64_173, 0).saturating_mul(b.into()))
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -85,8 +85,8 @@ impl<T: frame_system::Config> pallet_external_validators::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 15_268_000 picoseconds.
-		Weight::from_parts(15_644_000, 0)
+		// Minimum execution time: 14_831_000 picoseconds.
+		Weight::from_parts(15_314_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `ExternalValidators::ExternalIndex` (r:0 w:1)
@@ -97,8 +97,8 @@ impl<T: frame_system::Config> pallet_external_validators::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 9_211_000 picoseconds.
-		Weight::from_parts(9_805_000, 0)
+		// Minimum execution time: 9_090_000 picoseconds.
+		Weight::from_parts(9_547_000, 0)
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	/// Storage: `ExternalValidators::CurrentEra` (r:1 w:1)
@@ -124,10 +124,10 @@ impl<T: frame_system::Config> pallet_external_validators::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `286 + r * (20 ±0)`
 		//  Estimated: `3487`
-		// Minimum execution time: 24_800_000 picoseconds.
-		Weight::from_parts(27_879_140, 3487)
-			// Standard Error: 1_277
-			.saturating_add(Weight::from_parts(193_405, 0).saturating_mul(r.into()))
+		// Minimum execution time: 24_001_000 picoseconds.
+		Weight::from_parts(27_445_966, 3487)
+			// Standard Error: 1_375
+			.saturating_add(Weight::from_parts(194_669, 0).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(7_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}

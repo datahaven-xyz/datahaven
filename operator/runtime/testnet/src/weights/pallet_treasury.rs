@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_treasury
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_treasury.rs
+// runtime/mainnet/src/weights/pallet_treasury.rs
 // --steps
 // 50
 // --repeat
@@ -48,8 +48,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `1887`
-		// Minimum execution time: 15_951_000 picoseconds.
-		Weight::from_parts(16_247_000, 1887)
+		// Minimum execution time: 15_292_000 picoseconds.
+		Weight::from_parts(15_676_000, 1887)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -59,8 +59,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `161`
 		//  Estimated: `1887`
-		// Minimum execution time: 8_916_000 picoseconds.
-		Weight::from_parts(9_294_000, 1887)
+		// Minimum execution time: 8_488_000 picoseconds.
+		Weight::from_parts(8_726_000, 1887)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -75,10 +75,10 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `262 + p * (1 ±0)`
 		//  Estimated: `3581`
-		// Minimum execution time: 17_539_000 picoseconds.
-		Weight::from_parts(19_878_447, 3581)
-			// Standard Error: 702
-			.saturating_add(Weight::from_parts(56_710, 0).saturating_mul(p.into()))
+		// Minimum execution time: 16_770_000 picoseconds.
+		Weight::from_parts(19_440_484, 3581)
+			// Standard Error: 824
+			.saturating_add(Weight::from_parts(57_540, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
@@ -90,8 +90,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `1489`
-		// Minimum execution time: 14_376_000 picoseconds.
-		Weight::from_parts(14_689_000, 1489)
+		// Minimum execution time: 13_844_000 picoseconds.
+		Weight::from_parts(14_200_000, 1489)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
@@ -103,8 +103,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `387`
 		//  Estimated: `6172`
-		// Minimum execution time: 75_304_000 picoseconds.
-		Weight::from_parts(76_735_000, 6172)
+		// Minimum execution time: 73_928_000 picoseconds.
+		Weight::from_parts(75_259_000, 6172)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -114,8 +114,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `182`
 		//  Estimated: `3522`
-		// Minimum execution time: 16_246_000 picoseconds.
-		Weight::from_parts(16_853_000, 3522)
+		// Minimum execution time: 16_135_000 picoseconds.
+		Weight::from_parts(16_643_000, 3522)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -125,8 +125,8 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `182`
 		//  Estimated: `3522`
-		// Minimum execution time: 15_162_000 picoseconds.
-		Weight::from_parts(15_533_000, 3522)
+		// Minimum execution time: 14_613_000 picoseconds.
+		Weight::from_parts(15_159_000, 3522)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}

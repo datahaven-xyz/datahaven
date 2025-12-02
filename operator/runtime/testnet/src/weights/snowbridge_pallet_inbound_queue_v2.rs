@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // snowbridge_pallet_inbound_queue_v2
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/snowbridge_pallet_inbound_queue_v2.rs
+// runtime/mainnet/src/weights/snowbridge_pallet_inbound_queue_v2.rs
 // --steps
 // 50
 // --repeat
@@ -52,8 +52,8 @@ impl<T: frame_system::Config> snowbridge_pallet_inbound_queue_v2::WeightInfo for
 		// Proof Size summary in bytes:
 		//  Measured:  `339`
 		//  Estimated: `3537`
-		// Minimum execution time: 108_332_000 picoseconds.
-		Weight::from_parts(109_612_000, 3537)
+		// Minimum execution time: 111_933_000 picoseconds.
+		Weight::from_parts(113_583_000, 3537)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}

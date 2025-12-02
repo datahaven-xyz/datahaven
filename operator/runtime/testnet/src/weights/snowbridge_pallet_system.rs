@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // snowbridge_pallet_system
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/snowbridge_pallet_system.rs
+// runtime/mainnet/src/weights/snowbridge_pallet_system.rs
 // --steps
 // 50
 // --repeat
@@ -42,15 +42,15 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 9_446_000 picoseconds.
-		Weight::from_parts(9_779_000, 0)
+		// Minimum execution time: 9_180_000 picoseconds.
+		Weight::from_parts(9_420_000, 0)
 	}
 	fn set_operating_mode() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_084_000 picoseconds.
-		Weight::from_parts(7_549_000, 0)
+		// Minimum execution time: 6_922_000 picoseconds.
+		Weight::from_parts(7_100_000, 0)
 	}
 	/// Storage: `SnowbridgeSystem::PricingParameters` (r:0 w:1)
 	/// Proof: `SnowbridgeSystem::PricingParameters` (`max_values`: Some(1), `max_size`: Some(112), added: 607, mode: `MaxEncodedLen`)
@@ -58,16 +58,16 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 9_749_000 picoseconds.
-		Weight::from_parts(10_032_000, 0)
+		// Minimum execution time: 9_355_000 picoseconds.
+		Weight::from_parts(9_667_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	fn set_token_transfer_fees() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_842_000 picoseconds.
-		Weight::from_parts(8_116_000, 0)
+		// Minimum execution time: 7_710_000 picoseconds.
+		Weight::from_parts(7_955_000, 0)
 	}
 	/// Storage: `SnowbridgeSystem::ForeignToNativeId` (r:1 w:1)
 	/// Proof: `SnowbridgeSystem::ForeignToNativeId` (`max_values`: None, `max_size`: Some(650), added: 3125, mode: `MaxEncodedLen`)
@@ -77,8 +77,8 @@ impl<T: frame_system::Config> snowbridge_pallet_system::WeightInfo for WeightInf
 		// Proof Size summary in bytes:
 		//  Measured:  `75`
 		//  Estimated: `4115`
-		// Minimum execution time: 20_863_000 picoseconds.
-		Weight::from_parts(21_812_000, 4115)
+		// Minimum execution time: 19_997_000 picoseconds.
+		Weight::from_parts(20_432_000, 4115)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}

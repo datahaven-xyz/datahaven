@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_datahaven_native_transfer
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_datahaven_native_transfer.rs
+// runtime/mainnet/src/weights/pallet_datahaven_native_transfer.rs
 // --steps
 // 50
 // --repeat
@@ -52,8 +52,8 @@ impl<T: frame_system::Config> pallet_datahaven_native_transfer::WeightInfo for W
 		// Proof Size summary in bytes:
 		//  Measured:  `467`
 		//  Estimated: `8763`
-		// Minimum execution time: 141_584_000 picoseconds.
-		Weight::from_parts(143_945_000, 8763)
+		// Minimum execution time: 138_486_000 picoseconds.
+		Weight::from_parts(141_204_000, 8763)
 			.saturating_add(T::DbWeight::get().reads(6_u64))
 			.saturating_add(T::DbWeight::get().writes(6_u64))
 	}
@@ -63,8 +63,8 @@ impl<T: frame_system::Config> pallet_datahaven_native_transfer::WeightInfo for W
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_064_000 picoseconds.
-		Weight::from_parts(7_301_000, 0)
+		// Minimum execution time: 6_810_000 picoseconds.
+		Weight::from_parts(7_199_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: `DataHavenNativeTransfer::Paused` (r:0 w:1)
@@ -73,8 +73,8 @@ impl<T: frame_system::Config> pallet_datahaven_native_transfer::WeightInfo for W
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_033_000 picoseconds.
-		Weight::from_parts(7_329_000, 0)
+		// Minimum execution time: 7_070_000 picoseconds.
+		Weight::from_parts(7_263_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 }

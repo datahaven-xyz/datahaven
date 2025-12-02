@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_randomness
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_randomness.rs
+// runtime/mainnet/src/weights/pallet_randomness.rs
 // --steps
 // 50
 // --repeat
@@ -58,8 +58,8 @@ impl<T: frame_system::Config> pallet_randomness::weights::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `348`
 		//  Estimated: `1518`
-		// Minimum execution time: 25_653_000 picoseconds.
-		Weight::from_parts(26_835_000, 1518)
+		// Minimum execution time: 26_171_000 picoseconds.
+		Weight::from_parts(27_041_000, 1518)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
@@ -69,8 +69,8 @@ impl<T: frame_system::Config> pallet_randomness::weights::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `99`
 		//  Estimated: `1485`
-		// Minimum execution time: 5_406_000 picoseconds.
-		Weight::from_parts(5_749_000, 1485)
+		// Minimum execution time: 5_396_000 picoseconds.
+		Weight::from_parts(5_596_000, 1485)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}

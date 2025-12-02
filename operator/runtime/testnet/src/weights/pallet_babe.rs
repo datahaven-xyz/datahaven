@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_babe
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_babe.rs
+// runtime/mainnet/src/weights/pallet_babe.rs
 // --steps
 // 50
 // --repeat
@@ -39,10 +39,12 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_babe::WeightInfo for WeightInfo<T> {
     fn plan_config_change() -> Weight {
+        // Placeholder constant; re-benchmark to refresh.
         Weight::from_parts(5_000_000, 0)
     }
 
     fn report_equivocation(_equivocations: u32, _key_owners: u32) -> Weight {
-        Weight::from_parts(89_841_267, 0)
+        // Based on previous check_equivocation_proof baseline; re-benchmark to refresh.
+        Weight::from_parts(89_672_355, 0)
     }
 }

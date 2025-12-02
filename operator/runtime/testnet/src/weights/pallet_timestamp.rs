@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_timestamp
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_timestamp.rs
+// runtime/mainnet/src/weights/pallet_timestamp.rs
 // --steps
 // 50
 // --repeat
@@ -46,8 +46,8 @@ impl<T: frame_system::Config> pallet_timestamp::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `278`
 		//  Estimated: `1493`
-		// Minimum execution time: 11_722_000 picoseconds.
-		Weight::from_parts(12_175_000, 1493)
+		// Minimum execution time: 11_598_000 picoseconds.
+		Weight::from_parts(11_953_000, 1493)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -55,7 +55,7 @@ impl<T: frame_system::Config> pallet_timestamp::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `94`
 		//  Estimated: `0`
-		// Minimum execution time: 5_314_000 picoseconds.
-		Weight::from_parts(5_420_000, 0)
+		// Minimum execution time: 5_225_000 picoseconds.
+		Weight::from_parts(5_459_000, 0)
 	}
 }

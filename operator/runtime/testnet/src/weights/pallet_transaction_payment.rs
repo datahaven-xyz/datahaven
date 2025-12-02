@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_transaction_payment
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_transaction_payment.rs
+// runtime/mainnet/src/weights/pallet_transaction_payment.rs
 // --steps
 // 50
 // --repeat
@@ -46,8 +46,8 @@ impl<T: frame_system::Config> pallet_transaction_payment::WeightInfo for WeightI
 		// Proof Size summary in bytes:
 		//  Measured:  `403`
 		//  Estimated: `8763`
-		// Minimum execution time: 99_135_000 picoseconds.
-		Weight::from_parts(101_172_000, 8763)
+		// Minimum execution time: 98_576_000 picoseconds.
+		Weight::from_parts(100_621_000, 8763)
 			.saturating_add(T::DbWeight::get().reads(4_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}

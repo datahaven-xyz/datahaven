@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_external_validator_slashes
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_external_validator_slashes.rs
+// runtime/mainnet/src/weights/pallet_external_validator_slashes.rs
 // --steps
 // 50
 // --repeat
@@ -47,8 +47,8 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::weights::Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `38528`
 		//  Estimated: `41993`
-		// Minimum execution time: 77_069_000 picoseconds.
-		Weight::from_parts(1_419_406_561, 41993)
+		// Minimum execution time: 76_582_000 picoseconds.
+		Weight::from_parts(1_422_088_660, 41993)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -66,8 +66,8 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::weights::Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `492`
 		//  Estimated: `3957`
-		// Minimum execution time: 27_830_000 picoseconds.
-		Weight::from_parts(28_371_000, 3957)
+		// Minimum execution time: 28_199_000 picoseconds.
+		Weight::from_parts(28_842_000, 3957)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -88,10 +88,10 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::weights::Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `541 + s * (38 ±0)`
 		//  Estimated: `6044 + s * (38 ±0)`
-		// Minimum execution time: 49_704_000 picoseconds.
-		Weight::from_parts(51_458_451, 6044)
-			// Standard Error: 674
-			.saturating_add(Weight::from_parts(45_427, 0).saturating_mul(s.into()))
+		// Minimum execution time: 50_142_000 picoseconds.
+		Weight::from_parts(52_116_022, 6044)
+			// Standard Error: 857
+			.saturating_add(Weight::from_parts(45_899, 0).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(6_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 			.saturating_add(Weight::from_parts(0, 38).saturating_mul(s.into()))
@@ -102,8 +102,8 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::weights::Weight
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 3_748_000 picoseconds.
-		Weight::from_parts(3_946_000, 0)
+		// Minimum execution time: 3_864_000 picoseconds.
+		Weight::from_parts(4_014_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 

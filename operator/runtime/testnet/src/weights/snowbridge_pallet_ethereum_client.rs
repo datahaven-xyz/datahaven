@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/release/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/release/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // snowbridge_pallet_ethereum_client
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/snowbridge_pallet_ethereum_client.rs
+// runtime/mainnet/src/weights/snowbridge_pallet_ethereum_client.rs
 // --steps
 // 2
 // --repeat
@@ -58,8 +58,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `76`
 		//  Estimated: `3501`
-		// Minimum execution time: 45_506_000_000 picoseconds.
-		Weight::from_parts(46_239_000_000, 3501)
+		// Minimum execution time: 47_881_000_000 picoseconds.
+		Weight::from_parts(47_994_000_000, 3501)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(8_u64))
 	}
@@ -85,8 +85,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `92785`
 		//  Estimated: `93857`
-		// Minimum execution time: 11_614_000_000 picoseconds.
-		Weight::from_parts(11_658_000_000, 93857)
+		// Minimum execution time: 11_575_000_000 picoseconds.
+		Weight::from_parts(11_589_000_000, 93857)
 			.saturating_add(T::DbWeight::get().reads(9_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}
@@ -108,8 +108,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		// Proof Size summary in bytes:
 		//  Measured:  `92772`
 		//  Estimated: `93857`
-		// Minimum execution time: 57_492_000_000 picoseconds.
-		Weight::from_parts(59_487_000_000, 93857)
+		// Minimum execution time: 57_088_000_000 picoseconds.
+		Weight::from_parts(59_937_000_000, 93857)
 			.saturating_add(T::DbWeight::get().reads(7_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}

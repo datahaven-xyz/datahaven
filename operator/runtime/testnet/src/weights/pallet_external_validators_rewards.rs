@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/production/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
+// target/production/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_external_validators_rewards
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/testnet/src/weights/pallet_external_validators_rewards.rs
+// runtime/mainnet/src/weights/pallet_external_validators_rewards.rs
 // --steps
 // 50
 // --repeat
@@ -46,8 +46,8 @@ impl<T: frame_system::Config> pallet_external_validators_rewards::WeightInfo for
 		// Proof Size summary in bytes:
 		//  Measured:  `24197`
 		//  Estimated: `27662`
-		// Minimum execution time: 1_527_718_000 picoseconds.
-		Weight::from_parts(1_547_405_000, 27662)
+		// Minimum execution time: 1_536_178_000 picoseconds.
+		Weight::from_parts(1_553_962_000, 27662)
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 	}
 }

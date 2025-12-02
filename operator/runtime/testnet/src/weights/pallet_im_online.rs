@@ -14,7 +14,7 @@
 // benchmark
 // pallet
 // --runtime
-// target/release/wbuild/datahaven-mainnet-runtime/datahaven_mainnet_runtime.compact.compressed.wasm
+// target/release/wbuild/datahaven-testnet-runtime/datahaven_testnet_runtime.compact.compressed.wasm
 // --pallet
 // pallet_im_online
 // --extrinsic
@@ -22,7 +22,7 @@
 // --template
 // benchmarking/frame-weight-template.hbs
 // --output
-// runtime/mainnet/src/weights/pallet_im_online.rs
+// runtime/testnet/src/weights/pallet_im_online.rs
 // --steps
 // 2
 // --repeat
@@ -54,7 +54,7 @@ impl<T: frame_system::Config> pallet_im_online::WeightInfo for WeightInfo<T> {
 		//  Measured:  `278 + k * (32 ±0)`
 		//  Estimated: `3509 + k * (32 ±0)`
 		// Minimum execution time: 39_000_000 picoseconds.
-		Weight::from_parts(47_209_677, 3509)
+		Weight::from_parts(51_838_709, 3509)
 			.saturating_add(T::DbWeight::get().reads(5_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 			.saturating_add(Weight::from_parts(0, 32).saturating_mul(k.into()))

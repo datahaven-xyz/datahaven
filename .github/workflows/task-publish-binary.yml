@@ -30,14 +30,15 @@ jobs:
           retention-days: 1
 
   build-binary:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     needs: ["prepare-sources"]
     permissions:
       contents: read
     strategy:
       matrix:
         cpu: ["x86-64", "skylake", "znver3"]
-        build: ["default", "static"]
+        build: ["default"]
         exclude:
           - cpu: skylake
             build: static

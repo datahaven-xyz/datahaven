@@ -19,7 +19,7 @@ interface IServiceManagerUI {
      *         "name": "EigenLabs AVS 1",
      *         "website": "https://www.eigenlayer.xyz/",
      *         "description": "This is my 1st AVS",
-     *         "logo": "https://example.com/avs-logo.png",
+     *         "logo": "https://raw.githubusercontent.com/datahaven-xyz/datahaven-files/refs/heads/main/files/datahaven-logo.png",
      *         "twitter": "https://twitter.com/eigenlayer"
      *     }
      */

@@ -58,14 +58,6 @@ pub struct Cli {
     #[command(flatten)]
     pub provider_config: ProviderConfigurations,
 
-    /// Indexer configurations
-    #[command(flatten)]
-    pub indexer_config: IndexerConfigurations,
-
-    /// Fisherman configurations
-    #[command(flatten)]
-    pub fisherman_config: FishermanConfigurations,
-
     /// Provider configurations file path (allow to specify the provider configuration in a file instead of the cli)
     #[arg(long, conflicts_with_all = [
         "provider", "provider_type", "max_storage_capacity", "jump_capacity",
@@ -76,9 +68,19 @@ pub struct Cli {
         "bsp_upload_file_task", "bsp_upload_file_max_try_count", "bsp_upload_file_max_tip",
         "bsp_move_bucket_task", "bsp_move_bucket_grace_period",
         "bsp_charge_fees_task", "bsp_charge_fees_min_debt",
-        "bsp_submit_proof_task", "bsp_submit_proof_max_attempts", "fisherman", "fisherman_database_url",
+        "bsp_submit_proof_task", "bsp_submit_proof_max_attempts",
+        "pending_db_url",
+        "fisherman", "fisherman_database_url",
     ])]
     pub provider_config_file: Option<String>,
+
+    /// Indexer configurations
+    #[command(flatten)]
+    pub indexer_config: IndexerConfigurations,
+
+    /// Fisherman configurations
+    #[command(flatten)]
+    pub fisherman_config: FishermanConfigurations,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -241,6 +243,17 @@ pub struct ProviderConfigurations {
     #[arg(long, default_value = "10")]
     pub max_blocks_behind_to_catch_up_root_changes: Option<u32>,
 
+    /// Enable MSP file distribution to BSPs (disabled by default unless set via config/CLI).
+    /// Only applicable when running as an MSP provider.
+    #[arg(long, value_name = "BOOLEAN")]
+    pub msp_distribute_files: bool,
+
+    /// Postgres database URL for persisting pending extrinsics (Blockchain Service DB).
+    /// If not provided, the service will use the `SH_PENDING_DB_URL` environment variable.
+    /// If neither is set, pending transactions will not be persisted.
+    #[arg(long("pending-db-url"), env = "SH_PENDING_DB_URL")]
+    pub pending_db_url: Option<String>,
+
     // ============== Provider RPC options ==============
     // ============== Remote file upload/download options ==============
     /// Maximum file size in bytes (default: 10GB)
@@ -279,6 +292,11 @@ pub struct ProviderConfigurations {
     /// Number of `chunk_size` chunks to buffer during upload/download. (default: 512)
     #[arg(long, value_name = "COUNT", default_value = "512")]
     pub chunks_buffer: Option<u64>,
+
+    /// The number of 1KB (FILE_CHUNK_SIZE) chunks we batch and queue from the db while
+    /// transferring the file on a save_file_to_disk call.
+    #[arg(long, value_name = "COUNT", default_value = "1024")]
+    pub internal_buffer_size: Option<u64>,
 
     // ============== MSP Charge Fees task options ==============
     /// Enable and configure MSP Charge Fees task.
@@ -333,11 +351,6 @@ pub struct ProviderConfigurations {
         ])
     )]
     pub msp_move_bucket_max_tip: Option<u128>,
-
-    /// Enable MSP file distribution to BSPs (disabled by default unless set via config/CLI).
-    /// Only applicable when running as an MSP provider.
-    #[arg(long, value_name = "BOOLEAN")]
-    pub msp_distribute_files: bool,
 
     // ============== BSP Upload File task options ==============
     /// Enable and configure BSP Upload File task.
@@ -418,6 +431,15 @@ pub struct ProviderConfigurations {
         ])
     )]
     pub bsp_submit_proof_max_attempts: Option<u32>,
+
+    /// Optional database URL for MSP nodes only. If provided, enables database access
+    /// for operations such as move bucket operations without requiring the full indexer service.
+    #[arg(
+        long,
+        value_name = "DATABASE_URL",
+        help_heading = "MSP Database Options"
+    )]
+    pub msp_database_url: Option<String>,
 }
 
 impl ProviderConfigurations {
@@ -450,6 +472,11 @@ impl ProviderConfigurations {
         if let Some(chunks_buffer) = self.chunks_buffer {
             if chunks_buffer > 0 {
                 rpc_config.remote_file.chunks_buffer = chunks_buffer as usize;
+            }
+        }
+        if let Some(internal_buffer_size) = self.internal_buffer_size {
+            if internal_buffer_size > 0 {
+                rpc_config.remote_file.internal_buffer_size = internal_buffer_size as usize;
             }
         }
 
@@ -521,6 +548,18 @@ impl ProviderConfigurations {
             bs_changed = true;
         }
 
+        // Set MSP distribution flag if provided on CLI and role is MSP
+        if self.msp_distribute_files && provider_type == ProviderType::Msp {
+            bs_options.enable_msp_distribute_files = Some(true);
+            bs_changed = true;
+        }
+
+        // If a pending DB URL was provided, enable blockchain service options and pass it through
+        if let Some(url) = self.pending_db_url.clone() {
+            bs_options.pending_db_url = Some(url);
+            bs_changed = true;
+        }
+
         if let Some(sync_mode_min_blocks_behind) = self.sync_mode_min_blocks_behind {
             bs_options.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
             bs_changed = true;
@@ -567,6 +606,7 @@ impl ProviderConfigurations {
             bsp_charge_fees,
             bsp_submit_proof,
             blockchain_service,
+            msp_database_url: self.msp_database_url.clone(),
             // We don't support maintenance mode for now.
             // maintenance_mode: self.maintenance_mode,
         }
@@ -618,7 +658,7 @@ impl IndexerConfigurations {
 #[derive(Debug, Parser, Clone)]
 pub struct FishermanConfigurations {
     /// Enable the fisherman service.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "provider")]
     pub fisherman: bool,
 
     /// Postgres database URL for the fisherman service.
@@ -632,18 +672,13 @@ pub struct FishermanConfigurations {
     )]
     pub fisherman_database_url: Option<String>,
 
-    /// Maximum number of incomplete storage requests to process after the first block processed coming out of syncing mode.
-    #[arg(long, value_name = "COUNT", default_value = "10000", value_parser = clap::value_parser!(u32).range(1..))]
-    pub fisherman_incomplete_sync_max: u32,
+    /// Duration between batch deletion processing cycles (in seconds).
+    #[arg(long, default_value = "60", value_parser = clap::value_parser!(u64).range(1..))]
+    pub fisherman_batch_interval_seconds: u64,
 
-    /// Page size for incomplete storage request pagination.
-    /// Must be at least 1.
-    #[arg(long, value_name = "SIZE", default_value = "256", value_parser = clap::value_parser!(u32).range(1..))]
-    pub fisherman_incomplete_sync_page_size: u32,
-
-    /// The minimum number of blocks between the last processed block and the current best block to consider the fisherman out of sync.
-    #[arg(long, default_value = "5")]
-    pub fisherman_sync_mode_min_blocks_behind: u32,
+    /// Maximum number of files to process per batch deletion cycle.
+    #[arg(long, default_value = "1000", value_parser = clap::value_parser!(u64).range(1..))]
+    pub fisherman_batch_deletion_limit: u64,
 }
 
 impl FishermanConfigurations {
@@ -654,9 +689,8 @@ impl FishermanConfigurations {
                     .fisherman_database_url
                     .clone()
                     .expect("Fisherman database URL is required"),
-                incomplete_sync_max: self.fisherman_incomplete_sync_max,
-                incomplete_sync_page_size: self.fisherman_incomplete_sync_page_size,
-                sync_mode_min_blocks_behind: self.fisherman_sync_mode_min_blocks_behind,
+                batch_interval_seconds: self.fisherman_batch_interval_seconds,
+                batch_deletion_limit: self.fisherman_batch_deletion_limit,
                 maintenance_mode: false, // Skipping maintenance mode for now
             })
         } else {

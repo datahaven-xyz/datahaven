@@ -43,7 +43,7 @@ use shc_client::types::FileStorageT;
 use shc_common::traits::StorageEnableRuntime;
 use shc_common::traits::StorageEnableRuntimeApi;
 use shc_common::types::OpaqueBlock;
-use shc_common::types::ParachainClient;
+use shc_common::types::StorageHubClient;
 use shc_forest_manager::traits::ForestStorageHandler;
 use shc_rpc::StorageHubClientApiServer;
 use shc_rpc::StorageHubClientRpc;
@@ -71,7 +71,7 @@ where
     Runtime: StorageEnableRuntime,
 {
     /// The client instance to use.
-    pub client: Arc<ParachainClient<Runtime::RuntimeApi>>,
+    pub client: Arc<StorageHubClient<Runtime::RuntimeApi>>,
     /// Transaction pool instance.
     pub pool: Arc<P>,
     /// BEEFY dependencies.
@@ -128,7 +128,7 @@ where
                         + BabeApi<Block>
                         + fp_rpc::ConvertTransactionRuntimeApi<Block>,
     >,
-    ParachainClient<Runtime::RuntimeApi>: StorageProvider<Block, BE>,
+    StorageHubClient<Runtime::RuntimeApi>: StorageProvider<Block, BE>,
     FL: FileStorageT,
     FSH: ForestStorageHandler<Runtime> + Send + Sync + 'static,
 {
@@ -216,7 +216,7 @@ where
     };
 
     module.merge(
-        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<ParachainClient<Runtime::RuntimeApi>, BE>>::new(
+        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<StorageHubClient<Runtime::RuntimeApi>, BE>>::new(
             Arc::clone(&client),
             Arc::clone(&pool),
             graph.clone(),

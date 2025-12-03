@@ -63,6 +63,7 @@ use shc_client::{
     },
 };
 use shc_common::traits::StorageEnableRuntime;
+use shc_common::types::StorageHubClient;
 use shc_file_transfer_service::fetch_genesis_hash;
 use shc_indexer_db::DbPool;
 use shc_indexer_service::spawn_indexer_service;
@@ -77,11 +78,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{default::Default, path::Path, sync::Arc, time::Duration};
 
-pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
-    Block,
-    RuntimeApi,
-    sc_executor::WasmExecutor<cumulus_client_service::ParachainHostFunctions>,
->;
+pub(crate) type FullClient<RuntimeApi> = StorageHubClient<RuntimeApi>;
 
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -184,7 +181,7 @@ pub type Service<RuntimeApi> = sc_service::PartialComponents<
 
 // StorageHub Enable client
 pub(crate) type StorageEnableClient<Runtime> =
-    shc_common::types::ParachainClient<<Runtime as StorageEnableRuntime>::RuntimeApi>;
+    shc_common::types::StorageHubClient<<Runtime as StorageEnableRuntime>::RuntimeApi>;
 
 pub fn frontier_database_dir(config: &Configuration, path: &str) -> std::path::PathBuf {
     config
@@ -1077,10 +1074,10 @@ async fn configure_and_spawn_indexer<Runtime: StorageEnableRuntime>(
     indexer_options: &Option<IndexerOptions>,
     task_manager: &TaskManager,
     client: Arc<StorageEnableClient<Runtime>>,
-) -> Result<Option<DbPool>, sc_service::Error> {
+) -> Result<(), sc_service::Error> {
     let indexer_options = match indexer_options {
         Some(config) => config,
-        None => return Ok(None),
+        None => return Ok(()),
     };
 
     // Setup database pool
@@ -1100,9 +1097,8 @@ async fn configure_and_spawn_indexer<Runtime: StorageEnableRuntime>(
     )
     .await;
 
-    Ok(Some(db_pool))
+    Ok(())
 }
-
 /// Initialize the StorageHub builder with configured services based on the node's role.
 ///
 /// If `indexer_options` is provided, spawns the indexer service regardless of role configuration.
@@ -1135,9 +1131,7 @@ where
     StorageHubBuilder<R, S, Runtime>: StorageLayerBuilder,
 {
     // Spawn indexer service if enabled. Runs before role check to allow standalone operation.
-    let maybe_indexer_db_pool =
-        configure_and_spawn_indexer::<Runtime>(&indexer_options, &task_manager, client.clone())
-            .await?;
+    configure_and_spawn_indexer::<Runtime>(&indexer_options, &task_manager, client.clone()).await?;
 
     let role_options = match role_options {
         Some(role) => role,
@@ -1187,6 +1181,7 @@ where
             bsp_charge_fees,
             bsp_submit_proof,
             blockchain_service,
+            msp_database_url,
             ..
         }) => {
             info!(
@@ -1212,9 +1207,14 @@ where
 
             // MSP-specific configuration
             if *provider_type == ProviderType::Msp {
-                builder
-                    .with_notify_period(*msp_charging_period)
-                    .with_indexer_db_pool(maybe_indexer_db_pool);
+                builder.with_notify_period(*msp_charging_period);
+
+                // MSPs can optionally have database access to execute move bucket operations.
+                if let Some(db_url) = msp_database_url {
+                    info!("Setting up MSP database connection: {}", db_url);
+                    let msp_db_pool = setup_database_pool(db_url.clone()).await?;
+                    builder.with_indexer_db_pool(Some(msp_db_pool));
+                }
             }
 
             if let Some(c) = blockchain_service {

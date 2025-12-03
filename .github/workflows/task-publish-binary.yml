@@ -30,19 +30,14 @@ jobs:
           retention-days: 1
 
   build-binary:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: DH-runners
     needs: ["prepare-sources"]
     permissions:
       contents: read
     strategy:
       matrix:
         cpu: ["x86-64", "skylake", "znver3"]
-        build: ["default", "static"]
-        exclude:
-          - cpu: skylake
-            build: static
-          - cpu: znver3
-            build: static
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -52,7 +47,6 @@ jobs:
         uses: ./.github/workflow-templates/build-prod-binary
         with:
           target: ${{ matrix.cpu }}
-          build: ${{ matrix.build }}
 
   ####### Prepare and publish the release draft #######
 

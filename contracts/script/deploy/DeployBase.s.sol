@@ -21,9 +21,8 @@ import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // OpenZeppelin imports
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {
-    TransparentUpgradeableProxy
-} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // EigenLayer imports
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
@@ -31,9 +30,8 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {
-    PermissionController
-} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {PermissionController} from
+    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 
@@ -79,6 +77,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
     EigenPodManager public eigenPodManager;
     IETHPOSDeposit public ethPOSDeposit;
 
+    bool internal _txExecutionEnabled;
+
     function _logProgress() internal {
         deploymentStep++;
         Logging.logProgress(deploymentStep, totalSteps);
@@ -95,6 +95,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
      * @notice Shared deployment flow for both local and testnet deployments
      */
     function _executeSharedDeployment() internal {
+        _txExecutionEnabled = vm.envOr("TX_EXECUTION", true);
+
         string memory networkName = _getNetworkName();
         string memory deploymentMode = _getDeploymentMode();
 
@@ -102,6 +104,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         console.log("|  Network: %s", networkName);
         console.log("|  Mode: %s", deploymentMode);
         console.log("|  Timestamp: %s", vm.toString(block.timestamp));
+        if (!_txExecutionEnabled) {
+            Logging.logInfo("TX EXECUTION DISABLED: owner transactions must be executed manually");
+        }
         Logging.logFooter();
 
         // Load configurations
@@ -137,9 +142,13 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
 
         // Final configuration (same for both modes)
         Logging.logHeader("FINAL CONFIGURATION");
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
-        Logging.logStep("Agent set in RewardsRegistry");
+        if (_txExecutionEnabled) {
+            vm.broadcast(_avsOwnerPrivateKey);
+            serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
+            Logging.logStep("Agent set in RewardsRegistry");
+        } else {
+            Logging.logInfo("TX EXECUTION DISABLED: call setRewardsAgent via multisig");
+        }
         Logging.logContractDeployed("Agent Address", rewardsAgentAddress);
         Logging.logFooter();
         _logProgress();
@@ -259,9 +268,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
 
         // Deploy the Service Manager
         vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation = new DataHavenServiceManager(
-            rewardsCoordinator, permissionController, allocationManager
-        );
+        DataHavenServiceManager serviceManagerImplementation =
+            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
         Logging.logContractDeployed(
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
@@ -301,20 +309,32 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         Logging.logSection("Configuring Service Manager");
 
         // Register the DataHaven service in the AllocationManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.updateAVSMetadataURI("");
-        Logging.logStep("DataHaven service registered in AllocationManager");
+        if (_txExecutionEnabled) {
+            vm.broadcast(_avsOwnerPrivateKey);
+            serviceManager.updateAVSMetadataURI("");
+            Logging.logStep("DataHaven service registered in AllocationManager");
+        } else {
+            Logging.logInfo("TX EXECUTION DISABLED: call updateAVSMetadataURI via multisig");
+        }
 
         // Set the slasher in the ServiceManager
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setSlasher(vetoableSlasher);
-        Logging.logStep("Slasher set in ServiceManager");
+        if (_txExecutionEnabled) {
+            vm.broadcast(_avsOwnerPrivateKey);
+            serviceManager.setSlasher(vetoableSlasher);
+            Logging.logStep("Slasher set in ServiceManager");
+        } else {
+            Logging.logInfo("TX EXECUTION DISABLED: call setSlasher via multisig");
+        }
 
         // Set the RewardsRegistry in the ServiceManager
         uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();
-        vm.broadcast(_avsOwnerPrivateKey);
-        serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
-        Logging.logStep("RewardsRegistry set in ServiceManager");
+        if (_txExecutionEnabled) {
+            vm.broadcast(_avsOwnerPrivateKey);
+            serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
+            Logging.logStep("RewardsRegistry set in ServiceManager");
+        } else {
+            Logging.logInfo("TX EXECUTION DISABLED: call setRewardsRegistry via multisig");
+        }
 
         return (
             serviceManager,

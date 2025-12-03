@@ -16,7 +16,7 @@
       "!**/html/**/*",
       "!**/datahaven/contracts/out/**/*",
       "!**/contracts/out/**/*",
-      "!**/contracts/deployments/state-diff.json"
+      "!**/contracts/deployments/state-diff.checksum"
     ],
     "maxSize": 3000000
   },

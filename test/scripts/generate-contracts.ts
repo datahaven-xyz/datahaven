@@ -17,7 +17,7 @@ async function findRethContainer(): Promise<string> {
 
   if (!containerName) {
     const setupCommand =
-      "bun cli launch --launch-kurtosis --deploy-contracts --no-inject-contracts --no-datahaven --no-relayer --no-set-parameters";
+      "bun cli launch --launch-kurtosis --deploy-contracts --no-inject-contracts --no-datahaven --no-relayer --no-set-parameters --no-setup-validators --no-fund-validators";
     throw new Error(
       "❌ Could not find Reth container with contracts deployed.\n\n" +
         "To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n" +

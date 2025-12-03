@@ -21,8 +21,9 @@ import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // OpenZeppelin imports
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // EigenLayer imports
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
@@ -30,8 +31,9 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {PermissionController} from
-    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {
+    PermissionController
+} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 
@@ -268,8 +270,9 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
 
         // Deploy the Service Manager
         vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation =
-            new DataHavenServiceManager(rewardsCoordinator, permissionController, allocationManager);
+        DataHavenServiceManager serviceManagerImplementation = new DataHavenServiceManager(
+            rewardsCoordinator, permissionController, allocationManager
+        );
         Logging.logContractDeployed(
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );

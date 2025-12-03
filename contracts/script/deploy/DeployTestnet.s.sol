@@ -23,13 +23,15 @@ import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/Delegat
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {PermissionController} from
-    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {
+    PermissionController
+} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
 // OpenZeppelin imports for proxy creation
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title DeployTestnet
@@ -204,16 +206,19 @@ contract DeployTestnet is DeployBase {
             vm.toString(address(serviceManagerImplementation)),
             '",'
         );
-        json =
-            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
-        json =
-            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json = string.concat(
+            json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",'
+        );
+        json = string.concat(
+            json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
+        );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts (existing on testnet)
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
-        json =
-            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json = string.concat(
+            json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",'
+        );
         json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
         json = string.concat(
             json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'

@@ -12,33 +12,33 @@
     /// See https://github.com/Layr-Labs/eigenlayer-contracts/tree/dev/docs#rewardscoordinator
     "rewardsUpdater": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
     /// The interval at which the new rewards merkle root is calculated.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F1
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F1
     "calculationIntervalSeconds": 86400,
     /// The maximum duration of rewards that can be retroactively applied.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F5
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F5
     "maxRewardsDuration": 6048000,
     /// The maximum retroactive length of rewards that can be applied.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F4
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F4
     "maxRetroactiveLength": 7776000,
     /// The maximum duration of rewards that can be applied in the future.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F3
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F3
     "maxFutureLength": 2592000,
     /// The timestamp at which rewards are first calculated.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F2
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F2
     "genesisRewardsTimestamp": 1710979200,
     /// Delay in timestamp (seconds) before a posted root can be claimed against
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F6
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F6
     "activationDelay": 7200,
     /// Also called "defaultOperatorSplitBips"
     /// Used off-chain by the rewards updater to calculate an Operator's split for a specific reward.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F7
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xAcc1fb458a1317E886dB376Fc8141540537E68fE#readProxyContract#F7
     "globalCommissionBips": 1000,
     /// Multisig address for controlling operations (we don't care as much about this).
     "executorMultisig": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
     /// Multisig address for executing operations (we don't care as much about this).
     "operationsMultisig": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
     /// The delay in blocks before withdrawals can be completed.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0xA44151489861Fe9e3055d95adC98FbD462B948e7#readProxyContract#F24
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0xA44151489861Fe9e3055d95adC98FbD462B948e7#readProxyContract#F24
     "minWithdrawalDelayBlocks": 50,
     /// The initial paused status of the DelegationManager
     /// See here for more details: https://github.com/Layr-Labs/eigenlayer-contracts/blob/db0f582ba9b4df861b72269267d4980d7f3f7490/src/contracts/permissions/Pausable.sol#L12
@@ -53,13 +53,13 @@
     /// See here for more details: https://github.com/Layr-Labs/eigenlayer-contracts/blob/db0f582ba9b4df861b72269267d4980d7f3f7490/src/contracts/permissions/Pausable.sol#L12
     "allocationManagerInitPausedStatus": 0,
     /// The delay in blocks before deallocations can be completed.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0x78469728304326CBc65f8f95FA756B0B73164462#readProxyContract#F2
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0x78469728304326CBc65f8f95FA756B0B73164462#readProxyContract#F2
     "deallocationDelay": 50,
     /// The delay in blocks before allocation configuration can be completed.
-    /// See testnet deployment: https://holesky.etherscan.io/address/0x78469728304326CBc65f8f95FA756B0B73164462#readProxyContract#F1
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0x78469728304326CBc65f8f95FA756B0B73164462#readProxyContract#F1
     "allocationConfigurationDelay": 75,
     /// The genesis time of the beacon state, to help EL calculate conversions between slot and timestamp
-    /// See testnet deployment: https://holesky.etherscan.io/address/0x68bd1e75E9863C9066B46B8a44E953F918466D37#readContract#F1
+    /// See testnet deployment: https://hoodi.etherscan.io/address/0x68bd1e75E9863C9066B46B8a44E953F918466D37#readContract#F1
     "beaconChainGenesisTimestamp": 1695902400
   },
 

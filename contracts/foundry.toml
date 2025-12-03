@@ -114,7 +114,6 @@
 
 [rpc_endpoints]
     mainnet = "${RPC_MAINNET}"
-    holesky = "${RPC_HOLESKY}"
     hoodi = "https://rpc.hoodi.ethpandaops.io"
     anvil = "http://localhost:8545"
 

@@ -31,6 +31,10 @@ pub mod weights;
 pub use configs::governance;
 pub use configs::Precompiles;
 
+// Aliases for instanced collective pallets so weights & benchmarks can refer to them
+pub use pallet_collective as pallet_collective_treasury_council;
+pub use pallet_collective as pallet_collective_technical_committee;
+
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
 use fp_rpc::TransactionStatus;

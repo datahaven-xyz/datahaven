@@ -223,7 +223,9 @@ contract DeployTestnet is DeployBase {
     /**
      * @notice Validate that the network is hoodi (the only supported testnet)
      */
-    function _validateNetwork(string memory network) internal pure {
+    function _validateNetwork(
+        string memory network
+    ) internal pure {
         bytes32 networkHash = keccak256(abi.encodePacked(network));
 
         if (networkHash != keccak256(abi.encodePacked("hoodi"))) {
@@ -257,5 +259,4 @@ contract DeployTestnet is DeployBase {
             )
         );
     }
-
 }

@@ -62,7 +62,6 @@
     /// See EigenPodManager: https://hoodi.etherscan.io/address/0xcd1442415Fc5C29Aa848A49d2e232720BE07976c
     "beaconChainGenesisTimestamp": 1695902400
   },
-
   "avs": {
     /// The owner of the DataHaven Service Manager contract.
     "avsOwner": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
@@ -77,7 +76,6 @@
     /// The EigenLayer strategy addresses for the Validators to stake into.
     "validatorsStrategies": []
   },
-
   "snowbridge": {
     /// Minimum delay in number of blocks that a relayer must wait between calling
     /// submitInitial and commitPrevRandao. In production this should be set to MAX_SEED_LOOKAHEAD:

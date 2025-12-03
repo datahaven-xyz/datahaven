@@ -24,6 +24,7 @@ use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_call_permit::CallPermitPrecompile;
 use pallet_evm_precompile_collective::CollectivePrecompile;
 use pallet_evm_precompile_conviction_voting::ConvictionVotingPrecompile;
+use pallet_evm_precompile_datahaven_native_transfer::DataHavenNativeTransferPrecompile;
 use pallet_evm_precompile_file_system::FileSystemPrecompile;
 use pallet_evm_precompile_identity::IdentityPrecompile;
 use pallet_evm_precompile_modexp::Modexp;
@@ -139,6 +140,11 @@ type DataHavenPrecompilesAt<R> = (
     PrecompileAt<
         AddressU64<2072>,
         IdentityPrecompile<R, MaxAdditionalFields>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2073>,
+        DataHavenNativeTransferPrecompile<R>,
         (CallableByContract, CallableByPrecompile),
     >,
     PrecompileAt<AddressU64<1028>, FileSystemPrecompile<R>>,

@@ -6,9 +6,6 @@ inputs:
   target:
     description: The CPU target for the binary
     required: true
-  build:
-    description: If we should statically build it or not
-    required: false 
 
 runs:
   using: "composite"
@@ -27,7 +24,6 @@ runs:
           --tag prod --no-cache \
           --build-arg="COMMIT=${{ github.event.inputs.sha }}" \
           --build-arg="RUSTFLAGS=-C target-cpu=${{ inputs.target }}" \
-          --build-arg="BUILD=${{ inputs.build }}" \
           --file ./docker/datahaven-production.Dockerfile \
           .
 
@@ -50,29 +46,12 @@ runs:
         docker rmi prod
 
     - name: Save DataHaven node binary
-      if: inputs.build != 'static'
       shell: bash
       run: |
         mkdir -p build
         cp datahaven-node build/datahaven-node-${{ inputs.target }}
-
-    - name: Save DataHaven node binary
-      if: inputs.build == 'static'
-      shell: bash
-      run: |
-        mkdir -p build
-        cp datahaven-node build/datahaven-node-${{ inputs.target }}-static
-
     - name: Upload binary
-      if: inputs.build != 'static'
       uses: actions/upload-artifact@v4
       with:
         name: datahaven-binaries-${{inputs.target}}
         path: build/datahaven-node-${{inputs.target }}
-
-    - name: Upload binary
-      if: inputs.build == 'static'
-      uses: actions/upload-artifact@v4
-      with:
-        name: datahaven-binaries-${{inputs.target}}-static
-        path: build/datahaven-node-${{inputs.target }}-static

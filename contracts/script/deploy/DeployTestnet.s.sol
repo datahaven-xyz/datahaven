@@ -38,13 +38,6 @@ import {
  * @notice Deployment script for testnets (hoodi) - references existing EigenLayer contracts
  */
 contract DeployTestnet is DeployBase {
-    // Supported testnet chains
-    enum TestnetChain {
-        HOODI
-    }
-
-    // Current testnet being deployed to
-    TestnetChain public currentTestnet;
     string public networkName;
 
     function run() public {
@@ -55,7 +48,7 @@ contract DeployTestnet is DeployBase {
             "NETWORK environment variable required for testnet deployment"
         );
 
-        currentTestnet = _detectAndValidateNetwork(networkName);
+        _validateNetwork(networkName);
         totalSteps = 4;
 
         _executeSharedDeployment();
@@ -67,10 +60,7 @@ contract DeployTestnet is DeployBase {
     }
 
     function _getDeploymentMode() internal view override returns (string memory) {
-        if (currentTestnet == TestnetChain.HOODI) {
-            return "HOODI_TESTNET";
-        }
-        return "UNKNOWN_TESTNET";
+        return "HOODI_TESTNET";
     }
 
     function _setupEigenLayerContracts(
@@ -231,22 +221,18 @@ contract DeployTestnet is DeployBase {
     // TESTNET-SPECIFIC FUNCTIONS
 
     /**
-     * @notice Detect and validate the target testnet network
+     * @notice Validate that the network is hoodi (the only supported testnet)
      */
-    function _detectAndValidateNetwork(
-        string memory network
-    ) internal pure returns (TestnetChain) {
+    function _validateNetwork(string memory network) internal pure {
         bytes32 networkHash = keccak256(abi.encodePacked(network));
 
-        if (networkHash == keccak256(abi.encodePacked("hoodi"))) {
-            return TestnetChain.HOODI;
+        if (networkHash != keccak256(abi.encodePacked("hoodi"))) {
+            revert(
+                string.concat(
+                    "Unsupported testnet network: ", network, ". Supported networks: hoodi"
+                )
+            );
         }
-
-        revert(
-            string.concat(
-                "Unsupported testnet network: ", network, ". Supported networks: hoodi"
-            )
-        );
     }
 
     /**
@@ -272,14 +258,4 @@ contract DeployTestnet is DeployBase {
         );
     }
 
-    /**
-     * @notice Get testnet-specific configuration parameters
-     * @dev Override this function to add testnet-specific logic in the future
-     */
-    function _getTestnetConfig() internal view returns (string memory) {
-        if (currentTestnet == TestnetChain.HOODI) {
-            return "hoodi";
-        }
-        return "unknown";
-    }
 }

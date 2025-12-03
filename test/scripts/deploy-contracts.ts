@@ -1,8 +1,6 @@
 import { $ } from "bun";
 import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
-import { encodeFunctionData } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 import {
   logger,
   parseDeploymentsFile,
@@ -10,6 +8,8 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import type { ParameterCollection } from "utils/parameters";
+import { encodeFunctionData } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { dataHavenServiceManagerAbi } from "../contract-bindings/generated";
 
 interface ContractDeploymentOptions {
@@ -196,7 +196,9 @@ export const deployContracts = async (options: {
   const finalRpcUrl = options.rpcUrl || chainConfig.RPC_URL;
   const isLocalChain = options.chain === "anvil";
   const txExecutionEnabled = options.txExecution ?? isLocalChain;
-  const normalizedOwnerKey = normalizePrivateKey(options.avsOwnerKey || process.env.AVS_OWNER_PRIVATE_KEY);
+  const normalizedOwnerKey = normalizePrivateKey(
+    options.avsOwnerKey || process.env.AVS_OWNER_PRIVATE_KEY
+  );
 
   let resolvedAvsOwnerAddress = options.avsOwnerAddress;
   if (!resolvedAvsOwnerAddress && normalizedOwnerKey) {
@@ -296,7 +298,7 @@ const emitOwnerTransactionCalldata = async (chain?: string) => {
     const calls = [
       {
         label: "Set metadata URI",
-        description: "DataHavenServiceManager.updateAVSMetadataURI(\"\")",
+        description: 'DataHavenServiceManager.updateAVSMetadataURI("")',
         to: serviceManager,
         value: "0",
         data: encodeFunctionData({
@@ -340,7 +342,9 @@ const emitOwnerTransactionCalldata = async (chain?: string) => {
       }
     ];
 
-    logger.info("🔐 On-chain owner transactions were deferred. Submit the following calls via your multisig:");
+    logger.info(
+      "🔐 On-chain owner transactions were deferred. Submit the following calls via your multisig:"
+    );
     calls.forEach((call, index) => {
       logger.info(`\n#${index + 1} ${call.label}`);
       logger.info(call.description);

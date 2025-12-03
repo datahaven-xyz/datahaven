@@ -1,6 +1,5 @@
 import { logger, parseDeploymentsFile, printDivider } from "utils";
-import { createPublicClient, createWalletClient, http } from "viem";
-import { encodeFunctionData } from "viem";
+import { createPublicClient, createWalletClient, encodeFunctionData, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getChainDeploymentParams } from "../../../configs/contracts/config";
 import { dataHavenServiceManagerAbi } from "../../../contract-bindings/generated";
@@ -15,7 +14,9 @@ export const updateAVSMetadataURI = async (
 ) => {
   try {
     const execute = opts.execute ?? false;
-    const avsOwnerPrivateKey = normalizePrivateKey(opts.avsOwnerKey || process.env.AVS_OWNER_PRIVATE_KEY);
+    const avsOwnerPrivateKey = normalizePrivateKey(
+      opts.avsOwnerKey || process.env.AVS_OWNER_PRIVATE_KEY
+    );
 
     if (execute && !avsOwnerPrivateKey) {
       throw new Error("AVS owner private key is required to execute this transaction");

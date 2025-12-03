@@ -35,13 +35,12 @@ import {
 
 /**
  * @title DeployTestnet
- * @notice Deployment script for testnets (hoodi, holesky) - references existing EigenLayer contracts
+ * @notice Deployment script for testnets (hoodi) - references existing EigenLayer contracts
  */
 contract DeployTestnet is DeployBase {
     // Supported testnet chains
     enum TestnetChain {
-        HOODI,
-        HOLESKY
+        HOODI
     }
 
     // Current testnet being deployed to
@@ -70,8 +69,6 @@ contract DeployTestnet is DeployBase {
     function _getDeploymentMode() internal view override returns (string memory) {
         if (currentTestnet == TestnetChain.HOODI) {
             return "HOODI_TESTNET";
-        } else if (currentTestnet == TestnetChain.HOLESKY) {
-            return "HOLESKY_TESTNET";
         }
         return "UNKNOWN_TESTNET";
     }
@@ -243,13 +240,11 @@ contract DeployTestnet is DeployBase {
 
         if (networkHash == keccak256(abi.encodePacked("hoodi"))) {
             return TestnetChain.HOODI;
-        } else if (networkHash == keccak256(abi.encodePacked("holesky"))) {
-            return TestnetChain.HOLESKY;
         }
 
         revert(
             string.concat(
-                "Unsupported testnet network: ", network, ". Supported networks: hoodi, holesky"
+                "Unsupported testnet network: ", network, ". Supported networks: hoodi"
             )
         );
     }
@@ -284,8 +279,6 @@ contract DeployTestnet is DeployBase {
     function _getTestnetConfig() internal view returns (string memory) {
         if (currentTestnet == TestnetChain.HOODI) {
             return "hoodi";
-        } else if (currentTestnet == TestnetChain.HOLESKY) {
-            return "holesky";
         }
         return "unknown";
     }

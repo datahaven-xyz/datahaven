@@ -119,4 +119,3 @@
 
 # [etherscan]
 #     mainnet = { key = "${ETHERSCAN_API_KEY}" }
-#     holesky = { key = "${ETHERSCAN_API_KEY}" }

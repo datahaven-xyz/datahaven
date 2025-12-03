@@ -19,7 +19,7 @@ interface IServiceManagerUI {
      *         "name": "EigenLabs AVS 1",
      *         "website": "https://www.eigenlayer.xyz/",
      *         "description": "This is my 1st AVS",
-     *         "logo": "https://holesky-operator-metadata.s3.amazonaws.com/eigenlayer.png",
+     *         "logo": "https://example.com/avs-logo.png",
      *         "twitter": "https://twitter.com/eigenlayer"
      *     }
      */

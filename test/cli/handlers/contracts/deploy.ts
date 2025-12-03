@@ -15,6 +15,8 @@ export const contractsDeploy = async (options: any, command: any) => {
 
   printHeader(`Deploying DataHaven Contracts to ${chain}`);
 
+  const txExecutionOverride = options.executeOwnerTransactions ? true : undefined;
+
   try {
     logger.info("🚀 Starting deployment...");
     logger.info(`📡 Using chain: ${chain}`);
@@ -25,7 +27,10 @@ export const contractsDeploy = async (options: any, command: any) => {
     await deployContracts({
       chain: chain,
       rpcUrl: options.rpcUrl,
-      privateKey: options.privateKey
+      privateKey: options.privateKey,
+      avsOwnerKey: options.avsOwnerKey,
+      avsOwnerAddress: options.avsOwnerAddress,
+      txExecution: txExecutionOverride
     });
 
     printDivider();

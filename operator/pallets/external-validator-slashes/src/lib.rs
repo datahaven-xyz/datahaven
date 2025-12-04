@@ -83,6 +83,8 @@ pub trait SendMessage<AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
+    use sp_core::uint;
+
     use super::*;
     pub use crate::weights::WeightInfo;
 
@@ -97,6 +99,10 @@ pub mod pallet {
         },
         /// The slashes message was sent correctly.
         SlashesMessageSent { message_id: H256 },
+        /// We injected a slash
+        SlashInjected { next_slash_id: T::SlashId },
+        /// Number of slashes processed
+        SlashesProccessed { number: u32 },
     }
 
     #[pallet::config]
@@ -338,6 +344,9 @@ pub mod pallet {
             });
 
             NextSlashId::<T>::put(next_slash_id.saturating_add(One::one()));
+
+            Self::deposit_event(Event::<T>::SlashInjected { next_slash_id });
+
             Ok(())
         }
 
@@ -356,6 +365,9 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
+
+            Self::deposit_event(Event::<T>::SlashesProccessed { number: processed });
+
             T::WeightInfo::process_slashes_queue(processed)
         }
     }

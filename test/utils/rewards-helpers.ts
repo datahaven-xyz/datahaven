@@ -200,22 +200,24 @@ export async function generateMerkleProofsForEra(
   return proofs;
 }
 
-// Rewards message event -> normalized return
-
 export async function waitForRewardsMessageSent(
   dhApi: DataHavenApi,
   expectedEra?: number,
   timeout = 120000
-): Promise<RewardsMessageSent | null> {
-  const result = await waitForDataHavenEvent({
+): Promise<RewardsMessageSent> {
+  const result = await waitForDataHavenEvent<{
+    message_id: { asHex: () => `0x${string}` };
+    rewards_merkle_root: { asHex: () => `0x${string}` };
+    era_index: number;
+    total_points: bigint;
+    inflation_amount: bigint;
+  }>({
     api: dhApi,
     pallet: "ExternalValidatorsRewards",
     event: "RewardsMessageSent",
-    filter: expectedEra !== undefined ? (event: any) => event.era_index === expectedEra : undefined,
+    filter: expectedEra !== undefined ? (e) => e.era_index === expectedEra : undefined,
     timeout
   });
-
-  if (!result) return null;
 
   return {
     messageId: result.message_id.asHex(),

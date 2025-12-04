@@ -1,5 +1,5 @@
-import { firstValueFrom, of } from "rxjs";
-import { catchError, filter as rxFilter, take, timeout } from "rxjs/operators";
+import { firstValueFrom } from "rxjs";
+import { take, timeout } from "rxjs/operators";
 import type { Abi, Address, Log, PublicClient } from "viem";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
@@ -13,10 +13,10 @@ export interface WaitForDataHavenEventOptions<T = unknown> {
   timeout?: number;
 }
 
-/** Waits for a DataHaven chain event. Throws on timeout. Returns null only on non-timeout errors. */
+/** Waits for a DataHaven chain event. Throws on timeout. */
 export async function waitForDataHavenEvent<T = unknown>(
   options: WaitForDataHavenEventOptions<T>
-): Promise<T | null> {
+): Promise<T> {
   const { api, pallet, event, filter, timeout: timeoutMs = 30000 } = options;
 
   const watcher = (api.event as any)?.[pallet]?.[event];
@@ -24,33 +24,19 @@ export async function waitForDataHavenEvent<T = unknown>(
     throw new Error(`Event ${pallet}.${event} not found in API`);
   }
 
-  const data = await firstValueFrom(
-    watcher.watch().pipe(
-      rxFilter((raw: any) => {
-        const payload = raw?.payload ?? raw;
-        if (!filter) return true;
-        try {
-          return filter(payload as T);
-        } catch {
-          return false;
-        }
-      }),
+  const result = await firstValueFrom(
+    watcher.watch(filter).pipe(
       take(1),
       timeout({
         first: timeoutMs,
         with: () => {
           throw new Error(`Timeout waiting for ${pallet}.${event} after ${timeoutMs}ms`);
         }
-      }),
-      catchError((error: unknown) => {
-        logger.error(`Error watching ${pallet}.${event}: ${error}`);
-        return of(null);
       })
     )
-  );
+  ) as { payload: T };
 
-  const payload = (data as any)?.payload ?? data;
-  return payload as T | null;
+  return result.payload;
 }
 
 export interface WaitForEthereumEventOptions<TAbi extends Abi = Abi> {

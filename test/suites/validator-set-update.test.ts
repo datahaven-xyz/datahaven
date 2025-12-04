@@ -351,16 +351,12 @@ describe("Validator Set Update", () => {
     logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
 
     logger.info("⏳ Waiting for ExternalValidatorsSet event...");
-    const externalValidatorsSetEvent = await waitForDataHavenEvent({
+    await waitForDataHavenEvent({
       api: connectors.dhApi,
       pallet: "ExternalValidators",
       event: "ExternalValidatorsSet",
       timeout: 600_000
     });
-
-    if (!externalValidatorsSetEvent) {
-      throw new Error("ExternalValidatorsSet event not found");
-    }
     logger.success("ExternalValidatorsSet event found");
 
     logger.info(

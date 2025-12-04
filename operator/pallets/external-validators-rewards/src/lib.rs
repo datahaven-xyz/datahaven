@@ -132,8 +132,8 @@ pub mod pallet {
         type LivenessWeight: Get<Perbill>;
 
         /// Soft cap on block authoring rewards as a percentage above fair share.
-        /// E.g., 20% means validators can earn credit for up to 120% of their fair share.
-        /// This allows rewarding over-performers while preventing excessive concentration.
+        /// E.g., 50% means validators can earn credit for up to 150% of their fair share.
+        /// With 60% BlockAuthoringWeight, this gives over-performers up to 30% bonus reward.
         type FairShareCap: Get<Perbill>;
 
         /// Expected number of blocks to be produced per era (based on era duration and block time).
@@ -433,7 +433,7 @@ pub mod pallet {
         /// - Fair share = total_blocks / non_whitelisted_validators
         /// - Soft cap allows earning credit up to (1 + FairShareCap) × fair_share
         /// - Block score = credited_blocks / fair_share (can exceed 100% with over-performance)
-        /// - Example: With 20% cap and fair share of 10 blocks, producing 12 blocks → 120% score
+        /// - Example: With 50% cap and fair share of 10 blocks, producing 15 blocks → 150% score
         ///
         /// # Liveness Scoring
         ///
@@ -774,10 +774,10 @@ where
 
 /// Wrapper for pallet_session::SessionManager that awards performance-based points at session end.
 ///
-/// This implements the 50/30/20 performance formula for solochain validators:
-/// - 50% weight: Block production (BABE participation)
+/// This implements the 60/30/10 performance formula for solochain validators:
+/// - 60% weight: Block production (BABE participation)
 /// - 30% weight: Heartbeat/liveness (ImOnline participation)
-/// - 20% weight: Base guarantee (always awarded)
+/// - 10% weight: Base guarantee (always awarded)
 ///
 /// Wraps an inner SessionManager (typically `NoteHistoricalRoot<ExternalValidators>`) and calls
 /// the performance tracking logic at session end before forwarding to the inner manager.
@@ -850,7 +850,7 @@ impl<T: Config>
     for Pallet<T>
 {
     fn note_author(author: T::AccountId) {
-        // Track block authorship for performance-based rewards (50/30/20 formula)
+        // Track block authorship for performance-based rewards (60/30/10 formula)
         Self::note_block_author(author);
     }
 }

@@ -159,8 +159,8 @@ parameter_types! {
     // Reward split parameters: 60% block authoring, 30% liveness, 10% base
     pub const BlockAuthoringWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(60);
     pub const LivenessWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(30);
-    // Soft cap: validators can earn up to 120% of fair share
-    pub const FairShareCap: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
+    // Soft cap: validators can earn up to 150% of fair share (50% bonus)
+    pub const FairShareCap: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(50);
 }
 
 pub struct MockValidatorSet;

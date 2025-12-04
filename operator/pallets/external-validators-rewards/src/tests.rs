@@ -696,7 +696,7 @@ fn test_multiple_eras_with_varying_participation() {
 }
 
 #[test]
-fn test_weighting_formula_50_30_20() {
+fn test_weighting_formula_60_30_10() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
@@ -712,7 +712,7 @@ fn test_weighting_formula_50_30_20() {
         let rewards_account = RewardsEthereumSovereignAccount::get();
 
         // Test case 1: 100% participation
-        // Formula: (50% × 100%) + (30% × heartbeat) + 20% base = 100% (assuming perfect heartbeats)
+        // Formula: (60% × 100%) + (30% × heartbeat) + 10% base = 100% (assuming perfect heartbeats)
         let balance_before = Balances::free_balance(&rewards_account);
         ExternalValidatorsRewards::reward_by_ids([
             (1, 100),
@@ -736,7 +736,7 @@ fn test_weighting_formula_50_30_20() {
         );
 
         // Test case 2: 40% participation (2 out of 5 validators)
-        // Formula: (50% × 40%) + (30% × 100% heartbeats) + 20% = 20% + 30% + 20% = 70% of base
+        // Formula: (60% × 40%) + (30% × 100% heartbeats) + 10% = 24% + 30% + 10% = 64% of base
         Mock::mutate(|mock| {
             mock.active_era = Some(ActiveEraInfo {
                 index: 2,
@@ -1404,10 +1404,10 @@ fn test_session_performance_60_30_10_formula() {
 
         // Check points awarded based on 60/30/10 formula:
         // Fair share = 10 blocks / 4 validators = 2 blocks
-        // Max credited = 2 + 20%×2 = 2 (soft cap)
+        // Max credited = 2 + 50%×2 = 3 (soft cap)
         // Potential points = fair_share × AuthorBaseRewardPoints = 2 × 20 = 40
-        // - Validator 1: 4 blocks → credited 2 → score 2/2=100% → weighted 100% → 40 points
-        // - Validator 2: 4 blocks → credited 2 → score 2/2=100% → weighted 100% → 40 points
+        // - Validator 1: 4 blocks → credited 3 → score 3/2=150% (capped 100%) → weighted 100% → 40 points
+        // - Validator 2: 4 blocks → credited 3 → score 3/2=150% (capped 100%) → weighted 100% → 40 points
         // - Validator 3: 2 blocks → credited 2 → score 2/2=100% → weighted 100% → 40 points
         // - Validator 4: 0 blocks → credited 0 → score 0/2=0%   → weighted 40%  → 16 points
 
@@ -1448,11 +1448,11 @@ fn test_session_performance_whitelisted_validators_excluded() {
 
         // Fair share calculation uses non-whitelisted count:
         // fair_share = 9 total blocks / 2 non-whitelisted validators = 4 blocks
-        // max_credited = 4 + 20%×4 = 4 (soft cap)
+        // max_credited = 4 + 50%×4 = 6 (soft cap)
         // potential_points = fair_share × AuthorBaseRewardPoints = 4 × 20 = 80
         //
         // Validators 1 and 3: 3 blocks each
-        // - credited = min(3, 4) = 3
+        // - credited = min(3, 6) = 3
         // - block_score = 3/4 = 75%
         // - weighted = (60%×75%) + (30%×100%) + 10% = 45% + 30% + 10% = 85%
         // - points = 85% × 80 = 68
@@ -1498,11 +1498,11 @@ fn test_session_performance_whitelisted_fair_share_calculation() {
 
         // Fair share calculation uses non-whitelisted count:
         // fair_share = 12 total blocks / 2 non-whitelisted validators = 6 blocks
-        // max_credited = 6 + 20%×6 = 6 + 1 = 7 (soft cap)
+        // max_credited = 6 + 50%×6 = 9 (soft cap)
         // potential_points = fair_share × AuthorBaseRewardPoints = 6 × 20 = 120
         //
         // Validators 1 and 3: 3 blocks each
-        // - credited = min(3, 7) = 3
+        // - credited = min(3, 9) = 3
         // - block_score = 3/6 = 50%
         // - weighted = (60%×50%) + (30%×100%) + 10% = 30% + 30% + 10% = 70%
         // - points = 70% × 120 = 84
@@ -1654,14 +1654,14 @@ fn test_session_performance_fair_share_capping() {
         }
 
         // Total: 15 blocks, fair share = 15 / 2 = 7 blocks
-        // max_credited = 7 + 20%×7 = 7 + 1 = 8 blocks (soft cap)
+        // max_credited = 7 + 50%×7 = 10 blocks (soft cap)
         // potential_points = fair_share × AuthorBaseRewardPoints = 7 × 20 = 140
 
         // Award session performance points
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
-        // Validator 1: 10 blocks → credited 8 (soft cap) → block_score = 8/7 = 114%
-        // Weighted = (60%×114%) + (30%×100%) + 10% ≈ 108% (capped at 100%)
+        // Validator 1: 10 blocks → credited 10 (at soft cap) → block_score = 10/7 = 142%
+        // Weighted = (60%×142%) + (30%×100%) + 10% ≈ 125% (capped at 100%)
         // Points = 100% × 140 = 140
 
         // Validator 2: 5 blocks → credited 5 → block_score = 5/7 = 71%
@@ -1701,9 +1701,9 @@ fn test_session_performance_single_validator() {
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
         // Fair share: 10 / 1 = 10 blocks
-        // max_credited = 10 + 2 = 12
+        // max_credited = 10 + 50%×10 = 15
         // potential_points = fair_share × AuthorBaseRewardPoints = 10 × 20 = 200
-        // Block score: min(10, 12) / 10 = 100%
+        // Block score: min(10, 15) / 10 = 100%
         // Weighted: (60% × 100%) + (30% × 100%) + 10% = 100%
         // Points: 100% × 200 = 200 points
 
@@ -1783,7 +1783,7 @@ fn test_session_performance_checked_math_division() {
         ExternalValidatorsRewards::award_session_performance_points(2, validators, vec![]);
 
         // With 18 blocks (6 per validator):
-        // fair_share = 18 / 3 = 6, max_credited = 6 + 1 = 7
+        // fair_share = 18 / 3 = 6, max_credited = 6 + 50%×6 = 9
         // potential_points = fair_share × AuthorBaseRewardPoints = 6 × 20 = 120
         // Each validator: 6 blocks → credited 6 → block_score = 6/6 = 100%
         // Weighted = (60% × 100%) + (30% × 100%) + 10% = 100%

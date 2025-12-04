@@ -382,11 +382,11 @@ pub mod dynamic_params {
         #[codec(index = 41)]
         #[allow(non_upper_case_globals)]
         /// Soft cap on block authoring rewards as a percentage above fair share.
-        /// Default: 20% means validators can earn credit for up to 120% of their fair share.
-        /// This allows rewarding over-performers while preventing excessive concentration.
-        /// Example: With fair share of 10 blocks and 20% cap, a validator producing 12 blocks
-        /// gets full credit (120%), but one producing 15 blocks is capped at 12 blocks credit.
-        pub static OperatorRewardsFairShareCap: Perbill = Perbill::from_percent(20);
+        /// Default: 50% means validators can earn credit for up to 150% of their fair share.
+        /// With 60% BlockAuthoringWeight, this gives over-performers up to 30% bonus reward.
+        /// Example: With fair share of 10 blocks and 50% cap, a validator producing 15 blocks
+        /// gets full credit (150%), but one producing 20 blocks is capped at 15 blocks credit.
+        pub static OperatorRewardsFairShareCap: Perbill = Perbill::from_percent(50);
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
     }

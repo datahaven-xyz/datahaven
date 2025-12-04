@@ -24,7 +24,7 @@ contract RewardsRegistryTest is AVSDeployer {
     bytes32[] public invalidProof;
 
     // Events
-    event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 newRoot, uint256 newRootIndex);
+    event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 indexed newRoot, uint256 newRootIndex);
     event RewardsClaimedForIndex(
         address indexed operatorAddress,
         uint256 indexed rootIndex,

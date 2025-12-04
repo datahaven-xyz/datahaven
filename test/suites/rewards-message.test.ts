@@ -175,9 +175,7 @@ describe("Rewards Message Flow", () => {
           timeout: TEST_CONFIG.TIMEOUTS.MESSAGE_EXECUTION
         });
 
-        expect(executedEvent.log).not.toBeNull();
-        if (!executedEvent.log) throw new Error("Expected log to be defined");
-        const log = executedEvent.log;
+        const log = executedEvent;
         const _decoded = decodeEventLog({
           abi: gateway.abi,
           data: log.data,
@@ -212,9 +210,7 @@ describe("Rewards Message Flow", () => {
           timeout: TEST_CONFIG.TIMEOUTS.ROOT_UPDATE
         });
 
-        expect(rootUpdatedEvent.log).not.toBeNull();
-        if (!rootUpdatedEvent.log) throw new Error("Expected log to be defined");
-        const rootLog = rootUpdatedEvent.log;
+        const rootLog = rootUpdatedEvent;
         const rootDecoded = decodeEventLog({
           abi: rewardsRegistry.abi,
           data: rootLog.data,
@@ -373,9 +369,9 @@ describe("Rewards Message Flow", () => {
           timeout: TEST_CONFIG.TIMEOUTS.CLAIM_EVENT
         });
 
-        expect(claimEvent.log).toBeDefined();
-        if (!claimEvent.log) throw new Error("Expected log to be defined");
-        const claimLog = claimEvent.log;
+        expect(claimEvent).toBeDefined();
+        if (!claimEvent) throw new Error("Expected log to be defined");
+        const claimLog = claimEvent;
         const claimDecoded = decodeEventLog({
           abi: rewardsRegistry.abi,
           data: claimLog.data,

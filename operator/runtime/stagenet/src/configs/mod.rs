@@ -1030,8 +1030,8 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    // TODO: Update with real genesis hash once stagenet is deployed
-    pub const StagenetGenesisHash: [u8; 32] = [3u8; 32];
+    // Hoodi testnet genesis hash
+    pub const StagenetGenesisHash: [u8; 32] = hex_literal::hex!("bbe312868b376a3001692a646dd2d7d1e4406380dfd86b98aa8a34d1557c971b");
     pub UniversalLocation: InteriorLocation = [
         GlobalConsensus(ByGenesis(StagenetGenesisHash::get()))
     ].into();
@@ -1130,13 +1130,15 @@ parameter_types! {
             version: hex_literal::hex!("60000038"),
             epoch: 0,
         },
+        fulu: Fork {
+            version: hex_literal::hex!("70000038"),
+            epoch: 0,
+        },
     };
 }
 
-// For production runtime, use Kurtosis-specific fork versions
-// The version numbers are taken from looking at the Dora explorer when launching the
-// kurtosis Ethereum network. Hovering over the fork names, shows the version numbers.
-// These version numbers need to match, otherwise the aggregated signature verification will fail.
+// Hoodi testnet fork versions
+// Source: https://github.com/eth-clients/hoodi/blob/main/metadata/config.yaml
 #[cfg(not(any(
     feature = "std",
     feature = "fast-runtime",
@@ -1146,28 +1148,32 @@ parameter_types! {
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: [16, 0, 0, 56], // 0x10000038
+            version: hex_literal::hex!("10000910"), // 0x10000910
             epoch: 0,
         },
         altair: Fork {
-            version: [32, 0, 0, 56], // 0x20000038
+            version: hex_literal::hex!("20000910"), // 0x20000910
             epoch: 0,
         },
         bellatrix: Fork {
-            version: [48, 0, 0, 56], // 0x30000038
+            version: hex_literal::hex!("30000910"), // 0x30000910
             epoch: 0,
         },
         capella: Fork {
-            version: [64, 0, 0, 56], // 0x40000038
+            version: hex_literal::hex!("40000910"), // 0x40000910
             epoch: 0,
         },
         deneb: Fork {
-            version: [80, 0, 0, 56], // 0x50000038
+            version: hex_literal::hex!("50000910"), // 0x50000910
             epoch: 0,
         },
         electra: Fork {
-            version: [96, 0, 0, 56], // 0x60000038
-            epoch: 0,
+            version: hex_literal::hex!("60000910"), // 0x60000910
+            epoch: 2048,
+        },
+        fulu: Fork {
+            version: hex_literal::hex!("70000910"), // 0x70000910
+            epoch: 50688,
         },
     };
 }
@@ -1241,10 +1247,9 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
 
 parameter_types! {
     /// Network and location for the Ethereum chain.
-    /// Using the local test network, with chain ID 3151908.
-    /// This matches the chain ID used in the local test environment.
+    /// Using Hoodi testnet, with chain ID 560048.
     /// <https://ethereum.org/en/developers/docs/apis/json-rpc/#net_version>
-    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 3151908 };
+    pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 560048 };
 }
 
 pub struct CommitmentHandler;
@@ -1584,10 +1589,10 @@ impl pallet_external_validators_rewards::Config for Runtime {
 parameter_types! {
     /// The Ethereum sovereign account derived from its XCM location
     /// This is a hardcoded value for performance, computed from:
-    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 3151908 })])
+    /// Location::new(1, [GlobalConsensus(NetworkId::Ethereum { chain_id: 560048 })])
     /// using GlobalConsensusConvertsFor<UniversalLocation, AccountId>
     pub EthereumSovereignAccount: AccountId = AccountId::from(
-        hex_literal::hex!("d8030fb68aa5b447caec066f3c0bde23e6db0a05")
+        hex_literal::hex!("5300797dbea5b54078a4b3bf8230015ac47a55fa")
     );
 }
 

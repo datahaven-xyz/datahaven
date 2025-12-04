@@ -355,12 +355,10 @@ describe("Validator Set Update", () => {
       api: connectors.dhApi,
       pallet: "ExternalValidators",
       event: "ExternalValidatorsSet",
-      timeout: 600_000,
-      failOnTimeout: true
+      timeout: 600_000
     });
 
-    if (!externalValidatorsSetEvent.data) {
-      logger.error("ExternalValidatorsSet event not found");
+    if (!externalValidatorsSetEvent) {
       throw new Error("ExternalValidatorsSet event not found");
     }
     logger.success("ExternalValidatorsSet event found");

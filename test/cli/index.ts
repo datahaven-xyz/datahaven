@@ -243,7 +243,7 @@ contractsCommand
 contractsCommand
   .command("upgrade")
   .description("Upgrade DataHaven AVS contracts by deploying new implementations")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--verify", "Verify upgraded contracts on block explorer", false)

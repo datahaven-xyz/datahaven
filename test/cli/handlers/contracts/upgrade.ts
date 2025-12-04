@@ -184,6 +184,9 @@ const deployServiceManagerImplementation = async (
 
   // Get existing deployment addresses for constructor parameters
   const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
   const actualDeployments = await parseDeploymentsFile(chain);
 
   // Use environment variables to avoid command injection
@@ -201,7 +204,9 @@ const deployServiceManagerImplementation = async (
 
   const deployArgs = [
     "script",
-    "script/deploy/DeployImplementation.s.sol:DeployServiceManagerImpl",
+    "script/deploy/DeployImplementation.s.sol:DeployImplementation",
+    "--sig",
+    "deployServiceManagerImpl()",
     "--broadcast",
     "--verify",
     "--verifier",
@@ -243,6 +248,9 @@ const deployVetoableSlasher = async (
   logger.info("📦 Deploying VetoableSlasher...");
 
   const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
   const actualDeployments = await parseDeploymentsFile(chain);
 
   // Note: Private key is passed via environment variable as required by forge
@@ -258,7 +266,9 @@ const deployVetoableSlasher = async (
 
   const deployArgs = [
     "script",
-    "script/deploy/DeployImplementation.s.sol:DeployVetoableSlasher",
+    "script/deploy/DeployImplementation.s.sol:DeployImplementation",
+    "--sig",
+    "deployVetoableSlasher()",
     "--broadcast",
     "--verify",
     "--verifier",
@@ -295,6 +305,9 @@ const deployRewardsRegistry = async (
   logger.info("📦 Deploying RewardsRegistry...");
 
   const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
   const actualDeployments = await parseDeploymentsFile(chain);
 
   // Note: Private key is passed via environment variable as required by forge
@@ -310,7 +323,9 @@ const deployRewardsRegistry = async (
 
   const deployArgs = [
     "script",
-    "script/deploy/DeployImplementation.s.sol:DeployRewardsRegistry",
+    "script/deploy/DeployImplementation.s.sol:DeployImplementation",
+    "--sig",
+    "deployRewardsRegistry()",
     "--broadcast",
     "--verify",
     "--verifier",
@@ -344,6 +359,9 @@ const updateProxyContracts = async (options: ContractsUpgradeOptions) => {
 
   const deployments = await parseDeploymentsFile(options.chain);
   const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${options.chain}`);
+  }
   const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
 
   // Get private key using the same logic as deployImplementationContracts
@@ -372,18 +390,27 @@ const updateServiceManagerProxy = async (deployments: any, rpcUrl: string, priva
 
   // Note: Private key is passed via environment variable as required by forge
   // This is a known limitation of the forge toolchain
+  const proxyAdmin = (deployments as any).ProxyAdmin ?? process.env.PROXY_ADMIN;
+  if (!proxyAdmin) {
+    throw new Error(
+      "ProxyAdmin address is required for proxy updates. Add `ProxyAdmin` to the deployments file or set the PROXY_ADMIN environment variable."
+    );
+  }
+
   const env = {
     ...process.env,
     PRIVATE_KEY: privateKey,
     RPC_URL: rpcUrl,
     SERVICE_MANAGER: deployments.ServiceManager,
     SERVICE_MANAGER_IMPL: deployments.ServiceManagerImplementation,
-    PROXY_ADMIN: deployments.ProxyAdmin
+    PROXY_ADMIN: proxyAdmin
   };
 
   const updateArgs = [
     "script",
-    "script/deploy/DeployImplementation.s.sol:UpdateServiceManagerProxy",
+    "script/deploy/DeployImplementation.s.sol:DeployImplementation",
+    "--sig",
+    "updateServiceManagerProxy()",
     "--broadcast"
   ];
 

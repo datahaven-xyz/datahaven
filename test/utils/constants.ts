@@ -1,5 +1,7 @@
 export const DEFAULT_SUBSTRATE_WS_PORT = 9944;
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+
 export const ANVIL_FUNDED_ACCOUNTS = {
   0: {
     publicKey: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",

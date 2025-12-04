@@ -39,11 +39,11 @@ cd ../test && bun generate:wagmi
 
 Deployment parameters (EigenLayer addresses, initial validators, owners) are defined in `contracts/config/<network>.json`.
 - **Do not edit** `Config.sol` or `DeployParams.s.sol` directly; they only load the JSON.
-- Ensure `contracts/config/hoodi.json` (or `holesky.json`) matches your target environment before deploying.
+- Ensure `contracts/config/hoodi.json` matches your target environment before deploying.
 
 ## Deployment
 
-Two deployment paths exist: **Local** (Anvil) and **Testnet** (Hoodi/Holesky). Both install the **DataHaven AVS contracts** (ServiceManager, RewardsRegistry, VetoableSlasher) and **Snowbridge** (BeefyClient, Gateway, Agent). They differ in EigenLayer setup:
+Two deployment paths exist: **Local** (Anvil) and **Testnet** (Hoodi). Both install the **DataHaven AVS contracts** (ServiceManager, RewardsRegistry, VetoableSlasher) and **Snowbridge** (BeefyClient, Gateway, Agent). They differ in EigenLayer setup:
 
 ### Local (Anvil)
 **`DeployLocal.s.sol`** bootstraps a full EigenLayer core deployment (DelegationManager, StrategyManager, AVSDirectory, etc.) alongside DataHaven AVS and Snowbridge.
@@ -52,7 +52,7 @@ anvil
 forge script script/deploy/DeployLocal.s.sol --rpc-url anvil --broadcast
 ```
 
-### Testnet (Hoodi / Holesky)
+### Testnet (Hoodi)
 **`DeployTestnet.s.sol`** references existing EigenLayer contracts (addresses from `contracts/config/<network>.json`) and only deploys DataHaven AVS + Snowbridge.
 ```bash
 NETWORK=hoodi forge script script/deploy/DeployTestnet.s.sol \
@@ -60,7 +60,7 @@ NETWORK=hoodi forge script script/deploy/DeployTestnet.s.sol \
   --private-key $PRIVATE_KEY \
   --broadcast
 ```
-Supported networks: `hoodi`, `holesky` (no mainnet config yet). Artifacts → `contracts/deployments/<network>.json`.
+Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/deployments/<network>.json`.
 
 ## How It Works
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.

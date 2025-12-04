@@ -490,8 +490,8 @@ pub mod pallet {
 
             // Calculate max credited blocks based on soft cap
             // max_credited = fair_share + cap × fair_share = fair_share × (1 + cap)
-            let max_credited_blocks = fair_share
-                .saturating_add(fair_share_cap.mul_floor(fair_share));
+            let max_credited_blocks =
+                fair_share.saturating_add(fair_share_cap.mul_floor(fair_share));
 
             // Get and validate reward weights with defensive scaling
             let (block_weight, liveness_weight, base_weight) = {
@@ -507,12 +507,15 @@ pub mod pallet {
                         raw_block.deconstruct() * 100 / Perbill::ACCURACY,
                         raw_liveness.deconstruct() * 100 / Perbill::ACCURACY
                     );
-                    let scale = Perbill::from_rational(Perbill::one().deconstruct(), sum.deconstruct());
+                    let scale =
+                        Perbill::from_rational(Perbill::one().deconstruct(), sum.deconstruct());
                     let scaled_block = scale.saturating_mul(raw_block);
                     let scaled_liveness = scale.saturating_mul(raw_liveness);
                     (scaled_block, scaled_liveness, Perbill::zero())
                 } else {
-                    let base = Perbill::one().saturating_sub(raw_block).saturating_sub(raw_liveness);
+                    let base = Perbill::one()
+                        .saturating_sub(raw_block)
+                        .saturating_sub(raw_liveness);
                     (raw_block, raw_liveness, base)
                 }
             };

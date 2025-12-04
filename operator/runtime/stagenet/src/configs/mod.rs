@@ -1571,8 +1571,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
         runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;
     type LivenessWeight =
         runtime_params::dynamic_params::runtime_config::OperatorRewardsLivenessWeight;
-    type FairShareCap =
-        runtime_params::dynamic_params::runtime_config::OperatorRewardsFairShareCap;
+    type FairShareCap = runtime_params::dynamic_params::runtime_config::OperatorRewardsFairShareCap;
     type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
     type MinInflationPercent = MinInflationPercent;
     type MaxInflationPercent = MaxInflationPercent;

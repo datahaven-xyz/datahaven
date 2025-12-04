@@ -1494,11 +1494,7 @@ fn test_session_performance_whitelisted_fair_share_calculation() {
         }
 
         // Award session performance points
-        ExternalValidatorsRewards::award_session_performance_points(
-            1,
-            validators,
-            whitelisted,
-        );
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
 
         // Fair share calculation uses non-whitelisted count:
         // fair_share = 12 total blocks / 2 non-whitelisted validators = 6 blocks
@@ -1523,19 +1519,23 @@ fn test_session_performance_whitelisted_fair_share_calculation() {
 
         // Verify individual points
         assert_eq!(
-            era_rewards.individual.get(&1u64).copied().unwrap_or(0), 84,
+            era_rewards.individual.get(&1u64).copied().unwrap_or(0),
+            84,
             "Validator 1 should have 84 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&2u64).copied().unwrap_or(0), 0,
+            era_rewards.individual.get(&2u64).copied().unwrap_or(0),
+            0,
             "Validator 2 (whitelisted) should have 0 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&3u64).copied().unwrap_or(0), 84,
+            era_rewards.individual.get(&3u64).copied().unwrap_or(0),
+            84,
             "Validator 3 should have 84 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&4u64).copied().unwrap_or(0), 0,
+            era_rewards.individual.get(&4u64).copied().unwrap_or(0),
+            0,
             "Validator 4 (whitelisted) should have 0 points"
         );
     })

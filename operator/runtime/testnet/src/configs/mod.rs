@@ -1504,15 +1504,17 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 }
 
-/// Wrapper to check if a validator sent a heartbeat in the current session
-/// Note: This only checks for actual heartbeats, not block production
+/// Wrapper to check if a validator is online in the current session.
+/// Uses ImOnline's is_online() which considers a validator online if:
+/// - They sent a heartbeat in the current session, OR
+/// - They authored at least one block in the current session
 pub struct ValidatorIsOnline;
 impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
     fn contains(account: &AccountId) -> bool {
         let validators = Session::validators();
         if let Some(index) = validators.iter().position(|v| v == account) {
-            // Check if this validator sent a heartbeat (not just produced blocks)
-            ImOnline::received_heartbeat_in_current_session(index as u32)
+            // Check if validator is online (heartbeat OR block authorship)
+            ImOnline::is_online(index as u32)
         } else {
             // Not a validator in current session, consider offline
             false
@@ -1531,11 +1533,10 @@ impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorS
 }
 
 parameter_types! {
-    /// Expected number of blocks per era for inflation scaling
-    /// Calculation: SessionsPerEra × EpochDurationInBlocks
-    /// - Production: 6 sessions × 600 blocks = 3600 blocks (6 hours at 6s/block)
-    /// - Fast runtime: 1 session × 10 blocks = 10 blocks (for testing)
-    pub const ExpectedBlocksPerEra: u32 = polkadot_runtime_common::prod_or_fast!(3600, 10);
+    /// Expected number of blocks per era for inflation scaling.
+    /// Computed as SessionsPerEra × EpochDurationInBlocks to ensure consistency.
+    pub ExpectedBlocksPerEra: u32 = (SessionsPerEra::get() as u32)
+        .saturating_mul(EpochDurationInBlocks::get());
 
     /// Minimum inflation percentage even with zero block production (network halt protection)
     pub const MinInflationPercent: u32 = 20;
@@ -1562,6 +1563,12 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type LivenessCheck = ValidatorIsOnline;
     type SlashingCheck = ValidatorSlashChecker;
     type AuthorBaseRewardPoints = ConstU32<20>;
+    type BlockAuthoringWeight =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;
+    type LivenessWeight =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsLivenessWeight;
+    type FairShareCap =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsFairShareCap;
     type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
     type MinInflationPercent = MinInflationPercent;
     type MaxInflationPercent = MaxInflationPercent;

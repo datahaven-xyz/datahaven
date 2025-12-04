@@ -156,6 +156,11 @@ parameter_types! {
     pub const ExpectedBlocksPerEra: u32 = 600;
     pub const MinInflationPercent: u32 = 20; // 20% minimum even with 0 blocks
     pub const MaxInflationPercent: u32 = 100; // 100% maximum
+    // Reward split parameters: 60% block authoring, 30% liveness, 10% base
+    pub const BlockAuthoringWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(60);
+    pub const LivenessWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(30);
+    // Soft cap: validators can earn up to 120% of fair share
+    pub const FairShareCap: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
 }
 
 pub struct MockValidatorSet;
@@ -194,6 +199,9 @@ impl pallet_external_validators_rewards::Config for Test {
     type LivenessCheck = MockIsOnline;
     type SlashingCheck = (); // No slashes in tests
     type AuthorBaseRewardPoints = ConstU32<20>;
+    type BlockAuthoringWeight = BlockAuthoringWeight;
+    type LivenessWeight = LivenessWeight;
+    type FairShareCap = FairShareCap;
     type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
     type MinInflationPercent = MinInflationPercent;
     type MaxInflationPercent = MaxInflationPercent;

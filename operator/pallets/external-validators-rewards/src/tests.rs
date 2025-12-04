@@ -85,6 +85,35 @@ fn history_limit() {
 }
 
 #[test]
+fn history_limit_blocks_produced() {
+    new_test_ext().execute_with(|| {
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            })
+        });
+
+        // Simulate block production in era 1
+        ExternalValidatorsRewards::note_block_author(1);
+        ExternalValidatorsRewards::note_block_author(2);
+
+        let blocks_era1 = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
+        assert_eq!(blocks_era1, 2, "Era 1 should have 2 blocks");
+
+        // Era 10 starts - shouldn't erase era 1 yet (HistoryDepth = 10)
+        ExternalValidatorsRewards::on_era_start(10, 0, 10);
+        let blocks_era1 = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
+        assert_eq!(blocks_era1, 2, "Era 1 blocks shouldn't be erased yet");
+
+        // Era 11 starts - should erase era 1 now (11 - 10 = 1)
+        ExternalValidatorsRewards::on_era_start(11, 0, 11);
+        let blocks_era1 = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
+        assert_eq!(blocks_era1, 0, "Era 1 blocks should be erased now");
+    })
+}
+
+#[test]
 fn test_on_era_end() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
@@ -1338,7 +1367,7 @@ fn test_session_performance_block_authorship_tracking() {
 }
 
 #[test]
-fn test_session_performance_50_30_20_formula() {
+fn test_session_performance_60_30_10_formula() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
@@ -1352,10 +1381,10 @@ fn test_session_performance_50_30_20_formula() {
         let validators = vec![1u64, 2u64, 3u64, 4u64];
 
         // Simulate varied block production:
-        // Validator 1: 4 blocks (100% of fair share)
-        // Validator 2: 4 blocks (100% of fair share)
-        // Validator 3: 2 blocks (50% of fair share)
-        // Validator 4: 0 blocks (0% of fair share)
+        // Validator 1: 4 blocks
+        // Validator 2: 4 blocks
+        // Validator 3: 2 blocks
+        // Validator 4: 0 blocks
         for _ in 0..4 {
             ExternalValidatorsRewards::note_block_author(1);
             ExternalValidatorsRewards::note_block_author(2);
@@ -1373,19 +1402,21 @@ fn test_session_performance_50_30_20_formula() {
             vec![], // no whitelisted validators
         );
 
-        // Check points awarded based on 50/30/20 formula:
-        // Fair share = 10 blocks / 4 validators = 2 blocks (truncated)
-        // - Validator 1: 4 blocks → capped at 2 → (50% × 100%) + (30% × 100%) + 20% = 100% of 20 = 20 points
-        // - Validator 2: 4 blocks → capped at 2 → (50% × 100%) + (30% × 100%) + 20% = 100% of 20 = 20 points
-        // - Validator 3: 2 blocks → (50% × 100%) + (30% × 100%) + 20% = 100% of 20 = 20 points
-        // - Validator 4: 0 blocks → (50% × 0%) + (30% × 100%) + 20% = 50% of 20 = 10 points
+        // Check points awarded based on 60/30/10 formula:
+        // Fair share = 10 blocks / 4 validators = 2 blocks
+        // Max credited = 2 + 20%×2 = 2 (soft cap)
+        // Potential points = fair_share × AuthorBaseRewardPoints = 2 × 20 = 40
+        // - Validator 1: 4 blocks → credited 2 → score 2/2=100% → weighted 100% → 40 points
+        // - Validator 2: 4 blocks → credited 2 → score 2/2=100% → weighted 100% → 40 points
+        // - Validator 3: 2 blocks → credited 2 → score 2/2=100% → weighted 100% → 40 points
+        // - Validator 4: 0 blocks → credited 0 → score 0/2=0%   → weighted 40%  → 16 points
 
         // Check total points for the active era (era 1)
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
             era_rewards.total,
-            70, // 20 + 20 + 20 + 10
-            "Total points should be 70"
+            136, // 40 + 40 + 40 + 16
+            "Total points should be 136"
         );
     })
 }
@@ -1405,7 +1436,7 @@ fn test_session_performance_whitelisted_validators_excluded() {
         let validators = vec![1u64, 2u64, 3u64];
         let whitelisted = vec![2u64]; // Validator 2 is whitelisted
 
-        // All validators author equal blocks
+        // All validators author equal blocks (3 each = 9 total)
         for _ in 0..3 {
             ExternalValidatorsRewards::note_block_author(1);
             ExternalValidatorsRewards::note_block_author(2);
@@ -1415,18 +1446,30 @@ fn test_session_performance_whitelisted_validators_excluded() {
         // Award session performance points
         ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
 
-        // Validator 2 should have 0 points (whitelisted)
-        // Validators 1 and 3 should have full points (20 each)
+        // Fair share calculation uses non-whitelisted count:
+        // fair_share = 9 total blocks / 2 non-whitelisted validators = 4 blocks
+        // max_credited = 4 + 20%×4 = 4 (soft cap)
+        // potential_points = fair_share × AuthorBaseRewardPoints = 4 × 20 = 80
+        //
+        // Validators 1 and 3: 3 blocks each
+        // - credited = min(3, 4) = 3
+        // - block_score = 3/4 = 75%
+        // - weighted = (60%×75%) + (30%×100%) + 10% = 45% + 30% + 10% = 85%
+        // - points = 85% × 80 = 68
+        //
+        // Validator 2 (whitelisted): 0 points
+        //
+        // Total: 68 + 68 = 136 points
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.total, 40,
-            "Only non-whitelisted validators should receive points"
+            era_rewards.total, 136,
+            "Only non-whitelisted validators should receive points (68 each)"
         );
     })
 }
 
 #[test]
-fn test_session_performance_whitelisted_fair_share_not_inflated() {
+fn test_session_performance_whitelisted_fair_share_calculation() {
     new_test_ext().execute_with(|| {
         run_to_block(1);
 
@@ -1439,9 +1482,6 @@ fn test_session_performance_whitelisted_fair_share_not_inflated() {
 
         // Scenario: 4 validators total, 2 whitelisted, 2 normal
         // All author equal blocks (3 each = 12 total)
-        // Fair share = 12 / 4 = 3 blocks per validator
-        // Non-whitelisted validators should NOT get higher rewards just because
-        // whitelisted validators are excluded from rewards
         let validators = vec![1u64, 2u64, 3u64, 4u64];
         let whitelisted = vec![2u64, 4u64]; // Validators 2 and 4 are whitelisted
 
@@ -1460,30 +1500,39 @@ fn test_session_performance_whitelisted_fair_share_not_inflated() {
             whitelisted,
         );
 
-        // Fair share = 12 blocks / 4 validators = 3 blocks per validator
-        // Validators 1 and 3 each authored 3 blocks (exactly fair share)
-        // They should get: (50% × 100%) + (30% × 100%) + 20% = 100% = 20 points each
-        // Whitelisted validators 2 and 4 should get 0 points
-        // Total: 40 points (20 + 20)
+        // Fair share calculation uses non-whitelisted count:
+        // fair_share = 12 total blocks / 2 non-whitelisted validators = 6 blocks
+        // max_credited = 6 + 20%×6 = 6 + 1 = 7 (soft cap)
+        // potential_points = fair_share × AuthorBaseRewardPoints = 6 × 20 = 120
+        //
+        // Validators 1 and 3: 3 blocks each
+        // - credited = min(3, 7) = 3
+        // - block_score = 3/6 = 50%
+        // - weighted = (60%×50%) + (30%×100%) + 10% = 30% + 30% + 10% = 70%
+        // - points = 70% × 120 = 84
+        //
+        // Whitelisted validators 2 and 4: 0 points
+        //
+        // Total: 84 + 84 = 168 points
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.total, 40,
-            "Non-whitelisted validators should not get inflated rewards due to whitelisted validators"
+            era_rewards.total, 168,
+            "Non-whitelisted validators receive points based on fair share calculation"
         );
 
         // Verify individual points
         assert_eq!(
-            era_rewards.individual.get(&1u64).copied().unwrap_or(0), 20,
-            "Validator 1 should have 20 points"
+            era_rewards.individual.get(&1u64).copied().unwrap_or(0), 84,
+            "Validator 1 should have 84 points"
         );
         assert_eq!(
             era_rewards.individual.get(&2u64).copied().unwrap_or(0), 0,
             "Validator 2 (whitelisted) should have 0 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&3u64).copied().unwrap_or(0), 20,
-            "Validator 3 should have 20 points"
+            era_rewards.individual.get(&3u64).copied().unwrap_or(0), 84,
+            "Validator 3 should have 84 points"
         );
         assert_eq!(
             era_rewards.individual.get(&4u64).copied().unwrap_or(0), 0,
@@ -1566,15 +1615,17 @@ fn test_session_performance_zero_total_blocks() {
         // Award session performance points
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
-        // With 0 total blocks, expected_blocks_per_validator defaults to 1
-        // Formula for each validator: (50% × 0%) + (30% × 100% liveness) + 20% = 50%
-        // Points per validator: 50% of 20 = 10 points
-        // Total: 3 validators × 10 points = 30 points
+        // With 0 total blocks, fair_share defaults to 1 (via .max(1))
+        // Each validator: 0 blocks
+        // - block_score = 0/1 = 0%
+        // - weighted = (60% × 0%) + (30% × 100% liveness) + 10% = 40%
+        // - points = 40% of 20 = 8 points
+        // Total: 3 validators × 8 points = 24 points
 
         assert_eq!(
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total,
-            30,
-            "Should award base + liveness points even with zero blocks"
+            24,
+            "Should award liveness + base points even with zero blocks"
         );
     })
 }
@@ -1594,7 +1645,7 @@ fn test_session_performance_fair_share_capping() {
         let validators = vec![1u64, 2u64];
 
         // Validator 1 authors many more blocks than fair share (overperformer)
-        // Validator 2 authors exactly fair share
+        // Validator 2 authors below fair share
         for _ in 0..10 {
             ExternalValidatorsRewards::note_block_author(1);
         }
@@ -1602,24 +1653,27 @@ fn test_session_performance_fair_share_capping() {
             ExternalValidatorsRewards::note_block_author(2);
         }
 
-        // Total: 15 blocks, fair share per validator: 15 / 2 = 7.5 ≈ 7 blocks
+        // Total: 15 blocks, fair share = 15 / 2 = 7 blocks
+        // max_credited = 7 + 20%×7 = 7 + 1 = 8 blocks (soft cap)
+        // potential_points = fair_share × AuthorBaseRewardPoints = 7 × 20 = 140
 
         // Award session performance points
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
-        // Validator 1: 10 blocks but capped at fair share (7)
-        // Block score: min(10, 7) / 7 = 100%
-        // Points: (50% × 100%) + (30% × 100%) + 20% = 100% of 20 = 20 points
+        // Validator 1: 10 blocks → credited 8 (soft cap) → block_score = 8/7 = 114%
+        // Weighted = (60%×114%) + (30%×100%) + 10% ≈ 108% (capped at 100%)
+        // Points = 100% × 140 = 140
 
-        // Validator 2: 5 blocks, fair share is 7
-        // Block score: min(5, 7) / 7 = 71.4%
-        // Points: (50% × 71.4%) + (30% × 100%) + 20% = 85.7% of 20 ≈ 17 points
+        // Validator 2: 5 blocks → credited 5 → block_score = 5/7 = 71%
+        // Weighted = (60%×71%) + (30%×100%) + 10% ≈ 82%
+        // Points = 82% × 140 = 115 (approx)
 
+        // Total ≈ 255 points
         let total_points =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
         assert!(
-            total_points <= 40 && total_points >= 35,
-            "Points should be capped for overperformers, got {}",
+            total_points >= 250 && total_points <= 260,
+            "Points should reflect fair share scaling, got {}",
             total_points
         );
     })
@@ -1647,12 +1701,15 @@ fn test_session_performance_single_validator() {
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
         // Fair share: 10 / 1 = 10 blocks
-        // Block score: min(10, 10) / 10 = 100%
-        // Points: (50% × 100%) + (30% × 100%) + 20% = 100% of 20 = 20 points
+        // max_credited = 10 + 2 = 12
+        // potential_points = fair_share × AuthorBaseRewardPoints = 10 × 20 = 200
+        // Block score: min(10, 12) / 10 = 100%
+        // Weighted: (60% × 100%) + (30% × 100%) + 10% = 100%
+        // Points: 100% × 200 = 200 points
 
         assert_eq!(
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total,
-            20,
+            200,
             "Single validator should get full points"
         );
     })
@@ -1702,14 +1759,18 @@ fn test_session_performance_checked_math_division() {
         // Session 1: No blocks produced
         ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
 
-        // Should not panic, checked_div returns Some or defaults to 1
-        // With 0 blocks: (50% × 0%) + (30% × 100%) + 20% = 50% of 20 = 10 points per validator
-        // Total for 3 validators = 30 points
+        // Should not panic, checked_div returns Some or defaults to 1 via .max(1)
+        // With 0 blocks, fair_share = 1 (minimum)
+        // potential_points = fair_share × AuthorBaseRewardPoints = 1 × 20 = 20
+        // Each validator: block_score = 0/1 = 0%
+        // Weighted = (60% × 0%) + (30% × 100%) + 10% = 40%
+        // points = 40% × 20 = 8 per validator
+        // Total for 3 validators = 24 points
         let points_after_session1 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
         assert_eq!(
-            points_after_session1, 30,
-            "Should award 30 points (10 per validator) with zero blocks"
+            points_after_session1, 24,
+            "Should award 24 points (8 per validator) with zero blocks"
         );
 
         // Session 2: Author blocks equally among all validators
@@ -1721,14 +1782,19 @@ fn test_session_performance_checked_math_division() {
 
         ExternalValidatorsRewards::award_session_performance_points(2, validators, vec![]);
 
-        // With 18 blocks (6 per validator): (50% × 100%) + (30% × 100%) + 20% = 100% of 20 = 20 points per validator
-        // Total for 3 validators = 60 points
-        // Cumulative total = 30 + 60 = 90 points
+        // With 18 blocks (6 per validator):
+        // fair_share = 18 / 3 = 6, max_credited = 6 + 1 = 7
+        // potential_points = fair_share × AuthorBaseRewardPoints = 6 × 20 = 120
+        // Each validator: 6 blocks → credited 6 → block_score = 6/6 = 100%
+        // Weighted = (60% × 100%) + (30% × 100%) + 10% = 100%
+        // points = 100% × 120 = 120 per validator
+        // Total for 3 validators = 360 points
+        // Cumulative total = 24 + 360 = 384 points
         let points_after_session2 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
         assert_eq!(
-            points_after_session2, 90,
-            "Should have 90 total points (30 from session 1 + 60 from session 2)"
+            points_after_session2, 384,
+            "Should have 384 total points (24 from session 1 + 360 from session 2)"
         );
     })
 }
@@ -1804,12 +1870,13 @@ fn test_session_performance_base_reward_points_config() {
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
-        // Should use AuthorBaseRewardPoints config (set to 20 in mock)
-        // Perfect performance: 100% of 20 = 20 points
+        // AuthorBaseRewardPoints is 20 (points per block)
+        // fair_share = 5 blocks, potential_points = 5 × 20 = 100
+        // Perfect performance (100%): 100% × 100 = 100 points
         assert_eq!(
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total,
-            20,
-            "Should use configured AuthorBaseRewardPoints value"
+            100,
+            "Should use configured AuthorBaseRewardPoints value (points per block)"
         );
     })
 }

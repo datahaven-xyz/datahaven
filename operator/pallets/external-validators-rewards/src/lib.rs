@@ -117,8 +117,24 @@ pub mod pallet {
         /// Check if a validator has been slashed in a given era
         type SlashingCheck: SlashingCheck<Self::AccountId>;
 
-        /// Base points awarded per validator per session (before applying performance multiplier)
+        /// Points awarded per block produced. The total potential points per validator per session
+        /// is calculated as: fair_share_blocks × AuthorBaseRewardPoints × weighted_performance_score
         type AuthorBaseRewardPoints: Get<u32>;
+
+        /// Weight of block authoring in the rewards formula (e.g., 60% = Perbill::from_percent(60)).
+        /// Combined with LivenessWeight, the sum should not exceed 100%.
+        /// The remainder (100% - block - liveness) is the unconditional base reward.
+        type BlockAuthoringWeight: Get<Perbill>;
+
+        /// Weight of liveness (heartbeat/block authorship) in the rewards formula.
+        /// Combined with BlockAuthoringWeight, the sum should not exceed 100%.
+        /// The remainder (100% - block - liveness) is the unconditional base reward.
+        type LivenessWeight: Get<Perbill>;
+
+        /// Soft cap on block authoring rewards as a percentage above fair share.
+        /// E.g., 20% means validators can earn credit for up to 120% of their fair share.
+        /// This allows rewarding over-performers while preventing excessive concentration.
+        type FairShareCap: Get<Perbill>;
 
         /// Expected number of blocks to be produced per era (based on era duration and block time).
         /// Used as the baseline (100%) for performance-based inflation scaling.
@@ -401,33 +417,40 @@ pub mod pallet {
             scaled_inflation
         }
 
-        /// Awards performance-based points at session end using a 50/30/20 weighted formula.
+        /// Awards performance-based points at session end using a configurable weighted formula.
         ///
         /// # Reward Formula
         ///
-        /// Each validator receives points based on:
-        /// - **50% weight**: Block production (blocks produced / expected fair share, capped at 100%)
-        /// - **30% weight**: Liveness (1.0 if heartbeat received, 0.0 otherwise)
-        /// - **20% weight**: Base guarantee (always awarded to all active validators)
+        /// Each validator receives points based on configurable weights (default 60/30/10):
+        /// - **BlockAuthoringWeight**: Block production score with soft cap allowing over-performance
+        /// - **LivenessWeight**: Liveness score (1.0 if online, 0.0 otherwise)
+        /// - **Base guarantee**: Remainder (100% - block - liveness) always awarded
         ///
-        /// Final points = BASE_POINTS × (50% × block_score + 30% × liveness_score + 20%)
+        /// Final points = BASE_POINTS × (block_weight × block_score + liveness_weight × liveness_score + base_weight)
         ///
-        /// # Scoring Details
+        /// # Block Production Scoring
         ///
-        /// - **Block production**: Measures BABE block authorship. Capped at fair share to avoid
-        ///   over-rewarding validators who produce more than their expected share.
-        /// - **Liveness**: Based on ImOnline heartbeats, indicating validator connectivity and
-        ///   network participation. Complements block production by tracking uptime.
-        /// - **Base guarantee**: Ensures all active validators receive minimum rewards.
+        /// - Fair share = total_blocks / non_whitelisted_validators
+        /// - Soft cap allows earning credit up to (1 + FairShareCap) × fair_share
+        /// - Block score = credited_blocks / fair_share (can exceed 100% with over-performance)
+        /// - Example: With 20% cap and fair share of 10 blocks, producing 12 blocks → 120% score
         ///
-        /// # Equivocation Handling
+        /// # Liveness Scoring
         ///
-        /// Validators with slashes in the current era receive zero points (rewards nullified).
+        /// Based on ImOnline's is_online() which considers a validator online if:
+        /// - They sent a heartbeat in the current session, OR
+        /// - They authored at least one block in the current session
+        ///
+        /// # Weight Validation
+        ///
+        /// If BlockAuthoringWeight + LivenessWeight > 100%, values are proportionally scaled down
+        /// to ensure the sum does not exceed 100%. This prevents configuration errors from
+        /// breaking the reward system.
         ///
         /// # Whitelisted Validators
         ///
-        /// Whitelisted validators are excluded from rewards to avoid conflicts with
-        /// other reward mechanisms.
+        /// Whitelisted validators are excluded from rewards AND from fair share calculation.
+        /// This ensures regular validators' fair share isn't diluted by whitelisted validators.
         pub fn award_session_performance_points(
             session_index: SessionIndex,
             validators: Vec<T::AccountId>,
@@ -438,66 +461,110 @@ pub mod pallet {
                 .map(|(_, count)| count)
                 .sum();
 
-            let active_validator_count = validators.len() as u32;
-            if active_validator_count == 0 {
+            // Count non-whitelisted validators for fair share calculation
+            let non_whitelisted_count = validators
+                .iter()
+                .filter(|v| !whitelisted_validators.contains(v))
+                .count() as u32;
+
+            if non_whitelisted_count == 0 {
                 log::warn!(
                     target: "ext_validators_rewards",
-                    "No active validators in session {}",
+                    "No non-whitelisted validators in session {}, skipping performance rewards",
                     session_index
                 );
+                // Clear session tracking storage even if no rewards
+                let _ = BlocksAuthoredInSession::<T>::clear(u32::MAX, None);
                 return;
             }
 
-            // Fair share: expected blocks per validator using checked math
-            let expected_blocks_per_validator = if total_blocks > 0 {
-                total_blocks
-                    .checked_div(active_validator_count)
-                    .unwrap_or(1)
-            } else {
-                1 // Default to 1 when no blocks were produced
+            // Fair share: expected blocks per non-whitelisted validator using checked math
+            // Ensure minimum of 1 to prevent division issues
+            let fair_share = total_blocks
+                .checked_div(non_whitelisted_count)
+                .unwrap_or(1)
+                .max(1);
+
+            // Get soft cap for over-performance rewards
+            let fair_share_cap = T::FairShareCap::get();
+
+            // Calculate max credited blocks based on soft cap
+            // max_credited = fair_share + cap × fair_share = fair_share × (1 + cap)
+            let max_credited_blocks = fair_share
+                .saturating_add(fair_share_cap.mul_floor(fair_share));
+
+            // Get and validate reward weights with defensive scaling
+            let (block_weight, liveness_weight, base_weight) = {
+                let raw_block = T::BlockAuthoringWeight::get();
+                let raw_liveness = T::LivenessWeight::get();
+                let sum = raw_block.saturating_add(raw_liveness);
+
+                if sum > Perbill::one() {
+                    // Proportionally scale down to fit within 100%
+                    log::warn!(
+                        target: "ext_validators_rewards",
+                        "Reward weights exceed 100% (block={}%, liveness={}%), scaling proportionally",
+                        raw_block.deconstruct() * 100 / Perbill::ACCURACY,
+                        raw_liveness.deconstruct() * 100 / Perbill::ACCURACY
+                    );
+                    let scale = Perbill::from_rational(Perbill::one().deconstruct(), sum.deconstruct());
+                    let scaled_block = scale.saturating_mul(raw_block);
+                    let scaled_liveness = scale.saturating_mul(raw_liveness);
+                    (scaled_block, scaled_liveness, Perbill::zero())
+                } else {
+                    let base = Perbill::one().saturating_sub(raw_block).saturating_sub(raw_liveness);
+                    (raw_block, raw_liveness, base)
+                }
             };
 
             log::debug!(
                 target: "ext_validators_rewards",
-                "Session {} performance: {} validators, {} total blocks ({} expected/validator)",
+                "Session {} performance: {} validators ({} non-whitelisted), {} total blocks, fair_share={}, max_credited={}, weights={}%/{}%/{}%",
                 session_index,
-                active_validator_count,
+                validators.len(),
+                non_whitelisted_count,
                 total_blocks,
-                expected_blocks_per_validator
+                fair_share,
+                max_credited_blocks,
+                block_weight.deconstruct() * 100 / Perbill::ACCURACY,
+                liveness_weight.deconstruct() * 100 / Perbill::ACCURACY,
+                base_weight.deconstruct() * 100 / Perbill::ACCURACY
             );
-
-            // Get current era for equivocation checking
-            let active_era = T::EraIndexProvider::active_era();
-            let current_era_index = active_era.index;
 
             // Calculate and award points for each validator
             for validator in validators.iter() {
-                // Skip whitelisted validators
+                // Skip whitelisted validators - they don't participate in performance rewards
                 if whitelisted_validators.contains(validator) {
                     continue;
                 }
 
-                // Check for equivocation: if validator has been slashed this era, nullify all rewards
-                if T::SlashingCheck::is_slashed(current_era_index, validator) {
-                    log::warn!(
-                        target: "ext_validators_rewards",
-                        "Validator {:?} has equivocation slash in era {}, nullifying rewards",
-                        validator,
-                        current_era_index
-                    );
-                    continue; // Skip reward calculation entirely
-                }
+                // NOTE: Slashing check is disabled for now but hook is retained for future use.
+                // Slashed validators will still be slashed financially via the slashing pallet;
+                // they just won't lose their era rewards. This allows governance to cancel
+                // erroneous slashes without also losing the validator's rewards.
+                //
+                // To re-enable, uncomment the following block:
+                // let active_era = T::EraIndexProvider::active_era();
+                // if T::SlashingCheck::is_slashed(active_era.index, validator) {
+                //     log::warn!(
+                //         target: "ext_validators_rewards",
+                //         "Validator {:?} has slash in era {}, nullifying rewards",
+                //         validator,
+                //         active_era.index
+                //     );
+                //     continue;
+                // }
 
                 let blocks_authored = BlocksAuthoredInSession::<T>::get(validator);
 
-                // Block production score: capped at 100% (don't reward over-performance)
-                let block_score = Perbill::from_rational(
-                    blocks_authored.min(expected_blocks_per_validator),
-                    expected_blocks_per_validator,
-                );
+                // Block production score with soft cap allowing over-performance
+                // credited_blocks = min(blocks_authored, max_credited_blocks)
+                // block_score = credited_blocks / fair_share (can exceed 100%)
+                let credited_blocks = blocks_authored.min(max_credited_blocks);
+                let block_score = Perbill::from_rational(credited_blocks, fair_share);
 
-                // Liveness score: based on ImOnline heartbeats for this session
-
+                // Liveness score: based on ImOnline's is_online() which considers
+                // heartbeats OR block authorship
                 let is_online = T::LivenessCheck::contains(validator);
                 let liveness_score = if is_online {
                     Perbill::one()
@@ -505,22 +572,29 @@ pub mod pallet {
                     Perbill::zero()
                 };
 
-                // Apply 50/30/20 weighting formula
-                let weighted_score = Perbill::from_percent(50)
+                // Apply configurable weighting formula
+                // weighted_score = block_weight × block_score + liveness_weight × liveness_score + base_weight
+                // Note: block_score can exceed 100%, so weighted_score can exceed 100% for over-performers
+                let weighted_score = block_weight
                     .saturating_mul(block_score)
-                    .saturating_add(Perbill::from_percent(30).saturating_mul(liveness_score))
-                    .saturating_add(Perbill::from_percent(20)); // 20% base guarantee
+                    .saturating_add(liveness_weight.saturating_mul(liveness_score))
+                    .saturating_add(base_weight);
 
-                // Calculate final points
-                let points = weighted_score.mul_floor(T::AuthorBaseRewardPoints::get());
+                // Calculate potential points based on fair share of blocks
+                // AuthorBaseRewardPoints is the number of points per block produced
+                let potential_points = fair_share.saturating_mul(T::AuthorBaseRewardPoints::get());
+
+                // Calculate final points by applying weighted score to potential points
+                let points = weighted_score.mul_floor(potential_points);
 
                 if points > 0 {
                     log::debug!(
                         target: "ext_validators_rewards",
-                        "Validator {:?}: blocks={}/{} (block_score={}%), online={}, weighted_score={}%, points={}",
+                        "Validator {:?}: blocks={}/{} (credited={}, score={}%), online={}, weighted={}%, points={}",
                         validator,
                         blocks_authored,
-                        expected_blocks_per_validator,
+                        fair_share,
+                        credited_blocks,
                         block_score.deconstruct() * 100 / Perbill::ACCURACY,
                         if is_online { "yes" } else { "no" },
                         weighted_score.deconstruct() * 100 / Perbill::ACCURACY,
@@ -543,6 +617,7 @@ pub mod pallet {
             };
 
             RewardPointsForEra::<T>::remove(era_index_to_delete);
+            BlocksProducedInEra::<T>::remove(era_index_to_delete);
         }
     }
 

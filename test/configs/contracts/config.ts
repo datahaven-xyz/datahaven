@@ -14,16 +14,6 @@ export const CHAIN_CONFIGS = {
     EPOCHS_PER_SYNC_COMMITTEE_PERIOD: 256,
     SYNC_COMMITTEE_SIZE: 512
   },
-  holesky: {
-    NETWORK_NAME: "holesky",
-    CHAIN_ID: 17000,
-    RPC_URL: "https://ethereum-holesky-rpc.publicnode.com",
-    BLOCK_EXPLORER: "https://holesky.etherscan.io/",
-    GENESIS_TIME: 1695902400,
-    SLOT_TIME: 12, // seconds
-    EPOCHS_PER_SYNC_COMMITTEE_PERIOD: 256,
-    SYNC_COMMITTEE_SIZE: 512
-  },
   mainnet: {
     NETWORK_NAME: "mainnet",
     CHAIN_ID: 1,

@@ -32,14 +32,12 @@
     "moonwall:run": "moonwall run dev_datahaven",
     "typecheck": "tsc --noEmit",
     "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
-    "postinstall": "papi",
-    "prepare": "cd .. && husky test/.husky"
+    "postinstall": "papi"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/yargs": "^17.0.33",
-    "@typescript/native-preview": "^7.0.0-dev.20250618.1",
-    "husky": "^9.1.7"
+    "@typescript/native-preview": "^7.0.0-dev.20250618.1"
   },
   "peerDependencies": {
     "typescript": "^5.8.3"

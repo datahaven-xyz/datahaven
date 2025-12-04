@@ -215,14 +215,13 @@ export async function waitForRewardsMessageSent(
     timeout
   });
 
-  if (!result?.data) return null;
+  if (!result) return null;
 
-  const data: any = result.data;
   return {
-    messageId: data.message_id.asHex(),
-    merkleRoot: data.rewards_merkle_root.asHex(),
-    eraIndex: data.era_index,
-    totalPoints: data.total_points,
-    inflation: data.inflation_amount
+    messageId: result.message_id.asHex(),
+    merkleRoot: result.rewards_merkle_root.asHex(),
+    eraIndex: result.era_index,
+    totalPoints: result.total_points,
+    inflation: result.inflation_amount
   };
 }

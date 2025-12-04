@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+import { platform } from "node:process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { $ } from "bun";
 import { logger } from "utils";
+
 
 const CHAOS_VERSION = "v0.1.2";
 const CHAOS_RELEASE_URL = `https://github.com/undercover-cactus/Chaos/releases/download/${CHAOS_VERSION}/chaos-linux-amd64-${CHAOS_VERSION}.tar.gz`;
@@ -34,12 +36,17 @@ async function findRethContainer(): Promise<string> {
   return containerName;
 }
 
-/**
- * Gets the container's architecture
- */
-async function getContainerArchitecture(containerName: string): Promise<string> {
-  const result = await $`docker exec ${containerName} bash -c "uname -m"`.quiet();
-  return result.stdout.toString().trim();
+async function copyDatabaseFromContainer(containerName: String): Promise<void> {
+  logger.info("📋 Copying database from container...");
+
+  // Copy database in the host machine
+  logger.info("Import the database in the /tmp folder from the container");
+  const result = await $`docker cp ${containerName}:/data/reth/execution-data/db /tmp/db`
+  if (result.exitCode != 0) {
+    throw new Error("Fail to copy the reth database into the /tmp folder.");
+  }
+
+  logger.info("✅ Database copied");
 }
 
 /**
@@ -48,33 +55,30 @@ async function getContainerArchitecture(containerName: string): Promise<string> 
 async function setupChaos(containerName: string): Promise<void> {
   logger.info("📥 Downloading Chaos tool...");
 
-  // Check container architecture
-  const arch = await getContainerArchitecture(containerName);
-  logger.info(`🔍 Container architecture: ${arch}`);
+  const version = 'v0.1.2'
 
-  // Install wget and x86_64 compatibility libraries
-  // Chaos only provides amd64 binaries, so we need x86_64 libraries even if container is ARM
-  logger.info("📦 Installing required dependencies...");
-  await $`docker exec ${containerName} bash -c "apt update && apt install -y wget"`.quiet();
-
-  // Install x86_64 libraries needed for the Chaos binary
-  // This is needed because Chaos only provides linux-amd64 binaries
-  logger.info("🔧 Installing x86_64 compatibility libraries...");
-  await $`docker exec ${containerName} bash -c "dpkg --add-architecture amd64 && apt update && apt install -y libc6:amd64 || apt install -y libc6-x32 || true"`.quiet();
-
-  // Download Chaos - always use amd64 version (Chaos only provides amd64)
-  const downloadResult =
-    await $`docker exec ${containerName} bash -c "wget -q ${CHAOS_RELEASE_URL} || echo 'DOWNLOAD_FAILED'"`.quiet();
-  if (downloadResult.stdout.toString().includes("DOWNLOAD_FAILED")) {
-    throw new Error(`❌ Failed to download Chaos from ${CHAOS_RELEASE_URL}`);
+  // Check host platform
+  let tarName;
+  if (platform == 'darwin') {
+    tarName = `chaos-macos-amd64-${version}`
+  } if (platform == 'linux') {
+    tarName = `chaos-linux-amd64-${version}`
+  } else {
+    throw new Error(`Unsupported platform : ${platform}. Chaos tool doesn't have a build for your system yet.`);
   }
 
-  // Extract Chaos
-  logger.info("📦 Extracting Chaos tool...");
-  await $`docker exec ${containerName} bash -c "tar -xzf chaos-linux-amd64-${CHAOS_VERSION}.tar.gz"`.quiet();
+  const resultWget = await $`wget https://github.com/undercover-cactus/Chaos/releases/download/${version}/${tarName}.tar.gz -O /tmp/chaos.tar.gz`
+  if (resultWget.exitCode != 0) {
+    throw new Error("Fail to download binary. Verify if 'wget' is installed on your machine.");
+  }
 
-  // Make sure the binary is executable
-  await $`docker exec ${containerName} bash -c "chmod +x target/release/chaos"`.quiet();
+  // Untar binary
+  logger.info("📦 Extracting Chaos tool...");
+  const resultTar = await $`tar -xzvf /tmp/chaos.tar.gz -C /tmp/`;
+  if (resultTar.exitCode != 0) {
+    throw new Error("Fail to unpack binary. Verify if 'wget' is installed on your machine.");
+  }
+  
 
   logger.info("✅ Chaos tool ready");
 }
@@ -85,35 +89,11 @@ async function setupChaos(containerName: string): Promise<void> {
 async function runChaos(containerName: string): Promise<void> {
   logger.info("🔍 Running Chaos to extract contract state...");
 
-  // Try running chaos, with better error handling
-  const result =
-    await $`docker exec ${containerName} bash -c "./target/release/chaos --database-path /data/reth/execution-data/db"`
-      .nothrow()
-      .quiet();
-
-  if (result.exitCode !== 0) {
-    const stderr = result.stderr.toString();
-    const stdout = result.stdout.toString();
-
-    logger.error(`Chaos stderr: ${stderr}`);
-    logger.error(`Chaos stdout: ${stdout}`);
-
-    // Check for architecture mismatch
-    if (stderr.includes("rosetta") || stderr.includes("elf") || stderr.includes("ld-linux")) {
-      throw new Error(
-        "❌ Architecture mismatch error. The Chaos binary may not be compatible with the container architecture.\n" +
-          `Error: ${stderr}\n\n` +
-          "Possible solutions:\n" +
-          "1. Ensure the container is running on linux/amd64 platform\n" +
-          `2. Check if Chaos has a release for your container's architecture\n` +
-          "3. Try running the container with --platform linux/amd64"
-      );
-    }
-
-    throw new Error(
-      `❌ Chaos execution failed with exit code ${result.exitCode}: ${stderr || stdout}`
-    );
+  let result  = await $`/tmp/target/release/chaos --database-path /tmp/db`;
+  if (result.exitCode != 0) {
+    throw new Error("Fail to generate state.");
   }
+
 
   logger.info("✅ State extraction complete");
 }
@@ -122,19 +102,16 @@ async function runChaos(containerName: string): Promise<void> {
  * Copies state.json from container to host
  */
 async function copyStateFile(containerName: string): Promise<void> {
-  logger.info("📋 Copying state.json from container...");
+  logger.info("📋 Copying state.json to our repo");
 
-  const tempPath = "tmp/state.json";
-  await $`mkdir -p tmp`.quiet();
+  const stateFile = "state.json";
 
-  await $`docker cp ${containerName}:state.json ${tempPath}`.quiet();
-
-  if (!existsSync(tempPath)) {
-    throw new Error("❌ Failed to copy state.json from container");
+  if (!existsSync(stateFile)) {
+    throw new Error("❌ Failed to copy state.json from our temp folder");
   }
 
   // Move to final location
-  await $`mv ${tempPath} ${STATE_DIFF_PATH}`.quiet();
+  await $`mv ${stateFile} ${STATE_DIFF_PATH}`.quiet();
 
   logger.info(`✅ State file saved to ${STATE_DIFF_PATH}`);
 }
@@ -184,20 +161,23 @@ export async function generateContracts(): Promise<void> {
   try {
     // 1. Find Reth container
     const containerName = await findRethContainer();
+    
+    // 2. Copy database
+    await copyDatabaseFromContainer(containerName);
 
-    // 2. Setup Chaos tool
+    // 3. Setup Chaos tool
     await setupChaos(containerName);
 
-    // 3. Run Chaos to extract state
+    // 4. Run Chaos to extract state
     await runChaos(containerName);
 
-    // 4. Copy state.json to host
+    // 5. Copy state.json to host
     await copyStateFile(containerName);
 
-    // 5. Format the JSON file
+    // 6. Format the JSON file
     await formatStateDiff();
 
-    // 6. Generate checksum
+    // 7. Generate checksum
     logger.info("🔐 Generating checksum...");
     const checksum = generateChecksum(STATE_DIFF_PATH);
     logger.info(`📝 Checksum: ${checksum}`);

@@ -115,13 +115,7 @@ async function getNativeERC20Address(connectors: any): Promise<`0x${string}` | n
 
 class NativeTokenTransferTestSuite extends BaseTestSuite {
   constructor() {
-    super({
-      suiteName: "native-token-transfer",
-      networkOptions: {
-        slotTime: 2
-      }
-    });
-
+    super({ suiteName: "native-token-transfer" });
     this.setupHooks();
   }
 }
@@ -365,11 +359,12 @@ describe("Native Token Transfer", () => {
     expect(burnEvent).toBeDefined();
 
     // Wait for relay (takes ~2-3 min due to Ethereum finality)
-    await waitForDataHavenEvent<{ account: { asHex: () => string }; amount: bigint }>({
+    // Note: Polkadot-API returns account as HexString directly
+    await waitForDataHavenEvent<{ account: string; amount: bigint }>({
       api: connectors.dhApi,
       pallet: "DataHavenNativeTransfer",
       event: "TokensUnlocked",
-      filter: (e) => e.account.asHex().toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
+      filter: (e) => e.account.toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
       timeout: ETH_TO_DH_TIMEOUT_MS
     });
 

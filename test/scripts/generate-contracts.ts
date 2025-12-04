@@ -58,8 +58,7 @@ async function setupChaos(): Promise<void> {
   let tarName: string;
   if (platform === "darwin") {
     tarName = `chaos-macos-amd64-${CHAOS_VERSION}`;
-  }
-  if (platform === "linux") {
+  } else if (platform === "linux") {
     tarName = `chaos-linux-amd64-${CHAOS_VERSION}`;
   } else {
     throw new Error(

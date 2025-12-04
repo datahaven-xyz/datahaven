@@ -7,7 +7,9 @@ import {
   type Account,
   createPublicClient,
   createWalletClient,
+  fallback,
   http,
+  webSocket,
   type PublicClient,
   type WalletClient
 } from "viem";
@@ -42,10 +44,18 @@ export class ConnectorFactory {
   async createTestConnectors(): Promise<TestConnectors> {
     logger.debug("Creating test connectors...");
 
+    // Prefer WebSocket for event-heavy public client; fall back to HTTP when WS is unavailable.
+    const wsUrl = this.connectors.ethereumWsUrl;
+
+    const publicTransport =
+      wsUrl && wsUrl.startsWith("ws")
+        ? fallback([webSocket(wsUrl), http(this.connectors.ethereumRpcUrl)])
+        : http(this.connectors.ethereumRpcUrl);
+
     // Create Ethereum clients
     const publicClient = createPublicClient({
       chain: anvil,
-      transport: http(this.connectors.ethereumRpcUrl)
+      transport: publicTransport
     });
 
     const account = privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[0].privateKey);
@@ -95,7 +105,26 @@ export class ConnectorFactory {
 
     // Destroy PAPI client
     if (connectors.papiClient) {
-      connectors.papiClient.destroy();
+      try {
+        connectors.papiClient.destroy();
+      } catch (error) {
+        // Ignore DisjointError - it occurs when ChainHead subscriptions are already disjointed
+        // This is harmless and expected during cleanup
+        const errorName = error instanceof Error ? error.name : String(error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        if (
+          errorName === "DisjointError" ||
+          errorName.includes("disjoint") ||
+          errorMessage.includes("disjoint") ||
+          errorMessage.includes("ChainHead disjointed")
+        ) {
+          // Ignore - this is expected and harmless
+        } else {
+          // Re-throw unexpected errors
+          throw error;
+        }
+      }
     }
 
     logger.debug("Test connectors cleaned up");

@@ -6,15 +6,17 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
-import {IAllocationManagerTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IStrategyManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {IAVSDirectory} from "eigenlayer-contracts/src/contracts/interfaces/IAVSDirectory.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
-import {PermissionController} from
-    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {
+    PermissionController
+} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 import {
     IRewardsCoordinator,
@@ -22,6 +24,7 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 import {StrategyBase} from "eigenlayer-contracts/src/contracts/strategies/StrategyBase.sol";
+import {EigenStrategy} from "eigenlayer-contracts/src/contracts/strategies/EigenStrategy.sol";
 import {EigenPodManagerMock} from "eigenlayer-contracts/src/test/mocks/EigenPodManagerMock.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
@@ -34,7 +37,6 @@ import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
 import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
-import {AllocationManagerMock} from "../mocks/AllocationManagerMock.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 
 import "forge-std/Test.sol";
@@ -54,7 +56,8 @@ contract AVSDeployer is Test {
     RewardsRegistry public rewardsRegistry;
 
     // VetoableSlasher roles and parameters
-    address public vetoCommitteeMember = address(uint160(uint256(keccak256("vetoCommitteeMember"))));
+    address public vetoCommitteeMember =
+        address(uint160(uint256(keccak256("vetoCommitteeMember"))));
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
 
     // RewardsRegistry roles and parameters
@@ -68,6 +71,7 @@ contract AVSDeployer is Test {
     EigenPodManagerMock public eigenPodManagerMock;
     AllocationManager public allocationManager;
     AllocationManager public allocationManagerImplementation;
+    IStrategy public eigenStrategy;
     RewardsCoordinator public rewardsCoordinator;
     RewardsCoordinator public rewardsCoordinatorImplementation;
     RewardsCoordinatorMock public rewardsCoordinatorMock;
@@ -140,6 +144,12 @@ contract AVSDeployer is Test {
 
         console.log("AllocationManager and StrategyManager proxy contracts deployed");
 
+        cheats.prank(regularDeployer);
+        eigenStrategy =
+            IStrategy(address(new EigenStrategy(strategyManager, pauserRegistry, "v-mock")));
+
+        console.log("EigenStrategy deployed");
+
         // Deploying DelegationManager implementation and its proxy.
         cheats.prank(regularDeployer);
         delegationManagerImplementation = new DelegationManager(
@@ -163,6 +173,7 @@ contract AVSDeployer is Test {
         cheats.prank(regularDeployer);
         allocationManagerImplementation = new AllocationManager(
             delegationManager,
+            eigenStrategy,
             pauserRegistry,
             permissionControllerMock,
             uint32(7 days), // DEALLOCATION_DELAY
@@ -180,7 +191,7 @@ contract AVSDeployer is Test {
         // Deploying StrategyManager implementation and its proxy.
         cheats.prank(regularDeployer);
         strategyManagerImplementation =
-            new StrategyManager(delegationManager, pauserRegistry, "v-mock");
+            new StrategyManager(allocationManager, delegationManager, pauserRegistry, "v-mock");
         cheats.prank(proxyAdminOwner);
         uint256 allUnpaused = 0;
         proxyAdmin.upgradeAndCall(
@@ -197,19 +208,19 @@ contract AVSDeployer is Test {
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
         IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams memory params =
-        IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams({
-            delegationManager: delegationManager,
-            strategyManager: IStrategyManager(address(strategyManager)),
-            allocationManager: allocationManager,
-            pauserRegistry: pauserRegistry,
-            permissionController: permissionControllerMock,
-            CALCULATION_INTERVAL_SECONDS: CALCULATION_INTERVAL_SECONDS,
-            MAX_REWARDS_DURATION: MAX_REWARDS_DURATION,
-            MAX_RETROACTIVE_LENGTH: MAX_RETROACTIVE_LENGTH,
-            MAX_FUTURE_LENGTH: MAX_FUTURE_LENGTH,
-            GENESIS_REWARDS_TIMESTAMP: GENESIS_REWARDS_TIMESTAMP,
-            version: "v-mock"
-        });
+            IRewardsCoordinatorTypes.RewardsCoordinatorConstructorParams({
+                delegationManager: delegationManager,
+                strategyManager: IStrategyManager(address(strategyManager)),
+                allocationManager: allocationManager,
+                pauserRegistry: pauserRegistry,
+                permissionController: permissionControllerMock,
+                CALCULATION_INTERVAL_SECONDS: CALCULATION_INTERVAL_SECONDS,
+                MAX_REWARDS_DURATION: MAX_REWARDS_DURATION,
+                MAX_RETROACTIVE_LENGTH: MAX_RETROACTIVE_LENGTH,
+                MAX_FUTURE_LENGTH: MAX_FUTURE_LENGTH,
+                GENESIS_REWARDS_TIMESTAMP: GENESIS_REWARDS_TIMESTAMP,
+                version: "v-mock"
+            });
         rewardsCoordinatorImplementation = new RewardsCoordinator(params);
         rewardsCoordinator = RewardsCoordinator(
             address(
@@ -241,16 +252,12 @@ contract AVSDeployer is Test {
             rewardsCoordinator, permissionControllerMock, allocationManager
         );
 
-        // Create arrays for the three sets of strategies required by DataHavenServiceManager
+        // Create array for validators strategies required by DataHavenServiceManager
         IStrategy[] memory validatorsStrategies = new IStrategy[](deployedStrategies.length);
-        IStrategy[] memory bspsStrategies = new IStrategy[](deployedStrategies.length);
-        IStrategy[] memory mspsStrategies = new IStrategy[](deployedStrategies.length);
 
-        // For testing purposes, we'll use the same strategies for all three sets
+        // For testing purposes, we'll use the deployed strategies for validators
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             validatorsStrategies[i] = deployedStrategies[i];
-            bspsStrategies[i] = deployedStrategies[i];
-            mspsStrategies[i] = deployedStrategies[i];
         }
 
         serviceManager = DataHavenServiceManager(
@@ -263,8 +270,6 @@ contract AVSDeployer is Test {
                         avsOwner,
                         rewardsInitiator,
                         validatorsStrategies,
-                        bspsStrategies,
-                        mspsStrategies,
                         address(0) // This deployment does not use Snowbridge
                     )
                 )
@@ -405,15 +410,25 @@ contract AVSDeployer is Test {
         return arr;
     }
 
-    function _incrementAddress(address start, uint256 inc) internal pure returns (address) {
+    function _incrementAddress(
+        address start,
+        uint256 inc
+    ) internal pure returns (address) {
         return address(uint160(uint256(uint160(start) + inc)));
     }
 
-    function _incrementBytes32(bytes32 start, uint256 inc) internal pure returns (bytes32) {
+    function _incrementBytes32(
+        bytes32 start,
+        uint256 inc
+    ) internal pure returns (bytes32) {
         return bytes32(uint256(start) + inc);
     }
 
-    function _setERC20Balance(address token, address user, uint256 amount) internal {
+    function _setERC20Balance(
+        address token,
+        address user,
+        uint256 amount
+    ) internal {
         // Assumes balanceOf is in slot 0 (standard in OpenZeppelin ERC20)
         bytes32 slot = keccak256(abi.encode(user, uint256(0)));
         cheats.store(token, slot, bytes32(amount));

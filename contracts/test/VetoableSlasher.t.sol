@@ -6,8 +6,9 @@ pragma solidity ^0.8.27;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {
     IAllocationManagerErrors,
     IAllocationManager,
@@ -96,8 +97,7 @@ contract VetoableSlasherTest is AVSDeployer {
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Test slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
             operator: operator,
             operatorSetId: operatorSetId,
             strategies: strategies,
@@ -230,12 +230,13 @@ contract VetoableSlasherTest is AVSDeployer {
         IAllocationManagerTypes.SlashingParams memory params;
         (params,,) = _getSlashingRequest(requestId);
 
+        uint256[] memory slashedShares = new uint256[](params.strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         // Fast forward past veto period
@@ -305,14 +306,14 @@ contract VetoableSlasherTest is AVSDeployer {
         wadsToSlash2[0] = 2e16; // 2% of the operator's stake
         string memory description2 = "Second slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params2 = IAllocationManagerTypes
-            .SlashingParams({
-            operator: operator2,
-            operatorSetId: operatorSetId2,
-            strategies: strategies2,
-            wadsToSlash: wadsToSlash2,
-            description: description2
-        });
+        IAllocationManagerTypes.SlashingParams memory params2 =
+            IAllocationManagerTypes.SlashingParams({
+                operator: operator2,
+                operatorSetId: operatorSetId2,
+                strategies: strategies2,
+                wadsToSlash: wadsToSlash2,
+                description: description2
+            });
 
         uint256 requestId2 = 1; // Second request
 
@@ -324,12 +325,13 @@ contract VetoableSlasherTest is AVSDeployer {
         vetoableSlasher.cancelSlashingRequest(requestId1);
 
         // Setup the mock for slashing the second request
+        uint256[] memory slashedShares = new uint256[](params2.strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params2
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         // Fast forward past veto period
@@ -364,8 +366,7 @@ contract VetoableSlasherTest is AVSDeployer {
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Test slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
             operator: operator,
             operatorSetId: operatorSetId,
             strategies: strategies,

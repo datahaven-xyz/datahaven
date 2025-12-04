@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IServiceManagerUI} from "./IServiceManagerUI.sol";
-import {IAllocationManagerTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IAllocationManager} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IRewardsRegistry} from "./IRewardsRegistry.sol";
@@ -97,7 +100,11 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
      * @param target The address of the target to set the appointee for.
      * @param selector The function selector to set the appointee for.
      */
-    function setAppointee(address appointee, address target, bytes4 selector) external;
+    function setAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external;
 
     /**
      * @notice Calls `removeAppointee` on the `PermissionController` contract.
@@ -106,7 +113,11 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
      * @param target The address of the target to remove the appointee for.
      * @param selector The function selector to remove the appointee for.
      */
-    function removeAppointee(address appointee, address target, bytes4 selector) external;
+    function removeAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external;
 
     /**
      * @notice Deregisters an operator from specified operator sets
@@ -131,7 +142,10 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
      * @param rewardsRegistry The address of the rewards registry
      * @dev Only callable by the owner
      */
-    function setRewardsRegistry(uint32 operatorSetId, IRewardsRegistry rewardsRegistry) external;
+    function setRewardsRegistry(
+        uint32 operatorSetId,
+        IRewardsRegistry rewardsRegistry
+    ) external;
 
     /**
      * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs
@@ -190,5 +204,8 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
      * @param rewardsAgent New rewards agent address
      * @dev Only callable by the owner
      */
-    function setRewardsAgent(uint32 operatorSetId, address rewardsAgent) external;
+    function setRewardsAgent(
+        uint32 operatorSetId,
+        address rewardsAgent
+    ) external;
 }

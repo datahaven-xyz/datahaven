@@ -1,0 +1,64 @@
+# StorageHub MSP Backend API base configuration
+# This file contains the base configuration for the StorageHub MSP Backend API
+
+# Chart metadata
+fullnameOverride: sh-mspbackend
+
+# Container image
+image:
+  repository: moonsonglabs/storage-hub-msp-backend
+  tag: latest
+  pullPolicy: Always
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 80
+
+# Backend API configuration
+backend:
+  port: 8080
+
+  # Database connection to StorageHub Indexer PostgreSQL
+  database:
+    url: postgresql://indexer:indexer@sh-idxnode-db-postgresql:5432/datahaven
+
+  # RPC connection to StorageHub Indexer node
+  rpc:
+    endpoint: ws://sh-mspnode-0:9955
+
+  # Authentication (set in environment-specific values)
+  # auth:
+  #   jwtSecret: "set-in-environment-values"
+    
+  # CLI arguments for the backend application
+  args:
+    - "--config"
+    - "/configs/config.toml"
+
+# Resource limits
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Service account
+serviceAccount:
+  create: true
+  name: sh-mspbackend
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+
+# Ingress configuration (disabled by default, enabled per environment)
+ingress:
+  enabled: false

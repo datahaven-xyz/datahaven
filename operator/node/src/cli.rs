@@ -1,3 +1,19 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 use crate::command::ProviderOptions;
 use crate::eth::EthConfiguration;
 use clap::{Parser, ValueEnum};
@@ -41,6 +57,22 @@ pub struct Cli {
     /// Provider configurations
     #[command(flatten)]
     pub provider_config: ProviderConfigurations,
+
+    /// Provider configurations file path (allow to specify the provider configuration in a file instead of the cli)
+    #[arg(long, conflicts_with_all = [
+        "provider", "provider_type", "max_storage_capacity", "jump_capacity",
+        "storage_layer", "storage_path", "extrinsic_retry_timeout", "sync_mode_min_blocks_behind",
+        "check_for_pending_proofs_period", "max_blocks_behind_to_catch_up_root_changes",
+        "msp_charging_period", "msp_charge_fees_task", "msp_charge_fees_min_debt",
+        "msp_move_bucket_task", "msp_move_bucket_max_try_count", "msp_move_bucket_max_tip",
+        "bsp_upload_file_task", "bsp_upload_file_max_try_count", "bsp_upload_file_max_tip",
+        "bsp_move_bucket_task", "bsp_move_bucket_grace_period",
+        "bsp_charge_fees_task", "bsp_charge_fees_min_debt",
+        "bsp_submit_proof_task", "bsp_submit_proof_max_attempts",
+        "pending_db_url",
+        "fisherman", "fisherman_database_url",
+    ])]
+    pub provider_config_file: Option<String>,
 
     /// Indexer configurations
     #[command(flatten)]
@@ -211,6 +243,17 @@ pub struct ProviderConfigurations {
     #[arg(long, default_value = "10")]
     pub max_blocks_behind_to_catch_up_root_changes: Option<u32>,
 
+    /// Enable MSP file distribution to BSPs (disabled by default unless set via config/CLI).
+    /// Only applicable when running as an MSP provider.
+    #[arg(long, value_name = "BOOLEAN")]
+    pub msp_distribute_files: bool,
+
+    /// Postgres database URL for persisting pending extrinsics (Blockchain Service DB).
+    /// If not provided, the service will use the `SH_PENDING_DB_URL` environment variable.
+    /// If neither is set, pending transactions will not be persisted.
+    #[arg(long("pending-db-url"), env = "SH_PENDING_DB_URL")]
+    pub pending_db_url: Option<String>,
+
     // ============== Provider RPC options ==============
     // ============== Remote file upload/download options ==============
     /// Maximum file size in bytes (default: 10GB)
@@ -249,6 +292,11 @@ pub struct ProviderConfigurations {
     /// Number of `chunk_size` chunks to buffer during upload/download. (default: 512)
     #[arg(long, value_name = "COUNT", default_value = "512")]
     pub chunks_buffer: Option<u64>,
+
+    /// The number of 1KB (FILE_CHUNK_SIZE) chunks we batch and queue from the db while
+    /// transferring the file on a save_file_to_disk call.
+    #[arg(long, value_name = "COUNT", default_value = "1024")]
+    pub internal_buffer_size: Option<u64>,
 
     // ============== MSP Charge Fees task options ==============
     /// Enable and configure MSP Charge Fees task.
@@ -383,6 +431,15 @@ pub struct ProviderConfigurations {
         ])
     )]
     pub bsp_submit_proof_max_attempts: Option<u32>,
+
+    /// Optional database URL for MSP nodes only. If provided, enables database access
+    /// for operations such as move bucket operations without requiring the full indexer service.
+    #[arg(
+        long,
+        value_name = "DATABASE_URL",
+        help_heading = "MSP Database Options"
+    )]
+    pub msp_database_url: Option<String>,
 }
 
 impl ProviderConfigurations {
@@ -415,6 +472,11 @@ impl ProviderConfigurations {
         if let Some(chunks_buffer) = self.chunks_buffer {
             if chunks_buffer > 0 {
                 rpc_config.remote_file.chunks_buffer = chunks_buffer as usize;
+            }
+        }
+        if let Some(internal_buffer_size) = self.internal_buffer_size {
+            if internal_buffer_size > 0 {
+                rpc_config.remote_file.internal_buffer_size = internal_buffer_size as usize;
             }
         }
 
@@ -476,32 +538,54 @@ impl ProviderConfigurations {
             }
         }
 
+        // Configure blockchain service options
         let mut blockchain_service = None;
+        let mut bs_options = BlockchainServiceOptions::default();
+        let mut bs_changed = false;
+
         if let Some(extrinsic_retry_timeout) = self.extrinsic_retry_timeout {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.extrinsic_retry_timeout = Some(extrinsic_retry_timeout);
-            blockchain_service = Some(default_config);
+            bs_options.extrinsic_retry_timeout = Some(extrinsic_retry_timeout);
+            bs_changed = true;
+        }
+
+        // Set MSP distribution flag if provided on CLI and role is MSP
+        if self.msp_distribute_files && provider_type == ProviderType::Msp {
+            bs_options.enable_msp_distribute_files = Some(true);
+            bs_changed = true;
+        }
+
+        // If a pending DB URL was provided, enable blockchain service options and pass it through
+        if let Some(url) = self.pending_db_url.clone() {
+            bs_options.pending_db_url = Some(url);
+            bs_changed = true;
         }
 
         if let Some(sync_mode_min_blocks_behind) = self.sync_mode_min_blocks_behind {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
-            blockchain_service = Some(default_config);
+            bs_options.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
+            bs_changed = true;
         }
 
         if let Some(check_for_pending_proofs_period) = self.check_for_pending_proofs_period {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
-            blockchain_service = Some(default_config);
+            bs_options.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
+            bs_changed = true;
         }
 
         if let Some(max_blocks_behind_to_catch_up_root_changes) =
             self.max_blocks_behind_to_catch_up_root_changes
         {
-            let mut default_config = BlockchainServiceOptions::default();
-            default_config.max_blocks_behind_to_catch_up_root_changes =
+            bs_options.max_blocks_behind_to_catch_up_root_changes =
                 Some(max_blocks_behind_to_catch_up_root_changes);
-            blockchain_service = Some(default_config);
+            bs_changed = true;
+        }
+
+        // Set MSP distribution flag if provided on CLI and role is MSP
+        if self.msp_distribute_files && provider_type == ProviderType::Msp {
+            bs_options.enable_msp_distribute_files = Some(true);
+            bs_changed = true;
+        }
+
+        if bs_changed {
+            blockchain_service = Some(bs_options);
         }
 
         ProviderOptions {
@@ -522,6 +606,7 @@ impl ProviderConfigurations {
             bsp_charge_fees,
             bsp_submit_proof,
             blockchain_service,
+            msp_database_url: self.msp_database_url.clone(),
             // We don't support maintenance mode for now.
             // maintenance_mode: self.maintenance_mode,
         }
@@ -573,7 +658,7 @@ impl IndexerConfigurations {
 #[derive(Debug, Parser, Clone)]
 pub struct FishermanConfigurations {
     /// Enable the fisherman service.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "provider")]
     pub fisherman: bool,
 
     /// Postgres database URL for the fisherman service.
@@ -586,6 +671,14 @@ pub struct FishermanConfigurations {
         required_if_eq("fisherman", "true")
     )]
     pub fisherman_database_url: Option<String>,
+
+    /// Duration between batch deletion processing cycles (in seconds).
+    #[arg(long, default_value = "60", value_parser = clap::value_parser!(u64).range(1..))]
+    pub fisherman_batch_interval_seconds: u64,
+
+    /// Maximum number of files to process per batch deletion cycle.
+    #[arg(long, default_value = "1000", value_parser = clap::value_parser!(u64).range(1..))]
+    pub fisherman_batch_deletion_limit: u64,
 }
 
 impl FishermanConfigurations {
@@ -596,6 +689,9 @@ impl FishermanConfigurations {
                     .fisherman_database_url
                     .clone()
                     .expect("Fisherman database URL is required"),
+                batch_interval_seconds: self.fisherman_batch_interval_seconds,
+                batch_deletion_limit: self.fisherman_batch_deletion_limit,
+                maintenance_mode: false, // Skipping maintenance mode for now
             })
         } else {
             None

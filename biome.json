@@ -12,7 +12,10 @@
       "!**/tmp/*",
       "!**/*.spec.json",
       "!**/.papi/descriptors/**/*",
-      "!**/contract-bindings/**/*"
+      "!**/contract-bindings/**/*",
+      "!**/html/**/*",
+      "!**/datahaven/contracts/out/**/*",
+      "!**/contracts/out/**/*"
     ]
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
@@ -25,7 +28,7 @@
   },
   "json": {
     "formatter": {
-      "enabled": false
+      "enabled": true
     }
   },
   "javascript": {
@@ -63,7 +66,8 @@
         "noUnusedTemplateLiteral": "error",
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
-        "noUselessElse": "error"
+        "noUselessElse": "error",
+        "noNonNullAssertion": "off"
       }
     }
   }

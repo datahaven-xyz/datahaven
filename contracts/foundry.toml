@@ -26,6 +26,10 @@
         "lib/eigenlayer-contracts/:@openzeppelin-upgrades/=lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
         "lib/snowbridge/contracts/:openzeppelin/=lib/snowbridge/contracts/lib/openzeppelin-contracts/contracts/",
         "lib/snowbridge/contracts/:prb/math/=lib/snowbridge/contracts/lib/prb-math/",
+        "openzeppelin/=lib/snowbridge/contracts/lib/openzeppelin-contracts/contracts/",
+        "prb/math/=lib/snowbridge/contracts/lib/prb-math/",
+        "src/contracts/=lib/eigenlayer-contracts/src/contracts/",
+        "src/test/=lib/eigenlayer-contracts/src/test/",
     ]
     # Specifies the exact version of Solidity to use, overriding auto-detection.
     solc_version = '0.8.28'
@@ -110,10 +114,8 @@
 
 [rpc_endpoints]
     mainnet = "${RPC_MAINNET}"
-    holesky = "${RPC_HOLESKY}"
-    hoodi = "https://rpc.hoodi.ethpandaops.io"
+    hoodi = "${RPC_HOODI}"
     anvil = "http://localhost:8545"
 
 # [etherscan]
 #     mainnet = { key = "${ETHERSCAN_API_KEY}" }
-#     holesky = { key = "${ETHERSCAN_API_KEY}" }

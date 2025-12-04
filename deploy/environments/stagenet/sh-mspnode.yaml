@@ -1,0 +1,51 @@
+# MSP-specific settings for stagenet
+
+global:
+  environment: stagenet
+  namespace: kt-datahaven-stagenet
+
+image:
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: datahaven-dockerhub
+
+ingress:
+  enabled: true
+  perReplica: true
+  wildcardDomain: datahaven-kt.xyz
+  # This will generate:
+  # - sh-mspnode-0.datahaven-kt.xyz
+  # - sh-mspnode-1.datahaven-kt.xyz
+  # (based on replica count)
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-name: sh-mspnode
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:601766312530:certificate/61c2fc57-4ce4-4a80-90b8-2810c1221f09
+    external-dns.alpha.kubernetes.io/hostname: sh-mspnode.datahaven-kt.xyz
+    meta.helm.sh/release-name: sh-mspnode
+    meta.helm.sh/release-namespace: kt-datahaven-stagenet
+
+node:
+  chain: stagenet-local
+  chainData:
+    persistence:
+      size: 20Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  perNodeServices:
+    apiService:
+      enabled: true
+      type: NodePort

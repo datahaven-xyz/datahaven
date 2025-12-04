@@ -454,6 +454,11 @@ export const allocationManagerAbi = [
         type: 'address',
       },
       {
+        name: '_eigenStrategy',
+        internalType: 'contract IStrategy',
+        type: 'address',
+      },
+      {
         name: '_pauserRegistry',
         internalType: 'contract IPauserRegistry',
         type: 'address',
@@ -541,6 +546,33 @@ export const allocationManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'avs', internalType: 'address', type: 'address' },
+      {
+        name: 'params',
+        internalType: 'struct IAllocationManagerTypes.CreateSetParams[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
+          {
+            name: 'strategies',
+            internalType: 'contract IStrategy[]',
+            type: 'address[]',
+          },
+        ],
+      },
+      {
+        name: 'redistributionRecipients',
+        internalType: 'address[]',
+        type: 'address[]',
+      },
+    ],
+    name: 'createRedistributingOperatorSets',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'delegation',
     outputs: [
@@ -573,6 +605,15 @@ export const allocationManagerAbi = [
     name: 'deregisterFromOperatorSets',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'eigenStrategy',
+    outputs: [
+      { name: '', internalType: 'contract IStrategy', type: 'address' },
+    ],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -855,6 +896,23 @@ export const allocationManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'getRedistributionRecipient',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
     name: 'getRegisteredSets',
     outputs: [
@@ -868,6 +926,23 @@ export const allocationManagerAbi = [
         ],
       },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'getSlashCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -922,7 +997,6 @@ export const allocationManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'initialOwner', internalType: 'address', type: 'address' },
       { name: 'initialPausedStatus', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'initialize',
@@ -944,6 +1018,13 @@ export const allocationManagerAbi = [
       },
     ],
     name: 'isMemberOfOperatorSet',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
+    name: 'isOperatorRedistributable',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
@@ -985,6 +1066,23 @@ export const allocationManagerAbi = [
   {
     type: 'function',
     inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'isRedistributingOperatorSet',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'operator', internalType: 'address', type: 'address' },
       {
         name: 'params',
@@ -1012,13 +1110,6 @@ export const allocationManagerAbi = [
     name: 'modifyAllocations',
     outputs: [],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1112,13 +1203,6 @@ export const allocationManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'avs', internalType: 'address', type: 'address' },
       {
@@ -1163,14 +1247,10 @@ export const allocationManagerAbi = [
       },
     ],
     name: 'slashOperator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
+    outputs: [
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
     stateMutability: 'nonpayable',
   },
   {
@@ -1455,25 +1535,6 @@ export const allocationManagerAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
         name: 'account',
         internalType: 'address',
         type: 'address',
@@ -1487,6 +1548,29 @@ export const allocationManagerAbi = [
       },
     ],
     name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+        indexed: false,
+      },
+      {
+        name: 'redistributionRecipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'RedistributionAddressSet',
   },
   {
     type: 'event',
@@ -1565,8 +1649,10 @@ export const allocationManagerAbi = [
   { type: 'error', inputs: [], name: 'InvalidOperator' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSet' },
   { type: 'error', inputs: [], name: 'InvalidPermissions' },
+  { type: 'error', inputs: [], name: 'InvalidRedistributionRecipient' },
   { type: 'error', inputs: [], name: 'InvalidShortString' },
   { type: 'error', inputs: [], name: 'InvalidSnapshotOrdering' },
+  { type: 'error', inputs: [], name: 'InvalidStrategy' },
   { type: 'error', inputs: [], name: 'InvalidWadToSlash' },
   { type: 'error', inputs: [], name: 'ModificationAlreadyPending' },
   { type: 'error', inputs: [], name: 'NonexistentAVSMetadata' },
@@ -1962,22 +2048,8 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'BSPS_SET_ID',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'DATAHAVEN_AVS_METADATA',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'MSPS_SET_ID',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
   },
   {
@@ -1989,48 +2061,8 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'bsp', internalType: 'address', type: 'address' }],
-    name: 'addBspToAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'msp', internalType: 'address', type: 'address' }],
-    name: 'addMspToAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'admin', internalType: 'address', type: 'address' }],
     name: 'addPendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'addStrategiesToBspsSupportedStrategies',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'addStrategiesToMspsSupportedStrategies',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2073,22 +2105,6 @@ export const dataHavenServiceManagerAbi = [
     inputs: [],
     name: 'avs',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'bspsAllowlist',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'bspsSupportedStrategies',
-    outputs: [
-      { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -2305,16 +2321,6 @@ export const dataHavenServiceManagerAbi = [
         type: 'address[]',
       },
       {
-        name: 'bspsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-      {
-        name: 'mspsStrategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-      {
         name: '_snowbridgeGatewayAddress',
         internalType: 'address',
         type: 'address',
@@ -2323,22 +2329,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'initialise',
     outputs: [],
     stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'mspsAllowlist',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'mspsSupportedStrategies',
-    outputs: [
-      { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
-    ],
-    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -2432,50 +2422,10 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'bsp', internalType: 'address', type: 'address' }],
-    name: 'removeBspFromAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'msp', internalType: 'address', type: 'address' }],
-    name: 'removeMspFromAllowlist',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'pendingAdmin', internalType: 'address', type: 'address' },
     ],
     name: 'removePendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'removeStrategiesFromBspsSupportedStrategies',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'removeStrategiesFromMspsSupportedStrategies',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2678,41 +2628,9 @@ export const dataHavenServiceManagerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'bsp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'BspAddedToAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'bsp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'BspRemovedFromAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
       { name: 'version', internalType: 'uint8', type: 'uint8', indexed: false },
     ],
     name: 'Initialized',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'msp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'MspAddedToAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'msp', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'MspRemovedFromAllowlist',
   },
   {
     type: 'event',
@@ -3307,7 +3225,6 @@ export const delegationManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'initialOwner', internalType: 'address', type: 'address' },
       { name: 'initialPausedStatus', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'initialize',
@@ -3357,13 +3274,6 @@ export const delegationManagerAbi = [
     ],
     name: 'operatorShares',
     outputs: [{ name: 'shares', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -3527,21 +3437,30 @@ export const delegationManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'operator', internalType: 'address', type: 'address' },
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
       { name: 'strategy', internalType: 'contract IStrategy', type: 'address' },
       { name: 'prevMaxMagnitude', internalType: 'uint64', type: 'uint64' },
       { name: 'newMaxMagnitude', internalType: 'uint64', type: 'uint64' },
     ],
     name: 'slashOperatorShares',
-    outputs: [],
+    outputs: [
+      {
+        name: 'totalDepositSharesToSlash',
+        internalType: 'uint256',
+        type: 'uint256',
+      },
+    ],
     stateMutability: 'nonpayable',
   },
   {
@@ -3552,13 +3471,6 @@ export const delegationManagerAbi = [
       { name: '', internalType: 'contract IStrategyManager', type: 'address' },
     ],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -3777,25 +3689,6 @@ export const delegationManagerAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
         name: 'account',
         internalType: 'address',
         type: 'address',
@@ -3948,6 +3841,7 @@ export const delegationManagerAbi = [
   { type: 'error', inputs: [], name: 'InputAddressZero' },
   { type: 'error', inputs: [], name: 'InputArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'InputArrayLengthZero' },
+  { type: 'error', inputs: [], name: 'InvalidDepositScalingFactor' },
   { type: 'error', inputs: [], name: 'InvalidNewPausedStatus' },
   { type: 'error', inputs: [], name: 'InvalidPermissions' },
   { type: 'error', inputs: [], name: 'InvalidShortString' },
@@ -3991,19 +3885,11 @@ export const eigenPodAbi = [
         internalType: 'contract IEigenPodManager',
         type: 'address',
       },
-      { name: '_GENESIS_TIME', internalType: 'uint64', type: 'uint64' },
       { name: '_version', internalType: 'string', type: 'string' },
     ],
     stateMutability: 'nonpayable',
   },
   { type: 'receive', stateMutability: 'payable' },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'GENESIS_TIME',
-    outputs: [{ name: '', internalType: 'uint64', type: 'uint64' }],
-    stateMutability: 'view',
-  },
   {
     type: 'function',
     inputs: [],
@@ -4069,9 +3955,23 @@ export const eigenPodAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getConsolidationRequestFee',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'timestamp', internalType: 'uint64', type: 'uint64' }],
     name: 'getParentBlockRoot',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getWithdrawalRequestFee',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -4120,6 +4020,40 @@ export const eigenPodAbi = [
     name: 'recoverTokens',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'requests',
+        internalType: 'struct IEigenPodTypes.ConsolidationRequest[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'srcPubkey', internalType: 'bytes', type: 'bytes' },
+          { name: 'targetPubkey', internalType: 'bytes', type: 'bytes' },
+        ],
+      },
+    ],
+    name: 'requestConsolidation',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'requests',
+        internalType: 'struct IEigenPodTypes.WithdrawalRequest[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'pubkey', internalType: 'bytes', type: 'bytes' },
+          { name: 'amountGwei', internalType: 'uint64', type: 'uint64' },
+        ],
+      },
+    ],
+    name: 'requestWithdrawal',
+    outputs: [],
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -4401,9 +4335,46 @@ export const eigenPodAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'pubkey', internalType: 'bytes', type: 'bytes', indexed: false },
+      {
+        name: 'sourcePubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'targetPubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+    ],
+    name: 'ConsolidationRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'pubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
     ],
     name: 'EigenPodStaked',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'validatorPubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+    ],
+    name: 'ExitRequested',
   },
   {
     type: 'event',
@@ -4469,9 +4440,22 @@ export const eigenPodAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'validatorIndex',
-        internalType: 'uint40',
-        type: 'uint40',
+        name: 'validatorPubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+    ],
+    name: 'SwitchToCompoundingRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'pubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
         indexed: false,
       },
       {
@@ -4500,9 +4484,9 @@ export const eigenPodAbi = [
         indexed: true,
       },
       {
-        name: 'validatorIndex',
-        internalType: 'uint40',
-        type: 'uint40',
+        name: 'pubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
         indexed: true,
       },
     ],
@@ -4513,9 +4497,9 @@ export const eigenPodAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'validatorIndex',
-        internalType: 'uint40',
-        type: 'uint40',
+        name: 'pubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
         indexed: false,
       },
     ],
@@ -4532,36 +4516,62 @@ export const eigenPodAbi = [
         indexed: true,
       },
       {
-        name: 'validatorIndex',
-        internalType: 'uint40',
-        type: 'uint40',
+        name: 'pubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
         indexed: true,
       },
     ],
     name: 'ValidatorWithdrawn',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'validatorPubkeyHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'withdrawalAmountGwei',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'WithdrawalRequested',
   },
   { type: 'error', inputs: [], name: 'BeaconTimestampTooFarInPast' },
   { type: 'error', inputs: [], name: 'CannotCheckpointTwiceInSingleBlock' },
   { type: 'error', inputs: [], name: 'CheckpointAlreadyActive' },
   { type: 'error', inputs: [], name: 'CredentialsAlreadyVerified' },
   { type: 'error', inputs: [], name: 'CurrentlyPaused' },
+  { type: 'error', inputs: [], name: 'EmptyRoot' },
+  { type: 'error', inputs: [], name: 'FeeQueryFailed' },
   { type: 'error', inputs: [], name: 'ForkTimestampZero' },
   { type: 'error', inputs: [], name: 'InputAddressZero' },
   { type: 'error', inputs: [], name: 'InputArrayLengthMismatch' },
+  { type: 'error', inputs: [], name: 'InsufficientFunds' },
   { type: 'error', inputs: [], name: 'InsufficientWithdrawableBalance' },
   { type: 'error', inputs: [], name: 'InvalidEIP4788Response' },
+  { type: 'error', inputs: [], name: 'InvalidIndex' },
   { type: 'error', inputs: [], name: 'InvalidProof' },
   { type: 'error', inputs: [], name: 'InvalidProofLength' },
   { type: 'error', inputs: [], name: 'InvalidProofLength' },
   { type: 'error', inputs: [], name: 'InvalidPubKeyLength' },
   { type: 'error', inputs: [], name: 'InvalidShortString' },
   { type: 'error', inputs: [], name: 'InvalidValidatorFieldsLength' },
+  { type: 'error', inputs: [], name: 'LeavesNotPowerOfTwo' },
   { type: 'error', inputs: [], name: 'MsgValueNot32ETH' },
   { type: 'error', inputs: [], name: 'NoActiveCheckpoint' },
   { type: 'error', inputs: [], name: 'NoBalanceToCheckpoint' },
+  { type: 'error', inputs: [], name: 'NotEnoughLeaves' },
   { type: 'error', inputs: [], name: 'OnlyEigenPodManager' },
   { type: 'error', inputs: [], name: 'OnlyEigenPodOwner' },
   { type: 'error', inputs: [], name: 'OnlyEigenPodOwnerOrProofSubmitter' },
+  { type: 'error', inputs: [], name: 'PredeployFailed' },
   {
     type: 'error',
     inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
@@ -4699,10 +4709,20 @@ export const eigenPodManagerAbi = [
   {
     type: 'function',
     inputs: [
+      {
+        name: '',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: '', internalType: 'uint256', type: 'uint256' },
       { name: '', internalType: 'contract IStrategy', type: 'address' },
       { name: 'addedSharesToBurn', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'increaseBurnableShares',
+    name: 'increaseBurnOrRedistributableShares',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -8065,6 +8085,7 @@ export const rewardsCoordinatorAbi = [
   { type: 'error', inputs: [], name: 'DurationExceedsMax' },
   { type: 'error', inputs: [], name: 'DurationIsZero' },
   { type: 'error', inputs: [], name: 'EarningsNotGreaterThanClaimed' },
+  { type: 'error', inputs: [], name: 'EmptyRoot' },
   { type: 'error', inputs: [], name: 'InputAddressZero' },
   { type: 'error', inputs: [], name: 'InputArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'InputArrayLengthZero' },
@@ -8083,6 +8104,7 @@ export const rewardsCoordinatorAbi = [
     inputs: [],
     name: 'InvalidGenesisRewardsTimestampRemainder',
   },
+  { type: 'error', inputs: [], name: 'InvalidIndex' },
   { type: 'error', inputs: [], name: 'InvalidNewPausedStatus' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSet' },
   { type: 'error', inputs: [], name: 'InvalidPermissions' },
@@ -8598,7 +8620,7 @@ export const strategyBaseTvlLimitsAbi = [
       { name: 'amountShares', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'withdraw',
-    outputs: [],
+    outputs: [{ name: 'amountOut', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
@@ -8746,6 +8768,11 @@ export const strategyManagerAbi = [
     type: 'constructor',
     inputs: [
       {
+        name: '_allocationManager',
+        internalType: 'contract IAllocationManager',
+        type: 'address',
+      },
+      {
         name: '_delegation',
         internalType: 'contract IDelegationManager',
         type: 'address',
@@ -8802,6 +8829,19 @@ export const strategyManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'allocationManager',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract IAllocationManager',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'strategy', internalType: 'contract IStrategy', type: 'address' },
     ],
@@ -8822,6 +8862,43 @@ export const strategyManagerAbi = [
     name: 'calculateStrategyDepositDigestHash',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'clearBurnOrRedistributableShares',
+    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
+      { name: 'strategy', internalType: 'contract IStrategy', type: 'address' },
+    ],
+    name: 'clearBurnOrRedistributableSharesByStrategy',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -8875,6 +8952,64 @@ export const strategyManagerAbi = [
   {
     type: 'function',
     inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getBurnOrRedistributableCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getBurnOrRedistributableShares',
+    outputs: [
+      { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
+      { name: '', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
+      { name: 'strategy', internalType: 'contract IStrategy', type: 'address' },
+    ],
+    name: 'getBurnOrRedistributableShares',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'strategy', internalType: 'contract IStrategy', type: 'address' },
     ],
     name: 'getBurnableShares',
@@ -8889,6 +9024,40 @@ export const strategyManagerAbi = [
       { name: '', internalType: 'contract IStrategy[]', type: 'address[]' },
       { name: '', internalType: 'uint256[]', type: 'uint256[]' },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getPendingOperatorSets',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct OperatorSet[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'getPendingSlashIds',
+    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -8913,10 +9082,20 @@ export const strategyManagerAbi = [
   {
     type: 'function',
     inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+      { name: 'slashId', internalType: 'uint256', type: 'uint256' },
       { name: 'strategy', internalType: 'contract IStrategy', type: 'address' },
-      { name: 'addedSharesToBurn', internalType: 'uint256', type: 'uint256' },
+      { name: 'sharesToBurn', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'increaseBurnableShares',
+    name: 'increaseBurnOrRedistributableShares',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -9125,6 +9304,22 @@ export const strategyManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+        indexed: false,
+      },
+      {
+        name: 'slashId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
         name: 'strategy',
         internalType: 'contract IStrategy',
         type: 'address',
@@ -9137,7 +9332,42 @@ export const strategyManagerAbi = [
         indexed: false,
       },
     ],
-    name: 'BurnableSharesDecreased',
+    name: 'BurnOrRedistributableSharesDecreased',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'operatorSet',
+        internalType: 'struct OperatorSet',
+        type: 'tuple',
+        components: [
+          { name: 'avs', internalType: 'address', type: 'address' },
+          { name: 'id', internalType: 'uint32', type: 'uint32' },
+        ],
+        indexed: false,
+      },
+      {
+        name: 'slashId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'strategy',
+        internalType: 'contract IStrategy',
+        type: 'address',
+        indexed: false,
+      },
+      {
+        name: 'shares',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'BurnOrRedistributableSharesIncreased',
   },
   {
     type: 'event',
@@ -9156,7 +9386,7 @@ export const strategyManagerAbi = [
         indexed: false,
       },
     ],
-    name: 'BurnableSharesIncreased',
+    name: 'BurnableSharesDecreased',
   },
   {
     type: 'event',
@@ -9307,6 +9537,7 @@ export const strategyManagerAbi = [
   { type: 'error', inputs: [], name: 'SharesAmountZero' },
   { type: 'error', inputs: [], name: 'SignatureExpired' },
   { type: 'error', inputs: [], name: 'StakerAddressZero' },
+  { type: 'error', inputs: [], name: 'StrategyAlreadyInSlash' },
   { type: 'error', inputs: [], name: 'StrategyNotFound' },
   { type: 'error', inputs: [], name: 'StrategyNotWhitelisted' },
   {
@@ -10267,6 +10498,15 @@ export const readAllocationManagerDelegation = /*#__PURE__*/ createReadContract(
 )
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"eigenStrategy"`
+ */
+export const readAllocationManagerEigenStrategy =
+  /*#__PURE__*/ createReadContract({
+    abi: allocationManagerAbi,
+    functionName: 'eigenStrategy',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getAVSRegistrar"`
  */
 export const readAllocationManagerGetAvsRegistrar =
@@ -10409,12 +10649,30 @@ export const readAllocationManagerGetOperatorSetCount =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getRedistributionRecipient"`
+ */
+export const readAllocationManagerGetRedistributionRecipient =
+  /*#__PURE__*/ createReadContract({
+    abi: allocationManagerAbi,
+    functionName: 'getRedistributionRecipient',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getRegisteredSets"`
  */
 export const readAllocationManagerGetRegisteredSets =
   /*#__PURE__*/ createReadContract({
     abi: allocationManagerAbi,
     functionName: 'getRegisteredSets',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"getSlashCount"`
+ */
+export const readAllocationManagerGetSlashCount =
+  /*#__PURE__*/ createReadContract({
+    abi: allocationManagerAbi,
+    functionName: 'getSlashCount',
   })
 
 /**
@@ -10445,6 +10703,15 @@ export const readAllocationManagerIsMemberOfOperatorSet =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isOperatorRedistributable"`
+ */
+export const readAllocationManagerIsOperatorRedistributable =
+  /*#__PURE__*/ createReadContract({
+    abi: allocationManagerAbi,
+    functionName: 'isOperatorRedistributable',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isOperatorSet"`
  */
 export const readAllocationManagerIsOperatorSet =
@@ -10463,12 +10730,13 @@ export const readAllocationManagerIsOperatorSlashable =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"owner"`
+ * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"isRedistributingOperatorSet"`
  */
-export const readAllocationManagerOwner = /*#__PURE__*/ createReadContract({
-  abi: allocationManagerAbi,
-  functionName: 'owner',
-})
+export const readAllocationManagerIsRedistributingOperatorSet =
+  /*#__PURE__*/ createReadContract({
+    abi: allocationManagerAbi,
+    functionName: 'isRedistributingOperatorSet',
+  })
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"paused"`
@@ -10539,6 +10807,15 @@ export const writeAllocationManagerCreateOperatorSets =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"createRedistributingOperatorSets"`
+ */
+export const writeAllocationManagerCreateRedistributingOperatorSets =
+  /*#__PURE__*/ createWriteContract({
+    abi: allocationManagerAbi,
+    functionName: 'createRedistributingOperatorSets',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"deregisterFromOperatorSets"`
  */
 export const writeAllocationManagerDeregisterFromOperatorSets =
@@ -10599,15 +10876,6 @@ export const writeAllocationManagerRemoveStrategiesFromOperatorSet =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const writeAllocationManagerRenounceOwnership =
-  /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"setAVSRegistrar"`
  */
 export const writeAllocationManagerSetAvsRegistrar =
@@ -10632,15 +10900,6 @@ export const writeAllocationManagerSlashOperator =
   /*#__PURE__*/ createWriteContract({
     abi: allocationManagerAbi,
     functionName: 'slashOperator',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const writeAllocationManagerTransferOwnership =
-  /*#__PURE__*/ createWriteContract({
-    abi: allocationManagerAbi,
-    functionName: 'transferOwnership',
   })
 
 /**
@@ -10692,6 +10951,15 @@ export const simulateAllocationManagerCreateOperatorSets =
   /*#__PURE__*/ createSimulateContract({
     abi: allocationManagerAbi,
     functionName: 'createOperatorSets',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"createRedistributingOperatorSets"`
+ */
+export const simulateAllocationManagerCreateRedistributingOperatorSets =
+  /*#__PURE__*/ createSimulateContract({
+    abi: allocationManagerAbi,
+    functionName: 'createRedistributingOperatorSets',
   })
 
 /**
@@ -10758,15 +11026,6 @@ export const simulateAllocationManagerRemoveStrategiesFromOperatorSet =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const simulateAllocationManagerRenounceOwnership =
-  /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"setAVSRegistrar"`
  */
 export const simulateAllocationManagerSetAvsRegistrar =
@@ -10791,15 +11050,6 @@ export const simulateAllocationManagerSlashOperator =
   /*#__PURE__*/ createSimulateContract({
     abi: allocationManagerAbi,
     functionName: 'slashOperator',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link allocationManagerAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const simulateAllocationManagerTransferOwnership =
-  /*#__PURE__*/ createSimulateContract({
-    abi: allocationManagerAbi,
-    functionName: 'transferOwnership',
   })
 
 /**
@@ -10926,21 +11176,21 @@ export const watchAllocationManagerOperatorSlashedEvent =
   })
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const watchAllocationManagerOwnershipTransferredEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: allocationManagerAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchAllocationManagerPausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: allocationManagerAbi,
     eventName: 'Paused',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link allocationManagerAbi}__ and `eventName` set to `"RedistributionAddressSet"`
+ */
+export const watchAllocationManagerRedistributionAddressSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: allocationManagerAbi,
+    eventName: 'RedistributionAddressSet',
   })
 
 /**
@@ -11177,30 +11427,12 @@ export const readDataHavenServiceManager = /*#__PURE__*/ createReadContract({
 })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"BSPS_SET_ID"`
- */
-export const readDataHavenServiceManagerBspsSetId =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'BSPS_SET_ID',
-  })
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_AVS_METADATA"`
  */
 export const readDataHavenServiceManagerDatahavenAvsMetadata =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'DATAHAVEN_AVS_METADATA',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MSPS_SET_ID"`
- */
-export const readDataHavenServiceManagerMspsSetId =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'MSPS_SET_ID',
   })
 
 /**
@@ -11219,24 +11451,6 @@ export const readDataHavenServiceManagerAvs = /*#__PURE__*/ createReadContract({
   abi: dataHavenServiceManagerAbi,
   functionName: 'avs',
 })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"bspsAllowlist"`
- */
-export const readDataHavenServiceManagerBspsAllowlist =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'bspsAllowlist',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"bspsSupportedStrategies"`
- */
-export const readDataHavenServiceManagerBspsSupportedStrategies =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'bspsSupportedStrategies',
-  })
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessage"`
@@ -11263,24 +11477,6 @@ export const readDataHavenServiceManagerGetRestakeableStrategies =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'getRestakeableStrategies',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"mspsAllowlist"`
- */
-export const readDataHavenServiceManagerMspsAllowlist =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'mspsAllowlist',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"mspsSupportedStrategies"`
- */
-export const readDataHavenServiceManagerMspsSupportedStrategies =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'mspsSupportedStrategies',
   })
 
 /**
@@ -11363,48 +11559,12 @@ export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
 })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addBspToAllowlist"`
- */
-export const writeDataHavenServiceManagerAddBspToAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addBspToAllowlist',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addMspToAllowlist"`
- */
-export const writeDataHavenServiceManagerAddMspToAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addMspToAllowlist',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
  */
 export const writeDataHavenServiceManagerAddPendingAdmin =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'addPendingAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToBspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerAddStrategiesToBspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToMspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerAddStrategiesToMspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToMspsSupportedStrategies',
   })
 
 /**
@@ -11579,48 +11739,12 @@ export const writeDataHavenServiceManagerRemoveAppointee =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeBspFromAllowlist"`
- */
-export const writeDataHavenServiceManagerRemoveBspFromAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeBspFromAllowlist',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeMspFromAllowlist"`
- */
-export const writeDataHavenServiceManagerRemoveMspFromAllowlist =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeMspFromAllowlist',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
  */
 export const writeDataHavenServiceManagerRemovePendingAdmin =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'removePendingAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromBspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerRemoveStrategiesFromBspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromMspsSupportedStrategies"`
- */
-export const writeDataHavenServiceManagerRemoveStrategiesFromMspsSupportedStrategies =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromMspsSupportedStrategies',
   })
 
 /**
@@ -11765,48 +11889,12 @@ export const simulateDataHavenServiceManager =
   /*#__PURE__*/ createSimulateContract({ abi: dataHavenServiceManagerAbi })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addBspToAllowlist"`
- */
-export const simulateDataHavenServiceManagerAddBspToAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addBspToAllowlist',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addMspToAllowlist"`
- */
-export const simulateDataHavenServiceManagerAddMspToAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addMspToAllowlist',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
  */
 export const simulateDataHavenServiceManagerAddPendingAdmin =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'addPendingAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToBspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerAddStrategiesToBspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToMspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerAddStrategiesToMspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToMspsSupportedStrategies',
   })
 
 /**
@@ -11981,48 +12069,12 @@ export const simulateDataHavenServiceManagerRemoveAppointee =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeBspFromAllowlist"`
- */
-export const simulateDataHavenServiceManagerRemoveBspFromAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeBspFromAllowlist',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeMspFromAllowlist"`
- */
-export const simulateDataHavenServiceManagerRemoveMspFromAllowlist =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeMspFromAllowlist',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
  */
 export const simulateDataHavenServiceManagerRemovePendingAdmin =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'removePendingAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromBspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerRemoveStrategiesFromBspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromBspsSupportedStrategies',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromMspsSupportedStrategies"`
- */
-export const simulateDataHavenServiceManagerRemoveStrategiesFromMspsSupportedStrategies =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromMspsSupportedStrategies',
   })
 
 /**
@@ -12167,48 +12219,12 @@ export const watchDataHavenServiceManagerEvent =
   /*#__PURE__*/ createWatchContractEvent({ abi: dataHavenServiceManagerAbi })
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"BspAddedToAllowlist"`
- */
-export const watchDataHavenServiceManagerBspAddedToAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'BspAddedToAllowlist',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"BspRemovedFromAllowlist"`
- */
-export const watchDataHavenServiceManagerBspRemovedFromAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'BspRemovedFromAllowlist',
-  })
-
-/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"Initialized"`
  */
 export const watchDataHavenServiceManagerInitializedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'Initialized',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"MspAddedToAllowlist"`
- */
-export const watchDataHavenServiceManagerMspAddedToAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'MspAddedToAllowlist',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"MspRemovedFromAllowlist"`
- */
-export const watchDataHavenServiceManagerMspRemovedFromAllowlistEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'MspRemovedFromAllowlist',
   })
 
 /**
@@ -12514,14 +12530,6 @@ export const readDelegationManagerOperatorShares =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"owner"`
- */
-export const readDelegationManagerOwner = /*#__PURE__*/ createReadContract({
-  abi: delegationManagerAbi,
-  functionName: 'owner',
-})
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"paused"`
  */
 export const readDelegationManagerPaused = /*#__PURE__*/ createReadContract({
@@ -12695,30 +12703,12 @@ export const writeDelegationManagerRegisterAsOperator =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const writeDelegationManagerRenounceOwnership =
-  /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"slashOperatorShares"`
  */
 export const writeDelegationManagerSlashOperatorShares =
   /*#__PURE__*/ createWriteContract({
     abi: delegationManagerAbi,
     functionName: 'slashOperatorShares',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const writeDelegationManagerTransferOwnership =
-  /*#__PURE__*/ createWriteContract({
-    abi: delegationManagerAbi,
-    functionName: 'transferOwnership',
   })
 
 /**
@@ -12863,30 +12853,12 @@ export const simulateDelegationManagerRegisterAsOperator =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const simulateDelegationManagerRenounceOwnership =
-  /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"slashOperatorShares"`
  */
 export const simulateDelegationManagerSlashOperatorShares =
   /*#__PURE__*/ createSimulateContract({
     abi: delegationManagerAbi,
     functionName: 'slashOperatorShares',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link delegationManagerAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const simulateDelegationManagerTransferOwnership =
-  /*#__PURE__*/ createSimulateContract({
-    abi: delegationManagerAbi,
-    functionName: 'transferOwnership',
   })
 
 /**
@@ -12995,15 +12967,6 @@ export const watchDelegationManagerOperatorSharesSlashedEvent =
   })
 
 /**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const watchDelegationManagerOwnershipTransferredEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: delegationManagerAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link delegationManagerAbi}__ and `eventName` set to `"Paused"`
  */
 export const watchDelegationManagerPausedEvent =
@@ -13074,14 +13037,6 @@ export const readEigenPod = /*#__PURE__*/ createReadContract({
 })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"GENESIS_TIME"`
- */
-export const readEigenPodGenesisTime = /*#__PURE__*/ createReadContract({
-  abi: eigenPodAbi,
-  functionName: 'GENESIS_TIME',
-})
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"activeValidatorCount"`
  */
 export const readEigenPodActiveValidatorCount =
@@ -13133,12 +13088,30 @@ export const readEigenPodEthPos = /*#__PURE__*/ createReadContract({
 })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"getConsolidationRequestFee"`
+ */
+export const readEigenPodGetConsolidationRequestFee =
+  /*#__PURE__*/ createReadContract({
+    abi: eigenPodAbi,
+    functionName: 'getConsolidationRequestFee',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"getParentBlockRoot"`
  */
 export const readEigenPodGetParentBlockRoot = /*#__PURE__*/ createReadContract({
   abi: eigenPodAbi,
   functionName: 'getParentBlockRoot',
 })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"getWithdrawalRequestFee"`
+ */
+export const readEigenPodGetWithdrawalRequestFee =
+  /*#__PURE__*/ createReadContract({
+    abi: eigenPodAbi,
+    functionName: 'getWithdrawalRequestFee',
+  })
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"lastCheckpointTimestamp"`
@@ -13232,6 +13205,22 @@ export const writeEigenPodRecoverTokens = /*#__PURE__*/ createWriteContract({
 })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestConsolidation"`
+ */
+export const writeEigenPodRequestConsolidation =
+  /*#__PURE__*/ createWriteContract({
+    abi: eigenPodAbi,
+    functionName: 'requestConsolidation',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestWithdrawal"`
+ */
+export const writeEigenPodRequestWithdrawal = /*#__PURE__*/ createWriteContract(
+  { abi: eigenPodAbi, functionName: 'requestWithdrawal' },
+)
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"setProofSubmitter"`
  */
 export const writeEigenPodSetProofSubmitter = /*#__PURE__*/ createWriteContract(
@@ -13312,6 +13301,24 @@ export const simulateEigenPodRecoverTokens =
   /*#__PURE__*/ createSimulateContract({
     abi: eigenPodAbi,
     functionName: 'recoverTokens',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestConsolidation"`
+ */
+export const simulateEigenPodRequestConsolidation =
+  /*#__PURE__*/ createSimulateContract({
+    abi: eigenPodAbi,
+    functionName: 'requestConsolidation',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodAbi}__ and `functionName` set to `"requestWithdrawal"`
+ */
+export const simulateEigenPodRequestWithdrawal =
+  /*#__PURE__*/ createSimulateContract({
+    abi: eigenPodAbi,
+    functionName: 'requestWithdrawal',
   })
 
 /**
@@ -13402,12 +13409,30 @@ export const watchEigenPodCheckpointFinalizedEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ConsolidationRequested"`
+ */
+export const watchEigenPodConsolidationRequestedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: eigenPodAbi,
+    eventName: 'ConsolidationRequested',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"EigenPodStaked"`
  */
 export const watchEigenPodEigenPodStakedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: eigenPodAbi,
     eventName: 'EigenPodStaked',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ExitRequested"`
+ */
+export const watchEigenPodExitRequestedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: eigenPodAbi,
+    eventName: 'ExitRequested',
   })
 
 /**
@@ -13447,6 +13472,15 @@ export const watchEigenPodRestakedBeaconChainEthWithdrawnEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"SwitchToCompoundingRequested"`
+ */
+export const watchEigenPodSwitchToCompoundingRequestedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: eigenPodAbi,
+    eventName: 'SwitchToCompoundingRequested',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"ValidatorBalanceUpdated"`
  */
 export const watchEigenPodValidatorBalanceUpdatedEvent =
@@ -13480,6 +13514,15 @@ export const watchEigenPodValidatorWithdrawnEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: eigenPodAbi,
     eventName: 'ValidatorWithdrawn',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link eigenPodAbi}__ and `eventName` set to `"WithdrawalRequested"`
+ */
+export const watchEigenPodWithdrawalRequestedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: eigenPodAbi,
+    eventName: 'WithdrawalRequested',
   })
 
 /**
@@ -13667,12 +13710,12 @@ export const writeEigenPodManagerCreatePod = /*#__PURE__*/ createWriteContract({
 })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"increaseBurnableShares"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
-export const writeEigenPodManagerIncreaseBurnableShares =
+export const writeEigenPodManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createWriteContract({
     abi: eigenPodManagerAbi,
-    functionName: 'increaseBurnableShares',
+    functionName: 'increaseBurnOrRedistributableShares',
   })
 
 /**
@@ -13803,12 +13846,12 @@ export const simulateEigenPodManagerCreatePod =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"increaseBurnableShares"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link eigenPodManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
-export const simulateEigenPodManagerIncreaseBurnableShares =
+export const simulateEigenPodManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createSimulateContract({
     abi: eigenPodManagerAbi,
-    functionName: 'increaseBurnableShares',
+    functionName: 'increaseBurnOrRedistributableShares',
   })
 
 /**
@@ -16742,6 +16785,15 @@ export const readStrategyManagerDepositTypehash =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"allocationManager"`
+ */
+export const readStrategyManagerAllocationManager =
+  /*#__PURE__*/ createReadContract({
+    abi: strategyManagerAbi,
+    functionName: 'allocationManager',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"calculateStrategyDepositDigestHash"`
  */
 export const readStrategyManagerCalculateStrategyDepositDigestHash =
@@ -16768,6 +16820,24 @@ export const readStrategyManagerDomainSeparator =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getBurnOrRedistributableCount"`
+ */
+export const readStrategyManagerGetBurnOrRedistributableCount =
+  /*#__PURE__*/ createReadContract({
+    abi: strategyManagerAbi,
+    functionName: 'getBurnOrRedistributableCount',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getBurnOrRedistributableShares"`
+ */
+export const readStrategyManagerGetBurnOrRedistributableShares =
+  /*#__PURE__*/ createReadContract({
+    abi: strategyManagerAbi,
+    functionName: 'getBurnOrRedistributableShares',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getBurnableShares"`
  */
 export const readStrategyManagerGetBurnableShares =
@@ -16783,6 +16853,24 @@ export const readStrategyManagerGetDeposits = /*#__PURE__*/ createReadContract({
   abi: strategyManagerAbi,
   functionName: 'getDeposits',
 })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getPendingOperatorSets"`
+ */
+export const readStrategyManagerGetPendingOperatorSets =
+  /*#__PURE__*/ createReadContract({
+    abi: strategyManagerAbi,
+    functionName: 'getPendingOperatorSets',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getPendingSlashIds"`
+ */
+export const readStrategyManagerGetPendingSlashIds =
+  /*#__PURE__*/ createReadContract({
+    abi: strategyManagerAbi,
+    functionName: 'getPendingSlashIds',
+  })
 
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"getStakerStrategyList"`
@@ -16920,6 +17008,24 @@ export const writeStrategyManagerBurnShares = /*#__PURE__*/ createWriteContract(
 )
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableShares"`
+ */
+export const writeStrategyManagerClearBurnOrRedistributableShares =
+  /*#__PURE__*/ createWriteContract({
+    abi: strategyManagerAbi,
+    functionName: 'clearBurnOrRedistributableShares',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableSharesByStrategy"`
+ */
+export const writeStrategyManagerClearBurnOrRedistributableSharesByStrategy =
+  /*#__PURE__*/ createWriteContract({
+    abi: strategyManagerAbi,
+    functionName: 'clearBurnOrRedistributableSharesByStrategy',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"depositIntoStrategy"`
  */
 export const writeStrategyManagerDepositIntoStrategy =
@@ -16938,12 +17044,12 @@ export const writeStrategyManagerDepositIntoStrategyWithSignature =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"increaseBurnableShares"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
-export const writeStrategyManagerIncreaseBurnableShares =
+export const writeStrategyManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createWriteContract({
     abi: strategyManagerAbi,
-    functionName: 'increaseBurnableShares',
+    functionName: 'increaseBurnOrRedistributableShares',
   })
 
 /**
@@ -17066,6 +17172,24 @@ export const simulateStrategyManagerBurnShares =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableShares"`
+ */
+export const simulateStrategyManagerClearBurnOrRedistributableShares =
+  /*#__PURE__*/ createSimulateContract({
+    abi: strategyManagerAbi,
+    functionName: 'clearBurnOrRedistributableShares',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"clearBurnOrRedistributableSharesByStrategy"`
+ */
+export const simulateStrategyManagerClearBurnOrRedistributableSharesByStrategy =
+  /*#__PURE__*/ createSimulateContract({
+    abi: strategyManagerAbi,
+    functionName: 'clearBurnOrRedistributableSharesByStrategy',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"depositIntoStrategy"`
  */
 export const simulateStrategyManagerDepositIntoStrategy =
@@ -17084,12 +17208,12 @@ export const simulateStrategyManagerDepositIntoStrategyWithSignature =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"increaseBurnableShares"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link strategyManagerAbi}__ and `functionName` set to `"increaseBurnOrRedistributableShares"`
  */
-export const simulateStrategyManagerIncreaseBurnableShares =
+export const simulateStrategyManagerIncreaseBurnOrRedistributableShares =
   /*#__PURE__*/ createSimulateContract({
     abi: strategyManagerAbi,
-    functionName: 'increaseBurnableShares',
+    functionName: 'increaseBurnOrRedistributableShares',
   })
 
 /**
@@ -17190,21 +17314,30 @@ export const watchStrategyManagerEvent = /*#__PURE__*/ createWatchContractEvent(
 )
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"BurnOrRedistributableSharesDecreased"`
+ */
+export const watchStrategyManagerBurnOrRedistributableSharesDecreasedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: strategyManagerAbi,
+    eventName: 'BurnOrRedistributableSharesDecreased',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"BurnOrRedistributableSharesIncreased"`
+ */
+export const watchStrategyManagerBurnOrRedistributableSharesIncreasedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: strategyManagerAbi,
+    eventName: 'BurnOrRedistributableSharesIncreased',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"BurnableSharesDecreased"`
  */
 export const watchStrategyManagerBurnableSharesDecreasedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: strategyManagerAbi,
     eventName: 'BurnableSharesDecreased',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link strategyManagerAbi}__ and `eventName` set to `"BurnableSharesIncreased"`
- */
-export const watchStrategyManagerBurnableSharesIncreasedEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: strategyManagerAbi,
-    eventName: 'BurnableSharesIncreased',
   })
 
 /**

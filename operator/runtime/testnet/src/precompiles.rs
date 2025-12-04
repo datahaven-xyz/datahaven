@@ -1,4 +1,4 @@
-// Copyright 2019-2025 The DataHaven Team
+// Copyright 2025 DataHaven
 // This file is part of DataHaven.
 
 // DataHaven is free software: you can redistribute it and/or modify
@@ -8,20 +8,29 @@
 
 // DataHaven is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with DataHaven. If not, see <http://www.gnu.org/licenses/>.
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::configs::MaxAdditionalFields;
+use crate::governance::councils::{TechnicalCommitteeInstance, TreasuryCouncilInstance};
+use crate::governance::custom_origins::Origin;
 use pallet_evm_precompile_balances_erc20::{Erc20BalancesPrecompile, Erc20Metadata};
 use pallet_evm_precompile_batch::BatchPrecompile;
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_call_permit::CallPermitPrecompile;
+use pallet_evm_precompile_collective::CollectivePrecompile;
+use pallet_evm_precompile_conviction_voting::ConvictionVotingPrecompile;
+use pallet_evm_precompile_datahaven_native_transfer::DataHavenNativeTransferPrecompile;
 use pallet_evm_precompile_file_system::FileSystemPrecompile;
+use pallet_evm_precompile_identity::IdentityPrecompile;
 use pallet_evm_precompile_modexp::Modexp;
+use pallet_evm_precompile_preimage::PreimagePrecompile;
 use pallet_evm_precompile_proxy::{OnlyIsProxyAndProxy, ProxyPrecompile};
+use pallet_evm_precompile_referenda::ReferendaPrecompile;
 use pallet_evm_precompile_registry::PrecompileRegistry;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
@@ -33,11 +42,11 @@ pub struct NativeErc20Metadata;
 
 impl Erc20Metadata for NativeErc20Metadata {
     fn name() -> &'static str {
-        "HAVE"
+        "MOCK"
     }
 
     fn symbol() -> &'static str {
-        "HAVE"
+        "MOCK"
     }
 
     fn decimals() -> u8 {
@@ -99,8 +108,43 @@ type DataHavenPrecompilesAt<R> = (
         ),
     >,
     PrecompileAt<
+        AddressU64<2064>,
+        CollectivePrecompile<R, TreasuryCouncilInstance>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2065>,
+        ReferendaPrecompile<R, Origin>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2066>,
+        ConvictionVotingPrecompile<R>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2067>,
+        PreimagePrecompile<R>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2068>,
+        CollectivePrecompile<R, TechnicalCommitteeInstance>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
         AddressU64<2069>,
         PrecompileRegistry<R>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2072>,
+        IdentityPrecompile<R, MaxAdditionalFields>,
+        (CallableByContract, CallableByPrecompile),
+    >,
+    PrecompileAt<
+        AddressU64<2073>,
+        DataHavenNativeTransferPrecompile<R>,
         (CallableByContract, CallableByPrecompile),
     >,
     PrecompileAt<AddressU64<1028>, FileSystemPrecompile<R>>,

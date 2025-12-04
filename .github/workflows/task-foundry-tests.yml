@@ -31,14 +31,8 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Cache Foundry libraries
-        uses: actions/cache@v4
         with:
-          path: contracts/lib
-          key: ${{ runner.os }}-foundry-libs-${{ hashFiles('contracts/.gitmodules') }}
-          restore-keys: |
-            ${{ runner.os }}-foundry-libs-
+          version: v1.4.3
 
       - name: Cache Foundry build artifacts
         uses: actions/cache@v4

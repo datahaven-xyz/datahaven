@@ -1,8 +1,23 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use crate::cli::ProviderType;
-use crate::cli::StorageLayer;
-use crate::command::ProviderOptions;
+use crate::cli::{ProviderType, Sealing, StorageLayer};
+use crate::command::{ProviderOptions, RoleOptions};
 use crate::eth::{
     new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierBackend,
     FrontierPartialComponents, FrontierTasksParams,
@@ -14,25 +29,33 @@ use datahaven_runtime_common::{AccountId, Balance, Block, BlockNumber, Hash, Non
 use fc_consensus::FrontierBlockImport;
 use fc_db::DatabaseSource;
 use fc_storage::StorageOverride;
+use futures::channel::mpsc;
 use futures::FutureExt;
+use log::info;
 use sc_client_api::{AuxStore, Backend, BlockBackend, StateBackend, StorageProvider};
 use sc_consensus_babe::ImportQueueParams;
 use sc_consensus_grandpa::SharedVoterState;
+use sc_consensus_manual_seal::consensus::babe::BabeConsensusDataProvider;
+use sc_consensus_manual_seal::rpc::EngineCommand;
+use sc_consensus_manual_seal::{self, InstantSealParams, ManualSealParams};
 use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
 use sc_network::request_responses::IncomingRequest;
 use sc_network::service::traits::NetworkService;
 use sc_network::ProtocolName;
 use sc_service::RpcHandlers;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncConfig};
+use sc_service::{
+    error::Error as ServiceError, ChainType, Configuration, TaskManager, WarpSyncConfig,
+};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool::BasicPool;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use shc_actors_framework::actor::TaskSpawner;
 use shc_blockchain_service::capacity_manager::CapacityConfig;
-use shc_client::builder::{FishermanOptions, IndexerOptions};
 use shc_client::types::FishermanRole;
 use shc_client::{
-    builder::{Buildable, StorageHubBuilder, StorageLayerBuilder},
+    builder::{
+        Buildable, FishermanOptions, IndexerOptions, StorageHubBuilder, StorageLayerBuilder,
+    },
     handler::{RunnableTasks, StorageHubHandler},
     types::{
         BspProvider, InMemoryStorageLayer, MspProvider, NoStorageLayer, RocksDbStorageLayer,
@@ -40,8 +63,11 @@ use shc_client::{
     },
 };
 use shc_common::traits::StorageEnableRuntime;
+use shc_common::types::StorageHubClient;
+use shc_file_transfer_service::fetch_genesis_hash;
 use shc_indexer_db::DbPool;
-use shc_rpc::StorageHubClientRpcConfig;
+use shc_indexer_service::spawn_indexer_service;
+use shc_rpc::{RpcConfig, StorageHubClientRpcConfig};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
@@ -49,13 +75,10 @@ use sp_keystore::KeystorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::SaturatedConversion;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{default::Default, path::Path, sync::Arc, time::Duration};
 
-pub(crate) type FullClient<RuntimeApi> = sc_service::TFullClient<
-    Block,
-    RuntimeApi,
-    sc_executor::WasmExecutor<cumulus_client_service::ParachainHostFunctions>,
->;
+pub(crate) type FullClient<RuntimeApi> = StorageHubClient<RuntimeApi>;
 
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -77,6 +100,11 @@ type FullBeefyBlockImport<InnerBlockImport, AuthorityId, RuntimeApi> =
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
+
+// Mock timestamp used for manual/instant sealing in dev mode, similar to Moonbeam.
+// Each new block will advance the timestamp by one slot duration to satisfy
+// pallet_timestamp MinimumPeriod checks when sealing back-to-back.
+static MOCK_TIMESTAMP: AtomicU64 = AtomicU64::new(0);
 
 pub(crate) trait FullRuntimeApi:
     sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
@@ -153,7 +181,7 @@ pub type Service<RuntimeApi> = sc_service::PartialComponents<
 
 // StorageHub Enable client
 pub(crate) type StorageEnableClient<Runtime> =
-    shc_common::types::ParachainClient<<Runtime as StorageEnableRuntime>::RuntimeApi>;
+    shc_common::types::StorageHubClient<<Runtime as StorageEnableRuntime>::RuntimeApi>;
 
 pub fn frontier_database_dir(config: &Configuration, path: &str) -> std::path::PathBuf {
     config
@@ -230,9 +258,44 @@ where
     Ok(frontier_backend)
 }
 
+fn build_babe_inherent_providers(
+    slot_duration: sp_consensus_babe::SlotDuration,
+    use_mock_timestamp: bool,
+) -> (
+    sp_consensus_babe::inherents::InherentDataProvider,
+    sp_timestamp::InherentDataProvider,
+) {
+    if use_mock_timestamp {
+        // In manual/instant sealing we want to advance time deterministically per block
+        // to satisfy `pallet_timestamp` MinimumPeriod without sleeping. We increment a
+        // static counter by one slot each time and use that value as the timestamp.
+        let increment = slot_duration.as_millis();
+        let next_ts = MOCK_TIMESTAMP
+            .fetch_add(increment, Ordering::SeqCst)
+            .saturating_add(increment);
+        let timestamp =
+            sp_timestamp::InherentDataProvider::new(sp_timestamp::Timestamp::new(next_ts));
+        let slot =
+            sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                *timestamp,
+                slot_duration,
+            );
+        (slot, timestamp)
+    } else {
+        let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+        let slot =
+            sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                *timestamp,
+                slot_duration,
+            );
+        (slot, timestamp)
+    }
+}
+
 pub fn new_partial<Runtime, RuntimeApi>(
     config: &Configuration,
     eth_config: &mut EthConfiguration,
+    use_mock_timestamp: bool,
 ) -> Result<Service<RuntimeApi>, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime,
@@ -330,16 +393,10 @@ where
         justification_import: Some(Box::new(grandpa_block_import.clone())),
         client: client.clone(),
         select_chain: select_chain.clone(),
-        create_inherent_data_providers: move |_, ()| async move {
-            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-            let slot =
-                    sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                        *timestamp,
-                        slot_duration,
-                    );
-
-            Ok((slot, timestamp))
+        create_inherent_data_providers: move |_, ()| {
+            std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
+                build_babe_inherent_providers(slot_duration, use_mock_timestamp),
+            ))
         },
         spawner: &task_manager.spawn_essential_handle(),
         registry: config.prometheus_registry(),
@@ -382,9 +439,9 @@ pub async fn new_full_impl<
 >(
     config: Configuration,
     mut eth_config: EthConfiguration,
-    provider_options: Option<ProviderOptions>,
+    role_options: Option<RoleOptions>,
     indexer_options: Option<IndexerOptions>,
-    fisherman_options: Option<FishermanOptions>,
+    sealing: Option<Sealing>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
@@ -394,6 +451,24 @@ where
     StorageHubBuilder<R, S, Runtime>: StorageLayerBuilder + Buildable<(R, S), Runtime>,
     StorageHubHandler<(R, S), Runtime>: RunnableTasks,
 {
+    let role = config.role;
+    let mut sealing = match sealing {
+        Some(_) if !matches!(config.chain_spec.chain_type(), ChainType::Development) => {
+            log::warn!("Manual sealing is only available for development chains; disabling.");
+            None
+        }
+        other => other,
+    };
+
+    if sealing.is_some() && !role.is_authority() {
+        log::warn!(
+            "Manual sealing requested but the node is not running as an authority; disabling."
+        );
+        sealing = None;
+    }
+
+    let use_mock_timestamp = sealing.is_some();
+
     let sc_service::PartialComponents {
         client,
         backend,
@@ -413,7 +488,9 @@ where
                 storage_override,
                 mut telemetry,
             ),
-    } = new_partial::<Runtime, RuntimeApi>(&config, &mut eth_config)?;
+    } = new_partial::<Runtime, RuntimeApi>(&config, &mut eth_config, use_mock_timestamp)?;
+
+    let is_authority = role.is_authority();
 
     let FrontierPartialComponents {
         filter_pool,
@@ -429,16 +506,10 @@ where
 
     // Starting StorageHub file transfer service.
     let mut file_transfer_request_protocol = None;
-    if provider_options.is_some() || fisherman_options.is_some() {
-        let genesis_hash = client
-            .block_hash(0u32.into())
-            .ok()
-            .flatten()
-            .expect("Genesis block exists; qed");
-
+    if role_options.is_some() {
         file_transfer_request_protocol = Some(
             shc_file_transfer_service::configure_file_transfer_network::<_, Runtime>(
-                genesis_hash,
+                fetch_genesis_hash(client.clone()),
                 config.chain_spec.fork_id(),
                 &mut net_config,
             ),
@@ -532,22 +603,25 @@ where
     }
 
     // Storage Hub builder
-    let (sh_builder, _maybe_storage_hub_client_rpc_config) = init_sh_builder::<R, S, Runtime>(
-        &provider_options,
+    let (sh_builder, maybe_storage_hub_client_rpc_config) = match init_sh_builder::<R, S, Runtime>(
+        &role_options,
+        &indexer_options,
         &task_manager,
         file_transfer_request_protocol,
         network.clone(),
         keystore_container.keystore(),
         client.clone(),
-        indexer_options.clone(),
     )
-    .await?;
+    .await?
+    {
+        Some((shb, rpc)) => (Some(shb), Some(rpc)),
+        None => (None, None),
+    };
 
-    let role = config.role;
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let name = config.network.node_name.clone();
-    let enable_grandpa = !config.disable_grandpa;
+    let enable_grandpa = sealing.is_none() && !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
     let overrides = Arc::new(StorageOverrideHandler::new(client.clone()));
 
@@ -558,6 +632,15 @@ where
         eth_config.eth_statuses_cache,
         prometheus_registry.clone(),
     ));
+
+    let mut manual_commands_stream: Option<mpsc::Receiver<EngineCommand<Hash>>> = None;
+    let command_sink = if matches!(sealing, Some(Sealing::Manual)) {
+        let (sink, stream) = mpsc::channel::<EngineCommand<Hash>>(1000);
+        manual_commands_stream = Some(stream);
+        Some(sink)
+    } else {
+        None
+    };
 
     // Sinks for pubsub notifications.
     // Everytime a new subscription is created, a new mpsc channel is added to the sink pool.
@@ -619,14 +702,15 @@ where
                 filter_pool: filter_pool.clone(),
                 block_data_cache: block_data_cache.clone(),
                 overrides: overrides.clone(),
-                is_authority: false,
-                command_sink: None,
+                is_authority: is_authority.clone(),
+                command_sink: command_sink.clone(),
                 backend: backend.clone(),
                 frontier_backend: match &*frontier_backend {
                     fc_db::Backend::KeyValue(b) => b.clone(),
                     fc_db::Backend::Sql(b) => b.clone(),
                 },
                 forced_parent_hashes: None,
+                maybe_storage_hub_client_config: maybe_storage_hub_client_rpc_config.clone(),
             };
             crate::rpc::create_full(deps).map_err(Into::into)
         })
@@ -647,47 +731,122 @@ where
         telemetry: telemetry.as_mut(),
     })?;
 
-    if role.is_authority() {
-        let proposer_factory = sc_basic_authorship::ProposerFactory::new(
-            task_manager.spawn_handle(),
-            client.clone(),
-            transaction_pool.clone(),
-            prometheus_registry.as_ref(),
-            telemetry.as_ref().map(|x| x.handle()),
-        );
+    if is_authority {
+        if let Some(mode) = sealing {
+            let proposer_factory = sc_basic_authorship::ProposerFactory::new(
+                task_manager.spawn_handle(),
+                client.clone(),
+                transaction_pool.clone(),
+                prometheus_registry.as_ref(),
+                telemetry.as_ref().map(|x| x.handle()),
+            );
 
-        let slot_duration = babe_link.clone().config().slot_duration();
-        let babe_config = sc_consensus_babe::BabeParams {
-            keystore: keystore_container.keystore(),
-            client: client.clone(),
-            select_chain,
-            env: proposer_factory,
-            block_import,
-            sync_oracle: sync_service.clone(),
-            justification_sync_link: sync_service.clone(),
-            create_inherent_data_providers: move |_, ()| async move {
-                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-                let slot =
-                        sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                            *timestamp,
-                            slot_duration,
-                        );
-                Ok((slot, timestamp))
-            },
-            force_authoring,
-            backoff_authoring_blocks,
-            babe_link,
-            block_proposal_slot_portion: sc_consensus_babe::SlotProportion::new(0.5),
-            max_block_proposal_slot_portion: None,
-            telemetry: telemetry.as_ref().map(|x| x.handle()),
-        };
+            let slot_duration = babe_link.config().slot_duration();
+            let epoch_changes = babe_link.epoch_changes().clone();
+            let authorities = babe_link.config().authorities.clone();
+            let keystore = keystore_container.keystore();
+            let client_for_consensus = client.clone();
+            let consensus_data_provider = move || {
+                BabeConsensusDataProvider::new(
+                    client_for_consensus.clone(),
+                    keystore.clone(),
+                    epoch_changes.clone(),
+                    authorities.clone(),
+                )
+                .map(|provider| Box::new(provider) as _)
+                .map_err(|e| ServiceError::Other(e.to_string()))
+            };
 
-        let babe = sc_consensus_babe::start_babe(babe_config)?;
-        task_manager.spawn_essential_handle().spawn_blocking(
-            "babe-proposer",
-            Some("block-authoring"),
-            babe,
-        );
+            let create_inherent_data_providers = move |_, ()| {
+                std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
+                    build_babe_inherent_providers(slot_duration, true),
+                ))
+            };
+
+            match mode {
+                Sealing::Manual => {
+                    let commands_stream = manual_commands_stream.take().ok_or_else(|| {
+                        ServiceError::Other(
+                            "Manual sealing requested but command channel is unavailable".into(),
+                        )
+                    })?;
+
+                    let future = sc_consensus_manual_seal::run_manual_seal(ManualSealParams {
+                        block_import,
+                        env: proposer_factory,
+                        client: client.clone(),
+                        pool: transaction_pool.clone(),
+                        commands_stream,
+                        select_chain,
+                        consensus_data_provider: Some(consensus_data_provider()?),
+                        create_inherent_data_providers,
+                    });
+
+                    task_manager.spawn_essential_handle().spawn_blocking(
+                        "manual-seal",
+                        Some("block-authoring"),
+                        future,
+                    );
+                }
+                Sealing::Instant => {
+                    let future = sc_consensus_manual_seal::run_instant_seal(InstantSealParams {
+                        block_import,
+                        env: proposer_factory,
+                        client: client.clone(),
+                        pool: transaction_pool.clone(),
+                        select_chain,
+                        consensus_data_provider: Some(consensus_data_provider()?),
+                        create_inherent_data_providers,
+                    });
+
+                    task_manager.spawn_essential_handle().spawn_blocking(
+                        "manual-seal",
+                        Some("block-authoring"),
+                        future,
+                    );
+                }
+            }
+
+            log::info!("Manual sealing enabled (mode: {:?})", mode);
+        } else {
+            let proposer_factory = sc_basic_authorship::ProposerFactory::new(
+                task_manager.spawn_handle(),
+                client.clone(),
+                transaction_pool.clone(),
+                prometheus_registry.as_ref(),
+                telemetry.as_ref().map(|x| x.handle()),
+            );
+
+            let slot_duration = babe_link.clone().config().slot_duration();
+            let create_inherent_data_providers = move |_, ()| {
+                std::future::ready(Ok::<_, Box<dyn std::error::Error + Send + Sync>>(
+                    build_babe_inherent_providers(slot_duration, false),
+                ))
+            };
+            let babe_config = sc_consensus_babe::BabeParams {
+                keystore: keystore_container.keystore(),
+                client: client.clone(),
+                select_chain,
+                env: proposer_factory,
+                block_import,
+                sync_oracle: sync_service.clone(),
+                justification_sync_link: sync_service.clone(),
+                create_inherent_data_providers,
+                force_authoring,
+                backoff_authoring_blocks,
+                babe_link,
+                block_proposal_slot_portion: sc_consensus_babe::SlotProportion::new(0.5),
+                max_block_proposal_slot_portion: None,
+                telemetry: telemetry.as_ref().map(|x| x.handle()),
+            };
+
+            let babe = sc_consensus_babe::start_babe(babe_config)?;
+            task_manager.spawn_essential_handle().spawn_blocking(
+                "babe-proposer",
+                Some("block-authoring"),
+                babe,
+            );
+        }
     }
 
     if enable_grandpa {
@@ -747,45 +906,48 @@ where
     };
 
     // beefy is enabled if its notification service exists
-    if let Some(notification_service) = beefy_notification_service {
-        let justifications_protocol_name = beefy_on_demand_justifications_handler.protocol_name();
-        let network_params = sc_consensus_beefy::BeefyNetworkParams {
-            network: Arc::new(network.clone()),
-            sync: sync_service.clone(),
-            gossip_protocol_name: beefy_gossip_proto_name,
-            justifications_protocol_name,
-            notification_service,
-            _phantom: core::marker::PhantomData::<Block>,
-        };
-        let payload_provider = sp_consensus_beefy::mmr::MmrRootProvider::new(client.clone());
-        let beefy_params = sc_consensus_beefy::BeefyParams {
-            client: client.clone(),
-            backend: backend.clone(),
-            payload_provider,
-            runtime: client.clone(),
-            key_store: keystore_opt.clone(),
-            network_params,
-            min_block_delta: 8,
-            prometheus_registry: prometheus_registry.clone(),
-            links: beefy_voter_links,
-            on_demand_justifications_handler: beefy_on_demand_justifications_handler,
-            is_authority: role.is_authority(),
-        };
+    if sealing.is_none() {
+        if let Some(notification_service) = beefy_notification_service {
+            let justifications_protocol_name =
+                beefy_on_demand_justifications_handler.protocol_name();
+            let network_params = sc_consensus_beefy::BeefyNetworkParams {
+                network: Arc::new(network.clone()),
+                sync: sync_service.clone(),
+                gossip_protocol_name: beefy_gossip_proto_name,
+                justifications_protocol_name,
+                notification_service,
+                _phantom: core::marker::PhantomData::<Block>,
+            };
+            let payload_provider = sp_consensus_beefy::mmr::MmrRootProvider::new(client.clone());
+            let beefy_params = sc_consensus_beefy::BeefyParams {
+                client: client.clone(),
+                backend: backend.clone(),
+                payload_provider,
+                runtime: client.clone(),
+                key_store: keystore_opt.clone(),
+                network_params,
+                min_block_delta: 8,
+                prometheus_registry: prometheus_registry.clone(),
+                links: beefy_voter_links,
+                on_demand_justifications_handler: beefy_on_demand_justifications_handler,
+                is_authority: role.is_authority(),
+            };
 
-        let gadget =
-            sc_consensus_beefy::start_beefy_gadget::<_, _, _, _, _, _, _, BeefyId>(beefy_params);
+            let gadget = sc_consensus_beefy::start_beefy_gadget::<_, _, _, _, _, _, _, BeefyId>(
+                beefy_params,
+            );
 
-        // BEEFY is part of consensus, if it fails we'll bring the node down with it to make sure it
-        // is noticed.
-        task_manager
-            .spawn_essential_handle()
-            .spawn_blocking("beefy-gadget", None, gadget);
+            // BEEFY is part of consensus, if it fails we'll bring the node down with it to make
+            // sure it is noticed.
+            task_manager
+                .spawn_essential_handle()
+                .spawn_blocking("beefy-gadget", None, gadget);
+        }
     }
 
-    if let Some(_) = provider_options {
-        // Finishing building storage hub
+    if let Some(_) = role_options {
         finish_sh_builder_and_run_tasks(
-            sh_builder.unwrap(),
+            sh_builder.expect("StorageHubBuilder should already be initialised."),
             client.clone(),
             rpc_handlers.clone(),
             keystore_container.keystore(),
@@ -794,18 +956,6 @@ where
         )
         .await?;
     }
-
-    configure_and_spawn_fisherman::<Runtime>(
-        &fisherman_options,
-        &indexer_options,
-        &task_manager,
-        client.clone(),
-        keystore_container.keystore(),
-        Arc::new(rpc_handlers.clone()),
-        base_path,
-        network.clone(),
-    )
-    .await?;
 
     network_starter.start_network();
     Ok(task_manager)
@@ -818,57 +968,80 @@ pub async fn new_full<
 >(
     config: Configuration,
     eth_config: EthConfiguration,
-    provider_options: Option<ProviderOptions>,
+    role_options: Option<RoleOptions>,
     indexer_options: Option<IndexerOptions>,
-    fisherman_options: Option<FishermanOptions>,
+    sealing: Option<Sealing>,
 ) -> Result<TaskManager, ServiceError>
 where
     Runtime: shc_common::traits::StorageEnableRuntime<RuntimeApi = RuntimeApi>,
     RuntimeApi: sp_api::ConstructRuntimeApi<Block, FullClient<RuntimeApi>> + Send + Sync + 'static,
     RuntimeApi::RuntimeApi: FullRuntimeApi,
 {
-    if let Some(provider_options) = provider_options {
-        match (
-            &provider_options.provider_type,
-            &provider_options.storage_layer,
-        ) {
-            (&ProviderType::Bsp, &StorageLayer::Memory) => {
+    if let Some(role_options) = role_options {
+        match role_options {
+            RoleOptions::Provider(ProviderOptions {
+                provider_type: ProviderType::Bsp,
+                storage_layer: StorageLayer::Memory,
+                ..
+            }) => {
                 return new_full_impl::<BspProvider, InMemoryStorageLayer, Runtime, RuntimeApi, N>(
                     config,
                     eth_config,
-                    Some(provider_options),
+                    Some(role_options),
                     indexer_options,
-                    fisherman_options,
+                    sealing,
                 )
                 .await;
             }
-            (&ProviderType::Bsp, &StorageLayer::RocksDB) => {
+            RoleOptions::Provider(ProviderOptions {
+                provider_type: ProviderType::Bsp,
+                storage_layer: StorageLayer::RocksDB,
+                ..
+            }) => {
                 return new_full_impl::<BspProvider, RocksDbStorageLayer, Runtime, RuntimeApi, N>(
                     config,
                     eth_config,
-                    Some(provider_options),
+                    Some(role_options),
                     indexer_options,
-                    fisherman_options,
+                    sealing,
                 )
                 .await;
             }
-            (&ProviderType::Msp, &StorageLayer::Memory) => {
+            RoleOptions::Provider(ProviderOptions {
+                provider_type: ProviderType::Msp,
+                storage_layer: StorageLayer::Memory,
+                ..
+            }) => {
                 return new_full_impl::<MspProvider, InMemoryStorageLayer, Runtime, RuntimeApi, N>(
                     config,
                     eth_config,
-                    Some(provider_options),
+                    Some(role_options),
                     indexer_options,
-                    fisherman_options,
+                    sealing,
                 )
                 .await;
             }
-            (&ProviderType::Msp, &StorageLayer::RocksDB) => {
+            RoleOptions::Provider(ProviderOptions {
+                provider_type: ProviderType::Msp,
+                storage_layer: StorageLayer::RocksDB,
+                ..
+            }) => {
                 return new_full_impl::<MspProvider, RocksDbStorageLayer, Runtime, RuntimeApi, N>(
                     config,
                     eth_config,
-                    Some(provider_options),
+                    Some(role_options),
                     indexer_options,
-                    fisherman_options,
+                    sealing,
+                )
+                .await;
+            }
+            RoleOptions::Fisherman(FishermanOptions { .. }) => {
+                return new_full_impl::<FishermanRole, NoStorageLayer, Runtime, RuntimeApi, N>(
+                    config,
+                    eth_config,
+                    Some(role_options),
+                    indexer_options,
+                    sealing,
                 )
                 .await;
             }
@@ -879,34 +1052,76 @@ where
             eth_config,
             None,
             indexer_options,
-            fisherman_options,
+            sealing,
         )
         .await;
     };
 }
 
-/// Storage Hub
+//╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+//║                                   StorageHub Client Setup Utilities                                           ║
+//╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-// Initialize the StorageHubBuilder for the StorageHub node.
+/// Helper function to setup database pool
+async fn setup_database_pool(database_url: String) -> Result<DbPool, sc_service::Error> {
+    shc_indexer_db::setup_db_pool(database_url)
+        .await
+        .map_err(|e| sc_service::Error::Application(Box::new(e)))
+}
+
+/// Configure and spawn the indexer service.
+async fn configure_and_spawn_indexer<Runtime: StorageEnableRuntime>(
+    indexer_options: &Option<IndexerOptions>,
+    task_manager: &TaskManager,
+    client: Arc<StorageEnableClient<Runtime>>,
+) -> Result<(), sc_service::Error> {
+    let indexer_options = match indexer_options {
+        Some(config) => config,
+        None => return Ok(()),
+    };
+
+    // Setup database pool
+    let db_pool = setup_database_pool(indexer_options.database_url.clone()).await?;
+
+    info!(
+        "📊 Starting Indexer service (mode: {:?})",
+        indexer_options.indexer_mode
+    );
+
+    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "indexer-service");
+    spawn_indexer_service::<Runtime>(
+        &task_spawner,
+        client.clone(),
+        db_pool.clone(),
+        indexer_options.indexer_mode,
+    )
+    .await;
+
+    Ok(())
+}
+/// Initialize the StorageHub builder with configured services based on the node's role.
+///
+/// If `indexer_options` is provided, spawns the indexer service regardless of role configuration.
+/// The indexer service is decoupled from the role system and can run standalone.
+///
+/// Returns `None` if no role is configured (e.g., standalone indexer mode).
 async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(
-    provider_options: &Option<ProviderOptions>,
+    role_options: &Option<RoleOptions>,
+    indexer_options: &Option<IndexerOptions>,
     task_manager: &TaskManager,
     file_transfer_request_protocol: Option<(ProtocolName, Receiver<IncomingRequest>)>,
     network: Arc<dyn NetworkService>,
     keystore: KeystorePtr,
-    client: Arc<FullClient<Runtime::RuntimeApi>>,
-    indexer_options: Option<IndexerOptions>,
+    client: Arc<StorageEnableClient<Runtime>>,
 ) -> Result<
-    (
-        Option<StorageHubBuilder<R, S, Runtime>>,
-        Option<
-            StorageHubClientRpcConfig<
-                <(R, S) as ShNodeType<Runtime>>::FL,
-                <(R, S) as ShNodeType<Runtime>>::FSH,
-                Runtime,
-            >,
+    Option<(
+        StorageHubBuilder<R, S, Runtime>,
+        StorageHubClientRpcConfig<
+            <(R, S) as ShNodeType<Runtime>>::FL,
+            <(R, S) as ShNodeType<Runtime>>::FSH,
+            Runtime,
         >,
-    ),
+    )>,
     sc_service::Error,
 >
 where
@@ -915,99 +1130,140 @@ where
     (R, S): ShNodeType<Runtime>,
     StorageHubBuilder<R, S, Runtime>: StorageLayerBuilder,
 {
-    let maybe_indexer_db_pool =
-        configure_and_spawn_indexer::<Runtime>(&indexer_options, &task_manager, client.clone())
-            .await?;
+    // Spawn indexer service if enabled. Runs before role check to allow standalone operation.
+    configure_and_spawn_indexer::<Runtime>(&indexer_options, &task_manager, client.clone()).await?;
 
-    if let Some(provider_options) = provider_options {
-        // Start building the StorageHubHandler, if running as a provider.
-        let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "sh-builder");
-        let mut storage_hub_builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner);
-
-        // Setup and spawn the File Transfer Service.
-        let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
-            file_transfer_request_protocol
-                .expect("FileTransfer request protocol should already be initialised.");
-
-        storage_hub_builder
-            .with_file_transfer(
-                file_transfer_request_receiver,
-                file_transfer_request_protocol_name,
-                network.clone(),
-            )
-            .await;
-
-        // Setup the `ShStorageLayer` and additional configuration parameters.
-        storage_hub_builder
-            .setup_storage_layer(provider_options.storage_path.clone())
-            .with_capacity_config(Some(CapacityConfig::new(
-                provider_options
-                    .max_storage_capacity
-                    .unwrap_or_default()
-                    .saturated_into(),
-                provider_options
-                    .jump_capacity
-                    .unwrap_or_default()
-                    .saturated_into(),
-            )));
-
-        storage_hub_builder.with_msp_charge_fees_config(provider_options.msp_charge_fees.clone());
-        storage_hub_builder.with_msp_move_bucket_config(provider_options.msp_move_bucket.clone());
-        storage_hub_builder.with_bsp_upload_file_config(provider_options.bsp_upload_file.clone());
-        storage_hub_builder.with_bsp_move_bucket_config(provider_options.bsp_move_bucket.clone());
-        storage_hub_builder.with_bsp_charge_fees_config(provider_options.bsp_charge_fees.clone());
-        storage_hub_builder.with_bsp_submit_proof_config(provider_options.bsp_submit_proof.clone());
-
-        // Setup specific configuration for the MSP node.
-        if provider_options.provider_type == ProviderType::Msp {
-            storage_hub_builder
-                .with_notify_period(provider_options.msp_charging_period)
-                .with_indexer_db_pool(maybe_indexer_db_pool);
-        }
-
-        if let Some(c) = &provider_options.blockchain_service {
-            storage_hub_builder.with_blockchain_service_config(c.clone());
-        }
-
-        // Get the RPC configuration to use for this StorageHub node client.
-        let storage_hub_client_rpc_config =
-            storage_hub_builder.create_rpc_config(keystore, provider_options.rpc_config.clone());
-
-        return Ok((
-            Some(storage_hub_builder),
-            Some(storage_hub_client_rpc_config),
-        ));
-    };
-
-    Ok((None, None))
-}
-
-/// Configure and spawn the indexer service.
-async fn configure_and_spawn_indexer<Runtime: StorageEnableRuntime>(
-    indexer_options: &Option<IndexerOptions>,
-    task_manager: &TaskManager,
-    client: Arc<FullClient<<Runtime as StorageEnableRuntime>::RuntimeApi>>,
-) -> Result<Option<DbPool>, sc_service::Error> {
-    let indexer_options = match indexer_options {
-        Some(config) => config,
+    let role_options = match role_options {
+        Some(role) => role,
         None => return Ok(None),
     };
 
-    // Setup database pool
-    let db_pool = shc_indexer_db::setup_db_pool(indexer_options.database_url.clone())
-        .await
-        .map_err(|e| sc_service::Error::Application(Box::new(e)))?;
+    let task_spawner_name = match role_options {
+        RoleOptions::Provider(ProviderOptions {
+            provider_type: ProviderType::Msp,
+            ..
+        }) => "msp-service",
+        RoleOptions::Provider(ProviderOptions {
+            provider_type: ProviderType::Bsp,
+            ..
+        }) => "bsp-service",
+        RoleOptions::Fisherman(_) => "fisherman-service",
+    };
+    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), task_spawner_name);
+    let mut builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner);
 
-    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "indexer-service");
-    shc_indexer_service::spawn_indexer_service::<Runtime>(
-        &task_spawner,
-        client.clone(),
-        db_pool.clone(),
-        indexer_options.indexer_mode,
-    )
-    .await;
+    // Setup file transfer service (common to all roles)
+    let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
+        file_transfer_request_protocol
+            .expect("FileTransfer request protocol should already be initialised.");
 
-    Ok(Some(db_pool))
+    builder
+        .with_file_transfer(
+            file_transfer_request_receiver,
+            file_transfer_request_protocol_name,
+            network.clone(),
+        )
+        .await;
+
+    // Role-specific configuration
+    let rpc_config = match role_options {
+        RoleOptions::Provider(ProviderOptions {
+            rpc_config,
+            provider_type,
+            storage_path,
+            max_storage_capacity,
+            jump_capacity,
+            msp_charging_period,
+            msp_charge_fees,
+            msp_move_bucket,
+            bsp_upload_file,
+            bsp_move_bucket,
+            bsp_charge_fees,
+            bsp_submit_proof,
+            blockchain_service,
+            msp_database_url,
+            ..
+        }) => {
+            info!(
+                "Starting as a Storage Provider. Storage path: {:?}, Max storage capacity: {:?}, Jump capacity: {:?}, MSP charging period: {:?}",
+                storage_path, max_storage_capacity, jump_capacity, msp_charging_period,
+            );
+
+            // Setup the storage layer and capacity config
+            builder
+                .setup_storage_layer(storage_path.clone())
+                .with_capacity_config(Some(CapacityConfig::new(
+                    max_storage_capacity.unwrap_or_default().saturated_into(),
+                    jump_capacity.unwrap_or_default().saturated_into(),
+                )));
+
+            // Configure provider-specific options
+            builder.with_msp_charge_fees_config(msp_charge_fees.clone());
+            builder.with_msp_move_bucket_config(msp_move_bucket.clone());
+            builder.with_bsp_upload_file_config(bsp_upload_file.clone());
+            builder.with_bsp_move_bucket_config(bsp_move_bucket.clone());
+            builder.with_bsp_charge_fees_config(bsp_charge_fees.clone());
+            builder.with_bsp_submit_proof_config(bsp_submit_proof.clone());
+
+            // MSP-specific configuration
+            if *provider_type == ProviderType::Msp {
+                builder.with_notify_period(*msp_charging_period);
+
+                // MSPs can optionally have database access to execute move bucket operations.
+                if let Some(db_url) = msp_database_url {
+                    info!("Setting up MSP database connection: {}", db_url);
+                    let msp_db_pool = setup_database_pool(db_url.clone()).await?;
+                    builder.with_indexer_db_pool(Some(msp_db_pool));
+                }
+            }
+
+            if let Some(c) = blockchain_service {
+                let peer_id = network.local_peer_id().to_bytes();
+                let mut c = c.clone();
+                c.peer_id = Some(peer_id);
+                builder.with_blockchain_service_config(c);
+            }
+
+            rpc_config.clone()
+        }
+        RoleOptions::Fisherman(fisherman_options) => {
+            // Validate configuration compatibility with indexer
+            if let Some(indexer_cfg) = indexer_options {
+                if indexer_cfg.indexer_mode == shc_indexer_service::IndexerMode::Lite {
+                    return Err(sc_service::Error::Other(
+                        "Fisherman service cannot run with 'lite' indexer mode. Please use either 'full' or 'fishing' mode."
+                            .to_string(),
+                    ));
+                }
+            }
+
+            // Setup database pool for fisherman
+            let db_pool = setup_database_pool(fisherman_options.database_url.clone()).await?;
+
+            info!(
+                "🎣 Starting as a Fisherman. Database URL: {}",
+                fisherman_options.database_url
+            );
+
+            // Setup the storage layer (ephemeral for fisherman)
+            builder.setup_storage_layer(None);
+
+            // Set the indexer db pool
+            builder.with_indexer_db_pool(Some(db_pool));
+
+            // Spawn the fisherman service
+            builder
+                .with_fisherman(client.clone(), &fisherman_options)
+                .await;
+
+            RpcConfig::default()
+        }
+    };
+
+    // Create RPC configuration
+    let storage_hub_client_rpc_config = builder.create_rpc_config(keystore, rpc_config);
+
+    Ok(Some((builder, storage_hub_client_rpc_config)))
 }
 
 /// Finish the StorageHubBuilder and run the tasks.
@@ -1049,84 +1305,4 @@ where
     sh_handler.run_tasks().await;
 
     Ok(())
-}
-
-async fn configure_and_spawn_fisherman<Runtime: StorageEnableRuntime>(
-    fisherman_options: &Option<FishermanOptions>,
-    indexer_config: &Option<IndexerOptions>,
-    task_manager: &TaskManager,
-    client: Arc<StorageEnableClient<Runtime>>,
-    keystore: KeystorePtr,
-    rpc_handlers: Arc<RpcHandlers>,
-    rocksdb_root_path: impl Into<PathBuf>,
-    network: Arc<dyn NetworkService>,
-) -> Result<Option<DbPool>, sc_service::Error> {
-    let fisherman_options = match fisherman_options {
-        Some(fc) => fc,
-        None => return Ok(None),
-    };
-
-    // Validate configuration compatibility with indexer if both are enabled
-    if let Some(indexer_cfg) = indexer_config {
-        if indexer_cfg.indexer_mode == shc_indexer_service::IndexerMode::Lite {
-            return Err(sc_service::Error::Other(
-                "Fisherman service cannot run with 'lite' indexer mode. Please use either 'full' or 'fishing' mode."
-                    .to_string(),
-            ));
-        }
-    }
-
-    // Setup database pool for fisherman
-    let db_pool = setup_database_pool(fisherman_options.database_url.clone()).await?;
-
-    // Build StorageHubHandler for fisherman tasks
-    let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), "fisherman-service");
-    let mut fisherman_builder =
-        StorageHubBuilder::<FishermanRole, NoStorageLayer, Runtime>::new(task_spawner.clone());
-
-    // Convert rocksdb_root_path to PathBuf first
-    let rocksdb_path: PathBuf = rocksdb_root_path.into();
-
-    // Set the indexer db pool
-    fisherman_builder.with_indexer_db_pool(Some(db_pool.clone()));
-
-    // Spawn the fisherman service
-    fisherman_builder.with_fisherman(client.clone()).await;
-
-    // All variables below are not needed for the fisherman service to operate but required by the StorageHubHandler
-    // TODO: Refactor this once we have a proper setup to support role based StorageHubHandler builder
-    fisherman_builder.setup_storage_layer(None);
-
-    // Setup blockchain service
-    fisherman_builder
-        .with_blockchain(
-            client.clone(),
-            keystore,
-            rpc_handlers,
-            rocksdb_path.clone(),
-            false, // Not in maintenance mode
-        )
-        .await;
-
-    fisherman_builder.with_peer_manager(rocksdb_path);
-    let (_sender, receiver) = async_channel::bounded(1);
-    let protocol_name = ProtocolName::from("/storage-hub/file-transfer/1");
-    fisherman_builder
-        .with_file_transfer(receiver, protocol_name, network)
-        .await;
-
-    // Build the handler
-    let mut fisherman_handler = fisherman_builder.build();
-
-    // Run fisherman tasks
-    fisherman_handler.run_tasks().await;
-
-    Ok(Some(db_pool))
-}
-
-/// Helper function to setup database pool
-async fn setup_database_pool(database_url: String) -> Result<DbPool, sc_service::Error> {
-    shc_indexer_db::setup_db_pool(database_url)
-        .await
-        .map_err(|e| sc_service::Error::Application(Box::new(e)))
 }

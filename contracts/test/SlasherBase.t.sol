@@ -6,8 +6,9 @@ pragma solidity ^0.8.27;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {
     IAllocationManagerErrors,
     IAllocationManager,
@@ -74,8 +75,7 @@ contract SlasherBaseTest is AVSDeployer {
         wadsToSlash[0] = 1e16;
         string memory description = "Test slashing by non-ServiceManager";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
             operator: operator,
             operatorSetId: operatorSetId,
             strategies: strategies,
@@ -84,12 +84,13 @@ contract SlasherBaseTest is AVSDeployer {
         });
 
         // Mock the allocationManager.slashOperator call
+        uint256[] memory slashedShares = new uint256[](strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         uint256 requestId = 5;
@@ -127,8 +128,7 @@ contract SlasherBaseTest is AVSDeployer {
         wadsToSlash[1] = 2e16; // 2% of the operator's stake
         string memory description = "Multiple strategy slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
             operator: operator,
             operatorSetId: operatorSetId,
             strategies: strategies,
@@ -137,12 +137,13 @@ contract SlasherBaseTest is AVSDeployer {
         });
 
         // Mock the allocationManager.slashOperator call
+        uint256[] memory slashedShares = new uint256[](strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         uint256 requestId = 2;
@@ -167,8 +168,7 @@ contract SlasherBaseTest is AVSDeployer {
         wadsToSlash[0] = 0; // Zero tokens
         string memory description = "Zero wad slashing";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
             operator: operator,
             operatorSetId: operatorSetId,
             strategies: strategies,
@@ -177,12 +177,13 @@ contract SlasherBaseTest is AVSDeployer {
         });
 
         // Mock the allocationManager.slashOperator call
+        uint256[] memory slashedShares = new uint256[](strategies.length);
         vm.mockCall(
             address(allocationManager),
             abi.encodeWithSelector(
                 IAllocationManager.slashOperator.selector, serviceManager.avs(), params
             ),
-            abi.encode()
+            abi.encode(uint256(0), slashedShares)
         );
 
         uint256 requestId = 3;
@@ -207,8 +208,7 @@ contract SlasherBaseTest is AVSDeployer {
         wadsToSlash[0] = 1e16; // 1% of the operator's stake
         string memory description = "Revert test";
 
-        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes
-            .SlashingParams({
+        IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
             operator: operator,
             operatorSetId: operatorSetId,
             strategies: strategies,

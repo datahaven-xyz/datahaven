@@ -1,3 +1,19 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 //! A collection of node-specific RPC methods.
 //! Substrate provides the `sc-rpc` crate, which defines the core RPC layer
 //! used by Substrate nodes. This file extends those RPC definitions with
@@ -7,9 +23,7 @@
 
 use crate::consensus::BabeConsensusDataProvider;
 use crate::eth::DefaultEthConfig;
-use datahaven_runtime_common::{
-    time::SLOT_DURATION, AccountId, Balance, Block, BlockNumber, Hash, Nonce,
-};
+use datahaven_runtime_common::{time::SLOT_DURATION, Block, BlockNumber, Hash};
 use fc_rpc::TxPool;
 use fc_rpc::{Eth, EthBlockDataCacheTask, EthFilter, Net, Web3};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
@@ -17,7 +31,7 @@ use fc_rpc_core::{EthApiServer, EthFilterApiServer, NetApiServer, TxPoolApiServe
 use fc_storage::StorageOverride;
 use fp_rpc::EthereumRuntimeRPCApi;
 use jsonrpsee::RpcModule;
-use sc_client_api::{AuxStore, Backend, StateBackend, StorageProvider};
+use sc_client_api::{Backend, StateBackend, StorageProvider};
 use sc_consensus_beefy::communication::notification::{
     BeefyBestBlockStream, BeefyVersionedFinalityProofStream,
 };
@@ -25,14 +39,19 @@ use sc_consensus_manual_seal::rpc::{EngineCommand, ManualSeal, ManualSealApiServ
 use sc_network_sync::SyncingService;
 use sc_transaction_pool::{ChainApi, Pool};
 use sc_transaction_pool_api::TransactionPool;
-use sp_api::{CallApiAt, ProvideRuntimeApi};
-use sp_block_builder::BlockBuilder;
-use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use shc_client::types::FileStorageT;
+use shc_common::traits::StorageEnableRuntime;
+use shc_common::traits::StorageEnableRuntimeApi;
+use shc_common::types::OpaqueBlock;
+use shc_common::types::StorageHubClient;
+use shc_forest_manager::traits::ForestStorageHandler;
+use shc_rpc::StorageHubClientApiServer;
+use shc_rpc::StorageHubClientRpc;
+use shc_rpc::StorageHubClientRpcConfig;
 use sp_consensus_babe::{BabeApi, SlotDuration};
 use sp_consensus_beefy::AuthorityIdBound;
 use sp_core::H256;
 use sp_runtime::traits::BlakeTwo256;
-use sp_runtime::OpaqueExtrinsic;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -47,9 +66,12 @@ pub struct BeefyDeps<AuthorityId: AuthorityIdBound> {
 }
 
 /// Full client dependencies.
-pub struct FullDeps<C, P, B, AuthorityId: AuthorityIdBound, A: ChainApi> {
+pub struct FullDeps<P, B, AuthorityId: AuthorityIdBound, A: ChainApi, FL, FS, Runtime>
+where
+    Runtime: StorageEnableRuntime,
+{
     /// The client instance to use.
-    pub client: Arc<C>,
+    pub client: Arc<StorageHubClient<Runtime::RuntimeApi>>,
     /// Transaction pool instance.
     pub pool: Arc<P>,
     /// BEEFY dependencies.
@@ -82,32 +104,33 @@ pub struct FullDeps<C, P, B, AuthorityId: AuthorityIdBound, A: ChainApi> {
     pub command_sink: Option<futures::channel::mpsc::Sender<EngineCommand<Hash>>>,
     /// Mandated parent hashes for a given block hash.
     pub forced_parent_hashes: Option<BTreeMap<H256, H256>>,
+    /// Storage Hub RPC config
+    pub maybe_storage_hub_client_config: Option<StorageHubClientRpcConfig<FL, FS, Runtime>>,
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P, BE, AuthorityId, A>(
-    deps: FullDeps<C, P, BE, AuthorityId, A>,
+pub fn create_full<P, BE, AuthorityId, A, FL, FSH, Runtime>(
+    deps: FullDeps<P, BE, AuthorityId, A, FL, FSH, Runtime>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-    C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
-    C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
-    C: Send + Sync + 'static,
-    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
-    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-    C::Api: BlockBuilder<Block>,
-    C::Api: mmr_rpc::MmrRuntimeApi<Block, <Block as sp_runtime::traits::Block>::Hash, BlockNumber>,
-    C::Api: EthereumRuntimeRPCApi<Block>,
-    C::Api: BabeApi<Block>,
-    C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
-    C: sc_client_api::UsageProvider<Block>,
-    C: CallApiAt<
-        sp_runtime::generic::Block<sp_runtime::generic::Header<u32, BlakeTwo256>, OpaqueExtrinsic>,
-    >,
     P: TransactionPool<Block = Block> + 'static,
     BE: Backend<Block> + Send + Sync + 'static,
     BE::State: StateBackend<BlakeTwo256>,
     AuthorityId: AuthorityIdBound,
     A: ChainApi<Block = Block> + 'static,
+    Runtime: StorageEnableRuntime,
+    Runtime::RuntimeApi: StorageEnableRuntimeApi<
+        RuntimeApi: mmr_rpc::MmrRuntimeApi<
+            Block,
+            <Block as sp_runtime::traits::Block>::Hash,
+            BlockNumber,
+        > + EthereumRuntimeRPCApi<Block>
+                        + BabeApi<Block>
+                        + fp_rpc::ConvertTransactionRuntimeApi<Block>,
+    >,
+    StorageHubClient<Runtime::RuntimeApi>: StorageProvider<Block, BE>,
+    FL: FileStorageT,
+    FSH: ForestStorageHandler<Runtime> + Send + Sync + 'static,
 {
     use mmr_rpc::{Mmr, MmrApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
@@ -133,6 +156,7 @@ where
         is_authority,
         command_sink,
         forced_parent_hashes,
+        maybe_storage_hub_client_config,
     } = deps;
 
     module.merge(System::new(Arc::clone(&client), Arc::clone(&pool)).into_rpc())?;
@@ -154,6 +178,16 @@ where
         )
         .into_rpc(),
     )?;
+
+    if let Some(storage_hub_client_config) = maybe_storage_hub_client_config {
+        module.merge(
+            StorageHubClientRpc::<FL, FSH, Runtime, OpaqueBlock>::new(
+                client.clone(),
+                storage_hub_client_config,
+            )
+            .into_rpc(),
+        )?;
+    }
 
     enum Never {}
     impl<T> fp_rpc::ConvertTransaction<T> for Never {
@@ -182,7 +216,7 @@ where
     };
 
     module.merge(
-        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<C, BE>>::new(
+        Eth::<_, _, _, _, _, _, _, DefaultEthConfig<StorageHubClient<Runtime::RuntimeApi>, BE>>::new(
             Arc::clone(&client),
             Arc::clone(&pool),
             graph.clone(),

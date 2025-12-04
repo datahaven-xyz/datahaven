@@ -6,7 +6,7 @@ edition.workspace = true
 license = "Apache-2.0"
 name = "snowbridge-pallet-outbound-queue-v2"
 repository.workspace = true
-version = "0.2.0"
+version.workspace = true
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

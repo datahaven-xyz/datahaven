@@ -51,7 +51,7 @@ program
     `🫎  DataHaven: Network Deployer CLI for deploying a full DataHaven network stack to a Kubernetes cluster
     It will deploy:
     - DataHaven solochain validators (all envs),
-    - Storage providers (all envs) (TODO),
+    - StorageHub components: MSP, BSP, Indexer, Fisherman nodes and databases (local & stagenet envs),
     - Kurtosis Ethereum private network (stagenet env),
     - Snowbridge Relayers (all envs)
     `
@@ -100,6 +100,11 @@ program
   .option("--skip-validator-operations", "Skip performing validator operations", false)
   .option("--skip-set-parameters", "Skip setting DataHaven runtime parameters", false)
   .option("--skip-relayers", "Skip deploying Snowbridge Relayers", false)
+  .option(
+    "--skip-storage-hub",
+    "Skip deploying StorageHub components (MSP, BSP, Indexer, Fisherman, databases)",
+    false
+  )
   .hook("preAction", deployPreActionHook)
   .action(deploy);
 
@@ -111,7 +116,7 @@ program
     `🫎  DataHaven: Network Launcher CLI for launching a full DataHaven network.
   Complete with:
   - Solo-chain validators,
-  - Storage providers (TODO),
+  - StorageHub components: MSP, BSP, Indexer, Fisherman nodes and databases,
   - Ethereum Private network,
   - Snowbridge Relayers
   `
@@ -136,6 +141,8 @@ program
   .option("--nsp, --no-set-parameters", "Skip setting DataHaven runtime parameters")
   .option("--r, --relayer", "Launch Snowbridge Relayers")
   .option("--nr, --no-relayer", "Skip Snowbridge Relayers")
+  .option("--sh, --storagehub", "Launch StorageHub components")
+  .option("--nsh, --no-storagehub", "Skip launching StorageHub components")
   .option("--b, --blockscout", "Enable Blockscout")
   .option("--slot-time <number>", "Set slot time in seconds", parseIntValue)
   .option("--cn, --clean-network", "Always clean Kurtosis enclave and Docker containers")
@@ -194,7 +201,7 @@ const contractsCommand = program
     - update-metadata: Update the metadata URI of an existing AVS contract
     
     Common options:
-    --chain: Target chain (required: hoodi, holesky, mainnet)
+    --chain: Target chain (required: hoodi, mainnet, anvil)
     --rpc-url: Chain RPC URL (optional, defaults based on chain)
     --private-key: Private key for deployment
     --skip-verification: Skip contract verification
@@ -206,9 +213,13 @@ const contractsCommand = program
 contractsCommand
   .command("status")
   .description("Show deployment plan, configuration, and status")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key-file <value>", "Path to file containing private key for deployment")
+  .option(
+    "--private-key <value>",
+    "Private key for deployment",
+    process.env.DEPLOYER_PRIVATE_KEY || ""
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);
@@ -217,9 +228,13 @@ contractsCommand
 contractsCommand
   .command("deploy")
   .description("Deploy DataHaven AVS contracts to specified chain")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key-file <value>", "Path to file containing private key for deployment")
+  .option(
+    "--private-key <value>",
+    "Private key for deployment",
+    process.env.DEPLOYER_PRIVATE_KEY || ""
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsDeploy);
@@ -261,7 +276,7 @@ contractsCommand
 contractsCommand
   .command("verify")
   .description("Verify deployed contracts on block explorer")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
@@ -271,7 +286,7 @@ contractsCommand
 contractsCommand
   .command("update-metadata")
   .description("Update AVS metadata URI for the DataHaven Service Manager")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--uri <value>", "New metadata URI (required)")
   .option("--reset", "Use if you want to reset the metadata URI")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
@@ -299,9 +314,13 @@ contractsCommand
 // Default Contracts command (runs check)
 contractsCommand
   .description("Show deployment plan, configuration, and status")
-  .option("--chain <value>", "Target chain (hoodi, holesky, mainnet)")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
-  .option("--private-key-file <value>", "Path to file containing private key for deployment")
+  .option(
+    "--private-key <value>",
+    "Private key for deployment",
+    process.env.DEPLOYER_PRIVATE_KEY || ""
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsCheck);

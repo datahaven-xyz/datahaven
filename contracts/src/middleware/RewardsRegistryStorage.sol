@@ -13,7 +13,6 @@ abstract contract RewardsRegistryStorage is IRewardsRegistry {
      *                            IMMUTABLES
      *
      */
-
     /// @notice Address of the AVS (Service Manager)
     address public immutable avs;
 
@@ -37,7 +36,10 @@ abstract contract RewardsRegistryStorage is IRewardsRegistry {
      * @param _avs Address of the AVS (Service Manager)
      * @param _rewardsAgent Address of the rewards agent contract
      */
-    constructor(address _avs, address _rewardsAgent) {
+    constructor(
+        address _avs,
+        address _rewardsAgent
+    ) {
         avs = _avs;
         rewardsAgent = _rewardsAgent;
     }

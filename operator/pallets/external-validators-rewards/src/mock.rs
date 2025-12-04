@@ -5,6 +5,7 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+
 // Tanssi is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -147,6 +148,8 @@ impl ExternalIndexProvider for TimestampProvider {
 parameter_types! {
     pub const RewardsEthereumSovereignAccount: u64
         = 0xffffffffffffffff;
+    pub const TreasuryAccount: u64 = 999;
+    pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
 }
 
@@ -171,17 +174,43 @@ impl pallet_external_validators_rewards::Config for Test {
 
 pub struct InflationMinter;
 impl HandleInflation<u64> for InflationMinter {
-    fn mint_inflation(account: &u64, amount: u128) -> sp_runtime::DispatchResult {
-        if amount == 0 {
+    fn mint_inflation(rewards_account: &u64, total_amount: u128) -> sp_runtime::DispatchResult {
+        use sp_runtime::traits::Zero;
+
+        if total_amount.is_zero() {
             log::error!(target: "ext_validators_rewards", "No rewards to distribute");
             return Err(DispatchError::Other("No rewards to distribute"));
         }
-        <Test as pallet_external_validators_rewards::Config>::Currency::mint_into(
-            account,
-            amount.into(),
-        )
-        .map(|_| ())
-        .map_err(|_| DispatchError::Other("Failed to mint inflation"))
+
+        // Get treasury allocation proportion
+        let treasury_proportion = InflationTreasuryProportion::get();
+
+        // Calculate amounts
+        let treasury_amount = treasury_proportion.mul_floor(total_amount);
+        let rewards_amount = total_amount.saturating_sub(treasury_amount);
+
+        // Mint rewards to the rewards account
+        if !rewards_amount.is_zero() {
+            <Test as pallet_external_validators_rewards::Config>::Currency::mint_into(
+                rewards_account,
+                rewards_amount,
+            )
+            .map(|_| ())
+            .map_err(|_| DispatchError::Other("Failed to mint rewards inflation"))?;
+        }
+
+        // Mint treasury portion if non-zero
+        if !treasury_amount.is_zero() {
+            let treasury_account = TreasuryAccount::get();
+            <Test as pallet_external_validators_rewards::Config>::Currency::mint_into(
+                &treasury_account,
+                treasury_amount,
+            )
+            .map(|_| ())
+            .map_err(|_| DispatchError::Other("Failed to mint treasury inflation"))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -244,7 +273,18 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage()
         .unwrap();
 
-    let balances = vec![(1, 100), (2, 100), (3, 100), (4, 100), (5, 100)];
+    let balances = vec![
+        (1, 100),
+        (2, 100),
+        (3, 100),
+        (4, 100),
+        (5, 100),
+        (TreasuryAccount::get(), ExistentialDeposit::get().into()), // Treasury needs existential deposit
+        (
+            RewardsEthereumSovereignAccount::get(),
+            ExistentialDeposit::get().into(),
+        ), // Rewards account needs existential deposit
+    ];
     pallet_balances::GenesisConfig::<Test> { balances }
         .assimilate_storage(&mut t)
         .unwrap();

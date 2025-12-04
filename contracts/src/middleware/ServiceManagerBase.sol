@@ -4,21 +4,25 @@ pragma solidity ^0.8.27;
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ISignatureUtilsMixinTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
+import {
+    ISignatureUtilsMixinTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/ISignatureUtilsMixin.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {
     IAllocationManager,
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {
+    IPermissionController
+} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {
+    IPermissionController
+} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
 import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
@@ -43,9 +47,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         IRewardsCoordinator __rewardsCoordinator,
         IPermissionController __permissionController,
         IAllocationManager __allocationManager
-    )
-        ServiceManagerBaseStorage(__rewardsCoordinator, __permissionController, __allocationManager)
-    {
+    ) ServiceManagerBaseStorage(__rewardsCoordinator, __permissionController, __allocationManager) {
         _disableInitializers();
     }
 
@@ -152,26 +154,26 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
      */
     function createOperatorDirectedOperatorSetRewardsSubmission(
         OperatorSet calldata operatorSet,
-        IRewardsCoordinator.OperatorDirectedRewardsSubmission[] calldata
-            operatorDirectedRewardsSubmissions
+        IRewardsCoordinator
+                .OperatorDirectedRewardsSubmission[] calldata operatorDirectedRewardsSubmissions
     ) public virtual onlyRewardsInitiator {
         for (uint256 i = 0; i < operatorDirectedRewardsSubmissions.length; ++i) {
             // Calculate total amount of tokens to transfer
             uint256 totalAmount = 0;
             for (
-                uint256 j = 0; j < operatorDirectedRewardsSubmissions[i].operatorRewards.length; ++j
+                uint256 j = 0;
+                j < operatorDirectedRewardsSubmissions[i].operatorRewards.length;
+                ++j
             ) {
                 totalAmount += operatorDirectedRewardsSubmissions[i].operatorRewards[j].amount;
             }
 
             // Transfer token to ServiceManager and approve RewardsCoordinator to transfer again
             // in createOperatorDirectedOperatorSetRewardsSubmission() call
-            IERC20(operatorDirectedRewardsSubmissions[i].token).safeTransferFrom(
-                msg.sender, address(this), totalAmount
-            );
-            operatorDirectedRewardsSubmissions[i].token.safeIncreaseAllowance(
-                address(_rewardsCoordinator), totalAmount
-            );
+            IERC20(operatorDirectedRewardsSubmissions[i].token)
+                .safeTransferFrom(msg.sender, address(this), totalAmount);
+            operatorDirectedRewardsSubmissions[i].token
+                .safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
         }
 
         _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
@@ -189,8 +191,10 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         address operator,
         uint32[] memory operatorSetIds
     ) external virtual override {
-        IAllocationManagerTypes.DeregisterParams memory params = IAllocationManagerTypes
-            .DeregisterParams({operator: operator, avs: address(this), operatorSetIds: operatorSetIds});
+        IAllocationManagerTypes.DeregisterParams memory params =
+            IAllocationManagerTypes.DeregisterParams({
+                operator: operator, avs: address(this), operatorSetIds: operatorSetIds
+            });
         _allocationManager.deregisterFromOperatorSets(params);
     }
 
@@ -244,12 +248,13 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     }
 
     /// @inheritdoc IServiceManager
-    function setAppointee(address appointee, address target, bytes4 selector) external onlyOwner {
+    function setAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external onlyOwner {
         _permissionController.setAppointee({
-            account: address(this),
-            appointee: appointee,
-            target: target,
-            selector: selector
+            account: address(this), appointee: appointee, target: target, selector: selector
         });
     }
 
@@ -260,10 +265,7 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         bytes4 selector
     ) external onlyOwner {
         _permissionController.removeAppointee({
-            account: address(this),
-            appointee: appointee,
-            target: target,
-            selector: selector
+            account: address(this), appointee: appointee, target: target, selector: selector
         });
     }
 

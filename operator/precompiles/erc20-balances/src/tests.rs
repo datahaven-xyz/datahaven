@@ -1,19 +1,19 @@
-// Copyright 2025 The DataHaven Team
-// This file is part of DataHaven.
+// Copyright 2019-2025 PureStake Inc.
+// This file is part of Moonbeam.
 
-// DataHaven is free software: you can redistribute it and/or modify
+// Moonbeam is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// DataHaven is distributed in the hope that it will be useful,
+// Moonbeam is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
-//
+// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+
 use std::str::from_utf8;
 
 use crate::{eip2612::Eip2612, mock::*, *};
@@ -565,7 +565,7 @@ fn deposit(data: Vec<u8>) {
             // Deposit
             // We need to call using EVM pallet so we can check the EVM correctly sends the amount
             // to the precompile.
-            Evm::call(
+            EVM::call(
                 RuntimeOrigin::root(),
                 CryptoAlith.into(),
                 Precompile1.into(),
@@ -602,7 +602,7 @@ fn deposit(data: Vec<u8>) {
                         amount: 500
                     }),
                     // Log is correctly emited.
-                    RuntimeEvent::Evm(pallet_evm::Event::Log {
+                    RuntimeEvent::EVM(pallet_evm::Event::Log {
                         log: log2(
                             Precompile1,
                             SELECTOR_LOG_DEPOSIT,
@@ -610,7 +610,7 @@ fn deposit(data: Vec<u8>) {
                             solidity::encode_event_data(U256::from(500)),
                         )
                     }),
-                    RuntimeEvent::Evm(pallet_evm::Event::Executed {
+                    RuntimeEvent::EVM(pallet_evm::Event::Executed {
                         address: Precompile1.into()
                     }),
                 ]
@@ -681,7 +681,7 @@ fn deposit_zero() {
             // Deposit
             // We need to call using EVM pallet so we can check the EVM correctly sends the amount
             // to the precompile.
-            Evm::call(
+            EVM::call(
                 RuntimeOrigin::root(),
                 CryptoAlith.into(),
                 Precompile1.into(),
@@ -697,7 +697,7 @@ fn deposit_zero() {
 
             assert_eq!(
                 events(),
-                vec![RuntimeEvent::Evm(pallet_evm::Event::ExecutedFailed {
+                vec![RuntimeEvent::EVM(pallet_evm::Event::ExecutedFailed {
                     address: Precompile1.into()
                 }),]
             );

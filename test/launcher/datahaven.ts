@@ -13,6 +13,7 @@ import {
   waitForContainerToStart
 } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
+import { COMMON_LAUNCH_ARGS } from "utils/validators";
 import { waitFor } from "utils/waits";
 import { type Hex, keccak256, toHex } from "viem";
 import { publicKeyToAddress } from "viem/accounts";
@@ -90,21 +91,9 @@ export const launchLocalDataHavenSolochain = async (
 
   if (options.buildDatahaven) {
     await buildLocalImage(options);
+  } else {
+    await checkTagExists(options.datahavenImageTag);
   }
-  await checkTagExists(options.datahavenImageTag);
-
-  const COMMON_LAUNCH_ARGS = [
-    "--unsafe-force-node-key-generation",
-    "--tmp",
-    "--validator",
-    "--discover-local",
-    "--no-prometheus",
-    "--unsafe-rpc-external",
-    "--rpc-cors=all",
-    "--force-authoring",
-    "--no-telemetry",
-    "--enable-offchain-indexing=true"
-  ];
 
   // Create a unique Docker network name using the network ID
   const dockerNetworkName = `datahaven-${options.networkId}`;
@@ -113,6 +102,7 @@ export const launchLocalDataHavenSolochain = async (
   logger.debug(await $`docker network rm ${dockerNetworkName} -f`.text());
   logger.debug(await $`docker network create ${dockerNetworkName}`.text());
   launchedNetwork.networkName = dockerNetworkName;
+  launchedNetwork.networkId = options.networkId;
 
   logger.success(`DataHaven nodes will use Docker network: ${dockerNetworkName}`);
 

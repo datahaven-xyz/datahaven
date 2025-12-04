@@ -1,6 +1,7 @@
 import { $ } from "bun";
 import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
+import { updateParameters } from "../../scripts/deploy-contracts";
 import { deployContracts } from "../contracts";
 import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
@@ -10,7 +11,7 @@ import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
 import { LaunchedNetwork } from "../types/launchedNetwork";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
-import { fundValidators, setupValidators, updateValidatorSet } from "../validators";
+import { fundValidators, setupValidators } from "../validators";
 
 // Authority IDs for test networks
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
@@ -145,6 +146,12 @@ export const launchNetwork = async (
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
+  let injectContracts = false;
+
+  // Using env to check
+  if (process.env.INJECT_CONTRACTS === "true") {
+    injectContracts = true;
+  }
 
   let cleanup: (() => Promise<void>) | undefined;
 
@@ -172,7 +179,7 @@ export const launchNetwork = async (
         datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
         relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
         authorityIds: TEST_AUTHORITY_IDS,
-        buildDatahaven: options.buildDatahaven ?? true,
+        buildDatahaven: options.buildDatahaven ?? !isCI, // if not specified, default to false for CI, true for local testing
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
       },
       launchedNetwork
@@ -186,29 +193,34 @@ export const launchNetwork = async (
         kurtosisEnclaveName: kurtosisEnclaveName,
         blockscout: options.blockscout ?? false,
         slotTime: options.slotTime || 2,
-        kurtosisNetworkArgs: options.kurtosisNetworkArgs
+        kurtosisNetworkArgs: options.kurtosisNetworkArgs,
+        injectContracts
       },
       launchedNetwork
     );
 
     // 3. Deploy contracts
-    logger.info("📄 Deploying smart contracts...");
-    let blockscoutBackendUrl: string | undefined;
-    if (options.blockscout) {
-      const blockscoutPort = await getPortFromKurtosis("blockscout", "http", kurtosisEnclaveName);
-      blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPort}`;
+    if (injectContracts) {
+      logger.info("📄 Smart contracts injected.");
+    } else {
+      logger.info("📄 Deploying smart contracts...");
+      let blockscoutBackendUrl: string | undefined;
+      if (options.blockscout) {
+        const blockscoutPort = await getPortFromKurtosis("blockscout", "http", kurtosisEnclaveName);
+        blockscoutBackendUrl = `http://127.0.0.1:${blockscoutPort}`;
+      }
+
+      await deployContracts({
+        rpcUrl: launchedNetwork.elRpcUrl,
+        verified: options.verified ?? false,
+        blockscoutBackendUrl,
+        parameterCollection
+      });
     }
 
     if (!launchedNetwork.elRpcUrl) {
       throw new Error("Ethereum RPC URL not available");
     }
-
-    await deployContracts({
-      rpcUrl: launchedNetwork.elRpcUrl,
-      verified: options.verified ?? false,
-      blockscoutBackendUrl,
-      parameterCollection
-    });
 
     // 4. Fund validators
     logger.info("💰 Funding validators...");
@@ -221,6 +233,11 @@ export const launchNetwork = async (
     await setupValidators({
       rpcUrl: launchedNetwork.elRpcUrl
     });
+
+    if (injectContracts) {
+      // We are injecting contracts but we still need the addresses
+      await updateParameters(parameterCollection);
+    }
 
     // 6. Set DataHaven runtime parameters
     logger.info("⚙️ Setting DataHaven parameters...");
@@ -243,12 +260,6 @@ export const launchNetwork = async (
       },
       launchedNetwork
     );
-
-    // 8. Update validator set (after relayers are running)
-    logger.info("🔄 Updating validator set...");
-    await updateValidatorSet({
-      rpcUrl: launchedNetwork.elRpcUrl
-    });
 
     // Log success
     const endTime = performance.now();
@@ -282,3 +293,5 @@ export const launchNetwork = async (
     throw error;
   }
 };
+
+export const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";

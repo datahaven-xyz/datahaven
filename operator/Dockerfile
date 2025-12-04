@@ -1,75 +1,75 @@
-#  --- Setup Build Environment ---
-FROM docker.io/paritytech/ci-unified:bullseye-1.88.0 AS base
+# DataHaven Operator Image
+#
+# This is the standard operator image used for CI and release builds.
+# It's a minimal image that accepts a pre-built binary.
+#
+# Usage:
+#   - CI builds: Binary from build-operator workflow artifact
+#   - Release builds: Binary from build-operator workflow artifact
+#   - Local builds: Binary from local cargo build
+#
+# Expected Binary Location:
+#   build/datahaven-node
+#
+# Registries:
+#   - GHCR: ghcr.io/datahaven-xyz/datahaven/datahaven (CI)
+#   - DockerHub: datahavenxyz/datahaven (releases)
 
-ARG MOLD_VERSION=2.40.4
-ARG PROTOC_VER=21.12
-ARG SCCACHE_VERSION=0.10.0
-ARG FAST_RUNTIME=FALSE
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    xz-utils \
-    clang \
-    libpq-dev \
-    && echo "Installing mold v${MOLD_VERSION}..." \
-    && curl -Lo mold.tar.gz "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/mold-${MOLD_VERSION}-x86_64-linux.tar.gz" \
-    && tar -xf mold.tar.gz --strip-components=1 -C /usr/local \
-    && rm mold.tar.gz \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && echo "Installing protoc v${PROTOC_VER}..." \
-    && curl -Lo protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-linux-x86_64.zip" \
-    && unzip -q protoc.zip -d /usr/local/ \
-    && rm protoc.zip \
-    && echo "Installing sccache v${SCCACHE_VERSION}..." \
-    && curl -Lo sccache.tar.gz "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
-    && tar -xf sccache.tar.gz --strip-components=1 -C /usr/local/bin sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl/sccache \
-    && rm sccache.tar.gz
+FROM debian:stable AS builder
 
-RUN cargo install cargo-chef --version 0.1.72 --locked
+# Install CA certificates and libpq5 for the release build
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq5 \
+    ca-certificates && \
+    update-ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV RUSTC_WRAPPER=sccache \
-    SCCACHE_DIR=/usr/local/sccache \
-    SCCACHE_CACHE_SIZE=25G \
-    RUSTFLAGS="-Clinker=clang -Clink-arg=-fuse-ld=/usr/local/bin/mold"
+FROM debian:stable-slim
 
-# --- Prepare build plan with cargo-chef ---
-FROM base AS planner
-WORKDIR /datahaven
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+LABEL version="0.3.0"
+LABEL description="DataHaven Node - Release Build"
+LABEL maintainer="steve@moonsonglabs.com"
 
-# --- Build dependencies using cargo-chef ---
-FROM base AS builder
-WORKDIR /datahaven
-COPY --from=planner /datahaven/recipe.json recipe.json
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/local/sccache,sharing=locked \
-    cargo chef cook --recipe-path recipe.json --release
-COPY . .
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/local/sccache,sharing=locked \
-    if [ "$FAST_RUNTIME" = "TRUE" ]; then \
-        cargo build --locked --release --features fast-runtime; \
-    else \
-        cargo build --locked --release; \
-    fi
+# Copy CA certificates and shared libraries from builder
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder \
+    /lib/x86_64-linux-gnu/libpq.so.5 \
+    /lib/x86_64-linux-gnu/libssl.so.3 \
+    /lib/x86_64-linux-gnu/libcrypto.so.3 \
+    /lib/x86_64-linux-gnu/libgssapi_krb5.so.2 \
+    /lib/x86_64-linux-gnu/libldap.so.2 \
+    /lib/x86_64-linux-gnu/libz.so.1 \
+    /lib/x86_64-linux-gnu/libzstd.so.1 \
+    /lib/x86_64-linux-gnu/libkrb5.so.3 \
+    /lib/x86_64-linux-gnu/libk5crypto.so.3 \
+    /lib/x86_64-linux-gnu/libcom_err.so.2 \
+    /lib/x86_64-linux-gnu/libkrb5support.so.0 \
+    /lib/x86_64-linux-gnu/liblber.so.2 \
+    /lib/x86_64-linux-gnu/libsasl2.so.2 \
+    /lib/x86_64-linux-gnu/libkeyutils.so.1 \
+    /lib/x86_64-linux-gnu/
 
-# --- Create final lightweight runtime image ---
-FROM docker.io/parity/base-bin:latest
-COPY --from=builder /datahaven/target/release/datahaven-node /usr/local/bin
-
-USER root
+# Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /data /datahaven/.local/share && \
+    mkdir -p /datahaven/.local/share /data && \
     chown -R datahaven:datahaven /data && \
-    ln -s /data /datahaven/.local/share/datahaven && \
-    /usr/local/bin/datahaven-node --version
+    ln -s /data /datahaven/.local/share/datahaven
 
 USER datahaven
 
-EXPOSE 30333 9933 9944 9615
+# Copy pre-built binary
+COPY --chown=datahaven:datahaven build/* /usr/local/bin
+# Make binary executable
+RUN chmod uog+x /usr/local/bin/datahaven*
+
+# Expose ports
+# 30333: p2p networking
+# 9944: WebSocket/RPC
+# 9615: Prometheus metrics
+EXPOSE 30333 9944 9615
+
 VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/local/bin/datahaven-node"]

@@ -1,19 +1,40 @@
 # DataHaven E2E Testing
 
-Quick start guide for running DataHaven end-to-end tests. For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUIDE.md).
+End-to-end testing framework for DataHaven, providing automated network deployment, contract interaction, and cross-chain scenario testing. This directory contains all tools needed to launch a complete local DataHaven network with Ethereum, Snowbridge relayers, and run comprehensive integration tests.
+
+For comprehensive documentation, see [E2E Testing Guide](./docs/E2E_TESTING_GUIDE.md).
 
 ## Pre-requisites
 
 - [Kurtosis](https://docs.kurtosis.com/install): For launching test networks
-- [Bun](https://bun.sh/) v1.2 or higher: TypeScript runtime and package manager
+- [Bun](https://bun.sh/) v1.3.2 or higher: TypeScript runtime and package manager
 - [Docker](https://www.docker.com/): For container management
 - [Foundry](https://getfoundry.sh/introduction/installation/): To deploy contracts
 - [Helm](https://helm.sh/docs/intro/install/): The Kubernetes Package Manager 
 
-##### MacOS
+#### MacOS
+If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+You may also need to install `libpq` for PostgreSQL connectivity and set the appropriate Rust flags.
 
-> [!IMPORTANT]
-> If you are running this on a Mac, `zig` is a pre-requisite for crossbuilding the node. Instructions for installation can be found [here](https://ziglang.org/learn/getting-started/).
+```bash
+# Install libpq using Homebrew
+brew install zig
+
+# Install libpq using Homebrew
+brew install libpq
+
+# Set environment variables for Rust compilation
+export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"
+export CPPFLAGS="-I$(brew --prefix libpq)/include"
+export LDFLAGS="-L$(brew --prefix libpq)/lib"
+export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"
+
+# Add to your shell profile (~/.zshrc or ~/.bash_profile) to persist
+echo 'export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"' >> ~/.zshrc
+echo 'export CPPFLAGS="-I$(brew --prefix libpq)/include"' >> ~/.zshrc
+echo 'export LDFLAGS="-L$(brew --prefix libpq)/lib"' >> ~/.zshrc
+echo 'export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"' >> ~/.zshrc
+```
 
 ## Quick Start
 
@@ -32,20 +53,92 @@ bun test:e2e:parallel
 
 # Run a specific test suite
 bun test suites/some-test.test.ts
+```
+
+NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the contracts when starting the tests to speed up setup.
+
+## Generating Ethereum state
+
+To avoid deploying contracts everytime for each tests, you can generate and then inject state in the Ethereum client.
+
+### Generate state
 
 ```
+$ bun cli launch --all
+$ make generate-ethereum-state
+$ bun cli stop --all
+```
+
+## What Gets Launched
+
+The `bun cli launch` command deploys a complete local environment:
+
+1. **Ethereum Network** (via Kurtosis):
+   - 2x Execution Layer clients (reth)
+   - 2x Consensus Layer clients (lodestar)
+   - Blockscout Explorer (optional: `--blockscout`)
+   - Dora Consensus Explorer
+
+2. **DataHaven Network**:
+   - 2x Validator nodes (Alice & Bob) with keys (babe, grandpa, imonline, beefy)
+   - EVM compatibility via Frontier
+   - Fast block times (2-3s in dev mode)
+   - Fast churn settings (`--fast-runtime` gives 1-minute epochs and 3-session eras while block time stays 6s)
+
+3. **Smart Contracts**:
+   - EigenLayer AVS contracts deployed to Ethereum
+   - Optional Blockscout verification (`--verified`)
+
+4. **Snowbridge Relayers**:
+   - Beacon relay (Ethereum → DataHaven)
+   - BEEFY relay (DataHaven → Ethereum)
+   - Execution relay (Ethereum → DataHaven)
+   - Solochain relay (DataHaven → Ethereum)
+
+5. **StorageHub Components** (optional: `--storagehub`):
+   - 1x MSP (Main Storage Provider) node with bcsv ecdsa key
+   - 1x BSP (Backup Storage Provider) node with bcsv ecdsa key
+   - 1x Indexer node with PostgreSQL database
+   - 1x Fisherman node
+   - Automatic provider registration via `force_msp_sign_up` / `force_bsp_sign_up`
+
+6. **Network Configuration**:
+   - Validator registration and funding
+   - Parameter initialization
+   - Validator set updates
 
 For more information on the E2E testing framework, see the [E2E Testing Framework Overview](./docs/E2E_FRAMEWORK_OVERVIEW.md).
 
-## Other Common Commands
+## Common Commands
 
-| Command                   | Description                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `bun cli stop`            | Stop all local DataHaven networks (interactive, will ask for confirmation on each component of the network) |
-| `bun cli deploy`          | Deploy the DataHaven network to a remote Kubernetes cluster                                                 |
-| `bun generate:wagmi`      | Generate contract TypeScript bindings for the contracts in the `contracts` directory                        |
-| `bun generate:types`      | Generate Polkadot API types                                                                                 |
-| `bun generate:types:fast` | Generate Polkadot API types with the `--fast-runtime` feature enabled                                       |
+| Command                   | Description                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Network Management**    |                                                                                                    |
+| `bun cli`                 | Interactive CLI menu for all operations                                                            |
+| `bun cli launch`          | Launch full local network (interactive options)                                                    |
+| `bun cli launch --all`     | Launch all components including StorageHub                                                         |
+| `bun cli launch --storagehub` | Launch with StorageHub nodes (MSP, BSP, Indexer, Fisherman)                                    |
+| `bun start:e2e:local`     | Launch local network (non-interactive)                                                             |
+| `bun start:e2e:verified`  | Launch with Blockscout and contract verification                                                   |
+| `bun start:e2e:ci`        | CI-optimized network launch                                                                        |
+| `bun cli stop`            | Stop all services (interactive)                                                                    |
+| `bun stop:dh`             | Stop DataHaven only                                                                                |
+| `bun stop:sb`             | Stop Snowbridge relayers only                                                                      |
+| `bun stop:eth`            | Stop Ethereum network only                                                                         |
+| **Testing**               |                                                                                                    |
+| `bun test:e2e`            | Run all E2E test suites                                                                            |
+| `bun test:e2e:parallel`   | Run tests with limited concurrency                                                                 |
+| `bun test <file>`         | Run specific test file                                                                             |
+| **Code Generation**       |                                                                                                    |
+| `bun generate:wagmi`      | Generate TypeScript contract bindings (after contract changes)                                     |
+| `bun generate:types`      | Generate Polkadot-API types from runtime                                                           |
+| `bun generate:types:fast` | Generate types with fast-runtime feature                                                           |
+| **Code Quality**          |                                                                                                    |
+| `bun fmt:fix`             | Fix TypeScript formatting with Biome                                                               |
+| `bun typecheck`           | TypeScript type checking                                                                           |
+| **Deployment**            |                                                                                                    |
+| `bun cli deploy`          | Deploy to Kubernetes cluster (interactive)                                                         |
+| `bun build:docker:operator` | Build local Docker image (`datahavenxyz/datahaven:local`)                                        |
 
 ## Local Network Deployment
 
@@ -80,6 +173,12 @@ Follow these steps to set up and interact with your local network:
 
    - Block Explorer: [http://127.0.0.1:3000](http://127.0.0.1:3000).
    - Kurtosis Dashboard: Run `kurtosis web` to access. From it you can see all the services running in the network, as well as their ports, status and logs.
+   - StorageHub Nodes (if launched with `--storagehub`):
+     - Alice (Validator): [ws://127.0.0.1:9944](ws://127.0.0.1:9944)
+     - MSP Node: [ws://127.0.0.1:9945](ws://127.0.0.1:9945)
+     - BSP Node: [ws://127.0.0.1:9946](ws://127.0.0.1:9946)
+     - Indexer Node: [ws://127.0.0.1:9947](ws://127.0.0.1:9947)
+     - Fisherman Node: [ws://127.0.0.1:9948](ws://127.0.0.1:9948)
 
 ## Troubleshooting
 
@@ -159,8 +258,56 @@ This script will:
 >
 > The script uses the `--release` flag by default, meaning it uses the WASM binary from `./operator/target/release`. If you need to use a different build target, you may need to adjust the script or run the steps manually.
 
+## Project Structure
+
+```
+test/
+├── suites/                              # E2E test suites
+│   ├── contracts.test.ts               # Contract deployment & configuration
+│   ├── cross-chain.test.ts             # Cross-chain message passing
+│   ├── datahaven-substrate.test.ts     # Block production & finality
+│   ├── ethereum-basic.test.ts          # Ethereum network validation
+│   ├── native-token-transfer.test.ts   # Cross-chain token transfers
+│   ├── rewards-message.test.ts         # Validator rewards distribution
+│   └── validator-set-update.test.ts    # Dynamic validator set updates
+├── framework/                           # Test utilities & helpers
+│   ├── connectors.ts                   # Network connectors
+│   ├── manager.ts                      # Test environment manager
+│   ├── suite.ts                        # Test suite utilities
+│   └── index.ts                        # Framework exports
+├── launcher/                            # Network deployment tools
+│   ├── kurtosis/                       # Ethereum network launcher
+│   ├── snowbridge/                     # Relayer management
+│   └── datahaven/                      # DataHaven node management
+├── generated/                           # Generated types
+│   ├── wagmi/                          # Contract bindings
+│   └── polkadot-api/                   # Runtime types
+└── docs/                                # Testing documentation
+    ├── E2E_TESTING_GUIDE.md
+    └── E2E_FRAMEWORK_OVERVIEW.md
+```
+
+## Test Suites
+
+- **contracts.test.ts**: Contract deployment and configuration validation
+- **cross-chain.test.ts**: Cross-chain message passing between Ethereum and DataHaven
+- **datahaven-substrate.test.ts**: Block production, finalization, and consensus
+- **ethereum-basic.test.ts**: Ethereum network health and basic functionality
+- **native-token-transfer.test.ts**: Cross-chain token transfers via Snowbridge
+- **rewards-message.test.ts**: Validator reward distribution from Ethereum to DataHaven
+- **validator-set-update.test.ts**: Dynamic validator registration/deregistration via EigenLayer
+
+Run individual suites:
+```bash
+bun test suites/rewards-message.test.ts
+bun test suites/native-token-transfer.test.ts
+bun test suites/validator-set-update.test.ts
+```
+
 ## Further Information
 
-- [Kurtosis](https://docs.kurtosis.com/): Used for launching a full Ethereum network
-- [Zombienet](https://paritytech.github.io/zombienet/): Used for launching a Polkadot-SDK based network
-- [Bun](https://bun.sh/): TypeScript runtime and ecosystem tooling
+- [Kurtosis](https://docs.kurtosis.com/): Ethereum network orchestration
+- [Zombienet](https://paritytech.github.io/zombienet/): Polkadot-SDK network testing
+- [Bun](https://bun.sh/): TypeScript runtime and tooling
+- [Foundry](https://book.getfoundry.sh/): Solidity development framework
+- [Polkadot-API](https://papi.how/): Type-safe Substrate interactions

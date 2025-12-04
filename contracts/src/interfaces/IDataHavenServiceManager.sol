@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
 // EigenLayer imports
@@ -43,25 +43,9 @@ interface IDataHavenServiceManagerEvents {
     /// @param validator Address of the validator added to the allowlist
     event ValidatorAddedToAllowlist(address indexed validator);
 
-    /// @notice Emitted when a Backup Storage Provider is added to the allowlist
-    /// @param bsp Address of the BSP added to the allowlist
-    event BspAddedToAllowlist(address indexed bsp);
-
-    /// @notice Emitted when a Main Storage Provider is added to the allowlist
-    /// @param msp Address of the MSP added to the allowlist
-    event MspAddedToAllowlist(address indexed msp);
-
     /// @notice Emitted when a validator is removed from the allowlist
     /// @param validator Address of the validator removed from the allowlist
     event ValidatorRemovedFromAllowlist(address indexed validator);
-
-    /// @notice Emitted when a Backup Storage Provider is removed from the allowlist
-    /// @param bsp Address of the BSP removed from the allowlist
-    event BspRemovedFromAllowlist(address indexed bsp);
-
-    /// @notice Emitted when a Main Storage Provider is removed from the allowlist
-    /// @param msp Address of the MSP removed from the allowlist
-    event MspRemovedFromAllowlist(address indexed msp);
 
     /// @notice Emitted when the Snowbridge Gateway address is set
     /// @param snowbridgeGateway Address of the Snowbridge Gateway
@@ -70,8 +54,8 @@ interface IDataHavenServiceManagerEvents {
 
 /**
  * @title DataHaven Service Manager Interface
- * @notice Defines the interface for the DataHaven Service Manager, which manages validators,
- *         backup storage providers (BSPs), and main storage providers (MSPs) in the DataHaven network
+ * @notice Defines the interface for the DataHaven Service Manager, which manages validators
+ *         in the DataHaven network
  */
 interface IDataHavenServiceManager is
     IDataHavenServiceManagerErrors,
@@ -82,20 +66,6 @@ interface IDataHavenServiceManager is
     /// @return True if the validator is in the allowlist, false otherwise
     function validatorsAllowlist(
         address validator
-    ) external view returns (bool);
-
-    /// @notice Checks if a BSP address is in the allowlist
-    /// @param bsp Address to check
-    /// @return True if the BSP is in the allowlist, false otherwise
-    function bspsAllowlist(
-        address bsp
-    ) external view returns (bool);
-
-    /// @notice Checks if an MSP address is in the allowlist
-    /// @param msp Address to check
-    /// @return True if the MSP is in the allowlist, false otherwise
-    function mspsAllowlist(
-        address msp
     ) external view returns (bool);
 
     /// @notice Returns the Snowbridge Gateway address
@@ -116,15 +86,11 @@ interface IDataHavenServiceManager is
      * @param initialOwner Address of the initial owner
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
-     * @param bspsStrategies Array of strategies supported by BSPs
-     * @param mspsStrategies Array of strategies supported by MSPs
      */
     function initialise(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        IStrategy[] memory bspsStrategies,
-        IStrategy[] memory mspsStrategies,
         address _snowbridgeGatewayAddress
     ) external;
 
@@ -137,7 +103,10 @@ interface IDataHavenServiceManager is
      * @param executionFee The execution fee for the Snowbridge message
      * @param relayerFee The relayer fee for the Snowbridge message
      */
-    function sendNewValidatorSet(uint128 executionFee, uint128 relayerFee) external payable;
+    function sendNewValidatorSet(
+        uint128 executionFee,
+        uint128 relayerFee
+    ) external payable;
 
     /**
      * @notice Builds a new validator set message to be sent to the Snowbridge Gateway
@@ -172,43 +141,11 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Adds a BSP to the allowlist
-     * @param bsp Address of the BSP to add
-     */
-    function addBspToAllowlist(
-        address bsp
-    ) external;
-
-    /**
-     * @notice Adds an MSP to the allowlist
-     * @param msp Address of the MSP to add
-     */
-    function addMspToAllowlist(
-        address msp
-    ) external;
-
-    /**
      * @notice Removes a validator from the allowlist
      * @param validator Address of the validator to remove
      */
     function removeValidatorFromAllowlist(
         address validator
-    ) external;
-
-    /**
-     * @notice Removes a BSP from the allowlist
-     * @param bsp Address of the BSP to remove
-     */
-    function removeBspFromAllowlist(
-        address bsp
-    ) external;
-
-    /**
-     * @notice Removes an MSP from the allowlist
-     * @param msp Address of the MSP to remove
-     */
-    function removeMspFromAllowlist(
-        address msp
     ) external;
 
     /**
@@ -230,50 +167,6 @@ interface IDataHavenServiceManager is
      * @param _strategies Array of strategy contracts to add to validators operator set
      */
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external;
-
-    /**
-     * @notice Returns all strategies supported by the Backup Storage Providers (BSPs) operator set
-     * @return An array of strategy contracts that BSPs can delegate to
-     */
-    function bspsSupportedStrategies() external view returns (IStrategy[] memory);
-
-    /**
-     * @notice Removes strategies from the list of supported strategies for Backup Storage Providers
-     * @param _strategies Array of strategy contracts to remove from BSPs operator set
-     */
-    function removeStrategiesFromBspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external;
-
-    /**
-     * @notice Adds strategies to the list of supported strategies for Backup Storage Providers
-     * @param _strategies Array of strategy contracts to add to BSPs operator set
-     */
-    function addStrategiesToBspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external;
-
-    /**
-     * @notice Returns all strategies supported by the Main Storage Providers (MSPs) operator set
-     * @return An array of strategy contracts that MSPs can delegate to
-     */
-    function mspsSupportedStrategies() external view returns (IStrategy[] memory);
-
-    /**
-     * @notice Removes strategies from the list of supported strategies for Main Storage Providers
-     * @param _strategies Array of strategy contracts to remove from MSPs operator set
-     */
-    function removeStrategiesFromMspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external;
-
-    /**
-     * @notice Adds strategies to the list of supported strategies for Main Storage Providers
-     * @param _strategies Array of strategy contracts to add to MSPs operator set
-     */
-    function addStrategiesToMspsSupportedStrategies(
         IStrategy[] calldata _strategies
     ) external;
 }

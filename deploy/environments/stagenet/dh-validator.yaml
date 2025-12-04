@@ -5,7 +5,7 @@ global:
   namespace: kt-datahaven-stagenet
 
 image:
-  tag: main
+  tag: latest
   pullPolicy: Always
 
 imagePullSecrets:

@@ -1,9 +1,25 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 // This module implements the StorageHub client traits for the runtime types.
 // It is only compiled for native (std) builds to avoid pulling `shc-common` into the
 // no_std Wasm runtime.
 use shc_common::{
-    traits::{ExtensionOperations, StorageEnableRuntime},
-    types::{MinimalExtension, StorageEnableEvents},
+    traits::{ExtensionOperations, StorageEnableRuntime, TransactionHashProvider},
+    types::{MinimalExtension, StorageEnableEvents, StorageHubEventsVec},
 };
 use sp_core::H256;
 
@@ -16,7 +32,7 @@ impl StorageEnableRuntime for crate::Runtime {
     type RuntimeApi = crate::RuntimeApi;
 }
 
-// Implement the transaction extension helpers for the concrete runtime's TxExtension.
+// Implement the transaction extension helpers for the concrete runtime's SignedExtra.
 impl ExtensionOperations<crate::RuntimeCall, crate::Runtime> for crate::SignedExtra {
     type Hash = H256;
 
@@ -32,21 +48,7 @@ impl ExtensionOperations<crate::RuntimeCall, crate::Runtime> for crate::SignedEx
             pallet_transaction_payment::ChargeTransactionPayment::<crate::Runtime>::from(
                 minimal.tip,
             ),
-            frame_metadata_hash_extension::CheckMetadataHash::new(false),
-        )
-    }
-
-    fn implicit(genesis_block_hash: Self::Hash, current_block_hash: Self::Hash) -> Self::Implicit {
-        (
-            (),
-            crate::VERSION.spec_version,
-            crate::VERSION.transaction_version,
-            genesis_block_hash,
-            current_block_hash,
-            (),
-            (),
-            (),
-            None,
+            frame_metadata_hash_extension::CheckMetadataHash::<crate::Runtime>::new(false),
         )
     }
 }
@@ -70,5 +72,34 @@ impl Into<StorageEnableEvents<crate::Runtime>> for crate::RuntimeEvent {
             crate::RuntimeEvent::Randomness(event) => StorageEnableEvents::Randomness(event),
             _ => StorageEnableEvents::Other(self),
         }
+    }
+}
+
+// Implement transaction hash extraction for the EVM runtime.
+impl TransactionHashProvider for crate::Runtime {
+    fn build_transaction_hash_map(
+        all_events: &StorageHubEventsVec<Self>,
+    ) -> std::collections::HashMap<u32, H256> {
+        let mut tx_map = std::collections::HashMap::new();
+
+        for ev in all_events {
+            if let frame_system::Phase::ApplyExtrinsic(extrinsic_index) = ev.phase {
+                // Convert to StorageEnableEvents
+                let storage_event: StorageEnableEvents<Self> = ev.event.clone().into();
+
+                // Check if it's an `Executed` Ethereum event in the `Other` variant
+                if let StorageEnableEvents::Other(runtime_event) = storage_event {
+                    if let crate::RuntimeEvent::Ethereum(pallet_ethereum::Event::Executed {
+                        transaction_hash,
+                        ..
+                    }) = runtime_event
+                    {
+                        tx_map.insert(extrinsic_index, transaction_hash);
+                    }
+                }
+            }
+        }
+
+        tx_map
     }
 }

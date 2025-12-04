@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
 /**
@@ -174,7 +174,10 @@ library MerkleUtils {
      * @param b Second hash
      * @return The hash of the pair
      */
-    function hashPair(bytes32 a, bytes32 b) internal pure returns (bytes32) {
+    function hashPair(
+        bytes32 a,
+        bytes32 b
+    ) internal pure returns (bytes32) {
         return a < b ? efficientHash(a, b) : efficientHash(b, a);
     }
 
@@ -184,7 +187,10 @@ library MerkleUtils {
      * @param b Second value
      * @return value The keccak256 hash
      */
-    function efficientHash(bytes32 a, bytes32 b) internal pure returns (bytes32 value) {
+    function efficientHash(
+        bytes32 a,
+        bytes32 b
+    ) internal pure returns (bytes32 value) {
         assembly {
             mstore(0x00, a)
             mstore(0x20, b)

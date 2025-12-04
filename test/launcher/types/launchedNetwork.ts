@@ -14,6 +14,7 @@ type ContainerSpec = {
 export class LaunchedNetwork {
   protected runId: string;
   protected _containers: ContainerSpec[];
+  protected _networkId: string;
   protected _networkName: string;
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
@@ -30,6 +31,7 @@ export class LaunchedNetwork {
     this._containers = [];
     this._activeRelayers = [];
     this._networkName = "";
+    this._networkId = "";
     this._elRpcUrl = undefined;
     this._clEndpoint = undefined;
     this._kubeNamespace = undefined;
@@ -43,6 +45,15 @@ export class LaunchedNetwork {
 
   public get networkName(): string {
     return this._networkName;
+  }
+
+  public set networkId(id: string) {
+    invariant(id.trim().length > 0, "❌ networkId cannot be empty");
+    this._networkId = id.trim();
+  }
+
+  public get networkId(): string {
+    return this._networkId;
   }
 
   /**

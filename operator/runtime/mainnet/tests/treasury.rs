@@ -1,18 +1,18 @@
-// Copyright 2019-2025 PureStake Inc.
-// This file is part of Moonbeam.
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
 
-// Moonbeam is free software: you can redistribute it and/or modify
+// DataHaven is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// Moonbeam is distributed in the hope that it will be useful,
+// DataHaven is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
 //! DataHaven Mainnet Runtime Integration Tests
 
@@ -63,7 +63,7 @@ fn author_does_receive_priority_fee() {
             Balances::make_free_balance_be(&author, 100 * HAVE);
 
             // EVM transfer.
-            assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
+            assert_ok!(RuntimeCall::EVM(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
@@ -105,7 +105,7 @@ fn total_issuance_after_evm_transaction_with_priority_fee() {
             let _author = get_validator_by_index(0);
 
             // EVM transfer.
-            assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
+            assert_ok!(RuntimeCall::EVM(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),
@@ -174,7 +174,7 @@ fn total_issuance_after_evm_transaction_without_priority_fee() {
             set_block_author_by_index(0);
             let issuance_before = <Runtime as pallet_evm::Config>::Currency::total_issuance();
             // EVM transfer.
-            assert_ok!(RuntimeCall::Evm(pallet_evm::Call::<Runtime>::call {
+            assert_ok!(RuntimeCall::EVM(pallet_evm::Call::<Runtime>::call {
                 source: H160::from(BOB),
                 target: H160::from(ALICE),
                 input: Vec::new(),

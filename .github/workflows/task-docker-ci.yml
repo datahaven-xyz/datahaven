@@ -1,0 +1,117 @@
+name: Docker Build & Publish (CI)
+
+on:
+  workflow_dispatch:
+    inputs:
+      binary-hash:
+        description: "The hash of the operator binary"
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      binary-hash:
+        description: "The hash of the operator binary"
+        required: true
+        type: string
+    outputs:
+      image-tag:
+        description: "The tag portion of the docker image (without registry)"
+        value: "${{ jobs.build-test-push.outputs.image-tag }}"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-build-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.extract_tag.outputs.image-tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: datahaven-node-${{ inputs.binary-hash }}
+          path: ./build/
+
+      - name: Prepare binary
+        run: |
+          chmod +x ./build/datahaven-node
+          ls -la ./build/
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/datahaven-xyz/datahaven/datahaven
+          flavor: |
+            latest=auto
+          tags: |
+            type=raw,value=ci-${{ github.run_id }}
+            type=sha,format=short,prefix=sha-
+            type=ref,event=tag
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Extract tag for job output
+        id: extract_tag
+        run: |
+          FULL_TAG=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[-1]')
+          TAG_ONLY=$(echo "$FULL_TAG" | sed 's|.*:||')
+          echo "image-tag=$TAG_ONLY" >> $GITHUB_OUTPUT
+          echo "image-name=ghcr.io/datahaven-xyz/datahaven/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: ./.github/workflow-templates/publish-docker
+        with:
+          dockerfile: ./operator/Dockerfile
+          context: .
+          registry: ghcr.io
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+          image_tags: ${{ steps.meta.outputs.tags }}
+          image_title: "DataHaven Node - CI"
+          image_description: "CI build of DataHaven operator node"
+          cache_scope: datahaven-ci-build
+
+      # --- Smoke tests ---
+
+      - name: Pull and test node --help
+        run: |
+          docker pull ${{ steps.extract_tag.outputs.image-name }}
+          docker run --rm ${{ steps.extract_tag.outputs.image-name }} --help
+
+      - name: Integration test (dev chain starts)
+        run: |
+          docker run --rm -d -p 9944:9944 --name local-dh-node \
+            ${{ steps.extract_tag.outputs.image-name }} --dev --unsafe-rpc-external
+
+      - name: Wait for node to be healthy and test
+        run: |
+          echo "Waiting for node to start..."
+          for i in {1..30}; do # Retry for 30 * 5s = 150 seconds
+            if curl --fail --location 'http://127.0.0.1:9944' \
+              --header 'Content-Type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"system_chain","params":[]}' ; then
+              echo "Node is healthy!"
+              docker logs local-dh-node --tail 100
+              exit 0
+            fi
+            echo "Attempt $i: Node not ready yet, sleeping 5s..."
+            sleep 5
+          done
+          echo "Node failed to start or respond in time."
+          docker logs local-dh-node --tail 100
+          exit 1
+
+      - name: Cleanup integration test container
+        if: always()
+        run: docker rm -f local-dh-node

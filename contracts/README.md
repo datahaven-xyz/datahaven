@@ -1,104 +1,71 @@
-# DataHaven AVS Smart Contracts 📜
+# DataHaven AVS Smart Contracts
 
-This directory contains the smart contracts for the DataHaven Actively Validated Service (AVS) built on EigenLayer.
-
-## Overview
-
-DataHaven is an AVS that provides secure and decentralised data storage services. The contracts in this repository implement the Service Manager, middleware, and associated utilities required for the DataHaven protocol.
+Implements the Actively Validated Service (AVS) logic for DataHaven, secured by EigenLayer. These contracts manage operator registration, handle cross-chain rewards via Snowbridge, and enforce slashing with a veto period.
 
 ## Project Structure
 
-- `src/`: Smart contract source code
-  - `DataHavenServiceManager.sol`: Main service manager contract
-  - `interfaces/`: Contract interfaces
-  - `libraries/`: Utility libraries
-  - `middleware/`: Middleware contracts (similar to EigenLayer's [middleware contracts](https://github.com/Layr-Labs/eigenlayer-middleware))
-- `script/`: Deployment scripts
-- `test/`: Test cases
-- `foundry.toml`: Foundry configuration
+```
+contracts/
+├── src/
+│   ├── DataHavenServiceManager.sol   # Core AVS service manager
+│   ├── middleware/                   # RewardsRegistry, VetoableSlasher, Snowbridge helpers
+│   ├── interfaces/                   # Contract interfaces
+│   └── libraries/                    # Utility libraries
+├── script/                           # Deployment & setup scripts
+├── lib/                              # External dependencies (EigenLayer, Snowbridge, OpenZeppelin)
+└── test/                             # Foundry test suites
+```
 
-## Prerequisites
+## Key Components
 
-- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- **DataHavenServiceManager** (`src/DataHavenServiceManager.sol`): Core contract for operator lifecycle; inherits `ServiceManagerBase`.
+- **RewardsRegistry** (`src/middleware/RewardsRegistry.sol`): Tracks validator performance and distributes rewards via Snowbridge.
+- **VetoableSlasher** (`src/middleware/VetoableSlasher.sol`): Handles slashing requests with a dispute resolution veto window.
 
-## Build
+## Development
 
-To build the contracts:
+Requires [Foundry](https://book.getfoundry.sh).
 
 ```bash
-cd contracts
+# Build and Test
 forge build
-```
-
-This will compile all contracts and generate artifacts in the `out` directory.
-
-## Test
-
-Run the test suite with:
-
-```bash
 forge test
-```
 
-For more verbose output including logs:
-
-```bash
-forge test -vv
-```
-
-For maximum verbosity including stack traces:
-
-```bash
-forge test -vvvv
-```
-
-Run specific test suites:
-
-```bash
-forge test --match-contract RewardsRegistry --no-match-contract SnowbridgeIntegration
-```
-
-Run specific tests:
-
-```bash
-forge test --match-test test_getRewardstest_newRewardsMessage --no-match-test test_newRewardsMessage_OnlyRewardsAgent
-```
-
-## Deployment
-
-### Local Deployment
-
-1. In a separate terminal, start a local Anvil instance:
-
-```bash
-anvil
-```
-
-2. Deploy to local Anvil:
-
-```bash
-forge script script/deploy/DeployLocal.s.sol --rpc-url anvil --broadcast
-```
-
-### Network Deployment
-
-To deploy to a network configured in `foundry.toml`:
-
-```bash
-forge script script/deploy/DeployLocal.s.sol --rpc-url $NETWORK_RPC_URL --private-key $PRIVATE_KEY --broadcast
-```
-
-Replace `$NETWORK_RPC_URL` with the RPC endpoint and `$PRIVATE_KEY` with your deployer's private key.
-
-Or using a network from `foundry.toml`:
-
-```bash
-forge script script/deploy/DeployLocal.s.sol --rpc-url mainnet --private-key $PRIVATE_KEY --broadcast
+# Regenerate TS bindings (after contract changes)
+cd ../test && bun generate:wagmi
 ```
 
 ## Configuration
 
-The deployment configuration can be modified in:
+Deployment parameters (EigenLayer addresses, initial validators, owners) are defined in `contracts/config/<network>.json`.
+- **Do not edit** `Config.sol` or `DeployParams.s.sol` directly; they only load the JSON.
+- Ensure `contracts/config/hoodi.json` matches your target environment before deploying.
 
-- `script/deploy/Config.sol`: Environment-specific configuration
-- `script/deploy/DeployParams.s.sol`: Deployment parameters
+## Deployment
+
+Two deployment paths exist: **Local** (Anvil) and **Testnet** (Hoodi). Both install the **DataHaven AVS contracts** (ServiceManager, RewardsRegistry, VetoableSlasher) and **Snowbridge** (BeefyClient, Gateway, Agent). They differ in EigenLayer setup:
+
+### Local (Anvil)
+**`DeployLocal.s.sol`** bootstraps a full EigenLayer core deployment (DelegationManager, StrategyManager, AVSDirectory, etc.) alongside DataHaven AVS and Snowbridge.
+```bash
+anvil
+forge script script/deploy/DeployLocal.s.sol --rpc-url anvil --broadcast
+```
+
+### Testnet (Hoodi)
+**`DeployTestnet.s.sol`** references existing EigenLayer contracts (addresses from `contracts/config/<network>.json`) and only deploys DataHaven AVS + Snowbridge.
+```bash
+NETWORK=hoodi forge script script/deploy/DeployTestnet.s.sol \
+  --rpc-url hoodi \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/deployments/<network>.json`.
+
+## How It Works
+1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.
+2. **Performance Tracking**: DataHaven computes reward points and sends a Merkle root to `RewardsRegistry` on Ethereum via Snowbridge.
+3. **Rewards Claims**: Validators claim rewards on Ethereum from `RewardsRegistry` using Merkle proofs.
+4. **Slashing**: Misbehavior triggers `VetoableSlasher` (subject to veto period).
+
+See `test/README.md` for full network integration tests.

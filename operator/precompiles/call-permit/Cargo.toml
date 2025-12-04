@@ -3,7 +3,7 @@ name = "pallet-evm-precompile-call-permit"
 authors = { workspace = true }
 description = "A Precompile to dispatch a call with a ERC712 permit."
 edition = "2021"
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 

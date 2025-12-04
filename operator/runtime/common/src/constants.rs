@@ -1,3 +1,19 @@
+// Copyright 2025 DataHaven
+// This file is part of DataHaven.
+
+// DataHaven is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DataHaven is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+
 /// Time and blocks.
 pub mod time {
     use polkadot_primitives::{BlockNumber, Moment, SessionIndex};
@@ -10,8 +26,11 @@ pub mod time {
     const ONE_MINUTE: BlockNumber = MINUTES;
 
     frame_support::parameter_types! {
+        /// Session/epoch duration:
+        /// - Production: 1 hour (600 blocks)
+        /// - Fast-runtime: 1 minute (10 blocks)
         pub const EpochDurationInBlocks: BlockNumber = prod_or_fast!(ONE_HOUR, ONE_MINUTE);
-        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 3);
+        pub const SessionsPerEra: SessionIndex = prod_or_fast!(6, 1);
     }
 
     // These time units are defined in number of blocks.
@@ -19,6 +38,10 @@ pub mod time {
     pub const HOURS: BlockNumber = MINUTES * 60;
     pub const DAYS: BlockNumber = HOURS * 24;
     pub const WEEKS: BlockNumber = DAYS * 7;
+
+    /// Milliseconds per year (365.25 days to account for leap years)
+    /// Used for inflation calculations
+    pub const MILLISECONDS_PER_YEAR: u128 = 31_557_600_000;
 }
 
 pub mod gas {

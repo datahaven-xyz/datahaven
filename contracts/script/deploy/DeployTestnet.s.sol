@@ -23,27 +23,21 @@ import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/Delegat
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {PermissionController} from
-    "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {
+    PermissionController
+} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
 // OpenZeppelin imports for proxy creation
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title DeployTestnet
- * @notice Deployment script for testnets (hoodi, holesky) - references existing EigenLayer contracts
+ * @notice Deployment script for testnets (hoodi) - references existing EigenLayer contracts
  */
 contract DeployTestnet is DeployBase {
-    // Supported testnet chains
-    enum TestnetChain {
-        HOODI,
-        HOLESKY
-    }
-
-    // Current testnet being deployed to
-    TestnetChain public currentTestnet;
     string public networkName;
 
     function run() public {
@@ -54,8 +48,8 @@ contract DeployTestnet is DeployBase {
             "NETWORK environment variable required for testnet deployment"
         );
 
-        currentTestnet = _detectAndValidateNetwork(networkName);
-        totalSteps = 2; // Reduced steps since we're not deploying EigenLayer
+        _validateNetwork(networkName);
+        totalSteps = 4;
 
         _executeSharedDeployment();
     }
@@ -66,12 +60,7 @@ contract DeployTestnet is DeployBase {
     }
 
     function _getDeploymentMode() internal view override returns (string memory) {
-        if (currentTestnet == TestnetChain.HOODI) {
-            return "HOODI_TESTNET";
-        } else if (currentTestnet == TestnetChain.HOLESKY) {
-            return "HOLESKY_TESTNET";
-        }
-        return "UNKNOWN_TESTNET";
+        return "HOODI_TESTNET";
     }
 
     function _setupEigenLayerContracts(
@@ -130,8 +119,6 @@ contract DeployTestnet is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
-            new IStrategy[](0), // FIXME remove when BSPs and MSPs are removed
             params.gateway
         );
 
@@ -200,16 +187,19 @@ contract DeployTestnet is DeployBase {
             vm.toString(address(serviceManagerImplementation)),
             '",'
         );
-        json =
-            string.concat(json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",');
-        json =
-            string.concat(json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",');
+        json = string.concat(
+            json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",'
+        );
+        json = string.concat(
+            json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
+        );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts (existing on testnet)
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
-        json =
-            string.concat(json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",');
+        json = string.concat(
+            json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",'
+        );
         json = string.concat(json, '"AVSDirectory": "', vm.toString(address(avsDirectory)), '",');
         json = string.concat(
             json, '"RewardsCoordinator": "', vm.toString(address(rewardsCoordinator)), '",'
@@ -231,24 +221,20 @@ contract DeployTestnet is DeployBase {
     // TESTNET-SPECIFIC FUNCTIONS
 
     /**
-     * @notice Detect and validate the target testnet network
+     * @notice Validate that the network is hoodi (the only supported testnet)
      */
-    function _detectAndValidateNetwork(
+    function _validateNetwork(
         string memory network
-    ) internal pure returns (TestnetChain) {
+    ) internal pure {
         bytes32 networkHash = keccak256(abi.encodePacked(network));
 
-        if (networkHash == keccak256(abi.encodePacked("hoodi"))) {
-            return TestnetChain.HOODI;
-        } else if (networkHash == keccak256(abi.encodePacked("holesky"))) {
-            return TestnetChain.HOLESKY;
+        if (networkHash != keccak256(abi.encodePacked("hoodi"))) {
+            revert(
+                string.concat(
+                    "Unsupported testnet network: ", network, ". Supported networks: hoodi"
+                )
+            );
         }
-
-        revert(
-            string.concat(
-                "Unsupported testnet network: ", network, ". Supported networks: hoodi, holesky"
-            )
-        );
     }
 
     /**
@@ -272,18 +258,5 @@ contract DeployTestnet is DeployBase {
                 "No contract found at ", contractName, " address: ", vm.toString(contractAddress)
             )
         );
-    }
-
-    /**
-     * @notice Get testnet-specific configuration parameters
-     * @dev Override this function to add testnet-specific logic in the future
-     */
-    function _getTestnetConfig() internal view returns (string memory) {
-        if (currentTestnet == TestnetChain.HOODI) {
-            return "hoodi";
-        } else if (currentTestnet == TestnetChain.HOLESKY) {
-            return "holesky";
-        }
-        return "unknown";
     }
 }

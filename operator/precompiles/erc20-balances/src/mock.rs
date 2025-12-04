@@ -1,18 +1,18 @@
-// Copyright 2025 The DataHaven Team
-// This file is part of DataHaven.
+// Copyright 2019-2025 PureStake Inc.
+// This file is part of Moonbeam.
 
-// DataHaven is free software: you can redistribute it and/or modify
+// Moonbeam is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// DataHaven is distributed in the hope that it will be useful,
+// Moonbeam is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
+// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Testing utilities.
 
@@ -108,7 +108,6 @@ pub type Precompiles<R> = PrecompileSetBuilder<
 
 pub type PCall = Erc20BalancesPrecompileCall<Runtime, NativeErc20Metadata, ()>;
 
-const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
 /// Block storage limit in bytes. Set to 40 KB.
 const BLOCK_STORAGE_LIMIT: u64 = 40 * 1024;
 
@@ -116,10 +115,7 @@ parameter_types! {
     pub BlockGasLimit: U256 = U256::from(u64::MAX);
     pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
     pub const WeightPerGas: Weight = Weight::from_parts(1, 0);
-    pub GasLimitPovSizeRatio: u64 = {
-        let block_gas_limit = BlockGasLimit::get().min(u64::MAX.into()).low_u64();
-        block_gas_limit.saturating_div(MAX_POV_SIZE)
-    };
+    pub const GasLimitPovSizeRatio: u64 = 0;
     pub GasLimitStorageGrowthRatio: u64 = {
         let block_gas_limit = BlockGasLimit::get().min(u64::MAX.into()).low_u64();
         block_gas_limit.saturating_div(BLOCK_STORAGE_LIMIT)
@@ -156,7 +152,7 @@ construct_runtime!(
     pub enum Runtime	{
         System: frame_system,
         Balances: pallet_balances,
-        Evm: pallet_evm,
+        EVM: pallet_evm,
         Timestamp: pallet_timestamp,
     }
 );

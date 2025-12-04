@@ -43,6 +43,7 @@ node:
   persistGeneratedNodeKey: true
   flags:
     - "--network-backend libp2p"
+    - "--pool-type fork-aware"
     # Note: Bootnode discovery will happen automatically via the chainspec downloaded from customChainspecUrl
   enableOffchainIndexing: true
 

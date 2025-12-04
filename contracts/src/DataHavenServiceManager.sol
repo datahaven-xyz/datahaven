@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
 // EigenLayer imports
@@ -7,10 +7,12 @@ import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
-import {IPermissionController} from
-    "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {IRewardsCoordinator} from
-    "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IPermissionController
+} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
+import {
+    IRewardsCoordinator
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
@@ -25,8 +27,7 @@ import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
 
 /**
  * @title DataHaven ServiceManager contract
- * @notice Manages validators, backup storage providers (BSPs), and main storage providers (MSPs)
- * in the DataHaven network
+ * @notice Manages validators in the DataHaven network
  */
 contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
     /// @notice The metadata for the DataHaven AVS.
@@ -34,17 +35,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
-    /// @notice The EigenLayer operator set ID for the Backup Storage Providers participating in the DataHaven network.
-    uint32 public constant BSPS_SET_ID = 1;
-    /// @notice The EigenLayer operator set ID for the Main Storage Providers participating in the DataHaven network.
-    uint32 public constant MSPS_SET_ID = 2;
 
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
-    /// @inheritdoc IDataHavenServiceManager
-    mapping(address => bool) public bspsAllowlist;
-    /// @inheritdoc IDataHavenServiceManager
-    mapping(address => bool) public mspsAllowlist;
 
     IGatewayV2 private _snowbridgeGateway;
 
@@ -73,8 +66,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        IStrategy[] memory bspsStrategies,
-        IStrategy[] memory mspsStrategies,
         address _snowbridgeGatewayAddress
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
@@ -82,8 +73,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         // Register the DataHaven service in the AllocationManager.
         _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
-        // Create the operator sets for the DataHaven service.
-        _createDataHavenOperatorSets(validatorsStrategies, bspsStrategies, mspsStrategies);
+        // Create the operator set for the DataHaven service.
+        _createDataHavenOperatorSets(validatorsStrategies);
 
         // Set the Snowbridge Gateway address.
         // This is the contract to which messages are sent, to be relayed to the Solochain network.
@@ -157,33 +148,19 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert CantRegisterToMultipleOperatorSets();
         }
 
-        // Case: Validator
-        if (operatorSetIds[0] == VALIDATORS_SET_ID) {
-            if (!validatorsAllowlist[operator]) {
-                revert OperatorNotInAllowlist();
-            }
-
-            // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
-            // Require validators to provide 20 bytes addresses.
-            require(data.length == 20, "Invalid solochain address length");
-            validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
-        }
-        // Case: BSP
-        else if (operatorSetIds[0] == BSPS_SET_ID) {
-            if (!bspsAllowlist[operator]) {
-                revert OperatorNotInAllowlist();
-            }
-        }
-        // Case: MSP
-        else if (operatorSetIds[0] == MSPS_SET_ID) {
-            if (!mspsAllowlist[operator]) {
-                revert OperatorNotInAllowlist();
-            }
-        }
-        // Case: Invalid operator set ID
-        else {
+        // Only validators are supported
+        if (operatorSetIds[0] != VALIDATORS_SET_ID) {
             revert InvalidOperatorSetId();
         }
+
+        if (!validatorsAllowlist[operator]) {
+            revert OperatorNotInAllowlist();
+        }
+
+        // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
+        // Require validators to provide 20 bytes addresses.
+        require(data.length == 20, "Invalid solochain address length");
+        validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
 
         emit OperatorRegistered(operator, operatorSetIds[0]);
     }
@@ -202,17 +179,12 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert CantDeregisterFromMultipleOperatorSets();
         }
 
-        if (
-            operatorSetIds[0] != VALIDATORS_SET_ID && operatorSetIds[0] != BSPS_SET_ID
-                && operatorSetIds[0] != MSPS_SET_ID
-        ) {
+        if (operatorSetIds[0] != VALIDATORS_SET_ID) {
             revert InvalidOperatorSetId();
         }
 
-        if (operatorSetIds[0] == VALIDATORS_SET_ID) {
-            // Remove validator from the addresses mapping
-            delete validatorEthAddressToSolochainAddress[operator];
-        }
+        // Remove validator from the addresses mapping
+        delete validatorEthAddressToSolochainAddress[operator];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }
@@ -226,43 +198,11 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function addBspToAllowlist(
-        address bsp
-    ) external onlyOwner {
-        bspsAllowlist[bsp] = true;
-        emit BspAddedToAllowlist(bsp);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function addMspToAllowlist(
-        address msp
-    ) external onlyOwner {
-        mspsAllowlist[msp] = true;
-        emit MspAddedToAllowlist(msp);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
     function removeValidatorFromAllowlist(
         address validator
     ) external onlyOwner {
         validatorsAllowlist[validator] = false;
         emit ValidatorRemovedFromAllowlist(validator);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removeBspFromAllowlist(
-        address bsp
-    ) external onlyOwner {
-        bspsAllowlist[bsp] = false;
-        emit BspRemovedFromAllowlist(bsp);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removeMspFromAllowlist(
-        address msp
-    ) external onlyOwner {
-        mspsAllowlist[msp] = false;
-        emit MspRemovedFromAllowlist(msp);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -288,72 +228,21 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function bspsSupportedStrategies() external view returns (IStrategy[] memory) {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: BSPS_SET_ID});
-        return _allocationManager.getStrategiesInOperatorSet(operatorSet);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removeStrategiesFromBspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external onlyOwner {
-        _allocationManager.removeStrategiesFromOperatorSet(address(this), BSPS_SET_ID, _strategies);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function addStrategiesToBspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external onlyOwner {
-        _allocationManager.addStrategiesToOperatorSet(address(this), BSPS_SET_ID, _strategies);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function mspsSupportedStrategies() external view returns (IStrategy[] memory) {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: MSPS_SET_ID});
-        return _allocationManager.getStrategiesInOperatorSet(operatorSet);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removeStrategiesFromMspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external onlyOwner {
-        _allocationManager.removeStrategiesFromOperatorSet(address(this), MSPS_SET_ID, _strategies);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function addStrategiesToMspsSupportedStrategies(
-        IStrategy[] calldata _strategies
-    ) external onlyOwner {
-        _allocationManager.addStrategiesToOperatorSet(address(this), MSPS_SET_ID, _strategies);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
     function snowbridgeGateway() external view returns (address) {
         return address(_snowbridgeGateway);
     }
 
     /**
-     * @notice Creates the initial operator sets for DataHaven in the AllocationManager.
-     * @dev This function should be called during initialisation to set up the required operator sets.
+     * @notice Creates the initial operator set for DataHaven in the AllocationManager.
+     * @dev This function should be called during initialisation to set up the required operator set.
      */
     function _createDataHavenOperatorSets(
-        IStrategy[] memory validatorsStrategies,
-        IStrategy[] memory bspsStrategies,
-        IStrategy[] memory mspsStrategies
+        IStrategy[] memory validatorsStrategies
     ) internal {
         IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
-            new IAllocationManagerTypes.CreateSetParams[](3);
+            new IAllocationManagerTypes.CreateSetParams[](1);
         operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID,
-            strategies: validatorsStrategies
-        });
-        operatorSets[1] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: BSPS_SET_ID,
-            strategies: bspsStrategies
-        });
-        operatorSets[2] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: MSPS_SET_ID,
-            strategies: mspsStrategies
+            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
         });
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }

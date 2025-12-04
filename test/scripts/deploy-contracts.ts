@@ -54,7 +54,7 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
   const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
 
   const deploymentScript =
-    !chain || chain === "anvil" || chain === "local"
+    !chain || chain === "anvil"
       ? "script/deploy/DeployLocal.s.sol"
       : "script/deploy/DeployTestnet.s.sol";
 
@@ -83,12 +83,16 @@ export const constructDeployCommand = (options: ContractDeploymentOptions): stri
 export const executeDeployment = async (
   deployCommand: string,
   parameterCollection?: ParameterCollection,
-  chain?: string
+  chain?: string,
+  privateKey?: string
 ) => {
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
-  await runShellCommandWithLogger(deployCommand, { cwd: "../contracts" });
+  await runShellCommandWithLogger(deployCommand, {
+    cwd: "../contracts",
+    env: privateKey ? { DEPLOYER_PRIVATE_KEY: privateKey } : undefined
+  });
 
   // After deployment, read the:
   // - Gateway address
@@ -97,62 +101,70 @@ export const executeDeployment = async (
   // - RewardsAgentOrigin (bytes32)
   // and add it to parameters if collection is provided
   if (parameterCollection) {
-    try {
-      const deployments = await parseDeploymentsFile(chain);
-      const rewardsInfo = await parseRewardsInfoFile(chain);
-      const gatewayAddress = deployments.Gateway;
-      const rewardsRegistryAddress = deployments.RewardsRegistry;
-      const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
-      const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
-
-      if (gatewayAddress) {
-        logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
-
-        parameterCollection.addParameter({
-          name: "EthereumGatewayAddress",
-          value: gatewayAddress
-        });
-      } else {
-        logger.warn("⚠️ Gateway address not found in deployments file");
-      }
-
-      if (rewardsRegistryAddress) {
-        logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
-        parameterCollection.addParameter({
-          name: "RewardsRegistryAddress",
-          value: rewardsRegistryAddress
-        });
-      } else {
-        logger.warn("⚠️ RewardsRegistry address not found in deployments file");
-      }
-
-      if (updateRewardsMerkleRootSelector) {
-        logger.debug(
-          `📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`
-        );
-        parameterCollection.addParameter({
-          name: "RewardsUpdateSelector",
-          value: updateRewardsMerkleRootSelector
-        });
-      } else {
-        logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
-      }
-
-      if (rewardsAgentOrigin) {
-        logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
-        parameterCollection.addParameter({
-          name: "RewardsAgentOrigin",
-          value: rewardsAgentOrigin
-        });
-      } else {
-        logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
-      }
-    } catch (error) {
-      logger.error(`Failed to read parameters from deployment: ${error}`);
-    }
+    await updateParameters(parameterCollection, chain);
   }
 
   logger.success("Contracts deployed successfully");
+};
+
+/**
+ * Read the parameters from the deployed contracts and add it to the collection.
+ */
+export const updateParameters = async (
+  parameterCollection: ParameterCollection,
+  chain?: string
+) => {
+  try {
+    const deployments = await parseDeploymentsFile(chain);
+    const rewardsInfo = await parseRewardsInfoFile(chain);
+    const gatewayAddress = deployments.Gateway;
+    const rewardsRegistryAddress = deployments.RewardsRegistry;
+    const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
+    const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+
+    if (gatewayAddress) {
+      logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
+
+      parameterCollection.addParameter({
+        name: "EthereumGatewayAddress",
+        value: gatewayAddress
+      });
+    } else {
+      logger.warn("⚠️ Gateway address not found in deployments file");
+    }
+
+    if (rewardsRegistryAddress) {
+      logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
+      parameterCollection.addParameter({
+        name: "RewardsRegistryAddress",
+        value: rewardsRegistryAddress
+      });
+    } else {
+      logger.warn("⚠️ RewardsRegistry address not found in deployments file");
+    }
+
+    if (updateRewardsMerkleRootSelector) {
+      logger.debug(`📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`);
+      parameterCollection.addParameter({
+        name: "RewardsUpdateSelector",
+        value: updateRewardsMerkleRootSelector
+      });
+    } else {
+      logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
+    }
+
+    if (rewardsAgentOrigin) {
+      logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
+      parameterCollection.addParameter({
+        name: "RewardsAgentOrigin",
+        value: rewardsAgentOrigin
+      });
+    } else {
+      logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+    }
+  } catch (error) {
+    logger.error(`Failed to read parameters from deployment: ${error}`);
+  }
 };
 
 /**
@@ -190,7 +202,7 @@ export const deployContracts = async (options: {
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  await executeDeployment(deployCommand);
+  await executeDeployment(deployCommand, undefined, options.chain, options.privateKey);
 
   logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
 };
@@ -243,5 +255,5 @@ if (import.meta.main) {
   await buildContracts();
 
   const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand);
+  await executeDeployment(deployCommand, undefined, undefined, options.privateKey);
 }

@@ -13,8 +13,9 @@ import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 import {AVSDeployer} from "./AVSDeployer.sol";
 import {TestUtils} from "./TestUtils.sol";
-import {IAllocationManagerTypes} from
-    "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
@@ -42,10 +43,6 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f, // Ninth pre-funded address in anvil
         0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 // Tenth pre-funded address in anvil
     ];
-    // The addresses of the Backup Storage Providers that are allowed to register to the DataHaven service.
-    address[] public bspsAllowlist;
-    // The addresses of the Main Storage Providers that are allowed to register to the DataHaven service.
-    address[] public mspsAllowlist;
 
     // Snowbridge contracts params
     // The hashes of the initial (current) Validators in the DataHaven solochain.
@@ -210,12 +207,12 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
             // Register the validator as an operator for the DataHaven service.
             uint32[] memory operatorSetIds = new uint32[](1);
             operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
-            IAllocationManagerTypes.RegisterParams memory registerParams = IAllocationManagerTypes
-                .RegisterParams({
-                avs: address(serviceManager),
-                operatorSetIds: operatorSetIds,
-                data: abi.encodePacked(address(uint160(uint256(initialValidatorHashes[i]))))
-            });
+            IAllocationManagerTypes.RegisterParams memory registerParams =
+                IAllocationManagerTypes.RegisterParams({
+                    avs: address(serviceManager),
+                    operatorSetIds: operatorSetIds,
+                    data: abi.encodePacked(address(uint160(uint256(initialValidatorHashes[i]))))
+                });
             allocationManager.registerForOperatorSets(validatorsAllowlist[i], registerParams);
             cheats.stopPrank();
 

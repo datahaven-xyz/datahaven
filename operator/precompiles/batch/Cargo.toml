@@ -3,7 +3,7 @@ name = "pallet-evm-precompile-batch"
 authors = { workspace = true }
 description = "A Precompile to batch multiple calls."
 edition = "2021"
-version = "0.1.0"
+version = { workspace = true }
 
 [dependencies]
 

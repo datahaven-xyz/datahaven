@@ -292,7 +292,8 @@ contract AVSDeployer is Test {
 
         // Deploy the RewardsRegistry contract
         cheats.prank(regularDeployer);
-        rewardsRegistry = new RewardsRegistry(address(serviceManager), mockRewardsAgent);
+        rewardsRegistry = new RewardsRegistry();
+        rewardsRegistry.initialize(address(serviceManager), mockRewardsAgent);
 
         // Set the rewards registry in the ServiceManager
         cheats.prank(avsOwner);

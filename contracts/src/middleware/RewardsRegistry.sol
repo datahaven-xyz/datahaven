@@ -12,14 +12,16 @@ import {RewardsRegistryStorage} from "./RewardsRegistryStorage.sol";
  */
 contract RewardsRegistry is RewardsRegistryStorage {
     /**
-     * @notice Constructor to set up the rewards registry
+     * @notice Initializer to set up the rewards registry
      * @param _avs Address of the AVS (Service Manager)
      * @param _rewardsAgent Address of the rewards agent contract
      */
-    constructor(
+    function initialize(
         address _avs,
         address _rewardsAgent
-    ) RewardsRegistryStorage(_avs, _rewardsAgent) {}
+    ) external initializer {
+        __RewardsRegistryStorage_init(_avs, _rewardsAgent);
+    }
 
     /**
      * @notice Modifier to restrict function access to the rewards agent only

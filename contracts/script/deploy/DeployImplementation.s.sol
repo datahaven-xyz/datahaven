@@ -91,7 +91,8 @@ contract DeployImplementation is Script {
         require(rewardsAgent != address(0), "REWARDS_AGENT not set");
 
         vm.broadcast();
-        RewardsRegistry rewardsRegistry = new RewardsRegistry(serviceManager, rewardsAgent);
+        RewardsRegistry rewardsRegistry = new RewardsRegistry();
+        rewardsRegistry.initialize(serviceManager, rewardsAgent);
 
         console.log("RewardsRegistry deployed at:", address(rewardsRegistry));
     }

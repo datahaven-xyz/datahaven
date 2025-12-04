@@ -138,8 +138,8 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
     function test_setRewardsRegistry() public {
         uint32 newOperatorSetId = 2;
-        RewardsRegistry newRewardsRegistry =
-            new RewardsRegistry(address(serviceManager), mockRewardsAgent);
+        RewardsRegistry newRewardsRegistry = new RewardsRegistry();
+        newRewardsRegistry.initialize(address(serviceManager), mockRewardsAgent);
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, true, true);
@@ -158,8 +158,8 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
 
     function test_setRewardsRegistry_NotOwner() public {
         uint32 newOperatorSetId = 2;
-        RewardsRegistry newRewardsRegistry =
-            new RewardsRegistry(address(serviceManager), mockRewardsAgent);
+        RewardsRegistry newRewardsRegistry = new RewardsRegistry();
+        newRewardsRegistry.initialize(address(serviceManager), mockRewardsAgent);
 
         vm.prank(nonOperatorAddress);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
@@ -575,8 +575,8 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
     function test_integration_multipleOperatorSets() public {
         // Set up a second operator set with a different registry
         uint32 secondOperatorSetId = 2;
-        RewardsRegistry secondRegistry =
-            new RewardsRegistry(address(serviceManager), mockRewardsAgent);
+        RewardsRegistry secondRegistry = new RewardsRegistry();
+        secondRegistry.initialize(address(serviceManager), mockRewardsAgent);
 
         // Set up the second registry
         vm.prank(avsOwner);

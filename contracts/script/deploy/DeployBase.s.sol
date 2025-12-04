@@ -289,13 +289,25 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         );
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 
-        // Deploy RewardsRegistry
+        // Deploy RewardsRegistry implementation
         vm.broadcast(_deployerPrivateKey);
-        RewardsRegistry rewardsRegistry = new RewardsRegistry(
+        RewardsRegistry rewardsRegistryImplementation = new RewardsRegistry();
+        Logging.logContractDeployed(
+            "RewardsRegistry Implementation", address(rewardsRegistryImplementation)
+        );
+
+        // Deploy RewardsRegistry proxy and initialize
+        vm.broadcast(_deployerPrivateKey);
+        bytes memory rewardsRegistryInitData = abi.encodeWithSelector(
+            RewardsRegistry.initialize.selector,
             address(serviceManager),
             address(0) // Will be set to the Agent address after creation
         );
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
+        TransparentUpgradeableProxy rewardsRegistryProxy = new TransparentUpgradeableProxy(
+            address(rewardsRegistryImplementation), address(proxyAdmin), rewardsRegistryInitData
+        );
+        RewardsRegistry rewardsRegistry = RewardsRegistry(address(rewardsRegistryProxy));
+        Logging.logContractDeployed("RewardsRegistry Proxy", address(rewardsRegistry));
         bytes4 updateRewardsMerkleRootSelector = IRewardsRegistry.updateRewardsMerkleRoot.selector;
 
         Logging.logSection("Configuring Service Manager");

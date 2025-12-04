@@ -93,21 +93,22 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
   }
 }
 
-/** Extracts an event from DataHaven transaction result, throws if not found. */
-export function requireDhEvent<T = unknown>(
+
+
+/** Asserts that an event exists in DataHaven transaction result. */
+export function expectDhEvent(
   events: any[],
   pallet: string,
   eventType: string,
   filter?: (value: any) => boolean
-): T {
-  const event = events.find(
+): void {
+  const found = events.some(
     (e) =>
       e.type === pallet &&
       e.value?.type === eventType &&
-      (filter ? filter(e.value?.value) : true)
+      (!filter || filter(e.value?.value))
   );
-  if (!event) {
+  if (!found) {
     throw new Error(`Expected event ${pallet}.${eventType} not found`);
   }
-  return event.value.value as T;
 }

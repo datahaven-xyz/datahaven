@@ -16,10 +16,10 @@ import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  expectDhEvent,
   getPapiSigner,
   logger,
   parseDeploymentsFile,
-  requireDhEvent,
   SUBSTRATE_FUNDED_ACCOUNTS,
   waitForDataHavenEvent,
   waitForEthereumEvent,
@@ -40,11 +40,6 @@ const NATIVE_TOKEN_ID =
 // ETH → DH: ~2-3 min ideal (ETH block + beacon finality ~2min + relay poll + DH block)
 const DH_TO_ETH_TIMEOUT_MS = 3 * 60 * 1000;   // 3 minutes (conservative)
 const ETH_TO_DH_TIMEOUT_MS = 6 * 60 * 1000;   // 6 minutes (Ethereum finality dominates)
-
-// Type for RegisterToken event payload
-interface RegisterTokenEvent {
-  foreign_token_id: { asHex: () => string };
-}
 
 interface ForeignTokenRegisteredEvent {
   tokenID: string;
@@ -175,11 +170,11 @@ describe("Native Token Transfer", () => {
     expect(dhTxResult.ok).toBe(true);
 
     // Verify token IDs match across chains
-    const dhTokenId = requireDhEvent<RegisterTokenEvent>(
-      dhTxResult.events,
-      "SnowbridgeSystemV2",
-      "RegisterToken"
-    ).foreign_token_id.asHex();
+    const registerEvent = dhTxResult.events.find(
+      (e: any) => e.type === "SnowbridgeSystemV2" && e.value?.type === "RegisterToken"
+    );
+    expect(registerEvent).toBeDefined();
+    const dhTokenId = registerEvent!.value.value.foreign_token_id.asHex();
 
     const { args: ethTokenEvent } = decodeEventLog({
       abi: gatewayAbi,
@@ -246,9 +241,9 @@ describe("Native Token Transfer", () => {
     expect(dhTxResult.ok).toBe(true);
 
     // Verify DataHaven events
-    requireDhEvent(dhTxResult.events, "DataHavenNativeTransfer", "TokensTransferredToEthereum",
+    expectDhEvent(dhTxResult.events, "DataHavenNativeTransfer", "TokensTransferredToEthereum",
       (v) => v?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey);
-    requireDhEvent(dhTxResult.events, "DataHavenNativeTransfer", "TokensLocked",
+    expectDhEvent(dhTxResult.events, "DataHavenNativeTransfer", "TokensLocked",
       (v) => v?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey);
 
     // Capture final balances

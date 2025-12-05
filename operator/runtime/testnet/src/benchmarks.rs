@@ -14,13 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: Temporary workaround before upgrading to latest polkadot-sdk - fix https://github.com/paritytech/polkadot-sdk/pull/6435
-#[allow(unused_imports)]
-use pallet_collective as pallet_collective_treasury_council;
-#[allow(unused_imports)]
-use pallet_collective as pallet_collective_technical_committee;
-use pallet_external_validator_slashes as pallet_external_validators_slashes;
-
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
     [frame_system, SystemBench::<Runtime>]

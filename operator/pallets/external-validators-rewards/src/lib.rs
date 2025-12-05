@@ -117,9 +117,17 @@ pub mod pallet {
         /// Check if a validator has been slashed in a given era
         type SlashingCheck: SlashingCheck<Self::AccountId>;
 
-        /// Points awarded per block produced. The total potential points per validator per session
-        /// is calculated as: fair_share_blocks × AuthorBaseRewardPoints × weighted_performance_score
-        type AuthorBaseRewardPoints: Get<u32>;
+        /// Base points added to the reward pool per block produced.
+        /// These points are distributed according to the weighted formula:
+        /// - 60% (BlockAuthoringWeight) goes to the block author
+        /// - 40% (LivenessWeight + base) is shared among all online validators
+        ///
+        /// Example with 320 points and 32 validators:
+        /// - Per block: author gets 192 + 4 = 196, each non-author gets 4
+        /// - Per session (600 blocks): each validator earns ~6,000 points (uniform distribution)
+        /// - Per era (6 sessions): each validator earns ~36,000 points
+        #[pallet::constant]
+        type BasePointsPerBlock: Get<u32>;
 
         /// Weight of block authoring in the rewards formula (e.g., 60% = Perbill::from_percent(60)).
         /// Combined with LivenessWeight, the sum should not exceed 100%.
@@ -478,10 +486,17 @@ pub mod pallet {
                 return;
             }
 
-            // Fair share: expected blocks per non-whitelisted validator using checked math
-            // Ensure minimum of 1 to prevent division issues
+            // Fair share: expected blocks per validator (including whitelisted).
+            // Whitelisted validators still produce blocks (they just don't receive rewards),
+            // so block production slots are distributed among ALL validators.
+            // This ensures non-whitelisted validators aren't penalized for not producing
+            // blocks that were assigned to whitelisted validators.
+            // Note: We use floor division here which is appropriate for the soft cap
+            // (we don't want to give bonus credit for fractional blocks).
+            // Ensure minimum of 1 to prevent division issues when total_blocks < validator_count.
+            let total_validator_count = validators.len() as u32;
             let fair_share = total_blocks
-                .checked_div(non_whitelisted_count)
+                .checked_div(total_validator_count)
                 .unwrap_or(1)
                 .max(1);
 
@@ -522,9 +537,9 @@ pub mod pallet {
 
             log::debug!(
                 target: "ext_validators_rewards",
-                "Session {} performance: {} validators ({} non-whitelisted), {} total blocks, fair_share={}, max_credited={}, weights={}%/{}%/{}%",
+                "Session {} performance: {} total validators, {} non-whitelisted, {} blocks, fair_share={}, max_credited={}, weights={}%/{}%/{}%",
                 session_index,
-                validators.len(),
+                total_validator_count,
                 non_whitelisted_count,
                 total_blocks,
                 fair_share,
@@ -560,11 +575,9 @@ pub mod pallet {
 
                 let blocks_authored = BlocksAuthoredInSession::<T>::get(validator);
 
-                // Block production score with soft cap allowing over-performance
+                // Block production with soft cap allowing over-performance
                 // credited_blocks = min(blocks_authored, max_credited_blocks)
-                // block_score = credited_blocks / fair_share (can exceed 100%)
                 let credited_blocks = blocks_authored.min(max_credited_blocks);
-                let block_score = Perbill::from_rational(credited_blocks, fair_share);
 
                 // Liveness score: based on ImOnline's is_online() which considers
                 // heartbeats OR block authorship
@@ -575,32 +588,59 @@ pub mod pallet {
                     Perbill::zero()
                 };
 
-                // Apply configurable weighting formula
-                // weighted_score = block_weight × block_score + liveness_weight × liveness_score + base_weight
-                // Note: block_score can exceed 100%, so weighted_score can exceed 100% for over-performers
-                let weighted_score = block_weight
-                    .saturating_mul(block_score)
-                    .saturating_add(liveness_weight.saturating_mul(liveness_score))
+                // Calculate points using direct computation to avoid Perbill capping.
+                // Perbill::from_rational caps at 100% when numerator > denominator,
+                // which would prevent over-performers from getting bonus points.
+                //
+                // Formula breakdown:
+                // - Block contribution: block_weight × credited_blocks × base_points
+                //   This directly rewards blocks authored, allowing over-performers to
+                //   exceed 100% of fair share (up to the soft cap).
+                //
+                // - Liveness + Base contribution: (liveness_weight × liveness + base_weight) × total_blocks × base_points / count
+                //   Uses total_blocks instead of fair_share to ensure no points are lost due to
+                //   integer division truncation. The division by count happens at the end to
+                //   distribute the full pool evenly.
+                //
+                // Total: block_contribution + liveness_base_contribution
+                let base_points = T::BasePointsPerBlock::get();
+
+                // Block contribution: block_weight × credited_blocks × base_points
+                // This can exceed fair_share × base_points for over-performers
+                let block_contribution =
+                    block_weight.mul_floor(credited_blocks.saturating_mul(base_points));
+
+                // Liveness + Base contribution: other_weight × effective_total × base_points / total_validators
+                // Using max(total_blocks, total_validators) ensures:
+                // 1. No points are lost from fair_share truncation when total_blocks > validator_count
+                // 2. Minimum guaranteed potential when total_blocks < validator_count
+                //
+                // We divide by total_validator_count (not non_whitelisted_count) because:
+                // - Whitelisted validators still occupy block production slots
+                // - Each non-whitelisted validator should get their "fair share" of the liveness pool
+                // - Otherwise liveness would disproportionately outweigh block authoring
+                let other_weight = liveness_weight
+                    .saturating_mul(liveness_score)
                     .saturating_add(base_weight);
+                let effective_total_for_other = total_blocks.max(total_validator_count);
+                let total_other_pool =
+                    other_weight.mul_floor(effective_total_for_other.saturating_mul(base_points));
+                let liveness_base_contribution = total_other_pool / total_validator_count;
 
-                // Calculate potential points based on fair share of blocks
-                // AuthorBaseRewardPoints is the number of points per block produced
-                let potential_points = fair_share.saturating_mul(T::AuthorBaseRewardPoints::get());
-
-                // Calculate final points by applying weighted score to potential points
-                let points = weighted_score.mul_floor(potential_points);
+                // Total points = block contribution + liveness/base contribution
+                let points = block_contribution.saturating_add(liveness_base_contribution);
 
                 if points > 0 {
                     log::debug!(
                         target: "ext_validators_rewards",
-                        "Validator {:?}: blocks={}/{} (credited={}, score={}%), online={}, weighted={}%, points={}",
+                        "Validator {:?}: blocks={}/{} (credited={}), online={}, block_pts={}, liveness_base_pts={}, total={}",
                         validator,
                         blocks_authored,
                         fair_share,
                         credited_blocks,
-                        block_score.deconstruct() * 100 / Perbill::ACCURACY,
                         if is_online { "yes" } else { "no" },
-                        weighted_score.deconstruct() * 100 / Perbill::ACCURACY,
+                        block_contribution,
+                        liveness_base_contribution,
                         points
                     );
 

@@ -1570,7 +1570,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type ValidatorSet = Session;
     type LivenessCheck = ValidatorIsOnline;
     type SlashingCheck = ValidatorSlashChecker;
-    type AuthorBaseRewardPoints = ConstU32<20>;
+    type BasePointsPerBlock = ConstU32<320>;
     type BlockAuthoringWeight =
         runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;
     type LivenessWeight =

@@ -152,8 +152,8 @@ parameter_types! {
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
     // Inflation scaling parameters for tests
-    // Assuming 6 second block time and 1 hour session = 600 blocks per session
-    // 6 sessions per era = 3600 blocks per era
+    // Using 600 blocks as the expected blocks per era for test simplicity
+    // (In production: 6-second blocks, 1-hour sessions, 6 sessions = 3600 blocks per era)
     pub const ExpectedBlocksPerEra: u32 = 600;
     pub const MinInflationPercent: u32 = 20; // 20% minimum even with 0 blocks
     pub const MaxInflationPercent: u32 = 100; // 100% maximum
@@ -183,13 +183,23 @@ impl frame_support::traits::ValidatorSet<u64> for MockValidatorSet {
     }
 }
 
-/// Configurable liveness check that reads offline validators from mock data.
-/// Validators in the offline_validators list are considered offline.
+/// Configurable liveness check that mirrors ImOnline behavior.
+/// A validator is considered online if:
+/// 1. They are NOT in the offline_validators list, OR
+/// 2. They have authored at least one block in the current session
+///
+/// This matches the real ImOnline pallet which considers block authorship
+/// as proof of liveness (no heartbeat needed if you authored a block).
 pub struct MockLivenessCheck;
 impl frame_support::traits::Contains<u64> for MockLivenessCheck {
     fn contains(validator: &u64) -> bool {
-        // Validator is online if NOT in the offline_validators list
-        !Mock::mock().offline_validators.contains(validator)
+        // Check if validator authored any blocks this session
+        let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
+
+        // Validator is online if:
+        // 1. They authored blocks (proves they're online), OR
+        // 2. They're not in the offline list (sent heartbeat)
+        authored_blocks > 0 || !Mock::mock().offline_validators.contains(validator)
     }
 }
 

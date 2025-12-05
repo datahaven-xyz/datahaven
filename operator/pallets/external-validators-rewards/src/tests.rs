@@ -2428,56 +2428,56 @@ fn test_session_performance_offline_validator_gets_reduced_points() {
                 index: 1,
                 start: None,
             });
-            // Mark validator 2 as offline
+            // Mark validator 2 as offline (no heartbeat)
             mock.offline_validators = vec![2];
         });
 
         let validators = vec![1u64, 2u64, 3u64];
 
-        // All validators author same number of blocks
+        // Validators 1 and 3 author blocks (they are online)
+        // Validator 2 doesn't author blocks AND is in offline list (truly offline)
         for _ in 0..6 {
             ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
             ExternalValidatorsRewards::note_block_author(3);
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
-        // With 18 blocks total, fair_share = 6
-        // max_credited = 6 + 50%×6 = 9
-        // effective_total_for_other = max(18, 3) = 18
+        // With 12 blocks total, fair_share = 12 / 3 = 4
+        // max_credited = 4 + 50%×4 = 6
+        // effective_total_for_other = max(12, 3) = 12
 
-        // Validator 1 (online): 6 blocks
+        // Validator 1 (online): 6 blocks → credited = min(6, 6) = 6
         // block_contribution = 60% × 6 × 320 = 1152
-        // liveness_base_contribution = 40% × 18 × 320 / 3 = 768
-        // Total = 1920
+        // liveness_base_contribution = 40% × 12 × 320 / 3 = 512
+        // Total = 1664
 
-        // Validator 2 (offline): 6 blocks
-        // block_contribution = 60% × 6 × 320 = 1152
-        // liveness_base_contribution = 10% × 18 × 320 / 3 = 192 (only base, no liveness)
-        // Total = 1344
+        // Validator 2 (offline, 0 blocks):
+        // block_contribution = 60% × 0 × 320 = 0
+        // liveness_base_contribution = 10% × 12 × 320 / 3 = 128 (only base, no liveness)
+        // Total = 128
 
-        // Validator 3 (online): same as validator 1 = 1920
+        // Validator 3 (online): same as validator 1 = 1664
 
-        // Total = 1920 + 1344 + 1920 = 5184
+        // Total = 1664 + 128 + 1664 = 3456
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
             era_rewards.individual.get(&1),
-            Some(&1920),
-            "Online validator 1 should get 1920 points"
+            Some(&1664),
+            "Online validator 1 should get 1664 points"
         );
         assert_eq!(
             era_rewards.individual.get(&2),
-            Some(&1344),
-            "Offline validator 2 should get reduced points (1344)"
+            Some(&128),
+            "Offline validator 2 (no blocks, no heartbeat) should get only base points (128)"
         );
         assert_eq!(
             era_rewards.individual.get(&3),
-            Some(&1920),
-            "Online validator 3 should get 1920 points"
+            Some(&1664),
+            "Online validator 3 should get 1664 points"
         );
-        assert_eq!(era_rewards.total, 5184, "Total should be 5184 points");
+        assert_eq!(era_rewards.total, 3456, "Total should be 3456 points");
     })
 }
 
@@ -2491,36 +2491,81 @@ fn test_session_performance_all_validators_offline() {
                 index: 1,
                 start: None,
             });
-            // All validators offline
+            // All validators offline (no heartbeat, no blocks)
             mock.offline_validators = vec![1, 2, 3];
         });
 
         let validators = vec![1u64, 2u64, 3u64];
 
-        // Validators author blocks even though offline (blocks authored but no heartbeat)
+        // No validators author blocks - they are all truly offline
+
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+
+        // With 0 blocks total, fair_share = max(0/3, 1) = 1
+        // effective_total_for_other = max(0, 3) = 3
+
+        // Each validator (offline, no blocks):
+        // block_contribution = 60% × 0 × 320 = 0
+        // liveness_base_contribution = 10% × 3 × 320 / 3 = 32 (only base, no liveness)
+        // Total per validator = 32
+
+        // Total = 32 × 3 = 96
+
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+        assert_eq!(
+            era_rewards.total, 96,
+            "All offline validators (no blocks, no heartbeat) should each get 32 = 96 total"
+        );
+    })
+}
+
+#[test]
+fn test_session_performance_offline_but_authored_blocks() {
+    // Test that block authorship proves liveness (mirrors ImOnline behavior)
+    // A validator marked as "offline" (no heartbeat) but who authored blocks
+    // should still be considered online.
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            // Mark validator 2 as offline (didn't send heartbeat)
+            mock.offline_validators = vec![2];
+        });
+
+        let validators = vec![1u64, 2u64, 3u64];
+
+        // All validators author blocks - validator 2 proves liveness through blocks
         for _ in 0..6 {
             ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(2); // Authored blocks = online!
             ExternalValidatorsRewards::note_block_author(3);
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
         // With 18 blocks total, fair_share = 6
+        // max_credited = 6 + 50%×6 = 9
         // effective_total_for_other = max(18, 3) = 18
 
-        // Each validator (offline but authored blocks):
+        // All validators are online (validator 2 proved liveness via blocks)
+        // Each validator: 6 blocks → credited = 6
         // block_contribution = 60% × 6 × 320 = 1152
-        // liveness_base_contribution = 10% × 18 × 320 / 3 = 192 (only base, no liveness)
-        // Total per validator = 1344
+        // liveness_base_contribution = 40% × 18 × 320 / 3 = 768
+        // Total per validator = 1920
 
-        // Total = 1344 × 3 = 4032
+        // Total = 1920 × 3 = 5760
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.total, 4032,
-            "All offline validators should each get 1344 = 4032 total"
+            era_rewards.individual.get(&2),
+            Some(&1920),
+            "Validator 2 authored blocks, so is considered online despite no heartbeat"
         );
+        assert_eq!(era_rewards.total, 5760, "Total should be 5760 points");
     })
 }
 
@@ -2972,6 +3017,513 @@ fn test_history_depth_exact_boundary() {
         assert_eq!(
             points_era1_after, 0,
             "Points should be cleaned up at exact boundary"
+        );
+    })
+}
+
+// =============================================================================
+// TOTAL POINTS VERIFICATION TESTS
+// =============================================================================
+
+#[test]
+fn test_total_points_sum_equals_expected_pool() {
+    // Verify that the sum of individual points matches the expected pool
+    // based on the formula: block_pool + liveness_base_pool
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+        });
+
+        let validators = vec![1u64, 2u64, 3u64, 4u64];
+
+        // Equal block distribution: 5 blocks each = 20 total
+        for _ in 0..5 {
+            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(4);
+        }
+
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+
+        // Verify sum of individual points equals total
+        let individual_sum: u32 = era_rewards.individual.values().sum();
+        assert_eq!(
+            individual_sum, era_rewards.total,
+            "Sum of individual points should equal total points"
+        );
+
+        // Verify against expected formula:
+        // 20 blocks, 4 validators, fair_share = 5, max_credited = 7
+        // Each validator: 5 blocks (within cap)
+        // block_contribution = 60% × 5 × 320 = 960
+        // liveness_base_contribution = 40% × 20 × 320 / 4 = 640
+        // Total per validator = 1600
+        // Total = 1600 × 4 = 6400
+        assert_eq!(
+            era_rewards.total, 6400,
+            "Total should match expected pool calculation"
+        );
+    })
+}
+
+#[test]
+fn test_total_points_with_uneven_distribution() {
+    // Verify total points are correct even with uneven block distribution
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+        });
+
+        let validators = vec![1u64, 2u64, 3u64];
+
+        // Uneven distribution: 10, 5, 0 blocks
+        for _ in 0..10 {
+            ExternalValidatorsRewards::note_block_author(1);
+        }
+        for _ in 0..5 {
+            ExternalValidatorsRewards::note_block_author(2);
+        }
+        // Validator 3 authors no blocks
+
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+
+        // Verify sum of individual points equals total
+        let individual_sum: u32 = era_rewards.individual.values().sum();
+        assert_eq!(
+            individual_sum, era_rewards.total,
+            "Sum of individual points should equal total even with uneven distribution"
+        );
+
+        // 15 blocks total, 3 validators
+        // fair_share = 5, max_credited = 7
+        // effective_total_for_other = max(15, 3) = 15
+        //
+        // Validator 1: 10 blocks → credited = 7 (capped)
+        // block = 60% × 7 × 320 = 1344
+        // other = 40% × 15 × 320 / 3 = 640
+        // total = 1984
+        //
+        // Validator 2: 5 blocks → credited = 5
+        // block = 60% × 5 × 320 = 960
+        // other = 640
+        // total = 1600
+        //
+        // Validator 3: 0 blocks
+        // block = 0
+        // other = 640
+        // total = 640
+        //
+        // Total = 1984 + 1600 + 640 = 4224
+
+        assert_eq!(
+            era_rewards.individual.get(&1),
+            Some(&1984),
+            "Validator 1 should have 1984 points"
+        );
+        assert_eq!(
+            era_rewards.individual.get(&2),
+            Some(&1600),
+            "Validator 2 should have 1600 points"
+        );
+        assert_eq!(
+            era_rewards.individual.get(&3),
+            Some(&640),
+            "Validator 3 should have 640 points"
+        );
+        assert_eq!(era_rewards.total, 4224, "Total should be 4224 points");
+    })
+}
+
+// =============================================================================
+// WHITELISTED OVER-PRODUCER TESTS
+// =============================================================================
+
+#[test]
+fn test_whitelisted_overproducer_does_not_affect_nonwhitelisted() {
+    // Critical test: Whitelisted validators producing most blocks should not
+    // negatively affect non-whitelisted validators' rewards
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+        });
+
+        // 4 validators: 3 whitelisted, 1 non-whitelisted
+        let validators = vec![1u64, 2u64, 3u64, 4u64];
+        let whitelisted = vec![1u64, 2u64, 3u64];
+
+        // Whitelisted validators produce most blocks (15 each)
+        // Non-whitelisted produces minimal (2 blocks)
+        for _ in 0..15 {
+            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(3);
+        }
+        for _ in 0..2 {
+            ExternalValidatorsRewards::note_block_author(4);
+        }
+
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
+
+        // 47 blocks total, 4 validators (1 non-whitelisted)
+        // fair_share = 47 / 4 = 11
+        // max_credited = 11 + 50%×11 = 16
+        // effective_total_for_other = max(47, 4) = 47
+        //
+        // Validator 4 (non-whitelisted): 2 blocks
+        // block_contribution = 60% × 2 × 320 = 384
+        // liveness_base_contribution = 40% × 47 × 320 / 4 = 1504
+        // Total = 1888
+        //
+        // Whitelisted validators: 0 points each
+
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+
+        assert_eq!(
+            era_rewards.individual.get(&4),
+            Some(&1888),
+            "Non-whitelisted validator should get fair liveness/base share regardless of whitelisted production"
+        );
+        assert_eq!(
+            era_rewards.individual.get(&1).copied().unwrap_or(0),
+            0,
+            "Whitelisted validator 1 should get 0 points"
+        );
+        assert_eq!(era_rewards.total, 1888, "Only non-whitelisted gets points");
+    })
+}
+
+#[test]
+fn test_whitelisted_majority_fair_share_calculation() {
+    // Test fair share when majority of validators are whitelisted
+    // The non-whitelisted should still get their proper share
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+        });
+
+        // 10 validators: 9 whitelisted, 1 non-whitelisted
+        let validators: Vec<u64> = (1..=10).collect();
+        let whitelisted: Vec<u64> = (1..=9).collect();
+
+        // All validators produce equal blocks (3 each = 30 total)
+        for v in validators.iter() {
+            for _ in 0..3 {
+                ExternalValidatorsRewards::note_block_author(*v);
+            }
+        }
+
+        ExternalValidatorsRewards::award_session_performance_points(
+            1,
+            validators.clone(),
+            whitelisted,
+        );
+
+        // 30 blocks total, 10 validators
+        // fair_share = 30 / 10 = 3
+        // max_credited = 3 + 50%×3 = 4
+        // effective_total_for_other = max(30, 10) = 30
+        //
+        // Validator 10 (non-whitelisted): 3 blocks → credited = 3
+        // block_contribution = 60% × 3 × 320 = 576
+        // liveness_base_contribution = 40% × 30 × 320 / 10 = 384
+        // Total = 960
+
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+
+        assert_eq!(
+            era_rewards.individual.get(&10),
+            Some(&960),
+            "Non-whitelisted validator should get proper points based on total validator count"
+        );
+        assert_eq!(era_rewards.total, 960, "Only validator 10 gets points");
+
+        // Verify no whitelisted validators got points
+        for v in 1..=9u64 {
+            assert_eq!(
+                era_rewards.individual.get(&v).copied().unwrap_or(0),
+                0,
+                "Whitelisted validator {} should have 0 points",
+                v
+            );
+        }
+    })
+}
+
+// =============================================================================
+// OVERFLOW PROTECTION TESTS
+// =============================================================================
+
+#[test]
+fn test_large_block_count_no_overflow() {
+    // Test that very large block counts don't cause overflow
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+        });
+
+        let validators = vec![1u64];
+
+        // Simulate a very large number of blocks (near practical limits)
+        // In reality, with 6-second blocks and 1-hour sessions, max ~600 blocks
+        // But let's test with a much larger number to verify no overflow
+        let large_block_count = 1_000_000u32;
+
+        // Directly set BlocksAuthoredInSession to avoid loop overhead
+        pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::insert(
+            1u64,
+            large_block_count,
+        );
+        // Also need to set BlocksProducedInEra for consistency
+        pallet_external_validators_rewards::BlocksProducedInEra::<Test>::insert(
+            1,
+            large_block_count,
+        );
+
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+
+        // Should not panic
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+        assert!(
+            era_rewards.total > 0,
+            "Should handle large block counts without overflow"
+        );
+
+        // Verify calculation:
+        // fair_share = 1_000_000 / 1 = 1_000_000
+        // max_credited = 1_000_000 + 50%×1_000_000 = 1_500_000
+        // credited = min(1_000_000, 1_500_000) = 1_000_000
+        // block_contribution = 60% × 1_000_000 × 320 = 192_000_000
+        // liveness_base = 40% × 1_000_000 × 320 / 1 = 128_000_000
+        // Total = 320_000_000
+
+        assert_eq!(
+            era_rewards.total, 320_000_000,
+            "Large block count calculation should be correct"
+        );
+    })
+}
+
+#[test]
+fn test_saturating_arithmetic_protection() {
+    // Test that saturating arithmetic protects against overflow
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+        });
+
+        let validators = vec![1u64];
+
+        // Set blocks to a value that would overflow if multiplied naively
+        // credited_blocks × base_points could overflow u32 if both are large
+        // But Perbill::mul_floor handles this safely
+        let extreme_block_count = u32::MAX / 320 - 1; // Just under overflow threshold
+
+        pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::insert(
+            1u64,
+            extreme_block_count,
+        );
+        pallet_external_validators_rewards::BlocksProducedInEra::<Test>::insert(
+            1,
+            extreme_block_count,
+        );
+
+        // Should not panic due to saturating arithmetic
+        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+
+        let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
+        assert!(
+            era_rewards.total > 0,
+            "Should handle extreme values with saturating arithmetic"
+        );
+    })
+}
+
+// =============================================================================
+// END-TO-END SESSION TO ERA FLOW TESTS
+// =============================================================================
+
+#[test]
+fn test_multiple_sessions_accumulate_to_era_correctly() {
+    // Test that multiple sessions correctly accumulate points for era end
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let base_inflation = 1_000_000u128;
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(base_inflation);
+        });
+
+        let validators = vec![1u64, 2u64];
+
+        // Session 1: Equal blocks
+        for _ in 0..50 {
+            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(2);
+        }
+        ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
+        let points_after_s1 =
+            pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
+
+        // Clear session storage (simulating session end)
+        let _ = pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::clear(
+            u32::MAX,
+            None,
+        );
+
+        // Session 2: More blocks
+        for _ in 0..100 {
+            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(2);
+        }
+        ExternalValidatorsRewards::award_session_performance_points(2, validators.clone(), vec![]);
+        let points_after_s2 =
+            pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
+
+        // Clear session storage
+        let _ = pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::clear(
+            u32::MAX,
+            None,
+        );
+
+        // Session 3: Uneven blocks
+        for _ in 0..80 {
+            ExternalValidatorsRewards::note_block_author(1);
+        }
+        for _ in 0..20 {
+            ExternalValidatorsRewards::note_block_author(2);
+        }
+        ExternalValidatorsRewards::award_session_performance_points(3, validators.clone(), vec![]);
+        let points_after_s3 =
+            pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
+
+        // Verify points accumulate across sessions
+        assert!(
+            points_after_s2 > points_after_s1,
+            "Points should accumulate after session 2"
+        );
+        assert!(
+            points_after_s3 > points_after_s2,
+            "Points should accumulate after session 3"
+        );
+
+        // Verify era blocks tracked (100 + 200 + 100 = 400 total for era)
+        // But note: the era blocks are tracked via note_block_author, which increments per call
+        let era_blocks = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
+        assert_eq!(era_blocks, 400, "Era should have 400 blocks total");
+
+        // Trigger era end
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let balance_before = Balances::free_balance(&rewards_account);
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let balance_after = Balances::free_balance(&rewards_account);
+        let inflation_minted = balance_after - balance_before;
+
+        // With 400 blocks out of 600 expected = 66.67% performance
+        // inflation_percent = 20% + (66.67% × 80%) = 20% + 53.33% = 73.33%
+        // Expected: 733333 total, 80% to rewards = 586666
+        // (Perbill math may cause slight variation)
+        assert!(
+            inflation_minted > 500_000 && inflation_minted < 600_000,
+            "Inflation should be scaled based on era block performance: got {}",
+            inflation_minted
+        );
+    })
+}
+
+#[test]
+fn test_era_end_uses_correct_era_blocks_not_session() {
+    // Verify era end uses BlocksProducedInEra, not BlocksAuthoredInSession
+    new_test_ext().execute_with(|| {
+        run_to_block(1);
+
+        let base_inflation = 1_000_000u128;
+        Mock::mutate(|mock| {
+            mock.active_era = Some(ActiveEraInfo {
+                index: 1,
+                start: None,
+            });
+            mock.era_inflation = Some(base_inflation);
+        });
+
+        let validators = vec![1u64];
+
+        // Author 600 blocks (full expected) across the era
+        for _ in 0..600 {
+            ExternalValidatorsRewards::note_block_author(1);
+        }
+
+        // Award session points
+        ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
+
+        // Clear session storage (simulating session end)
+        // This should NOT affect era inflation calculation
+        let _ = pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::clear(
+            u32::MAX,
+            None,
+        );
+
+        // Verify era blocks still tracked
+        let era_blocks = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
+        assert_eq!(
+            era_blocks, 600,
+            "Era blocks should persist after session clear"
+        );
+
+        // Trigger era end
+        let rewards_account = RewardsEthereumSovereignAccount::get();
+        let balance_before = Balances::free_balance(&rewards_account);
+
+        ExternalValidatorsRewards::on_era_end(1);
+
+        let balance_after = Balances::free_balance(&rewards_account);
+        let inflation_minted = balance_after - balance_before;
+
+        // Full 600 blocks = 100% performance = 100% inflation
+        // 80% to rewards = 800000
+        assert_eq!(
+            inflation_minted, 800_000,
+            "Era end should use era blocks (600) for 100% inflation"
         );
     })
 }

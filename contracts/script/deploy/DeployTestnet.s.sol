@@ -51,6 +51,12 @@ contract DeployTestnet is DeployBase {
         _validateNetwork(networkName);
         totalSteps = 4;
 
+        address avsOwnerEnv = vm.envOr("AVS_OWNER_ADDRESS", address(0));
+        require(
+            avsOwnerEnv != address(0),
+            "AVS_OWNER_ADDRESS env variable required for testnet deployments"
+        );
+
         _executeSharedDeployment();
     }
 

@@ -318,6 +318,27 @@ If everything went well, you will see something like:
 bun cli deploy --docker-username=<username> --docker-password=<pass> --docker-email=<email> --e local
 ```
 
+### AVS owner & tx execution flags
+
+When invoking `bun cli deploy`/`bun cli contracts deploy` in non-local environments you must:
+
+- Provide the multisig address that should own the ServiceManager: `--avs-owner-address 0x...` (or set `AVS_OWNER_ADDRESS`). Local deployments can still fall back to the value in `contracts/config/anvil.json`.
+- Decide whether the script should broadcast owner-only calls immediately:
+  - Default (recommended for testnet/mainnet) is leaving tx execution **disabled**, which prints the ABI payloads you can hand off to a Safe.
+  - To execute immediately (e.g. for local/dev or CI), pass `--execute-owner-transactions` or set `TX_EXECUTION=true`. If you do so, a signing key must be provided via `--avs-owner-key` / `AVS_OWNER_PRIVATE_KEY`.
+
+Example (testnet Safe ownership, no immediate execution):
+
+```bash
+AVS_OWNER_ADDRESS=0x... bun cli contracts deploy --chain hoodi
+```
+
+Example (local dev, execute owner calls right away):
+
+```bash
+bun cli contracts deploy --chain anvil --avs-owner-key $LOCAL_OWNER_KEY --execute-owner-transactions
+```
+
 ## Access Kubernetes dashboard: k9s
 
 ```bash

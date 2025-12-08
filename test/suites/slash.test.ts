@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { getPapiSigner } from "utils";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance } from "../utils/contracts";
-import { waitForEthereumEvent, waitForDataHavenEvent } from "../utils/events";
+import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
 import * as rewardsHelpers from "../utils/rewards-helpers";
 
 class SlashTestSuite extends BaseTestSuite {
@@ -102,7 +102,6 @@ describe("Should slash an operator", () => {
     if (!resultEventSlashesMessageSent.data) {
       throw new Error("SlashesMessageSent event not found");
     }
-
 
     // Wait for Ethereum event event
     const serviceManager = await getContractInstance("ServiceManager");

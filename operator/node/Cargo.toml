@@ -131,6 +131,11 @@ sp-keystore = { workspace = true }
 serde = { workspace = true, default-features = true }
 toml = { workspace = true }
 
+# Static linking
+#### Needed to build static binaries ####
+pq-sys = { workspace = true, optional = true }
+
+
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
 
@@ -171,3 +176,6 @@ metadata-hash = [
 	"datahaven-mainnet-runtime/metadata-hash",
 	"datahaven-testnet-runtime/metadata-hash",
 ]
+
+# Bundle the postgres source in the binary to avoid having to install the deps in the system (simplify installation)
+static = ["pq-sys", "pq-sys/bundled"]

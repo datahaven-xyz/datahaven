@@ -11,10 +11,13 @@ import {
     IPermissionController
 } from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 import {
-    IRewardsCoordinator
+    IRewardsCoordinator,
+    IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Snowbridge imports
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
@@ -23,13 +26,20 @@ import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 // DataHaven imports
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
+import {IRewardsSubmitter} from "./interfaces/IRewardsSubmitter.sol";
 import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
+import {RewardsSubmitterStorage} from "./middleware/RewardsSubmitterStorage.sol";
 
 /**
  * @title DataHaven ServiceManager contract
- * @notice Manages validators in the DataHaven network
+ * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
  */
-contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
+contract DataHavenServiceManager is
+    ServiceManagerBase,
+    RewardsSubmitterStorage,
+    IDataHavenServiceManager
+{
+    using SafeERC20 for IERC20;
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
 
@@ -58,6 +68,14 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
             CallerIsNotValidator()
         );
+        _;
+    }
+
+    /// @notice Modifier to ensure the caller is the authorized Snowbridge Agent
+    modifier onlyRewardsSnowbridgeAgent() {
+        if (msg.sender != _rewardsSnowbridgeAgent) {
+            revert OnlyRewardsSnowbridgeAgent();
+        }
         _;
     }
 
@@ -232,6 +250,165 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         return address(_snowbridgeGateway);
     }
 
+    // ============ Rewards Submitter Functions ============
+
+    /// @inheritdoc IRewardsSubmitter
+    function submitRewards(
+        uint32 eraIndex,
+        IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
+    ) external override onlyRewardsSnowbridgeAgent {
+        // Validate era hasn't been processed (replay protection)
+        if (_processedEras[eraIndex]) {
+            revert EraAlreadyProcessed(eraIndex);
+        }
+
+        // Validate reward token is set
+        if (_rewardToken == address(0)) {
+            revert RewardTokenNotSet();
+        }
+
+        // Validate strategies are configured
+        if (_rewardStrategies.length == 0) {
+            revert NoStrategiesConfigured();
+        }
+
+        // Validate operators array is not empty
+        if (operatorRewards.length == 0) {
+            revert EmptyOperatorsArray();
+        }
+
+        // Validate era parameters are configured
+        if (_eraGenesisTimestamp == 0 || _eraDuration == 0) {
+            revert EraParametersNotConfigured();
+        }
+
+        // Mark era as processed
+        _processedEras[eraIndex] = true;
+
+        // Calculate total amount and build strategies array
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < operatorRewards.length; i++) {
+            totalAmount += operatorRewards[i].amount;
+        }
+
+        // Build StrategyAndMultiplier array
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](_rewardStrategies.length);
+        for (uint256 i = 0; i < _rewardStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: _rewardStrategies[i], multiplier: _rewardMultipliers[i]
+            });
+        }
+
+        // Get the calculation interval from RewardsCoordinator
+        uint32 calculationInterval = _rewardsCoordinator.CALCULATION_INTERVAL_SECONDS();
+
+        // Calculate startTimestamp based on era index
+        // startTimestamp = genesisTimestamp + (eraIndex * calculationInterval)
+        // Note: We use the RewardsCoordinator's CALCULATION_INTERVAL_SECONDS as the effective era duration
+        // for EigenLayer compatibility, regardless of actual DataHaven era duration
+        uint32 startTimestamp = _eraGenesisTimestamp + (eraIndex * calculationInterval);
+
+        // Approve RewardsCoordinator to spend tokens
+        IERC20(_rewardToken).safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
+
+        // Build the operator-directed rewards submission
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+
+        // Copy operatorRewards to memory array
+        IRewardsCoordinatorTypes.OperatorReward[] memory operatorRewardsMem =
+            new IRewardsCoordinatorTypes.OperatorReward[](operatorRewards.length);
+        for (uint256 i = 0; i < operatorRewards.length; i++) {
+            operatorRewardsMem[i] = operatorRewards[i];
+        }
+
+        submissions[0] = IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+            strategiesAndMultipliers: strategiesAndMultipliers,
+            token: IERC20(_rewardToken),
+            operatorRewards: operatorRewardsMem,
+            startTimestamp: startTimestamp,
+            duration: calculationInterval,
+            description: string(
+                abi.encodePacked("DataHaven Era ", _uint32ToString(eraIndex), " rewards")
+            )
+        });
+
+        // Submit to EigenLayer RewardsCoordinator
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
+            operatorSet, submissions
+        );
+
+        emit EraRewardsSubmitted(eraIndex, totalAmount, operatorRewards.length);
+    }
+
+    /// @inheritdoc IRewardsSubmitter
+    function setRewardsSnowbridgeAgent(
+        address agent
+    ) external override onlyOwner {
+        address oldAgent = _rewardsSnowbridgeAgent;
+        _rewardsSnowbridgeAgent = agent;
+        emit RewardsSnowbridgeAgentSet(oldAgent, agent);
+    }
+
+    /// @inheritdoc IRewardsSubmitter
+    function setRewardToken(
+        address token
+    ) external override onlyOwner {
+        address oldToken = _rewardToken;
+        _rewardToken = token;
+        emit RewardTokenSet(oldToken, token);
+    }
+
+    /// @inheritdoc IRewardsSubmitter
+    function setEraParameters(
+        uint32 genesisTimestamp,
+        uint32 eraDurationSeconds
+    ) external override onlyOwner {
+        // Get the calculation interval from RewardsCoordinator
+        uint32 calculationInterval = _rewardsCoordinator.CALCULATION_INTERVAL_SECONDS();
+
+        // Validate genesis timestamp is aligned to CALCULATION_INTERVAL_SECONDS
+        if (genesisTimestamp % calculationInterval != 0) {
+            revert InvalidGenesisTimestamp();
+        }
+
+        // Validate era duration is non-zero
+        if (eraDurationSeconds == 0) {
+            revert InvalidEraDuration();
+        }
+
+        _eraGenesisTimestamp = genesisTimestamp;
+        _eraDuration = eraDurationSeconds;
+
+        emit EraParametersSet(genesisTimestamp, eraDurationSeconds);
+    }
+
+    /// @inheritdoc IRewardsSubmitter
+    function setStrategyMultipliers(
+        IStrategy[] calldata strategies,
+        uint96[] calldata multipliers
+    ) external override onlyOwner {
+        if (strategies.length != multipliers.length) {
+            revert StrategiesMultipliersLengthMismatch();
+        }
+
+        // Clear existing arrays
+        delete _rewardStrategies;
+        delete _rewardMultipliers;
+
+        // Set new values
+        for (uint256 i = 0; i < strategies.length; i++) {
+            _rewardStrategies.push(strategies[i]);
+            _rewardMultipliers.push(multipliers[i]);
+        }
+
+        emit StrategyMultipliersSet(strategies, multipliers);
+    }
+
+    // ============ Internal Functions ============
+
     /**
      * @notice Creates the initial operator set for DataHaven in the AllocationManager.
      * @dev This function should be called during initialisation to set up the required operator set.
@@ -245,5 +422,34 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
         });
         _allocationManager.createOperatorSets(address(this), operatorSets);
+    }
+
+    /**
+     * @notice Converts a uint32 to its string representation
+     * @param value The uint32 value to convert
+     * @return The string representation
+     */
+    function _uint32ToString(
+        uint32 value
+    ) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+
+        uint32 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits--;
+            buffer[digits] = bytes1(uint8(48 + (value % 10)));
+            value /= 10;
+        }
+
+        return string(buffer);
     }
 }

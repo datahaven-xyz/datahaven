@@ -1687,11 +1687,11 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
         calldata.extend_from_slice(&selector);
 
         // Extend with operator address to slash
-        for slash_operator in slashes_utils.into_iter() {
-            let mut operator_address = [0_u8; 32];
-            operator_address.copy_from_slice(&slash_operator.validator.0);
-            calldata.extend_from_slice(&operator_address);
-        }
+        // for slash_operator in slashes_utils.into_iter() {
+        //     let mut operator_address = [0_u8; 32];
+        //     operator_address.copy_from_slice(&slash_operator.validator.0);
+        //     calldata.extend_from_slice(&operator_address);
+        // }
 
         let command = Command::CallContract {
             target:

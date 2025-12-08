@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { getPapiSigner } from "utils";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance } from "../utils/contracts";
-import { waitForEthereumEvent } from "../utils/events";
+import { waitForEthereumEvent, waitForDataHavenEvent } from "../utils/events";
+import * as rewardsHelpers from "../utils/rewards-helpers";
 
 class SlashTestSuite extends BaseTestSuite {
   constructor() {
@@ -56,7 +57,7 @@ describe("Should slash an operator", () => {
 
     const sudoSlashCall = dhApi.tx.ExternalValidatorsSlashes.force_inject_slash({
       validator,
-      era: activeEra?.index || 0, // Will fail if active era is 0
+      era: activeEra?.index + 1 || 0, // Will fail if active era is 0
       percentage: 20,
       external_idx: BigInt(0)
     });
@@ -64,8 +65,44 @@ describe("Should slash an operator", () => {
       call: sudoSlashCall.decodedCall
     });
     const alithSigner = getPapiSigner("ALITH");
-    const result = await sudoTx.signAndSubmit(alithSigner);
-    expect(result.ok).toBeTruthy();
+    const resultSubmitTx = await sudoTx.signAndSubmit(alithSigner);
+    expect(resultSubmitTx.ok).toBeTruthy();
+
+    console.log("Transaction submitted !");
+
+    // Track current era and blocks until era end
+    const blocksUntilEraEnd = await rewardsHelpers.getBlocksUntilEraEnd(dhApi); // TODO: rename rewardHelper to helper
+    const timeout = blocksUntilEraEnd * 6000 + 10000 * 12;
+    const resultEventSlashInjected = await waitForDataHavenEvent({
+      api: dhApi,
+      pallet: "ExternalValidatorsSlashes",
+      event: "SlashInjected",
+      timeout
+    });
+    if (!resultEventSlashInjected.data) {
+      throw new Error("SlashInjected event not found");
+    }
+
+    const resultEventSlashesProccessed = await waitForDataHavenEvent({
+      api: dhApi,
+      pallet: "ExternalValidatorsSlashes",
+      event: "SlashAddedToQueue",
+      timeout
+    });
+    if (!resultEventSlashesProccessed.data) {
+      throw new Error("SlashAddedToQueue event not found");
+    }
+
+    const resultEventSlashesMessageSent = await waitForDataHavenEvent({
+      api: dhApi,
+      pallet: "ExternalValidatorsSlashes",
+      event: "SlashesMessageSent",
+      timeout
+    });
+    if (!resultEventSlashesMessageSent.data) {
+      throw new Error("SlashesMessageSent event not found");
+    }
+
 
     // Wait for Ethereum event event
     const serviceManager = await getContractInstance("ServiceManager");
@@ -77,5 +114,5 @@ describe("Should slash an operator", () => {
     });
 
     console.log(event);
-  }, 80000);
+  }, 320000);
 });

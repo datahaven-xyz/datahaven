@@ -304,9 +304,9 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         // _allocationManager.slashOperator(address(this), slashingParams);
     }
 
-    // function slashValidatorsOperator() external {
-    //     emit ValidatorsSlashedTest();
+    function slashValidatorsOperator() external {
+        emit ValidatorsSlashedTest();
         
-    //     // _allocationManager.slashOperator(address(this), slashingParams);
-    // }
+        // _allocationManager.slashOperator(address(this), slashingParams);
+    }
 }

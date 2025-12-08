@@ -266,44 +266,44 @@ fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stabl
 
 # StorageHub
 ## Runtime
-pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
+pallet-bucket-nfts = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-cr-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-file-system-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-payment-streams = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-payment-streams-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-proofs-dealer = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-proofs-dealer-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-randomness = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-storage-providers = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+pallet-storage-providers-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-constants = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-data-price-updater = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-file-key-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
 ## Client
 cumulus-client-service = { git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-stable2412-6", default-features = false }
-shc-actors-derive = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-actors-framework = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-blockchain-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-client = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-common = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-file-manager = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-file-transfer-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-fisherman-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-forest-manager = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-indexer-db = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-indexer-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shc-rpc = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-opaque = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-tx-implicits-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
-shp-types = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
+shc-actors-derive = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-actors-framework = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-blockchain-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-client = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-common = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-file-manager = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-file-transfer-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-fisherman-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-forest-manager = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-indexer-db = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-indexer-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shc-rpc = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-opaque = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-tx-implicits-runtime-api = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
+shp-types = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
 ## Precompiles
-pallet-evm-precompile-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.3", default-features = false }
+pallet-evm-precompile-file-system = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.4", default-features = false }
 
 # The list of dependencies below (which can be both direct and indirect dependencies) are crates
 # that are suspected to be CPU-intensive, and that are unlikely to require debugging (as some of
@@ -379,7 +379,7 @@ lto = true
 [profile.release]
 debug-assertions = true # Enable debug-assert! for non-production profiles
 opt-level = 3
-# Moonbeam runtime requires unwinding.
+# Datahaven runtime requires unwinding.
 panic = "unwind"
 
 [profile.testnet]

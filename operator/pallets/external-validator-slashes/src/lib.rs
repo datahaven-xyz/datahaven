@@ -100,9 +100,11 @@ pub mod pallet {
         /// The slashes message was sent correctly.
         SlashesMessageSent { message_id: H256 },
         /// We injected a slash
-        SlashInjected { next_slash_id: T::SlashId },
+        SlashInjected { slash_id: T::SlashId, era: u32 },
         /// Number of slashes processed
         SlashesProccessed { number: u32 },
+        /// Number of slashes processed
+        SlashAddedToQueue { number: u32, era: u32 },
     }
 
     #[pallet::config]
@@ -345,7 +347,10 @@ pub mod pallet {
 
             NextSlashId::<T>::put(next_slash_id.saturating_add(One::one()));
 
-            Self::deposit_event(Event::<T>::SlashInjected { next_slash_id });
+            Self::deposit_event(Event::<T>::SlashInjected {
+                slash_id: next_slash_id,
+                era: era_to_consider,
+            });
 
             Ok(())
         }
@@ -570,7 +575,16 @@ impl<T: Config> Pallet<T> {
     fn add_era_slashes_to_queue(active_era: EraIndex) {
         let mut slashes: VecDeque<_> = Slashes::<T>::get(active_era).into();
 
+        let len = slashes.len();
+
         UnreportedSlashesQueue::<T>::mutate(|queue| queue.append(&mut slashes));
+
+        if len > 0 {
+            Self::deposit_event(Event::<T>::SlashAddedToQueue {
+                number: len as u32,
+                era: active_era,
+            });
+        }
     }
 
     /// Returns number of slashes that were sent to ethereum.

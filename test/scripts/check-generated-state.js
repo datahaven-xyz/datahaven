@@ -1,29 +1,24 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
-const contractsPath = "../contracts/src";
-
-// Get our generated state creation time
-const stateGeneratedCTime = fs.lstatSync("../contracts/deployments/state-diff.json").ctime;
-console.log(stateGeneratedCTime);
+const originalHash = fs.readFileSync("../contracts/deployments/state-diff.checksum", "utf-8");
 
 // Only read our .sol files
+const contractsPath = "../contracts/src";
 const contents = fs.readdirSync(contractsPath, { recursive: true });
 
-try {
-  for (const content of contents) {
-    const stats = fs.lstatSync(path.join(contractsPath, content));
-    if (stats.isFile()) {
-      console.log(stats.mtime);
+// Create a hash object
+const hash = crypto.createHash("sha1");
 
-      // if this a .sol file check the date
-      if (stateGeneratedCTime < stats.mtime) {
-        throw "State generated file is outdated. Please regenerate it with `bun ./scripts/generate-contracts.ts`";
-      }
-    }
+for (const content of contents) {
+  const stats = fs.lstatSync(path.join(contractsPath, content));
+  if (stats.isFile()) {
+    const data = fs.readFileSync(path.join(contractsPath, content));
+    hash.update(data);
   }
-} catch (err) {
-  console.error(err);
-  // Actually exit the process with a non-zero code
-  process.exit(1);
+}
+
+if (hash.digest("hex") !== originalHash) {
+  throw "State generated file is outdated. Please regenerate it with `bun ./scripts/generate-contracts.ts`";
 }

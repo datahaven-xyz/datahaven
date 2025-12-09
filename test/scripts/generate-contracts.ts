@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { platform } from "node:process";
 import { $ } from "bun";
 import { logger } from "utils";
@@ -134,10 +135,20 @@ async function formatStateDiff(): Promise<void> {
 /**
  * Generates a checksum for the state-diff.json file
  */
-function generateChecksum(filePath: string): string {
-  const content = readFileSync(filePath, "utf-8");
-  const hash = createHash("sha256");
-  hash.update(content);
+function generateChecksum(): string {
+  const contractsPath = "../contracts/src";
+  const contents = readdirSync(contractsPath, { recursive: true });
+
+  // Create a hash object
+  const hash = createHash("sha1");
+
+  for (const content of contents) {
+    const stats = lstatSync(path.join(contractsPath, content));
+    if (stats.isFile()) {
+      const data = readFileSync(path.join(contractsPath, content));
+      hash.update(data);
+    }
+  }
   return hash.digest("hex");
 }
 
@@ -176,7 +187,7 @@ export async function generateContracts(): Promise<void> {
 
     // 7. Generate checksum
     logger.info("🔐 Generating checksum...");
-    const checksum = generateChecksum(STATE_DIFF_PATH);
+    const checksum = generateChecksum();
     logger.info(`📝 Checksum: ${checksum}`);
 
     // 7. Save checksum

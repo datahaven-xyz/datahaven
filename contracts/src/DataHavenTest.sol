@@ -21,9 +21,4 @@ contract DataHavenTest {
         require(msg.sender == owner, "Only callable by owner!");
         number = 10;
     }
-
-    function increment() external {
-        require(msg.sender == owner, "Only callable by owner!");
-        number = number + 1;
-    }
 }

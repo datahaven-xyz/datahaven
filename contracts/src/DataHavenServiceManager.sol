@@ -56,15 +56,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @notice The reward token (e.g., wHAVE)
     address internal _rewardToken;
 
-    /// @notice Genesis timestamp for era calculations (must align to CALCULATION_INTERVAL_SECONDS)
-    uint32 internal _eraGenesisTimestamp;
-
-    /// @notice Duration of each era in seconds
-    uint32 internal _eraDuration;
-
-    /// @notice Mapping of era index to whether it has been processed
-    mapping(uint32 eraIndex => bool processed) internal _processedEras;
-
     /// @notice Array of strategies for reward distribution
     IStrategy[] internal _rewardStrategies;
 
@@ -72,7 +63,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     uint96[] internal _rewardMultipliers;
 
     /// @dev Gap for future storage variables
-    uint256[44] private __gap;
+    uint256[47] private __gap;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -274,14 +265,10 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
-        uint32 eraIndex,
+        uint32 startTimestamp,
+        uint32 duration,
         IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
     ) external override onlyRewardsSnowbridgeAgent {
-        // Validate era hasn't been processed (replay protection)
-        if (_processedEras[eraIndex]) {
-            revert EraAlreadyProcessed(eraIndex);
-        }
-
         // Validate reward token is set
         if (_rewardToken == address(0)) {
             revert RewardTokenNotSet();
@@ -297,15 +284,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert EmptyOperatorsArray();
         }
 
-        // Validate era parameters are configured
-        if (_eraGenesisTimestamp == 0 || _eraDuration == 0) {
-            revert EraParametersNotConfigured();
-        }
-
-        // Mark era as processed
-        _processedEras[eraIndex] = true;
-
-        // Calculate total amount and build strategies array
+        // Calculate total amount
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < operatorRewards.length; i++) {
             totalAmount += operatorRewards[i].amount;
@@ -319,15 +298,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
                 strategy: _rewardStrategies[i], multiplier: _rewardMultipliers[i]
             });
         }
-
-        // Get the calculation interval from RewardsCoordinator
-        uint32 calculationInterval = _rewardsCoordinator.CALCULATION_INTERVAL_SECONDS();
-
-        // Calculate startTimestamp based on era index
-        // startTimestamp = genesisTimestamp + (eraIndex * calculationInterval)
-        // Note: We use the RewardsCoordinator's CALCULATION_INTERVAL_SECONDS as the effective era duration
-        // for EigenLayer compatibility, regardless of actual DataHaven era duration
-        uint32 startTimestamp = _eraGenesisTimestamp + (eraIndex * calculationInterval);
 
         // Approve RewardsCoordinator to spend tokens
         IERC20(_rewardToken).safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
@@ -348,10 +318,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             token: IERC20(_rewardToken),
             operatorRewards: operatorRewardsMem,
             startTimestamp: startTimestamp,
-            duration: calculationInterval,
-            description: string(
-                abi.encodePacked("DataHaven Era ", _uint32ToString(eraIndex), " rewards")
-            )
+            duration: duration,
+            description: "DataHaven rewards"
         });
 
         // Submit to EigenLayer RewardsCoordinator
@@ -360,7 +328,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             operatorSet, submissions
         );
 
-        emit EraRewardsSubmitted(eraIndex, totalAmount, operatorRewards.length);
+        emit RewardsSubmitted(totalAmount, operatorRewards.length);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -379,30 +347,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         address oldToken = _rewardToken;
         _rewardToken = token;
         emit RewardTokenSet(oldToken, token);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function setEraParameters(
-        uint32 genesisTimestamp,
-        uint32 eraDurationSeconds
-    ) external override onlyOwner {
-        // Get the calculation interval from RewardsCoordinator
-        uint32 calculationInterval = _rewardsCoordinator.CALCULATION_INTERVAL_SECONDS();
-
-        // Validate genesis timestamp is aligned to CALCULATION_INTERVAL_SECONDS
-        if (genesisTimestamp % calculationInterval != 0) {
-            revert InvalidGenesisTimestamp();
-        }
-
-        // Validate era duration is non-zero
-        if (eraDurationSeconds == 0) {
-            revert InvalidEraDuration();
-        }
-
-        _eraGenesisTimestamp = genesisTimestamp;
-        _eraDuration = eraDurationSeconds;
-
-        emit EraParametersSet(genesisTimestamp, eraDurationSeconds);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -428,13 +372,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function isEraProcessed(
-        uint32 eraIndex
-    ) external view override returns (bool) {
-        return _processedEras[eraIndex];
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
     function rewardsSnowbridgeAgent() external view override returns (address) {
         return _rewardsSnowbridgeAgent;
     }
@@ -442,16 +379,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     function rewardToken() external view override returns (address) {
         return _rewardToken;
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function eraGenesisTimestamp() external view override returns (uint32) {
-        return _eraGenesisTimestamp;
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function eraDuration() external view override returns (uint32) {
-        return _eraDuration;
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -481,32 +408,4 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }
 
-    /**
-     * @notice Converts a uint32 to its string representation
-     * @param value The uint32 value to convert
-     * @return The string representation
-     */
-    function _uint32ToString(
-        uint32 value
-    ) internal pure returns (string memory) {
-        if (value == 0) {
-            return "0";
-        }
-
-        uint32 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits--;
-            buffer[digits] = bytes1(uint8(48 + (value % 10)));
-            value /= 10;
-        }
-
-        return string(buffer);
-    }
 }

@@ -27,20 +27,12 @@ interface IDataHavenServiceManagerErrors {
     error CallerIsNotValidator();
     /// @notice Thrown when caller is not the authorized Snowbridge Agent
     error OnlyRewardsSnowbridgeAgent();
-    /// @notice Thrown when era has already been processed
-    error EraAlreadyProcessed(uint32 eraIndex);
     /// @notice Thrown when reward token is not set
     error RewardTokenNotSet();
     /// @notice Thrown when no strategies are configured
     error NoStrategiesConfigured();
     /// @notice Thrown when operators array is empty
     error EmptyOperatorsArray();
-    /// @notice Thrown when era parameters are not configured
-    error EraParametersNotConfigured();
-    /// @notice Thrown when genesis timestamp is invalid (not aligned to CALCULATION_INTERVAL_SECONDS)
-    error InvalidGenesisTimestamp();
-    /// @notice Thrown when era duration is invalid
-    error InvalidEraDuration();
     /// @notice Thrown when strategies and multipliers arrays have different lengths
     error StrategiesMultipliersLengthMismatch();
 }
@@ -72,11 +64,10 @@ interface IDataHavenServiceManagerEvents {
     /// @param snowbridgeGateway Address of the Snowbridge Gateway
     event SnowbridgeGatewaySet(address indexed snowbridgeGateway);
 
-    /// @notice Emitted when era rewards are successfully submitted to EigenLayer
-    /// @param eraIndex The era index that was processed
+    /// @notice Emitted when rewards are successfully submitted to EigenLayer
     /// @param totalAmount The total amount of rewards distributed
     /// @param operatorCount The number of operators that received rewards
-    event EraRewardsSubmitted(uint32 indexed eraIndex, uint256 totalAmount, uint256 operatorCount);
+    event RewardsSubmitted(uint256 totalAmount, uint256 operatorCount);
 
     /// @notice Emitted when the Snowbridge Agent address is updated
     /// @param oldAgent The previous Snowbridge Agent address
@@ -87,11 +78,6 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldToken The previous reward token address
     /// @param newToken The new reward token address
     event RewardTokenSet(address indexed oldToken, address indexed newToken);
-
-    /// @notice Emitted when era parameters are updated
-    /// @param genesisTimestamp The genesis timestamp for era calculations
-    /// @param eraDuration The duration of each era in seconds
-    event EraParametersSet(uint32 genesisTimestamp, uint32 eraDuration);
 
     /// @notice Emitted when strategy multipliers are updated
     /// @param strategies The strategies that were configured
@@ -220,15 +206,16 @@ interface IDataHavenServiceManager is
     // ============ Rewards Submitter Functions ============
 
     /**
-     * @notice Submit rewards for an era to EigenLayer
-     * @param eraIndex The era index being rewarded
+     * @notice Submit rewards to EigenLayer
+     * @param startTimestamp The start timestamp for the rewards period (must be aligned to CALCULATION_INTERVAL_SECONDS)
+     * @param duration The duration of the rewards period in seconds
      * @param operatorRewards Array of (operator, amount) pairs sorted by operator address
      * @dev Only callable by the authorized Snowbridge Agent
      * @dev Operators must be sorted in ascending order by address
-     * @dev Each era can only be processed once (replay protection)
      */
     function submitRewards(
-        uint32 eraIndex,
+        uint32 startTimestamp,
+        uint32 duration,
         IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
     ) external;
 
@@ -251,18 +238,6 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Set era parameters for timestamp calculation
-     * @param genesisTimestamp The timestamp of era 0 (must align to CALCULATION_INTERVAL_SECONDS)
-     * @param eraDuration The duration of each era in seconds
-     * @dev Only callable by the owner
-     * @dev genesisTimestamp must be a multiple of CALCULATION_INTERVAL_SECONDS (86400)
-     */
-    function setEraParameters(
-        uint32 genesisTimestamp,
-        uint32 eraDuration
-    ) external;
-
-    /**
      * @notice Set strategy multipliers for reward distribution
      * @param strategies Array of strategies (must be sorted in ascending order by address)
      * @param multipliers Array of multipliers for each strategy (1e18 = 1x weight)
@@ -275,15 +250,6 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Check if an era has been processed
-     * @param eraIndex The era index to check
-     * @return True if the era has been processed
-     */
-    function isEraProcessed(
-        uint32 eraIndex
-    ) external view returns (bool);
-
-    /**
      * @notice Get the Snowbridge Agent address
      * @return The address of the authorized Snowbridge Agent
      */
@@ -294,18 +260,6 @@ interface IDataHavenServiceManager is
      * @return The address of the reward token
      */
     function rewardToken() external view returns (address);
-
-    /**
-     * @notice Get the genesis timestamp for era calculations
-     * @return The genesis timestamp
-     */
-    function eraGenesisTimestamp() external view returns (uint32);
-
-    /**
-     * @notice Get the era duration in seconds
-     * @return The era duration
-     */
-    function eraDuration() external view returns (uint32);
 
     /**
      * @notice Get the configured strategy multipliers

@@ -34,8 +34,6 @@ contract RewardsSubmitterTest is AVSDeployer {
 
     // Constants aligned with test AVSDeployer's RewardsCoordinator setup (7 days)
     uint32 public constant TEST_CALCULATION_INTERVAL = 7 days;
-    uint32 public genesisTimestamp;
-    uint32 public eraDuration = 6 hours;
 
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
@@ -43,15 +41,10 @@ contract RewardsSubmitterTest is AVSDeployer {
         // Deploy reward token
         rewardToken = new ERC20FixedSupply("DataHaven", "HAVE", 1000000e18, address(this));
 
-        // Set up genesis timestamp aligned to CALCULATION_INTERVAL_SECONDS (7 days in test setup)
-        // GENESIS_REWARDS_TIMESTAMP from AVSDeployer is already aligned to 7 days
-        genesisTimestamp = GENESIS_REWARDS_TIMESTAMP;
-
         // Configure the rewards submitter
         vm.startPrank(avsOwner);
         serviceManager.setRewardsSnowbridgeAgent(snowbridgeAgent);
         serviceManager.setRewardToken(address(rewardToken));
-        serviceManager.setEraParameters(genesisTimestamp, eraDuration);
 
         // Set up strategy multipliers (using deployed strategies from AVSDeployer)
         IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
@@ -97,33 +90,6 @@ contract RewardsSubmitterTest is AVSDeployer {
         assertEq(serviceManager.rewardToken(), newToken);
     }
 
-    function test_setEraParameters() public {
-        uint32 newGenesis = genesisTimestamp + TEST_CALCULATION_INTERVAL;
-        uint32 newDuration = 43200; // 12 hours
-
-        vm.prank(avsOwner);
-        vm.expectEmit(false, false, false, true);
-        emit IDataHavenServiceManagerEvents.EraParametersSet(newGenesis, newDuration);
-        serviceManager.setEraParameters(newGenesis, newDuration);
-
-        assertEq(serviceManager.eraGenesisTimestamp(), newGenesis);
-        assertEq(serviceManager.eraDuration(), newDuration);
-    }
-
-    function test_setEraParameters_revertsIfGenesisNotAligned() public {
-        uint32 unalignedGenesis = genesisTimestamp + 100; // Not a multiple of 86400
-
-        vm.prank(avsOwner);
-        vm.expectRevert(IDataHavenServiceManagerErrors.InvalidGenesisTimestamp.selector);
-        serviceManager.setEraParameters(unalignedGenesis, eraDuration);
-    }
-
-    function test_setEraParameters_revertsIfDurationZero() public {
-        vm.prank(avsOwner);
-        vm.expectRevert(IDataHavenServiceManagerErrors.InvalidEraDuration.selector);
-        serviceManager.setEraParameters(genesisTimestamp, 0);
-    }
-
     function test_setStrategyMultipliers() public {
         IStrategy[] memory strategies = new IStrategy[](2);
         uint96[] memory multipliers = new uint96[](2);
@@ -159,32 +125,15 @@ contract RewardsSubmitterTest is AVSDeployer {
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
         vm.prank(operator1);
         vm.expectRevert(IDataHavenServiceManagerErrors.OnlyRewardsSnowbridgeAgent.selector);
-        serviceManager.submitRewards(0, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, rewards);
     }
 
     // ============ Validation Tests ============
-
-    function test_submitRewards_revertsIfEraAlreadyProcessed() public {
-        // First submission should succeed
-        IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
-            new IRewardsCoordinatorTypes.OperatorReward[](1);
-        rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
-
-        // Warp to a time after the era ends (for retroactive submission)
-        vm.warp(genesisTimestamp + TEST_CALCULATION_INTERVAL + 1);
-
-        vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(0, rewards);
-
-        // Second submission for same era should revert
-        vm.prank(snowbridgeAgent);
-        vm.expectRevert(
-            abi.encodeWithSelector(IDataHavenServiceManagerErrors.EraAlreadyProcessed.selector, 0)
-        );
-        serviceManager.submitRewards(0, rewards);
-    }
 
     function test_submitRewards_revertsIfRewardTokenNotSet() public {
         // Clear reward token
@@ -195,9 +144,12 @@ contract RewardsSubmitterTest is AVSDeployer {
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
         vm.prank(snowbridgeAgent);
         vm.expectRevert(IDataHavenServiceManagerErrors.RewardTokenNotSet.selector);
-        serviceManager.submitRewards(0, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, rewards);
     }
 
     function test_submitRewards_revertsIfNoStrategiesConfigured() public {
@@ -211,61 +163,24 @@ contract RewardsSubmitterTest is AVSDeployer {
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
         vm.prank(snowbridgeAgent);
         vm.expectRevert(IDataHavenServiceManagerErrors.NoStrategiesConfigured.selector);
-        serviceManager.submitRewards(0, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, rewards);
     }
 
     function test_submitRewards_revertsIfEmptyOperatorsArray() public {
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](0);
 
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
         vm.prank(snowbridgeAgent);
         vm.expectRevert(IDataHavenServiceManagerErrors.EmptyOperatorsArray.selector);
-        serviceManager.submitRewards(0, rewards);
-    }
-
-    function test_submitRewards_revertsIfEraParametersNotConfigured() public {
-        // Deploy a fresh service manager without era parameters
-        vm.startPrank(regularDeployer);
-        DataHavenServiceManager freshServiceManager = DataHavenServiceManager(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(serviceManagerImplementation),
-                    address(proxyAdmin),
-                    abi.encodeWithSelector(
-                        DataHavenServiceManager.initialise.selector,
-                        avsOwner,
-                        rewardsInitiator,
-                        deployedStrategies,
-                        address(0)
-                    )
-                )
-            )
-        );
-        vm.stopPrank();
-
-        // Configure only agent, token, and strategies (not era parameters)
-        vm.startPrank(avsOwner);
-        freshServiceManager.setRewardsSnowbridgeAgent(snowbridgeAgent);
-        freshServiceManager.setRewardToken(address(rewardToken));
-        IStrategy[] memory strategies = new IStrategy[](1);
-        uint96[] memory multipliers = new uint96[](1);
-        strategies[0] = deployedStrategies[0];
-        multipliers[0] = 1e18;
-        freshServiceManager.setStrategyMultipliers(strategies, multipliers);
-        vm.stopPrank();
-
-        // Fund it
-        rewardToken.transfer(address(freshServiceManager), 10000e18);
-
-        IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
-            new IRewardsCoordinatorTypes.OperatorReward[](1);
-        rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
-
-        vm.prank(snowbridgeAgent);
-        vm.expectRevert(IDataHavenServiceManagerErrors.EraParametersNotConfigured.selector);
-        freshServiceManager.submitRewards(0, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, rewards);
     }
 
     // ============ Success Tests ============
@@ -277,16 +192,16 @@ contract RewardsSubmitterTest is AVSDeployer {
         rewards[0] =
             IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: rewardAmount});
 
-        // Warp to a time after the era ends
-        vm.warp(genesisTimestamp + TEST_CALCULATION_INTERVAL + 1);
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
+        // Warp to a time after the period ends
+        vm.warp(startTimestamp + duration + 1);
 
         vm.prank(snowbridgeAgent);
-        vm.expectEmit(true, false, false, true);
-        emit IDataHavenServiceManagerEvents.EraRewardsSubmitted(0, rewardAmount, 1);
-        serviceManager.submitRewards(0, rewards);
-
-        // Verify era is marked as processed
-        assertTrue(serviceManager.isEraProcessed(0));
+        vm.expectEmit(false, false, false, true);
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(rewardAmount, 1);
+        serviceManager.submitRewards(startTimestamp, duration, rewards);
     }
 
     function test_submitRewards_multipleOperators() public {
@@ -303,47 +218,45 @@ contract RewardsSubmitterTest is AVSDeployer {
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: opLow, amount: amount1});
         rewards[1] = IRewardsCoordinatorTypes.OperatorReward({operator: opHigh, amount: amount2});
 
-        // Warp to a time after the era ends
-        vm.warp(genesisTimestamp + TEST_CALCULATION_INTERVAL + 1);
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
+        // Warp to a time after the period ends
+        vm.warp(startTimestamp + duration + 1);
 
         vm.prank(snowbridgeAgent);
-        vm.expectEmit(true, false, false, true);
-        emit IDataHavenServiceManagerEvents.EraRewardsSubmitted(0, totalAmount, 2);
-        serviceManager.submitRewards(0, rewards);
-
-        assertTrue(serviceManager.isEraProcessed(0));
+        vm.expectEmit(false, false, false, true);
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(totalAmount, 2);
+        serviceManager.submitRewards(startTimestamp, duration, rewards);
     }
 
-    function test_submitRewards_multipleEras() public {
+    function test_submitRewards_multipleSubmissions() public {
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
-        // Submit era 0
-        vm.warp(genesisTimestamp + TEST_CALCULATION_INTERVAL + 1);
-        vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(0, rewards);
-        assertTrue(serviceManager.isEraProcessed(0));
+        uint32 duration = TEST_CALCULATION_INTERVAL;
 
-        // Submit era 1
-        vm.warp(genesisTimestamp + 2 * TEST_CALCULATION_INTERVAL + 1);
+        // Submit for period 0
+        uint32 startTimestamp0 = GENESIS_REWARDS_TIMESTAMP;
+        vm.warp(startTimestamp0 + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(1, rewards);
-        assertTrue(serviceManager.isEraProcessed(1));
+        serviceManager.submitRewards(startTimestamp0, duration, rewards);
 
-        // Submit era 2
-        vm.warp(genesisTimestamp + 3 * TEST_CALCULATION_INTERVAL + 1);
+        // Submit for period 1
+        uint32 startTimestamp1 = GENESIS_REWARDS_TIMESTAMP + duration;
+        vm.warp(startTimestamp1 + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(2, rewards);
-        assertTrue(serviceManager.isEraProcessed(2));
+        serviceManager.submitRewards(startTimestamp1, duration, rewards);
+
+        // Submit for period 2
+        uint32 startTimestamp2 = GENESIS_REWARDS_TIMESTAMP + 2 * duration;
+        vm.warp(startTimestamp2 + duration + 1);
+        vm.prank(snowbridgeAgent);
+        serviceManager.submitRewards(startTimestamp2, duration, rewards);
     }
 
     // ============ View Function Tests ============
-
-    function test_isEraProcessed_returnsFalseForUnprocessedEra() public view {
-        assertFalse(serviceManager.isEraProcessed(0));
-        assertFalse(serviceManager.isEraProcessed(100));
-    }
 
     function test_getStrategyMultipliers() public view {
         (IStrategy[] memory strategies, uint96[] memory multipliers) =
@@ -353,4 +266,3 @@ contract RewardsSubmitterTest is AVSDeployer {
         assertEq(multipliers.length, deployedStrategies.length);
     }
 }
-

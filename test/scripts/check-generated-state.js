@@ -3,9 +3,6 @@ const path = require("node:path");
 
 const contractsPath = "../contracts/src";
 
-const mtime = fs.lstatSync("../contracts/deployments/state-diff.json").mtime;
-console.log(mtime);
-
 // Get our generated state creation time
 const stateGeneratedCTime = fs.lstatSync("../contracts/deployments/state-diff.json").ctime;
 console.log(stateGeneratedCTime);

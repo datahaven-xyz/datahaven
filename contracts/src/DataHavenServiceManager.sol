@@ -26,19 +26,13 @@ import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 // DataHaven imports
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
-import {IRewardsSubmitter} from "./interfaces/IRewardsSubmitter.sol";
 import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
-import {RewardsSubmitterStorage} from "./middleware/RewardsSubmitterStorage.sol";
 
 /**
  * @title DataHaven ServiceManager contract
  * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
  */
-contract DataHavenServiceManager is
-    ServiceManagerBase,
-    RewardsSubmitterStorage,
-    IDataHavenServiceManager
-{
+contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
@@ -53,6 +47,32 @@ contract DataHavenServiceManager is
 
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
+
+    // ============ Rewards Submitter Storage ============
+
+    /// @notice Address authorized to submit rewards via Snowbridge
+    address internal _rewardsSnowbridgeAgent;
+
+    /// @notice The reward token (e.g., wHAVE)
+    address internal _rewardToken;
+
+    /// @notice Genesis timestamp for era calculations (must align to CALCULATION_INTERVAL_SECONDS)
+    uint32 internal _eraGenesisTimestamp;
+
+    /// @notice Duration of each era in seconds
+    uint32 internal _eraDuration;
+
+    /// @notice Mapping of era index to whether it has been processed
+    mapping(uint32 eraIndex => bool processed) internal _processedEras;
+
+    /// @notice Array of strategies for reward distribution
+    IStrategy[] internal _rewardStrategies;
+
+    /// @notice Array of multipliers for each strategy (parallel to _rewardStrategies)
+    uint96[] internal _rewardMultipliers;
+
+    /// @dev Gap for future storage variables
+    uint256[44] private __gap;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -252,7 +272,7 @@ contract DataHavenServiceManager is
 
     // ============ Rewards Submitter Functions ============
 
-    /// @inheritdoc IRewardsSubmitter
+    /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
         uint32 eraIndex,
         IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
@@ -343,7 +363,7 @@ contract DataHavenServiceManager is
         emit EraRewardsSubmitted(eraIndex, totalAmount, operatorRewards.length);
     }
 
-    /// @inheritdoc IRewardsSubmitter
+    /// @inheritdoc IDataHavenServiceManager
     function setRewardsSnowbridgeAgent(
         address agent
     ) external override onlyOwner {
@@ -352,7 +372,7 @@ contract DataHavenServiceManager is
         emit RewardsSnowbridgeAgentSet(oldAgent, agent);
     }
 
-    /// @inheritdoc IRewardsSubmitter
+    /// @inheritdoc IDataHavenServiceManager
     function setRewardToken(
         address token
     ) external override onlyOwner {
@@ -361,7 +381,7 @@ contract DataHavenServiceManager is
         emit RewardTokenSet(oldToken, token);
     }
 
-    /// @inheritdoc IRewardsSubmitter
+    /// @inheritdoc IDataHavenServiceManager
     function setEraParameters(
         uint32 genesisTimestamp,
         uint32 eraDurationSeconds
@@ -385,7 +405,7 @@ contract DataHavenServiceManager is
         emit EraParametersSet(genesisTimestamp, eraDurationSeconds);
     }
 
-    /// @inheritdoc IRewardsSubmitter
+    /// @inheritdoc IDataHavenServiceManager
     function setStrategyMultipliers(
         IStrategy[] calldata strategies,
         uint96[] calldata multipliers
@@ -405,6 +425,43 @@ contract DataHavenServiceManager is
         }
 
         emit StrategyMultipliersSet(strategies, multipliers);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function isEraProcessed(
+        uint32 eraIndex
+    ) external view override returns (bool) {
+        return _processedEras[eraIndex];
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function rewardsSnowbridgeAgent() external view override returns (address) {
+        return _rewardsSnowbridgeAgent;
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function rewardToken() external view override returns (address) {
+        return _rewardToken;
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function eraGenesisTimestamp() external view override returns (uint32) {
+        return _eraGenesisTimestamp;
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function eraDuration() external view override returns (uint32) {
+        return _eraDuration;
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function getStrategyMultipliers()
+        external
+        view
+        override
+        returns (IStrategy[] memory strategies, uint96[] memory multipliers)
+    {
+        return (_rewardStrategies, _rewardMultipliers);
     }
 
     // ============ Internal Functions ============

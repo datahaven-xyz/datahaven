@@ -18,10 +18,10 @@ import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {ERC20FixedSupply} from "./utils/ERC20FixedSupply.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
 import {
-    IRewardsSubmitter,
-    IRewardsSubmitterEvents,
-    IRewardsSubmitterErrors
-} from "../src/interfaces/IRewardsSubmitter.sol";
+    IDataHavenServiceManager,
+    IDataHavenServiceManagerEvents,
+    IDataHavenServiceManagerErrors
+} from "../src/interfaces/IDataHavenServiceManager.sol";
 
 contract RewardsSubmitterTest is AVSDeployer {
     // Test addresses
@@ -74,7 +74,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, false, false);
-        emit IRewardsSubmitterEvents.RewardsSnowbridgeAgentSet(snowbridgeAgent, newAgent);
+        emit IDataHavenServiceManagerEvents.RewardsSnowbridgeAgentSet(snowbridgeAgent, newAgent);
         serviceManager.setRewardsSnowbridgeAgent(newAgent);
 
         assertEq(serviceManager.rewardsSnowbridgeAgent(), newAgent);
@@ -91,7 +91,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, false, false);
-        emit IRewardsSubmitterEvents.RewardTokenSet(address(rewardToken), newToken);
+        emit IDataHavenServiceManagerEvents.RewardTokenSet(address(rewardToken), newToken);
         serviceManager.setRewardToken(newToken);
 
         assertEq(serviceManager.rewardToken(), newToken);
@@ -103,7 +103,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(avsOwner);
         vm.expectEmit(false, false, false, true);
-        emit IRewardsSubmitterEvents.EraParametersSet(newGenesis, newDuration);
+        emit IDataHavenServiceManagerEvents.EraParametersSet(newGenesis, newDuration);
         serviceManager.setEraParameters(newGenesis, newDuration);
 
         assertEq(serviceManager.eraGenesisTimestamp(), newGenesis);
@@ -114,13 +114,13 @@ contract RewardsSubmitterTest is AVSDeployer {
         uint32 unalignedGenesis = genesisTimestamp + 100; // Not a multiple of 86400
 
         vm.prank(avsOwner);
-        vm.expectRevert(IRewardsSubmitterErrors.InvalidGenesisTimestamp.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.InvalidGenesisTimestamp.selector);
         serviceManager.setEraParameters(unalignedGenesis, eraDuration);
     }
 
     function test_setEraParameters_revertsIfDurationZero() public {
         vm.prank(avsOwner);
-        vm.expectRevert(IRewardsSubmitterErrors.InvalidEraDuration.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.InvalidEraDuration.selector);
         serviceManager.setEraParameters(genesisTimestamp, 0);
     }
 
@@ -148,7 +148,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         uint96[] memory multipliers = new uint96[](1);
 
         vm.prank(avsOwner);
-        vm.expectRevert(IRewardsSubmitterErrors.StrategiesMultipliersLengthMismatch.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.StrategiesMultipliersLengthMismatch.selector);
         serviceManager.setStrategyMultipliers(strategies, multipliers);
     }
 
@@ -160,7 +160,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
         vm.prank(operator1);
-        vm.expectRevert(IRewardsSubmitterErrors.OnlyRewardsSnowbridgeAgent.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.OnlyRewardsSnowbridgeAgent.selector);
         serviceManager.submitRewards(0, rewards);
     }
 
@@ -181,7 +181,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         // Second submission for same era should revert
         vm.prank(snowbridgeAgent);
         vm.expectRevert(
-            abi.encodeWithSelector(IRewardsSubmitterErrors.EraAlreadyProcessed.selector, 0)
+            abi.encodeWithSelector(IDataHavenServiceManagerErrors.EraAlreadyProcessed.selector, 0)
         );
         serviceManager.submitRewards(0, rewards);
     }
@@ -196,7 +196,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(IRewardsSubmitterErrors.RewardTokenNotSet.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.RewardTokenNotSet.selector);
         serviceManager.submitRewards(0, rewards);
     }
 
@@ -212,7 +212,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(IRewardsSubmitterErrors.NoStrategiesConfigured.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.NoStrategiesConfigured.selector);
         serviceManager.submitRewards(0, rewards);
     }
 
@@ -221,7 +221,7 @@ contract RewardsSubmitterTest is AVSDeployer {
             new IRewardsCoordinatorTypes.OperatorReward[](0);
 
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(IRewardsSubmitterErrors.EmptyOperatorsArray.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.EmptyOperatorsArray.selector);
         serviceManager.submitRewards(0, rewards);
     }
 
@@ -264,7 +264,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
 
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(IRewardsSubmitterErrors.EraParametersNotConfigured.selector);
+        vm.expectRevert(IDataHavenServiceManagerErrors.EraParametersNotConfigured.selector);
         freshServiceManager.submitRewards(0, rewards);
     }
 
@@ -282,7 +282,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(snowbridgeAgent);
         vm.expectEmit(true, false, false, true);
-        emit IRewardsSubmitterEvents.EraRewardsSubmitted(0, rewardAmount, 1);
+        emit IDataHavenServiceManagerEvents.EraRewardsSubmitted(0, rewardAmount, 1);
         serviceManager.submitRewards(0, rewards);
 
         // Verify era is marked as processed
@@ -308,7 +308,7 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(snowbridgeAgent);
         vm.expectEmit(true, false, false, true);
-        emit IRewardsSubmitterEvents.EraRewardsSubmitted(0, totalAmount, 2);
+        emit IDataHavenServiceManagerEvents.EraRewardsSubmitted(0, totalAmount, 2);
         serviceManager.submitRewards(0, rewards);
 
         assertTrue(serviceManager.isEraProcessed(0));

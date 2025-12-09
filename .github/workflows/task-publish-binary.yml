@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write  # Required for uploading artifacts
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -35,6 +36,7 @@ jobs:
     needs: ["prepare-sources"]
     permissions:
       contents: read
+      actions: write  # Required for uploading artifacts
     strategy:
       matrix:
         cpu: ["x86-64", "skylake", "znver3"]
@@ -52,6 +54,8 @@ jobs:
 
   publish-draft-release:
     runs-on: ubuntu-latest
+    # Require approval before creating release drafts
+    environment: releases
     permissions:
       contents: write
     needs: ["build-binary"]
@@ -108,6 +112,8 @@ jobs:
 
   docker-release-candidate:
     runs-on: ubuntu-latest
+    # Require approval before publishing RC images to Docker Hub
+    environment: production
     needs: ["build-binary"]
     steps:
       - name: Checkout

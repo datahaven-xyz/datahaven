@@ -22,7 +22,8 @@ try {
       }
     }
   }
-} catch (_err) {
+} catch (err) {
+  console.error(err);
   // Actually exit the process with a non-zero code
   process.exit(1);
 }

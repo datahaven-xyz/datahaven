@@ -57,6 +57,38 @@ bun test suites/some-test.test.ts
 
 NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the contracts when starting the tests to speed up setup.
 
+## AVS Owner Parameters & Tx Execution
+
+Our deployment tooling now separates “who becomes the ServiceManager owner” from “who executes the privileged post-deployment calls.” The knobs are:
+
+| Flag / Env | Purpose | Default |
+| --- | --- | --- |
+| `--avs-owner-address` / `AVS_OWNER_ADDRESS` | Address set as `avsOwner` in the ServiceManager initializer. **Required** when targeting testnet/mainnet (Safe multisig). Falls back to `config/<network>.json` only for local/anvil. | Local uses config value; non-local must supply. |
+| `--avs-owner-key` / `AVS_OWNER_PRIVATE_KEY` | Private key used to sign owner-only calls the script performs (e.g. `setSlasher`). Only read when tx execution is enabled. | Anvil default key if unset. |
+| `--execute-owner-transactions` (CLI) / `TX_EXECUTION=true|false` (env) | Controls whether the script actually broadcasts owner calls. When disabled, we skip sending transactions and instead print ABI-encoded payloads that a Safe can execute. | Enabled automatically for local flows and CI helpers; disabled by default on `hoodi/holesky/mainnet`. |
+
+### Examples
+
+```bash
+# Local/anvil developer run (executes owner txs immediately)
+bun cli contracts deploy --chain anvil --avs-owner-key $LOCAL_OWNER_KEY --execute-owner-transactions
+
+# Testnet deployment where ownership is a Safe (prints multisig payloads)
+AVS_OWNER_ADDRESS=0x... bun cli contracts deploy --chain hoodi
+
+# Force execution during launch/deploy automation (already the default)
+bun cli launch --deploy-contracts --execute-owner-transactions
+```
+
+When tx execution is off, the CLI prints a list of `{to, data, value}` objects for:
+
+1. `updateAVSMetadataURI("")`
+2. `setSlasher(vetoableSlasher)`
+3. `setRewardsRegistry(validatorsSetId, rewardsRegistry)`
+4. `setRewardsAgent(validatorsSetId, rewardsAgent)`
+
+Copy each object into your safe transaction builder (or preferred multisig workflow) to finalize the deployment.
+
 ## Generating Ethereum state
 
 To avoid deploying contracts everytime for each tests, you can generate and then inject state in the Ethereum client.

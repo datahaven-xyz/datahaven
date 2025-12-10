@@ -98,7 +98,7 @@ use frame_support::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -1463,60 +1463,289 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
     }
 }
 
-// Stub SendMessage implementation for rewards pallet
+/// V2 SendMessage implementation for rewards pallet.
+///
+/// This adapter builds two Snowbridge commands:
+/// 1. MintForeignToken - mints wHAVE tokens to the ServiceManager
+/// 2. CallContract - calls submitRewards with the ABI-encoded OperatorDirectedRewardsSubmission
 pub struct RewardsSendAdapter;
+
+impl RewardsSendAdapter {
+    /// Calculate operator amounts from points and inflation.
+    /// Returns sorted list of (operator, amount) tuples.
+    fn calculate_operator_amounts(
+        individual_points: &[(H160, u32)],
+        total_points: u128,
+        inflation_amount: u128,
+    ) -> Vec<(H160, u128)> {
+        let mut operator_rewards: Vec<(H160, u128)> = individual_points
+            .iter()
+            .filter_map(|(op, pts)| {
+                if total_points == 0 || *pts == 0 {
+                    return None;
+                }
+                let amount = (*pts as u128)
+                    .saturating_mul(inflation_amount)
+                    .saturating_div(total_points);
+                if amount > 0 {
+                    Some((*op, amount))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Sort by operator address (required by EigenLayer)
+        operator_rewards.sort_by_key(|(addr, _)| *addr);
+        operator_rewards
+    }
+
+    /// Calculate the aligned start timestamp for rewards submission.
+    /// Must be aligned to RewardsDuration (86400 seconds = 1 day).
+    fn calculate_aligned_start_timestamp() -> u32 {
+        let genesis = runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
+        let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
+
+        // Get current timestamp in seconds using UnixTime trait
+        let now_duration = <Timestamp as UnixTime>::now();
+        let now_secs: u32 = now_duration.as_secs().try_into().unwrap_or(0);
+
+        if duration == 0 || genesis > now_secs {
+            return genesis;
+        }
+
+        // Find the most recently completed period
+        let elapsed = now_secs.saturating_sub(genesis);
+        let period = elapsed / duration;
+
+        // Return start of the period that just ended
+        // (subtract 1 because we're at the end of period N, so we submit for period N-1)
+        genesis + period.saturating_sub(1) * duration
+    }
+
+    /// ABI-encode the submitRewards calldata.
+    /// Format: selector + ABI-encoded OperatorDirectedRewardsSubmission tuple
+    fn encode_submit_rewards_calldata(
+        selector: &[u8],
+        token: H160,
+        operator_rewards: &[(H160, u128)],
+        start_timestamp: u32,
+        duration: u32,
+        description: &[u8],
+    ) -> Vec<u8> {
+        // For now, use an empty strategies array since DataHaven focuses on operator rewards
+        // In future, this can be made configurable via runtime parameters
+        let strategies: &[(H160, u128)] = &[];
+
+        // ABI encoding for: ((address,uint96)[], address, (address,uint256)[], uint32, uint32, string)
+        // This is a tuple with dynamic arrays, so we need proper offset encoding
+        let mut calldata = selector.to_vec();
+
+        // Offset to the main tuple data (starts at 32 bytes from selector)
+        let tuple_offset: u128 = 32;
+        calldata.extend_from_slice(&encode_u256(tuple_offset));
+
+        // Now encode the tuple contents
+        // Head section: offsets for dynamic types, values for static types
+        // Layout:
+        // [0] offset to strategiesAndMultipliers array
+        // [1] token (address, padded to 32 bytes)
+        // [2] offset to operatorRewards array
+        // [3] startTimestamp (uint32, padded to 32 bytes)
+        // [4] duration (uint32, padded to 32 bytes)
+        // [5] offset to description string
+
+        // Calculate offsets (6 head slots * 32 bytes = 192 bytes to first dynamic data)
+        let head_size: u128 = 6 * 32;
+        let strategies_offset: u128 = head_size;
+
+        // Size of strategies array data
+        let strategies_data_size: u128 =
+            32 + (strategies.len() as u128) * 64; // length + items (address+uint96 packed = 2 slots)
+
+        let operator_rewards_offset: u128 = strategies_offset + strategies_data_size;
+
+        // Size of operator rewards array data
+        let operator_rewards_data_size: u128 =
+            32 + (operator_rewards.len() as u128) * 64; // length + items (address+uint256 = 2 slots)
+
+        let description_offset: u128 = operator_rewards_offset + operator_rewards_data_size;
+
+        // Head section
+        calldata.extend_from_slice(&encode_u256(strategies_offset));
+        calldata.extend_from_slice(&encode_address(token));
+        calldata.extend_from_slice(&encode_u256(operator_rewards_offset));
+        calldata.extend_from_slice(&encode_u256(start_timestamp as u128));
+        calldata.extend_from_slice(&encode_u256(duration as u128));
+        calldata.extend_from_slice(&encode_u256(description_offset));
+
+        // Tail section: dynamic data
+
+        // 1. strategiesAndMultipliers array
+        calldata.extend_from_slice(&encode_u256(strategies.len() as u128));
+        for (strategy, multiplier) in strategies {
+            calldata.extend_from_slice(&encode_address(*strategy));
+            // uint96 is padded to 32 bytes
+            calldata.extend_from_slice(&encode_u256(*multiplier));
+        }
+
+        // 2. operatorRewards array
+        calldata.extend_from_slice(&encode_u256(operator_rewards.len() as u128));
+        for (operator, amount) in operator_rewards {
+            calldata.extend_from_slice(&encode_address(*operator));
+            calldata.extend_from_slice(&encode_u256(*amount));
+        }
+
+        // 3. description string
+        calldata.extend_from_slice(&encode_u256(description.len() as u128));
+        // String data padded to 32-byte boundary
+        calldata.extend_from_slice(description);
+        let padding_needed = (32 - (description.len() % 32)) % 32;
+        calldata.extend(core::iter::repeat(0u8).take(padding_needed));
+
+        calldata
+    }
+}
+
+/// Encode a u128 value as a 32-byte big-endian ABI-encoded uint256.
+fn encode_u256(value: u128) -> [u8; 32] {
+    let mut result = [0u8; 32];
+    // u128 fits in the lower 16 bytes, big-endian encoding puts it at the end
+    result[16..32].copy_from_slice(&value.to_be_bytes());
+    result
+}
+
+/// Encode an H160 address as a 32-byte ABI-encoded address (left-padded with zeros).
+fn encode_address(addr: H160) -> [u8; 32] {
+    let mut result = [0u8; 32];
+    result[12..32].copy_from_slice(addr.as_bytes());
+    result
+}
+
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
+
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let rewards_registry_address =
-            runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get();
+        let service_manager =
+            runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
 
-        // Skip sending message if RewardsRegistryAddress is zero (invalid)
-        if rewards_registry_address == H160::zero() {
+        // Skip if ServiceManager address is not configured
+        if service_manager == H160::zero() {
             log::warn!(
                 target: "rewards_send_adapter",
-                "Skipping rewards message: RewardsRegistryAddress is zero"
+                "Skipping rewards message: ServiceManagerAddress is zero"
             );
             return None;
         }
 
-        let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
+        let whave_token_id =
+            runtime_params::dynamic_params::runtime_config::WHAVETokenId::get();
+        let whave_token_address =
+            runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
 
-        let mut calldata = Vec::new();
-        calldata.extend_from_slice(&selector);
-        calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
+        // Skip if wHAVE token is not configured
+        if whave_token_id == H256::zero() || whave_token_address == H160::zero() {
+            log::warn!(
+                target: "rewards_send_adapter",
+                "Skipping rewards message: wHAVE token not configured"
+            );
+            return None;
+        }
 
-        let command = Command::CallContract {
-            target: rewards_registry_address,
+        // Calculate operator amounts from points
+        let operator_rewards = Self::calculate_operator_amounts(
+            &rewards_utils.individual_points,
+            rewards_utils.total_points,
+            rewards_utils.inflation_amount,
+        );
+
+        if operator_rewards.is_empty() {
+            log::warn!(
+                target: "rewards_send_adapter",
+                "Skipping rewards message: no operators with rewards"
+            );
+            return None;
+        }
+
+        // Calculate total amount for minting
+        let total_amount: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
+
+        if total_amount == 0 {
+            log::warn!(
+                target: "rewards_send_adapter",
+                "Skipping rewards message: total amount is zero"
+            );
+            return None;
+        }
+
+        // Get remaining parameters
+        let selector = runtime_params::dynamic_params::runtime_config::SubmitRewardsSelector::get();
+        let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
+        let description = runtime_params::dynamic_params::runtime_config::RewardsDescription::get();
+        let gas_limit = runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
+
+        let start_timestamp = Self::calculate_aligned_start_timestamp();
+
+        // Build the ABI-encoded calldata
+        let calldata = Self::encode_submit_rewards_calldata(
+            &selector,
+            whave_token_address,
+            &operator_rewards,
+            start_timestamp,
+            duration,
+            &description,
+        );
+
+        // Build the two commands: MintForeignToken + CallContract
+        let mint_command = Command::MintForeignToken {
+            token_id: whave_token_id,
+            recipient: service_manager,
+            amount: total_amount,
+        };
+
+        let call_command = Command::CallContract {
+            target: service_manager,
             calldata,
-            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
+            gas: gas_limit,
             value: 0,
         };
+
+        let commands = match vec![mint_command, call_command].try_into() {
+            Ok(cmds) => cmds,
+            Err(_) => {
+                log::error!(
+                    target: "rewards_send_adapter",
+                    "Failed to convert commands: too many commands"
+                );
+                return None;
+            }
+        };
+
         let message = OutboundMessage {
             origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
-            // TODO: Determine appropriate id value
             id: unique(rewards_utils.rewards_merkle_root).into(),
             fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => {
-                    log::error!(
-                        target: "rewards_send_adapter",
-                        "Failed to convert commands: too many commands"
-                    );
-                    return None;
-                }
-            },
+            commands,
         };
+
+        log::info!(
+            target: "rewards_send_adapter",
+            "Built rewards message: total_amount={}, operators={}, start_timestamp={}",
+            total_amount,
+            operator_rewards.len(),
+            start_timestamp
+        );
+
         Some(message)
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
         EthereumOutboundQueueV2::validate(&message)
     }
+
     fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
         EthereumOutboundQueueV2::deliver(message)
     }
@@ -1715,72 +1944,166 @@ mod tests {
         use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
-            // Create test rewards utils
+            // Create test rewards utils with V2 fields
             let rewards_utils = EraRewardsUtils {
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
+                individual_points: vec![(H160::from_low_u64_be(1), 500), (H160::from_low_u64_be(2), 500)],
+                inflation_amount: 1000000,
             };
 
-            // By default, RewardsRegistryAddress is zero (H160::repeat_byte(0x0))
+            // By default, ServiceManagerAddress is zero (H160::repeat_byte(0x0))
             // So the adapter should return None
             let message = RewardsSendAdapter::build(&rewards_utils);
             assert!(
                 message.is_none(),
-                "Should return None when RewardsRegistryAddress is zero"
+                "Should return None when ServiceManagerAddress is zero"
             );
         });
     }
 
     #[test]
-    fn test_rewards_send_adapter_with_valid_address() {
+    fn test_rewards_send_adapter_with_valid_config() {
         use frame_support::assert_ok;
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
         use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
-            // Set a valid (non-zero) rewards registry address
-            let valid_address = H160::from_low_u64_be(0x1234567890abcdef);
+            // Set valid V2 configuration
+            let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
+            let whave_token_id = H256::from_low_u64_be(0x1);
+            let whave_token_address = H160::from_low_u64_be(0xabcdef);
+
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::RewardsRegistryAddress(
-                        runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress,
-                        Some(valid_address),
+                    runtime_params::dynamic_params::runtime_config::Parameters::ServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::ServiceManagerAddress,
+                        Some(service_manager),
+                    ),
+                ),
+            ));
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenId(
+                        runtime_params::dynamic_params::runtime_config::WHAVETokenId,
+                        Some(whave_token_id),
+                    ),
+                ),
+            ));
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenAddress(
+                        runtime_params::dynamic_params::runtime_config::WHAVETokenAddress,
+                        Some(whave_token_address),
                     ),
                 ),
             ));
 
-            // Create test rewards utils
+            // Create test rewards utils with V2 fields
+            let op1 = H160::from_low_u64_be(1);
+            let op2 = H160::from_low_u64_be(2);
             let rewards_utils = EraRewardsUtils {
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
+                individual_points: vec![(op1, 600), (op2, 400)],
+                inflation_amount: 1_000_000_000, // 1 billion smallest units
             };
 
             // Now the adapter should return a valid message
             let message = RewardsSendAdapter::build(&rewards_utils);
             assert!(
                 message.is_some(),
-                "Should return Some(message) when RewardsRegistryAddress is non-zero"
+                "Should return Some(message) when all V2 params are configured"
             );
 
-            // Verify the message contains the correct target address
+            // Verify the message structure
             if let Some(msg) = message {
-                // Check that the first command has the correct target
-                let command = &msg.commands[0];
-                match command {
+                assert_eq!(msg.commands.len(), 2, "Should have 2 commands: MintForeignToken + CallContract");
+
+                // First command should be MintForeignToken
+                match &msg.commands[0] {
+                    Command::MintForeignToken { token_id, recipient, amount } => {
+                        assert_eq!(*token_id, whave_token_id, "Token ID should match");
+                        assert_eq!(*recipient, service_manager, "Recipient should be ServiceManager");
+                        assert_eq!(*amount, 1_000_000_000, "Amount should equal inflation");
+                    }
+                    _ => panic!("Expected MintForeignToken command"),
+                }
+
+                // Second command should be CallContract
+                match &msg.commands[1] {
                     Command::CallContract { target, .. } => {
-                        assert_eq!(
-                            *target, valid_address,
-                            "Message should target the configured address"
-                        );
+                        assert_eq!(*target, service_manager, "Target should be ServiceManager");
                     }
                     _ => panic!("Expected CallContract command"),
                 }
             }
         });
+    }
+
+    #[test]
+    fn test_operator_amounts_calculation() {
+        // Test that operator amounts are calculated correctly from points
+        let individual_points = vec![
+            (H160::from_low_u64_be(1), 300u32),  // 30%
+            (H160::from_low_u64_be(2), 500u32),  // 50%
+            (H160::from_low_u64_be(3), 200u32),  // 20%
+        ];
+        let total_points = 1000u128;
+        let inflation_amount = 1_000_000u128;
+
+        let amounts = RewardsSendAdapter::calculate_operator_amounts(
+            &individual_points,
+            total_points,
+            inflation_amount,
+        );
+
+        assert_eq!(amounts.len(), 3, "Should have 3 operators");
+
+        // Verify amounts are proportional (sorted by address)
+        // Address 1 = 300k, Address 2 = 500k, Address 3 = 200k
+        let total: u128 = amounts.iter().map(|(_, a)| *a).sum();
+        assert_eq!(total, inflation_amount, "Total should equal inflation");
+
+        // Verify sorted by address (ascending)
+        for i in 1..amounts.len() {
+            assert!(amounts[i].0 >= amounts[i-1].0, "Should be sorted by address");
+        }
+    }
+
+    #[test]
+    fn test_abi_encoding_structure() {
+        // Test that ABI encoding produces valid structure
+        let selector = vec![0x83, 0x82, 0x1e, 0x8e];
+        let token = H160::from_low_u64_be(0x1234);
+        let operator_rewards = vec![
+            (H160::from_low_u64_be(1), 500_000u128),
+            (H160::from_low_u64_be(2), 500_000u128),
+        ];
+        let start_timestamp = 1700000000u32;
+        let duration = 86400u32;
+        let description = b"Test rewards";
+
+        let calldata = RewardsSendAdapter::encode_submit_rewards_calldata(
+            &selector,
+            token,
+            &operator_rewards,
+            start_timestamp,
+            duration,
+            description,
+        );
+
+        // Verify selector is at the beginning
+        assert_eq!(&calldata[0..4], &selector[..], "Selector should be first 4 bytes");
+
+        // Verify minimum length (selector + offset + head + data)
+        assert!(calldata.len() > 4 + 32, "Calldata should have selector + offset + head");
     }
 }

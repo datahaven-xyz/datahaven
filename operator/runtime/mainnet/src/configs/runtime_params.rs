@@ -357,6 +357,60 @@ pub mod dynamic_params {
         pub static InflationTreasuryProportion: Perbill = Perbill::from_percent(20);
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
+
+        // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
+
+        #[codec(index = 39)]
+        #[allow(non_upper_case_globals)]
+        /// The DataHaven ServiceManager contract address on Ethereum.
+        /// This replaces RewardsRegistryAddress for V2 rewards distribution.
+        pub static ServiceManagerAddress: H160 = H160::repeat_byte(0x0);
+
+        #[codec(index = 40)]
+        #[allow(non_upper_case_globals)]
+        /// The function selector for submitRewards(OperatorDirectedRewardsSubmission).
+        /// This is the first 4 bytes of keccak256 of the function signature.
+        /// Computed from: submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))
+        /// cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
+        pub static SubmitRewardsSelector: BoundedVec<u8, ConstU32<4>> =
+            BoundedVec::truncate_from(vec![0x83, 0x82, 0x1e, 0x8e]);
+
+        #[codec(index = 41)]
+        #[allow(non_upper_case_globals)]
+        /// The wHAVE token ID for Snowbridge MintForeignToken command.
+        /// This is the token ID registered in Snowbridge for wrapped HAVE.
+        pub static WHAVETokenId: H256 = H256::repeat_byte(0x0);
+
+        #[codec(index = 42)]
+        #[allow(non_upper_case_globals)]
+        /// The wHAVE ERC20 token address on Ethereum.
+        /// Used in the OperatorDirectedRewardsSubmission struct.
+        pub static WHAVETokenAddress: H160 = H160::repeat_byte(0x0);
+
+        #[codec(index = 43)]
+        #[allow(non_upper_case_globals)]
+        /// EigenLayer-aligned genesis timestamp for rewards calculation.
+        /// Must be divisible by 86400 (seconds per day) as per EigenLayer requirements.
+        /// Default: 0 (must be set via governance to actual deployment timestamp).
+        pub static RewardsGenesisTimestamp: u32 = 0;
+
+        #[codec(index = 44)]
+        #[allow(non_upper_case_globals)]
+        /// Rewards duration in seconds. Fixed at 86400 (1 day) for EigenLayer.
+        pub static RewardsDuration: u32 = 86400;
+
+        #[codec(index = 45)]
+        #[allow(non_upper_case_globals)]
+        /// Default description for rewards submissions.
+        pub static RewardsDescription: BoundedVec<u8, ConstU32<64>> =
+            BoundedVec::truncate_from(b"DataHaven validator rewards".to_vec());
+
+        #[codec(index = 46)]
+        #[allow(non_upper_case_globals)]
+        /// Gas limit for the submitRewards call on Ethereum.
+        pub static SubmitRewardsGasLimit: u64 = 2_000_000;
+
+        // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
     }
 }
 

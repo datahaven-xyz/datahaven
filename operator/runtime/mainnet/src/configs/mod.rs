@@ -1641,16 +1641,25 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             return None;
         }
 
-        let whave_token_id =
-            runtime_params::dynamic_params::runtime_config::WHAVETokenId::get();
+        // Derive wHAVE token ID from Snowbridge (same as native transfer pallet)
+        let whave_token_id = match DataHavenTokenId::get() {
+            Some(id) => id,
+            None => {
+                log::warn!(
+                    target: "rewards_send_adapter",
+                    "Skipping rewards message: wHAVE token not registered in Snowbridge"
+                );
+                return None;
+            }
+        };
         let whave_token_address =
             runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
 
-        // Skip if wHAVE token is not configured
-        if whave_token_id == H256::zero() || whave_token_address == H160::zero() {
+        // Skip if wHAVE token address is not configured
+        if whave_token_address == H160::zero() {
             log::warn!(
                 target: "rewards_send_adapter",
-                "Skipping rewards message: wHAVE token not configured"
+                "Skipping rewards message: wHAVE token address not configured"
             );
             return None;
         }
@@ -1973,7 +1982,6 @@ mod tests {
         TestExternalities::default().execute_with(|| {
             // Set valid V2 configuration
             let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
-            let whave_token_id = H256::from_low_u64_be(0x1);
             let whave_token_address = H160::from_low_u64_be(0xabcdef);
 
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
@@ -1988,21 +1996,19 @@ mod tests {
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenId(
-                        runtime_params::dynamic_params::runtime_config::WHAVETokenId,
-                        Some(whave_token_id),
-                    ),
-                ),
-            ));
-            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
-                RuntimeOrigin::root(),
-                RuntimeParameters::RuntimeConfig(
                     runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenAddress(
                         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress,
                         Some(whave_token_address),
                     ),
                 ),
             ));
+
+            // Register native token in Snowbridge for DataHavenTokenId::get() to work
+            let native_location = Location::here();
+            let reanchored = SnowbridgeSystemV2::reanchor(native_location.clone()).unwrap();
+            let token_id = snowbridge_core::TokenIdOf::convert_location(&reanchored).unwrap();
+            snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
+            snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
 
             // Create test rewards utils with V2 fields
             let op1 = H160::from_low_u64_be(1);
@@ -2028,9 +2034,10 @@ mod tests {
                 assert_eq!(msg.commands.len(), 2, "Should have 2 commands: MintForeignToken + CallContract");
 
                 // First command should be MintForeignToken
+                let expected_token_id = DataHavenTokenId::get().expect("Token should be registered");
                 match &msg.commands[0] {
                     Command::MintForeignToken { token_id, recipient, amount } => {
-                        assert_eq!(*token_id, whave_token_id, "Token ID should match");
+                        assert_eq!(*token_id, expected_token_id, "Token ID should match");
                         assert_eq!(*recipient, service_manager, "Recipient should be ServiceManager");
                         assert_eq!(*amount, 1_000_000_000, "Amount should equal inflation");
                     }

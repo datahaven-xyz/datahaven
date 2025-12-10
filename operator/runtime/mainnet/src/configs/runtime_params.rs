@@ -375,12 +375,6 @@ pub mod dynamic_params {
         pub static SubmitRewardsSelector: BoundedVec<u8, ConstU32<4>> =
             BoundedVec::truncate_from(vec![0x83, 0x82, 0x1e, 0x8e]);
 
-        #[codec(index = 41)]
-        #[allow(non_upper_case_globals)]
-        /// The wHAVE token ID for Snowbridge MintForeignToken command.
-        /// This is the token ID registered in Snowbridge for wrapped HAVE.
-        pub static WHAVETokenId: H256 = H256::repeat_byte(0x0);
-
         #[codec(index = 42)]
         #[allow(non_upper_case_globals)]
         /// The wHAVE ERC20 token address on Ethereum.

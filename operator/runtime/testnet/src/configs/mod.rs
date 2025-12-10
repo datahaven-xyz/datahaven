@@ -98,7 +98,8 @@ use frame_support::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime, VariantCountOf,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime,
+        VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -1475,9 +1476,17 @@ impl RewardsSendAdapter {
         let mut operator_rewards: Vec<(H160, u128)> = individual_points
             .iter()
             .filter_map(|(op, pts)| {
-                if total_points == 0 || *pts == 0 { return None; }
-                let amount = (*pts as u128).saturating_mul(inflation_amount).saturating_div(total_points);
-                if amount > 0 { Some((*op, amount)) } else { None }
+                if total_points == 0 || *pts == 0 {
+                    return None;
+                }
+                let amount = (*pts as u128)
+                    .saturating_mul(inflation_amount)
+                    .saturating_div(total_points);
+                if amount > 0 {
+                    Some((*op, amount))
+                } else {
+                    None
+                }
             })
             .collect();
         operator_rewards.sort_by_key(|(addr, _)| *addr);
@@ -1485,19 +1494,26 @@ impl RewardsSendAdapter {
     }
 
     fn calculate_aligned_start_timestamp() -> u32 {
-        let genesis = runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
+        let genesis =
+            runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
         let now_duration = <Timestamp as UnixTime>::now();
         let now_secs: u32 = now_duration.as_secs().try_into().unwrap_or(0);
-        if duration == 0 || genesis > now_secs { return genesis; }
+        if duration == 0 || genesis > now_secs {
+            return genesis;
+        }
         let elapsed = now_secs.saturating_sub(genesis);
         let period = elapsed / duration;
         genesis + period.saturating_sub(1) * duration
     }
 
     fn encode_submit_rewards_calldata(
-        selector: &[u8], token: H160, operator_rewards: &[(H160, u128)],
-        start_timestamp: u32, duration: u32, description: &[u8],
+        selector: &[u8],
+        token: H160,
+        operator_rewards: &[(H160, u128)],
+        start_timestamp: u32,
+        duration: u32,
+        description: &[u8],
     ) -> Vec<u8> {
         let strategies: &[(H160, u128)] = &[];
         let mut calldata = selector.to_vec();
@@ -1547,35 +1563,65 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let service_manager = runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
-        if service_manager == H160::zero() { return None; }
+        let service_manager =
+            runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
+        if service_manager == H160::zero() {
+            return None;
+        }
 
-        let whave_token_id = runtime_params::dynamic_params::runtime_config::WHAVETokenId::get();
-        let whave_token_address = runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
-        if whave_token_id == H256::zero() || whave_token_address == H160::zero() { return None; }
+        // Derive wHAVE token ID from Snowbridge (same as native transfer pallet)
+        let whave_token_id = DataHavenTokenId::get()?;
+        let whave_token_address =
+            runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
+        if whave_token_address == H160::zero() {
+            return None;
+        }
 
         let operator_rewards = Self::calculate_operator_amounts(
-            &rewards_utils.individual_points, rewards_utils.total_points, rewards_utils.inflation_amount,
+            &rewards_utils.individual_points,
+            rewards_utils.total_points,
+            rewards_utils.inflation_amount,
         );
-        if operator_rewards.is_empty() { return None; }
+        if operator_rewards.is_empty() {
+            return None;
+        }
 
         let total_amount: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
-        if total_amount == 0 { return None; }
+        if total_amount == 0 {
+            return None;
+        }
 
         let selector = runtime_params::dynamic_params::runtime_config::SubmitRewardsSelector::get();
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
         let description = runtime_params::dynamic_params::runtime_config::RewardsDescription::get();
-        let gas_limit = runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
+        let gas_limit =
+            runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
         let start_timestamp = Self::calculate_aligned_start_timestamp();
 
         let calldata = Self::encode_submit_rewards_calldata(
-            &selector, whave_token_address, &operator_rewards, start_timestamp, duration, &description,
+            &selector,
+            whave_token_address,
+            &operator_rewards,
+            start_timestamp,
+            duration,
+            &description,
         );
 
         let commands = vec![
-            Command::MintForeignToken { token_id: whave_token_id, recipient: service_manager, amount: total_amount },
-            Command::CallContract { target: service_manager, calldata, gas: gas_limit, value: 0 },
-        ].try_into().ok()?;
+            Command::MintForeignToken {
+                token_id: whave_token_id,
+                recipient: service_manager,
+                amount: total_amount,
+            },
+            Command::CallContract {
+                target: service_manager,
+                calldata,
+                gas: gas_limit,
+                value: 0,
+            },
+        ]
+        .try_into()
+        .ok()?;
 
         Some(OutboundMessage {
             origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
@@ -1809,11 +1855,17 @@ mod tests {
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
-                individual_points: vec![(H160::from_low_u64_be(1), 500), (H160::from_low_u64_be(2), 500)],
+                individual_points: vec![
+                    (H160::from_low_u64_be(1), 500),
+                    (H160::from_low_u64_be(2), 500),
+                ],
                 inflation_amount: 1000000,
             };
             let message = RewardsSendAdapter::build(&rewards_utils);
-            assert!(message.is_none(), "Should return None when ServiceManagerAddress is zero");
+            assert!(
+                message.is_none(),
+                "Should return None when ServiceManagerAddress is zero"
+            );
         });
     }
 
@@ -1825,7 +1877,6 @@ mod tests {
 
         TestExternalities::default().execute_with(|| {
             let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
-            let whave_token_id = H256::from_low_u64_be(0x1);
             let whave_token_address = H160::from_low_u64_be(0xabcdef);
 
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
@@ -1840,21 +1891,19 @@ mod tests {
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenId(
-                        runtime_params::dynamic_params::runtime_config::WHAVETokenId,
-                        Some(whave_token_id),
-                    ),
-                ),
-            ));
-            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
-                RuntimeOrigin::root(),
-                RuntimeParameters::RuntimeConfig(
                     runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenAddress(
                         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress,
                         Some(whave_token_address),
                     ),
                 ),
             ));
+
+            // Register native token in Snowbridge for DataHavenTokenId::get() to work
+            let native_location = Location::here();
+            let reanchored = SnowbridgeSystemV2::reanchor(native_location.clone()).unwrap();
+            let token_id = snowbridge_core::TokenIdOf::convert_location(&reanchored).unwrap();
+            snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
+            snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
 
             let rewards_utils = EraRewardsUtils {
                 rewards_merkle_root: H256::random(),
@@ -1870,9 +1919,10 @@ mod tests {
 
             if let Some(msg) = message {
                 assert_eq!(msg.commands.len(), 2, "Should have 2 commands");
+                let expected_token_id = DataHavenTokenId::get().expect("Token should be registered");
                 match &msg.commands[0] {
                     Command::MintForeignToken { token_id, recipient, amount } => {
-                        assert_eq!(*token_id, whave_token_id);
+                        assert_eq!(*token_id, expected_token_id);
                         assert_eq!(*recipient, service_manager);
                         assert_eq!(*amount, 1_000_000_000);
                     }

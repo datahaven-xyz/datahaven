@@ -1546,9 +1546,10 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         let service_manager = runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
         if service_manager == H160::zero() { return None; }
 
-        let whave_token_id = runtime_params::dynamic_params::runtime_config::WHAVETokenId::get();
+        // Derive wHAVE token ID from Snowbridge (same as native transfer pallet)
+        let whave_token_id = DataHavenTokenId::get()?;
         let whave_token_address = runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
-        if whave_token_id == H256::zero() || whave_token_address == H160::zero() { return None; }
+        if whave_token_address == H160::zero() { return None; }
 
         let operator_rewards = Self::calculate_operator_amounts(
             &rewards_utils.individual_points, rewards_utils.total_points, rewards_utils.inflation_amount,
@@ -1803,7 +1804,6 @@ mod tests {
 
         TestExternalities::default().execute_with(|| {
             let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
-            let whave_token_id = H256::from_low_u64_be(0x1);
             let whave_token_address = H160::from_low_u64_be(0xabcdef);
 
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
@@ -1818,21 +1818,19 @@ mod tests {
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenId(
-                        runtime_params::dynamic_params::runtime_config::WHAVETokenId,
-                        Some(whave_token_id),
-                    ),
-                ),
-            ));
-            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
-                RuntimeOrigin::root(),
-                RuntimeParameters::RuntimeConfig(
                     runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenAddress(
                         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress,
                         Some(whave_token_address),
                     ),
                 ),
             ));
+
+            // Register native token in Snowbridge for DataHavenTokenId::get() to work
+            let native_location = Location::here();
+            let reanchored = SnowbridgeSystemV2::reanchor(native_location.clone()).unwrap();
+            let token_id = snowbridge_core::TokenIdOf::convert_location(&reanchored).unwrap();
+            snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
+            snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
 
             let rewards_utils = EraRewardsUtils {
                 rewards_merkle_root: H256::random(),
@@ -1848,9 +1846,10 @@ mod tests {
 
             if let Some(msg) = message {
                 assert_eq!(msg.commands.len(), 2, "Should have 2 commands");
+                let expected_token_id = DataHavenTokenId::get().expect("Token should be registered");
                 match &msg.commands[0] {
                     Command::MintForeignToken { token_id, recipient, amount } => {
-                        assert_eq!(*token_id, whave_token_id);
+                        assert_eq!(*token_id, expected_token_id);
                         assert_eq!(*recipient, service_manager);
                         assert_eq!(*amount, 1_000_000_000);
                     }

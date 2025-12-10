@@ -284,9 +284,7 @@ shp-file-metadata = { git = "https://github.com/Moonsong-Labs/storage-hub.git", 
 shp-forest-verifier = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }
 shp-traits = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }
 shp-treasury-funding = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }
-storage-hub-runtime = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }
 ## Client
-cumulus-client-service = { git = "https://github.com/paritytech/polkadot-sdk.git", tag = "polkadot-stable2412-6", default-features = false }
 shc-actors-derive = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }
 shc-actors-framework = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }
 shc-blockchain-service = { git = "https://github.com/Moonsong-Labs/storage-hub.git", tag = "v0.2.5", default-features = false }

@@ -27,10 +27,6 @@ interface IDataHavenServiceManagerErrors {
     error CallerIsNotValidator();
     /// @notice Thrown when caller is not the authorized Snowbridge Agent
     error OnlyRewardsSnowbridgeAgent();
-    /// @notice Thrown when operators array is empty
-    error EmptyOperatorsArray();
-    /// @notice Thrown when strategies array is empty
-    error EmptyStrategiesArray();
 }
 
 /**
@@ -69,11 +65,6 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldAgent The previous Snowbridge Agent address
     /// @param newAgent The new Snowbridge Agent address
     event RewardsSnowbridgeAgentSet(address indexed oldAgent, address indexed newAgent);
-
-    /// @notice Emitted when the reward token is updated
-    /// @param oldToken The previous reward token address
-    /// @param newToken The new reward token address
-    event RewardTokenSet(address indexed oldToken, address indexed newToken);
 }
 
 /**
@@ -198,19 +189,14 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Submit rewards to EigenLayer
-     * @param startTimestamp The start timestamp for the rewards period (must be aligned to CALCULATION_INTERVAL_SECONDS)
-     * @param duration The duration of the rewards period in seconds
-     * @param strategiesAndMultipliers Array of strategies and their multipliers for reward weighting
-     * @param operatorRewards Array of (operator, amount) pairs sorted by operator address
+     * @param submission The operator-directed rewards submission containing all reward parameters
      * @dev Only callable by the authorized Snowbridge Agent
      * @dev Strategies must be sorted in ascending order by address
      * @dev Operators must be sorted in ascending order by address
+     * @dev Token must be pre-approved or held by the ServiceManager
      */
     function submitRewards(
-        uint32 startTimestamp,
-        uint32 duration,
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata strategiesAndMultipliers,
-        IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external;
 
     /**
@@ -223,23 +209,8 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Set the reward token address
-     * @param token The address of the reward token (e.g., wHAVE)
-     * @dev Only callable by the owner
-     */
-    function setRewardToken(
-        address token
-    ) external;
-
-    /**
      * @notice Get the Snowbridge Agent address
      * @return The address of the authorized Snowbridge Agent
      */
     function rewardsSnowbridgeAgent() external view returns (address);
-
-    /**
-     * @notice Get the reward token address
-     * @return The address of the reward token
-     */
-    function rewardToken() external view returns (address);
 }

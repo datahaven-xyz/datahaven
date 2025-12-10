@@ -53,11 +53,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @notice Address authorized to submit rewards via Snowbridge
     address internal _rewardsSnowbridgeAgent;
 
-    /// @notice The reward token (e.g., wHAVE)
-    address internal _rewardToken;
-
     /// @dev Gap for future storage variables
-    uint256[49] private __gap;
+    uint256[50] private __gap;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -259,56 +256,21 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
 
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
-        uint32 startTimestamp,
-        uint32 duration,
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata strategiesAndMultipliers,
-        IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external override onlyRewardsSnowbridgeAgent {
-        // Validate strategies array is not empty
-        if (strategiesAndMultipliers.length == 0) {
-            revert EmptyStrategiesArray();
-        }
-
-        // Validate operators array is not empty
-        if (operatorRewards.length == 0) {
-            revert EmptyOperatorsArray();
-        }
-
-        // Calculate total amount
+        // Calculate total amount for event
         uint256 totalAmount = 0;
-        for (uint256 i = 0; i < operatorRewards.length; i++) {
-            totalAmount += operatorRewards[i].amount;
+        for (uint256 i = 0; i < submission.operatorRewards.length; i++) {
+            totalAmount += submission.operatorRewards[i].amount;
         }
 
         // Approve RewardsCoordinator to spend tokens
-        IERC20(_rewardToken).safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
+        submission.token.safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
 
-        // Build the operator-directed rewards submission
+        // Wrap in array for RewardsCoordinator
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
             new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
-
-        // Copy strategiesAndMultipliers to memory array
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliersMem =
-            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategiesAndMultipliers.length);
-        for (uint256 i = 0; i < strategiesAndMultipliers.length; i++) {
-            strategiesAndMultipliersMem[i] = strategiesAndMultipliers[i];
-        }
-
-        // Copy operatorRewards to memory array
-        IRewardsCoordinatorTypes.OperatorReward[] memory operatorRewardsMem =
-            new IRewardsCoordinatorTypes.OperatorReward[](operatorRewards.length);
-        for (uint256 i = 0; i < operatorRewards.length; i++) {
-            operatorRewardsMem[i] = operatorRewards[i];
-        }
-
-        submissions[0] = IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
-            strategiesAndMultipliers: strategiesAndMultipliersMem,
-            token: IERC20(_rewardToken),
-            operatorRewards: operatorRewardsMem,
-            startTimestamp: startTimestamp,
-            duration: duration,
-            description: "DataHaven rewards"
-        });
+        submissions[0] = submission;
 
         // Submit to EigenLayer RewardsCoordinator
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
@@ -316,7 +278,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             operatorSet, submissions
         );
 
-        emit RewardsSubmitted(totalAmount, operatorRewards.length);
+        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -329,22 +291,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function setRewardToken(
-        address token
-    ) external override onlyOwner {
-        address oldToken = _rewardToken;
-        _rewardToken = token;
-        emit RewardTokenSet(oldToken, token);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
     function rewardsSnowbridgeAgent() external view override returns (address) {
         return _rewardsSnowbridgeAgent;
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function rewardToken() external view override returns (address) {
-        return _rewardToken;
     }
 
     // ============ Internal Functions ============

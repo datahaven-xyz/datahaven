@@ -41,9 +41,9 @@ contract RewardsSubmitterTest is AVSDeployer {
         // Deploy reward token
         rewardToken = new ERC20FixedSupply("DataHaven", "HAVE", 1000000e18, address(this));
 
-        // Configure the rewards submitter
+        // Configure the rewards initiator
         vm.prank(avsOwner);
-        serviceManager.setRewardsSnowbridgeAgent(snowbridgeAgent);
+        serviceManager.setRewardsInitiator(snowbridgeAgent);
 
         // Fund the service manager with reward tokens
         rewardToken.transfer(address(serviceManager), 100000e18);
@@ -80,31 +80,31 @@ contract RewardsSubmitterTest is AVSDeployer {
 
     // ============ Configuration Tests ============
 
-    function test_setRewardsSnowbridgeAgent() public {
-        address newAgent = address(0x123);
+    function test_setRewardsInitiator() public {
+        address newInitiator = address(0x123);
 
         vm.prank(avsOwner);
         vm.expectEmit(true, true, false, false);
-        emit IDataHavenServiceManagerEvents.RewardsSnowbridgeAgentSet(snowbridgeAgent, newAgent);
-        serviceManager.setRewardsSnowbridgeAgent(newAgent);
+        emit IDataHavenServiceManagerEvents.RewardsInitiatorSet(snowbridgeAgent, newInitiator);
+        serviceManager.setRewardsInitiator(newInitiator);
 
-        assertEq(serviceManager.rewardsSnowbridgeAgent(), newAgent);
+        assertEq(serviceManager.rewardsInitiator(), newInitiator);
     }
 
-    function test_setRewardsSnowbridgeAgent_revertsIfNotOwner() public {
+    function test_setRewardsInitiator_revertsIfNotOwner() public {
         vm.prank(operator1);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        serviceManager.setRewardsSnowbridgeAgent(address(0x123));
+        serviceManager.setRewardsInitiator(address(0x123));
     }
 
     // ============ Access Control Tests ============
 
-    function test_submitRewards_revertsIfNotSnowbridgeAgent() public {
+    function test_submitRewards_revertsIfNotRewardsInitiator() public {
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
             _buildSubmission(1000e18, operator1);
 
         vm.prank(operator1);
-        vm.expectRevert(IDataHavenServiceManagerErrors.OnlyRewardsSnowbridgeAgent.selector);
+        vm.expectRevert(abi.encodeWithSignature("OnlyRewardsInitiator()"));
         serviceManager.submitRewards(submission);
     }
 

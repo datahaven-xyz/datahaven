@@ -48,14 +48,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-    // ============ Rewards Submitter Storage ============
-
-    /// @notice Address authorized to submit rewards via Snowbridge
-    address internal _rewardsSnowbridgeAgent;
-
-    /// @dev Gap for future storage variables
-    uint256[50] private __gap;
-
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
@@ -70,14 +62,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
             CallerIsNotValidator()
         );
-        _;
-    }
-
-    /// @notice Modifier to ensure the caller is the authorized Snowbridge Agent
-    modifier onlyRewardsSnowbridgeAgent() {
-        if (msg.sender != _rewardsSnowbridgeAgent) {
-            revert OnlyRewardsSnowbridgeAgent();
-        }
         _;
     }
 
@@ -257,7 +241,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
-    ) external override onlyRewardsSnowbridgeAgent {
+    ) external override onlyRewardsInitiator {
         // Calculate total amount for event
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < submission.operatorRewards.length; i++) {
@@ -281,18 +265,15 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
-    /// @inheritdoc IDataHavenServiceManager
-    function setRewardsSnowbridgeAgent(
-        address agent
-    ) external override onlyOwner {
-        address oldAgent = _rewardsSnowbridgeAgent;
-        _rewardsSnowbridgeAgent = agent;
-        emit RewardsSnowbridgeAgentSet(oldAgent, agent);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function rewardsSnowbridgeAgent() external view override returns (address) {
-        return _rewardsSnowbridgeAgent;
+    /// @notice Sets the rewards initiator address (overrides deprecated base implementation)
+    /// @param newRewardsInitiator The new rewards initiator address
+    /// @dev Only callable by the owner
+    function setRewardsInitiator(
+        address newRewardsInitiator
+    ) external override(IDataHavenServiceManager, ServiceManagerBase) onlyOwner {
+        address oldInitiator = rewardsInitiator;
+        _setRewardsInitiator(newRewardsInitiator);
+        emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
     }
 
     // ============ Internal Functions ============

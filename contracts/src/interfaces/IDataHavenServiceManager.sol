@@ -25,8 +25,6 @@ interface IDataHavenServiceManagerErrors {
     error OperatorNotInAllowlist();
     /// @notice Thrown when the caller is not a Validator in the Validators operator set
     error CallerIsNotValidator();
-    /// @notice Thrown when caller is not the authorized Snowbridge Agent
-    error OnlyRewardsSnowbridgeAgent();
 }
 
 /**
@@ -61,10 +59,10 @@ interface IDataHavenServiceManagerEvents {
     /// @param operatorCount The number of operators that received rewards
     event RewardsSubmitted(uint256 totalAmount, uint256 operatorCount);
 
-    /// @notice Emitted when the Snowbridge Agent address is updated
-    /// @param oldAgent The previous Snowbridge Agent address
-    /// @param newAgent The new Snowbridge Agent address
-    event RewardsSnowbridgeAgentSet(address indexed oldAgent, address indexed newAgent);
+    /// @notice Emitted when the rewards initiator address is updated
+    /// @param oldInitiator The previous rewards initiator address
+    /// @param newInitiator The new rewards initiator address
+    event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
 }
 
 /**
@@ -200,17 +198,11 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Set the Snowbridge Agent address authorized to submit rewards
-     * @param agent The address of the Snowbridge Agent
+     * @notice Set the rewards initiator address authorized to submit rewards
+     * @param initiator The address of the rewards initiator (Snowbridge Agent)
      * @dev Only callable by the owner
      */
-    function setRewardsSnowbridgeAgent(
-        address agent
+    function setRewardsInitiator(
+        address initiator
     ) external;
-
-    /**
-     * @notice Get the Snowbridge Agent address
-     * @return The address of the authorized Snowbridge Agent
-     */
-    function rewardsSnowbridgeAgent() external view returns (address);
 }

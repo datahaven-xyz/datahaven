@@ -17,6 +17,7 @@
 //! Substrate Node Template CLI library.
 #![warn(missing_docs)]
 
+#[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 mod chain_spec;
 mod cli;

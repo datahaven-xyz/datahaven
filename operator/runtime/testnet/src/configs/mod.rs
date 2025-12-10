@@ -1591,20 +1591,22 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             return None;
         }
 
-        let selector = runtime_params::dynamic_params::runtime_config::SubmitRewardsSelector::get();
+        // Function selector for submitRewards(OperatorDirectedRewardsSubmission)
+        // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
+        const SUBMIT_REWARDS_SELECTOR: [u8; 4] = [0x83, 0x82, 0x1e, 0x8e];
+        const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-        let description = runtime_params::dynamic_params::runtime_config::RewardsDescription::get();
         let gas_limit =
             runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
         let start_timestamp = Self::calculate_aligned_start_timestamp();
 
         let calldata = Self::encode_submit_rewards_calldata(
-            &selector,
+            &SUBMIT_REWARDS_SELECTOR,
             whave_token_address,
             &operator_rewards,
             start_timestamp,
             duration,
-            &description,
+            REWARDS_DESCRIPTION,
         );
 
         let commands = vec![

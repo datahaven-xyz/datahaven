@@ -98,7 +98,8 @@ use frame_support::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime, VariantCountOf,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime,
+        VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -1463,77 +1464,19 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 pub struct RewardsSendAdapter;
 
 impl RewardsSendAdapter {
-    fn calculate_operator_amounts(
-        individual_points: &[(H160, u32)],
-        total_points: u128,
-        inflation_amount: u128,
-    ) -> Vec<(H160, u128)> {
-        let mut operator_rewards: Vec<(H160, u128)> = individual_points
-            .iter()
-            .filter_map(|(op, pts)| {
-                if total_points == 0 || *pts == 0 { return None; }
-                let amount = (*pts as u128).saturating_mul(inflation_amount).saturating_div(total_points);
-                if amount > 0 { Some((*op, amount)) } else { None }
-            })
-            .collect();
-        operator_rewards.sort_by_key(|(addr, _)| *addr);
-        operator_rewards
-    }
-
     fn calculate_aligned_start_timestamp() -> u32 {
-        let genesis = runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
+        let genesis =
+            runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
         let now_duration = <Timestamp as UnixTime>::now();
         let now_secs: u32 = now_duration.as_secs().try_into().unwrap_or(0);
-        if duration == 0 || genesis > now_secs { return genesis; }
+        if duration == 0 || genesis > now_secs {
+            return genesis;
+        }
         let elapsed = now_secs.saturating_sub(genesis);
         let period = elapsed / duration;
         genesis + period.saturating_sub(1) * duration
     }
-
-    fn encode_submit_rewards_calldata(
-        selector: &[u8], token: H160, operator_rewards: &[(H160, u128)],
-        start_timestamp: u32, duration: u32, description: &[u8],
-    ) -> Vec<u8> {
-        let strategies: &[(H160, u128)] = &[];
-        let mut calldata = selector.to_vec();
-        calldata.extend_from_slice(&encode_u256(32));
-        let head_size: u128 = 6 * 32;
-        let strategies_offset: u128 = head_size;
-        let strategies_data_size: u128 = 32 + (strategies.len() as u128) * 64;
-        let operator_rewards_offset: u128 = strategies_offset + strategies_data_size;
-        let operator_rewards_data_size: u128 = 32 + (operator_rewards.len() as u128) * 64;
-        let description_offset: u128 = operator_rewards_offset + operator_rewards_data_size;
-        calldata.extend_from_slice(&encode_u256(strategies_offset));
-        calldata.extend_from_slice(&encode_address(token));
-        calldata.extend_from_slice(&encode_u256(operator_rewards_offset));
-        calldata.extend_from_slice(&encode_u256(start_timestamp as u128));
-        calldata.extend_from_slice(&encode_u256(duration as u128));
-        calldata.extend_from_slice(&encode_u256(description_offset));
-        calldata.extend_from_slice(&encode_u256(strategies.len() as u128));
-        calldata.extend_from_slice(&encode_u256(operator_rewards.len() as u128));
-        for (operator, amount) in operator_rewards {
-            calldata.extend_from_slice(&encode_address(*operator));
-            calldata.extend_from_slice(&encode_u256(*amount));
-        }
-        calldata.extend_from_slice(&encode_u256(description.len() as u128));
-        calldata.extend_from_slice(description);
-        let padding_needed = (32 - (description.len() % 32)) % 32;
-        calldata.extend(core::iter::repeat(0u8).take(padding_needed));
-        calldata
-    }
-}
-
-fn encode_u256(value: u128) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[16..32].copy_from_slice(&value.to_be_bytes());
-    result
-}
-
-fn encode_address(addr: H160) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[12..32].copy_from_slice(addr.as_bytes());
-    result
 }
 
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
@@ -1543,38 +1486,68 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let service_manager = runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
-        if service_manager == H160::zero() { return None; }
+        let service_manager =
+            runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
+        if service_manager == H160::zero() {
+            return None;
+        }
 
         // Derive wHAVE token ID from Snowbridge (same as native transfer pallet)
         let whave_token_id = DataHavenTokenId::get()?;
-        let whave_token_address = runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
-        if whave_token_address == H160::zero() { return None; }
+        let whave_token_address =
+            runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
+        if whave_token_address == H160::zero() {
+            return None;
+        }
 
-        let operator_rewards = Self::calculate_operator_amounts(
-            &rewards_utils.individual_points, rewards_utils.total_points, rewards_utils.inflation_amount,
+        use datahaven_runtime_common::rewards::{
+            calculate_operator_amounts, encode_submit_rewards_calldata, REWARDS_DESCRIPTION,
+            SUBMIT_REWARDS_SELECTOR,
+        };
+
+        let operator_rewards = calculate_operator_amounts(
+            &rewards_utils.individual_points,
+            rewards_utils.total_points,
+            rewards_utils.inflation_amount,
         );
-        if operator_rewards.is_empty() { return None; }
+        if operator_rewards.is_empty() {
+            return None;
+        }
 
         let total_amount: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
-        if total_amount == 0 { return None; }
+        if total_amount == 0 {
+            return None;
+        }
 
-        // Function selector for submitRewards(OperatorDirectedRewardsSubmission)
-        // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
-        const SUBMIT_REWARDS_SELECTOR: [u8; 4] = [0x83, 0x82, 0x1e, 0x8e];
-        const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-        let gas_limit = runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
+        let gas_limit =
+            runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
         let start_timestamp = Self::calculate_aligned_start_timestamp();
 
-        let calldata = Self::encode_submit_rewards_calldata(
-            &SUBMIT_REWARDS_SELECTOR, whave_token_address, &operator_rewards, start_timestamp, duration, REWARDS_DESCRIPTION,
+        let calldata = encode_submit_rewards_calldata(
+            &SUBMIT_REWARDS_SELECTOR,
+            whave_token_address,
+            &operator_rewards,
+            start_timestamp,
+            duration,
+            REWARDS_DESCRIPTION,
         );
 
         let commands = vec![
-            Command::MintForeignToken { token_id: whave_token_id, recipient: service_manager, amount: total_amount },
-            Command::CallContract { target: service_manager, calldata, gas: gas_limit, value: 0 },
-        ].try_into().ok()?;
+            Command::MintForeignToken {
+                token_id: whave_token_id,
+                recipient: service_manager,
+                amount: total_amount,
+            },
+            Command::CallContract {
+                target: service_manager,
+                calldata,
+                gas: gas_limit,
+                value: 0,
+            },
+        ]
+        .try_into()
+        .ok()?;
 
         Some(OutboundMessage {
             origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
@@ -1790,11 +1763,17 @@ mod tests {
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
-                individual_points: vec![(H160::from_low_u64_be(1), 500), (H160::from_low_u64_be(2), 500)],
+                individual_points: vec![
+                    (H160::from_low_u64_be(1), 500),
+                    (H160::from_low_u64_be(2), 500),
+                ],
                 inflation_amount: 1000000,
             };
             let message = RewardsSendAdapter::build(&rewards_utils);
-            assert!(message.is_none(), "Should return None when ServiceManagerAddress is zero");
+            assert!(
+                message.is_none(),
+                "Should return None when ServiceManagerAddress is zero"
+            );
         });
     }
 

@@ -1465,45 +1465,18 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 
 /// V2 SendMessage implementation for rewards pallet.
 ///
+/// V2 SendMessage implementation for rewards pallet.
 /// This adapter builds two Snowbridge commands:
 /// 1. MintForeignToken - mints wHAVE tokens to the ServiceManager
 /// 2. CallContract - calls submitRewards with the ABI-encoded OperatorDirectedRewardsSubmission
 pub struct RewardsSendAdapter;
 
 impl RewardsSendAdapter {
-    /// Calculate operator amounts from points and inflation.
-    /// Returns sorted list of (operator, amount) tuples.
-    fn calculate_operator_amounts(
-        individual_points: &[(H160, u32)],
-        total_points: u128,
-        inflation_amount: u128,
-    ) -> Vec<(H160, u128)> {
-        let mut operator_rewards: Vec<(H160, u128)> = individual_points
-            .iter()
-            .filter_map(|(op, pts)| {
-                if total_points == 0 || *pts == 0 {
-                    return None;
-                }
-                let amount = (*pts as u128)
-                    .saturating_mul(inflation_amount)
-                    .saturating_div(total_points);
-                if amount > 0 {
-                    Some((*op, amount))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // Sort by operator address (required by EigenLayer)
-        operator_rewards.sort_by_key(|(addr, _)| *addr);
-        operator_rewards
-    }
-
     /// Calculate the aligned start timestamp for rewards submission.
     /// Must be aligned to RewardsDuration (86400 seconds = 1 day).
     fn calculate_aligned_start_timestamp() -> u32 {
-        let genesis = runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
+        let genesis =
+            runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
 
         // Get current timestamp in seconds using UnixTime trait
@@ -1522,104 +1495,6 @@ impl RewardsSendAdapter {
         // (subtract 1 because we're at the end of period N, so we submit for period N-1)
         genesis + period.saturating_sub(1) * duration
     }
-
-    /// ABI-encode the submitRewards calldata.
-    /// Format: selector + ABI-encoded OperatorDirectedRewardsSubmission tuple
-    fn encode_submit_rewards_calldata(
-        selector: &[u8],
-        token: H160,
-        operator_rewards: &[(H160, u128)],
-        start_timestamp: u32,
-        duration: u32,
-        description: &[u8],
-    ) -> Vec<u8> {
-        // For now, use an empty strategies array since DataHaven focuses on operator rewards
-        // In future, this can be made configurable via runtime parameters
-        let strategies: &[(H160, u128)] = &[];
-
-        // ABI encoding for: ((address,uint96)[], address, (address,uint256)[], uint32, uint32, string)
-        // This is a tuple with dynamic arrays, so we need proper offset encoding
-        let mut calldata = selector.to_vec();
-
-        // Offset to the main tuple data (starts at 32 bytes from selector)
-        let tuple_offset: u128 = 32;
-        calldata.extend_from_slice(&encode_u256(tuple_offset));
-
-        // Now encode the tuple contents
-        // Head section: offsets for dynamic types, values for static types
-        // Layout:
-        // [0] offset to strategiesAndMultipliers array
-        // [1] token (address, padded to 32 bytes)
-        // [2] offset to operatorRewards array
-        // [3] startTimestamp (uint32, padded to 32 bytes)
-        // [4] duration (uint32, padded to 32 bytes)
-        // [5] offset to description string
-
-        // Calculate offsets (6 head slots * 32 bytes = 192 bytes to first dynamic data)
-        let head_size: u128 = 6 * 32;
-        let strategies_offset: u128 = head_size;
-
-        // Size of strategies array data
-        let strategies_data_size: u128 =
-            32 + (strategies.len() as u128) * 64; // length + items (address+uint96 packed = 2 slots)
-
-        let operator_rewards_offset: u128 = strategies_offset + strategies_data_size;
-
-        // Size of operator rewards array data
-        let operator_rewards_data_size: u128 =
-            32 + (operator_rewards.len() as u128) * 64; // length + items (address+uint256 = 2 slots)
-
-        let description_offset: u128 = operator_rewards_offset + operator_rewards_data_size;
-
-        // Head section
-        calldata.extend_from_slice(&encode_u256(strategies_offset));
-        calldata.extend_from_slice(&encode_address(token));
-        calldata.extend_from_slice(&encode_u256(operator_rewards_offset));
-        calldata.extend_from_slice(&encode_u256(start_timestamp as u128));
-        calldata.extend_from_slice(&encode_u256(duration as u128));
-        calldata.extend_from_slice(&encode_u256(description_offset));
-
-        // Tail section: dynamic data
-
-        // 1. strategiesAndMultipliers array
-        calldata.extend_from_slice(&encode_u256(strategies.len() as u128));
-        for (strategy, multiplier) in strategies {
-            calldata.extend_from_slice(&encode_address(*strategy));
-            // uint96 is padded to 32 bytes
-            calldata.extend_from_slice(&encode_u256(*multiplier));
-        }
-
-        // 2. operatorRewards array
-        calldata.extend_from_slice(&encode_u256(operator_rewards.len() as u128));
-        for (operator, amount) in operator_rewards {
-            calldata.extend_from_slice(&encode_address(*operator));
-            calldata.extend_from_slice(&encode_u256(*amount));
-        }
-
-        // 3. description string
-        calldata.extend_from_slice(&encode_u256(description.len() as u128));
-        // String data padded to 32-byte boundary
-        calldata.extend_from_slice(description);
-        let padding_needed = (32 - (description.len() % 32)) % 32;
-        calldata.extend(core::iter::repeat(0u8).take(padding_needed));
-
-        calldata
-    }
-}
-
-/// Encode a u128 value as a 32-byte big-endian ABI-encoded uint256.
-fn encode_u256(value: u128) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    // u128 fits in the lower 16 bytes, big-endian encoding puts it at the end
-    result[16..32].copy_from_slice(&value.to_be_bytes());
-    result
-}
-
-/// Encode an H160 address as a 32-byte ABI-encoded address (left-padded with zeros).
-fn encode_address(addr: H160) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[12..32].copy_from_slice(addr.as_bytes());
-    result
 }
 
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
@@ -1664,8 +1539,13 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             return None;
         }
 
+        use datahaven_runtime_common::rewards::{
+            calculate_operator_amounts, encode_submit_rewards_calldata,
+            REWARDS_DESCRIPTION, SUBMIT_REWARDS_SELECTOR,
+        };
+
         // Calculate operator amounts from points
-        let operator_rewards = Self::calculate_operator_amounts(
+        let operator_rewards = calculate_operator_amounts(
             &rewards_utils.individual_points,
             rewards_utils.total_points,
             rewards_utils.inflation_amount,
@@ -1690,18 +1570,13 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             return None;
         }
 
-        // Function selector for submitRewards(OperatorDirectedRewardsSubmission)
-        // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
-        const SUBMIT_REWARDS_SELECTOR: [u8; 4] = [0x83, 0x82, 0x1e, 0x8e];
-        const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
-
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
         let gas_limit = runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
 
         let start_timestamp = Self::calculate_aligned_start_timestamp();
 
         // Build the ABI-encoded calldata
-        let calldata = Self::encode_submit_rewards_calldata(
+        let calldata = encode_submit_rewards_calldata(
             &SUBMIT_REWARDS_SELECTOR,
             whave_token_address,
             &operator_rewards,

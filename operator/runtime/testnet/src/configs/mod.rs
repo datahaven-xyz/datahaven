@@ -1468,31 +1468,6 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 pub struct RewardsSendAdapter;
 
 impl RewardsSendAdapter {
-    fn calculate_operator_amounts(
-        individual_points: &[(H160, u32)],
-        total_points: u128,
-        inflation_amount: u128,
-    ) -> Vec<(H160, u128)> {
-        let mut operator_rewards: Vec<(H160, u128)> = individual_points
-            .iter()
-            .filter_map(|(op, pts)| {
-                if total_points == 0 || *pts == 0 {
-                    return None;
-                }
-                let amount = (*pts as u128)
-                    .saturating_mul(inflation_amount)
-                    .saturating_div(total_points);
-                if amount > 0 {
-                    Some((*op, amount))
-                } else {
-                    None
-                }
-            })
-            .collect();
-        operator_rewards.sort_by_key(|(addr, _)| *addr);
-        operator_rewards
-    }
-
     fn calculate_aligned_start_timestamp() -> u32 {
         let genesis =
             runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
@@ -1506,54 +1481,6 @@ impl RewardsSendAdapter {
         let period = elapsed / duration;
         genesis + period.saturating_sub(1) * duration
     }
-
-    fn encode_submit_rewards_calldata(
-        selector: &[u8],
-        token: H160,
-        operator_rewards: &[(H160, u128)],
-        start_timestamp: u32,
-        duration: u32,
-        description: &[u8],
-    ) -> Vec<u8> {
-        let strategies: &[(H160, u128)] = &[];
-        let mut calldata = selector.to_vec();
-        calldata.extend_from_slice(&encode_u256(32));
-        let head_size: u128 = 6 * 32;
-        let strategies_offset: u128 = head_size;
-        let strategies_data_size: u128 = 32 + (strategies.len() as u128) * 64;
-        let operator_rewards_offset: u128 = strategies_offset + strategies_data_size;
-        let operator_rewards_data_size: u128 = 32 + (operator_rewards.len() as u128) * 64;
-        let description_offset: u128 = operator_rewards_offset + operator_rewards_data_size;
-        calldata.extend_from_slice(&encode_u256(strategies_offset));
-        calldata.extend_from_slice(&encode_address(token));
-        calldata.extend_from_slice(&encode_u256(operator_rewards_offset));
-        calldata.extend_from_slice(&encode_u256(start_timestamp as u128));
-        calldata.extend_from_slice(&encode_u256(duration as u128));
-        calldata.extend_from_slice(&encode_u256(description_offset));
-        calldata.extend_from_slice(&encode_u256(strategies.len() as u128));
-        calldata.extend_from_slice(&encode_u256(operator_rewards.len() as u128));
-        for (operator, amount) in operator_rewards {
-            calldata.extend_from_slice(&encode_address(*operator));
-            calldata.extend_from_slice(&encode_u256(*amount));
-        }
-        calldata.extend_from_slice(&encode_u256(description.len() as u128));
-        calldata.extend_from_slice(description);
-        let padding_needed = (32 - (description.len() % 32)) % 32;
-        calldata.extend(core::iter::repeat(0u8).take(padding_needed));
-        calldata
-    }
-}
-
-fn encode_u256(value: u128) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[16..32].copy_from_slice(&value.to_be_bytes());
-    result
-}
-
-fn encode_address(addr: H160) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[12..32].copy_from_slice(addr.as_bytes());
-    result
 }
 
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
@@ -1577,7 +1504,12 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             return None;
         }
 
-        let operator_rewards = Self::calculate_operator_amounts(
+        use datahaven_runtime_common::rewards::{
+            calculate_operator_amounts, encode_submit_rewards_calldata,
+            REWARDS_DESCRIPTION, SUBMIT_REWARDS_SELECTOR,
+        };
+
+        let operator_rewards = calculate_operator_amounts(
             &rewards_utils.individual_points,
             rewards_utils.total_points,
             rewards_utils.inflation_amount,
@@ -1591,16 +1523,12 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
             return None;
         }
 
-        // Function selector for submitRewards(OperatorDirectedRewardsSubmission)
-        // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
-        const SUBMIT_REWARDS_SELECTOR: [u8; 4] = [0x83, 0x82, 0x1e, 0x8e];
-        const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
         let gas_limit =
             runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
         let start_timestamp = Self::calculate_aligned_start_timestamp();
 
-        let calldata = Self::encode_submit_rewards_calldata(
+        let calldata = encode_submit_rewards_calldata(
             &SUBMIT_REWARDS_SELECTOR,
             whave_token_address,
             &operator_rewards,

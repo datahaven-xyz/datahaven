@@ -389,11 +389,6 @@ pub mod dynamic_params {
         /// Rewards duration in seconds. Fixed at 86400 (1 day) for EigenLayer.
         pub static RewardsDuration: u32 = 86400;
 
-        #[codec(index = 43)]
-        #[allow(non_upper_case_globals)]
-        /// Gas limit for the submitRewards call on Ethereum.
-        pub static SubmitRewardsGasLimit: u64 = 2_000_000;
-
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
     }
 }

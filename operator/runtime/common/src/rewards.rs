@@ -26,6 +26,9 @@ pub const SUBMIT_REWARDS_SELECTOR: [u8; 4] = [0x83, 0x82, 0x1e, 0x8e];
 /// Default description for rewards submissions.
 pub const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
 
+/// Gas limit for the submitRewards call on Ethereum.
+pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
+
 /// Calculate operator reward amounts from points and total inflation.
 /// Returns a sorted list of (operator_address, amount) tuples.
 ///

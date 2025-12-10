@@ -1541,7 +1541,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
 
         use datahaven_runtime_common::rewards::{
             calculate_operator_amounts, encode_submit_rewards_calldata,
-            REWARDS_DESCRIPTION, SUBMIT_REWARDS_SELECTOR,
+            REWARDS_DESCRIPTION, SUBMIT_REWARDS_GAS_LIMIT, SUBMIT_REWARDS_SELECTOR,
         };
 
         // Calculate operator amounts from points
@@ -1571,7 +1571,6 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         }
 
         let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-        let gas_limit = runtime_params::dynamic_params::runtime_config::SubmitRewardsGasLimit::get();
 
         let start_timestamp = Self::calculate_aligned_start_timestamp();
 
@@ -1595,7 +1594,7 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         let call_command = Command::CallContract {
             target: service_manager,
             calldata,
-            gas: gas_limit,
+            gas: SUBMIT_REWARDS_GAS_LIMIT,
             value: 0,
         };
 

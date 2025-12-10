@@ -56,14 +56,8 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @notice The reward token (e.g., wHAVE)
     address internal _rewardToken;
 
-    /// @notice Array of strategies for reward distribution
-    IStrategy[] internal _rewardStrategies;
-
-    /// @notice Array of multipliers for each strategy (parallel to _rewardStrategies)
-    uint96[] internal _rewardMultipliers;
-
     /// @dev Gap for future storage variables
-    uint256[47] private __gap;
+    uint256[49] private __gap;
 
     /// @notice Sets the (immutable) `_registryCoordinator` address
     constructor(
@@ -267,16 +261,12 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     function submitRewards(
         uint32 startTimestamp,
         uint32 duration,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata strategiesAndMultipliers,
         IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
     ) external override onlyRewardsSnowbridgeAgent {
-        // Validate reward token is set
-        if (_rewardToken == address(0)) {
-            revert RewardTokenNotSet();
-        }
-
-        // Validate strategies are configured
-        if (_rewardStrategies.length == 0) {
-            revert NoStrategiesConfigured();
+        // Validate strategies array is not empty
+        if (strategiesAndMultipliers.length == 0) {
+            revert EmptyStrategiesArray();
         }
 
         // Validate operators array is not empty
@@ -290,21 +280,19 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             totalAmount += operatorRewards[i].amount;
         }
 
-        // Build StrategyAndMultiplier array
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
-            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](_rewardStrategies.length);
-        for (uint256 i = 0; i < _rewardStrategies.length; i++) {
-            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-                strategy: _rewardStrategies[i], multiplier: _rewardMultipliers[i]
-            });
-        }
-
         // Approve RewardsCoordinator to spend tokens
         IERC20(_rewardToken).safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
 
         // Build the operator-directed rewards submission
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
             new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+
+        // Copy strategiesAndMultipliers to memory array
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliersMem =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategiesAndMultipliers.length);
+        for (uint256 i = 0; i < strategiesAndMultipliers.length; i++) {
+            strategiesAndMultipliersMem[i] = strategiesAndMultipliers[i];
+        }
 
         // Copy operatorRewards to memory array
         IRewardsCoordinatorTypes.OperatorReward[] memory operatorRewardsMem =
@@ -314,7 +302,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         }
 
         submissions[0] = IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
-            strategiesAndMultipliers: strategiesAndMultipliers,
+            strategiesAndMultipliers: strategiesAndMultipliersMem,
             token: IERC20(_rewardToken),
             operatorRewards: operatorRewardsMem,
             startTimestamp: startTimestamp,
@@ -350,28 +338,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function setStrategyMultipliers(
-        IStrategy[] calldata strategies,
-        uint96[] calldata multipliers
-    ) external override onlyOwner {
-        if (strategies.length != multipliers.length) {
-            revert StrategiesMultipliersLengthMismatch();
-        }
-
-        // Clear existing arrays
-        delete _rewardStrategies;
-        delete _rewardMultipliers;
-
-        // Set new values
-        for (uint256 i = 0; i < strategies.length; i++) {
-            _rewardStrategies.push(strategies[i]);
-            _rewardMultipliers.push(multipliers[i]);
-        }
-
-        emit StrategyMultipliersSet(strategies, multipliers);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
     function rewardsSnowbridgeAgent() external view override returns (address) {
         return _rewardsSnowbridgeAgent;
     }
@@ -379,16 +345,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     function rewardToken() external view override returns (address) {
         return _rewardToken;
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function getStrategyMultipliers()
-        external
-        view
-        override
-        returns (IStrategy[] memory strategies, uint96[] memory multipliers)
-    {
-        return (_rewardStrategies, _rewardMultipliers);
     }
 
     // ============ Internal Functions ============

@@ -45,19 +45,27 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.startPrank(avsOwner);
         serviceManager.setRewardsSnowbridgeAgent(snowbridgeAgent);
         serviceManager.setRewardToken(address(rewardToken));
-
-        // Set up strategy multipliers (using deployed strategies from AVSDeployer)
-        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
-        uint96[] memory multipliers = new uint96[](deployedStrategies.length);
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            strategies[i] = deployedStrategies[i];
-            multipliers[i] = uint96((i + 1) * 1e18); // 1x, 2x, 3x multipliers
-        }
-        serviceManager.setStrategyMultipliers(strategies, multipliers);
         vm.stopPrank();
 
         // Fund the service manager with reward tokens
         rewardToken.transfer(address(serviceManager), 100000e18);
+    }
+
+    // Helper function to build strategies and multipliers array
+    function _buildStrategiesAndMultipliers()
+        internal
+        view
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory)
+    {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: deployedStrategies[i],
+                multiplier: uint96((i + 1) * 1e18) // 1x, 2x, 3x multipliers
+            });
+        }
+        return strategiesAndMultipliers;
     }
 
     // ============ Configuration Tests ============
@@ -90,37 +98,11 @@ contract RewardsSubmitterTest is AVSDeployer {
         assertEq(serviceManager.rewardToken(), newToken);
     }
 
-    function test_setStrategyMultipliers() public {
-        IStrategy[] memory strategies = new IStrategy[](2);
-        uint96[] memory multipliers = new uint96[](2);
-        strategies[0] = deployedStrategies[0];
-        strategies[1] = deployedStrategies[1];
-        multipliers[0] = 2e18;
-        multipliers[1] = 3e18;
-
-        vm.prank(avsOwner);
-        serviceManager.setStrategyMultipliers(strategies, multipliers);
-
-        (IStrategy[] memory storedStrategies, uint96[] memory storedMultipliers) =
-            serviceManager.getStrategyMultipliers();
-        assertEq(storedStrategies.length, 2);
-        assertEq(storedMultipliers.length, 2);
-        assertEq(address(storedStrategies[0]), address(strategies[0]));
-        assertEq(storedMultipliers[0], 2e18);
-    }
-
-    function test_setStrategyMultipliers_revertsIfLengthMismatch() public {
-        IStrategy[] memory strategies = new IStrategy[](2);
-        uint96[] memory multipliers = new uint96[](1);
-
-        vm.prank(avsOwner);
-        vm.expectRevert(IDataHavenServiceManagerErrors.StrategiesMultipliersLengthMismatch.selector);
-        serviceManager.setStrategyMultipliers(strategies, multipliers);
-    }
-
     // ============ Access Control Tests ============
 
     function test_submitRewards_revertsIfNotSnowbridgeAgent() public {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            _buildStrategiesAndMultipliers();
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
@@ -130,16 +112,14 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(operator1);
         vm.expectRevert(IDataHavenServiceManagerErrors.OnlyRewardsSnowbridgeAgent.selector);
-        serviceManager.submitRewards(startTimestamp, duration, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, strategiesAndMultipliers, rewards);
     }
 
     // ============ Validation Tests ============
 
-    function test_submitRewards_revertsIfRewardTokenNotSet() public {
-        // Clear reward token
-        vm.prank(avsOwner);
-        serviceManager.setRewardToken(address(0));
-
+    function test_submitRewards_revertsIfEmptyStrategiesArray() public {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory emptyStrategies =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](0);
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
@@ -148,30 +128,13 @@ contract RewardsSubmitterTest is AVSDeployer {
         uint32 duration = TEST_CALCULATION_INTERVAL;
 
         vm.prank(snowbridgeAgent);
-        vm.expectRevert(IDataHavenServiceManagerErrors.RewardTokenNotSet.selector);
-        serviceManager.submitRewards(startTimestamp, duration, rewards);
-    }
-
-    function test_submitRewards_revertsIfNoStrategiesConfigured() public {
-        // Clear strategies
-        IStrategy[] memory emptyStrategies = new IStrategy[](0);
-        uint96[] memory emptyMultipliers = new uint96[](0);
-        vm.prank(avsOwner);
-        serviceManager.setStrategyMultipliers(emptyStrategies, emptyMultipliers);
-
-        IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
-            new IRewardsCoordinatorTypes.OperatorReward[](1);
-        rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
-
-        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
-        uint32 duration = TEST_CALCULATION_INTERVAL;
-
-        vm.prank(snowbridgeAgent);
-        vm.expectRevert(IDataHavenServiceManagerErrors.NoStrategiesConfigured.selector);
-        serviceManager.submitRewards(startTimestamp, duration, rewards);
+        vm.expectRevert(IDataHavenServiceManagerErrors.EmptyStrategiesArray.selector);
+        serviceManager.submitRewards(startTimestamp, duration, emptyStrategies, rewards);
     }
 
     function test_submitRewards_revertsIfEmptyOperatorsArray() public {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            _buildStrategiesAndMultipliers();
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](0);
 
@@ -180,12 +143,14 @@ contract RewardsSubmitterTest is AVSDeployer {
 
         vm.prank(snowbridgeAgent);
         vm.expectRevert(IDataHavenServiceManagerErrors.EmptyOperatorsArray.selector);
-        serviceManager.submitRewards(startTimestamp, duration, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, strategiesAndMultipliers, rewards);
     }
 
     // ============ Success Tests ============
 
     function test_submitRewards_singleOperator() public {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            _buildStrategiesAndMultipliers();
         uint256 rewardAmount = 1000e18;
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](1);
@@ -201,10 +166,13 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(rewardAmount, 1);
-        serviceManager.submitRewards(startTimestamp, duration, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, strategiesAndMultipliers, rewards);
     }
 
     function test_submitRewards_multipleOperators() public {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            _buildStrategiesAndMultipliers();
+
         // Ensure operators are sorted in ascending order (required by EigenLayer)
         address opLow = address(0x1);
         address opHigh = address(0x2);
@@ -227,10 +195,12 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.prank(snowbridgeAgent);
         vm.expectEmit(false, false, false, true);
         emit IDataHavenServiceManagerEvents.RewardsSubmitted(totalAmount, 2);
-        serviceManager.submitRewards(startTimestamp, duration, rewards);
+        serviceManager.submitRewards(startTimestamp, duration, strategiesAndMultipliers, rewards);
     }
 
     function test_submitRewards_multipleSubmissions() public {
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            _buildStrategiesAndMultipliers();
         IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
             new IRewardsCoordinatorTypes.OperatorReward[](1);
         rewards[0] = IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: 1000e18});
@@ -241,28 +211,48 @@ contract RewardsSubmitterTest is AVSDeployer {
         uint32 startTimestamp0 = GENESIS_REWARDS_TIMESTAMP;
         vm.warp(startTimestamp0 + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(startTimestamp0, duration, rewards);
+        serviceManager.submitRewards(startTimestamp0, duration, strategiesAndMultipliers, rewards);
 
         // Submit for period 1
         uint32 startTimestamp1 = GENESIS_REWARDS_TIMESTAMP + duration;
         vm.warp(startTimestamp1 + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(startTimestamp1, duration, rewards);
+        serviceManager.submitRewards(startTimestamp1, duration, strategiesAndMultipliers, rewards);
 
         // Submit for period 2
         uint32 startTimestamp2 = GENESIS_REWARDS_TIMESTAMP + 2 * duration;
         vm.warp(startTimestamp2 + duration + 1);
         vm.prank(snowbridgeAgent);
-        serviceManager.submitRewards(startTimestamp2, duration, rewards);
+        serviceManager.submitRewards(startTimestamp2, duration, strategiesAndMultipliers, rewards);
     }
 
-    // ============ View Function Tests ============
+    function test_submitRewards_withDifferentMultipliers() public {
+        // Test that different multipliers can be passed per submission
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](2);
+        strategiesAndMultipliers[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: deployedStrategies[0],
+            multiplier: 5e18 // 5x multiplier
+        });
+        strategiesAndMultipliers[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: deployedStrategies[1],
+            multiplier: 1e18 // 1x multiplier
+        });
 
-    function test_getStrategyMultipliers() public view {
-        (IStrategy[] memory strategies, uint96[] memory multipliers) =
-            serviceManager.getStrategyMultipliers();
+        uint256 rewardAmount = 1000e18;
+        IRewardsCoordinatorTypes.OperatorReward[] memory rewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](1);
+        rewards[0] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: operator1, amount: rewardAmount});
 
-        assertEq(strategies.length, deployedStrategies.length);
-        assertEq(multipliers.length, deployedStrategies.length);
+        uint32 startTimestamp = GENESIS_REWARDS_TIMESTAMP;
+        uint32 duration = TEST_CALCULATION_INTERVAL;
+
+        vm.warp(startTimestamp + duration + 1);
+
+        vm.prank(snowbridgeAgent);
+        vm.expectEmit(false, false, false, true);
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(rewardAmount, 1);
+        serviceManager.submitRewards(startTimestamp, duration, strategiesAndMultipliers, rewards);
     }
 }

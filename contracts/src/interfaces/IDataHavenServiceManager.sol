@@ -27,14 +27,10 @@ interface IDataHavenServiceManagerErrors {
     error CallerIsNotValidator();
     /// @notice Thrown when caller is not the authorized Snowbridge Agent
     error OnlyRewardsSnowbridgeAgent();
-    /// @notice Thrown when reward token is not set
-    error RewardTokenNotSet();
-    /// @notice Thrown when no strategies are configured
-    error NoStrategiesConfigured();
     /// @notice Thrown when operators array is empty
     error EmptyOperatorsArray();
-    /// @notice Thrown when strategies and multipliers arrays have different lengths
-    error StrategiesMultipliersLengthMismatch();
+    /// @notice Thrown when strategies array is empty
+    error EmptyStrategiesArray();
 }
 
 /**
@@ -78,11 +74,6 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldToken The previous reward token address
     /// @param newToken The new reward token address
     event RewardTokenSet(address indexed oldToken, address indexed newToken);
-
-    /// @notice Emitted when strategy multipliers are updated
-    /// @param strategies The strategies that were configured
-    /// @param multipliers The multipliers for each strategy
-    event StrategyMultipliersSet(IStrategy[] strategies, uint96[] multipliers);
 }
 
 /**
@@ -209,13 +200,16 @@ interface IDataHavenServiceManager is
      * @notice Submit rewards to EigenLayer
      * @param startTimestamp The start timestamp for the rewards period (must be aligned to CALCULATION_INTERVAL_SECONDS)
      * @param duration The duration of the rewards period in seconds
+     * @param strategiesAndMultipliers Array of strategies and their multipliers for reward weighting
      * @param operatorRewards Array of (operator, amount) pairs sorted by operator address
      * @dev Only callable by the authorized Snowbridge Agent
+     * @dev Strategies must be sorted in ascending order by address
      * @dev Operators must be sorted in ascending order by address
      */
     function submitRewards(
         uint32 startTimestamp,
         uint32 duration,
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata strategiesAndMultipliers,
         IRewardsCoordinatorTypes.OperatorReward[] calldata operatorRewards
     ) external;
 
@@ -238,18 +232,6 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Set strategy multipliers for reward distribution
-     * @param strategies Array of strategies (must be sorted in ascending order by address)
-     * @param multipliers Array of multipliers for each strategy (1e18 = 1x weight)
-     * @dev Only callable by the owner
-     * @dev Strategies must be sorted in ascending order of addresses
-     */
-    function setStrategyMultipliers(
-        IStrategy[] calldata strategies,
-        uint96[] calldata multipliers
-    ) external;
-
-    /**
      * @notice Get the Snowbridge Agent address
      * @return The address of the authorized Snowbridge Agent
      */
@@ -260,14 +242,4 @@ interface IDataHavenServiceManager is
      * @return The address of the reward token
      */
     function rewardToken() external view returns (address);
-
-    /**
-     * @notice Get the configured strategy multipliers
-     * @return strategies Array of configured strategies
-     * @return multipliers Array of multipliers for each strategy
-     */
-    function getStrategyMultipliers()
-        external
-        view
-        returns (IStrategy[] memory strategies, uint96[] memory multipliers);
 }

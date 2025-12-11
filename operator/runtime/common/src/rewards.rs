@@ -173,6 +173,10 @@ where
 /// Calculate operator reward amounts from points and total inflation.
 /// Returns a sorted list of (operator_address, amount) tuples.
 ///
+/// The function ensures that the sum of all operator amounts equals `inflation_amount`
+/// by adding any rounding remainder to the last operator. This prevents tokens from
+/// being permanently locked in the sovereign account due to integer division truncation.
+///
 /// # Arguments
 /// * `individual_points` - List of (operator, points) tuples
 /// * `total_points` - Sum of all points
@@ -182,10 +186,14 @@ pub fn calculate_operator_amounts(
     total_points: u128,
     inflation_amount: u128,
 ) -> Vec<(H160, u128)> {
+    if total_points == 0 || inflation_amount == 0 {
+        return Vec::new();
+    }
+
     let mut operator_rewards: Vec<(H160, u128)> = individual_points
         .iter()
         .filter_map(|(op, pts)| {
-            if total_points == 0 || *pts == 0 {
+            if *pts == 0 {
                 return None;
             }
             let amount = (*pts as u128)
@@ -201,6 +209,19 @@ pub fn calculate_operator_amounts(
 
     // Sort by operator address (required by EigenLayer)
     operator_rewards.sort_by_key(|(addr, _)| *addr);
+
+    // Add rounding remainder to the last operator to ensure full distribution.
+    // This prevents tokens from being permanently locked due to integer division truncation.
+    if !operator_rewards.is_empty() {
+        let distributed: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
+        let remainder = inflation_amount.saturating_sub(distributed);
+        if remainder > 0 {
+            if let Some((_, last_amount)) = operator_rewards.last_mut() {
+                *last_amount = last_amount.saturating_add(remainder);
+            }
+        }
+    }
+
     operator_rewards
 }
 
@@ -329,6 +350,68 @@ mod tests {
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0, H160::from_low_u64_be(2));
+    }
+
+    #[test]
+    fn test_calculate_operator_amounts_rounding_remainder() {
+        // Test case: 2 operators with 1 point each, 1001 tokens to distribute
+        // Without fix: each gets 500, losing 1 token
+        // With fix: one gets 500, other gets 501 (remainder added to last)
+        let points = vec![
+            (H160::from_low_u64_be(1), 1),
+            (H160::from_low_u64_be(2), 1),
+        ];
+        let result = calculate_operator_amounts(&points, 2, 1001);
+
+        assert_eq!(result.len(), 2);
+        let total: u128 = result.iter().map(|(_, a)| *a).sum();
+        assert_eq!(total, 1001, "Total distributed should equal inflation_amount");
+
+        // First gets 500, last gets 501 (500 + 1 remainder)
+        assert_eq!(result[0].1, 500);
+        assert_eq!(result[1].1, 501);
+    }
+
+    #[test]
+    fn test_calculate_operator_amounts_no_remainder_loss() {
+        // Test with various scenarios that would cause rounding loss
+        let test_cases = vec![
+            // (points, total_points, inflation, expected_total)
+            (vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1), (H160::from_low_u64_be(3), 1)], 3u128, 100u128),
+            (vec![(H160::from_low_u64_be(1), 7), (H160::from_low_u64_be(2), 11)], 18u128, 1000u128),
+            (vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 2), (H160::from_low_u64_be(3), 3)], 6u128, 1000000u128),
+        ];
+
+        for (points, total_points, inflation) in test_cases {
+            let result = calculate_operator_amounts(&points, total_points, inflation);
+            let total: u128 = result.iter().map(|(_, a)| *a).sum();
+            assert_eq!(
+                total, inflation,
+                "Total distributed should equal inflation_amount. Points: {:?}, Total: {}, Inflation: {}",
+                points.iter().map(|(_, p)| p).collect::<Vec<_>>(), total_points, inflation
+            );
+        }
+    }
+
+    #[test]
+    fn test_calculate_operator_amounts_large_remainder() {
+        // Test with many operators where remainder could be significant
+        let points: Vec<_> = (1..=10)
+            .map(|i| (H160::from_low_u64_be(i), 1u32))
+            .collect();
+        let result = calculate_operator_amounts(&points, 10, 1009);
+
+        let total: u128 = result.iter().map(|(_, a)| *a).sum();
+        assert_eq!(total, 1009, "Should distribute all tokens including remainder of 9");
+
+        // First 9 operators get 100 each, last gets 109 (100 + 9 remainder)
+        for (i, (_, amount)) in result.iter().enumerate() {
+            if i < 9 {
+                assert_eq!(*amount, 100);
+            } else {
+                assert_eq!(*amount, 109);
+            }
+        }
     }
 
     #[test]

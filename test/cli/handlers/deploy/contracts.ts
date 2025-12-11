@@ -44,7 +44,11 @@ export const deployContracts = async (options: DeployContractsOptions) => {
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand, options.parameterCollection, options.chain);
+  const env: Record<string, string> = { TX_EXECUTION: "true" };
+  if (options.privateKey) {
+    env.DEPLOYER_PRIVATE_KEY = options.privateKey;
+  }
+  await executeDeployment(deployCommand, options.parameterCollection, options.chain, env);
 
   printDivider();
 };

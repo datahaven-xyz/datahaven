@@ -115,6 +115,10 @@ pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
 /// See: CALCULATION_INTERVAL_SECONDS in RewardsCoordinator.sol
 pub const EIGENLAYER_CALCULATION_INTERVAL: u32 = 86400;
 
+// ============================================================================
+// CALCULATION FUNCTIONS
+// ============================================================================
+
 /// Calculate aligned start timestamp for rewards submission.
 ///
 /// EigenLayer requires `startTimestamp` to be aligned to `CALCULATION_INTERVAL_SECONDS` (86400).
@@ -142,29 +146,38 @@ pub fn calculate_aligned_start_timestamp(genesis: u32, now_secs: u32) -> u32 {
     genesis + (period - 1) * EIGENLAYER_CALCULATION_INTERVAL
 }
 
-/// Build the complete rewards outbound message.
+// ============================================================================
+// MESSAGE BUILDING
+// ============================================================================
+
+/// Build the complete rewards outbound message using configuration from `C`.
 ///
 /// Returns `None` if validation fails or no rewards to distribute.
-pub fn build_rewards_message<F>(
-    config: &RewardsMessageConfig,
-    data: &RewardsData,
-    unique_id: F,
-) -> Option<OutboundMessage>
-where
-    F: FnOnce(H256) -> H256,
-{
-    // Validate config
-    if config.service_manager == H160::zero() {
+fn build_rewards_message<C: RewardsSubmissionConfig>(
+    rewards_utils: &EraRewardsUtils,
+) -> Option<OutboundMessage> {
+    let whave_token_id = C::whave_token_id().or_else(|| {
         log::warn!(
-            target: "rewards_send_adapter",
+            target: "rewards_adapter",
+            "Skipping rewards message: wHAVE token not registered in Snowbridge"
+        );
+        None
+    })?;
+
+    let service_manager = C::service_manager_address();
+    let whave_token_address = C::whave_token_address();
+
+    if service_manager == H160::zero() {
+        log::warn!(
+            target: "rewards_adapter",
             "Skipping rewards message: ServiceManagerAddress is zero"
         );
         return None;
     }
 
-    if config.whave_token_address == H160::zero() {
+    if whave_token_address == H160::zero() {
         log::warn!(
-            target: "rewards_send_adapter",
+            target: "rewards_adapter",
             "Skipping rewards message: WHAVETokenAddress is zero"
         );
         return None;
@@ -172,14 +185,14 @@ where
 
     // Calculate operator amounts from points
     let operator_rewards = calculate_operator_amounts(
-        data.individual_points,
-        data.total_points,
-        data.inflation_amount,
+        &rewards_utils.individual_points,
+        rewards_utils.total_points,
+        rewards_utils.inflation_amount,
     );
 
     if operator_rewards.is_empty() {
         log::warn!(
-            target: "rewards_send_adapter",
+            target: "rewards_adapter",
             "Skipping rewards message: no operators with rewards"
         );
         return None;
@@ -190,36 +203,36 @@ where
 
     if total_amount == 0 {
         log::warn!(
-            target: "rewards_send_adapter",
+            target: "rewards_adapter",
             "Skipping rewards message: total amount is zero"
         );
         return None;
     }
 
     let start_timestamp = calculate_aligned_start_timestamp(
-        config.rewards_genesis_timestamp,
-        config.current_timestamp_secs,
+        C::rewards_genesis_timestamp(),
+        C::current_timestamp_secs(),
     );
 
     // Build the ABI-encoded calldata
     let calldata = encode_submit_rewards_calldata(
         &SUBMIT_REWARDS_SELECTOR,
-        config.whave_token_address,
+        whave_token_address,
         &operator_rewards,
         start_timestamp,
-        config.rewards_duration,
+        C::rewards_duration(),
         REWARDS_DESCRIPTION,
     );
 
     // Build the two commands: MintForeignToken + CallContract
     let commands = vec![
         Command::MintForeignToken {
-            token_id: config.whave_token_id,
-            recipient: config.service_manager,
+            token_id: whave_token_id,
+            recipient: service_manager,
             amount: total_amount,
         },
         Command::CallContract {
-            target: config.service_manager,
+            target: service_manager,
             calldata,
             gas: SUBMIT_REWARDS_GAS_LIMIT,
             value: 0,
@@ -229,8 +242,8 @@ where
     .ok()?;
 
     Some(OutboundMessage {
-        origin: config.rewards_agent_origin,
-        id: unique_id(data.merkle_root).into(),
+        origin: C::rewards_agent_origin(),
+        id: C::generate_message_id(rewards_utils.rewards_merkle_root).into(),
         fee: 0,
         commands,
     })

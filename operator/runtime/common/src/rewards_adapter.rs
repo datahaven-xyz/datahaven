@@ -36,12 +36,6 @@ use sp_std::vec::Vec;
 /// Runtimes implement this trait to provide environment-specific values
 /// such as contract addresses, timestamps, and the outbound queue.
 pub trait RewardsSubmissionConfig {
-    /// The Snowbridge outbound queue pallet type for message validation and delivery.
-    type OutboundQueue: snowbridge_pallet_outbound_queue_v2::SendMessage<
-        Message = OutboundMessage,
-        Ticket = OutboundMessage,
-    >;
-
     /// Get the current Unix timestamp in seconds.
     fn current_timestamp_secs() -> u32;
 
@@ -66,6 +60,12 @@ pub trait RewardsSubmissionConfig {
 
     /// Generate a unique message ID from the merkle root.
     fn generate_message_id(merkle_root: H256) -> H256;
+
+    /// Validate the outbound message via Snowbridge.
+    fn validate_message(message: &OutboundMessage) -> Result<OutboundMessage, SendError>;
+
+    /// Deliver the validated message via Snowbridge.
+    fn deliver_message(ticket: OutboundMessage) -> Result<H256, SendError>;
 }
 
 // ============================================================================
@@ -88,11 +88,11 @@ impl<C: RewardsSubmissionConfig> SendMessage for RewardsSubmissionAdapter<C> {
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        C::OutboundQueue::validate(&message)
+        C::validate_message(&message)
     }
 
     fn deliver(ticket: Self::Ticket) -> Result<H256, SendError> {
-        C::OutboundQueue::deliver(ticket)
+        C::deliver_message(ticket)
     }
 }
 

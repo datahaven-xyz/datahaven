@@ -13,6 +13,7 @@ frame-system = { workspace = true }
 log = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-external-validators-rewards = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-chain-id = { workspace = true }
@@ -40,6 +41,7 @@ std = [
     "log/std",
     "pallet-authorship/std",
     "pallet-balances/std",
+    "pallet-external-validators-rewards/std",
     "pallet-timestamp/std",
     "pallet-evm/std",
     "pallet-evm-chain-id/std",

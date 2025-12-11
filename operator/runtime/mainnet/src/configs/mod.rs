@@ -1468,8 +1468,6 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 pub struct MainnetRewardsConfig;
 
 impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for MainnetRewardsConfig {
-    type OutboundQueue = EthereumOutboundQueueV2;
-
     fn current_timestamp_secs() -> u32 {
         <Timestamp as UnixTime>::now()
             .as_secs()
@@ -1503,6 +1501,14 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
 
     fn generate_message_id(merkle_root: H256) -> H256 {
         H256::from(unique(merkle_root))
+    }
+
+    fn validate_message(message: &OutboundMessage) -> Result<OutboundMessage, SendError> {
+        EthereumOutboundQueueV2::validate(message)
+    }
+
+    fn deliver_message(ticket: OutboundMessage) -> Result<H256, SendError> {
+        EthereumOutboundQueueV2::deliver(ticket)
     }
 }
 
@@ -1679,7 +1685,7 @@ parameter_types! {
 mod tests {
     use super::*;
     use crate::SnowbridgeSystemV2;
-    use datahaven_runtime_common::rewards::{
+    use datahaven_runtime_common::rewards_adapter::{
         calculate_operator_amounts, encode_submit_rewards_calldata,
     };
     use xcm_builder::GlobalConsensusConvertsFor;

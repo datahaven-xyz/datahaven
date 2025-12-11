@@ -153,7 +153,6 @@ pub mod pallet {
             maybe_account_id_check: Option<AccountId>,
             inflation_amount: u128,
         ) -> Option<EraRewardsUtils> {
-            let total_points: u128 = self.total as u128;
             let mut leaves = Vec::with_capacity(self.individual.len());
             let mut leaf_index = None;
             let mut individual_points = Vec::with_capacity(self.individual.len());
@@ -206,18 +205,27 @@ pub mod pallet {
 
             let rewards_merkle_root = merkle_root::<Hasher, _>(leaves.iter().cloned());
 
+            // Calculate total_points from individual_points only (excludes skipped validators).
+            // This ensures that when calculate_operator_amounts divides by total_points,
+            // it uses the sum of points from validators that will actually receive rewards,
+            // preventing under-distribution when some validators are skipped due to
+            // invalid AccountId encoding (< 20 bytes for H160 extraction).
+            let total_points: u128 = individual_points
+                .iter()
+                .map(|(_, pts)| *pts as u128)
+                .sum();
+
             // Validate that we have operators to distribute rewards to.
-            // If total_points > 0 but individual_points is empty, all validators failed
-            // H160 extraction (AccountId encoding < 20 bytes). In this case, we must
-            // return None to prevent inflation from being minted with no way to distribute it.
-            if !total_points.is_zero() && individual_points.is_empty() {
-                log::error!(
-                    target: "ext_validators_rewards",
-                    "Era {:?} has {} total points but no valid operators for EigenLayer rewards. \
-                     All validators failed H160 extraction. Skipping era to prevent token loss.",
-                    era_index,
-                    total_points
-                );
+            if total_points.is_zero() {
+                if self.total > 0 {
+                    log::error!(
+                        target: "ext_validators_rewards",
+                        "Era {:?} has {} era total points but no valid operators for EigenLayer rewards. \
+                         All validators failed H160 extraction. Skipping era to prevent token loss.",
+                        era_index,
+                        self.total
+                    );
+                }
                 return None;
             }
 

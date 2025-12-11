@@ -192,7 +192,6 @@ fn test_on_era_end_with_zero_points() {
             });
         });
         let points = vec![0u32, 0u32, 0u32];
-        let total_points: u32 = points.iter().cloned().sum();
         let accounts = vec![account_id(1), account_id(3), account_id(5)];
         let accounts_points: Vec<_> = accounts
             .iter()
@@ -202,25 +201,28 @@ fn test_on_era_end_with_zero_points() {
         ExternalValidatorsRewards::reward_by_ids(accounts_points);
         ExternalValidatorsRewards::on_era_end(1);
 
+        // When all validators have zero points, generate_era_rewards_utils should return None
+        // to prevent inflation from being minted with no way to distribute it
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
-        let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation);
-        let root = rewards_utils.unwrap().rewards_merkle_root;
-        let expected_not_thrown_event = RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageSent {
-                message_id: Default::default(),
-                era_index: 1,
-                total_points: total_points as u128,
-                inflation_amount: inflation,
-                rewards_merkle_root: root,
-            }
+        let inflation =
+            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        let rewards_utils = era_rewards
+            .generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(
+                1, None, inflation,
+            );
+        assert!(
+            rewards_utils.is_none(),
+            "generate_era_rewards_utils should return None when total_points is zero"
         );
+
+        // Verify no RewardsMessageSent event was emitted
         let events = System::events();
         assert!(
-            !events
-                .iter()
-                .any(|record| record.event == expected_not_thrown_event),
-            "event should not have been thrown",
+            !events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent { .. })
+            )),
+            "RewardsMessageSent event should not have been thrown when total_points is zero",
         );
     })
 }

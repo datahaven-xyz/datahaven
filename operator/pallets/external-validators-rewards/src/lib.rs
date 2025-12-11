@@ -206,6 +206,21 @@ pub mod pallet {
 
             let rewards_merkle_root = merkle_root::<Hasher, _>(leaves.iter().cloned());
 
+            // Validate that we have operators to distribute rewards to.
+            // If total_points > 0 but individual_points is empty, all validators failed
+            // H160 extraction (AccountId encoding < 20 bytes). In this case, we must
+            // return None to prevent inflation from being minted with no way to distribute it.
+            if !total_points.is_zero() && individual_points.is_empty() {
+                log::error!(
+                    target: "ext_validators_rewards",
+                    "Era {:?} has {} total points but no valid operators for EigenLayer rewards. \
+                     All validators failed H160 extraction. Skipping era to prevent token loss.",
+                    era_index,
+                    total_points
+                );
+                return None;
+            }
+
             Some(EraRewardsUtils {
                 rewards_merkle_root,
                 leaves,

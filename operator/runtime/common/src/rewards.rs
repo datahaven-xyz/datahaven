@@ -205,4 +205,3 @@ mod tests {
         assert_eq!(result[..12], [0u8; 12]);
     }
 }
-

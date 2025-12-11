@@ -177,12 +177,24 @@ pub mod pallet {
                 leaves.push(hashed);
 
                 // Convert AccountId to H160 for EigenLayer rewards submission.
-                // In DataHaven, AccountId is H160, so we encode and extract the 20 bytes.
+                // In DataHaven, AccountId is H160, so encode() produces exactly 20 bytes.
                 let account_encoded = account_id.encode();
                 if account_encoded.len() >= 20 {
                     let mut bytes = [0u8; 20];
                     bytes.copy_from_slice(&account_encoded[..20]);
                     individual_points.push((H160::from(bytes), *reward_points));
+                } else {
+                    log::error!(
+                        target: "ext_validators_rewards",
+                        "Validator {:?} has unexpected AccountId encoding length {} (expected >= 20). \
+                         Skipping from EigenLayer rewards submission for era {:?}. \
+                         Points: {}, Total era points: {}",
+                        account_id,
+                        account_encoded.len(),
+                        era_index,
+                        reward_points,
+                        self.total
+                    );
                 }
 
                 if let Some(ref check_account_id) = maybe_account_id_check {
@@ -311,8 +323,7 @@ pub mod pallet {
                     era_index,
                     None,
                     inflation_amount,
-                )
-            {
+                ) {
                 Some(utils) if !utils.total_points.is_zero() => utils,
                 Some(_) => {
                     log::error!(

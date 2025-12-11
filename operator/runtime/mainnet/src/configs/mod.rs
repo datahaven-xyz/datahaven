@@ -98,7 +98,8 @@ use frame_support::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime, VariantCountOf,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime,
+        VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -1465,7 +1466,6 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 
 /// V2 SendMessage implementation for rewards pallet.
 ///
-/// V2 SendMessage implementation for rewards pallet.
 /// This adapter builds two Snowbridge commands:
 /// 1. MintForeignToken - mints wHAVE tokens to the ServiceManager
 /// 2. CallContract - calls submitRewards with the ABI-encoded OperatorDirectedRewardsSubmission
@@ -1540,8 +1540,8 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
         }
 
         use datahaven_runtime_common::rewards::{
-            calculate_operator_amounts, encode_submit_rewards_calldata,
-            REWARDS_DESCRIPTION, SUBMIT_REWARDS_GAS_LIMIT, SUBMIT_REWARDS_SELECTOR,
+            calculate_operator_amounts, encode_submit_rewards_calldata, REWARDS_DESCRIPTION,
+            SUBMIT_REWARDS_GAS_LIMIT, SUBMIT_REWARDS_SELECTOR,
         };
 
         // Calculate operator amounts from points
@@ -1835,7 +1835,10 @@ mod tests {
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
-                individual_points: vec![(H160::from_low_u64_be(1), 500), (H160::from_low_u64_be(2), 500)],
+                individual_points: vec![
+                    (H160::from_low_u64_be(1), 500),
+                    (H160::from_low_u64_be(2), 500),
+                ],
                 inflation_amount: 1000000,
             };
 
@@ -1935,9 +1938,9 @@ mod tests {
     fn test_operator_amounts_calculation() {
         // Test that operator amounts are calculated correctly from points
         let individual_points = vec![
-            (H160::from_low_u64_be(1), 300u32),  // 30%
-            (H160::from_low_u64_be(2), 500u32),  // 50%
-            (H160::from_low_u64_be(3), 200u32),  // 20%
+            (H160::from_low_u64_be(1), 300u32), // 30%
+            (H160::from_low_u64_be(2), 500u32), // 50%
+            (H160::from_low_u64_be(3), 200u32), // 20%
         ];
         let total_points = 1000u128;
         let inflation_amount = 1_000_000u128;
@@ -1957,7 +1960,10 @@ mod tests {
 
         // Verify sorted by address (ascending)
         for i in 1..amounts.len() {
-            assert!(amounts[i].0 >= amounts[i-1].0, "Should be sorted by address");
+            assert!(
+                amounts[i].0 >= amounts[i - 1].0,
+                "Should be sorted by address"
+            );
         }
     }
 
@@ -1984,9 +1990,16 @@ mod tests {
         );
 
         // Verify selector is at the beginning
-        assert_eq!(&calldata[0..4], &selector[..], "Selector should be first 4 bytes");
+        assert_eq!(
+            &calldata[0..4],
+            &selector[..],
+            "Selector should be first 4 bytes"
+        );
 
         // Verify minimum length (selector + offset + head + data)
-        assert!(calldata.len() > 4 + 32, "Calldata should have selector + offset + head");
+        assert!(
+            calldata.len() > 4 + 32,
+            "Calldata should have selector + offset + head"
+        );
     }
 }

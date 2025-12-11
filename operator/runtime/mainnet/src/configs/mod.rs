@@ -1823,15 +1823,20 @@ mod tests {
         let total_points = 1000u128;
         let inflation_amount = 1_000_000u128;
 
-        let amounts =
+        let (amounts, remainder) =
             calculate_operator_amounts(&individual_points, total_points, inflation_amount);
 
         assert_eq!(amounts.len(), 3, "Should have 3 operators");
+        assert_eq!(remainder, 0, "No remainder when evenly divisible");
 
         // Verify amounts are proportional (sorted by address)
         // Address 1 = 300k, Address 2 = 500k, Address 3 = 200k
-        let total: u128 = amounts.iter().map(|(_, a)| *a).sum();
-        assert_eq!(total, inflation_amount, "Total should equal inflation");
+        let distributed: u128 = amounts.iter().map(|(_, a)| *a).sum();
+        assert_eq!(
+            distributed + remainder,
+            inflation_amount,
+            "distributed + remainder should equal inflation"
+        );
 
         // Verify sorted by address (ascending)
         for i in 1..amounts.len() {
@@ -1845,7 +1850,7 @@ mod tests {
     #[test]
     fn test_abi_encoding_structure() {
         // Test that ABI encoding produces valid structure
-        let selector = vec![0x83, 0x82, 0x1e, 0x8e];
+        let expected_selector = vec![0x83, 0x82, 0x1e, 0x8e];
         let token = H160::from_low_u64_be(0x1234);
         let operator_rewards = vec![
             (H160::from_low_u64_be(1), 500_000u128),
@@ -1853,10 +1858,9 @@ mod tests {
         ];
         let start_timestamp = 1700000000u32;
         let duration = 86400u32;
-        let description = b"Test rewards";
+        let description = "Test rewards";
 
         let calldata = encode_submit_rewards_calldata(
-            &selector,
             token,
             &operator_rewards,
             start_timestamp,
@@ -1867,7 +1871,7 @@ mod tests {
         // Verify selector is at the beginning
         assert_eq!(
             &calldata[0..4],
-            &selector[..],
+            &expected_selector[..],
             "Selector should be first 4 bytes"
         );
 

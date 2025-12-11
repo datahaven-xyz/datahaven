@@ -210,10 +210,7 @@ pub mod pallet {
             // it uses the sum of points from validators that will actually receive rewards,
             // preventing under-distribution when some validators are skipped due to
             // invalid AccountId encoding (< 20 bytes for H160 extraction).
-            let total_points: u128 = individual_points
-                .iter()
-                .map(|(_, pts)| *pts as u128)
-                .sum();
+            let total_points: u128 = individual_points.iter().map(|(_, pts)| *pts as u128).sum();
 
             // Validate that we have operators to distribute rewards to.
             if total_points.is_zero() {

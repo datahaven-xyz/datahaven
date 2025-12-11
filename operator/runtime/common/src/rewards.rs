@@ -357,15 +357,15 @@ mod tests {
         // Test case: 2 operators with 1 point each, 1001 tokens to distribute
         // Without fix: each gets 500, losing 1 token
         // With fix: one gets 500, other gets 501 (remainder added to last)
-        let points = vec![
-            (H160::from_low_u64_be(1), 1),
-            (H160::from_low_u64_be(2), 1),
-        ];
+        let points = vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1)];
         let result = calculate_operator_amounts(&points, 2, 1001);
 
         assert_eq!(result.len(), 2);
         let total: u128 = result.iter().map(|(_, a)| *a).sum();
-        assert_eq!(total, 1001, "Total distributed should equal inflation_amount");
+        assert_eq!(
+            total, 1001,
+            "Total distributed should equal inflation_amount"
+        );
 
         // First gets 500, last gets 501 (500 + 1 remainder)
         assert_eq!(result[0].1, 500);
@@ -377,9 +377,32 @@ mod tests {
         // Test with various scenarios that would cause rounding loss
         let test_cases = vec![
             // (points, total_points, inflation, expected_total)
-            (vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1), (H160::from_low_u64_be(3), 1)], 3u128, 100u128),
-            (vec![(H160::from_low_u64_be(1), 7), (H160::from_low_u64_be(2), 11)], 18u128, 1000u128),
-            (vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 2), (H160::from_low_u64_be(3), 3)], 6u128, 1000000u128),
+            (
+                vec![
+                    (H160::from_low_u64_be(1), 1),
+                    (H160::from_low_u64_be(2), 1),
+                    (H160::from_low_u64_be(3), 1),
+                ],
+                3u128,
+                100u128,
+            ),
+            (
+                vec![
+                    (H160::from_low_u64_be(1), 7),
+                    (H160::from_low_u64_be(2), 11),
+                ],
+                18u128,
+                1000u128,
+            ),
+            (
+                vec![
+                    (H160::from_low_u64_be(1), 1),
+                    (H160::from_low_u64_be(2), 2),
+                    (H160::from_low_u64_be(3), 3),
+                ],
+                6u128,
+                1000000u128,
+            ),
         ];
 
         for (points, total_points, inflation) in test_cases {
@@ -396,13 +419,14 @@ mod tests {
     #[test]
     fn test_calculate_operator_amounts_large_remainder() {
         // Test with many operators where remainder could be significant
-        let points: Vec<_> = (1..=10)
-            .map(|i| (H160::from_low_u64_be(i), 1u32))
-            .collect();
+        let points: Vec<_> = (1..=10).map(|i| (H160::from_low_u64_be(i), 1u32)).collect();
         let result = calculate_operator_amounts(&points, 10, 1009);
 
         let total: u128 = result.iter().map(|(_, a)| *a).sum();
-        assert_eq!(total, 1009, "Should distribute all tokens including remainder of 9");
+        assert_eq!(
+            total, 1009,
+            "Should distribute all tokens including remainder of 9"
+        );
 
         // First 9 operators get 100 each, last gets 109 (100 + 9 remainder)
         for (i, (_, amount)) in result.iter().enumerate() {

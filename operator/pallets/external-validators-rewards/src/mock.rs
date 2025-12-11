@@ -203,7 +203,10 @@ impl pallet_external_validators_rewards::Config for Test {
 
 pub struct InflationMinter;
 impl HandleInflation<AccountId32> for InflationMinter {
-    fn mint_inflation(rewards_account: &AccountId32, total_amount: u128) -> sp_runtime::DispatchResult {
+    fn mint_inflation(
+        rewards_account: &AccountId32,
+        total_amount: u128,
+    ) -> sp_runtime::DispatchResult {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {

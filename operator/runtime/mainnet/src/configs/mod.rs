@@ -1464,73 +1464,51 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
     }
 }
 
-/// V2 SendMessage implementation for rewards pallet.
-///
-/// This adapter builds two Snowbridge commands:
-/// 1. MintForeignToken - mints wHAVE tokens to the ServiceManager
-/// 2. CallContract - calls submitRewards with the ABI-encoded OperatorDirectedRewardsSubmission
-pub struct RewardsSendAdapter;
+/// Mainnet rewards configuration for EigenLayer submission.
+pub struct MainnetRewardsConfig;
 
-impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
-    type Message = OutboundMessage;
-    type Ticket = OutboundMessage;
+impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for MainnetRewardsConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
 
-    fn build(
-        rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
-    ) -> Option<Self::Message> {
-        use datahaven_runtime_common::rewards::{
-            build_rewards_message, RewardsData, RewardsMessageConfig,
-        };
-
-        let whave_token_id = match DataHavenTokenId::get() {
-            Some(id) => id,
-            None => {
-                log::warn!(
-                    target: "rewards_send_adapter",
-                    "Skipping rewards message: wHAVE token not registered in Snowbridge"
-                );
-                return None;
-            }
-        };
-
-        let now_secs: u32 = <Timestamp as UnixTime>::now()
+    fn current_timestamp_secs() -> u32 {
+        <Timestamp as UnixTime>::now()
             .as_secs()
             .try_into()
-            .unwrap_or(0);
-
-        let config = RewardsMessageConfig {
-            service_manager:
-                runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get(),
-            whave_token_id,
-            whave_token_address:
-                runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get(),
-            rewards_agent_origin:
-                runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
-            rewards_genesis_timestamp:
-                runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get(),
-            rewards_duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(
-            ),
-            current_timestamp_secs: now_secs,
-        };
-
-        let data = RewardsData {
-            individual_points: &rewards_utils.individual_points,
-            total_points: rewards_utils.total_points,
-            inflation_amount: rewards_utils.inflation_amount,
-            merkle_root: rewards_utils.rewards_merkle_root,
-        };
-
-        build_rewards_message(&config, &data, |root| H256::from(unique(root)))
+            .unwrap_or(0)
     }
 
-    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        EthereumOutboundQueueV2::validate(&message)
+    fn rewards_genesis_timestamp() -> u32 {
+        runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get()
     }
 
-    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(message)
+    fn rewards_duration() -> u32 {
+        runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
+    }
+
+    fn whave_token_id() -> Option<H256> {
+        DataHavenTokenId::get()
+    }
+
+    fn whave_token_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
+    }
+
+    fn service_manager_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get()
+    }
+
+    fn rewards_agent_origin() -> H256 {
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+    }
+
+    fn generate_message_id(merkle_root: H256) -> H256 {
+        H256::from(unique(merkle_root))
     }
 }
+
+/// Type alias for the rewards submission adapter.
+pub type RewardsSendAdapter =
+    datahaven_runtime_common::rewards_adapter::RewardsSubmissionAdapter<MainnetRewardsConfig>;
 
 impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;

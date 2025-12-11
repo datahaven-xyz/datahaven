@@ -48,8 +48,12 @@ contract DeployParams is Script, Config {
         );
         string memory configJson = vm.readFile(configPath);
 
-        // Load from JSON config or use environment variables as fallback
-        config.avsOwner = vm.parseJsonAddress(configJson, ".avs.avsOwner");
+        address avsOwnerOverride = vm.envOr("AVS_OWNER_ADDRESS", address(0));
+        if (avsOwnerOverride != address(0)) {
+            config.avsOwner = avsOwnerOverride;
+        } else {
+            config.avsOwner = vm.parseJsonAddress(configJson, ".avs.avsOwner");
+        }
         config.rewardsInitiator = vm.parseJsonAddress(configJson, ".avs.rewardsInitiator");
         config.vetoCommitteeMember = vm.parseJsonAddress(configJson, ".avs.vetoCommitteeMember");
         config.vetoWindowBlocks = uint32(vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks"));

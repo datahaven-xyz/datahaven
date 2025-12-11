@@ -242,6 +242,9 @@ pub fn calculate_operator_amounts(
     operator_rewards
 }
 
+/// Maximum value for uint96 (2^96 - 1).
+pub const MAX_UINT96: u128 = (1u128 << 96) - 1;
+
 /// ABI-encode the submitRewards calldata for EigenLayer's RewardsCoordinator.
 ///
 /// # Format
@@ -263,7 +266,9 @@ pub fn encode_submit_rewards_calldata(
     duration: u32,
     description: &[u8],
 ) -> Vec<u8> {
-    // Empty strategies array (DataHaven focuses on operator rewards)
+    // Empty strategies array (DataHaven focuses on operator rewards).
+    // Type: (address strategy, uint96 multiplier)[]
+    // Note: If this is ever populated, multiplier values must not exceed MAX_UINT96.
     let strategies: &[(H160, u128)] = &[];
 
     let mut calldata = selector.to_vec();
@@ -289,14 +294,20 @@ pub fn encode_submit_rewards_calldata(
 
     // Tail section: dynamic data
 
-    // 1. strategiesAndMultipliers array
+    // 1. strategiesAndMultipliers array: (address, uint96)[]
     calldata.extend_from_slice(&encode_u256(strategies.len() as u128));
     for (strategy, multiplier) in strategies {
         calldata.extend_from_slice(&encode_address(*strategy));
+        // Note: multiplier is uint96 in EigenLayer's StrategyAndMultiplier struct.
+        // ABI encoding is identical to uint256 (padded to 32 bytes), but value must fit in uint96.
+        debug_assert!(
+            *multiplier <= MAX_UINT96,
+            "Strategy multiplier exceeds uint96 max value"
+        );
         calldata.extend_from_slice(&encode_u256(*multiplier));
     }
 
-    // 2. operatorRewards array
+    // 2. operatorRewards array: (address, uint256)[]
     calldata.extend_from_slice(&encode_u256(operator_rewards.len() as u128));
     for (operator, amount) in operator_rewards {
         calldata.extend_from_slice(&encode_address(*operator));

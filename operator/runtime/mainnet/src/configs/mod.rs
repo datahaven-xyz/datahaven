@@ -1680,7 +1680,7 @@ mod tests {
     use super::*;
     use crate::SnowbridgeSystemV2;
     use datahaven_runtime_common::rewards_adapter::{
-        calculate_operator_amounts, encode_submit_rewards_calldata,
+        encode_submit_rewards_calldata, points_to_rewards,
     };
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
@@ -1824,7 +1824,7 @@ mod tests {
         let inflation_amount = 1_000_000u128;
 
         let (amounts, remainder) =
-            calculate_operator_amounts(&individual_points, total_points, inflation_amount);
+            points_to_rewards(&individual_points, total_points, inflation_amount);
 
         assert_eq!(amounts.len(), 3, "Should have 3 operators");
         assert_eq!(remainder, 0, "No remainder when evenly divisible");

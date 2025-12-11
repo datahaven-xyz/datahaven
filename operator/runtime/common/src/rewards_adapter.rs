@@ -34,9 +34,16 @@ use sp_core::{H160, H256};
 use sp_std::vec;
 use sp_std::vec::Vec;
 
-// ============================================================================
-// SOLIDITY ABI DEFINITIONS
-// ============================================================================
+/// Default description for rewards submissions.
+pub const REWARDS_DESCRIPTION: &str = "DataHaven validator rewards";
+
+/// Gas limit for the submitRewards call on Ethereum.
+pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
+
+/// EigenLayer's fixed calculation interval (1 day in seconds).
+/// This is hardcoded in EigenLayer's RewardsCoordinator and cannot be changed.
+/// See: CALCULATION_INTERVAL_SECONDS in RewardsCoordinator.sol
+pub const EIGENLAYER_CALCULATION_INTERVAL: u32 = 86400;
 
 sol! {
     /// EigenLayer strategy and multiplier tuple.
@@ -67,10 +74,6 @@ sol! {
     /// The submitRewards function on DataHavenServiceManager.
     function submitRewards(OperatorDirectedRewardsSubmission submission);
 }
-
-// ============================================================================
-// CONFIGURATION TRAIT
-// ============================================================================
 
 /// Configuration for rewards submission.
 ///
@@ -108,10 +111,6 @@ pub trait RewardsSubmissionConfig {
     fn generate_message_id(merkle_root: H256) -> H256;
 }
 
-// ============================================================================
-// ADAPTER
-// ============================================================================
-
 /// Generic rewards submission adapter.
 ///
 /// This adapter implements [`SendMessage`] and uses the configuration provided
@@ -135,25 +134,6 @@ impl<C: RewardsSubmissionConfig> SendMessage for RewardsSubmissionAdapter<C> {
         C::OutboundQueue::deliver(ticket)
     }
 }
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-/// Default description for rewards submissions.
-pub const REWARDS_DESCRIPTION: &str = "DataHaven validator rewards";
-
-/// Gas limit for the submitRewards call on Ethereum.
-pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
-
-/// EigenLayer's fixed calculation interval (1 day in seconds).
-/// This is hardcoded in EigenLayer's RewardsCoordinator and cannot be changed.
-/// See: CALCULATION_INTERVAL_SECONDS in RewardsCoordinator.sol
-pub const EIGENLAYER_CALCULATION_INTERVAL: u32 = 86400;
-
-// ============================================================================
-// CALCULATION FUNCTIONS
-// ============================================================================
 
 /// Calculate aligned start timestamp for rewards submission.
 ///
@@ -181,10 +161,6 @@ pub fn calculate_aligned_start_timestamp(genesis: u32, now_secs: u32) -> u32 {
     // Return start of the period that just ended (period N-1)
     genesis + (period - 1) * EIGENLAYER_CALCULATION_INTERVAL
 }
-
-// ============================================================================
-// MESSAGE BUILDING
-// ============================================================================
 
 /// Build the complete rewards outbound message using configuration from `C`.
 ///
@@ -220,7 +196,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
     }
 
     // Calculate operator amounts from points
-    let (operator_rewards, remainder) = calculate_operator_amounts(
+    let (operator_rewards, remainder) = points_to_rewards(
         &rewards_utils.individual_points,
         rewards_utils.total_points,
         rewards_utils.inflation_amount,
@@ -299,43 +275,36 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
 /// Callers can decide how to handle it (e.g., send to treasury, burn, etc.).
 ///
 /// # Arguments
-/// * `individual_points` - List of (operator, points) tuples
+/// * `points` - List of (operator, points) tuples
 /// * `total_points` - Sum of all points
-/// * `inflation_amount` - Total tokens to distribute
+/// * `inflation` - Total tokens to distribute
 ///
 /// # Returns
 /// A tuple of (operator_rewards, remainder) where:
 /// * `operator_rewards` - Sorted list of (operator_address, amount) tuples
 /// * `remainder` - Dust amount from integer division truncation
-pub fn calculate_operator_amounts(
-    individual_points: &[(H160, u32)],
+pub fn points_to_rewards(
+    points: &[(H160, u32)],
     total_points: u128,
-    inflation_amount: u128,
+    inflation: u128,
 ) -> (Vec<(H160, u128)>, u128) {
-    if total_points == 0 || inflation_amount == 0 {
-        return (Vec::new(), 0);
+    let mut rewards = Vec::with_capacity(points.len());
+    let mut distributed = 0u128;
+
+    for &(operator, points) in points {
+        let amount = (points as u128)
+            .saturating_mul(inflation)
+            .saturating_div(total_points as u128);
+        if amount > 0 {
+            rewards.push((operator, amount));
+            distributed += amount;
+        }
     }
-
-    let calculate_reward = |points: u32| -> u128 {
-        (points as u128)
-            .saturating_mul(inflation_amount)
-            .saturating_div(total_points)
-    };
-
-    let mut rewards: Vec<_> = individual_points
-        .iter()
-        .filter_map(|(operator, points)| {
-            let amount = calculate_reward(*points);
-            (amount > 0).then_some((*operator, amount))
-        })
-        .collect();
 
     // Sort by operator address (required by EigenLayer)
     rewards.sort_by_key(|(operator, _)| *operator);
 
-    let distributed: u128 = rewards.iter().map(|(_, amount)| amount).sum();
-    let remainder = inflation_amount.saturating_sub(distributed);
-
+    let remainder = inflation.saturating_sub(distributed);
     (rewards, remainder)
 }
 
@@ -391,7 +360,7 @@ mod tests {
             (H160::from_low_u64_be(1), 600),
             (H160::from_low_u64_be(2), 400),
         ];
-        let (rewards, remainder) = calculate_operator_amounts(&points, 1000, 1_000_000);
+        let (rewards, remainder) = points_to_rewards(&points, 1000, 1_000_000);
 
         assert_eq!(rewards.len(), 2);
         assert_eq!(rewards[0].1, 600_000); // 60%
@@ -405,7 +374,7 @@ mod tests {
             (H160::from_low_u64_be(100), 500),
             (H160::from_low_u64_be(1), 500),
         ];
-        let (rewards, _) = calculate_operator_amounts(&points, 1000, 1_000_000);
+        let (rewards, _) = points_to_rewards(&points, 1000, 1_000_000);
 
         // Should be sorted by address
         assert!(rewards[0].0 < rewards[1].0);
@@ -417,7 +386,7 @@ mod tests {
             (H160::from_low_u64_be(1), 0),
             (H160::from_low_u64_be(2), 100),
         ];
-        let (rewards, remainder) = calculate_operator_amounts(&points, 100, 1_000_000);
+        let (rewards, remainder) = points_to_rewards(&points, 100, 1_000_000);
 
         assert_eq!(rewards.len(), 1);
         assert_eq!(rewards[0].0, H160::from_low_u64_be(2));
@@ -429,7 +398,7 @@ mod tests {
         // Test case: 2 operators with 1 point each, 1001 tokens to distribute
         // Each gets 500, remainder of 1 is returned separately
         let points = vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1)];
-        let (rewards, remainder) = calculate_operator_amounts(&points, 2, 1001);
+        let (rewards, remainder) = points_to_rewards(&points, 2, 1001);
 
         assert_eq!(rewards.len(), 2);
         assert_eq!(rewards[0].1, 500);
@@ -480,7 +449,7 @@ mod tests {
         ];
 
         for (points, total_points, inflation, expected_remainder) in test_cases {
-            let (rewards, remainder) = calculate_operator_amounts(&points, total_points, inflation);
+            let (rewards, remainder) = points_to_rewards(&points, total_points, inflation);
             let distributed: u128 = rewards.iter().map(|(_, a)| a).sum();
 
             // Verify distributed + remainder equals inflation
@@ -503,7 +472,7 @@ mod tests {
     fn test_calculate_operator_amounts_large_remainder() {
         // Test with many operators where remainder could be significant
         let points: Vec<_> = (1..=10).map(|i| (H160::from_low_u64_be(i), 1u32)).collect();
-        let (rewards, remainder) = calculate_operator_amounts(&points, 10, 1009);
+        let (rewards, remainder) = points_to_rewards(&points, 10, 1009);
 
         // Each operator gets 100, remainder is 9
         for (_, amount) in rewards.iter() {

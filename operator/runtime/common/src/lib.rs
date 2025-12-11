@@ -25,7 +25,7 @@ pub mod impl_on_charge_evm_transaction;
 pub mod inflation;
 pub mod migrations;
 pub use migrations::*;
-pub mod rewards;
+pub mod rewards_adapter;
 pub mod safe_mode;
 pub use safe_mode::*;
 

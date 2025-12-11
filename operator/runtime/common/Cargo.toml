@@ -6,6 +6,7 @@ name = "datahaven-runtime-common"
 version = { workspace = true }
 
 [dependencies]
+alloy-core = { workspace = true, features = ["sol-types"] }
 codec = { workspace = true }
 fp-account = { workspace = true, features = ["serde"] }
 frame-support = { workspace = true }
@@ -36,6 +37,7 @@ xcm = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "alloy-core/std",
     "codec/std",
     "frame-support/std",
     "log/std",

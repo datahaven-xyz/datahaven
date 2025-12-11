@@ -1468,6 +1468,8 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 pub struct TestnetRewardsConfig;
 
 impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for TestnetRewardsConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
+
     fn current_timestamp_secs() -> u32 {
         <Timestamp as UnixTime>::now()
             .as_secs()
@@ -1501,14 +1503,6 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Test
 
     fn generate_message_id(merkle_root: H256) -> H256 {
         H256::from(unique(merkle_root))
-    }
-
-    fn validate_message(message: &OutboundMessage) -> Result<OutboundMessage, SendError> {
-        EthereumOutboundQueueV2::validate(message)
-    }
-
-    fn deliver_message(ticket: OutboundMessage) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(ticket)
     }
 }
 

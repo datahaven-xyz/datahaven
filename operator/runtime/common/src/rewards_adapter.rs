@@ -20,12 +20,53 @@
 //! via Snowbridge. The adapter is configurable through the [`RewardsSubmissionConfig`]
 //! trait, allowing runtimes to provide environment-specific values.
 
+use alloy_core::{
+    primitives::{Address, U256},
+    sol,
+    sol_types::SolCall,
+};
 use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
-use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage};
+use snowbridge_outbound_queue_primitives::v2::{
+    Command, Message as OutboundMessage, SendMessage as SnowbridgeSendMessage,
+};
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
 use sp_std::vec;
 use sp_std::vec::Vec;
+
+// ============================================================================
+// SOLIDITY ABI DEFINITIONS
+// ============================================================================
+
+sol! {
+    /// EigenLayer strategy and multiplier tuple.
+    /// Maps to `IRewardsCoordinatorTypes.StrategyAndMultiplier`.
+    struct StrategyAndMultiplier {
+        address strategy;
+        uint96 multiplier;
+    }
+
+    /// EigenLayer operator reward tuple.
+    /// Maps to `IRewardsCoordinatorTypes.OperatorReward`.
+    struct OperatorReward {
+        address operator;
+        uint256 amount;
+    }
+
+    /// EigenLayer operator-directed rewards submission.
+    /// Maps to `IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission`.
+    struct OperatorDirectedRewardsSubmission {
+        StrategyAndMultiplier[] strategiesAndMultipliers;
+        address token;
+        OperatorReward[] operatorRewards;
+        uint32 startTimestamp;
+        uint32 duration;
+        string description;
+    }
+
+    /// The submitRewards function on DataHavenServiceManager.
+    function submitRewards(OperatorDirectedRewardsSubmission submission);
+}
 
 // ============================================================================
 // CONFIGURATION TRAIT
@@ -36,6 +77,11 @@ use sp_std::vec::Vec;
 /// Runtimes implement this trait to provide environment-specific values
 /// such as contract addresses, timestamps, and the outbound queue.
 pub trait RewardsSubmissionConfig {
+    /// The Snowbridge outbound queue pallet type for message validation and delivery.
+    type OutboundQueue: snowbridge_outbound_queue_primitives::v2::SendMessage<
+        Ticket = OutboundMessage,
+    >;
+
     /// Get the current Unix timestamp in seconds.
     fn current_timestamp_secs() -> u32;
 
@@ -60,12 +106,6 @@ pub trait RewardsSubmissionConfig {
 
     /// Generate a unique message ID from the merkle root.
     fn generate_message_id(merkle_root: H256) -> H256;
-
-    /// Validate the outbound message via Snowbridge.
-    fn validate_message(message: &OutboundMessage) -> Result<OutboundMessage, SendError>;
-
-    /// Deliver the validated message via Snowbridge.
-    fn deliver_message(ticket: OutboundMessage) -> Result<H256, SendError>;
 }
 
 // ============================================================================
@@ -88,11 +128,11 @@ impl<C: RewardsSubmissionConfig> SendMessage for RewardsSubmissionAdapter<C> {
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        C::validate_message(&message)
+        C::OutboundQueue::validate(&message)
     }
 
     fn deliver(ticket: Self::Ticket) -> Result<H256, SendError> {
-        C::deliver_message(ticket)
+        C::OutboundQueue::deliver(ticket)
     }
 }
 
@@ -100,12 +140,8 @@ impl<C: RewardsSubmissionConfig> SendMessage for RewardsSubmissionAdapter<C> {
 // CONSTANTS
 // ============================================================================
 
-/// Function selector for submitRewards(OperatorDirectedRewardsSubmission).
-/// cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
-pub const SUBMIT_REWARDS_SELECTOR: [u8; 4] = [0x83, 0x82, 0x1e, 0x8e];
-
 /// Default description for rewards submissions.
-pub const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
+pub const REWARDS_DESCRIPTION: &str = "DataHaven validator rewards";
 
 /// Gas limit for the submitRewards call on Ethereum.
 pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
@@ -214,9 +250,8 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         C::current_timestamp_secs(),
     );
 
-    // Build the ABI-encoded calldata
+    // Build the ABI-encoded calldata using alloy's type-safe encoding
     let calldata = encode_submit_rewards_calldata(
-        &SUBMIT_REWARDS_SELECTOR,
         whave_token_address,
         &operator_rewards,
         start_timestamp,
@@ -304,101 +339,46 @@ pub fn calculate_operator_amounts(
     operator_rewards
 }
 
-/// Maximum value for uint96 (2^96 - 1).
-pub const MAX_UINT96: u128 = (1u128 << 96) - 1;
-
-/// ABI-encode the submitRewards calldata for EigenLayer's RewardsCoordinator.
+/// ABI-encode the submitRewards calldata for DataHavenServiceManager.
 ///
-/// # Format
-/// selector + ABI-encoded OperatorDirectedRewardsSubmission tuple:
-/// `((address,uint96)[], address, (address,uint256)[], uint32, uint32, string)`
+/// Uses alloy's type-safe ABI encoding to generate the calldata for
+/// `submitRewards(OperatorDirectedRewardsSubmission)`.
 ///
 /// # Arguments
-/// * `selector` - 4-byte function selector
 /// * `token` - ERC20 reward token address
 /// * `operator_rewards` - Sorted list of (operator, amount) tuples
 /// * `start_timestamp` - Period start timestamp (aligned to duration)
 /// * `duration` - Reward period duration in seconds
 /// * `description` - Human-readable description
 pub fn encode_submit_rewards_calldata(
-    selector: &[u8],
     token: H160,
     operator_rewards: &[(H160, u128)],
     start_timestamp: u32,
     duration: u32,
-    description: &[u8],
+    description: &str,
 ) -> Vec<u8> {
-    // Empty strategies array (DataHaven focuses on operator rewards).
-    // Type: (address strategy, uint96 multiplier)[]
-    // Note: If this is ever populated, multiplier values must not exceed MAX_UINT96.
-    let strategies: &[(H160, u128)] = &[];
+    // Convert operator rewards to alloy types
+    let operator_rewards_alloy: Vec<OperatorReward> = operator_rewards
+        .iter()
+        .map(|(op, amount)| OperatorReward {
+            operator: Address::from(op.as_fixed_bytes()),
+            amount: U256::from(*amount),
+        })
+        .collect();
 
-    let mut calldata = selector.to_vec();
+    // Build the submission struct
+    let submission = OperatorDirectedRewardsSubmission {
+        // Empty strategies array (DataHaven focuses on operator rewards)
+        strategiesAndMultipliers: vec![],
+        token: Address::from(token.as_fixed_bytes()),
+        operatorRewards: operator_rewards_alloy,
+        startTimestamp: start_timestamp,
+        duration,
+        description: description.into(),
+    };
 
-    // Offset to the main tuple data (starts at 32 bytes from selector)
-    calldata.extend_from_slice(&encode_u256(32));
-
-    // Calculate offsets (6 head slots * 32 bytes = 192 bytes to first dynamic data)
-    let head_size: u128 = 6 * 32;
-    let strategies_offset: u128 = head_size;
-    let strategies_data_size: u128 = 32 + (strategies.len() as u128) * 64;
-    let operator_rewards_offset: u128 = strategies_offset + strategies_data_size;
-    let operator_rewards_data_size: u128 = 32 + (operator_rewards.len() as u128) * 64;
-    let description_offset: u128 = operator_rewards_offset + operator_rewards_data_size;
-
-    // Head section
-    calldata.extend_from_slice(&encode_u256(strategies_offset));
-    calldata.extend_from_slice(&encode_address(token));
-    calldata.extend_from_slice(&encode_u256(operator_rewards_offset));
-    calldata.extend_from_slice(&encode_u256(start_timestamp as u128));
-    calldata.extend_from_slice(&encode_u256(duration as u128));
-    calldata.extend_from_slice(&encode_u256(description_offset));
-
-    // Tail section: dynamic data
-
-    // 1. strategiesAndMultipliers array: (address, uint96)[]
-    calldata.extend_from_slice(&encode_u256(strategies.len() as u128));
-    for (strategy, multiplier) in strategies {
-        calldata.extend_from_slice(&encode_address(*strategy));
-        // Note: multiplier is uint96 in EigenLayer's StrategyAndMultiplier struct.
-        // ABI encoding is identical to uint256 (padded to 32 bytes), but value must fit in uint96.
-        debug_assert!(
-            *multiplier <= MAX_UINT96,
-            "Strategy multiplier exceeds uint96 max value"
-        );
-        calldata.extend_from_slice(&encode_u256(*multiplier));
-    }
-
-    // 2. operatorRewards array: (address, uint256)[]
-    calldata.extend_from_slice(&encode_u256(operator_rewards.len() as u128));
-    for (operator, amount) in operator_rewards {
-        calldata.extend_from_slice(&encode_address(*operator));
-        calldata.extend_from_slice(&encode_u256(*amount));
-    }
-
-    // 3. description string
-    calldata.extend_from_slice(&encode_u256(description.len() as u128));
-    calldata.extend_from_slice(description);
-    let padding_needed = (32 - (description.len() % 32)) % 32;
-    calldata.extend(core::iter::repeat(0u8).take(padding_needed));
-
-    calldata
-}
-
-/// Encode a u128 value as a 32-byte big-endian ABI-encoded uint256.
-#[inline]
-pub fn encode_u256(value: u128) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[16..32].copy_from_slice(&value.to_be_bytes());
-    result
-}
-
-/// Encode an H160 address as a 32-byte ABI-encoded address (left-padded with zeros).
-#[inline]
-pub fn encode_address(addr: H160) -> [u8; 32] {
-    let mut result = [0u8; 32];
-    result[12..32].copy_from_slice(addr.as_bytes());
-    result
+    // Use alloy's type-safe encoding
+    submitRewardsCall { submission }.abi_encode()
 }
 
 #[cfg(test)]
@@ -529,18 +509,58 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_u256() {
-        let result = encode_u256(42);
-        assert_eq!(result[31], 42);
-        assert_eq!(result[..31], [0u8; 31]);
+    fn test_encode_submit_rewards_calldata_selector() {
+        // Verify the function selector matches the expected value
+        // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
+        let calldata = encode_submit_rewards_calldata(
+            H160::from_low_u64_be(0x1234),
+            &[(H160::from_low_u64_be(0x5678), 1000)],
+            86400,
+            86400,
+            "test",
+        );
+
+        // Check the function selector (first 4 bytes)
+        assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
     }
 
     #[test]
-    fn test_encode_address() {
-        let addr = H160::from_low_u64_be(0xdeadbeef);
-        let result = encode_address(addr);
-        assert_eq!(&result[12..32], addr.as_bytes());
-        assert_eq!(result[..12], [0u8; 12]);
+    fn test_encode_submit_rewards_calldata_structure() {
+        let token = H160::from_low_u64_be(0x1234);
+        let operator = H160::from_low_u64_be(0x5678);
+        let amount = 1000u128;
+        let start_timestamp = 86400u32;
+        let duration = 86400u32;
+
+        let calldata = encode_submit_rewards_calldata(
+            token,
+            &[(operator, amount)],
+            start_timestamp,
+            duration,
+            REWARDS_DESCRIPTION,
+        );
+
+        // Basic sanity checks on the calldata
+        // 4 bytes selector + at least the encoded struct
+        assert!(calldata.len() > 4);
+
+        // The calldata should be a multiple of 32 bytes (plus 4 byte selector)
+        assert_eq!((calldata.len() - 4) % 32, 0);
+    }
+
+    #[test]
+    fn test_encode_submit_rewards_calldata_empty_operators() {
+        let calldata = encode_submit_rewards_calldata(
+            H160::from_low_u64_be(0x1234),
+            &[],
+            86400,
+            86400,
+            "empty",
+        );
+
+        // Should still produce valid calldata
+        assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
+        assert!(calldata.len() > 4);
     }
 
     #[test]

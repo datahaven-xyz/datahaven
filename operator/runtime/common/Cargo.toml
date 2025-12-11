@@ -25,6 +25,7 @@ polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 sp-core = { workspace = true, features = ["serde"] }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }
@@ -51,6 +52,7 @@ std = [
     "polkadot-runtime-common/std",
     "precompile-utils/std",
     "scale-info/std",
+    "snowbridge-outbound-queue-primitives/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",

@@ -1471,32 +1471,6 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 /// 2. CallContract - calls submitRewards with the ABI-encoded OperatorDirectedRewardsSubmission
 pub struct RewardsSendAdapter;
 
-impl RewardsSendAdapter {
-    /// Calculate the aligned start timestamp for rewards submission.
-    /// Must be aligned to RewardsDuration (86400 seconds = 1 day).
-    fn calculate_aligned_start_timestamp() -> u32 {
-        let genesis =
-            runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
-        let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-
-        // Get current timestamp in seconds using UnixTime trait
-        let now_duration = <Timestamp as UnixTime>::now();
-        let now_secs: u32 = now_duration.as_secs().try_into().unwrap_or(0);
-
-        if duration == 0 || genesis > now_secs {
-            return genesis;
-        }
-
-        // Find the most recently completed period
-        let elapsed = now_secs.saturating_sub(genesis);
-        let period = elapsed / duration;
-
-        // Return start of the period that just ended
-        // (subtract 1 because we're at the end of period N, so we submit for period N-1)
-        genesis + period.saturating_sub(1) * duration
-    }
-}
-
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
@@ -1504,19 +1478,10 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let service_manager =
-            runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
+        use datahaven_runtime_common::rewards::{
+            build_rewards_message, RewardsData, RewardsMessageConfig,
+        };
 
-        // Skip if ServiceManager address is not configured
-        if service_manager == H160::zero() {
-            log::warn!(
-                target: "rewards_send_adapter",
-                "Skipping rewards message: ServiceManagerAddress is zero"
-            );
-            return None;
-        }
-
-        // Derive wHAVE token ID from Snowbridge (same as native transfer pallet)
         let whave_token_id = match DataHavenTokenId::get() {
             Some(id) => id,
             None => {
@@ -1527,104 +1492,35 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
                 return None;
             }
         };
-        let whave_token_address =
-            runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
 
-        // Skip if wHAVE token address is not configured
-        if whave_token_address == H160::zero() {
-            log::warn!(
-                target: "rewards_send_adapter",
-                "Skipping rewards message: wHAVE token address not configured"
-            );
-            return None;
-        }
+        let now_secs: u32 = <Timestamp as UnixTime>::now()
+            .as_secs()
+            .try_into()
+            .unwrap_or(0);
 
-        use datahaven_runtime_common::rewards::{
-            calculate_operator_amounts, encode_submit_rewards_calldata, REWARDS_DESCRIPTION,
-            SUBMIT_REWARDS_GAS_LIMIT, SUBMIT_REWARDS_SELECTOR,
+        let config = RewardsMessageConfig {
+            service_manager:
+                runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get(),
+            whave_token_id,
+            whave_token_address:
+                runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get(),
+            rewards_agent_origin:
+                runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
+            rewards_genesis_timestamp:
+                runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get(),
+            rewards_duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(
+            ),
+            current_timestamp_secs: now_secs,
         };
 
-        // Calculate operator amounts from points
-        let operator_rewards = calculate_operator_amounts(
-            &rewards_utils.individual_points,
-            rewards_utils.total_points,
-            rewards_utils.inflation_amount,
-        );
-
-        if operator_rewards.is_empty() {
-            log::warn!(
-                target: "rewards_send_adapter",
-                "Skipping rewards message: no operators with rewards"
-            );
-            return None;
-        }
-
-        // Calculate total amount for minting
-        let total_amount: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
-
-        if total_amount == 0 {
-            log::warn!(
-                target: "rewards_send_adapter",
-                "Skipping rewards message: total amount is zero"
-            );
-            return None;
-        }
-
-        let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-
-        let start_timestamp = Self::calculate_aligned_start_timestamp();
-
-        // Build the ABI-encoded calldata
-        let calldata = encode_submit_rewards_calldata(
-            &SUBMIT_REWARDS_SELECTOR,
-            whave_token_address,
-            &operator_rewards,
-            start_timestamp,
-            duration,
-            REWARDS_DESCRIPTION,
-        );
-
-        // Build the two commands: MintForeignToken + CallContract
-        let mint_command = Command::MintForeignToken {
-            token_id: whave_token_id,
-            recipient: service_manager,
-            amount: total_amount,
+        let data = RewardsData {
+            individual_points: &rewards_utils.individual_points,
+            total_points: rewards_utils.total_points,
+            inflation_amount: rewards_utils.inflation_amount,
+            merkle_root: rewards_utils.rewards_merkle_root,
         };
 
-        let call_command = Command::CallContract {
-            target: service_manager,
-            calldata,
-            gas: SUBMIT_REWARDS_GAS_LIMIT,
-            value: 0,
-        };
-
-        let commands = match vec![mint_command, call_command].try_into() {
-            Ok(cmds) => cmds,
-            Err(_) => {
-                log::error!(
-                    target: "rewards_send_adapter",
-                    "Failed to convert commands: too many commands"
-                );
-                return None;
-            }
-        };
-
-        let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
-            id: unique(rewards_utils.rewards_merkle_root).into(),
-            fee: 0,
-            commands,
-        };
-
-        log::info!(
-            target: "rewards_send_adapter",
-            "Built rewards message: total_amount={}, operators={}, start_timestamp={}",
-            total_amount,
-            operator_rewards.len(),
-            start_timestamp
-        );
-
-        Some(message)
+        build_rewards_message(&config, &data, |root| H256::from(unique(root)))
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {

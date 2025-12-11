@@ -16,7 +16,9 @@
 
 //! EigenLayer rewards utilities for ABI encoding and operator amount calculations.
 
-use sp_core::H160;
+use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage};
+use sp_core::{H160, H256};
+use sp_std::vec;
 use sp_std::vec::Vec;
 
 /// Function selector for submitRewards(OperatorDirectedRewardsSubmission).
@@ -28,6 +30,145 @@ pub const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
 
 /// Gas limit for the submitRewards call on Ethereum.
 pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
+
+/// Configuration for building rewards messages.
+pub struct RewardsMessageConfig {
+    /// The DataHaven ServiceManager contract address on Ethereum.
+    pub service_manager: H160,
+    /// The wHAVE token ID registered in Snowbridge.
+    pub whave_token_id: H256,
+    /// The wHAVE ERC20 token address on Ethereum.
+    pub whave_token_address: H160,
+    /// The agent origin for the outbound message.
+    pub rewards_agent_origin: H256,
+    /// EigenLayer-aligned genesis timestamp.
+    pub rewards_genesis_timestamp: u32,
+    /// Rewards duration in seconds (typically 86400 = 1 day).
+    pub rewards_duration: u32,
+    /// Current timestamp in seconds.
+    pub current_timestamp_secs: u32,
+}
+
+/// Input data for building rewards message.
+pub struct RewardsData<'a> {
+    /// Individual validator points as (address, points) tuples.
+    pub individual_points: &'a [(H160, u32)],
+    /// Total points across all validators.
+    pub total_points: u128,
+    /// Total inflation amount to distribute.
+    pub inflation_amount: u128,
+    /// Merkle root for message ID generation.
+    pub merkle_root: H256,
+}
+
+/// Calculate aligned start timestamp for rewards submission.
+/// Must be aligned to duration (86400 seconds = 1 day for EigenLayer).
+///
+/// Returns the start of the most recently completed period.
+pub fn calculate_aligned_start_timestamp(genesis: u32, duration: u32, now_secs: u32) -> u32 {
+    if duration == 0 || genesis > now_secs {
+        return genesis;
+    }
+    let elapsed = now_secs.saturating_sub(genesis);
+    let period = elapsed / duration;
+    // Return start of the period that just ended (period N-1)
+    genesis + period.saturating_sub(1) * duration
+}
+
+/// Build the complete rewards outbound message.
+///
+/// Returns `None` if validation fails or no rewards to distribute.
+pub fn build_rewards_message<F>(
+    config: &RewardsMessageConfig,
+    data: &RewardsData,
+    unique_id: F,
+) -> Option<OutboundMessage>
+where
+    F: FnOnce(H256) -> H256,
+{
+    // Validate config
+    if config.service_manager == H160::zero() {
+        log::warn!(
+            target: "rewards_send_adapter",
+            "Skipping rewards message: ServiceManagerAddress is zero"
+        );
+        return None;
+    }
+
+    if config.whave_token_address == H160::zero() {
+        log::warn!(
+            target: "rewards_send_adapter",
+            "Skipping rewards message: WHAVETokenAddress is zero"
+        );
+        return None;
+    }
+
+    // Calculate operator amounts from points
+    let operator_rewards = calculate_operator_amounts(
+        data.individual_points,
+        data.total_points,
+        data.inflation_amount,
+    );
+
+    if operator_rewards.is_empty() {
+        log::warn!(
+            target: "rewards_send_adapter",
+            "Skipping rewards message: no operators with rewards"
+        );
+        return None;
+    }
+
+    // Calculate total amount for minting
+    let total_amount: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
+
+    if total_amount == 0 {
+        log::warn!(
+            target: "rewards_send_adapter",
+            "Skipping rewards message: total amount is zero"
+        );
+        return None;
+    }
+
+    let start_timestamp = calculate_aligned_start_timestamp(
+        config.rewards_genesis_timestamp,
+        config.rewards_duration,
+        config.current_timestamp_secs,
+    );
+
+    // Build the ABI-encoded calldata
+    let calldata = encode_submit_rewards_calldata(
+        &SUBMIT_REWARDS_SELECTOR,
+        config.whave_token_address,
+        &operator_rewards,
+        start_timestamp,
+        config.rewards_duration,
+        REWARDS_DESCRIPTION,
+    );
+
+    // Build the two commands: MintForeignToken + CallContract
+    let commands = vec![
+        Command::MintForeignToken {
+            token_id: config.whave_token_id,
+            recipient: config.service_manager,
+            amount: total_amount,
+        },
+        Command::CallContract {
+            target: config.service_manager,
+            calldata,
+            gas: SUBMIT_REWARDS_GAS_LIMIT,
+            value: 0,
+        },
+    ]
+    .try_into()
+    .ok()?;
+
+    Some(OutboundMessage {
+        origin: config.rewards_agent_origin,
+        id: unique_id(data.merkle_root).into(),
+        fee: 0,
+        commands,
+    })
+}
 
 /// Calculate operator reward amounts from points and total inflation.
 /// Returns a sorted list of (operator_address, amount) tuples.
@@ -203,5 +344,47 @@ mod tests {
         let result = encode_address(addr);
         assert_eq!(&result[12..32], addr.as_bytes());
         assert_eq!(result[..12], [0u8; 12]);
+    }
+
+    #[test]
+    fn test_calculate_aligned_start_timestamp() {
+        let genesis = 1000;
+        let duration = 86400; // 1 day
+
+        // At genesis, return genesis
+        assert_eq!(
+            calculate_aligned_start_timestamp(genesis, duration, genesis),
+            genesis
+        );
+
+        // Before genesis, return genesis
+        assert_eq!(
+            calculate_aligned_start_timestamp(genesis, duration, 500),
+            genesis
+        );
+
+        // Mid-first period returns genesis (period 0, so period - 1 = underflow handled)
+        assert_eq!(
+            calculate_aligned_start_timestamp(genesis, duration, genesis + 43200),
+            genesis
+        );
+
+        // Second period returns start of first period
+        assert_eq!(
+            calculate_aligned_start_timestamp(genesis, duration, genesis + 86400 + 1000),
+            genesis
+        );
+
+        // Third period returns start of second period
+        assert_eq!(
+            calculate_aligned_start_timestamp(genesis, duration, genesis + 2 * 86400 + 1000),
+            genesis + 86400
+        );
+
+        // Zero duration returns genesis
+        assert_eq!(
+            calculate_aligned_start_timestamp(genesis, 0, genesis + 1000),
+            genesis
+        );
     }
 }

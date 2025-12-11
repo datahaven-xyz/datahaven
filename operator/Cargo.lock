@@ -2810,6 +2810,7 @@ dependencies = [
  "polkadot-runtime-common",
  "precompile-utils",
  "scale-info",
+ "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
  "sp-runtime",

@@ -1463,22 +1463,6 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
 /// V2 SendMessage implementation for rewards pallet.
 pub struct RewardsSendAdapter;
 
-impl RewardsSendAdapter {
-    fn calculate_aligned_start_timestamp() -> u32 {
-        let genesis =
-            runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get();
-        let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-        let now_duration = <Timestamp as UnixTime>::now();
-        let now_secs: u32 = now_duration.as_secs().try_into().unwrap_or(0);
-        if duration == 0 || genesis > now_secs {
-            return genesis;
-        }
-        let elapsed = now_secs.saturating_sub(genesis);
-        let period = elapsed / duration;
-        genesis + period.saturating_sub(1) * duration
-    }
-}
-
 impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
@@ -1486,78 +1470,55 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     fn build(
         rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
     ) -> Option<Self::Message> {
-        let service_manager =
-            runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get();
-        if service_manager == H160::zero() {
-            return None;
-        }
-
-        // Derive wHAVE token ID from Snowbridge (same as native transfer pallet)
-        let whave_token_id = DataHavenTokenId::get()?;
-        let whave_token_address =
-            runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get();
-        if whave_token_address == H160::zero() {
-            return None;
-        }
-
         use datahaven_runtime_common::rewards::{
-            calculate_operator_amounts, encode_submit_rewards_calldata, REWARDS_DESCRIPTION,
-            SUBMIT_REWARDS_GAS_LIMIT, SUBMIT_REWARDS_SELECTOR,
+            build_rewards_message, RewardsData, RewardsMessageConfig,
         };
 
-        let operator_rewards = calculate_operator_amounts(
-            &rewards_utils.individual_points,
-            rewards_utils.total_points,
-            rewards_utils.inflation_amount,
-        );
-        if operator_rewards.is_empty() {
-            return None;
-        }
+        let whave_token_id = match DataHavenTokenId::get() {
+            Some(id) => id,
+            None => {
+                log::warn!(
+                    target: "rewards_send_adapter",
+                    "Skipping rewards message: wHAVE token not registered in Snowbridge"
+                );
+                return None;
+            }
+        };
 
-        let total_amount: u128 = operator_rewards.iter().map(|(_, a)| *a).sum();
-        if total_amount == 0 {
-            return None;
-        }
+        let now_secs: u32 = <Timestamp as UnixTime>::now()
+            .as_secs()
+            .try_into()
+            .unwrap_or(0);
 
-        let duration = runtime_params::dynamic_params::runtime_config::RewardsDuration::get();
-        let start_timestamp = Self::calculate_aligned_start_timestamp();
+        let config = RewardsMessageConfig {
+            service_manager:
+                runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get(),
+            whave_token_id,
+            whave_token_address:
+                runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get(),
+            rewards_agent_origin:
+                runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
+            rewards_genesis_timestamp:
+                runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get(),
+            rewards_duration: runtime_params::dynamic_params::runtime_config::RewardsDuration::get(
+            ),
+            current_timestamp_secs: now_secs,
+        };
 
-        let calldata = encode_submit_rewards_calldata(
-            &SUBMIT_REWARDS_SELECTOR,
-            whave_token_address,
-            &operator_rewards,
-            start_timestamp,
-            duration,
-            REWARDS_DESCRIPTION,
-        );
+        let data = RewardsData {
+            individual_points: &rewards_utils.individual_points,
+            total_points: rewards_utils.total_points,
+            inflation_amount: rewards_utils.inflation_amount,
+            merkle_root: rewards_utils.rewards_merkle_root,
+        };
 
-        let commands = vec![
-            Command::MintForeignToken {
-                token_id: whave_token_id,
-                recipient: service_manager,
-                amount: total_amount,
-            },
-            Command::CallContract {
-                target: service_manager,
-                calldata,
-                gas: SUBMIT_REWARDS_GAS_LIMIT,
-                value: 0,
-            },
-        ]
-        .try_into()
-        .ok()?;
-
-        Some(OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
-            id: unique(rewards_utils.rewards_merkle_root).into(),
-            fee: 0,
-            commands,
-        })
+        build_rewards_message(&config, &data, |root| H256::from(unique(root)))
     }
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
         EthereumOutboundQueueV2::validate(&message)
     }
+
     fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
         EthereumOutboundQueueV2::deliver(message)
     }

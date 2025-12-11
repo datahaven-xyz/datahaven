@@ -69,16 +69,12 @@ pub struct SlashData<AccountId> {
     pub amount_to_slash: u128,
 }
 
-/// TODO: populate this with what we need
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SlashDataUtils<AccountId>(pub Vec<SlashData<AccountId>>);
-
 // FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
 pub trait SendMessage<AccountId> {
     type Message;
     type Ticket;
 
-    fn build(utils: &SlashDataUtils<AccountId>) -> Option<Self::Message>;
+    fn build(utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message>;
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
 
@@ -87,6 +83,8 @@ pub trait SendMessage<AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
+    use sp_core::uint;
+
     use super::*;
     pub use crate::weights::WeightInfo;
 
@@ -101,6 +99,12 @@ pub mod pallet {
         },
         /// The slashes message was sent correctly.
         SlashesMessageSent { message_id: H256 },
+        /// We injected a slash
+        SlashInjected { slash_id: T::SlashId, era: u32 },
+        /// Number of slashes processed
+        SlashesProccessed { number: u32 },
+        /// Number of slashes processed
+        SlashAddedToQueue { number: u32, era: u32 },
     }
 
     #[pallet::config]
@@ -342,6 +346,12 @@ pub mod pallet {
             });
 
             NextSlashId::<T>::put(next_slash_id.saturating_add(One::one()));
+
+            Self::deposit_event(Event::<T>::SlashInjected {
+                slash_id: next_slash_id,
+                era: era_to_consider,
+            });
+
             Ok(())
         }
 
@@ -360,6 +370,9 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
+
+            Self::deposit_event(Event::<T>::SlashesProccessed { number: processed });
+
             T::WeightInfo::process_slashes_queue(processed)
         }
     }
@@ -562,7 +575,16 @@ impl<T: Config> Pallet<T> {
     fn add_era_slashes_to_queue(active_era: EraIndex) {
         let mut slashes: VecDeque<_> = Slashes::<T>::get(active_era).into();
 
+        let len = slashes.len();
+
         UnreportedSlashesQueue::<T>::mutate(|queue| queue.append(&mut slashes));
+
+        if len > 0 {
+            Self::deposit_event(Event::<T>::SlashAddedToQueue {
+                number: len as u32,
+                era: active_era,
+            });
+        }
     }
 
     /// Returns number of slashes that were sent to ethereum.
@@ -590,7 +612,7 @@ impl<T: Config> Pallet<T> {
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        let outbound = match T::SendMessage::build(&SlashDataUtils(slashes_to_send)) {
+        let outbound = match T::SendMessage::build(&slashes_to_send) {
             Some(send_msg) => send_msg,
             None => {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");

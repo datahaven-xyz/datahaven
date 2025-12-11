@@ -336,14 +336,15 @@ pub mod dynamic_params {
 
         #[codec(index = 35)]
         #[allow(non_upper_case_globals)]
-        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
+        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator()")
         pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
-            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+            BoundedVec::truncate_from(vec![0xb3, 0x45, 0x13, 0xdc]);
 
         #[codec(index = 36)]
         #[allow(non_upper_case_globals)]
         /// The AVS ethereum address for Datahaven. Via this address we relay slashing requests or other requests.
-        pub static DatahavenAVSAddress: H160 = H160::repeat_byte(0x0);
+        pub static DatahavenAVSAddress: H160 =
+            H160::from_slice(&hex!("809d550fca64d94Bd9F66E60752A544199cfAC3D"));
 
         // ╔══════════════════════ Validator Rewards Inflation ═══════════════════════╗
 
@@ -362,6 +363,12 @@ pub mod dynamic_params {
         pub static InflationTreasuryProportion: Perbill = Perbill::from_percent(20);
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
+
+        #[codec(index = 39)]
+        #[allow(non_upper_case_globals)]
+        pub static SlashingAgentOrigin: H256 = H256::from_slice(&hex!(
+            "000000000000000000000000000000000000000000000000000000000000DEAD"
+        ));
     }
 }
 

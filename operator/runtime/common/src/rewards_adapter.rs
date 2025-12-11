@@ -14,12 +14,91 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
-//! EigenLayer rewards utilities for ABI encoding and operator amount calculations.
+//! EigenLayer rewards submission adapter.
+//!
+//! Provides a generic adapter for submitting validator rewards to EigenLayer
+//! via Snowbridge. The adapter is configurable through the [`RewardsSubmissionConfig`]
+//! trait, allowing runtimes to provide environment-specific values.
 
+use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
 use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage};
+use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
 use sp_std::vec;
 use sp_std::vec::Vec;
+
+// ============================================================================
+// CONFIGURATION TRAIT
+// ============================================================================
+
+/// Configuration for rewards submission.
+///
+/// Runtimes implement this trait to provide environment-specific values
+/// such as contract addresses, timestamps, and the outbound queue.
+pub trait RewardsSubmissionConfig {
+    /// The Snowbridge outbound queue pallet type for message validation and delivery.
+    type OutboundQueue: snowbridge_pallet_outbound_queue_v2::SendMessage<
+        Message = OutboundMessage,
+        Ticket = OutboundMessage,
+    >;
+
+    /// Get the current Unix timestamp in seconds.
+    fn current_timestamp_secs() -> u32;
+
+    /// Get the rewards genesis timestamp (should be aligned to 86400).
+    fn rewards_genesis_timestamp() -> u32;
+
+    /// Get the rewards duration in seconds (typically 86400 = 1 day).
+    fn rewards_duration() -> u32;
+
+    /// Get the wHAVE token ID registered in Snowbridge.
+    /// Returns `None` if the token is not registered.
+    fn whave_token_id() -> Option<H256>;
+
+    /// Get the wHAVE ERC20 token address on Ethereum.
+    fn whave_token_address() -> H160;
+
+    /// Get the DataHaven ServiceManager contract address on Ethereum.
+    fn service_manager_address() -> H160;
+
+    /// Get the agent origin for outbound messages.
+    fn rewards_agent_origin() -> H256;
+
+    /// Generate a unique message ID from the merkle root.
+    fn generate_message_id(merkle_root: H256) -> H256;
+}
+
+// ============================================================================
+// ADAPTER
+// ============================================================================
+
+/// Generic rewards submission adapter.
+///
+/// This adapter implements [`SendMessage`] and uses the configuration provided
+/// by [`RewardsSubmissionConfig`] to build, validate, and deliver rewards
+/// messages to EigenLayer via Snowbridge.
+pub struct RewardsSubmissionAdapter<C>(core::marker::PhantomData<C>);
+
+impl<C: RewardsSubmissionConfig> SendMessage for RewardsSubmissionAdapter<C> {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+
+    fn build(rewards_utils: &EraRewardsUtils) -> Option<Self::Message> {
+        build_rewards_message::<C>(rewards_utils)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        C::OutboundQueue::validate(&message)
+    }
+
+    fn deliver(ticket: Self::Ticket) -> Result<H256, SendError> {
+        C::OutboundQueue::deliver(ticket)
+    }
+}
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
 /// Function selector for submitRewards(OperatorDirectedRewardsSubmission).
 /// cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
@@ -30,36 +109,6 @@ pub const REWARDS_DESCRIPTION: &[u8] = b"DataHaven validator rewards";
 
 /// Gas limit for the submitRewards call on Ethereum.
 pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
-
-/// Configuration for building rewards messages.
-pub struct RewardsMessageConfig {
-    /// The DataHaven ServiceManager contract address on Ethereum.
-    pub service_manager: H160,
-    /// The wHAVE token ID registered in Snowbridge.
-    pub whave_token_id: H256,
-    /// The wHAVE ERC20 token address on Ethereum.
-    pub whave_token_address: H160,
-    /// The agent origin for the outbound message.
-    pub rewards_agent_origin: H256,
-    /// EigenLayer-aligned genesis timestamp.
-    pub rewards_genesis_timestamp: u32,
-    /// Rewards duration in seconds (typically 86400 = 1 day).
-    pub rewards_duration: u32,
-    /// Current timestamp in seconds.
-    pub current_timestamp_secs: u32,
-}
-
-/// Input data for building rewards message.
-pub struct RewardsData<'a> {
-    /// Individual validator points as (address, points) tuples.
-    pub individual_points: &'a [(H160, u32)],
-    /// Total points across all validators.
-    pub total_points: u128,
-    /// Total inflation amount to distribute.
-    pub inflation_amount: u128,
-    /// Merkle root for message ID generation.
-    pub merkle_root: H256,
-}
 
 /// EigenLayer's fixed calculation interval (1 day in seconds).
 /// This is hardcoded in EigenLayer's RewardsCoordinator and cannot be changed.

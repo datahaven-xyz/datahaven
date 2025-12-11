@@ -1692,6 +1692,7 @@ parameter_types! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SnowbridgeSystemV2;
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
 

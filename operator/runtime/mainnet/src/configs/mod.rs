@@ -1700,6 +1700,10 @@ parameter_types! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SnowbridgeSystemV2;
+    use datahaven_runtime_common::rewards::{
+        calculate_operator_amounts, encode_submit_rewards_calldata,
+    };
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
 
@@ -1841,11 +1845,8 @@ mod tests {
         let total_points = 1000u128;
         let inflation_amount = 1_000_000u128;
 
-        let amounts = RewardsSendAdapter::calculate_operator_amounts(
-            &individual_points,
-            total_points,
-            inflation_amount,
-        );
+        let amounts =
+            calculate_operator_amounts(&individual_points, total_points, inflation_amount);
 
         assert_eq!(amounts.len(), 3, "Should have 3 operators");
 
@@ -1876,7 +1877,7 @@ mod tests {
         let duration = 86400u32;
         let description = b"Test rewards";
 
-        let calldata = RewardsSendAdapter::encode_submit_rewards_calldata(
+        let calldata = encode_submit_rewards_calldata(
             &selector,
             token,
             &operator_rewards,

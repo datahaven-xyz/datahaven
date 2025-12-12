@@ -1785,21 +1785,10 @@ mod tests {
 
             // Verify the message structure
             if let Some(msg) = message {
-                assert_eq!(msg.commands.len(), 2, "Should have 2 commands: MintForeignToken + CallContract");
+                assert_eq!(msg.commands.len(), 1, "Should have 1 command: CallContract");
 
-                // First command should be MintForeignToken
-                let expected_token_id = DataHavenTokenId::get().expect("Token should be registered");
+                // Command should be CallContract
                 match &msg.commands[0] {
-                    Command::MintForeignToken { token_id, recipient, amount } => {
-                        assert_eq!(*token_id, expected_token_id, "Token ID should match");
-                        assert_eq!(*recipient, service_manager, "Recipient should be ServiceManager");
-                        assert_eq!(*amount, 1_000_000_000, "Amount should equal inflation");
-                    }
-                    _ => panic!("Expected MintForeignToken command"),
-                }
-
-                // Second command should be CallContract
-                match &msg.commands[1] {
                     Command::CallContract { target, .. } => {
                         assert_eq!(*target, service_manager, "Target should be ServiceManager");
                     }

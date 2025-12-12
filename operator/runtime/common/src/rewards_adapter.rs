@@ -37,6 +37,9 @@ use sp_std::vec::Vec;
 /// Default description for rewards submissions.
 pub const REWARDS_DESCRIPTION: &str = "DataHaven validator rewards";
 
+/// Log target for rewards adapter messages.
+const LOG_TARGET: &str = "rewards_adapter";
+
 /// Gas limit for the submitRewards call on Ethereum.
 pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
 
@@ -190,34 +193,19 @@ pub fn calculate_aligned_start_timestamp(genesis: u32, now_secs: u32) -> u32 {
 fn build_rewards_message<C: RewardsSubmissionConfig>(
     rewards_utils: &EraRewardsUtils,
 ) -> Option<OutboundMessage> {
-    let whave_token_id = C::whave_token_id().or_else(|| {
-        log::warn!(
-            target: "rewards_adapter",
-            "Skipping rewards message: wHAVE token not registered in Snowbridge"
-        );
-        None
-    })?;
-
     let service_manager = C::service_manager_address();
     let whave_token_address = C::whave_token_address();
 
     if service_manager == H160::zero() {
-        log::warn!(
-            target: "rewards_adapter",
-            "Skipping rewards message: ServiceManagerAddress is zero"
-        );
+        log::warn!(target: LOG_TARGET, "Skipping: ServiceManagerAddress is zero");
         return None;
     }
 
     if whave_token_address == H160::zero() {
-        log::warn!(
-            target: "rewards_adapter",
-            "Skipping rewards message: WHAVETokenAddress is zero"
-        );
+        log::warn!(target: LOG_TARGET, "Skipping: WHAVETokenAddress is zero");
         return None;
     }
 
-    // Calculate operator amounts from points
     let (operator_rewards, remainder) = points_to_rewards(
         &rewards_utils.individual_points,
         rewards_utils.total_points,
@@ -225,77 +213,35 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
     );
 
     if operator_rewards.is_empty() {
-        log::warn!(
-            target: "rewards_adapter",
-            "Skipping rewards message: no operators with rewards"
-        );
+        log::warn!(target: LOG_TARGET, "Skipping: no operators with rewards");
         return None;
     }
 
     if remainder > 0 {
-        log::debug!(
-            target: "rewards_adapter",
-            "Reward distribution remainder (dust): {} tokens",
-            remainder
-        );
+        log::debug!(target: LOG_TARGET, "Reward distribution remainder (dust): {} tokens", remainder);
     }
 
-    // Calculate total amount for minting (excludes remainder/dust)
-    let total_amount: u128 = operator_rewards.iter().map(|(_, amount)| amount).sum();
-
-    if total_amount == 0 {
-        log::warn!(
-            target: "rewards_adapter",
-            "Skipping rewards message: total amount is zero"
-        );
-        return None;
-    }
-
-    let start_timestamp = calculate_aligned_start_timestamp(
-        C::rewards_genesis_timestamp(),
-        C::current_timestamp_secs(),
-    );
-
-    let strategies_and_multipliers = C::strategies_and_multipliers();
-
-    // Build the ABI-encoded calldata using alloy's type-safe encoding
-    let calldata = match encode_rewards_calldata(
+    let calldata = encode_rewards_calldata(
         whave_token_address,
-        &strategies_and_multipliers,
+        &C::strategies_and_multipliers(),
         &operator_rewards,
-        start_timestamp,
+        calculate_aligned_start_timestamp(
+            C::rewards_genesis_timestamp(),
+            C::current_timestamp_secs(),
+        ),
         C::rewards_duration(),
         REWARDS_DESCRIPTION,
-    ) {
-        Ok(calldata) => calldata,
-        Err(EncodeSubmitRewardsCalldataError::MultiplierOverflow {
-            strategy,
-            multiplier,
-        }) => {
-            log::warn!(
-                target: "rewards_adapter",
-                "Skipping rewards message: strategy multiplier exceeds uint96 max (strategy={:?}, multiplier={})",
-                strategy,
-                multiplier
-            );
-            return None;
-        }
-    };
+    )
+    .map_err(|e| log::warn!(target: LOG_TARGET, "Skipping: {:?}", e))
+    .ok()?;
 
-    // Build the two commands: MintForeignToken + CallContract
-    let commands = vec![
-        Command::MintForeignToken {
-            token_id: whave_token_id,
-            recipient: service_manager,
-            amount: total_amount,
-        },
-        Command::CallContract {
-            target: service_manager,
-            calldata,
-            gas: SUBMIT_REWARDS_GAS_LIMIT,
-            value: 0,
-        },
-    ]
+    // Only call the ServiceManager. Funding is handled separately (on Ethereum side).
+    let commands = vec![Command::CallContract {
+        target: service_manager,
+        calldata,
+        gas: SUBMIT_REWARDS_GAS_LIMIT,
+        value: 0,
+    }]
     .try_into()
     .ok()?;
 

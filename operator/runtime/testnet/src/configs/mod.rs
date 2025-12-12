@@ -1790,15 +1790,12 @@ mod tests {
             assert!(message.is_some(), "Should return Some(message) when all V2 params are configured");
 
             if let Some(msg) = message {
-                assert_eq!(msg.commands.len(), 2, "Should have 2 commands");
-                let expected_token_id = DataHavenTokenId::get().expect("Token should be registered");
+                assert_eq!(msg.commands.len(), 1, "Should have 1 command");
                 match &msg.commands[0] {
-                    Command::MintForeignToken { token_id, recipient, amount } => {
-                        assert_eq!(*token_id, expected_token_id);
-                        assert_eq!(*recipient, service_manager);
-                        assert_eq!(*amount, 1_000_000_000);
+                    Command::CallContract { target, .. } => {
+                        assert_eq!(*target, service_manager);
                     }
-                    _ => panic!("Expected MintForeignToken command"),
+                    _ => panic!("Expected CallContract command"),
                 }
             }
         });

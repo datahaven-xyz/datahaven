@@ -11,10 +11,12 @@ on:
   pull_request:
     branches: [main]
 
-# Explicit minimal permissions
-# Note: Reusable workflows define their own permissions
+# Permissions granted to reusable workflows
+# Note: Called workflows (workflow_call) are constrained by these permissions
 permissions:
   contents: read
+  actions: write    # Required for artifact upload/download in build-operator, moonwall-tests
+  packages: write   # Required for docker-build-ci to push to ghcr.io
 
 concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}

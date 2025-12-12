@@ -14,5 +14,9 @@
   {
     "name": "RewardsAgentOrigin",
     "value": null
+  },
+  {
+    "name": "DatahavenServiceManagerAddress",
+    "value": null
   }
 ]

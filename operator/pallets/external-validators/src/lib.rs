@@ -99,6 +99,7 @@ pub mod pallet {
             BoundedVec, DefaultNoBound,
         },
         frame_system::pallet_prelude::*,
+        sp_core::H160,
         sp_runtime::{traits::Convert, SaturatedConversion},
         sp_std::vec::Vec,
     };
@@ -162,6 +163,10 @@ pub mod pallet {
 
         type OnEraStart: OnEraStart;
         type OnEraEnd: OnEraEnd;
+
+        /// Authorized Ethereum origin for validator-set update messages coming via Snowbridge.
+        #[pallet::constant]
+        type AuthorizedOrigin: Get<H160>;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;

@@ -90,7 +90,7 @@ where
         };
         let decode_result = Self::decode_message(payload.as_slice());
         if let Ok(payload) = decode_result {
-            payload.message_id == EL_MESSAGE_ID
+            payload.message_id == EL_MESSAGE_ID && message.origin == T::AuthorizedOrigin::get()
         } else {
             false
         }
@@ -100,6 +100,11 @@ where
         _who: AccountId,
         snow_msg: SnowbridgeMessage,
     ) -> Result<[u8; 32], DispatchError> {
+        // Defensively re-check the Ethereum origin before mutating the validator set.
+        if snow_msg.origin != T::AuthorizedOrigin::get() {
+            return Err(DispatchError::Other("unauthorized validator-set origin"));
+        }
+
         // Extract and decode the raw payload that came from Ethereum
         let payload = match &snow_msg.xcm {
             snowbridge_inbound_queue_primitives::v2::Payload::Raw(payload) => payload,

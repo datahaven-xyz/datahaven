@@ -188,7 +188,8 @@ export type DataHavenRuntimeParameterKey =
   | "EthereumGatewayAddress"
   | "RewardsRegistryAddress"
   | "RewardsUpdateSelector"
-  | "RewardsAgentOrigin";
+  | "RewardsAgentOrigin"
+  | "DatahavenServiceManagerAddress";
 
 /**
  * Interface for raw JSON parameters before conversion
@@ -231,13 +232,22 @@ const rawRewardsAgentOriginSchema = z.object({
 });
 
 /**
+ * Schema for raw DatahavenServiceManagerAddress parameter
+ */
+const rawDatahavenServiceManagerAddressSchema = z.object({
+  name: z.literal("DatahavenServiceManagerAddress"),
+  value: hexStringSchema.nullable().optional()
+});
+
+/**
  * Union schema for raw DataHaven parameters (for parsing JSON)
  */
 export const rawDataHavenParameterSchema = z.discriminatedUnion("name", [
   rawEthereumGatewayAddressSchema,
   rawRewardsRegistryAddressSchema,
   rawRewardsUpdateSelectorSchema,
-  rawRewardsAgentOriginSchema
+  rawRewardsAgentOriginSchema,
+  rawDatahavenServiceManagerAddressSchema
 ]);
 
 /**
@@ -279,6 +289,12 @@ function convertParameter(rawParam: any): ParsedDataHavenParameter {
     return {
       name: rawParam.name,
       value: new FixedSizeBinary<32>(hexToUint8Array(rawParam.value))
+    };
+  }
+  if (rawParam.name === "DatahavenServiceManagerAddress" && rawParam.value) {
+    return {
+      name: rawParam.name,
+      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
     };
   }
 

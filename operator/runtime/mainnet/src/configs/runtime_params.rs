@@ -337,8 +337,9 @@ pub mod dynamic_params {
 
         #[codec(index = 36)]
         #[allow(non_upper_case_globals)]
-        /// The AVS ethereum address for Datahaven. Via this address we relay slashing requests or other requests.
-        pub static DatahavenAVSAddress: H160 = H160::repeat_byte(0x0);
+        /// The Ethereum address of the DataHavenServiceManager contract.
+        /// This address is used both for authorized slashing requests and validator-set update messages.
+        pub static DatahavenServiceManagerAddress: H160 = H160::repeat_byte(0x0);
 
         // ╔══════════════════════ Validator Rewards Inflation ═══════════════════════╗
 

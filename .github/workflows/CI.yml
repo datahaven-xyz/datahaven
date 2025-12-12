@@ -11,9 +11,10 @@ on:
   pull_request:
     branches: [main]
 
+# Explicit minimal permissions
+# Note: Reusable workflows define their own permissions
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -46,14 +47,16 @@ jobs:
   docker-build-ci:
     needs: [build-operator]
     uses: ./.github/workflows/task-docker-ci.yml
-    secrets: inherit
+    # Note: GITHUB_TOKEN is automatically available to reusable workflows
     with:
       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
 
   docker-build-release:
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/task-docker-release.yml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   moonwall-tests:
     needs: [build-operator]
@@ -65,6 +68,6 @@ jobs:
   e2e-tests:
     needs: [docker-build-ci]
     uses: ./.github/workflows/task-e2e.yml
-    secrets: inherit
+    # Note: GITHUB_TOKEN is automatically available to reusable workflows
     with:
       image-tag: ${{ needs.docker-build-ci.outputs.image-tag }}

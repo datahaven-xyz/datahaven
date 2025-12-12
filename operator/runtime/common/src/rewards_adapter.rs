@@ -43,11 +43,6 @@ const LOG_TARGET: &str = "rewards_adapter";
 /// Gas limit for the submitRewards call on Ethereum.
 pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
 
-/// EigenLayer's fixed calculation interval (1 day in seconds).
-/// This is hardcoded in EigenLayer's RewardsCoordinator and cannot be changed.
-/// See: CALCULATION_INTERVAL_SECONDS in RewardsCoordinator.sol
-pub const EIGENLAYER_CALCULATION_INTERVAL: u32 = 86400;
-
 /// Error type for rewards adapter operations.
 #[derive(Debug, PartialEq, Eq)]
 pub enum RewardsAdapterError {
@@ -109,14 +104,12 @@ pub trait RewardsSubmissionConfig {
         Vec::new()
     }
 
-    /// Get the current Unix timestamp in seconds.
-    fn current_timestamp_secs() -> u32;
-
-    /// Get the rewards genesis timestamp (should be aligned to 86400).
-    fn rewards_genesis_timestamp() -> u32;
-
     /// Get the rewards duration in seconds (typically 86400 = 1 day).
     fn rewards_duration() -> u32;
+
+    /// Get the start timestamp for the rewards submission in seconds.
+    /// This is typically the era start timestamp.
+    fn era_start_timestamp() -> u32;
 
     /// Get the wHAVE ERC20 token address on Ethereum.
     fn whave_token_address() -> H160;
@@ -153,33 +146,6 @@ impl<C: RewardsSubmissionConfig> SendMessage for RewardsSubmissionAdapter<C> {
     fn deliver(ticket: Self::Ticket) -> Result<H256, SendError> {
         C::OutboundQueue::deliver(ticket)
     }
-}
-
-/// Calculate aligned start timestamp for rewards submission.
-///
-/// EigenLayer requires `startTimestamp` to be aligned to `CALCULATION_INTERVAL_SECONDS` (86400).
-/// This alignment is independent of the reward `duration` - the duration determines how long
-/// rewards are distributed, but alignment is always to day boundaries.
-///
-/// # Arguments
-/// * `genesis` - The rewards genesis timestamp (should be aligned to 86400)
-/// * `now_secs` - Current timestamp in seconds
-///
-/// # Returns
-/// The start of the most recently completed day-aligned period, or genesis if we're
-/// still in the first period.
-pub fn calculate_aligned_start_timestamp(genesis: u32, now_secs: u32) -> u32 {
-    if genesis > now_secs {
-        return genesis;
-    }
-    let elapsed = now_secs.saturating_sub(genesis);
-    let period = elapsed / EIGENLAYER_CALCULATION_INTERVAL;
-    if period == 0 {
-        // Still in the first period, return genesis
-        return genesis;
-    }
-    // Return start of the period that just ended (period N-1)
-    genesis + (period - 1) * EIGENLAYER_CALCULATION_INTERVAL
 }
 
 /// Build the complete rewards outbound message using configuration from `C`.
@@ -222,10 +188,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         whave_token_address,
         &C::strategies_and_multipliers(),
         &operator_rewards,
-        calculate_aligned_start_timestamp(
-            C::rewards_genesis_timestamp(),
-            C::current_timestamp_secs(),
-        ),
+        C::era_start_timestamp(),
         C::rewards_duration(),
         REWARDS_DESCRIPTION,
     )
@@ -680,48 +643,5 @@ mod tests {
         );
 
         assert_eq!(result, Err(RewardsAdapterError::InvalidMultiplier));
-    }
-
-    #[test]
-    fn test_calculate_aligned_start_timestamp() {
-        // Genesis should be aligned to EIGENLAYER_CALCULATION_INTERVAL (86400)
-        // For testing, we use a genesis that's a multiple of 86400
-        let genesis = 86400; // Day 1 start
-
-        // At genesis, return genesis (still in first period)
-        assert_eq!(calculate_aligned_start_timestamp(genesis, genesis), genesis);
-
-        // Before genesis, return genesis
-        assert_eq!(calculate_aligned_start_timestamp(genesis, 500), genesis);
-
-        // Mid-first period returns genesis (period 0)
-        assert_eq!(
-            calculate_aligned_start_timestamp(genesis, genesis + 43200),
-            genesis
-        );
-
-        // Second period (day 2) returns start of first period (genesis)
-        assert_eq!(
-            calculate_aligned_start_timestamp(genesis, genesis + 86400 + 1000),
-            genesis
-        );
-
-        // Third period (day 3) returns start of second period (day 2)
-        assert_eq!(
-            calculate_aligned_start_timestamp(genesis, genesis + 2 * 86400 + 1000),
-            genesis + 86400
-        );
-
-        // Fourth period (day 4) returns start of third period (day 3)
-        assert_eq!(
-            calculate_aligned_start_timestamp(genesis, genesis + 3 * 86400 + 1000),
-            genesis + 2 * 86400
-        );
-    }
-
-    #[test]
-    fn test_eigenlayer_calculation_interval_constant() {
-        // Verify the constant matches EigenLayer's hardcoded value
-        assert_eq!(EIGENLAYER_CALCULATION_INTERVAL, 86400);
     }
 }

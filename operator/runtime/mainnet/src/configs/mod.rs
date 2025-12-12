@@ -98,8 +98,7 @@ use frame_support::{
         fungible::{Balanced, Credit, HoldConsideration, Inspect},
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstU128, ConstU32, ConstU64, ConstU8, Contains, EitherOfDiverse, EqualPrivilegeOnly,
-        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, UnixTime,
-        VariantCountOf,
+        FindAuthor, KeyOwnerProofSystem, LinearStoragePrice, OnUnbalanced, VariantCountOf,
     },
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
@@ -1470,19 +1469,16 @@ pub struct MainnetRewardsConfig;
 impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for MainnetRewardsConfig {
     type OutboundQueue = EthereumOutboundQueueV2;
 
-    fn current_timestamp_secs() -> u32 {
-        <Timestamp as UnixTime>::now()
-            .as_secs()
-            .try_into()
-            .unwrap_or(0)
-    }
-
-    fn rewards_genesis_timestamp() -> u32 {
-        runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get()
-    }
-
     fn rewards_duration() -> u32 {
         runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
+    }
+
+    fn era_start_timestamp() -> u32 {
+        // Get era start from active era (in milliseconds), convert to seconds
+        ExternalValidators::active_era()
+            .and_then(|era| era.start)
+            .map(|ms| (ms / 1000) as u32)
+            .unwrap_or(0)
     }
 
     fn whave_token_address() -> H160 {

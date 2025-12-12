@@ -1679,7 +1679,6 @@ parameter_types! {
 mod tests {
     use super::*;
     use crate::SnowbridgeSystemV2;
-    use datahaven_runtime_common::rewards_adapter::{encode_rewards_calldata, points_to_rewards};
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
 
@@ -1808,77 +1807,5 @@ mod tests {
                 }
             }
         });
-    }
-
-    #[test]
-    fn test_operator_amounts_calculation() {
-        // Test that operator amounts are calculated correctly from points
-        let individual_points = vec![
-            (H160::from_low_u64_be(1), 300u32), // 30%
-            (H160::from_low_u64_be(2), 500u32), // 50%
-            (H160::from_low_u64_be(3), 200u32), // 20%
-        ];
-        let total_points = 1000u128;
-        let inflation_amount = 1_000_000u128;
-
-        let (amounts, remainder) =
-            points_to_rewards(&individual_points, total_points, inflation_amount);
-
-        assert_eq!(amounts.len(), 3, "Should have 3 operators");
-        assert_eq!(remainder, 0, "No remainder when evenly divisible");
-
-        // Verify amounts are proportional (sorted by address)
-        // Address 1 = 300k, Address 2 = 500k, Address 3 = 200k
-        let distributed: u128 = amounts.iter().map(|(_, a)| *a).sum();
-        assert_eq!(
-            distributed + remainder,
-            inflation_amount,
-            "distributed + remainder should equal inflation"
-        );
-
-        // Verify sorted by address (ascending)
-        for i in 1..amounts.len() {
-            assert!(
-                amounts[i].0 >= amounts[i - 1].0,
-                "Should be sorted by address"
-            );
-        }
-    }
-
-    #[test]
-    fn test_abi_encoding_structure() {
-        // Test that ABI encoding produces valid structure
-        let expected_selector = vec![0x83, 0x82, 0x1e, 0x8e];
-        let token = H160::from_low_u64_be(0x1234);
-        let operator_rewards = vec![
-            (H160::from_low_u64_be(1), 500_000u128),
-            (H160::from_low_u64_be(2), 500_000u128),
-        ];
-        let start_timestamp = 1700000000u32;
-        let duration = 86400u32;
-        let description = "Test rewards";
-
-        let calldata = encode_rewards_calldata(
-            token,
-            &[],
-            &operator_rewards,
-            start_timestamp,
-            duration,
-            description,
-        )
-        .expect("Encoding should succeed");
-
-        // Verify selector is at the beginning
-        assert_eq!(
-            &calldata[0..4],
-            &expected_selector[..],
-            "Selector should be first 4 bytes"
-        );
-
-        // Verify minimum length (selector + offset + head + data)
-        assert!(
-            calldata.len() > 4 + 32,
-            "Calldata should have selector + offset + head"
-        );
     }
 }

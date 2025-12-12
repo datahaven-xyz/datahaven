@@ -1679,9 +1679,7 @@ parameter_types! {
 mod tests {
     use super::*;
     use crate::SnowbridgeSystemV2;
-    use datahaven_runtime_common::rewards_adapter::{
-        encode_submit_rewards_calldata, points_to_rewards,
-    };
+    use datahaven_runtime_common::rewards_adapter::{encode_rewards_calldata, points_to_rewards};
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
 
@@ -1860,13 +1858,15 @@ mod tests {
         let duration = 86400u32;
         let description = "Test rewards";
 
-        let calldata = encode_submit_rewards_calldata(
+        let calldata = encode_rewards_calldata(
             token,
+            &[],
             &operator_rewards,
             start_timestamp,
             duration,
             description,
-        );
+        )
+        .expect("Encoding should succeed");
 
         // Verify selector is at the beginning
         assert_eq!(

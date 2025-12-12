@@ -21,7 +21,7 @@
 //! trait, allowing runtimes to provide environment-specific values.
 
 use alloy_core::{
-    primitives::{Address, U256},
+    primitives::{Address, Uint, U256},
     sol,
     sol_types::SolCall,
 };
@@ -44,6 +44,18 @@ pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
 /// This is hardcoded in EigenLayer's RewardsCoordinator and cannot be changed.
 /// See: CALCULATION_INTERVAL_SECONDS in RewardsCoordinator.sol
 pub const EIGENLAYER_CALCULATION_INTERVAL: u32 = 86400;
+
+/// Error type for calldata encoding failures.
+#[derive(Debug, PartialEq, Eq)]
+pub enum EncodeSubmitRewardsCalldataError {
+    /// A strategy multiplier exceeds the maximum value for uint96.
+    MultiplierOverflow {
+        /// The strategy address with the invalid multiplier.
+        strategy: H160,
+        /// The multiplier value that exceeds uint96 max.
+        multiplier: u128,
+    },
+}
 
 sol! {
     /// EigenLayer strategy and multiplier tuple.
@@ -84,6 +96,16 @@ pub trait RewardsSubmissionConfig {
     type OutboundQueue: snowbridge_outbound_queue_primitives::v2::SendMessage<
         Ticket = OutboundMessage,
     >;
+
+    /// Strategies and multipliers to include in the rewards submission.
+    ///
+    /// EigenLayer requires `strategiesAndMultipliers` to be sorted by strategy address (ascending)
+    /// with no duplicates. Multipliers must fit in `uint96`.
+    ///
+    /// Defaults to an empty set.
+    fn strategies_and_multipliers() -> Vec<(H160, u128)> {
+        Vec::new()
+    }
 
     /// Get the current Unix timestamp in seconds.
     fn current_timestamp_secs() -> u32;
@@ -234,14 +256,31 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         C::current_timestamp_secs(),
     );
 
+    let strategies_and_multipliers = C::strategies_and_multipliers();
+
     // Build the ABI-encoded calldata using alloy's type-safe encoding
-    let calldata = encode_submit_rewards_calldata(
+    let calldata = match encode_rewards_calldata(
         whave_token_address,
+        &strategies_and_multipliers,
         &operator_rewards,
         start_timestamp,
         C::rewards_duration(),
         REWARDS_DESCRIPTION,
-    );
+    ) {
+        Ok(calldata) => calldata,
+        Err(EncodeSubmitRewardsCalldataError::MultiplierOverflow {
+            strategy,
+            multiplier,
+        }) => {
+            log::warn!(
+                target: "rewards_adapter",
+                "Skipping rewards message: strategy multiplier exceeds uint96 max (strategy={:?}, multiplier={})",
+                strategy,
+                multiplier
+            );
+            return None;
+        }
+    };
 
     // Build the two commands: MintForeignToken + CallContract
     let commands = vec![
@@ -315,39 +354,68 @@ pub fn points_to_rewards(
 ///
 /// # Arguments
 /// * `token` - ERC20 reward token address
+/// * `strategies_and_multipliers` - List of (strategy, multiplier) tuples
 /// * `operator_rewards` - Sorted list of (operator, amount) tuples
 /// * `start_timestamp` - Period start timestamp (aligned to duration)
 /// * `duration` - Reward period duration in seconds
 /// * `description` - Human-readable description
-pub fn encode_submit_rewards_calldata(
+///
+/// # Returns
+/// `Ok(Vec<u8>)` with the ABI-encoded calldata, or `Err` if encoding fails
+/// (e.g., multiplier exceeds uint96 max).
+pub fn encode_rewards_calldata(
     token: H160,
+    strategies_and_multipliers: &[(H160, u128)],
     operator_rewards: &[(H160, u128)],
     start_timestamp: u32,
     duration: u32,
     description: &str,
-) -> Vec<u8> {
-    // Convert operator rewards to alloy types
-    let operator_rewards_alloy: Vec<OperatorReward> = operator_rewards
+) -> Result<Vec<u8>, EncodeSubmitRewardsCalldataError> {
+    let token_address = Address::from(token.as_fixed_bytes());
+
+    // Convert strategies to alloy types.
+    // Note: multiplier is uint96 on the Solidity side.
+    const MAX_UINT96: u128 = (1u128 << 96) - 1;
+    let strategies: Vec<StrategyAndMultiplier> = strategies_and_multipliers
         .iter()
-        .map(|(op, amount)| OperatorReward {
-            operator: Address::from(op.as_fixed_bytes()),
+        .map(|(strategy, multiplier)| {
+            if *multiplier > MAX_UINT96 {
+                return Err(EncodeSubmitRewardsCalldataError::MultiplierOverflow {
+                    strategy: *strategy,
+                    multiplier: *multiplier,
+                });
+            }
+
+            // `uint96` is represented by `Uint<96, 2>` (two u64 limbs).
+            let multiplier_u96 =
+                Uint::<96, 2>::from_limbs([*multiplier as u64, (*multiplier >> 64) as u64]);
+
+            Ok(StrategyAndMultiplier {
+                strategy: Address::from(strategy.as_fixed_bytes()),
+                multiplier: multiplier_u96,
+            })
+        })
+        .collect::<Result<_, _>>()?;
+
+    // Convert operator rewards to alloy types.
+    let rewards: Vec<OperatorReward> = operator_rewards
+        .iter()
+        .map(|(operator, amount)| OperatorReward {
+            operator: Address::from(operator.as_fixed_bytes()),
             amount: U256::from(*amount),
         })
         .collect();
 
-    // Build the submission struct
     let submission = OperatorDirectedRewardsSubmission {
-        // Empty strategies array (DataHaven focuses on operator rewards)
-        strategiesAndMultipliers: vec![],
-        token: Address::from(token.as_fixed_bytes()),
-        operatorRewards: operator_rewards_alloy,
+        strategiesAndMultipliers: strategies,
+        token: token_address,
+        operatorRewards: rewards,
         startTimestamp: start_timestamp,
         duration,
         description: description.into(),
     };
 
-    // Use alloy's type-safe encoding
-    submitRewardsCall { submission }.abi_encode()
+    Ok(submitRewardsCall { submission }.abi_encode())
 }
 
 #[cfg(test)]
@@ -489,13 +557,15 @@ mod tests {
     fn test_encode_submit_rewards_calldata_selector() {
         // Verify the function selector matches the expected value
         // cast sig "submitRewards(((address,uint96)[],address,(address,uint256)[],uint32,uint32,string))" = 0x83821e8e
-        let calldata = encode_submit_rewards_calldata(
+        let calldata = encode_rewards_calldata(
             H160::from_low_u64_be(0x1234),
+            &[],
             &[(H160::from_low_u64_be(0x5678), 1000)],
             86400,
             86400,
             "test",
-        );
+        )
+        .expect("Encoding should succeed");
 
         // Check the function selector (first 4 bytes)
         assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
@@ -509,13 +579,15 @@ mod tests {
         let start_timestamp = 86400u32;
         let duration = 86400u32;
 
-        let calldata = encode_submit_rewards_calldata(
+        let calldata = encode_rewards_calldata(
             token,
+            &[],
             &[(operator, amount)],
             start_timestamp,
             duration,
             REWARDS_DESCRIPTION,
-        );
+        )
+        .expect("Encoding should succeed");
 
         // Basic sanity checks on the calldata
         // 4 bytes selector + at least the encoded struct
@@ -527,17 +599,62 @@ mod tests {
 
     #[test]
     fn test_encode_submit_rewards_calldata_empty_operators() {
-        let calldata = encode_submit_rewards_calldata(
+        let calldata = encode_rewards_calldata(
             H160::from_low_u64_be(0x1234),
+            &[],
             &[],
             86400,
             86400,
             "empty",
-        );
+        )
+        .expect("Encoding should succeed");
 
         // Should still produce valid calldata
         assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
         assert!(calldata.len() > 4);
+    }
+
+    #[test]
+    fn test_encode_submit_rewards_calldata_with_strategies() {
+        let calldata = encode_rewards_calldata(
+            H160::from_low_u64_be(0x1234),
+            &[(H160::from_low_u64_be(0x9999), 1u128)],
+            &[(H160::from_low_u64_be(0x5678), 1000u128)],
+            86400,
+            86400,
+            "with strategies",
+        )
+        .expect("Encoding should succeed");
+
+        // Selector should still be first 4 bytes.
+        assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
+        assert_eq!((calldata.len() - 4) % 32, 0);
+    }
+
+    #[test]
+    fn test_encode_submit_rewards_calldata_multiplier_overflow() {
+        const MAX_UINT96: u128 = (1u128 << 96) - 1;
+        let invalid_multiplier = MAX_UINT96 + 1;
+
+        let result = encode_rewards_calldata(
+            H160::from_low_u64_be(0x1234),
+            &[(H160::from_low_u64_be(0x9999), invalid_multiplier)],
+            &[(H160::from_low_u64_be(0x5678), 1000u128)],
+            86400,
+            86400,
+            "test",
+        );
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            EncodeSubmitRewardsCalldataError::MultiplierOverflow {
+                strategy,
+                multiplier,
+            } => {
+                assert_eq!(strategy, H160::from_low_u64_be(0x9999));
+                assert_eq!(multiplier, invalid_multiplier);
+            }
+        }
     }
 
     #[test]

@@ -14,6 +14,10 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
 
+# Explicit minimal permissions
+permissions:
+  contents: read
+
 jobs:
   audit:
     runs-on: ubuntu-latest

@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Explicit minimal permissions
+permissions:
+  contents: read
+
 jobs:
   typecheck:
     runs-on: ubuntu-latest

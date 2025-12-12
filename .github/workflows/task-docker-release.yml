@@ -17,6 +17,13 @@ on:
         type: boolean
         default: false
   workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        description: "Docker Hub username"
+        required: true
+      DOCKERHUB_TOKEN:
+        description: "Docker Hub access token"
+        required: true
     outputs:
       image-tag:
         description: "The tag portion of the docker image (without registry)"
@@ -33,6 +40,8 @@ concurrency:
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
+    # Require approval before publishing to Docker Hub
+    environment: production
     outputs:
       image-tag: ${{ steps.extract_tag.outputs.image-tag }}
 

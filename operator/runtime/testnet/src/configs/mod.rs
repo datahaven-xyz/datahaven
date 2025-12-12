@@ -1485,10 +1485,6 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Test
         runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
     }
 
-    fn whave_token_id() -> Option<H256> {
-        DataHavenTokenId::get()
-    }
-
     fn whave_token_address() -> H160 {
         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
     }

@@ -118,10 +118,6 @@ pub trait RewardsSubmissionConfig {
     /// Get the rewards duration in seconds (typically 86400 = 1 day).
     fn rewards_duration() -> u32;
 
-    /// Get the wHAVE token ID registered in Snowbridge.
-    /// Returns `None` if the token is not registered.
-    fn whave_token_id() -> Option<H256>;
-
     /// Get the wHAVE ERC20 token address on Ethereum.
     fn whave_token_address() -> H160;
 

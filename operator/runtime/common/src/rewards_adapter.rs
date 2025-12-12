@@ -48,16 +48,15 @@ pub const SUBMIT_REWARDS_GAS_LIMIT: u64 = 2_000_000;
 /// See: CALCULATION_INTERVAL_SECONDS in RewardsCoordinator.sol
 pub const EIGENLAYER_CALCULATION_INTERVAL: u32 = 86400;
 
-/// Error type for calldata encoding failures.
+/// Error type for rewards adapter operations.
 #[derive(Debug, PartialEq, Eq)]
-pub enum EncodeSubmitRewardsCalldataError {
+pub enum RewardsAdapterError {
     /// A strategy multiplier exceeds the maximum value for uint96.
-    MultiplierOverflow {
-        /// The strategy address with the invalid multiplier.
-        strategy: H160,
-        /// The multiplier value that exceeds uint96 max.
-        multiplier: u128,
-    },
+    InvalidMultiplier,
+    /// An arithmetic multiplication overflowed.
+    MultiplicationOverflow,
+    /// An arithmetic division by zero.
+    DivisionByZero,
 }
 
 sol! {
@@ -210,7 +209,9 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         &rewards_utils.individual_points,
         rewards_utils.total_points,
         rewards_utils.inflation_amount,
-    );
+    )
+    .map_err(|e| log::warn!(target: LOG_TARGET, "Skipping: {:?}", e))
+    .ok()?;
 
     if operator_rewards.is_empty() {
         log::warn!(target: LOG_TARGET, "Skipping: no operators with rewards");
@@ -235,7 +236,6 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
     .map_err(|e| log::warn!(target: LOG_TARGET, "Skipping: {:?}", e))
     .ok()?;
 
-    // Only call the ServiceManager. Funding is handled separately (on Ethereum side).
     let commands = vec![Command::CallContract {
         target: service_manager,
         calldata,
@@ -265,24 +265,34 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
 /// * `inflation` - Total tokens to distribute
 ///
 /// # Returns
-/// A tuple of (operator_rewards, remainder) where:
+/// `Ok((operator_rewards, remainder))` where:
 /// * `operator_rewards` - Sorted list of (operator_address, amount) tuples
 /// * `remainder` - Dust amount from integer division truncation
+///
+/// # Errors
+/// Returns `Err(RewardsAdapterError::MultiplicationOverflow)` if `points * inflation`
+/// exceeds u128::MAX, or `Err(RewardsAdapterError::DivisionByZero)` if `total_points` is zero.
 pub fn points_to_rewards(
     points: &[(H160, u32)],
     total_points: u128,
     inflation: u128,
-) -> (Vec<(H160, u128)>, u128) {
+) -> Result<(Vec<(H160, u128)>, u128), RewardsAdapterError> {
     let mut rewards = Vec::with_capacity(points.len());
     let mut distributed = 0u128;
 
     for &(operator, points) in points {
-        let amount = (points as u128)
-            .saturating_mul(inflation)
-            .saturating_div(total_points as u128);
+        // Use checked_mul to detect overflow in points * inflation.
+        let product = (points as u128)
+            .checked_mul(inflation)
+            .ok_or(RewardsAdapterError::MultiplicationOverflow)?;
+
+        let amount = product
+            .checked_div(total_points)
+            .ok_or(RewardsAdapterError::DivisionByZero)?;
+
         if amount > 0 {
             rewards.push((operator, amount));
-            distributed += amount;
+            distributed = distributed.saturating_add(amount);
         }
     }
 
@@ -290,7 +300,7 @@ pub fn points_to_rewards(
     rewards.sort_by_key(|(operator, _)| *operator);
 
     let remainder = inflation.saturating_sub(distributed);
-    (rewards, remainder)
+    Ok((rewards, remainder))
 }
 
 /// ABI-encode the submitRewards calldata for DataHavenServiceManager.
@@ -316,7 +326,7 @@ pub fn encode_rewards_calldata(
     start_timestamp: u32,
     duration: u32,
     description: &str,
-) -> Result<Vec<u8>, EncodeSubmitRewardsCalldataError> {
+) -> Result<Vec<u8>, RewardsAdapterError> {
     let token_address = Address::from(token.as_fixed_bytes());
 
     // Convert strategies to alloy types.
@@ -326,10 +336,7 @@ pub fn encode_rewards_calldata(
         .iter()
         .map(|(strategy, multiplier)| {
             if *multiplier > MAX_UINT96 {
-                return Err(EncodeSubmitRewardsCalldataError::MultiplierOverflow {
-                    strategy: *strategy,
-                    multiplier: *multiplier,
-                });
+                return Err(RewardsAdapterError::InvalidMultiplier);
             }
 
             // `uint96` is represented by `Uint<96, 2>` (two u64 limbs).
@@ -374,7 +381,7 @@ mod tests {
             (H160::from_low_u64_be(1), 600),
             (H160::from_low_u64_be(2), 400),
         ];
-        let (rewards, remainder) = points_to_rewards(&points, 1000, 1_000_000);
+        let (rewards, remainder) = points_to_rewards(&points, 1000, 1_000_000).unwrap();
 
         assert_eq!(rewards.len(), 2);
         assert_eq!(rewards[0].1, 600_000); // 60%
@@ -388,7 +395,7 @@ mod tests {
             (H160::from_low_u64_be(100), 500),
             (H160::from_low_u64_be(1), 500),
         ];
-        let (rewards, _) = points_to_rewards(&points, 1000, 1_000_000);
+        let (rewards, _) = points_to_rewards(&points, 1000, 1_000_000).unwrap();
 
         // Should be sorted by address
         assert!(rewards[0].0 < rewards[1].0);
@@ -400,7 +407,7 @@ mod tests {
             (H160::from_low_u64_be(1), 0),
             (H160::from_low_u64_be(2), 100),
         ];
-        let (rewards, remainder) = points_to_rewards(&points, 100, 1_000_000);
+        let (rewards, remainder) = points_to_rewards(&points, 100, 1_000_000).unwrap();
 
         assert_eq!(rewards.len(), 1);
         assert_eq!(rewards[0].0, H160::from_low_u64_be(2));
@@ -412,7 +419,7 @@ mod tests {
         // Test case: 2 operators with 1 point each, 1001 tokens to distribute
         // Each gets 500, remainder of 1 is returned separately
         let points = vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1)];
-        let (rewards, remainder) = points_to_rewards(&points, 2, 1001);
+        let (rewards, remainder) = points_to_rewards(&points, 2, 1001).unwrap();
 
         assert_eq!(rewards.len(), 2);
         assert_eq!(rewards[0].1, 500);
@@ -463,7 +470,7 @@ mod tests {
         ];
 
         for (points, total_points, inflation, expected_remainder) in test_cases {
-            let (rewards, remainder) = points_to_rewards(&points, total_points, inflation);
+            let (rewards, remainder) = points_to_rewards(&points, total_points, inflation).unwrap();
             let distributed: u128 = rewards.iter().map(|(_, a)| a).sum();
 
             // Verify distributed + remainder equals inflation
@@ -486,7 +493,7 @@ mod tests {
     fn test_calculate_operator_amounts_large_remainder() {
         // Test with many operators where remainder could be significant
         let points: Vec<_> = (1..=10).map(|i| (H160::from_low_u64_be(i), 1u32)).collect();
-        let (rewards, remainder) = points_to_rewards(&points, 10, 1009);
+        let (rewards, remainder) = points_to_rewards(&points, 10, 1009).unwrap();
 
         // Each operator gets 100, remainder is 9
         for (_, amount) in rewards.iter() {
@@ -511,7 +518,7 @@ mod tests {
         let inflation_amount = 1_000_000u128;
 
         let (amounts, remainder) =
-            points_to_rewards(&individual_points, total_points, inflation_amount);
+            points_to_rewards(&individual_points, total_points, inflation_amount).unwrap();
 
         assert_eq!(amounts.len(), 3, "Should have 3 operators");
         assert_eq!(remainder, 0, "No remainder when evenly divisible");
@@ -531,6 +538,20 @@ mod tests {
                 "Should be sorted by address"
             );
         }
+    }
+
+    #[test]
+    fn test_points_to_rewards_multiplication_overflow() {
+        // Test that multiplication overflow is detected and returns an error.
+        // With points = u32::MAX and inflation = u128::MAX, the product would overflow.
+        let operator = H160::from_low_u64_be(1);
+        let points = vec![(operator, u32::MAX)];
+        let inflation = u128::MAX;
+        let total_points = 1u128;
+
+        let result = points_to_rewards(&points, total_points, inflation);
+
+        assert_eq!(result, Err(RewardsAdapterError::MultiplicationOverflow));
     }
 
     #[test]
@@ -662,16 +683,7 @@ mod tests {
             "test",
         );
 
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            EncodeSubmitRewardsCalldataError::MultiplierOverflow {
-                strategy,
-                multiplier,
-            } => {
-                assert_eq!(strategy, H160::from_low_u64_be(0x9999));
-                assert_eq!(multiplier, invalid_multiplier);
-            }
-        }
+        assert_eq!(result, Err(RewardsAdapterError::InvalidMultiplier));
     }
 
     #[test]

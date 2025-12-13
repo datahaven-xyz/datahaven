@@ -119,9 +119,6 @@ pub trait RewardsSubmissionConfig {
 
     /// Get the agent origin for outbound messages.
     fn rewards_agent_origin() -> H256;
-
-    /// Generate a unique message ID from the merkle root.
-    fn generate_message_id(merkle_root: H256) -> H256;
 }
 
 /// Generic rewards submission adapter.
@@ -206,7 +203,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
 
     Some(OutboundMessage {
         origin: C::rewards_agent_origin(),
-        id: C::generate_message_id(rewards_utils.rewards_merkle_root).into(),
+        id: H256::from_low_u64_be(rewards_utils.era_index as u64).into(),
         fee: 0,
         commands,
     })

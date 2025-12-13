@@ -1488,10 +1488,6 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Stag
     fn rewards_agent_origin() -> H256 {
         runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
     }
-
-    fn generate_message_id(merkle_root: H256) -> H256 {
-        H256::from(unique(merkle_root))
-    }
 }
 
 /// Type alias for the rewards submission adapter.
@@ -1693,6 +1689,7 @@ mod tests {
 
         TestExternalities::default().execute_with(|| {
             let rewards_utils = EraRewardsUtils {
+                era_index: 1,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
@@ -1748,6 +1745,7 @@ mod tests {
             snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
 
             let rewards_utils = EraRewardsUtils {
+                era_index: 1,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),

@@ -1492,10 +1492,6 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
     fn rewards_agent_origin() -> H256 {
         runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
     }
-
-    fn generate_message_id(merkle_root: H256) -> H256 {
-        H256::from(unique(merkle_root))
-    }
 }
 
 /// Type alias for the rewards submission adapter.
@@ -1698,6 +1694,7 @@ mod tests {
         TestExternalities::default().execute_with(|| {
             // Create test rewards utils with V2 fields
             let rewards_utils = EraRewardsUtils {
+                era_index: 1,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
@@ -1760,6 +1757,7 @@ mod tests {
             let op1 = H160::from_low_u64_be(1);
             let op2 = H160::from_low_u64_be(2);
             let rewards_utils = EraRewardsUtils {
+                era_index: 1,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),

@@ -196,6 +196,7 @@ pub mod pallet {
             }
 
             Some(EraRewardsUtils {
+                era_index,
                 rewards_merkle_root,
                 leaves,
                 leaf_index,

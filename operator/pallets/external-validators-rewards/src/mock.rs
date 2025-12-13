@@ -24,7 +24,7 @@ use {
     pallet_balances::AccountData,
     pallet_external_validators::traits::ExternalIndexProvider,
     snowbridge_outbound_queue_primitives::{SendError, SendMessageFeeProvider},
-    sp_core::H256,
+    sp_core::{crypto::AccountId32, H256},
     sp_runtime::{
         traits::{BlakeTwo256, IdentityLookup, Keccak256},
         BuildStorage, DispatchError,
@@ -32,6 +32,12 @@ use {
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
+
+/// Treasury account constant
+pub const TREASURY_ACCOUNT: AccountId32 = AccountId32::new([0xAA; 32]);
+
+/// Rewards sovereign account constant
+pub const REWARDS_ACCOUNT: AccountId32 = AccountId32::new([0xFF; 32]);
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -60,7 +66,7 @@ impl frame_system::Config for Test {
     type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = AccountId32;
     type Lookup = IdentityLookup<Self::AccountId>;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
@@ -85,7 +91,7 @@ impl frame_system::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: u64 = 5;
+    pub const ExistentialDeposit: u128 = 5;
     pub const MaxReserves: u32 = 50;
 }
 
@@ -117,14 +123,28 @@ impl mock_data::Config for Test {}
 
 pub struct MockOkOutboundQueue;
 impl crate::types::SendMessage for MockOkOutboundQueue {
-    type Ticket = ();
-    type Message = ();
-    fn build(_: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
-        Some(())
+    type Ticket = crate::types::EraRewardsUtils;
+    type Message = crate::types::EraRewardsUtils;
+
+    fn build(utils: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
+        // Validate that individual_points is not empty when there are rewards
+        // This ensures the H160 extraction from AccountId32 worked correctly
+        if utils.total_points > 0 && utils.individual_points.is_empty() {
+            log::error!(
+                target: "mock_outbound_queue",
+                "EraRewardsUtils has total_points={} but individual_points is empty! \
+                 This indicates H160 extraction failed for all validators.",
+                utils.total_points
+            );
+            return None;
+        }
+        Some(utils.clone())
     }
-    fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {
-        Ok(())
+
+    fn validate(ticket: Self::Ticket) -> Result<Self::Ticket, SendError> {
+        Ok(ticket)
     }
+
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
         Ok(H256::zero())
     }
@@ -146,9 +166,8 @@ impl ExternalIndexProvider for TimestampProvider {
 }
 
 parameter_types! {
-    pub const RewardsEthereumSovereignAccount: u64
-        = 0xffffffffffffffff;
-    pub const TreasuryAccount: u64 = 999;
+    pub RewardsEthereumSovereignAccount: AccountId32 = REWARDS_ACCOUNT;
+    pub TreasuryAccount: AccountId32 = TREASURY_ACCOUNT;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
 }
@@ -173,8 +192,11 @@ impl pallet_external_validators_rewards::Config for Test {
 }
 
 pub struct InflationMinter;
-impl HandleInflation<u64> for InflationMinter {
-    fn mint_inflation(rewards_account: &u64, total_amount: u128) -> sp_runtime::DispatchResult {
+impl HandleInflation<AccountId32> for InflationMinter {
+    fn mint_inflation(
+        rewards_account: &AccountId32,
+        total_amount: u128,
+    ) -> sp_runtime::DispatchResult {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {
@@ -274,15 +296,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     let balances = vec![
-        (1, 100),
-        (2, 100),
-        (3, 100),
-        (4, 100),
-        (5, 100),
-        (TreasuryAccount::get(), ExistentialDeposit::get().into()), // Treasury needs existential deposit
+        (AccountId32::from([1; 32]), 100),
+        (AccountId32::from([2; 32]), 100),
+        (AccountId32::from([3; 32]), 100),
+        (AccountId32::from([4; 32]), 100),
+        (AccountId32::from([5; 32]), 100),
+        (TreasuryAccount::get(), ExistentialDeposit::get()), // Treasury needs existential deposit
         (
             RewardsEthereumSovereignAccount::get(),
-            ExistentialDeposit::get().into(),
+            ExistentialDeposit::get(),
         ), // Rewards account needs existential deposit
     ];
     pallet_balances::GenesisConfig::<Test> { balances }

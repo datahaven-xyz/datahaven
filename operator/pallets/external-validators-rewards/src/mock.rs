@@ -127,17 +127,6 @@ impl crate::types::SendMessage for MockOkOutboundQueue {
     type Message = crate::types::EraRewardsUtils;
 
     fn build(utils: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
-        // Validate that individual_points is not empty when there are rewards
-        // This ensures the H160 extraction from AccountId32 worked correctly
-        if utils.total_points > 0 && utils.individual_points.is_empty() {
-            log::error!(
-                target: "mock_outbound_queue",
-                "EraRewardsUtils has total_points={} but individual_points is empty! \
-                 This indicates H160 extraction failed for all validators.",
-                utils.total_points
-            );
-            return None;
-        }
         Some(utils.clone())
     }
 

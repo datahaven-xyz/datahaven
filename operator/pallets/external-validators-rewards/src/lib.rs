@@ -177,24 +177,8 @@ pub mod pallet {
 
                 // Convert AccountId to H160 for EigenLayer rewards submission.
                 // In DataHaven, AccountId is H160, so encode() produces exactly 20 bytes.
-                let account_encoded = account_id.encode();
-                if account_encoded.len() >= 20 {
-                    let mut bytes = [0u8; 20];
-                    bytes.copy_from_slice(&account_encoded[..20]);
-                    individual_points.push((H160::from(bytes), *reward_points));
-                } else {
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "Validator {:?} has unexpected AccountId encoding length {} (expected >= 20). \
-                         Skipping from EigenLayer rewards submission for era {:?}. \
-                         Points: {}, Total era points: {}",
-                        account_id,
-                        account_encoded.len(),
-                        era_index,
-                        reward_points,
-                        self.total
-                    );
-                }
+                individual_points
+                    .push((H160::from_slice(&account_id.encode()[..20]), *reward_points));
 
                 if let Some(ref check_account_id) = maybe_account_id_check {
                     if account_id == check_account_id {
@@ -205,24 +189,9 @@ pub mod pallet {
 
             let rewards_merkle_root = merkle_root::<Hasher, _>(leaves.iter().cloned());
 
-            // Calculate total_points from individual_points only (excludes skipped validators).
-            // This ensures that when calculate_operator_amounts divides by total_points,
-            // it uses the sum of points from validators that will actually receive rewards,
-            // preventing under-distribution when some validators are skipped due to
-            // invalid AccountId encoding (< 20 bytes for H160 extraction).
             let total_points: u128 = individual_points.iter().map(|(_, pts)| *pts as u128).sum();
 
-            // Validate that we have operators to distribute rewards to.
             if total_points.is_zero() {
-                if self.total > 0 {
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "Era {:?} has {} era total points but no valid operators for EigenLayer rewards. \
-                         All validators failed H160 extraction. Skipping era to prevent token loss.",
-                        era_index,
-                        self.total
-                    );
-                }
                 return None;
             }
 

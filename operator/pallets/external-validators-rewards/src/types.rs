@@ -26,11 +26,7 @@ pub struct EraRewardsUtils {
     pub leaves: Vec<H256>,
     pub leaf_index: Option<u64>,
     pub total_points: u128,
-    /// Individual validator points as (address, points) tuples.
-    /// Used by RewardsSendAdapter to calculate per-operator reward amounts.
     pub individual_points: Vec<(H160, u32)>,
-    /// Total inflation amount for this era (in smallest token unit).
-    /// Used by RewardsSendAdapter to calculate per-operator reward amounts.
     pub inflation_amount: u128,
 }
 

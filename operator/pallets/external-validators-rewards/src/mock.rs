@@ -33,21 +33,11 @@ use {
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
-/// Helper to create AccountId32 from a simple index.
-/// The first 20 bytes will contain the index (for H160 extraction),
-/// remaining bytes are zero-padded.
-pub fn account_id(index: u64) -> AccountId32 {
-    let mut bytes = [0u8; 32];
-    // Put the index in the first 8 bytes (little-endian)
-    bytes[..8].copy_from_slice(&index.to_le_bytes());
-    AccountId32::new(bytes)
-}
-
 /// Treasury account constant
-pub const TREASURY_ACCOUNT_INDEX: u64 = 999;
+pub const TREASURY_ACCOUNT: AccountId32 = AccountId32::new([0xAA; 32]);
 
-/// Rewards sovereign account constant (large value to distinguish from validators)
-pub const REWARDS_ACCOUNT_INDEX: u64 = 0xffffffffffffffff;
+/// Rewards sovereign account constant
+pub const REWARDS_ACCOUNT: AccountId32 = AccountId32::new([0xFF; 32]);
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -176,8 +166,8 @@ impl ExternalIndexProvider for TimestampProvider {
 }
 
 parameter_types! {
-    pub RewardsEthereumSovereignAccount: AccountId32 = account_id(REWARDS_ACCOUNT_INDEX);
-    pub TreasuryAccount: AccountId32 = account_id(TREASURY_ACCOUNT_INDEX);
+    pub RewardsEthereumSovereignAccount: AccountId32 = REWARDS_ACCOUNT;
+    pub TreasuryAccount: AccountId32 = TREASURY_ACCOUNT;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
 }
@@ -306,11 +296,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     let balances = vec![
-        (account_id(1), 100),
-        (account_id(2), 100),
-        (account_id(3), 100),
-        (account_id(4), 100),
-        (account_id(5), 100),
+        (AccountId32::from([1; 32]), 100),
+        (AccountId32::from([2; 32]), 100),
+        (AccountId32::from([3; 32]), 100),
+        (AccountId32::from([4; 32]), 100),
+        (AccountId32::from([5; 32]), 100),
         (TreasuryAccount::get(), ExistentialDeposit::get()), // Treasury needs existential deposit
         (
             RewardsEthereumSovereignAccount::get(),

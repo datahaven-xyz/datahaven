@@ -331,6 +331,133 @@ pub fn encode_rewards_calldata(
 mod tests {
     use super::*;
 
+    struct TestOutboundQueue;
+
+    impl SnowbridgeSendMessage for TestOutboundQueue {
+        type Ticket = OutboundMessage;
+
+        fn validate(message: &OutboundMessage) -> Result<Self::Ticket, SendError> {
+            Ok(message.clone())
+        }
+
+        fn deliver(ticket: Self::Ticket) -> Result<H256, SendError> {
+            Ok(ticket.id)
+        }
+    }
+
+    struct HappyPathConfig;
+
+    impl RewardsSubmissionConfig for HappyPathConfig {
+        type OutboundQueue = TestOutboundQueue;
+
+        fn strategies_and_multipliers() -> Vec<(H160, u128)> {
+            vec![(H160::from_low_u64_be(0x9999), 1u128)]
+        }
+
+        fn rewards_duration() -> u32 {
+            86_400
+        }
+
+        fn era_start_timestamp() -> u32 {
+            1_700_000_000
+        }
+
+        fn whave_token_address() -> H160 {
+            H160::from_low_u64_be(0x1234)
+        }
+
+        fn service_manager_address() -> H160 {
+            H160::from_low_u64_be(0x5678)
+        }
+
+        fn rewards_agent_origin() -> H256 {
+            H256::from_low_u64_be(0x4242)
+        }
+    }
+
+    struct ZeroServiceManagerConfig;
+
+    impl RewardsSubmissionConfig for ZeroServiceManagerConfig {
+        type OutboundQueue = TestOutboundQueue;
+
+        fn rewards_duration() -> u32 {
+            HappyPathConfig::rewards_duration()
+        }
+
+        fn era_start_timestamp() -> u32 {
+            HappyPathConfig::era_start_timestamp()
+        }
+
+        fn whave_token_address() -> H160 {
+            HappyPathConfig::whave_token_address()
+        }
+
+        fn service_manager_address() -> H160 {
+            H160::zero()
+        }
+
+        fn rewards_agent_origin() -> H256 {
+            HappyPathConfig::rewards_agent_origin()
+        }
+    }
+
+    struct ZeroTokenConfig;
+
+    impl RewardsSubmissionConfig for ZeroTokenConfig {
+        type OutboundQueue = TestOutboundQueue;
+
+        fn rewards_duration() -> u32 {
+            HappyPathConfig::rewards_duration()
+        }
+
+        fn era_start_timestamp() -> u32 {
+            HappyPathConfig::era_start_timestamp()
+        }
+
+        fn whave_token_address() -> H160 {
+            H160::zero()
+        }
+
+        fn service_manager_address() -> H160 {
+            HappyPathConfig::service_manager_address()
+        }
+
+        fn rewards_agent_origin() -> H256 {
+            HappyPathConfig::rewards_agent_origin()
+        }
+    }
+
+    struct InvalidMultiplierConfig;
+
+    impl RewardsSubmissionConfig for InvalidMultiplierConfig {
+        type OutboundQueue = TestOutboundQueue;
+
+        fn strategies_and_multipliers() -> Vec<(H160, u128)> {
+            const MAX_UINT96: u128 = (1u128 << 96) - 1;
+            vec![(H160::from_low_u64_be(0x9999), MAX_UINT96 + 1)]
+        }
+
+        fn rewards_duration() -> u32 {
+            HappyPathConfig::rewards_duration()
+        }
+
+        fn era_start_timestamp() -> u32 {
+            HappyPathConfig::era_start_timestamp()
+        }
+
+        fn whave_token_address() -> H160 {
+            HappyPathConfig::whave_token_address()
+        }
+
+        fn service_manager_address() -> H160 {
+            HappyPathConfig::service_manager_address()
+        }
+
+        fn rewards_agent_origin() -> H256 {
+            HappyPathConfig::rewards_agent_origin()
+        }
+    }
+
     #[test]
     fn test_calculate_operator_amounts_basic() {
         let points = vec![
@@ -371,127 +498,105 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_operator_amounts_rounding_remainder() {
-        // Test case: 2 operators with 1 point each, 1001 tokens to distribute
-        // Each gets 500, remainder of 1 is returned separately
-        let points = vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1)];
-        let (rewards, remainder) = points_to_rewards(&points, 2, 1001).unwrap();
+    fn test_calculate_operator_amounts_remainder_cases() {
+        struct Case {
+            name: &'static str,
+            points: Vec<(H160, u32)>,
+            total_points: u128,
+            inflation: u128,
+            expected_rewards: Vec<(H160, u128)>,
+            expected_remainder: u128,
+        }
 
-        assert_eq!(rewards.len(), 2);
-        assert_eq!(rewards[0].1, 500);
-        assert_eq!(rewards[1].1, 500);
-        assert_eq!(remainder, 1, "Remainder should be 1 token");
+        let two_operator_points =
+            vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 1)];
+        let ten_operator_points: Vec<_> =
+            (1..=10).map(|i| (H160::from_low_u64_be(i), 1u32)).collect();
+        let ten_operator_rewards: Vec<_> = (1..=10)
+            .map(|i| (H160::from_low_u64_be(i), 100u128))
+            .collect();
 
-        // Verify distributed + remainder equals total
-        let distributed: u128 = rewards.iter().map(|(_, a)| a).sum();
-        assert_eq!(distributed + remainder, 1001);
-    }
-
-    #[test]
-    fn test_calculate_operator_amounts_remainder_consistency() {
-        // Test with various scenarios that would cause rounding
-        let test_cases = vec![
-            // (points, total_points, inflation, expected_remainder)
-            (
-                vec![
+        let cases = vec![
+            Case {
+                name: "2 operators / 1001 inflation",
+                points: two_operator_points.clone(),
+                total_points: 2u128,
+                inflation: 1001u128,
+                expected_rewards: vec![
+                    (H160::from_low_u64_be(1), 500u128),
+                    (H160::from_low_u64_be(2), 500u128),
+                ],
+                expected_remainder: 1u128,
+            },
+            Case {
+                name: "3 operators / 100 inflation",
+                points: vec![
                     (H160::from_low_u64_be(1), 1),
                     (H160::from_low_u64_be(2), 1),
                     (H160::from_low_u64_be(3), 1),
                 ],
-                3u128,
-                100u128,
-                1u128, // 100 / 3 = 33 each, remainder 1
-            ),
-            (
-                vec![
+                total_points: 3u128,
+                inflation: 100u128,
+                expected_rewards: vec![
+                    (H160::from_low_u64_be(1), 33u128),
+                    (H160::from_low_u64_be(2), 33u128),
+                    (H160::from_low_u64_be(3), 33u128),
+                ],
+                expected_remainder: 1u128,
+            },
+            Case {
+                name: "2 operators uneven split / 1000 inflation",
+                points: vec![
                     (H160::from_low_u64_be(1), 7),
                     (H160::from_low_u64_be(2), 11),
                 ],
-                18u128,
-                1000u128,
-                1u128, // 7*1000/18=388, 11*1000/18=611, total=999, remainder=1
-            ),
-            (
-                vec![
+                total_points: 18u128,
+                inflation: 1000u128,
+                expected_rewards: vec![
+                    (H160::from_low_u64_be(1), 388u128),
+                    (H160::from_low_u64_be(2), 611u128),
+                ],
+                expected_remainder: 1u128,
+            },
+            Case {
+                name: "3 operators weighted / 1_000_000 inflation",
+                points: vec![
                     (H160::from_low_u64_be(1), 1),
                     (H160::from_low_u64_be(2), 2),
                     (H160::from_low_u64_be(3), 3),
                 ],
-                6u128,
-                1000000u128,
-                // 1*1000000/6=166666, 2*1000000/6=333333, 3*1000000/6=500000
-                // total=999999, remainder=1
-                1u128,
-            ),
+                total_points: 6u128,
+                inflation: 1_000_000u128,
+                expected_rewards: vec![
+                    (H160::from_low_u64_be(1), 166_666u128),
+                    (H160::from_low_u64_be(2), 333_333u128),
+                    (H160::from_low_u64_be(3), 500_000u128),
+                ],
+                expected_remainder: 1u128,
+            },
+            Case {
+                name: "10 operators / 1009 inflation",
+                points: ten_operator_points,
+                total_points: 10u128,
+                inflation: 1009u128,
+                expected_rewards: ten_operator_rewards,
+                expected_remainder: 9u128,
+            },
         ];
 
-        for (points, total_points, inflation, expected_remainder) in test_cases {
-            let (rewards, remainder) = points_to_rewards(&points, total_points, inflation).unwrap();
-            let distributed: u128 = rewards.iter().map(|(_, a)| a).sum();
+        for case in cases {
+            let (rewards, remainder) =
+                points_to_rewards(&case.points, case.total_points, case.inflation).unwrap();
 
-            // Verify distributed + remainder equals inflation
+            assert_eq!(rewards, case.expected_rewards, "case: {}", case.name);
+            assert_eq!(remainder, case.expected_remainder, "case: {}", case.name);
+
+            let distributed: u128 = rewards.iter().map(|(_, a)| *a).sum();
             assert_eq!(
                 distributed + remainder,
-                inflation,
-                "distributed + remainder should equal inflation. Points: {:?}",
-                points.iter().map(|(_, p)| p).collect::<Vec<_>>()
-            );
-            assert_eq!(
-                remainder,
-                expected_remainder,
-                "Unexpected remainder for points: {:?}",
-                points.iter().map(|(_, p)| p).collect::<Vec<_>>()
-            );
-        }
-    }
-
-    #[test]
-    fn test_calculate_operator_amounts_large_remainder() {
-        // Test with many operators where remainder could be significant
-        let points: Vec<_> = (1..=10).map(|i| (H160::from_low_u64_be(i), 1u32)).collect();
-        let (rewards, remainder) = points_to_rewards(&points, 10, 1009).unwrap();
-
-        // Each operator gets 100, remainder is 9
-        for (_, amount) in rewards.iter() {
-            assert_eq!(*amount, 100);
-        }
-        assert_eq!(remainder, 9, "Remainder should be 9 tokens");
-
-        // Verify distributed + remainder equals total
-        let distributed: u128 = rewards.iter().map(|(_, a)| a).sum();
-        assert_eq!(distributed + remainder, 1009);
-    }
-
-    #[test]
-    fn test_operator_amounts_calculation() {
-        // Test that operator amounts are calculated correctly from points
-        let individual_points = vec![
-            (H160::from_low_u64_be(1), 300u32), // 30%
-            (H160::from_low_u64_be(2), 500u32), // 50%
-            (H160::from_low_u64_be(3), 200u32), // 20%
-        ];
-        let total_points = 1000u128;
-        let inflation_amount = 1_000_000u128;
-
-        let (amounts, remainder) =
-            points_to_rewards(&individual_points, total_points, inflation_amount).unwrap();
-
-        assert_eq!(amounts.len(), 3, "Should have 3 operators");
-        assert_eq!(remainder, 0, "No remainder when evenly divisible");
-
-        // Verify distributed + remainder equals total inflation.
-        let distributed: u128 = amounts.iter().map(|(_, a)| *a).sum();
-        assert_eq!(
-            distributed + remainder,
-            inflation_amount,
-            "distributed + remainder should equal inflation"
-        );
-
-        // Verify sorted by address (ascending)
-        for i in 1..amounts.len() {
-            assert!(
-                amounts[i].0 >= amounts[i - 1].0,
-                "Should be sorted by address"
+                case.inflation,
+                "distributed + remainder should equal inflation (case: {})",
+                case.name
             );
         }
     }
@@ -511,40 +616,12 @@ mod tests {
     }
 
     #[test]
-    fn test_abi_encoding_structure() {
-        // Test that ABI encoding produces a basic valid structure
-        let expected_selector = [0x83, 0x82, 0x1e, 0x8e];
-        let token = H160::from_low_u64_be(0x1234);
-        let operator_rewards = vec![
-            (H160::from_low_u64_be(1), 500_000u128),
-            (H160::from_low_u64_be(2), 500_000u128),
-        ];
-        let start_timestamp = 1_700_000_000u32;
-        let duration = 86400u32;
-        let description = "Test rewards";
+    fn test_points_to_rewards_division_by_zero() {
+        let operator = H160::from_low_u64_be(1);
+        let points = vec![(operator, 1u32)];
 
-        let calldata = encode_rewards_calldata(
-            token,
-            &[],
-            &operator_rewards,
-            start_timestamp,
-            duration,
-            description,
-        )
-        .expect("Encoding should succeed");
-
-        // Verify selector is at the beginning
-        assert_eq!(
-            &calldata[0..4],
-            &expected_selector,
-            "Selector should be first 4 bytes"
-        );
-
-        // Verify minimum length (selector + offset + head + data)
-        assert!(
-            calldata.len() > 4 + 32,
-            "Calldata should have selector + offset + head"
-        );
+        let result = points_to_rewards(&points, 0, 100);
+        assert_eq!(result, Err(RewardsAdapterError::DivisionByZero));
     }
 
     #[test]
@@ -566,66 +643,6 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_submit_rewards_calldata_structure() {
-        let token = H160::from_low_u64_be(0x1234);
-        let operator = H160::from_low_u64_be(0x5678);
-        let amount = 1000u128;
-        let start_timestamp = 86400u32;
-        let duration = 86400u32;
-
-        let calldata = encode_rewards_calldata(
-            token,
-            &[],
-            &[(operator, amount)],
-            start_timestamp,
-            duration,
-            REWARDS_DESCRIPTION,
-        )
-        .expect("Encoding should succeed");
-
-        // Basic sanity checks on the calldata
-        // 4 bytes selector + at least the encoded struct
-        assert!(calldata.len() > 4);
-
-        // The calldata should be a multiple of 32 bytes (plus 4 byte selector)
-        assert_eq!((calldata.len() - 4) % 32, 0);
-    }
-
-    #[test]
-    fn test_encode_submit_rewards_calldata_empty_operators() {
-        let calldata = encode_rewards_calldata(
-            H160::from_low_u64_be(0x1234),
-            &[],
-            &[],
-            86400,
-            86400,
-            "empty",
-        )
-        .expect("Encoding should succeed");
-
-        // Should still produce valid calldata
-        assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
-        assert!(calldata.len() > 4);
-    }
-
-    #[test]
-    fn test_encode_submit_rewards_calldata_with_strategies() {
-        let calldata = encode_rewards_calldata(
-            H160::from_low_u64_be(0x1234),
-            &[(H160::from_low_u64_be(0x9999), 1u128)],
-            &[(H160::from_low_u64_be(0x5678), 1000u128)],
-            86400,
-            86400,
-            "with strategies",
-        )
-        .expect("Encoding should succeed");
-
-        // Selector should still be first 4 bytes.
-        assert_eq!(&calldata[0..4], &[0x83, 0x82, 0x1e, 0x8e]);
-        assert_eq!((calldata.len() - 4) % 32, 0);
-    }
-
-    #[test]
     fn test_encode_submit_rewards_calldata_multiplier_overflow() {
         const MAX_UINT96: u128 = (1u128 << 96) - 1;
         let invalid_multiplier = MAX_UINT96 + 1;
@@ -640,5 +657,278 @@ mod tests {
         );
 
         assert_eq!(result, Err(RewardsAdapterError::InvalidMultiplier));
+    }
+
+    #[test]
+    fn test_encode_rewards_calldata_round_trip_decodes() {
+        let token = H160::from_low_u64_be(0x1234);
+        let strategy = H160::from_low_u64_be(0x9999);
+        let multiplier = (1u128 << 80) + 123u128;
+        let operator = H160::from_low_u64_be(0x5678);
+        let amount = 1000u128;
+        let start_timestamp = 86_400u32;
+        let duration = 86_400u32;
+        let description = "round trip";
+
+        let calldata = encode_rewards_calldata(
+            token,
+            &[(strategy, multiplier)],
+            &[(operator, amount)],
+            start_timestamp,
+            duration,
+            description,
+        )
+        .expect("Encoding should succeed");
+
+        let decoded = submitRewardsCall::abi_decode(&calldata, true).expect("Decoding should work");
+        let submission = decoded.submission;
+
+        assert_eq!(submission.token, Address::from(token.as_fixed_bytes()));
+        assert_eq!(submission.startTimestamp, start_timestamp);
+        assert_eq!(submission.duration, duration);
+        assert_eq!(submission.description, description);
+
+        assert_eq!(submission.operatorRewards.len(), 1);
+        assert_eq!(
+            submission.operatorRewards[0].operator,
+            Address::from(operator.as_fixed_bytes())
+        );
+        assert_eq!(submission.operatorRewards[0].amount, U256::from(amount));
+
+        assert_eq!(submission.strategiesAndMultipliers.len(), 1);
+        assert_eq!(
+            submission.strategiesAndMultipliers[0].strategy,
+            Address::from(strategy.as_fixed_bytes())
+        );
+
+        let expected_multiplier_u96 =
+            Uint::<96, 2>::from_limbs([multiplier as u64, (multiplier >> 64) as u64]);
+        assert_eq!(
+            submission.strategiesAndMultipliers[0].multiplier,
+            expected_multiplier_u96
+        );
+
+        let empty_calldata =
+            encode_rewards_calldata(token, &[], &[], start_timestamp, duration, "empty")
+                .expect("Encoding should succeed");
+        let empty_decoded =
+            submitRewardsCall::abi_decode(&empty_calldata, true).expect("Decoding should work");
+        let empty_submission = empty_decoded.submission;
+
+        assert_eq!(
+            empty_submission.token,
+            Address::from(token.as_fixed_bytes())
+        );
+        assert_eq!(empty_submission.startTimestamp, start_timestamp);
+        assert_eq!(empty_submission.duration, duration);
+        assert_eq!(empty_submission.description, "empty");
+        assert!(empty_submission.operatorRewards.is_empty());
+        assert!(empty_submission.strategiesAndMultipliers.is_empty());
+    }
+
+    #[test]
+    fn test_build_rewards_message_happy_path() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 100u128,
+            individual_points: vec![
+                (H160::from_low_u64_be(2), 40),
+                (H160::from_low_u64_be(1), 60),
+            ],
+            inflation_amount: 1_000_000u128,
+        };
+
+        let message = build_rewards_message::<HappyPathConfig>(&rewards_utils)
+            .expect("Expected message to be built");
+
+        assert_eq!(message.origin, HappyPathConfig::rewards_agent_origin());
+        assert_eq!(
+            message.id,
+            H256::from_low_u64_be(rewards_utils.era_index as u64)
+        );
+        assert_eq!(message.fee, 0);
+        assert_eq!(message.commands.len(), 1);
+
+        let expected_operator_rewards = points_to_rewards(
+            &rewards_utils.individual_points,
+            rewards_utils.total_points,
+            rewards_utils.inflation_amount,
+        )
+        .expect("Rewards calculation should succeed")
+        .0;
+
+        let expected_calldata = encode_rewards_calldata(
+            HappyPathConfig::whave_token_address(),
+            &HappyPathConfig::strategies_and_multipliers(),
+            &expected_operator_rewards,
+            HappyPathConfig::era_start_timestamp(),
+            HappyPathConfig::rewards_duration(),
+            REWARDS_DESCRIPTION,
+        )
+        .expect("Calldata should encode");
+
+        match &message.commands[0] {
+            Command::CallContract {
+                target,
+                calldata,
+                gas,
+                value,
+            } => {
+                assert_eq!(*target, HappyPathConfig::service_manager_address());
+                assert_eq!(*gas, SUBMIT_REWARDS_GAS_LIMIT);
+                assert_eq!(*value, 0);
+                assert_eq!(calldata, &expected_calldata);
+            }
+            other => panic!("Expected CallContract command, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_build_rewards_message_happy_path_with_remainder() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 3u128,
+            individual_points: vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 2)],
+            inflation_amount: 100u128,
+        };
+
+        let (operator_rewards, remainder) = points_to_rewards(
+            &rewards_utils.individual_points,
+            rewards_utils.total_points,
+            rewards_utils.inflation_amount,
+        )
+        .expect("Rewards calculation should succeed");
+        assert!(remainder > 0, "Test case should yield a remainder");
+        assert!(!operator_rewards.is_empty());
+
+        let message = build_rewards_message::<HappyPathConfig>(&rewards_utils)
+            .expect("Expected message to be built");
+
+        let expected_calldata = encode_rewards_calldata(
+            HappyPathConfig::whave_token_address(),
+            &HappyPathConfig::strategies_and_multipliers(),
+            &operator_rewards,
+            HappyPathConfig::era_start_timestamp(),
+            HappyPathConfig::rewards_duration(),
+            REWARDS_DESCRIPTION,
+        )
+        .expect("Calldata should encode");
+
+        match &message.commands[0] {
+            Command::CallContract { calldata, .. } => assert_eq!(calldata, &expected_calldata),
+            other => panic!("Expected CallContract command, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_build_rewards_message_skips_on_zero_addresses() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 1u128,
+            individual_points: vec![(H160::from_low_u64_be(1), 1)],
+            inflation_amount: 100u128,
+        };
+
+        assert!(build_rewards_message::<ZeroServiceManagerConfig>(&rewards_utils).is_none());
+        assert!(build_rewards_message::<ZeroTokenConfig>(&rewards_utils).is_none());
+    }
+
+    #[test]
+    fn test_build_rewards_message_skips_when_no_operator_rewards() {
+        // total_points is much larger than points * inflation, so all amounts truncate to zero.
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 1000u128,
+            individual_points: vec![(H160::from_low_u64_be(1), 1)],
+            inflation_amount: 1u128,
+        };
+
+        let message = build_rewards_message::<HappyPathConfig>(&rewards_utils);
+        assert!(message.is_none());
+    }
+
+    #[test]
+    fn test_build_rewards_message_skips_on_points_to_rewards_error_division_by_zero() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 0u128,
+            individual_points: vec![(H160::from_low_u64_be(1), 1)],
+            inflation_amount: 100u128,
+        };
+
+        let message = build_rewards_message::<HappyPathConfig>(&rewards_utils);
+        assert!(message.is_none());
+    }
+
+    #[test]
+    fn test_build_rewards_message_skips_on_points_to_rewards_error_multiplication_overflow() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 1u128,
+            individual_points: vec![(H160::from_low_u64_be(1), u32::MAX)],
+            inflation_amount: u128::MAX,
+        };
+
+        let message = build_rewards_message::<HappyPathConfig>(&rewards_utils);
+        assert!(message.is_none());
+    }
+
+    #[test]
+    fn test_build_rewards_message_skips_on_invalid_multiplier() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 1u128,
+            individual_points: vec![(H160::from_low_u64_be(1), 1)],
+            inflation_amount: 100u128,
+        };
+
+        let message = build_rewards_message::<InvalidMultiplierConfig>(&rewards_utils);
+        assert!(message.is_none());
+    }
+
+    #[test]
+    fn test_rewards_submission_adapter_validate_and_deliver() {
+        let rewards_utils = EraRewardsUtils {
+            era_index: 7,
+            rewards_merkle_root: H256::zero(),
+            leaves: vec![],
+            leaf_index: None,
+            total_points: 100u128,
+            individual_points: vec![
+                (H160::from_low_u64_be(2), 40),
+                (H160::from_low_u64_be(1), 60),
+            ],
+            inflation_amount: 1_000_000u128,
+        };
+
+        let message = RewardsSubmissionAdapter::<HappyPathConfig>::build(&rewards_utils)
+            .expect("Expected message to be built");
+        let ticket = RewardsSubmissionAdapter::<HappyPathConfig>::validate(message.clone())
+            .expect("Expected validation to succeed");
+        let delivered_id = RewardsSubmissionAdapter::<HappyPathConfig>::deliver(ticket)
+            .expect("Expected delivery to succeed");
+
+        assert_eq!(delivered_id, message.id);
     }
 }

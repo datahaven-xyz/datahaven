@@ -43,6 +43,8 @@ const DeploymentsSchema = z.object({
   ETHPOSDeposit: ethAddressCustom.optional(),
   BaseStrategyImplementation: ethAddressCustom.optional(),
   ProxyAdmin: ethAddressCustom.optional(),
+  // Version tag for this set of deployed contracts (optional for backwards compatibility)
+  version: z.string().optional(),
   DeployedStrategies: z.array(DeployedStrategySchema).optional()
 });
 
@@ -114,7 +116,15 @@ const abiMap = {
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
   DeployedStrategies: erc20Abi
-} as const satisfies Record<keyof Omit<Deployments, "network" | "ProxyAdmin">, Abi>;
+} as const satisfies Record<
+  keyof Omit<
+    Deployments,
+    | "network"
+    | "ProxyAdmin"
+    | "version"
+  >,
+  Abi
+>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];

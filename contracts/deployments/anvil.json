@@ -24,5 +24,6 @@
             "underlyingToken": "0x95401dc811bb5740090279Ba06cfA8fcF6113778",
             "tokenCreator": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
         }
-    ]
+    ],
+    "version": "1.0.0"
 }

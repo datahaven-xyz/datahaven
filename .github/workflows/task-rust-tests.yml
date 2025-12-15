@@ -10,6 +10,10 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Explicit minimal permissions
+permissions:
+  contents: read
+
 jobs:
   all-rust-tests:
     name: Run all Operator Rust tests (/w partitioning)

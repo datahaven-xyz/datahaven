@@ -114,10 +114,8 @@
 
 [rpc_endpoints]
     mainnet = "${RPC_MAINNET}"
-    holesky = "${RPC_HOLESKY}"
-    hoodi = "https://rpc.hoodi.ethpandaops.io"
+    hoodi = "${RPC_HOODI}"
     anvil = "http://localhost:8545"
 
 # [etherscan]
 #     mainnet = { key = "${ETHERSCAN_API_KEY}" }
-#     holesky = { key = "${ETHERSCAN_API_KEY}" }

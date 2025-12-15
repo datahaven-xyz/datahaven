@@ -60,6 +60,9 @@ jobs:
       - name: Install Kurtosis
         run: |
           # Install Kurtosis locally without sudo
+          # SHA256 checksum for patched kurtosis binary (stiiifff fork v1.11.99)
+          KURTOSIS_SHA256="5e88e98c1b255362268b4c385cdb6bbba7e82b333c4b2c05bc0bff7de0560b2a"
+
           if ! command -v kurtosis &> /dev/null; then
             echo "Installing Kurtosis $KURTOSIS_VERSION locally"
             mkdir -p ~/.local/bin
@@ -68,6 +71,12 @@ jobs:
             # rm kurtosis-cli.tar.gz
             # For now, we use a patched version of Kurtosis CLI & Engine that supports Podman properly
             wget -q -O ~/.local/bin/kurtosis https://github.com/stiiifff/kurtosis/releases/download/1.11.99/kurtosis
+
+            # Verify checksum before making executable
+            echo "Verifying kurtosis checksum..."
+            echo "${KURTOSIS_SHA256}  $HOME/.local/bin/kurtosis" | sha256sum -c -
+
+            chmod +x ~/.local/bin/kurtosis
             echo "$HOME/.local/bin" >> $GITHUB_PATH
             export PATH="$HOME/.local/bin:$PATH"
           else

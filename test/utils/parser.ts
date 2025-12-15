@@ -58,9 +58,9 @@ export const BeefyRelayConfigSchema = z.object({
     })
   }),
   "on-demand-sync": z.object({
-    "max-tokens": z.number(),
-    "refill-amount": z.number(),
-    "refill-period": z.number()
+    "max-tasks": z.number(),
+    "merge-period": z.number(),
+    "expired-period": z.number()
   })
 });
 export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;

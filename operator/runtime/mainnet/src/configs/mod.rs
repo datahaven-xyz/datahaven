@@ -1474,11 +1474,12 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
     }
 
     fn era_start_timestamp() -> u32 {
-        // Get era start from active era (in milliseconds), convert to seconds
         ExternalValidators::active_era()
             .and_then(|era| era.start)
             .map(|ms| (ms / 1000) as u32)
-            .unwrap_or(0)
+            .unwrap_or_else(|| {
+                runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get()
+            })
     }
 
     fn whave_token_address() -> H160 {

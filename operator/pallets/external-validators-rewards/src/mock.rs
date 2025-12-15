@@ -24,7 +24,7 @@ use {
     pallet_balances::AccountData,
     pallet_external_validators::traits::ExternalIndexProvider,
     snowbridge_outbound_queue_primitives::{SendError, SendMessageFeeProvider},
-    sp_core::{crypto::AccountId32, H256},
+    sp_core::{H160, H256},
     sp_runtime::{
         traits::{BlakeTwo256, IdentityLookup, Keccak256},
         BuildStorage, DispatchError,
@@ -34,10 +34,10 @@ use {
 type Block = frame_system::mocking::MockBlock<Test>;
 
 /// Treasury account constant
-pub const TREASURY_ACCOUNT: AccountId32 = AccountId32::new([0xAA; 32]);
+pub const TREASURY_ACCOUNT: H160 = H160([0xAA; 20]);
 
 /// Rewards sovereign account constant
-pub const REWARDS_ACCOUNT: AccountId32 = AccountId32::new([0xFF; 32]);
+pub const REWARDS_ACCOUNT: H160 = H160([0xFF; 20]);
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -66,7 +66,7 @@ impl frame_system::Config for Test {
     type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = AccountId32;
+    type AccountId = H160;
     type Lookup = IdentityLookup<Self::AccountId>;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
@@ -155,8 +155,8 @@ impl ExternalIndexProvider for TimestampProvider {
 }
 
 parameter_types! {
-    pub RewardsEthereumSovereignAccount: AccountId32 = REWARDS_ACCOUNT;
-    pub TreasuryAccount: AccountId32 = TREASURY_ACCOUNT;
+    pub RewardsEthereumSovereignAccount: H160 = REWARDS_ACCOUNT;
+    pub TreasuryAccount: H160 = TREASURY_ACCOUNT;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
 }
@@ -181,11 +181,8 @@ impl pallet_external_validators_rewards::Config for Test {
 }
 
 pub struct InflationMinter;
-impl HandleInflation<AccountId32> for InflationMinter {
-    fn mint_inflation(
-        rewards_account: &AccountId32,
-        total_amount: u128,
-    ) -> sp_runtime::DispatchResult {
+impl HandleInflation<H160> for InflationMinter {
+    fn mint_inflation(rewards_account: &H160, total_amount: u128) -> sp_runtime::DispatchResult {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {
@@ -285,11 +282,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     let balances = vec![
-        (AccountId32::from([1; 32]), 100),
-        (AccountId32::from([2; 32]), 100),
-        (AccountId32::from([3; 32]), 100),
-        (AccountId32::from([4; 32]), 100),
-        (AccountId32::from([5; 32]), 100),
+        (H160::from_low_u64_be(1), 100),
+        (H160::from_low_u64_be(2), 100),
+        (H160::from_low_u64_be(3), 100),
+        (H160::from_low_u64_be(4), 100),
+        (H160::from_low_u64_be(5), 100),
         (TreasuryAccount::get(), ExistentialDeposit::get()), // Treasury needs existential deposit
         (
             RewardsEthereumSovereignAccount::get(),

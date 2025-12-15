@@ -18,7 +18,7 @@ use {
     crate::{self as pallet_external_validators_rewards, mock::*},
     frame_support::traits::fungible::Mutate,
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
-    sp_core::crypto::AccountId32,
+    sp_core::H160,
     sp_std::collections::btree_map::BTreeMap,
 };
 
@@ -42,14 +42,14 @@ fn can_reward_validators() {
             })
         });
         ExternalValidatorsRewards::reward_by_ids([
-            (AccountId32::from([1; 32]), 10),
-            (AccountId32::from([3; 32]), 30),
-            (AccountId32::from([5; 32]), 50),
+            (H160::from_low_u64_be(1), 10),
+            (H160::from_low_u64_be(3), 30),
+            (H160::from_low_u64_be(5), 50),
         ]);
         ExternalValidatorsRewards::reward_by_ids([
-            (AccountId32::from([1; 32]), 10),
-            (AccountId32::from([3; 32]), 10),
-            (AccountId32::from([5; 32]), 10),
+            (H160::from_low_u64_be(1), 10),
+            (H160::from_low_u64_be(3), 10),
+            (H160::from_low_u64_be(5), 10),
         ]);
 
         let storage_eras =
@@ -58,9 +58,9 @@ fn can_reward_validators() {
 
         let era_points = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let mut expected_map = BTreeMap::new();
-        expected_map.insert(AccountId32::from([1; 32]), 20);
-        expected_map.insert(AccountId32::from([3; 32]), 40);
-        expected_map.insert(AccountId32::from([5; 32]), 60);
+        expected_map.insert(H160::from_low_u64_be(1), 20);
+        expected_map.insert(H160::from_low_u64_be(3), 40);
+        expected_map.insert(H160::from_low_u64_be(5), 60);
         assert_eq!(era_points.individual, expected_map);
         assert_eq!(era_points.total, 20 + 40 + 60);
     })
@@ -76,9 +76,9 @@ fn history_limit() {
             })
         });
         ExternalValidatorsRewards::reward_by_ids([
-            (AccountId32::from([1; 32]), 10),
-            (AccountId32::from([3; 32]), 30),
-            (AccountId32::from([5; 32]), 50),
+            (H160::from_low_u64_be(1), 10),
+            (H160::from_low_u64_be(3), 30),
+            (H160::from_low_u64_be(5), 50),
         ]);
 
         let storage_eras =
@@ -109,7 +109,7 @@ fn test_on_era_end() {
         });
         let points = vec![10u32, 30u32, 50u32];
         let total_points: u32 = points.iter().cloned().sum();
-        let accounts = vec![AccountId32::from([1; 32]), AccountId32::from([3; 32]), AccountId32::from([5; 32])];
+        let accounts = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(3), H160::from_low_u64_be(5)];
         let accounts_points: Vec<_> = accounts
             .iter()
             .cloned()
@@ -149,7 +149,7 @@ fn test_on_era_end_with_zero_inflation() {
         });
         let points = vec![10u32, 30u32, 50u32];
         let total_points: u32 = points.iter().cloned().sum();
-        let accounts = vec![AccountId32::from([1; 32]), AccountId32::from([3; 32]), AccountId32::from([5; 32])];
+        let accounts = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(3), H160::from_low_u64_be(5)];
         let accounts_points: Vec<_> = accounts
             .iter()
             .cloned()
@@ -193,7 +193,7 @@ fn test_on_era_end_with_zero_points() {
             });
         });
         let points = vec![0u32, 0u32, 0u32];
-        let accounts = vec![AccountId32::from([1; 32]), AccountId32::from([3; 32]), AccountId32::from([5; 32])];
+        let accounts = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(3), H160::from_low_u64_be(5)];
         let accounts_points: Vec<_> = accounts
             .iter()
             .cloned()
@@ -247,9 +247,9 @@ fn test_inflation_minting() {
         // Reward some validators to create reward points
         let points = vec![10u32, 30u32, 50u32];
         let accounts = vec![
-            AccountId32::from([1; 32]),
-            AccountId32::from([3; 32]),
-            AccountId32::from([5; 32]),
+            H160::from_low_u64_be(1),
+            H160::from_low_u64_be(3),
+            H160::from_low_u64_be(5),
         ];
         let accounts_points: Vec<_> = accounts
             .iter()
@@ -294,7 +294,7 @@ fn test_inflation_calculation_with_different_rates() {
             let initial_balance = Balances::free_balance(&rewards_account);
 
             // Add some reward points
-            ExternalValidatorsRewards::reward_by_ids([(AccountId32::from([1; 32]), 100)]);
+            ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
 
             // Trigger era end
             ExternalValidatorsRewards::on_era_end(1);
@@ -370,7 +370,7 @@ fn test_inflation_calculation_accuracy() {
         let initial_balance = Balances::free_balance(&rewards_account);
 
         // Add reward points
-        ExternalValidatorsRewards::reward_by_ids([(AccountId32::from([1; 32]), 100), (AccountId32::from([2; 32]), 200)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 200)]);
 
         // Trigger era end
         ExternalValidatorsRewards::on_era_end(1);
@@ -416,11 +416,11 @@ fn test_treasury_receives_20_percent_of_inflation() {
 
         // Add validators to trigger inflation
         ExternalValidatorsRewards::reward_by_ids([
-            (AccountId32::from([1; 32]), 100),
-            (AccountId32::from([2; 32]), 100),
-            (AccountId32::from([3; 32]), 100),
-            (AccountId32::from([4; 32]), 100),
-            (AccountId32::from([5; 32]), 100),
+            (H160::from_low_u64_be(1), 100),
+            (H160::from_low_u64_be(2), 100),
+            (H160::from_low_u64_be(3), 100),
+            (H160::from_low_u64_be(4), 100),
+            (H160::from_low_u64_be(5), 100),
         ]);
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -472,8 +472,8 @@ fn test_treasury_allocation_with_different_amounts() {
             let rewards_before = Balances::free_balance(&rewards_account);
 
             ExternalValidatorsRewards::reward_by_ids([
-                (AccountId32::from([1; 32]), 100),
-                (AccountId32::from([2; 32]), 100),
+                (H160::from_low_u64_be(1), 100),
+                (H160::from_low_u64_be(2), 100),
             ]);
             ExternalValidatorsRewards::on_era_end(era);
 
@@ -526,7 +526,7 @@ fn test_treasury_allocation_maintains_precision() {
         let treasury_before = Balances::free_balance(&treasury_account);
         let rewards_before = Balances::free_balance(&rewards_account);
 
-        ExternalValidatorsRewards::reward_by_ids([(AccountId32::from([1; 32]), 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         ExternalValidatorsRewards::on_era_end(1);
 
         let treasury_after = Balances::free_balance(&treasury_account);
@@ -571,7 +571,7 @@ fn test_single_validator_network() {
         let initial_balance = Balances::free_balance(&rewards_account);
 
         // Only one validator participates
-        ExternalValidatorsRewards::reward_by_ids([(AccountId32::from([1; 32]), 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
 
         ExternalValidatorsRewards::on_era_end(1);
 
@@ -608,7 +608,7 @@ fn test_very_large_inflation_no_overflow() {
         let rewards_before = Balances::free_balance(&rewards_account);
         let treasury_before = Balances::free_balance(&treasury_account);
 
-        ExternalValidatorsRewards::reward_by_ids([(AccountId32::from([1; 32]), 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         ExternalValidatorsRewards::on_era_end(1);
 
         let rewards_after = Balances::free_balance(&rewards_account);
@@ -651,7 +651,7 @@ fn test_very_small_inflation_amounts() {
             let rewards_before = Balances::free_balance(&rewards_account);
             let treasury_before = Balances::free_balance(&treasury_account);
 
-            ExternalValidatorsRewards::reward_by_ids([(AccountId32::from([1; 32]), 100)]);
+            ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
             ExternalValidatorsRewards::on_era_end(tiny_amount as u32);
 
             let rewards_after = Balances::free_balance(&rewards_account);
@@ -696,9 +696,9 @@ fn test_consistent_inflation_across_eras() {
 
             // Same participation every era
             ExternalValidatorsRewards::reward_by_ids([
-                (AccountId32::from([1; 32]), 100),
-                (AccountId32::from([2; 32]), 100),
-                (AccountId32::from([3; 32]), 100),
+                (H160::from_low_u64_be(1), 100),
+                (H160::from_low_u64_be(2), 100),
+                (H160::from_low_u64_be(3), 100),
             ]);
 
             ExternalValidatorsRewards::on_era_end(era);
@@ -731,14 +731,14 @@ fn test_no_unexpected_balance_changes() {
         });
 
         // Check balances of non-participating accounts don't change
-        let observer_account = AccountId32::from([99; 32]);
+        let observer_account = H160::from_low_u64_be(99);
         let _ = Balances::mint_into(&observer_account, 1000); // Give it some balance
 
         let observer_balance_before = Balances::free_balance(&observer_account);
 
         ExternalValidatorsRewards::reward_by_ids([
-            (AccountId32::from([1; 32]), 100),
-            (AccountId32::from([2; 32]), 100),
+            (H160::from_low_u64_be(1), 100),
+            (H160::from_low_u64_be(2), 100),
         ]);
         ExternalValidatorsRewards::on_era_end(1);
 
@@ -769,11 +769,11 @@ fn test_total_issuance_increases_correctly() {
         let total_issuance_before = Balances::total_issuance();
 
         ExternalValidatorsRewards::reward_by_ids([
-            (AccountId32::from([1; 32]), 100),
-            (AccountId32::from([2; 32]), 100),
-            (AccountId32::from([3; 32]), 100),
-            (AccountId32::from([4; 32]), 100),
-            (AccountId32::from([5; 32]), 100),
+            (H160::from_low_u64_be(1), 100),
+            (H160::from_low_u64_be(2), 100),
+            (H160::from_low_u64_be(3), 100),
+            (H160::from_low_u64_be(4), 100),
+            (H160::from_low_u64_be(5), 100),
         ]);
 
         ExternalValidatorsRewards::on_era_end(1);

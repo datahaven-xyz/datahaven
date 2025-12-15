@@ -19,7 +19,8 @@ export const BeaconRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number()
+          electra: z.number(),
+          fulu: z.number()
         })
       }),
       datastore: z.object({
@@ -85,7 +86,8 @@ export const SolochainRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number()
+          electra: z.number(),
+          fulu: z.number()
         })
       }),
       datastore: z.object({
@@ -132,7 +134,8 @@ export const ExecutionRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number()
+          electra: z.number(),
+          fulu: z.number()
         })
       }),
       datastore: z.object({

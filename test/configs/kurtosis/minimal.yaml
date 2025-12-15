@@ -10,6 +10,7 @@ additional_services:
 network_params:
   preset: mainnet
   seconds_per_slot: 1
+  fulu_fork_epoch: 0
   num_validator_keys_per_node: 256
   prefunded_accounts: '{
     "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": {"balance": "10ETH"},

@@ -23,6 +23,7 @@ use sp_std::vec::Vec;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EraRewardsUtils {
     pub era_index: u32,
+    pub era_start_timestamp: u32,
     pub rewards_merkle_root: H256,
     pub leaves: Vec<H256>,
     pub leaf_index: Option<u64>,

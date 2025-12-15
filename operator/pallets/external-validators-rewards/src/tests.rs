@@ -120,7 +120,8 @@ fn test_on_era_end() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation);
+        // Use 0 for era_start_timestamp in tests since we're only checking merkle root
+        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation, 0);
 
         let root = rewards_utils.unwrap().rewards_merkle_root;
         System::assert_last_event(RuntimeEvent::ExternalValidatorsRewards(
@@ -160,7 +161,7 @@ fn test_on_era_end_with_zero_inflation() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation);
+        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation, 0);
         let root = rewards_utils.unwrap().rewards_merkle_root;
         let expected_not_thrown_event = RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsMessageSent {
@@ -209,7 +210,7 @@ fn test_on_era_end_with_zero_points() {
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
         let rewards_utils = era_rewards
             .generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(
-                1, None, inflation,
+                1, None, inflation, 0,
             );
         assert!(
             rewards_utils.is_none(),

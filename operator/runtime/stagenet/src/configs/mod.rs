@@ -1469,15 +1469,6 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Stag
         runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
     }
 
-    fn era_start_timestamp() -> u32 {
-        ExternalValidators::active_era()
-            .and_then(|era| era.start)
-            .map(|ms| (ms / 1000) as u32)
-            .unwrap_or_else(|| {
-                runtime_params::dynamic_params::runtime_config::RewardsGenesisTimestamp::get()
-            })
-    }
-
     fn whave_token_address() -> H160 {
         runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
     }
@@ -1691,6 +1682,7 @@ mod tests {
         TestExternalities::default().execute_with(|| {
             let rewards_utils = EraRewardsUtils {
                 era_index: 1,
+                era_start_timestamp: 1_700_000_000,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
@@ -1747,6 +1739,7 @@ mod tests {
 
             let rewards_utils = EraRewardsUtils {
                 era_index: 1,
+                era_start_timestamp: 1_700_000_000,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),

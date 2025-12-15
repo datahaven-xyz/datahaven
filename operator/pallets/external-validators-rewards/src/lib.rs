@@ -147,11 +147,13 @@ pub mod pallet {
         //  - total_points: number of total points of the era_index specified.
         //  - individual_points: (address, points) tuples for each validator.
         //  - inflation_amount: total inflation tokens to distribute.
+        //  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
         pub fn generate_era_rewards_utils<Hasher: sp_runtime::traits::Hash<Output = H256>>(
             &self,
             era_index: EraIndex,
             maybe_account_id_check: Option<AccountId>,
             inflation_amount: u128,
+            era_start_timestamp: u32,
         ) -> Option<EraRewardsUtils> {
             let mut leaves = Vec::with_capacity(self.individual.len());
             let mut leaf_index = None;
@@ -197,6 +199,7 @@ pub mod pallet {
 
             Some(EraRewardsUtils {
                 era_index,
+                era_start_timestamp,
                 rewards_merkle_root,
                 leaves,
                 leaf_index,
@@ -242,10 +245,11 @@ pub mod pallet {
             era_index: EraIndex,
         ) -> Option<MerkleProof> {
             let era_rewards = RewardPointsForEra::<T>::get(&era_index);
-            // Pass 0 for inflation_amount as it's not needed for merkle proof generation
+            // Pass 0 for inflation_amount and era_start_timestamp as they're not needed for merkle proof generation
             let utils = era_rewards.generate_era_rewards_utils::<<T as Config>::Hashing>(
                 era_index,
                 Some(account_id),
+                0,
                 0,
             )?;
             utils.leaf_index.map(|index| {
@@ -308,11 +312,19 @@ pub mod pallet {
             // Get inflation amount first - needed for both minting and EraRewardsUtils
             let inflation_amount = T::EraInflationProvider::get();
 
+            // Get era start timestamp from the active era (still the ending era at this point).
+            // Convert from milliseconds to seconds for EigenLayer compatibility.
+            let era_start_timestamp = T::EraIndexProvider::active_era()
+                .start
+                .map(|ms| (ms / 1000) as u32)
+                .unwrap_or(0);
+
             let utils = match RewardPointsForEra::<T>::get(&era_index)
                 .generate_era_rewards_utils::<<T as Config>::Hashing>(
                     era_index,
                     None,
                     inflation_amount,
+                    era_start_timestamp,
                 ) {
                 Some(utils) if !utils.total_points.is_zero() => utils,
                 Some(_) => {

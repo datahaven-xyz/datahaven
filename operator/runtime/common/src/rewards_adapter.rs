@@ -87,7 +87,7 @@ sol! {
 /// Configuration for rewards submission.
 ///
 /// Runtimes implement this trait to provide environment-specific values
-/// such as contract addresses, timestamps, and the outbound queue.
+/// such as contract addresses and the outbound queue.
 pub trait RewardsSubmissionConfig {
     /// The Snowbridge outbound queue pallet type for message validation and delivery.
     type OutboundQueue: snowbridge_outbound_queue_primitives::v2::SendMessage<
@@ -106,10 +106,6 @@ pub trait RewardsSubmissionConfig {
 
     /// Get the rewards duration in seconds (typically 86400 = 1 day).
     fn rewards_duration() -> u32;
-
-    /// Get the start timestamp for the rewards submission in seconds.
-    /// This is typically the era start timestamp.
-    fn era_start_timestamp() -> u32;
 
     /// Get the wHAVE ERC20 token address on Ethereum.
     fn whave_token_address() -> H160;
@@ -185,7 +181,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         whave_token_address,
         &C::strategies_and_multipliers(),
         &operator_rewards,
-        C::era_start_timestamp(),
+        rewards_utils.era_start_timestamp,
         C::rewards_duration(),
         REWARDS_DESCRIPTION,
     )
@@ -345,6 +341,9 @@ mod tests {
         }
     }
 
+    /// Test era start timestamp used consistently across test cases.
+    const TEST_ERA_START_TIMESTAMP: u32 = 1_700_000_000;
+
     struct HappyPathConfig;
 
     impl RewardsSubmissionConfig for HappyPathConfig {
@@ -356,10 +355,6 @@ mod tests {
 
         fn rewards_duration() -> u32 {
             86_400
-        }
-
-        fn era_start_timestamp() -> u32 {
-            1_700_000_000
         }
 
         fn whave_token_address() -> H160 {
@@ -384,10 +379,6 @@ mod tests {
             HappyPathConfig::rewards_duration()
         }
 
-        fn era_start_timestamp() -> u32 {
-            HappyPathConfig::era_start_timestamp()
-        }
-
         fn whave_token_address() -> H160 {
             HappyPathConfig::whave_token_address()
         }
@@ -408,10 +399,6 @@ mod tests {
 
         fn rewards_duration() -> u32 {
             HappyPathConfig::rewards_duration()
-        }
-
-        fn era_start_timestamp() -> u32 {
-            HappyPathConfig::era_start_timestamp()
         }
 
         fn whave_token_address() -> H160 {
@@ -439,10 +426,6 @@ mod tests {
 
         fn rewards_duration() -> u32 {
             HappyPathConfig::rewards_duration()
-        }
-
-        fn era_start_timestamp() -> u32 {
-            HappyPathConfig::era_start_timestamp()
         }
 
         fn whave_token_address() -> H160 {
@@ -730,6 +713,7 @@ mod tests {
     fn test_build_rewards_message_happy_path() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -764,7 +748,7 @@ mod tests {
             HappyPathConfig::whave_token_address(),
             &HappyPathConfig::strategies_and_multipliers(),
             &expected_operator_rewards,
-            HappyPathConfig::era_start_timestamp(),
+            rewards_utils.era_start_timestamp,
             HappyPathConfig::rewards_duration(),
             REWARDS_DESCRIPTION,
         )
@@ -790,6 +774,7 @@ mod tests {
     fn test_build_rewards_message_happy_path_with_remainder() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -814,7 +799,7 @@ mod tests {
             HappyPathConfig::whave_token_address(),
             &HappyPathConfig::strategies_and_multipliers(),
             &operator_rewards,
-            HappyPathConfig::era_start_timestamp(),
+            rewards_utils.era_start_timestamp,
             HappyPathConfig::rewards_duration(),
             REWARDS_DESCRIPTION,
         )
@@ -830,6 +815,7 @@ mod tests {
     fn test_build_rewards_message_skips_on_zero_addresses() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -847,6 +833,7 @@ mod tests {
         // total_points is much larger than points * inflation, so all amounts truncate to zero.
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -863,6 +850,7 @@ mod tests {
     fn test_build_rewards_message_skips_on_points_to_rewards_error_division_by_zero() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -879,6 +867,7 @@ mod tests {
     fn test_build_rewards_message_skips_on_points_to_rewards_error_multiplication_overflow() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -895,6 +884,7 @@ mod tests {
     fn test_build_rewards_message_skips_on_invalid_multiplier() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,
@@ -911,6 +901,7 @@ mod tests {
     fn test_rewards_submission_adapter_validate_and_deliver() {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
+            era_start_timestamp: TEST_ERA_START_TIMESTAMP,
             rewards_merkle_root: H256::zero(),
             leaves: vec![],
             leaf_index: None,

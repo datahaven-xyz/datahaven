@@ -2573,6 +2573,49 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      {
+        name: 'submission',
+        internalType:
+          'struct IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission',
+        type: 'tuple',
+        components: [
+          {
+            name: 'strategiesAndMultipliers',
+            internalType:
+              'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+            type: 'tuple[]',
+            components: [
+              {
+                name: 'strategy',
+                internalType: 'contract IStrategy',
+                type: 'address',
+              },
+              { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+            ],
+          },
+          { name: 'token', internalType: 'contract IERC20', type: 'address' },
+          {
+            name: 'operatorRewards',
+            internalType: 'struct IRewardsCoordinatorTypes.OperatorReward[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'operator', internalType: 'address', type: 'address' },
+              { name: 'amount', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+          { name: 'startTimestamp', internalType: 'uint32', type: 'uint32' },
+          { name: 'duration', internalType: 'uint32', type: 'uint32' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
+    ],
+    name: 'submitRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'avsAddress', internalType: 'address', type: 'address' }],
     name: 'supportsAVS',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
@@ -2694,6 +2737,25 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'oldInitiator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newInitiator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RewardsInitiatorSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'prevRewardsInitiator',
         internalType: 'address',
         type: 'address',
@@ -2726,6 +2788,25 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'RewardsRegistrySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'totalAmount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'operatorCount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsSubmitted',
   },
   {
     type: 'event',
@@ -11856,6 +11937,15 @@ export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
+ */
+export const writeDataHavenServiceManagerSubmitRewards =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'submitRewards',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const writeDataHavenServiceManagerTransferOwnership =
@@ -12186,6 +12276,15 @@ export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
+ */
+export const simulateDataHavenServiceManagerSubmitRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'submitRewards',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const simulateDataHavenServiceManagerTransferOwnership =
@@ -12255,6 +12354,15 @@ export const watchDataHavenServiceManagerOwnershipTransferredEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorSet"`
+ */
+export const watchDataHavenServiceManagerRewardsInitiatorSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'RewardsInitiatorSet',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorUpdated"`
  */
 export const watchDataHavenServiceManagerRewardsInitiatorUpdatedEvent =
@@ -12270,6 +12378,15 @@ export const watchDataHavenServiceManagerRewardsRegistrySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'RewardsRegistrySet',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsSubmitted"`
+ */
+export const watchDataHavenServiceManagerRewardsSubmittedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'RewardsSubmitted',
   })
 
 /**

@@ -14,6 +14,10 @@ on:
         description: set to pull_request number to execute on external pr
         required: false
 
+# Explicit minimal permissions
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   WORKING_DIR: operator
@@ -77,11 +81,19 @@ jobs:
         run: |
           # Install taplo in user space without sudo
           TAPLO_VERSION="0.8.1"
+          # SHA256 checksum for taplo-full-linux-x86_64.gz (decompressed binary)
+          TAPLO_SHA256="c62baa73c9d7c1572047b1a502ca805e1372e5db7c9a935532f702f12d6115ce"
+
           if ! command -v taplo &> /dev/null || [[ $(taplo --version | grep -oP '\d+\.\d+\.\d+' | head -1) != "$TAPLO_VERSION" ]]; then
             echo "Installing taplo $TAPLO_VERSION in ~/.local/bin"
             mkdir -p ~/.local/bin
             curl -Ls "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-full-linux-x86_64.gz" | \
               gzip -d > ~/.local/bin/taplo
+
+            # Verify checksum before making executable
+            echo "Verifying taplo checksum..."
+            echo "${TAPLO_SHA256}  $HOME/.local/bin/taplo" | sha256sum -c -
+
             chmod +x ~/.local/bin/taplo
             echo "$HOME/.local/bin" >> $GITHUB_PATH
             export PATH="$HOME/.local/bin:$PATH"

@@ -9,6 +9,11 @@ on:
         required: true
         type: string
 
+# Explicit minimal permissions
+permissions:
+  contents: read
+  actions: write  # Required for uploading artifacts
+
 jobs:
   moonwall:
     runs-on: ubuntu-latest

@@ -51,7 +51,8 @@ export const deployContracts = async (options: DeployContractsOptions): Promise<
     rpcUrl: options.rpcUrl,
     verified: options.verified,
     blockscoutBackendUrl: options.blockscoutBackendUrl,
-    parameterCollection: options.parameterCollection
+    parameterCollection: options.parameterCollection,
+    txExecution: true
   });
 
   printDivider();

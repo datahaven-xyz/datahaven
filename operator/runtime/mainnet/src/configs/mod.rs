@@ -1416,6 +1416,8 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
+    type AuthorizedOrigin =
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress;
     type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;
@@ -1604,7 +1606,9 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
         let calldata = Vec::new();
 
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::DatahavenAVSAddress::get(),
+            target:
+                runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get(
+                ),
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
@@ -1659,6 +1663,9 @@ parameter_types! {
 mod tests {
     use super::*;
     use crate::SnowbridgeSystemV2;
+    use frame_support::assert_ok;
+    use sp_core::H160;
+    use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
 
@@ -1681,7 +1688,6 @@ mod tests {
     #[test]
     fn test_rewards_send_adapter_with_zero_address() {
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
-        use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
             // Create test rewards utils with V2 fields
@@ -1711,9 +1717,7 @@ mod tests {
 
     #[test]
     fn test_rewards_send_adapter_with_valid_config() {
-        use frame_support::assert_ok;
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
-        use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
             // Set valid V2 configuration
@@ -1779,6 +1783,88 @@ mod tests {
                     _ => panic!("Expected CallContract command"),
                 }
             }
+        });
+    }
+
+    fn build_snowbridge_message(origin: H160) -> SnowbridgeMessage {
+        // Minimal valid EigenLayer payload carrying an empty validator set
+        let bridge_payload = BridgePayload::<Runtime> {
+            message_id: EL_MESSAGE_ID,
+            message: BridgeMessage::V1(InboundCommand::ReceiveValidators {
+                validators: Vec::new(),
+                external_index: 0,
+            }),
+        };
+
+        let payload_bytes = bridge_payload.encode();
+
+        SnowbridgeMessage {
+            gateway: H160::zero(),
+            nonce: 0,
+            origin,
+            assets: Vec::<EthereumAsset>::new(),
+            xcm: SnowPayload::Raw(payload_bytes),
+            claimer: None,
+            value: 0,
+            execution_fee: 0,
+            relayer_fee: 0,
+        }
+    }
+
+    #[test]
+    fn test_eigenlayer_message_processor_rejects_wrong_origin() {
+        use sp_runtime::DispatchError;
+
+        TestExternalities::default().execute_with(|| {
+            // Configure an authorized origin address in runtime parameters
+            let authorized_origin = H160::from_low_u64_be(0x1234);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
+                        Some(authorized_origin),
+                    ),
+                ),
+            ));
+
+            // Build a message with a different (unauthorized) origin
+            let wrong_origin = H160::from_low_u64_be(0x9999);
+            let snow_msg = build_snowbridge_message(wrong_origin);
+
+            let relayer: AccountId = Default::default();
+            let result =
+                dhp_bridge::EigenLayerMessageProcessor::<Runtime>::process_message(relayer, snow_msg);
+
+            assert!(matches!(
+                result,
+                Err(DispatchError::Other("unauthorized validator-set origin"))
+            ));
+        });
+    }
+
+    #[test]
+    fn test_eigenlayer_message_processor_accepts_authorized_origin() {
+        TestExternalities::default().execute_with(|| {
+            // Configure the authorized origin to match the ServiceManager address
+            let authorized_origin = H160::from_low_u64_be(0x1234);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
+                        Some(authorized_origin),
+                    ),
+                ),
+            ));
+
+            let snow_msg = build_snowbridge_message(authorized_origin);
+            let relayer: AccountId = Default::default();
+
+            let result =
+                dhp_bridge::EigenLayerMessageProcessor::<Runtime>::process_message(relayer, snow_msg);
+
+            assert!(result.is_ok(), "Message from authorized origin should be accepted");
         });
     }
 }

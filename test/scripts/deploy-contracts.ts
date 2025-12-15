@@ -127,6 +127,7 @@ export const updateParameters = async (
     const rewardsRegistryAddress = deployments.RewardsRegistry;
     const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
     const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+    const serviceManagerAddress = deployments.ServiceManager;
 
     if (gatewayAddress) {
       logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
@@ -167,6 +168,16 @@ export const updateParameters = async (
       });
     } else {
       logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
+    }
+
+    if (serviceManagerAddress) {
+      logger.debug(`📝 Adding DatahavenServiceManagerAddress parameter: ${serviceManagerAddress}`);
+      parameterCollection.addParameter({
+        name: "DatahavenServiceManagerAddress",
+        value: serviceManagerAddress
+      });
+    } else {
+      logger.warn("⚠️ ServiceManager address not found in deployments file");
     }
   } catch (error) {
     logger.error(`Failed to read parameters from deployment: ${error}`);

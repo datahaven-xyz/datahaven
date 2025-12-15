@@ -292,5 +292,4 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         });
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }
-
 }

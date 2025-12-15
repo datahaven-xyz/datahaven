@@ -58,8 +58,7 @@ contract RewardsSubmitterTest is AVSDeployer {
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-                strategy: deployedStrategies[i],
-                multiplier: uint96((i + 1) * 1e18)
+                strategy: deployedStrategies[i], multiplier: uint96((i + 1) * 1e18)
             });
         }
 
@@ -130,8 +129,7 @@ contract RewardsSubmitterTest is AVSDeployer {
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
             strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-                strategy: deployedStrategies[i],
-                multiplier: uint96((i + 1) * 1e18)
+                strategy: deployedStrategies[i], multiplier: uint96((i + 1) * 1e18)
             });
         }
 
@@ -202,8 +200,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](1);
         strategiesAndMultipliers[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-            strategy: deployedStrategies[0],
-            multiplier: 1e18
+            strategy: deployedStrategies[0], multiplier: 1e18
         });
 
         IRewardsCoordinatorTypes.OperatorReward[] memory operatorRewards =
@@ -237,8 +234,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](1);
         strategiesAndMultipliers[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-            strategy: deployedStrategies[0],
-            multiplier: 1e18
+            strategy: deployedStrategies[0], multiplier: 1e18
         });
 
         IRewardsCoordinatorTypes.OperatorReward[] memory operatorRewards =

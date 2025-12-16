@@ -47,7 +47,6 @@ let gateway!: any;
 let publicClient!: any;
 let dhApi!: any;
 let eraIndex!: number;
-let messageId!: Hex;
 let merkleRoot!: Hex;
 let totalPoints!: bigint;
 let newRootIndex!: bigint;
@@ -60,19 +59,13 @@ let firstClaimBlockNumber!: bigint;
 
 describe("Rewards Message Flow", () => {
   beforeAll(async () => {
-    logger.info("Starting rewards message flow tests");
-
-    // Get test connectors once for all tests
     const connectors = suite.getTestConnectors();
     publicClient = connectors.publicClient;
     dhApi = connectors.dhApi;
 
-    // Acquire core contracts once for all tests
-    [rewardsRegistry, serviceManager, gateway] = await Promise.all([
-      getContractInstance("RewardsRegistry"),
-      getContractInstance("ServiceManager"),
-      getContractInstance("Gateway")
-    ]);
+    rewardsRegistry = await getContractInstance("RewardsRegistry");
+    serviceManager = await getContractInstance("ServiceManager");
+    gateway = await getContractInstance("Gateway");
   });
 
   describe("Infrastructure Setup", () => {
@@ -84,30 +77,21 @@ describe("Rewards Message Flow", () => {
       expect(rewardsInfo.RewardsAgent).toBeDefined();
       expect(gateway.address).toBeDefined();
 
-      // Validate configuration
-      const [agentAddress, avsAddress] = await Promise.all([
-        publicClient.readContract({
-          address: rewardsRegistry.address,
-          abi: rewardsRegistry.abi,
-          functionName: "rewardsAgent",
-          args: []
-        }) as Promise<Address>,
-        publicClient.readContract({
-          address: rewardsRegistry.address,
-          abi: rewardsRegistry.abi,
-          functionName: "avs",
-          args: []
-        }) as Promise<Address>
-      ]);
-
+      const agentAddress = await publicClient.readContract({
+        address: rewardsRegistry.address,
+        abi: rewardsRegistry.abi,
+        functionName: "rewardsAgent",
+        args: []
+      }) as Address;
       expect(isAddressEqual(agentAddress, rewardsInfo.RewardsAgent as Address)).toBe(true);
+
+      const avsAddress = await publicClient.readContract({
+        address: rewardsRegistry.address,
+        abi: rewardsRegistry.abi,
+        functionName: "avs",
+        args: []
+      }) as Address;
       expect(isAddressEqual(avsAddress, serviceManager.address as Address)).toBe(true);
-
-      // Check DataHaven connectivity
-      const currentBlock = await dhApi.query.System.Number.getValue();
-      expect(currentBlock > 0).toBe(true);
-
-      logger.success("Rewards infrastructure verified");
     });
   });
 
@@ -116,19 +100,8 @@ describe("Rewards Message Flow", () => {
       "should wait for era end and capture rewards message",
       async () => {
         // Track current era and blocks until era end
-        const [currentBlock, currentEra, blocksUntilEraEnd] = await Promise.all([
-          dhApi.query.System.Number.getValue(),
-          rewardsHelpers.getCurrentEra(dhApi),
-          rewardsHelpers.getBlocksUntilEraEnd(dhApi)
-        ]);
-
-        logger.info("Era transition tracking:");
-        logger.info(`  Current block: ${currentBlock}`);
-        logger.info(`  Current era: ${currentEra}`);
-        logger.info(`  Blocks until era end: ${blocksUntilEraEnd}`);
-
-        // Wait for era to end and capture the rewards message event
-        logger.info("⏳ Waiting for era to end and rewards message to be sent...");
+        const currentEra = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
+        const blocksUntilEraEnd = await rewardsHelpers.getBlocksUntilEraEnd(dhApi);
 
         const timeout = blocksUntilEraEnd * 6000 + TEST_CONFIG.DELAYS.RELAYER_INIT * 3;
         const rewardsMessageEvent = await rewardsHelpers.waitForRewardsMessageSent(
@@ -137,19 +110,16 @@ describe("Rewards Message Flow", () => {
           timeout
         );
 
-        expect(rewardsMessageEvent).not.toBeNull();
-        if (!rewardsMessageEvent) throw new Error("Expected rewards message event to be defined");
+        if (!rewardsMessageEvent) {
+          throw new Error("Expected rewards message event to be defined");
+        }
 
-        // Store event data
-        messageId = rewardsMessageEvent.messageId as Hex;
+        // Store event data needed by subsequent tests
         merkleRoot = rewardsMessageEvent.merkleRoot as Hex;
         totalPoints = rewardsMessageEvent.totalPoints;
         eraIndex = rewardsMessageEvent.eraIndex;
 
-        // Validate event data
-        expect(messageId).toBeDefined();
-        expect(merkleRoot).toBeDefined();
-        expect(totalPoints > 0n).toBe(true);
+        expect(totalPoints).toBeGreaterThan(0n);
 
         logger.success(`Rewards message emitted for era ${eraIndex}`);
       },

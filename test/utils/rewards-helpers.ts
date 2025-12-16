@@ -21,19 +21,22 @@ export interface RewardsMessageSent {
   inflation: bigint;
 }
 
-export function getEraLengthInBlocks(dhApi: DataHavenApi): number {
-  // Read constants directly from runtime metadata
-  const consts: any = (dhApi as unknown as { consts?: unknown }).consts ?? {};
-  const epochDuration = Number(consts?.Babe?.EpochDuration ?? 10); // blocks per session
-  const sessionsPerEra = Number(consts?.ExternalValidators?.SessionsPerEra ?? 1);
-  return epochDuration * sessionsPerEra;
-}
-
 export async function getBlocksUntilEraEnd(dhApi: DataHavenApi): Promise<number> {
-  const currentBlock = (await dhApi.query.System.Number.getValue()) ?? 0;
-  const eraLength = getEraLengthInBlocks(dhApi) ?? 10;
-  const mod = currentBlock % eraLength;
-  return mod === 0 ? eraLength : eraLength - mod;
+  const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
+  if (!activeEra) return 0;
+
+  const [currentSession, eraStartSession] = await Promise.all([
+    dhApi.query.Session.CurrentIndex.getValue(),
+    dhApi.query.ExternalValidators.ErasStartSessionIndex.getValue(activeEra.index)
+  ]);
+
+  if (eraStartSession === undefined) return 0;
+
+  const sessionsPerEra = Number(dhApi.constants.ExternalValidators.SessionsPerEra);
+  const blocksPerSession = Number(dhApi.constants.Babe.EpochDuration);
+
+  const sessionsRemaining = sessionsPerEra - (currentSession - eraStartSession);
+  return sessionsRemaining * blocksPerSession;
 }
 
 // Validator monitoring and rewards data

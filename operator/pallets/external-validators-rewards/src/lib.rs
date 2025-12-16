@@ -41,7 +41,7 @@ use {
     polkadot_primitives::ValidatorIndex,
     runtime_parachains::session_info,
     snowbridge_merkle_tree::{merkle_proof, merkle_root, verify_proof, MerkleProof},
-    sp_core::H256,
+    sp_core::{H160, H256},
     sp_runtime::traits::{Hash, Zero},
     sp_staking::SessionIndex,
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
@@ -145,14 +145,19 @@ pub mod pallet {
         //  - leaves: that were used to generate the previous merkle root.
         //  - leaf_index: index of the validatorId's leaf in the previous leaves array (if any).
         //  - total_points: number of total points of the era_index specified.
+        //  - individual_points: (address, points) tuples for each validator.
+        //  - inflation_amount: total inflation tokens to distribute.
+        //  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
         pub fn generate_era_rewards_utils<Hasher: sp_runtime::traits::Hash<Output = H256>>(
             &self,
             era_index: EraIndex,
             maybe_account_id_check: Option<AccountId>,
+            inflation_amount: u128,
+            era_start_timestamp: u32,
         ) -> Option<EraRewardsUtils> {
-            let total_points: u128 = self.total as u128;
             let mut leaves = Vec::with_capacity(self.individual.len());
             let mut leaf_index = None;
+            let mut individual_points = Vec::with_capacity(self.individual.len());
 
             if let Some(account) = &maybe_account_id_check {
                 if !self.individual.contains_key(account) {
@@ -172,6 +177,11 @@ pub mod pallet {
 
                 leaves.push(hashed);
 
+                // Convert AccountId to H160 for EigenLayer rewards submission.
+                // In DataHaven, AccountId is H160, so encode() produces exactly 20 bytes.
+                individual_points
+                    .push((H160::from_slice(&account_id.encode()[..20]), *reward_points));
+
                 if let Some(ref check_account_id) = maybe_account_id_check {
                     if account_id == check_account_id {
                         leaf_index = Some(index as u64);
@@ -181,11 +191,21 @@ pub mod pallet {
 
             let rewards_merkle_root = merkle_root::<Hasher, _>(leaves.iter().cloned());
 
+            let total_points: u128 = individual_points.iter().map(|(_, pts)| *pts as u128).sum();
+
+            if total_points.is_zero() {
+                return None;
+            }
+
             Some(EraRewardsUtils {
+                era_index,
+                era_start_timestamp,
                 rewards_merkle_root,
                 leaves,
                 leaf_index,
                 total_points,
+                individual_points,
+                inflation_amount,
             })
         }
     }
@@ -225,9 +245,12 @@ pub mod pallet {
             era_index: EraIndex,
         ) -> Option<MerkleProof> {
             let era_rewards = RewardPointsForEra::<T>::get(&era_index);
+            // Pass 0 for inflation_amount and era_start_timestamp as they're not needed for merkle proof generation
             let utils = era_rewards.generate_era_rewards_utils::<<T as Config>::Hashing>(
                 era_index,
                 Some(account_id),
+                0,
+                0,
             )?;
             utils.leaf_index.map(|index| {
                 merkle_proof::<<T as Config>::Hashing, _>(utils.leaves.into_iter(), index)
@@ -286,9 +309,23 @@ pub mod pallet {
 
     impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
+            // Get inflation amount first - needed for both minting and EraRewardsUtils
+            let inflation_amount = T::EraInflationProvider::get();
+
+            // Get era start timestamp from the active era (still the ending era at this point).
+            // Convert from milliseconds to seconds for EigenLayer compatibility.
+            let era_start_timestamp = T::EraIndexProvider::active_era()
+                .start
+                .map(|ms| (ms / 1000) as u32)
+                .unwrap_or(0);
+
             let utils = match RewardPointsForEra::<T>::get(&era_index)
-                .generate_era_rewards_utils::<<T as Config>::Hashing>(era_index, None)
-            {
+                .generate_era_rewards_utils::<<T as Config>::Hashing>(
+                    era_index,
+                    None,
+                    inflation_amount,
+                    era_start_timestamp,
+                ) {
                 Some(utils) if !utils.total_points.is_zero() => utils,
                 Some(_) => {
                     log::error!(
@@ -308,7 +345,6 @@ pub mod pallet {
 
             // Mint tokens using the configurable handler
             let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
-            let inflation_amount = T::EraInflationProvider::get();
             if let Err(err) =
                 T::HandleInflation::mint_inflation(&ethereum_sovereign_account, inflation_amount)
             {

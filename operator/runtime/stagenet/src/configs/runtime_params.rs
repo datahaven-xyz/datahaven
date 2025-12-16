@@ -363,6 +363,28 @@ pub mod dynamic_params {
         pub static InflationTreasuryProportion: Perbill = Perbill::from_percent(20);
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
+
+        // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
+
+        #[codec(index = 40)]
+        #[allow(non_upper_case_globals)]
+        /// The wHAVE ERC20 token address on Ethereum.
+        /// Used in the OperatorDirectedRewardsSubmission struct.
+        pub static WHAVETokenAddress: H160 = H160::repeat_byte(0x0);
+
+        #[codec(index = 41)]
+        #[allow(non_upper_case_globals)]
+        /// EigenLayer-aligned genesis timestamp for rewards calculation.
+        /// Must be divisible by 86400 (seconds per day) as per EigenLayer requirements.
+        /// Default: 0 (must be set via governance to actual deployment timestamp).
+        pub static RewardsGenesisTimestamp: u32 = 0;
+
+        #[codec(index = 42)]
+        #[allow(non_upper_case_globals)]
+        /// Rewards duration in seconds. Fixed at 86400 (1 day) for EigenLayer.
+        pub static RewardsDuration: u32 = 86400;
+
+        // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
     }
 }
 

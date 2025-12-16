@@ -366,12 +366,6 @@ pub mod dynamic_params {
 
         // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
 
-        #[codec(index = 39)]
-        #[allow(non_upper_case_globals)]
-        /// The DataHaven ServiceManager contract address on Ethereum.
-        /// This replaces RewardsRegistryAddress for V2 rewards distribution.
-        pub static ServiceManagerAddress: H160 = H160::repeat_byte(0x0);
-
         #[codec(index = 40)]
         #[allow(non_upper_case_globals)]
         /// The wHAVE ERC20 token address on Ethereum.

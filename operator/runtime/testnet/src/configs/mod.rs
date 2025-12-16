@@ -1480,7 +1480,7 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Test
     }
 
     fn service_manager_address() -> H160 {
-        runtime_params::dynamic_params::runtime_config::ServiceManagerAddress::get()
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
     }
 
     fn rewards_agent_origin() -> H256 {
@@ -1725,7 +1725,7 @@ mod tests {
             let message = RewardsSendAdapter::build(&rewards_utils);
             assert!(
                 message.is_none(),
-                "Should return None when ServiceManagerAddress is zero"
+                "Should return None when DatahavenServiceManagerAddress is zero"
             );
         });
     }
@@ -1741,8 +1741,8 @@ mod tests {
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::ServiceManagerAddress(
-                        runtime_params::dynamic_params::runtime_config::ServiceManagerAddress,
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
                         Some(service_manager),
                     ),
                 ),

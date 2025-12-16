@@ -151,7 +151,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
     let whave_token_address = C::whave_token_address();
 
     if service_manager == H160::zero() {
-        log::warn!(target: LOG_TARGET, "Skipping: ServiceManagerAddress is zero");
+        log::warn!(target: LOG_TARGET, "Skipping: DatahavenServiceManagerAddress is zero");
         return None;
     }
 

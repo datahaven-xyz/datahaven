@@ -300,19 +300,6 @@ describe("Native Token Transfer", () => {
     ]);
     expect(before.erc20).toBeGreaterThanOrEqual(amount);
 
-    // Approve Gateway to pull tokens
-    const approveHash = await ethWalletClient.writeContract({
-      address: erc20Address,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [deployments!.Gateway as `0x${string}`, amount],
-      chain: null
-    });
-    const approveReceipt = await connectors.publicClient.waitForTransactionReceipt({
-      hash: approveHash
-    });
-    expect(approveReceipt.status).toBe("success");
-
     // Send tokens to DataHaven via Gateway
     const sendHash = await ethWalletClient.writeContract({
       address: deployments!.Gateway as `0x${string}`,
@@ -359,7 +346,6 @@ describe("Native Token Transfer", () => {
     expect(burnEvent).toBeDefined();
 
     // Wait for relay (takes ~2-3 min due to Ethereum finality)
-    // Note: Polkadot-API returns account as HexString directly
     await waitForDataHavenEvent<{ account: string; amount: bigint }>({
       api: connectors.dhApi,
       pallet: "DataHavenNativeTransfer",

@@ -21,19 +21,6 @@ export interface RewardsMessageSent {
   inflation: bigint;
 }
 
-// Era tracking utilities
-export async function getCurrentEra(dhApi: DataHavenApi): Promise<number> {
-  // Get the active era from ExternalValidators pallet
-  const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
-
-  // ActiveEra can be null at chain genesis
-  if (!activeEra) {
-    return 0;
-  }
-
-  return activeEra.index;
-}
-
 export function getEraLengthInBlocks(dhApi: DataHavenApi): number {
   // Read constants directly from runtime metadata
   const consts: any = (dhApi as unknown as { consts?: unknown }).consts ?? {};
@@ -43,8 +30,8 @@ export function getEraLengthInBlocks(dhApi: DataHavenApi): number {
 }
 
 export async function getBlocksUntilEraEnd(dhApi: DataHavenApi): Promise<number> {
-  const currentBlock = await dhApi.query.System.Number.getValue();
-  const eraLength = getEraLengthInBlocks(dhApi) || 10;
+  const currentBlock = (await dhApi.query.System.Number.getValue()) ?? 0;
+  const eraLength = getEraLengthInBlocks(dhApi) ?? 10;
   const mod = currentBlock % eraLength;
   return mod === 0 ? eraLength : eraLength - mod;
 }

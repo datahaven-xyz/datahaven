@@ -438,7 +438,7 @@ pub mod pallet {
         ///
         /// # Block Production Scoring
         ///
-        /// - Fair share = total_blocks / non_whitelisted_validators
+        /// - Fair share = total_blocks / total_validator_count
         /// - Soft cap allows earning credit up to (1 + FairShareCap) × fair_share
         /// - Block score = credited_blocks / fair_share (can exceed 100% with over-performance)
         /// - Example: With 50% cap and fair share of 10 blocks, producing 15 blocks → 150% score

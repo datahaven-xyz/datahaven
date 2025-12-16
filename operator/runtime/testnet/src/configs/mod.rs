@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const AuthorRewardPoints: u32 = 20;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

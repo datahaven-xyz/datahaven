@@ -151,6 +151,67 @@ parameter_types! {
     pub const TreasuryAccount: u64 = 999;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
+    // Inflation scaling parameters for tests
+    // Using 600 blocks as the expected blocks per era for test simplicity
+    // (In production: 6-second blocks, 1-hour sessions, 6 sessions = 3600 blocks per era)
+    pub const ExpectedBlocksPerEra: u32 = 600;
+    pub const MinInflationPercent: u32 = 20; // 20% minimum even with 0 blocks
+    pub const MaxInflationPercent: u32 = 100; // 100% maximum
+    // Reward split parameters: 60% block authoring, 30% liveness, 10% base
+    pub const BlockAuthoringWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(60);
+    pub const LivenessWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(30);
+    // Soft cap: validators can earn up to 150% of fair share (50% bonus)
+    pub const FairShareCap: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(50);
+    // Base points per block: 320 points added to the pool per block
+    // With 32 validators: author gets 196 pts, each non-author gets 4 pts per block
+    // Per session (600 blocks): ~6,000 pts/validator, Per era: ~36,000 pts/validator
+    pub const BasePointsPerBlock: u32 = 320;
+}
+
+pub struct MockValidatorSet;
+impl frame_support::traits::ValidatorSet<u64> for MockValidatorSet {
+    type ValidatorId = u64;
+    type ValidatorIdOf = sp_runtime::traits::ConvertInto;
+
+    fn session_index() -> sp_staking::SessionIndex {
+        0
+    }
+
+    fn validators() -> Vec<Self::ValidatorId> {
+        // Return empty vec for now - tests will populate via reward_by_ids
+        vec![]
+    }
+}
+
+/// Configurable liveness check that mirrors ImOnline behavior.
+/// A validator is considered online if:
+/// 1. They are NOT in the offline_validators list, OR
+/// 2. They have authored at least one block in the current session
+///
+/// This matches the real ImOnline pallet which considers block authorship
+/// as proof of liveness (no heartbeat needed if you authored a block).
+pub struct MockLivenessCheck;
+impl frame_support::traits::Contains<u64> for MockLivenessCheck {
+    fn contains(validator: &u64) -> bool {
+        // Check if validator authored any blocks this session
+        let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
+
+        // Validator is online if:
+        // 1. They authored blocks (proves they're online), OR
+        // 2. They're not in the offline list (sent heartbeat)
+        authored_blocks > 0 || !Mock::mock().offline_validators.contains(validator)
+    }
+}
+
+/// Configurable slashing check that reads slashed validators from mock data.
+/// Validators in the slashed_validators list (for the given era) are considered slashed.
+pub struct MockSlashingCheck;
+impl crate::SlashingCheck<u64> for MockSlashingCheck {
+    fn is_slashed(era_index: u32, validator: &u64) -> bool {
+        Mock::mock()
+            .slashed_validators
+            .contains(&(era_index, *validator))
+    }
 }
 
 impl pallet_external_validators_rewards::Config for Test {
@@ -162,6 +223,16 @@ impl pallet_external_validators_rewards::Config for Test {
     type EraInflationProvider = EraInflationProvider;
     type ExternalIndexProvider = TimestampProvider;
     type GetWhitelistedValidators = ();
+    type ValidatorSet = MockValidatorSet;
+    type LivenessCheck = MockLivenessCheck;
+    type SlashingCheck = MockSlashingCheck;
+    type BasePointsPerBlock = BasePointsPerBlock;
+    type BlockAuthoringWeight = BlockAuthoringWeight;
+    type LivenessWeight = LivenessWeight;
+    type FairShareCap = FairShareCap;
+    type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
+    type MinInflationPercent = MinInflationPercent;
+    type MaxInflationPercent = MaxInflationPercent;
     type Hashing = Keccak256;
     type SendMessage = MockOkOutboundQueue;
     type HandleInflation = InflationMinter;
@@ -226,6 +297,10 @@ pub mod mock_data {
     pub struct Mocks {
         pub active_era: Option<ActiveEraInfo>,
         pub era_inflation: Option<u128>,
+        /// Set of validators that are considered offline (for liveness testing)
+        pub offline_validators: sp_std::vec::Vec<u64>,
+        /// Set of (era_index, validator_id) pairs that are slashed
+        pub slashed_validators: sp_std::vec::Vec<(u32, u64)>,
     }
 
     #[pallet::config]

@@ -153,6 +153,37 @@ jobs:
       - run: bun install
       - name: Run E2E tests
         run: bun test:e2e
+      - name: Collect podman container logs
+        if: always()
+        run: |
+          mkdir -p tmp/podman-logs
+
+          if command -v podman &> /dev/null; then
+            echo "Collecting podman container logs..."
+            podman ps -a --format '{{.Names}}' > tmp/podman-logs/container-names.txt || true
+
+            # Dump logs for all containers; adjust filtering here if needed
+            for c in $(podman ps -a --format '{{.Names}}'); do
+              echo "Saving logs for container: $c"
+              podman logs "$c" > "tmp/podman-logs/${c}.log" || true
+            done
+
+            # Optionally include a small tail of each log in the job logs
+            for c in $(podman ps -a --format '{{.Names}}'); do
+              echo "===== Tail of logs for $c ====="
+              podman logs --tail 200 "$c" || true
+            done
+          else
+            echo "podman command not found; skipping podman log collection."
+          fi
+
+      - name: Upload podman logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: podman-logs
+          path: tmp/podman-logs
+          if-no-files-found: ignore
 
       - name: Delete volumes not used
         if: always()

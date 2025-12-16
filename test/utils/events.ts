@@ -1,5 +1,5 @@
 import { firstValueFrom } from "rxjs";
-import { take, timeout } from "rxjs/operators";
+import { filter as rxFilter, take, timeout } from "rxjs/operators";
 import type { Abi, Address, Log, PublicClient } from "viem";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
@@ -25,7 +25,8 @@ export async function waitForDataHavenEvent<T = unknown>(
   }
 
   const result = await firstValueFrom(
-    watcher.watch(filter).pipe(
+    watcher.watch().pipe(
+      rxFilter(({ payload }: { payload: T }) => (filter ? filter(payload) : true)),
       take(1),
       timeout({
         first: timeoutMs,

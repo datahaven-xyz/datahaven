@@ -18,7 +18,7 @@
   "on-demand-sync": {
     "asset-hub-channel-id": "0x0000000000000000000000000000000000000000000000000000000000000001",
     "max-tasks": 3,
-    "merge-period": 900,
-    "expired-period": 3600
+    "merge-period": 60,
+    "expired-period": 180
   }
 }

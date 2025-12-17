@@ -69,6 +69,7 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
       args,
       fromBlock,
       onLogs: (logs) => {
+        if (logs.length === 0) return;
         logger.debug(`Ethereum event ${eventName} received: ${logs.length} logs`);
         resolve(logs[0]);
       },

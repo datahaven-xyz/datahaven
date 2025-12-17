@@ -109,7 +109,7 @@ describe("Should slash an operator", () => {
       client: publicClient,
       address: serviceManager.address,
       abi: serviceManager.abi,
-      eventName: "ValidatorsSlashedTest"
+      eventName: "ValidatorsSlashedTestBis"
     });
 
     console.log(event);

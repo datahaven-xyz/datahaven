@@ -349,11 +349,11 @@ describe("Native Token Transfer", () => {
     expect(burnEvent).toBeDefined();
 
     // Wait for relay (takes ~2-3 min due to Ethereum finality)
-    await waitForDataHavenEvent<{ account: string; amount: bigint }>({
+    await waitForDataHavenEvent<{ account: any; amount: bigint }>({
       api: connectors.dhApi,
       pallet: "DataHavenNativeTransfer",
       event: "TokensUnlocked",
-      filter: (e) => e.account.toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
+      filter: (e) => String(e.account).toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
       timeout: ETH_TO_DH_TIMEOUT_MS
     });
 

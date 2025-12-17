@@ -99,7 +99,6 @@ pub mod pallet {
             BoundedVec, DefaultNoBound,
         },
         frame_system::pallet_prelude::*,
-        pallet_session::ShouldEndSession,
         sp_core::H160,
         sp_runtime::{traits::Convert, SaturatedConversion},
         sp_std::vec::Vec,
@@ -169,10 +168,6 @@ pub mod pallet {
         /// Used to award performance-based points at session end.
         /// Called from `SessionManager::end_session()`.
         type OnSessionEnd: OnSessionEnd;
-
-        /// Something that can determine if a session should end.
-        /// Used to allow other pallets to query if the current block will end the session.
-        type ShouldEndSession: pallet_session::ShouldEndSession<BlockNumberFor<Self>>;
 
         /// Authorized Ethereum origin for validator-set update messages coming via Snowbridge.
         #[pallet::constant]
@@ -450,13 +445,6 @@ pub mod pallet {
 
         pub fn whitelisted_validators() -> Vec<T::ValidatorId> {
             <WhitelistedValidators<T>>::get().into()
-        }
-
-        /// Returns true if the current block will end the session.
-        /// Useful for other pallets to cache session-specific data before session rotation
-        /// clears their dependencies (e.g., ImOnline's AuthoredBlocks).
-        pub fn is_last_block_of_session() -> bool {
-            T::ShouldEndSession::should_end_session(frame_system::Pallet::<T>::block_number())
         }
 
         pub fn active_era() -> Option<ActiveEraInfo> {

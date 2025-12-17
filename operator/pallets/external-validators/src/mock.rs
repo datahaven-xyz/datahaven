@@ -147,7 +147,6 @@ impl Config for Test {
     type OnEraStart = Mock;
     type OnEraEnd = Mock;
     type OnSessionEnd = Mock;
-    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type AuthorizedOrigin = MockAuthorizedOrigin;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]

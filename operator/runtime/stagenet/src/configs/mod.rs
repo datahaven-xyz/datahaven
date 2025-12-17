@@ -1400,7 +1400,6 @@ impl pallet_external_validators::Config for Runtime {
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type OnSessionEnd = ExternalValidatorsRewards;
-    type ShouldEndSession = Babe;
     type AuthorizedOrigin =
         runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress;
     type WeightInfo = stagenet_weights::pallet_external_validators::WeightInfo<Runtime>;
@@ -1542,7 +1541,9 @@ impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorS
 pub struct IsLastBlockOfSession;
 impl Get<bool> for IsLastBlockOfSession {
     fn get() -> bool {
-        ExternalValidators::is_last_block_of_session()
+        <Babe as pallet_session::ShouldEndSession<BlockNumber>>::should_end_session(
+            System::block_number(),
+        )
     }
 }
 

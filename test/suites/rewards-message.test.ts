@@ -87,12 +87,13 @@ describe("Rewards Message Flow", () => {
     });
   });
 
-  describe("Era Transition and Cross-Chain Message", () => {
-    it("should wait for era end and execute rewards message on Ethereum", async () => {
+  describe("Era Transition and Merkle Root Update", () => {
+    it("should wait for era end and update merkle root on Ethereum", async () => {
       // Get current era and block
-      const [currentEra, currentBlock] = await Promise.all([
+      const [currentEra, currentBlock, fromBlock] = await Promise.all([
         dhApi.query.ExternalValidators.ActiveEra.getValue(),
-        dhApi.query.System.Number.getValue()
+        dhApi.query.System.Number.getValue(),
+        publicClient.getBlockNumber()
       ]);
 
       // Calculate era end block
@@ -120,69 +121,37 @@ describe("Rewards Message Flow", () => {
       eraIndex = payload.era_index;
       expect(totalPoints).toBeGreaterThan(0n);
 
-      const fromBlock = await publicClient.getBlockNumber();
-      const messageExecutedEvent = await waitForEthereumEvent({
+      // Wait for RewardsMerkleRootUpdated
+      const expectedRoot: Hex = padHex(merkleRoot, { size: 32 });
+      const rootUpdatedEvent = await waitForEthereumEvent({
         client: publicClient,
-        address: gateway.address,
-        abi: gateway.abi,
-        eventName: "MessageExecuted",
+        address: rewardsRegistry.address,
+        abi: rewardsRegistry.abi,
+        eventName: "RewardsMerkleRootUpdated",
+        args: { newRoot: expectedRoot },
         fromBlock,
         timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
       });
 
-      expect(messageExecutedEvent).toBeDefined();
-      logger.success(`Message executed on Ethereum (block ${messageExecutedEvent.blockNumber})`);
+      const rootDecoded = decodeEventLog({
+        abi: rewardsRegistry.abi,
+        data: rootUpdatedEvent.data,
+        topics: rootUpdatedEvent.topics
+      }) as { args: { oldRoot: Hex; newRoot: Hex; newRootIndex: bigint } };
+
+      // Store the new root index for claiming tests
+      newRootIndex = rootDecoded.args.newRootIndex;
+
+      // Verify the stored root matches
+      const storedRoot: Hex = (await publicClient.readContract({
+        address: rewardsRegistry.address,
+        abi: rewardsRegistry.abi,
+        functionName: "merkleRootHistory",
+        args: [newRootIndex]
+      })) as Hex;
+
+      expect(storedRoot.toLowerCase()).toEqual(expectedRoot.toLowerCase());
     });
-  });
-
-  describe("Merkle Root Update", () => {
-    it(
-      "should update RewardsRegistry with new merkle root",
-      async () => {
-        const expectedRoot: Hex = padHex(merkleRoot, { size: 32 });
-        const fromBlock = await publicClient.getBlockNumber();
-
-        logger.info("⏳ Waiting for merkle root update in RewardsRegistry...");
-
-        const rootUpdatedEvent = await waitForEthereumEvent({
-          client: publicClient,
-          address: rewardsRegistry.address,
-          abi: rewardsRegistry.abi,
-          eventName: "RewardsMerkleRootUpdated",
-          args: { newRoot: expectedRoot },
-          fromBlock,
-          timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-        });
-
-        const rootLog = rootUpdatedEvent;
-        const rootDecoded = decodeEventLog({
-          abi: rewardsRegistry.abi,
-          data: rootLog.data,
-          topics: rootLog.topics
-        }) as { args: { oldRoot: Hex; newRoot: Hex; newRootIndex: bigint } };
-        const updateArgs = rootDecoded.args;
-
-        // Store the new root index for claiming tests
-        newRootIndex = updateArgs.newRootIndex;
-
-        logger.success("Merkle root updated:");
-        logger.info(`  Index: ${updateArgs.newRootIndex}`);
-        logger.info(`  Old root: ${updateArgs.oldRoot}`);
-        logger.info(`  New root: ${updateArgs.newRoot}`);
-
-        // Verify the stored root matches the expected root
-        const storedRoot: Hex = (await publicClient.readContract({
-          address: rewardsRegistry.address,
-          abi: rewardsRegistry.abi,
-          functionName: "merkleRootHistory",
-          args: [updateArgs.newRootIndex]
-        })) as Hex;
-
-        expect(storedRoot.toLowerCase()).toEqual(updateArgs.newRoot.toLowerCase());
-        expect(storedRoot.toLowerCase()).toEqual(expectedRoot.toLowerCase());
-      },
-      CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-    );
   });
 
   describe("Merkle Proof Generation", () => {

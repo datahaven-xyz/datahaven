@@ -17,6 +17,7 @@
 use {
     super::*,
     crate as pallet_external_validators,
+    crate::traits::OnSessionEnd,
     frame_support::{
         assert_ok, ord_parameter_types, parameter_types,
         traits::{
@@ -145,6 +146,8 @@ impl Config for Test {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = Mock;
     type OnEraEnd = Mock;
+    type OnSessionEnd = Mock;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type AuthorizedOrigin = MockAuthorizedOrigin;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
@@ -255,7 +258,10 @@ pub struct Mocks {
 
 // We use the mock_data pallet to test hooks: we store a list of all the calls, and then check that
 // no eras are skipped.
-impl<T> OnEraStart for mock_data::Pallet<T> {
+impl<T> OnEraStart for mock_data::Pallet<T>
+where
+    T: mock_data::Config,
+{
     fn on_era_start(era_index: EraIndex, session_start: u32, external_idx: u64) {
         Mock::mutate(|m| {
             m.called_hooks.push(HookCall::OnEraStart {
@@ -272,6 +278,12 @@ impl<T> OnEraEnd for mock_data::Pallet<T> {
         Mock::mutate(|m| {
             m.called_hooks.push(HookCall::OnEraEnd { era: era_index });
         });
+    }
+}
+
+impl<T> OnSessionEnd for mock_data::Pallet<T> {
+    fn on_session_end(_session_index: sp_staking::SessionIndex) {
+        // No-op for tests, just verify the callback is called
     }
 }
 

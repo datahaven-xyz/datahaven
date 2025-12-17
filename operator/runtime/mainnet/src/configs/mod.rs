@@ -379,11 +379,8 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    // Wrap the session manager with performance tracking to implement 50/30/20 formula
-    type SessionManager = pallet_external_validators_rewards::SessionPerformanceManager<
-        Runtime,
-        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>,
-    >;
+    type SessionManager =
+        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -1406,6 +1403,8 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
+    type OnSessionEnd = ExternalValidatorsRewards;
+    type ShouldEndSession = Babe;
     type AuthorizedOrigin =
         runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress;
     type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
@@ -1542,6 +1541,15 @@ impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorS
     }
 }
 
+/// Wrapper to check if the current block is the last block of the session.
+/// Used by ExternalValidatorsRewards to cache liveness data before ImOnline clears it.
+pub struct IsLastBlockOfSession;
+impl Get<bool> for IsLastBlockOfSession {
+    fn get() -> bool {
+        ExternalValidators::is_last_block_of_session()
+    }
+}
+
 parameter_types! {
     /// Expected number of blocks per era for inflation scaling.
     /// Computed as SessionsPerEra × EpochDurationInBlocks to ensure consistency.
@@ -1587,6 +1595,7 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
     type WeightInfo = mainnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
+    type IsLastBlockOfSession = IsLastBlockOfSession;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }

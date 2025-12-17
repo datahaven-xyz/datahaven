@@ -43,7 +43,7 @@ use {
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
     traits::{
         ActiveEraInfo, EraIndex, EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider,
-        OnEraEnd, OnEraStart, ValidatorProvider,
+        OnEraEnd, OnEraStart, OnSessionEnd, ValidatorProvider,
     },
 };
 
@@ -99,6 +99,7 @@ pub mod pallet {
             BoundedVec, DefaultNoBound,
         },
         frame_system::pallet_prelude::*,
+        pallet_session::ShouldEndSession,
         sp_core::H160,
         sp_runtime::{traits::Convert, SaturatedConversion},
         sp_std::vec::Vec,
@@ -163,6 +164,15 @@ pub mod pallet {
 
         type OnEraStart: OnEraStart;
         type OnEraEnd: OnEraEnd;
+
+        /// Callback invoked when a session ends.
+        /// Used to award performance-based points at session end.
+        /// Called from `SessionManager::end_session()`.
+        type OnSessionEnd: OnSessionEnd;
+
+        /// Something that can determine if a session should end.
+        /// Used to allow other pallets to query if the current block will end the session.
+        type ShouldEndSession: pallet_session::ShouldEndSession<BlockNumberFor<Self>>;
 
         /// Authorized Ethereum origin for validator-set update messages coming via Snowbridge.
         #[pallet::constant]
@@ -442,6 +452,13 @@ pub mod pallet {
             <WhitelistedValidators<T>>::get().into()
         }
 
+        /// Returns true if the current block will end the session.
+        /// Useful for other pallets to cache session-specific data before session rotation
+        /// clears their dependencies (e.g., ImOnline's AuthoredBlocks).
+        pub fn is_last_block_of_session() -> bool {
+            T::ShouldEndSession::should_end_session(frame_system::Pallet::<T>::block_number())
+        }
+
         pub fn active_era() -> Option<ActiveEraInfo> {
             <ActiveEra<T>>::get()
         }
@@ -687,6 +704,8 @@ impl<T: Config> pallet_session::SessionManager<T::ValidatorId> for Pallet<T> {
     }
     fn end_session(end_index: SessionIndex) {
         log!(log::Level::Trace, "ending session {}", end_index);
+        // Call OnSessionEnd callback for performance-based rewards
+        T::OnSessionEnd::on_session_end(end_index);
         Self::end_session(end_index)
     }
 }

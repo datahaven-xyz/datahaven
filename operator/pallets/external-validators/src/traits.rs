@@ -74,6 +74,22 @@ impl OnEraEnd for Tuple {
     }
 }
 
+/// Called when a session is about to end.
+/// Implementors can use this to perform session-end logic such as awarding performance points.
+///
+/// This is called from `SessionHandler::on_before_session_ending()` which runs before
+/// other session handlers (like ImOnline) clear their per-session data.
+pub trait OnSessionEnd {
+    fn on_session_end(_session_index: sp_staking::SessionIndex) {}
+}
+
+#[impl_trait_for_tuples::impl_for_tuples(5)]
+impl OnSessionEnd for Tuple {
+    fn on_session_end(session_index: sp_staking::SessionIndex) {
+        for_tuples!( #( Tuple::on_session_end(session_index); )* );
+    }
+}
+
 // A trait to retrieve the external index provider identifying some set of data
 // In starlight, used to retrieve the external index associated to validators
 #[allow(dead_code)]

@@ -19,7 +19,7 @@ use {
     crate::types::HandleInflation,
     frame_support::{
         parameter_types,
-        traits::{fungible::Mutate, ConstU32, ConstU64},
+        traits::{fungible::Mutate, ConstU32, ConstU64, Contains},
     },
     pallet_balances::AccountData,
     pallet_external_validators::traits::ExternalIndexProvider,
@@ -214,6 +214,38 @@ impl crate::SlashingCheck<u64> for MockSlashingCheck {
     }
 }
 
+/// Mock for IsLastBlockOfSession - always returns false in tests.
+/// Tests should manually populate SessionLivenessCache using populate_liveness_cache().
+pub struct MockIsLastBlockOfSession;
+impl frame_support::traits::Get<bool> for MockIsLastBlockOfSession {
+    fn get() -> bool {
+        false
+    }
+}
+
+/// Helper function to populate the liveness cache for tests.
+/// Call this before award_session_performance_points to simulate what on_initialize does.
+pub fn populate_liveness_cache(validators: &[u64]) {
+    for validator in validators {
+        let is_online = MockLivenessCheck::contains(validator);
+        crate::SessionLivenessCache::<Test>::insert(validator, is_online);
+    }
+}
+
+/// Test helper that simulates the full session end flow:
+/// 1. Populates liveness cache (simulating on_initialize)
+/// 2. Awards session performance points
+/// This matches production behavior where on_initialize caches liveness
+/// before award_session_performance_points is called.
+pub fn award_session_performance_points_for_test(
+    session_index: u32,
+    validators: Vec<u64>,
+    whitelisted: Vec<u64>,
+) {
+    populate_liveness_cache(&validators);
+    ExternalValidatorsRewards::award_session_performance_points(session_index, validators, whitelisted);
+}
+
 impl pallet_external_validators_rewards::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = mock_data::Pallet<Test>;
@@ -239,6 +271,7 @@ impl pallet_external_validators_rewards::Config for Test {
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = RewardsEthereumSovereignAccount;
     type WeightInfo = ();
+    type IsLastBlockOfSession = MockIsLastBlockOfSession;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }

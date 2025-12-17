@@ -14,11 +14,6 @@ import validatorSet from "../configs/validator-set.json";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
 
-const toHex = (x: unknown): `0x${string}` => {
-  const anyX = x as { asHex?: () => string };
-  return (anyX?.asHex?.() ?? `0x${x}`) as `0x${string}`;
-};
-
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
     super({
@@ -199,7 +194,7 @@ describe("Rewards Message Flow", () => {
             BigInt(points),
             BigInt(merkleProof.number_of_leaves),
             BigInt(merkleProof.leaf_index),
-            merkleProof.proof.map(toHex) as readonly Hex[]
+            merkleProof.proof.map((node: { asHex: () => string }) => node.asHex()) as readonly Hex[]
           ]
         });
 

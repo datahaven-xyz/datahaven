@@ -16,7 +16,12 @@ import {
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
-import * as rewardsHelpers from "../utils/rewards-helpers";
+import {
+  generateMerkleProofsForEra,
+  getEraRewardPoints,
+  getValidatorCredentials,
+  type ValidatorProofData
+} from "../utils/rewards-helpers";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -40,10 +45,9 @@ let eraIndex!: number;
 let merkleRoot!: Hex;
 let totalPoints!: bigint;
 let newRootIndex!: bigint;
-let validatorProofs!: Map<string, rewardsHelpers.ValidatorProofData>;
 // Persisted state from first successful claim for double-claim test
 let claimedOperatorAddress!: Address;
-let claimedProofData!: rewardsHelpers.ValidatorProofData;
+let claimedProofData!: ValidatorProofData;
 let firstClaimGasUsed!: bigint;
 let firstClaimBlockNumber!: bigint;
 
@@ -102,7 +106,7 @@ describe("Rewards Message Flow", () => {
       const eraLength = sessionsPerEra * blocksPerSession;
       const eraEndBlock = Math.ceil((currentBlock + 1) / eraLength) * eraLength;
 
-      logger.info(`Waiting for era ${currentEra?.index} to end at block ${eraEndBlock}`);
+      logger.debug(`Waiting for era ${currentEra?.index} to end at block ${eraEndBlock}`);
 
       // Wait for era end block
       const eraEndBlockInfo = await firstValueFrom(
@@ -154,37 +158,6 @@ describe("Rewards Message Flow", () => {
     });
   });
 
-  describe("Merkle Proof Generation", () => {
-    it("should generate valid merkle proofs for all validators", async () => {
-      logger.info(`📊 Generating merkle proofs for era ${eraIndex}...`);
-
-      // Get era reward points and generate proofs in parallel
-      const [eraPoints, proofMap] = await Promise.all([
-        rewardsHelpers.getEraRewardPoints(dhApi, eraIndex),
-        rewardsHelpers.generateMerkleProofsForEra(dhApi, eraIndex)
-      ]);
-
-      expect(eraPoints).toBeDefined();
-      if (!eraPoints) throw new Error("Expected era points to be defined");
-      expect(eraPoints.total > 0).toBe(true);
-      expect(proofMap.size > 0).toBe(true);
-
-      // Store proofs for claiming tests
-      validatorProofs = proofMap;
-
-      logger.success("Generated merkle proofs");
-
-      // Validate proof data structure (spot check)
-      const firstProofMaybe = validatorProofs.values().next().value;
-      expect(firstProofMaybe).toBeDefined();
-      if (!firstProofMaybe) throw new Error("Expected first proof to be defined");
-      const firstProof = firstProofMaybe;
-      expect(firstProof.proof).toBeDefined();
-      expect(firstProof.points > 0).toBe(true);
-      expect(firstProof.numberOfLeaves > 0).toBe(true);
-    });
-  });
-
   describe("Rewards Claiming", () => {
     it("should fund RewardsRegistry for payouts", async () => {
       logger.info("💰 Funding RewardsRegistry for reward payouts...");
@@ -217,25 +190,21 @@ describe("Rewards Message Flow", () => {
     it(
       "should successfully claim rewards for validator",
       async () => {
-        logger.info("🎯 Claiming rewards for validator...");
+        // Generate merkle proofs for the era
+        const [eraPoints, proofMap] = await Promise.all([
+          getEraRewardPoints(dhApi, eraIndex),
+          generateMerkleProofsForEra(dhApi, eraIndex)
+        ]);
 
-        // Ensure prerequisites
-        expect(validatorProofs).toBeDefined();
-        expect(newRootIndex).toBeDefined();
-        if (newRootIndex === undefined) {
-          throw new Error("Merkle root not updated yet; cannot claim rewards");
-        }
+        expect(eraPoints.total).toBeGreaterThan(0);
+        expect(proofMap.size).toBeGreaterThan(0);
 
         // Select first validator to claim
-        const firstEntry = validatorProofs.entries().next();
-        expect(firstEntry.value).toBeDefined();
-        if (!firstEntry.value) throw new Error("Expected entry to be defined");
-        const entry = firstEntry.value;
-        const [, proofData] = entry;
+        const [, proofData] = proofMap.entries().next().value!;
 
         // Get validator credentials and create operator wallet
         const factory = suite.getConnectorFactory();
-        const credentials = rewardsHelpers.getValidatorCredentials(proofData.validatorAccount);
+        const credentials = getValidatorCredentials(proofData.validatorAccount);
         expect(credentials.privateKey).toBeDefined();
         if (!credentials.privateKey) throw new Error("missing validator private key");
         const operatorWallet = factory.createWalletClient(credentials.privateKey as `0x${string}`);
@@ -338,7 +307,7 @@ describe("Rewards Message Flow", () => {
         if (newRootIndex === undefined) throw new Error("Merkle root not updated yet");
 
         const factory = suite.getConnectorFactory();
-        const credentials = rewardsHelpers.getValidatorCredentials(
+        const credentials = getValidatorCredentials(
           claimedProofData.validatorAccount
         );
         if (!credentials.privateKey) throw new Error("missing validator private key");

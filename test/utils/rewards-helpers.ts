@@ -1,25 +1,12 @@
 import validatorSet from "../configs/validator-set.json";
-import { waitForDataHavenEvent } from "./events";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
 
-// Small hex helper
 const toHex = (x: unknown): `0x${string}` => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anyX: any = x as any;
-  if (anyX?.asHex) return anyX.asHex();
-  const s = anyX?.toString?.() ?? "";
-  return `0x${s}` as `0x${string}`;
+  const anyX = x as { asHex?: () => string; toString?: () => string };
+  if (anyX?.asHex) return anyX.asHex() as `0x${string}`;
+  return `0x${anyX?.toString?.() ?? ""}` as `0x${string}`;
 };
-
-// External Validators Rewards Events (normalized)
-export interface RewardsMessageSent {
-  messageId: `0x${string}`;
-  merkleRoot: `0x${string}`;
-  eraIndex: number;
-  totalPoints: bigint;
-  inflation: bigint;
-}
 
 export interface EraRewardPoints {
   total: number;
@@ -29,29 +16,23 @@ export interface EraRewardPoints {
 export async function getEraRewardPoints(
   dhApi: DataHavenApi,
   eraIndex: number
-): Promise<EraRewardPoints | null> {
-  try {
-    const rewardPoints =
-      await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
+): Promise<EraRewardPoints> {
+  const rewardPoints =
+    await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
 
-    if (!rewardPoints) {
-      return null;
-    }
-
-    // Convert the storage format to our interface
-    const individual = new Map<string, number>();
-    for (const [account, points] of rewardPoints.individual) {
-      individual.set(account.toString(), points);
-    }
-
-    return {
-      total: rewardPoints.total,
-      individual
-    };
-  } catch (error) {
-    logger.error(`Failed to get era reward points for era ${eraIndex}: ${error}`);
-    return null;
+  if (!rewardPoints) {
+    throw new Error(`No reward points found for era ${eraIndex}`);
   }
+
+  return {
+    total: rewardPoints.total,
+    individual: new Map(
+      rewardPoints.individual.map(([account, points]: [unknown, number]) => [
+        String(account),
+        points
+      ])
+    )
+  };
 }
 
 // Merkle proof generation using DataHaven runtime API
@@ -140,12 +121,7 @@ export async function generateMerkleProofsForEra(
   dhApi: DataHavenApi,
   eraIndex: number
 ): Promise<Map<string, ValidatorProofData>> {
-  // Get era reward points
   const eraPoints = await getEraRewardPoints(dhApi, eraIndex);
-  if (!eraPoints) {
-    logger.warn(`No reward points found for era ${eraIndex}`);
-    return new Map();
-  }
 
   const entries = await Promise.all(
     [...eraPoints.individual].map(async ([validatorAccount, points]) => {

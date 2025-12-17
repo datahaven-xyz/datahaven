@@ -16,6 +16,7 @@ import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
+  CROSS_CHAIN_TIMEOUTS,
   getPapiSigner,
   logger,
   parseDeploymentsFile,
@@ -33,12 +34,6 @@ import type { TestConnectors } from "../framework/connectors";
 const ETHEREUM_SOVEREIGN_ACCOUNT = "0xd8030FB68Aa5B447caec066f3C0BdE23E6db0a05";
 const NATIVE_TOKEN_ID =
   "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
-
-// Cross-chain operation timeouts
-// DH → ETH: ~17-30s ideal (DH block + BEEFY finality + relay poll + ETH tx)
-// ETH → DH: ~2-3 min ideal (ETH block + beacon finality ~2min + relay poll + DH block)
-const DH_TO_ETH_TIMEOUT_MS = 3 * 60 * 1000;   // 3 minutes (conservative)
-const ETH_TO_DH_TIMEOUT_MS = 6 * 60 * 1000;   // 6 minutes (Ethereum finality dominates)
 
 interface ForeignTokenRegisteredEvent {
   tokenID: string;
@@ -156,7 +151,7 @@ describe("Native Token Transfer", () => {
         address: deployments!.Gateway,
         abi: gatewayAbi,
         eventName: "ForeignTokenRegistered",
-        timeout: DH_TO_ETH_TIMEOUT_MS
+        timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
       }),
       sudoTx.signAndSubmit(alithSigner)
     ]);
@@ -191,7 +186,7 @@ describe("Native Token Transfer", () => {
     expect(name).toBe("HAVE");
     expect(symbol).toBe("wHAVE");
     expect(decimals).toBe(18);
-  }, DH_TO_ETH_TIMEOUT_MS);
+  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS);
 
   it("should transfer tokens from DataHaven to Ethereum", async () => {
     const connectors = suite.getTestConnectors();
@@ -227,7 +222,7 @@ describe("Native Token Transfer", () => {
         eventName: "Transfer",
         args: { from: ZERO_ADDRESS, to: recipient },
         fromBlock: startBlock > 0n ? startBlock - 1n : startBlock,
-        timeout: DH_TO_ETH_TIMEOUT_MS
+        timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
       }),
       tx.signAndSubmit(alithSigner)
     ]);
@@ -256,7 +251,7 @@ describe("Native Token Transfer", () => {
       sovereign: amount,
       erc20: amount
     });
-  }, DH_TO_ETH_TIMEOUT_MS);
+  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS);
 
   it("should maintain 1:1 backing ratio", async () => {
     const connectors = suite.getTestConnectors();
@@ -354,7 +349,7 @@ describe("Native Token Transfer", () => {
       pallet: "DataHavenNativeTransfer",
       event: "TokensUnlocked",
       filter: (e) => String(e.account).toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
-      timeout: ETH_TO_DH_TIMEOUT_MS
+      timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
     });
 
     // Final balances
@@ -378,5 +373,5 @@ describe("Native Token Transfer", () => {
       dhExact: amount, // recipient gets exactly amount
       sovereign: -amount // sovereign decreases by amount (unlocked)
     });
-  }, DH_TO_ETH_TIMEOUT_MS + ETH_TO_DH_TIMEOUT_MS); // includes funding (DH→ETH) + transfer (ETH→DH)
+  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS + CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS); // includes funding (DH→ETH) + transfer (ETH→DH)
 });

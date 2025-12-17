@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import type { PolkadotClient } from "polkadot-api";
 import { firstValueFrom } from "rxjs";
 import { filter } from "rxjs/operators";
-import { logger } from "utils";
+import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import {
   type Address,
   BaseError,
@@ -17,17 +17,6 @@ import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
 import * as rewardsHelpers from "../utils/rewards-helpers";
-
-// Test configuration constants
-const TEST_CONFIG = {
-  TIMEOUTS: {
-    ERA_END_WAIT: 600000, // 10 minutes
-    MESSAGE_EXECUTION: 120000, // 2 minutes
-    ROOT_UPDATE: 180000, // 3 minutes
-    CLAIM_EVENT: 30000, // 30 seconds
-    OVERALL_TEST: 900000 // 15 minutes
-  }
-} as const;
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -98,81 +87,52 @@ describe("Rewards Message Flow", () => {
     });
   });
 
-  describe("Era Transition and Message Emission", () => {
-    it(
-      "should wait for era end and capture rewards message",
-      async () => {
-        const [currentEra, currentBlock] = await Promise.all([
-          dhApi.query.ExternalValidators.ActiveEra.getValue(),
-          dhApi.query.System.Number.getValue()
-        ]);
+  describe("Era Transition and Cross-Chain Message", () => {
+    it("should wait for era end and execute rewards message on Ethereum", async () => {
+      // Get current era and block
+      const [currentEra, currentBlock] = await Promise.all([
+        dhApi.query.ExternalValidators.ActiveEra.getValue(),
+        dhApi.query.System.Number.getValue()
+      ]);
 
-        // Calculate era end block: era length is fixed (sessionsPerEra * blocksPerSession)
-        const sessionsPerEra = Number(dhApi.constants.ExternalValidators.SessionsPerEra);
-        const blocksPerSession = Number(dhApi.constants.Babe.EpochDuration);
-        const eraLength = sessionsPerEra * blocksPerSession;
-        const eraEndBlock = Math.ceil((currentBlock + 1) / eraLength) * eraLength;
+      // Calculate era end block
+      const sessionsPerEra = Number(dhApi.constants.ExternalValidators.SessionsPerEra);
+      const blocksPerSession = Number(dhApi.constants.Babe.EpochDuration);
+      const eraLength = sessionsPerEra * blocksPerSession;
+      const eraEndBlock = Math.ceil((currentBlock + 1) / eraLength) * eraLength;
 
-        logger.info(
-          `Waiting for era ${currentEra?.index} to end at block ${eraEndBlock}`
-        );
+      logger.info(`Waiting for era ${currentEra?.index} to end at block ${eraEndBlock}`);
 
-        // Subscribe to finalized blocks and wait for the era end block
-        const eraEndBlockInfo = await firstValueFrom(
-          papiClient.finalizedBlock$.pipe(filter((block) => block.number === eraEndBlock))
-        );
+      // Wait for era end block
+      const eraEndBlockInfo = await firstValueFrom(
+        papiClient.finalizedBlock$.pipe(filter((block) => block.number === eraEndBlock))
+      );
 
-        // Fetch events and find the RewardsMessageSent event
-        const events = await dhApi.query.System.Events.getValue({ at: eraEndBlockInfo.hash });
-        const payload = events.find(
-          (e: any) => e.type === "ExternalValidatorsRewards" && e.value?.type === "RewardsMessageSent"
-        )?.value?.value;
+      // Fetch RewardsMessageSent event from era end block
+      const events = await dhApi.query.System.Events.getValue({ at: eraEndBlockInfo.hash });
+      const payload = events.find(
+        (e: any) => e.type === "ExternalValidatorsRewards" && e.value?.type === "RewardsMessageSent"
+      )?.value?.value;
 
-        expect(payload).toBeDefined();
-        merkleRoot = payload.rewards_merkle_root.asHex() as Hex;
-        totalPoints = payload.total_points;
-        eraIndex = payload.era_index;
+      expect(payload).toBeDefined();
+      merkleRoot = payload.rewards_merkle_root.asHex() as Hex;
+      totalPoints = payload.total_points;
+      eraIndex = payload.era_index;
+      expect(totalPoints).toBeGreaterThan(0n);
 
-        expect(totalPoints).toBeGreaterThan(0n);
+      const fromBlock = await publicClient.getBlockNumber();
+      const messageExecutedEvent = await waitForEthereumEvent({
+        client: publicClient,
+        address: gateway.address,
+        abi: gateway.abi,
+        eventName: "MessageExecuted",
+        fromBlock,
+        timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
+      });
 
-        logger.success(`Rewards message emitted for era ${eraIndex}`);
-      },
-      TEST_CONFIG.TIMEOUTS.ERA_END_WAIT
-    );
-  });
-
-  describe("Cross-Chain Message Execution", () => {
-    it(
-      "should execute rewards message on Ethereum via Gateway",
-      async () => {
-        logger.info("⏳ Waiting for message execution on Gateway...");
-
-        // Start watching from current block to avoid matching historical events
-        const fromBlock = await publicClient.getBlockNumber();
-
-        const executedEvent = await waitForEthereumEvent({
-          client: publicClient,
-          address: gateway.address,
-          abi: gateway.abi,
-          eventName: "MessageExecuted",
-          fromBlock,
-          timeout: TEST_CONFIG.TIMEOUTS.MESSAGE_EXECUTION
-        });
-
-        const log = executedEvent;
-        const _decoded = decodeEventLog({
-          abi: gateway.abi,
-          data: log.data,
-          topics: log.topics,
-          eventName: "MessageExecuted"
-        }) as any;
-
-        logger.success("Message executed on Ethereum:");
-        logger.info(`  Block: ${log.blockNumber}`);
-        logger.info(`  Transaction: ${log.transactionHash}`);
-      },
-      TEST_CONFIG.TIMEOUTS.MESSAGE_EXECUTION
-    );
+      expect(messageExecutedEvent).toBeDefined();
+      logger.success(`Message executed on Ethereum (block ${messageExecutedEvent.blockNumber})`);
+    });
   });
 
   describe("Merkle Root Update", () => {
@@ -191,7 +151,7 @@ describe("Rewards Message Flow", () => {
           eventName: "RewardsMerkleRootUpdated",
           args: { newRoot: expectedRoot },
           fromBlock,
-          timeout: TEST_CONFIG.TIMEOUTS.ROOT_UPDATE
+          timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
         });
 
         const rootLog = rootUpdatedEvent;
@@ -221,7 +181,7 @@ describe("Rewards Message Flow", () => {
         expect(storedRoot.toLowerCase()).toEqual(updateArgs.newRoot.toLowerCase());
         expect(storedRoot.toLowerCase()).toEqual(expectedRoot.toLowerCase());
       },
-      TEST_CONFIG.TIMEOUTS.ROOT_UPDATE
+      CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
     );
   });
 
@@ -350,7 +310,7 @@ describe("Rewards Message Flow", () => {
           abi: rewardsRegistry.abi,
           eventName: "RewardsClaimedForIndex",
           fromBlock: claimReceipt.blockNumber - 1n,
-          timeout: TEST_CONFIG.TIMEOUTS.CLAIM_EVENT
+          timeout: CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
         });
 
         expect(claimEvent).toBeDefined();
@@ -395,7 +355,7 @@ describe("Rewards Message Flow", () => {
         expect(BigInt(adjustedIncrease)).toEqual(claimArgs.rewardsAmount);
         expect(claimArgs.rewardsAmount).toEqual(BigInt(proofData.points));
       },
-      TEST_CONFIG.TIMEOUTS.CLAIM_EVENT
+      CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
     );
 
     it(
@@ -494,7 +454,7 @@ describe("Rewards Message Flow", () => {
           "Double-claim prevention verified (on-chain revert and correct custom error)"
         );
       },
-      TEST_CONFIG.TIMEOUTS.CLAIM_EVENT
+      CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
     );
   });
 });

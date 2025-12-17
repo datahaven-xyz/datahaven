@@ -56,6 +56,40 @@ export const CONTAINER_NAMES = {
   "blockscout-fe": "blockscout-frontend--"
 } as const;
 
+/**
+ * Cross-chain timing breakdown (E2E config: 2s ETH slots, fast-runtime DH)
+ *
+ * DH → ETH (typical: 30–120s, timeout: 3 min)
+ * ─────────────────────────────────────────────
+ * 1. Message queued in outbound-queue           → instant
+ * 2. Block finalized (GRANDPA)                  → ~6s (1 DH block)
+ * 3. Wait for next BEEFY commitment             → 0–48s
+ *    - min_block_delta = 8 blocks × 6s = 48s max
+ * 4. BEEFY relay picks up commitment            → ~6s (session-bound scanning)
+ * 5. BeefyClient.randaoCommitDelay wait         → ~8s (4 ETH blocks × 2s)
+ * 6. Submit BEEFY proof to Ethereum             → ~4s (2 blocks for tx inclusion)
+ * 7. Solochain relay submits message proof      → ~4s (tx inclusion + polling)
+ * Total: ~30s best case, ~90s typical, up to 120s with variance
+ *
+ * ETH → DH (typical: 2–4 min, timeout: 6 min)
+ * ─────────────────────────────────────────────
+ * 1. Transaction included in ETH block          → ~4s (2 blocks)
+ * 2. Wait for beacon finality                   → ~128s (64 slots × 2s)
+ * 3. Beacon relay updates light client          → 0–60s
+ *    - updateSlotInterval = 30 slots × 2s = 60s cadence
+ * 4. Execution relay polls for messages         → ~10s
+ * 5. Message submitted to DataHaven             → ~6s (1 DH block)
+ * Total: ~150s best case, ~210s typical, up to 300s with variance
+ */
+export const CROSS_CHAIN_TIMEOUTS = {
+  /** DH → ETH message relay (3 min conservative) */
+  DH_TO_ETH_MS: 3 * 60 * 1000,
+  /** ETH → DH message relay (6 min conservative, beacon finality dominates) */
+  ETH_TO_DH_MS: 6 * 60 * 1000,
+  /** On-chain event confirmation (30s) */
+  EVENT_CONFIRMATION_MS: 30 * 1000
+} as const;
+
 export const SUBSTRATE_FUNDED_ACCOUNTS = {
   ALITH: {
     publicKey: "0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac",

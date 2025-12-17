@@ -44,7 +44,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
     event ValidatorsSlashedTest();
-    event ValidatorsSlashedTest(address);
+    event ValidatorsSlashedTestBis(address);
 
     IGatewayV2 private _snowbridgeGateway;
 
@@ -297,16 +297,28 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     function slashValidatorsOperator(address[] calldata operators) external {
-        emit ValidatorsSlashedTest(operators[0]);
-    
-        _allocationManager.getAllocatedSets(operators[0]);
-
-        // _allocationManager.slashOperator(address(this), slashingParams);
-    }
-
-    function slashValidatorsOperator() external {
-        emit ValidatorsSlashedTest();
+        for(uint i=0; i<operators.length; i++){
+            emit ValidatorsSlashedTestBis(operators[i]);
         
-        // _allocationManager.slashOperator(address(this), slashingParams);
+            uint256[] memory wadsToSlash = new uint256[](3);
+            wadsToSlash[0] = 1e16;
+            wadsToSlash[1] = 1e16;
+            wadsToSlash[2] = 1e16;
+            string memory description = "Test slashing by non-ServiceManager";
+
+            OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+            IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
+
+            IAllocationManagerTypes.SlashingParams memory slashingParams = IAllocationManagerTypes.SlashingParams({
+                operator: operators[i],
+                operatorSetId: VALIDATORS_SET_ID,
+                strategies: strategies,
+                wadsToSlash: wadsToSlash,
+                description: description
+            });
+
+            _allocationManager.slashOperator(address(this), slashingParams);
+        }
     }
+
 }

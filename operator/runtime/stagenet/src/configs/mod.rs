@@ -1686,12 +1686,34 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
         let mut calldata = Vec::new();
         calldata.extend_from_slice(&selector);
 
+        // Example of an array of addresses encoded
+        // 0000000000000000000000000000000000000000000000000000000000000020
+        // 0000000000000000000000000000000000000000000000000000000000000001
+        // 000000000000000000000000809d550fca64d94bd9f66e60752a544199cfac3d
+
+        let mut offset: [u8; 32] = [0_u8; 32];
+        offset[31] = 0x20;
+        calldata.extend_from_slice(&offset);
+
+        let mut length: [u8; 32] = [0_u8; 32];
+        // The limit of slashes that can be covered by era is 100, so taking this encoding shortcut works
+        if slashes_utils.len() < 255 {
+            length[31] = slashes_utils.len() as u8;
+        } else {
+            log::error!(
+                target: "slashes_send_adapter",
+                "Fail to encode the addresses (too many operators too slash)"
+            );
+            return None;
+        }
+        calldata.extend_from_slice(&length);
+
         // Extend with operator address to slash
-        // for slash_operator in slashes_utils.into_iter() {
-        //     let mut operator_address = [0_u8; 32];
-        //     operator_address.copy_from_slice(&slash_operator.validator.0);
-        //     calldata.extend_from_slice(&operator_address);
-        // }
+        for slash_operator in slashes_utils.into_iter() {
+            let mut operator_address = [0_u8; 32];
+            operator_address.copy_from_slice(&slash_operator.validator.0);
+            calldata.extend_from_slice(&operator_address);
+        }
 
         let command = Command::CallContract {
             target:

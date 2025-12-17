@@ -21,7 +21,8 @@ import {
   isValidatorRunning,
   launchDatahavenValidator,
   logger,
-  parseDeploymentsFile
+  parseDeploymentsFile,
+  ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { waitForDataHavenStorageContains } from "utils/storage";
@@ -85,68 +86,42 @@ describe("Validator Set Update", () => {
     deployments = await parseDeploymentsFile();
   });
 
-  it("should verify validators are running", async () => {
+  it("should verify test environment", async () => {
     const networkId = suite.getNetworkId();
+    const { publicClient, papiClient } = suite.getTestConnectors();
+
+    // Validators running
     expect(await isValidatorRunning("alice", networkId)).toBe(true);
     expect(await isValidatorRunning("bob", networkId)).toBe(true);
     expect(await isValidatorRunning("charlie", networkId)).toBe(true);
     expect(await isValidatorRunning("dave", networkId)).toBe(true);
-  });
 
-  it("should verify initial test setup", async () => {
-    const connectors = suite.getTestConnectors();
+    // Chain connectivity
+    expect(await publicClient.getBlockNumber()).toBeGreaterThan(0);
+    expect((await papiClient.getBlockHeader()).number).toBeGreaterThan(0);
 
-    // Verify Ethereum side connectivity
-    const ethBlockNumber = await connectors.publicClient.getBlockNumber();
-    expect(ethBlockNumber).toBeGreaterThan(0);
-    logger.success(`Ethereum network connected at block: ${ethBlockNumber}`);
-
-    // Verify DataHaven substrate connectivity
-    const dhBlockHeader = await connectors.papiClient.getBlockHeader();
-    expect(dhBlockHeader.number).toBeGreaterThan(0);
-    logger.success(`DataHaven substrate connected at block: ${dhBlockHeader.number}`);
-
-    // Verify contract deployments
+    // Contract deployed
     expect(deployments.ServiceManager).toBeDefined();
-    logger.success(`ServiceManager deployed at: ${deployments.ServiceManager}`);
   });
 
   it("should verify initial validator set state", async () => {
-    const connectors = suite.getTestConnectors();
-
-    logger.info("🔍 Verifying initial validator set state...");
-
-    // Check that only initial validators have mappings set
-    for (const validator of initialValidators) {
-      const solochainAddress = await connectors.publicClient.readContract({
+    const { publicClient } = suite.getTestConnectors();
+    const readSolochainAddress = (validator: (typeof initialValidators)[0]) =>
+      publicClient.readContract({
         address: deployments.ServiceManager as `0x${string}`,
         abi: dataHavenServiceManagerAbi,
         functionName: "validatorEthAddressToSolochainAddress",
         args: [validator.publicKey as `0x${string}`]
       });
 
-      expect(solochainAddress.toLowerCase()).toBe(validator.solochainAddress.toLowerCase());
-      logger.success(`Validator ${validator.publicKey} mapped to ${solochainAddress}`);
-    }
-  });
+    // Check initial validators have correct mappings and new validators are not registered
+    const [initialResults, newResults] = await Promise.all([
+      Promise.all(initialValidators.map(readSolochainAddress)),
+      Promise.all(newValidators.map(readSolochainAddress))
+    ]);
 
-  it("should verify new validators are not yet registered", async () => {
-    const connectors = suite.getTestConnectors();
-
-    // Verify that new validators are not yet registered
-    for (const validator of newValidators) {
-      const solochainAddress = await connectors.publicClient.readContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "validatorEthAddressToSolochainAddress",
-        args: [validator.publicKey as `0x${string}`]
-      });
-
-      expect(solochainAddress).toBe("0x0000000000000000000000000000000000000000");
-      logger.success(`Validator ${validator.publicKey} not yet registered (as expected)`);
-    }
-
-    logger.success("Initial validator set state verified: only Alice and Bob are active");
+    expect(initialResults).toEqual(initialValidators.map((v) => v.solochainAddress as `0x${string}`));
+    expect(newResults).toEqual(newValidators.map(() => ZERO_ADDRESS));
   });
 
   it("should add new validators to allowlist", async () => {

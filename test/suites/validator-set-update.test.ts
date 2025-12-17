@@ -124,40 +124,31 @@ describe("Validator Set Update", () => {
     expect(newResults).toEqual(newValidators.map(() => ZERO_ADDRESS));
   });
 
-  it("should add new validators to allowlist", async () => {
-    logger.info("📤 Adding Charlie and Dave to allowlist...");
+  it("should allowlist and register new validators as operators", async () => {
+    const opts = suite.getValidatorOptions();
 
-    // Add Charlie and Dave to the allowlist
-    await addValidatorToAllowlist("charlie", suite.getValidatorOptions());
-    await addValidatorToAllowlist("dave", suite.getValidatorOptions());
+    // Add to allowlist and register as operators
+    await Promise.all([
+      addValidatorToAllowlist("charlie", opts),
+      addValidatorToAllowlist("dave", opts)
+    ]);
+    await Promise.all([
+      registerSingleOperator("charlie", opts),
+      registerSingleOperator("dave", opts)
+    ]);
 
-    // Verification of allowlist status
-    logger.info("🔍 Verification of allowlist status...");
-    const charlieAllowlisted = await isValidatorInAllowlist("charlie", suite.getValidatorOptions());
-    const daveAllowlisted = await isValidatorInAllowlist("dave", suite.getValidatorOptions());
+    // Verify allowlist and registration status
+    const [charlieAllowlisted, daveAllowlisted, charlieRegistered, daveRegistered] =
+      await Promise.all([
+        isValidatorInAllowlist("charlie", opts),
+        isValidatorInAllowlist("dave", opts),
+        serviceManagerHasOperator("charlie", opts),
+        serviceManagerHasOperator("dave", opts)
+      ]);
 
-    expect(charlieAllowlisted).toBe(true);
-    expect(daveAllowlisted).toBe(true);
-
-    logger.success("Both validators successfully added to allowlist");
+    expect([charlieAllowlisted, daveAllowlisted]).toEqual([true, true]);
+    expect([charlieRegistered, daveRegistered]).toEqual([true, true]);
   }, 60_000);
-
-  it("should register new validators as operators", async () => {
-    logger.info("📤 Registering Charlie and Dave as operators...");
-
-    // Register Charlie and Dave as operators
-    await registerSingleOperator("charlie", suite.getValidatorOptions());
-    await registerSingleOperator("dave", suite.getValidatorOptions());
-
-    // Verify both validators are properly registered in ServiceManager
-    const charlieRegistered = await serviceManagerHasOperator("charlie", suite.getValidatorOptions());
-    expect(charlieRegistered).toBe(true);
-    logger.success("Charlie is registered as operator");
-
-    const daveRegistered = await serviceManagerHasOperator("dave", suite.getValidatorOptions());
-    expect(daveRegistered).toBe(true);
-    logger.success("Dave is registered as operator");
-  }, 60_000); // 1 minute timeout
 
   it("should send updated validator set to DataHaven", async () => {
     const connectors = suite.getTestConnectors();

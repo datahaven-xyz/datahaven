@@ -13,7 +13,11 @@ import { BaseTestSuite } from "../framework";
 import validatorSet from "../configs/validator-set.json";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
-import { generateMerkleProofForValidator, getEraRewardPoints } from "../utils/rewards-helpers";
+
+const toHex = (x: unknown): `0x${string}` => {
+  const anyX = x as { asHex?: () => string };
+  return (anyX?.asHex?.() ?? `0x${x}`) as `0x${string}`;
+};
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -158,19 +162,24 @@ describe("Rewards Message Flow", () => {
     it(
       "should successfully claim rewards for validator",
       async () => {
-        // Get era reward points and pick one validator
-        const eraPoints = await getEraRewardPoints(dhApi, eraIndex);
-        expect(eraPoints.total).toBeGreaterThan(0);
+        // Get era reward points and pick first validator
+        const rewardPoints = await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
+        expect(rewardPoints).toBeDefined();
+        expect(rewardPoints.total).toBeGreaterThan(0);
 
-        const [validatorAccount, points] = eraPoints.individual.entries().next().value!;
+        const [validatorAccount, points] = rewardPoints.individual[0];
 
-        // Generate merkle proof for just this validator
-        const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
+        // Generate merkle proof via runtime API
+        const merkleProof = await dhApi.apis.ExternalValidatorsRewardsApi.generate_rewards_merkle_proof(
+          String(validatorAccount),
+          eraIndex
+        );
+        expect(merkleProof).toBeDefined();
 
         // Get validator credentials and create operator wallet
         const factory = suite.getConnectorFactory();
         const match = validatorSet.validators.find(
-          (v) => v.solochainAddress.toLowerCase() === validatorAccount.toLowerCase()
+          (v) => v.solochainAddress.toLowerCase() === String(validatorAccount).toLowerCase()
         );
         const operatorWallet = factory.createWalletClient(match!.privateKey as `0x${string}`);
         const resolvedOperator: Address = operatorWallet.account.address;
@@ -188,9 +197,9 @@ describe("Rewards Message Flow", () => {
             0, // strategy index
             newRootIndex,
             BigInt(points),
-            BigInt(merkleData!.numberOfLeaves),
-            BigInt(merkleData!.leafIndex),
-            merkleData!.proof as readonly Hex[]
+            BigInt(merkleProof.number_of_leaves),
+            BigInt(merkleProof.leaf_index),
+            merkleProof.proof.map(toHex) as readonly Hex[]
           ]
         });
 

@@ -18,7 +18,7 @@ import {
 } from "launcher/validators";
 import {
   type Deployments,
-  isValidatorNodeRunning,
+  isValidatorRunning,
   launchDatahavenValidator,
   logger,
   parseDeploymentsFile
@@ -86,15 +86,11 @@ describe("Validator Set Update", () => {
   });
 
   it("should verify validators are running", async () => {
-    const isAliceRunning = await isValidatorNodeRunning("alice", suite.getNetworkId());
-    const isBobRunning = await isValidatorNodeRunning("bob", suite.getNetworkId());
-    const isCharlieRunning = await isValidatorNodeRunning("charlie", suite.getNetworkId());
-    const isDaveRunning = await isValidatorNodeRunning("dave", suite.getNetworkId());
-
-    expect(isAliceRunning).toBe(true);
-    expect(isBobRunning).toBe(true);
-    expect(isCharlieRunning).toBe(true);
-    expect(isDaveRunning).toBe(true);
+    const networkId = suite.getNetworkId();
+    expect(await isValidatorRunning("alice", networkId)).toBe(true);
+    expect(await isValidatorRunning("bob", networkId)).toBe(true);
+    expect(await isValidatorRunning("charlie", networkId)).toBe(true);
+    expect(await isValidatorRunning("dave", networkId)).toBe(true);
   });
 
   it("should verify initial test setup", async () => {

@@ -52,20 +52,9 @@ export const COMMON_LAUNCH_ARGS = [
   "--enable-offchain-indexing=true"
 ];
 
-/**
- * Checks if a DataHaven validator node is already running
- * @param nodeId - The node identifier (e.g., "alice", "bob")
- * @param networkId - The network identifier
- * @returns True if the node is running, false otherwise
- */
-export const isValidatorNodeRunning = async (
-  nodeId: string,
-  networkId: string
-): Promise<boolean> => {
-  const containerName = `datahaven-${nodeId}-${networkId}`;
-  const dockerPsOutput = await $`docker ps -q --filter "name=^${containerName}"`.text();
-  return dockerPsOutput.trim().length > 0;
-};
+/** Checks if a DataHaven validator container is running */
+export const isValidatorRunning = async (name: string, networkId: string) =>
+  (await $`docker ps -q -f name=^datahaven-${name}-${networkId}`.text()).trim().length > 0;
 
 /**
  * Launches a single DataHaven validator node on demand
@@ -83,7 +72,7 @@ export const launchDatahavenValidator = async (
   const containerName = `datahaven-${nodeId}-${networkId}`;
 
   // Check if node is already running
-  if (await isValidatorNodeRunning(nodeId, networkId)) {
+  if (await isValidatorRunning(nodeId, networkId)) {
     logger.warn(`⚠️ Node ${nodeId} is already running in network ${networkId}`);
 
     // Get existing node info

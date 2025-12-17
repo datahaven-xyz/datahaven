@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import type { PolkadotClient } from "polkadot-api";
 import { firstValueFrom } from "rxjs";
 import { filter } from "rxjs/operators";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
@@ -36,38 +35,31 @@ const suite = new RewardsMessageTestSuite();
 
 let rewardsRegistry!: any;
 let serviceManager!: any;
-let gateway!: any;
 let publicClient!: any;
 let dhApi!: any;
-let papiClient!: PolkadotClient;
 let eraIndex!: number;
-let merkleRoot!: Hex;
 let totalPoints!: bigint;
 let newRootIndex!: bigint;
 // Persisted state from first successful claim for double-claim test
-let claimedOperatorAddress!: Address;
 let claimedValidatorAccount!: string;
 let claimedPoints!: number;
 let claimedMerkleData!: { proof: string[]; numberOfLeaves: number; leafIndex: number };
 let firstClaimGasUsed!: bigint;
-let firstClaimBlockNumber!: bigint;
 
 describe("Rewards Message Flow", () => {
   beforeAll(async () => {
     const connectors = suite.getTestConnectors();
     publicClient = connectors.publicClient;
     dhApi = connectors.dhApi;
-    papiClient = connectors.papiClient;
 
     rewardsRegistry = await getContractInstance("RewardsRegistry");
     serviceManager = await getContractInstance("ServiceManager");
-    gateway = await getContractInstance("Gateway");
   });
 
   describe("Infrastructure Setup", () => {
     it("should verify rewards infrastructure deployment", async () => {
-      // Fetch rewards info
       const rewardsInfo = await parseRewardsInfoFile();
+      const gateway = await getContractInstance("Gateway");
 
       expect(rewardsRegistry.address).toBeDefined();
       expect(rewardsInfo.RewardsAgent).toBeDefined();
@@ -94,6 +86,8 @@ describe("Rewards Message Flow", () => {
 
   describe("Era Transition and Merkle Root Update", () => {
     it("should wait for era end and update merkle root on Ethereum", async () => {
+      const { papiClient } = suite.getTestConnectors();
+
       // Get current era and block
       const [currentEra, currentBlock, fromBlock] = await Promise.all([
         dhApi.query.ExternalValidators.ActiveEra.getValue(),
@@ -121,7 +115,7 @@ describe("Rewards Message Flow", () => {
       )?.value?.value;
 
       expect(payload).toBeDefined();
-      merkleRoot = payload.rewards_merkle_root.asHex() as Hex;
+      const merkleRoot: Hex = payload.rewards_merkle_root.asHex() as Hex;
       totalPoints = payload.total_points;
       eraIndex = payload.era_index;
       expect(totalPoints).toBeGreaterThan(0n);
@@ -160,32 +154,18 @@ describe("Rewards Message Flow", () => {
   });
 
   describe("Rewards Claiming", () => {
-    it("should fund RewardsRegistry for payouts", async () => {
-      logger.info("💰 Funding RewardsRegistry for reward payouts...");
-
+    beforeAll(async () => {
+      // Fund RewardsRegistry for reward payouts
       const { walletClient: fundingWallet } = suite.getTestConnectors();
-      const fundingAmount = totalPoints;
-
       const fundingTx = await fundingWallet.sendTransaction({
         to: rewardsRegistry.address as Address,
-        value: fundingAmount,
+        value: totalPoints,
         chain: null
       });
-
       const fundingReceipt = await publicClient.waitForTransactionReceipt({ hash: fundingTx });
-      expect(fundingReceipt.status).toBe("success");
-
-      // Verify contract balance
-      const contractBalance = await publicClient.getBalance({
-        address: rewardsRegistry.address
-      });
-
-      expect(contractBalance > 0n).toBe(true);
-
-      logger.success("RewardsRegistry funded:");
-      logger.info(`  Amount: ${fundingAmount} wei`);
-      logger.info(`  Transaction: ${fundingTx}`);
-      logger.info(`  Contract balance: ${contractBalance} wei`);
+      if (fundingReceipt.status !== "success") {
+        throw new Error("Failed to fund RewardsRegistry");
+      }
     });
 
     it(
@@ -236,12 +216,10 @@ describe("Rewards Message Flow", () => {
         expect(claimReceipt.status).toBe("success");
 
         // Persist state for the double-claim test
-        claimedOperatorAddress = resolvedOperator;
         claimedValidatorAccount = validatorAccount;
         claimedPoints = points;
         claimedMerkleData = merkleData;
         firstClaimGasUsed = claimReceipt.gasUsed;
-        firstClaimBlockNumber = claimReceipt.blockNumber;
 
         // Wait for and validate claim event
         const claimEvent = await waitForEthereumEvent({
@@ -303,11 +281,8 @@ describe("Rewards Message Flow", () => {
         // Preconditions from previous test
         expect(claimedValidatorAccount).toBeDefined();
         expect(claimedMerkleData).toBeDefined();
-        expect(claimedOperatorAddress).toBeDefined();
         expect(firstClaimGasUsed).toBeDefined();
-        expect(firstClaimBlockNumber).toBeDefined();
         expect(newRootIndex).toBeDefined();
-        if (newRootIndex === undefined) throw new Error("Merkle root not updated yet");
 
         const factory = suite.getConnectorFactory();
         const credentials = getValidatorCredentials(claimedValidatorAccount);

@@ -16,7 +16,6 @@ import { Binary } from "@polkadot-api/substrate-bindings";
 import { FixedSizeBinary } from "polkadot-api";
 import {
   ANVIL_FUNDED_ACCOUNTS,
-  expectDhEvent,
   getPapiSigner,
   logger,
   parseDeploymentsFile,
@@ -235,10 +234,14 @@ describe("Native Token Transfer", () => {
     expect(dhTxResult.ok).toBe(true);
 
     // Verify DataHaven events
-    expectDhEvent(dhTxResult.events, "DataHavenNativeTransfer", "TokensTransferredToEthereum",
-      (v) => v?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey);
-    expectDhEvent(dhTxResult.events, "DataHavenNativeTransfer", "TokensLocked",
-      (v) => v?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey);
+    expect(dhTxResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && e.value?.type === "TokensTransferredToEthereum"
+        && e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
+    )).toBeDefined();
+    expect(dhTxResult.events.find(
+      (e: any) => e.type === "DataHavenNativeTransfer" && e.value?.type === "TokensLocked"
+        && e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
+    )).toBeDefined();
 
     // Capture final balances
     const after = await getBalanceSnapshot(connectors, {

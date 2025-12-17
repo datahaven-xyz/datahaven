@@ -1,4 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
+import type { PolkadotClient } from "polkadot-api";
+import { firstValueFrom } from "rxjs";
+import { filter } from "rxjs/operators";
 import { logger } from "utils";
 import {
   type Address,
@@ -18,14 +21,11 @@ import * as rewardsHelpers from "../utils/rewards-helpers";
 // Test configuration constants
 const TEST_CONFIG = {
   TIMEOUTS: {
-    ERA_END_WAIT: 600000, // 10 minutes - increased for era transitions
+    ERA_END_WAIT: 600000, // 10 minutes
     MESSAGE_EXECUTION: 120000, // 2 minutes
     ROOT_UPDATE: 180000, // 3 minutes
-    CLAIM_EVENT: 30000, // 30 seconds - increased for reliability
-    OVERALL_TEST: 900000 // 15 minutes - increased for full suite
-  },
-  DELAYS: {
-    RELAYER_INIT: 10000 // 10 seconds
+    CLAIM_EVENT: 30000, // 30 seconds
+    OVERALL_TEST: 900000 // 15 minutes
   }
 } as const;
 
@@ -46,6 +46,7 @@ let serviceManager!: any;
 let gateway!: any;
 let publicClient!: any;
 let dhApi!: any;
+let papiClient!: PolkadotClient;
 let eraIndex!: number;
 let merkleRoot!: Hex;
 let totalPoints!: bigint;
@@ -62,6 +63,7 @@ describe("Rewards Message Flow", () => {
     const connectors = suite.getTestConnectors();
     publicClient = connectors.publicClient;
     dhApi = connectors.dhApi;
+    papiClient = connectors.papiClient;
 
     rewardsRegistry = await getContractInstance("RewardsRegistry");
     serviceManager = await getContractInstance("ServiceManager");
@@ -77,20 +79,21 @@ describe("Rewards Message Flow", () => {
       expect(rewardsInfo.RewardsAgent).toBeDefined();
       expect(gateway.address).toBeDefined();
 
-      const agentAddress = await publicClient.readContract({
-        address: rewardsRegistry.address,
-        abi: rewardsRegistry.abi,
-        functionName: "rewardsAgent",
-        args: []
-      }) as Address;
+      const [agentAddress, avsAddress] = await Promise.all([
+        publicClient.readContract({
+          address: rewardsRegistry.address,
+          abi: rewardsRegistry.abi,
+          functionName: "rewardsAgent",
+          args: []
+        }) as Promise<Address>,
+        publicClient.readContract({
+          address: rewardsRegistry.address,
+          abi: rewardsRegistry.abi,
+          functionName: "avs",
+          args: []
+        }) as Promise<Address>
+      ]);
       expect(isAddressEqual(agentAddress, rewardsInfo.RewardsAgent as Address)).toBe(true);
-
-      const avsAddress = await publicClient.readContract({
-        address: rewardsRegistry.address,
-        abi: rewardsRegistry.abi,
-        functionName: "avs",
-        args: []
-      }) as Address;
       expect(isAddressEqual(avsAddress, serviceManager.address as Address)).toBe(true);
     });
   });
@@ -99,25 +102,36 @@ describe("Rewards Message Flow", () => {
     it(
       "should wait for era end and capture rewards message",
       async () => {
-        // Track current era and blocks until era end
-        const currentEra = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
-        const blocksUntilEraEnd = await rewardsHelpers.getBlocksUntilEraEnd(dhApi);
+        const [currentEra, currentBlock] = await Promise.all([
+          dhApi.query.ExternalValidators.ActiveEra.getValue(),
+          dhApi.query.System.Number.getValue()
+        ]);
 
-        const timeout = blocksUntilEraEnd * 6000 + TEST_CONFIG.DELAYS.RELAYER_INIT * 3;
-        const rewardsMessageEvent = await rewardsHelpers.waitForRewardsMessageSent(
-          dhApi,
-          currentEra,
-          timeout
+        // Calculate era end block: era length is fixed (sessionsPerEra * blocksPerSession)
+        const sessionsPerEra = Number(dhApi.constants.ExternalValidators.SessionsPerEra);
+        const blocksPerSession = Number(dhApi.constants.Babe.EpochDuration);
+        const eraLength = sessionsPerEra * blocksPerSession;
+        const eraEndBlock = Math.ceil((currentBlock + 1) / eraLength) * eraLength;
+
+        logger.info(
+          `Waiting for era ${currentEra?.index} to end at block ${eraEndBlock}`
         );
 
-        if (!rewardsMessageEvent) {
-          throw new Error("Expected rewards message event to be defined");
-        }
+        // Subscribe to finalized blocks and wait for the era end block
+        const eraEndBlockInfo = await firstValueFrom(
+          papiClient.finalizedBlock$.pipe(filter((block) => block.number === eraEndBlock))
+        );
 
-        // Store event data needed by subsequent tests
-        merkleRoot = rewardsMessageEvent.merkleRoot as Hex;
-        totalPoints = rewardsMessageEvent.totalPoints;
-        eraIndex = rewardsMessageEvent.eraIndex;
+        // Fetch events and find the RewardsMessageSent event
+        const events = await dhApi.query.System.Events.getValue({ at: eraEndBlockInfo.hash });
+        const payload = events.find(
+          (e: any) => e.type === "ExternalValidatorsRewards" && e.value?.type === "RewardsMessageSent"
+        )?.value?.value;
+
+        expect(payload).toBeDefined();
+        merkleRoot = payload.rewards_merkle_root.asHex() as Hex;
+        totalPoints = payload.total_points;
+        eraIndex = payload.era_index;
 
         expect(totalPoints).toBeGreaterThan(0n);
 

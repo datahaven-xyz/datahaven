@@ -1,4 +1,3 @@
-import validatorSet from "../configs/validator-set.json";
 import { logger } from "./logger";
 import type { DataHavenApi } from "./papi";
 
@@ -67,40 +66,4 @@ export async function generateMerkleProofForValidator(
     logger.error(`Failed to generate merkle proof for validator ${validatorAccount}: ${error}`);
     return null;
   }
-}
-
-/**
- * Validator credentials containing operator address and private key
- */
-export interface ValidatorCredentials {
-  operatorAddress: `0x${string}`;
-  privateKey: `0x${string}` | null;
-}
-
-/**
- * Gets validator credentials (operator address and private key) by solochain address
- * @param validatorAccount The validator's solochain address
- * @returns The validator's credentials including operator address and private key
- */
-export function getValidatorCredentials(validatorAccount: string): ValidatorCredentials {
-  const normalizedAccount = validatorAccount.toLowerCase();
-
-  // Find matching validator by solochain address
-  const match = validatorSet.validators.find(
-    (v) => v.solochainAddress.toLowerCase() === normalizedAccount
-  );
-
-  if (match) {
-    return {
-      operatorAddress: match.publicKey as `0x${string}`,
-      privateKey: match.privateKey as `0x${string}`
-    };
-  }
-
-  // Fallback: assume the input is already an Ethereum address, but no private key available
-  logger.debug(`No mapping found for ${validatorAccount}, using as-is without private key`);
-  return {
-    operatorAddress: validatorAccount as `0x${string}`,
-    privateKey: null
-  };
 }

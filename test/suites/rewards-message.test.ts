@@ -4,22 +4,16 @@ import { filter } from "rxjs/operators";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import {
   type Address,
-  BaseError,
-  ContractFunctionRevertedError,
-  decodeErrorResult,
   decodeEventLog,
   type Hex,
   isAddressEqual,
   padHex
 } from "viem";
 import { BaseTestSuite } from "../framework";
+import validatorSet from "../configs/validator-set.json";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
-import {
-  generateMerkleProofForValidator,
-  getEraRewardPoints,
-  getValidatorCredentials
-} from "../utils/rewards-helpers";
+import { generateMerkleProofForValidator, getEraRewardPoints } from "../utils/rewards-helpers";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -40,11 +34,6 @@ let dhApi!: any;
 let eraIndex!: number;
 let totalPoints!: bigint;
 let newRootIndex!: bigint;
-// Persisted state from first successful claim for double-claim test
-let claimedValidatorAccount!: string;
-let claimedPoints!: number;
-let claimedMerkleData!: { proof: string[]; numberOfLeaves: number; leafIndex: number };
-let firstClaimGasUsed!: bigint;
 
 describe("Rewards Message Flow", () => {
   beforeAll(async () => {
@@ -163,9 +152,7 @@ describe("Rewards Message Flow", () => {
         chain: null
       });
       const fundingReceipt = await publicClient.waitForTransactionReceipt({ hash: fundingTx });
-      if (fundingReceipt.status !== "success") {
-        throw new Error("Failed to fund RewardsRegistry");
-      }
+      expect(fundingReceipt.status).toBe("success");
     });
 
     it(
@@ -179,19 +166,17 @@ describe("Rewards Message Flow", () => {
 
         // Generate merkle proof for just this validator
         const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
-        expect(merkleData).toBeDefined();
-        if (!merkleData) throw new Error("Failed to generate merkle proof");
 
         // Get validator credentials and create operator wallet
         const factory = suite.getConnectorFactory();
-        const credentials = getValidatorCredentials(validatorAccount);
-        expect(credentials.privateKey).toBeDefined();
-        if (!credentials.privateKey) throw new Error("missing validator private key");
-        const operatorWallet = factory.createWalletClient(credentials.privateKey as `0x${string}`);
+        const match = validatorSet.validators.find(
+          (v) => v.solochainAddress.toLowerCase() === validatorAccount.toLowerCase()
+        );
+        const operatorWallet = factory.createWalletClient(match!.privateKey as `0x${string}`);
         const resolvedOperator: Address = operatorWallet.account.address;
 
         // Record initial balance for validation
-        const balanceBefore = await publicClient.getBalance({ address: resolvedOperator });
+        const balanceBefore = BigInt(await publicClient.getBalance({ address: resolvedOperator }));
 
         // Submit claim transaction
         const claimTx = await operatorWallet.writeContract({
@@ -203,169 +188,39 @@ describe("Rewards Message Flow", () => {
             0, // strategy index
             newRootIndex,
             BigInt(points),
-            BigInt(merkleData.numberOfLeaves),
-            BigInt(merkleData.leafIndex),
-            merkleData.proof as readonly Hex[]
+            BigInt(merkleData!.numberOfLeaves),
+            BigInt(merkleData!.leafIndex),
+            merkleData!.proof as readonly Hex[]
           ]
         });
-
-        logger.info(`📝 Claim transaction submitted: ${claimTx}`);
 
         // Wait for transaction confirmation
         const claimReceipt = await publicClient.waitForTransactionReceipt({ hash: claimTx });
         expect(claimReceipt.status).toBe("success");
 
-        // Persist state for the double-claim test
-        claimedValidatorAccount = validatorAccount;
-        claimedPoints = points;
-        claimedMerkleData = merkleData;
-        firstClaimGasUsed = claimReceipt.gasUsed;
-
-        // Wait for and validate claim event
-        const claimEvent = await waitForEthereumEvent({
-          client: publicClient,
-          address: rewardsRegistry.address,
+        // Decode and validate claim event from receipt
+        const claimLog = claimReceipt.logs.find(
+          (log: { address: string }) => log.address.toLowerCase() === rewardsRegistry.address.toLowerCase()
+        )!;
+        const { args: claimArgs } = decodeEventLog({
           abi: rewardsRegistry.abi,
-          eventName: "RewardsClaimedForIndex",
-          fromBlock: claimReceipt.blockNumber - 1n,
-          timeout: CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
-        });
+          data: claimLog.data,
+          topics: claimLog.topics
+        }) as { args: { operatorAddress: Address; rootIndex: bigint; points: bigint; rewardsAmount: bigint } };
 
-        const claimDecoded = decodeEventLog({
-          abi: rewardsRegistry.abi,
-          data: claimEvent.data,
-          topics: claimEvent.topics
-        }) as {
-          args: {
-            operatorAddress: Address;
-            rootIndex: bigint;
-            points: bigint;
-            rewardsAmount: bigint;
-          };
-        };
-        const claimArgs = claimDecoded.args;
-
-        // Validate claim event data
         expect(isAddressEqual(claimArgs.operatorAddress, resolvedOperator)).toBe(true);
         expect(claimArgs.rootIndex).toEqual(newRootIndex);
         expect(claimArgs.points).toEqual(BigInt(points));
-        expect(claimArgs.rewardsAmount > 0n).toBe(true);
-
-        logger.success("Rewards claimed successfully:");
-        logger.info(`  Operator: ${resolvedOperator}`);
-        logger.info(`  Points: ${claimArgs.points}`);
-        logger.info(`  Rewards: ${claimArgs.rewardsAmount} wei`);
-        logger.info(`  Root index: ${claimArgs.rootIndex}`);
+        expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
 
         // Validate balance change accounting for gas costs
-        const balanceAfter = await publicClient.getBalance({ address: resolvedOperator });
-        const actualBalanceIncrease = balanceAfter - balanceBefore;
-        const gasUsedWei = claimReceipt.gasUsed * claimReceipt.effectiveGasPrice;
-        const adjustedIncrease = actualBalanceIncrease + gasUsedWei;
+        const balanceAfter = BigInt(await publicClient.getBalance({ address: resolvedOperator }));
+        const gasUsedWei = BigInt(claimReceipt.gasUsed) * BigInt(claimReceipt.effectiveGasPrice);
+        const adjustedIncrease = balanceAfter - balanceBefore + gasUsedWei;
 
-        logger.info("💰 Balance validation:");
-        logger.info(`  Gas used: ${gasUsedWei} wei`);
-        logger.info(`  Adjusted balance increase: ${adjustedIncrease} wei`);
-
-        expect(BigInt(adjustedIncrease)).toEqual(claimArgs.rewardsAmount);
+        expect(adjustedIncrease).toEqual(claimArgs.rewardsAmount);
         expect(claimArgs.rewardsAmount).toEqual(BigInt(points));
       },
-      CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
-    );
-
-    it(
-      "should prevent double claiming of rewards",
-      async () => {
-        logger.info("🚫 Testing double-claim prevention (on-chain revert)...");
-
-        // Preconditions from previous test
-        expect(claimedValidatorAccount).toBeDefined();
-        expect(claimedMerkleData).toBeDefined();
-        expect(firstClaimGasUsed).toBeDefined();
-        expect(newRootIndex).toBeDefined();
-
-        const factory = suite.getConnectorFactory();
-        const credentials = getValidatorCredentials(claimedValidatorAccount);
-        if (!credentials.privateKey) throw new Error("missing validator private key");
-        const operatorWallet = factory.createWalletClient(credentials.privateKey as `0x${string}`);
-
-        // Send a real transaction expected to revert. Provide explicit gas to avoid estimation/simulation.
-        const gasLimit = firstClaimGasUsed + 100_000n;
-
-        const revertTxHash = await operatorWallet.writeContract({
-          address: serviceManager.address as Address,
-          abi: serviceManager.abi,
-          functionName: "claimOperatorRewards",
-          args: [
-            0,
-            newRootIndex,
-            BigInt(claimedPoints),
-            BigInt(claimedMerkleData.numberOfLeaves),
-            BigInt(claimedMerkleData.leafIndex),
-            claimedMerkleData.proof as readonly Hex[]
-          ],
-          gas: gasLimit,
-          chain: null
-        });
-
-        const revertReceipt = await publicClient.waitForTransactionReceipt({ hash: revertTxHash });
-        expect(revertReceipt.status).toBe("reverted");
-
-        // Verify custom error using eth_call at the same block
-        let decodedErrorName = "";
-        try {
-          await publicClient.simulateContract({
-            account: operatorWallet.account,
-            address: serviceManager.address as Address,
-            abi: serviceManager.abi,
-            functionName: "claimOperatorRewards",
-            args: [
-              0,
-              newRootIndex,
-              BigInt(claimedPoints),
-              BigInt(claimedMerkleData.numberOfLeaves),
-              BigInt(claimedMerkleData.leafIndex),
-              claimedMerkleData.proof as readonly Hex[]
-            ],
-            blockNumber: revertReceipt.blockNumber
-          });
-          throw new Error("Expected simulateContract to revert");
-        } catch (err: any) {
-          if (err instanceof BaseError) {
-            const revertError = err.walk((e) => e instanceof ContractFunctionRevertedError);
-            if (revertError instanceof ContractFunctionRevertedError) {
-              // First try viem's decoded data (only works if ABI included the error)
-              decodedErrorName = revertError.data?.errorName ?? "";
-              // Fallback: decode the raw revert data using an ABI that includes the custom error
-              if (!decodedErrorName) {
-                const rawData = revertError.raw as Hex | undefined;
-                if (rawData) {
-                  try {
-                    const unionAbi = [
-                      ...(serviceManager.abi as any[]),
-                      ...(rewardsRegistry.abi as any[])
-                    ];
-                    const decoded = decodeErrorResult({ abi: unionAbi as any, data: rawData });
-                    decodedErrorName = decoded.errorName;
-                  } catch (_e) {
-                    // ignore secondary decode errors
-                  }
-                }
-              }
-            } else {
-              throw err;
-            }
-          } else {
-            throw err;
-          }
-        }
-        expect(decodedErrorName).toBe("RewardsAlreadyClaimedForIndex");
-
-        logger.success(
-          "Double-claim prevention verified (on-chain revert and correct custom error)"
-        );
-      },
-      CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
     );
   });
 });

@@ -26,15 +26,15 @@ class RewardsMessageTestSuite extends BaseTestSuite {
 
 const suite = new RewardsMessageTestSuite();
 
-let rewardsRegistry!: any;
-let serviceManager!: any;
-let publicClient!: any;
-let dhApi!: any;
-let eraIndex!: number;
-let totalPoints!: bigint;
-let newRootIndex!: bigint;
-
 describe("Rewards Message Flow", () => {
+  let rewardsRegistry!: any;
+  let serviceManager!: any;
+  let publicClient!: any;
+  let dhApi!: any;
+  let eraIndex!: number;
+  let totalPoints!: bigint;
+  let newRootIndex!: bigint;
+
   beforeAll(async () => {
     const connectors = suite.getTestConnectors();
     publicClient = connectors.publicClient;

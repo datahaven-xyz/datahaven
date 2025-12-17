@@ -18,28 +18,29 @@ import {
 } from "launcher/validators";
 import {
   type Deployments,
-  getValidatorInfoByName,
   isValidatorNodeRunning,
   launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
-  TestAccounts,
-  type ValidatorInfo
+  TestAccounts
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { waitForDataHavenStorageContains } from "utils/storage";
 import { decodeEventLog, parseEther } from "viem";
+import validatorSet from "../configs/validator-set.json";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
+
+const getValidator = (account: TestAccounts) => {
+  const v = validatorSet.validators.find((v) => v.solochainAuthorityName === account.toLowerCase());
+  if (!v) throw new Error(`Validator ${account} not found`);
+  return v;
+};
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
     super({
       suiteName: "validator-set-update",
-      networkOptions: {
-        slotTime: 2,
-        blockscout: false
-      }
     });
 
     this.setupHooks();
@@ -78,33 +79,11 @@ const suite = new ValidatorSetUpdateTestSuite();
 let deployments: Deployments;
 
 describe("Validator Set Update", () => {
-  // Validator sets loaded from external JSON
-  let initialValidators: ValidatorInfo[] = [];
-  let newValidators: ValidatorInfo[] = [];
+  const initialValidators = [getValidator(TestAccounts.Alice), getValidator(TestAccounts.Bob)];
+  const newValidators = [getValidator(TestAccounts.Charlie), getValidator(TestAccounts.Dave)];
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
-
-    // Load validator set from JSON config
-    const validatorSetPath = "./configs/validator-set.json";
-    try {
-      const validatorSetJson: any = await Bun.file(validatorSetPath).json();
-
-      initialValidators = [
-        getValidatorInfoByName(validatorSetJson, TestAccounts.Alice),
-        getValidatorInfoByName(validatorSetJson, TestAccounts.Bob)
-      ];
-
-      newValidators = [
-        getValidatorInfoByName(validatorSetJson, TestAccounts.Charlie),
-        getValidatorInfoByName(validatorSetJson, TestAccounts.Dave)
-      ];
-
-      logger.success("Loaded validator set from JSON file");
-    } catch (err) {
-      logger.error(`Failed to load validator set from ${validatorSetPath}: ${err}`);
-      throw err;
-    }
   });
 
   it("should verify validators are running", async () => {

@@ -251,13 +251,8 @@ describe("Native Token Transfer", () => {
       sovereign: amount,
       erc20: amount
     });
-  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS);
 
-  it("should maintain 1:1 backing ratio", async () => {
-    const connectors = suite.getTestConnectors();
-
-    const erc20Address = (await getNativeERC20Address(connectors))!;
-
+    // Verify 1:1 backing ratio is maintained
     const totalSupply = (await connectors.publicClient.readContract({
       address: erc20Address,
       abi: erc20Abi,
@@ -267,9 +262,8 @@ describe("Native Token Transfer", () => {
     const sovereignBalance = await connectors.dhApi.query.System.Account.getValue(
       ETHEREUM_SOVEREIGN_ACCOUNT
     );
-
     expect(sovereignBalance.data.free).toBeGreaterThanOrEqual(totalSupply);
-  });
+  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS);
 
   it("should transfer tokens from Ethereum to DataHaven", async () => {
     const connectors = suite.getTestConnectors();

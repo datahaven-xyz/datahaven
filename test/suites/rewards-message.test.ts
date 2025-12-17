@@ -282,13 +282,10 @@ describe("Rewards Message Flow", () => {
           timeout: CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
         });
 
-        expect(claimEvent).toBeDefined();
-        if (!claimEvent) throw new Error("Expected log to be defined");
-        const claimLog = claimEvent;
         const claimDecoded = decodeEventLog({
           abi: rewardsRegistry.abi,
-          data: claimLog.data,
-          topics: claimLog.topics
+          data: claimEvent.data,
+          topics: claimEvent.topics
         }) as {
           args: {
             operatorAddress: Address;

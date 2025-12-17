@@ -21,8 +21,7 @@ import {
   isValidatorNodeRunning,
   launchDatahavenValidator,
   logger,
-  parseDeploymentsFile,
-  TestAccounts
+  parseDeploymentsFile
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { waitForDataHavenStorageContains } from "utils/storage";
@@ -31,9 +30,9 @@ import validatorSet from "../configs/validator-set.json";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 
-const getValidator = (account: TestAccounts) => {
-  const v = validatorSet.validators.find((v) => v.solochainAuthorityName === account.toLowerCase());
-  if (!v) throw new Error(`Validator ${account} not found`);
+const getValidator = (name: string) => {
+  const v = validatorSet.validators.find((v) => v.solochainAuthorityName === name);
+  if (!v) throw new Error(`Validator ${name} not found`);
   return v;
 };
 
@@ -51,12 +50,12 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
 
     // Launch to new nodes to be authorities
     console.log("Launching Charlie...");
-    await launchDatahavenValidator(TestAccounts.Charlie, {
+    await launchDatahavenValidator("charlie", {
       launchedNetwork: this.getConnectors().launchedNetwork
     });
 
     console.log("Launching Dave...");
-    await launchDatahavenValidator(TestAccounts.Dave, {
+    await launchDatahavenValidator("dave", {
       launchedNetwork: this.getConnectors().launchedNetwork
     });
   }
@@ -79,21 +78,18 @@ const suite = new ValidatorSetUpdateTestSuite();
 let deployments: Deployments;
 
 describe("Validator Set Update", () => {
-  const initialValidators = [getValidator(TestAccounts.Alice), getValidator(TestAccounts.Bob)];
-  const newValidators = [getValidator(TestAccounts.Charlie), getValidator(TestAccounts.Dave)];
+  const initialValidators = [getValidator("alice"), getValidator("bob")];
+  const newValidators = [getValidator("charlie"), getValidator("dave")];
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
   });
 
   it("should verify validators are running", async () => {
-    const isAliceRunning = await isValidatorNodeRunning(TestAccounts.Alice, suite.getNetworkId());
-    const isBobRunning = await isValidatorNodeRunning(TestAccounts.Bob, suite.getNetworkId());
-    const isCharlieRunning = await isValidatorNodeRunning(
-      TestAccounts.Charlie,
-      suite.getNetworkId()
-    );
-    const isDaveRunning = await isValidatorNodeRunning(TestAccounts.Dave, suite.getNetworkId());
+    const isAliceRunning = await isValidatorNodeRunning("alice", suite.getNetworkId());
+    const isBobRunning = await isValidatorNodeRunning("bob", suite.getNetworkId());
+    const isCharlieRunning = await isValidatorNodeRunning("charlie", suite.getNetworkId());
+    const isDaveRunning = await isValidatorNodeRunning("dave", suite.getNetworkId());
 
     expect(isAliceRunning).toBe(true);
     expect(isBobRunning).toBe(true);
@@ -161,19 +157,13 @@ describe("Validator Set Update", () => {
     logger.info("📤 Adding Charlie and Dave to allowlist...");
 
     // Add Charlie and Dave to the allowlist
-    await addValidatorToAllowlist(TestAccounts.Charlie, suite.getValidatorOptions());
-    await addValidatorToAllowlist(TestAccounts.Dave, suite.getValidatorOptions());
+    await addValidatorToAllowlist("charlie", suite.getValidatorOptions());
+    await addValidatorToAllowlist("dave", suite.getValidatorOptions());
 
     // Verification of allowlist status
     logger.info("🔍 Verification of allowlist status...");
-    const charlieAllowlisted = await isValidatorInAllowlist(
-      TestAccounts.Charlie,
-      suite.getValidatorOptions()
-    );
-    const daveAllowlisted = await isValidatorInAllowlist(
-      TestAccounts.Dave,
-      suite.getValidatorOptions()
-    );
+    const charlieAllowlisted = await isValidatorInAllowlist("charlie", suite.getValidatorOptions());
+    const daveAllowlisted = await isValidatorInAllowlist("dave", suite.getValidatorOptions());
 
     expect(charlieAllowlisted).toBe(true);
     expect(daveAllowlisted).toBe(true);
@@ -185,21 +175,15 @@ describe("Validator Set Update", () => {
     logger.info("📤 Registering Charlie and Dave as operators...");
 
     // Register Charlie and Dave as operators
-    await registerSingleOperator(TestAccounts.Charlie, suite.getValidatorOptions());
-    await registerSingleOperator(TestAccounts.Dave, suite.getValidatorOptions());
+    await registerSingleOperator("charlie", suite.getValidatorOptions());
+    await registerSingleOperator("dave", suite.getValidatorOptions());
 
     // Verify both validators are properly registered in ServiceManager
-    const charlieRegistered = await serviceManagerHasOperator(
-      TestAccounts.Charlie,
-      suite.getValidatorOptions()
-    );
+    const charlieRegistered = await serviceManagerHasOperator("charlie", suite.getValidatorOptions());
     expect(charlieRegistered).toBe(true);
     logger.success("Charlie is registered as operator");
 
-    const daveRegistered = await serviceManagerHasOperator(
-      TestAccounts.Dave,
-      suite.getValidatorOptions()
-    );
+    const daveRegistered = await serviceManagerHasOperator("dave", suite.getValidatorOptions());
     expect(daveRegistered).toBe(true);
     logger.success("Dave is registered as operator");
   }, 60_000); // 1 minute timeout

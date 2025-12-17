@@ -7,13 +7,7 @@ import type { TestConnectors } from "framework";
 import { fundValidators as fundValidatorsScript } from "scripts/fund-validators";
 import { setupValidators as setupValidatorsScript } from "scripts/setup-validators";
 import { updateValidatorSet as updateValidatorSetScript } from "scripts/update-validator-set";
-import {
-  ANVIL_FUNDED_ACCOUNTS,
-  type Deployments,
-  getValidatorInfoByName,
-  logger,
-  type TestAccounts
-} from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, type Deployments, getValidatorInfoByName, logger } from "utils";
 import { privateKeyToAccount } from "viem/accounts";
 
 /**
@@ -113,7 +107,7 @@ export function getOwnerAccount() {
  * @throws {Error} If registration transactions fail
  */
 export async function registerSingleOperator(
-  validatorName: TestAccounts,
+  validatorName: string,
   options: ValidatorOptionsExt
 ): Promise<void> {
   const { connectors, deployments } = options;
@@ -189,7 +183,7 @@ export async function registerSingleOperator(
  * @returns Promise resolving to true if the operator exists
  */
 export async function serviceManagerHasOperator(
-  validatorName: TestAccounts,
+  validatorName: string,
   options: ValidatorOptionsExt
 ): Promise<boolean> {
   const { connectors, deployments } = options;
@@ -218,7 +212,7 @@ export async function serviceManagerHasOperator(
  * @throws {Error} If the allowlist transaction fails
  */
 export async function addValidatorToAllowlist(
-  validatorName: TestAccounts,
+  validatorName: string,
   options: ValidatorOptionsExt
 ): Promise<void> {
   const { connectors, deployments } = options;
@@ -266,7 +260,7 @@ export async function addValidatorToAllowlist(
  * @returns Promise resolving to true if the validator is allowlisted
  */
 export async function isValidatorInAllowlist(
-  validatorName: TestAccounts,
+  validatorName: string,
   options: ValidatorOptionsExt
 ): Promise<boolean> {
   const { connectors, deployments } = options;

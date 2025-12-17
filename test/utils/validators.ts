@@ -1,32 +1,5 @@
 /**
  * DataHaven utility functions for launching and managing validator nodes
- *
- * This module provides utilities for launching individual DataHaven validator nodes
- * on demand, checking their status, and managing their lifecycle.
- *
- * @example
- * ```typescript
- * import { launchDatahavenValidator, TestAccounts } from "utils";
- *
- * // Launch a new Charlie validator node
- * const charlieNode = await launchDatahavenValidator(TestAccounts.Charlie, {
- *   launchedNetwork: suite.getLaunchedNetwork()
- * });
- *
- * console.log(`Charlie node launched on port ${charlieNode.publicPort}`);
- * console.log(`WebSocket URL: ${charlieNode.wsUrl}`);
- * ```
- *
- * @example
- * ```typescript
- * // Check if a node is already running before launching
- * if (await isValidatorNodeRunning("charlie", "test-network")) {
- *   console.log("Charlie node is already running");
- * } else {
- *   // Launch the node
- *   const node = await launchDatahavenValidator(TestAccounts.Charlie, options);
- * }
- * ```
  */
 
 import { $ } from "bun";
@@ -36,18 +9,6 @@ import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { getPublicPort } from "utils/docker";
 import { privateKeyToAccount } from "viem/accounts";
 import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
-
-/**
- * Enum for test account names that are prefunded in substrate
- */
-export enum TestAccounts {
-  Alice = "alice",
-  Bob = "bob",
-  Charlie = "charlie",
-  Dave = "dave",
-  Eve = "eve",
-  Ferdie = "ferdie"
-}
 
 export interface ValidatorInfo {
   publicKey: string;
@@ -108,12 +69,12 @@ export const isValidatorNodeRunning = async (
 
 /**
  * Launches a single DataHaven validator node on demand
- * @param name - The test account name to launch
+ * @param name - The validator name (e.g., "alice", "bob", "charlie")
  * @param options - Configuration options for launching the node
  * @returns Information about the launched node
  */
 export const launchDatahavenValidator = async (
-  name: TestAccounts,
+  name: string,
   options: LaunchValidatorOptions
 ): Promise<LaunchedValidatorInfo> => {
   const nodeId = name.toLowerCase();
@@ -205,17 +166,17 @@ const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
 /**
  * Get node info by account name from validator set JSON
  * @param validatorSetJson - Validator set JSON
- * @param account - Test account name
+ * @param name - Validator name (e.g., "alice", "bob")
  * @returns Node info
  */
 export const getValidatorInfoByName = (
   validatorSetJson: any,
-  account: TestAccounts
+  name: string
 ): ValidatorInfo => {
   const validatorsRaw = validatorSetJson.validators as Array<ValidatorInfo>;
-  const node = validatorsRaw.find((v) => v.solochainAuthorityName === account.toLowerCase());
+  const node = validatorsRaw.find((v) => v.solochainAuthorityName === name.toLowerCase());
   if (!node) {
-    throw new Error(`Node ${account} not found in validator set`);
+    throw new Error(`Node ${name} not found in validator set`);
   }
   return node;
 };

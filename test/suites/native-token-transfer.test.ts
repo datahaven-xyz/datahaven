@@ -35,11 +35,6 @@ const ETHEREUM_SOVEREIGN_ACCOUNT = "0xd8030FB68Aa5B447caec066f3C0BdE23E6db0a05";
 const NATIVE_TOKEN_ID =
   "0x68c3bfa36acaeb2d97b73d1453652c6ef27213798f88842ec3286846e8ee4d3a" as `0x${string}`;
 
-interface ForeignTokenRegisteredEvent {
-  tokenID: string;
-  token: `0x${string}`;
-}
-
 interface BalanceSnapshot {
   dh: bigint;
   sovereign: bigint;
@@ -169,7 +164,7 @@ describe("Native Token Transfer", () => {
       eventName: "ForeignTokenRegistered",
       data: ethEvent.data,
       topics: ethEvent.topics
-    }) as { args: ForeignTokenRegisteredEvent };
+    }) as { args: { tokenID: string; token: `0x${string}` } };
 
     expect(ethTokenEvent.tokenID).toBe(dhTokenId);
 

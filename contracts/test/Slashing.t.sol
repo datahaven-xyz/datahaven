@@ -23,12 +23,20 @@ contract SlashingTest is AVSDeployer {
     }
 
     function test_registerOperator() public {
+        uint32[] memory operatorSetIds = new uint32[](1);
+        operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
+        IAllocationManagerTypes.RegisterParams memory registerParams =
+            IAllocationManagerTypes.RegisterParams({
+                avs: address(serviceManager),
+                operatorSetIds: operatorSetIds,
+                data: hex""
+            });
 
+
+        allocationManager.registerForOperatorSets(operator, registerParams);
     }
 
     function test_fulfilSlashingRequest() public {
-        // Setup mock params
-        address operator = address(0xabcd);
         // uint32 operatorSetId = 1;
         // IStrategy[] memory strategies = new IStrategy[](1);
         // strategies[0] = deployedStrategies[0];

@@ -17,10 +17,9 @@ import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForEthereumEvent } from "../utils/events";
 import {
-  generateMerkleProofsForEra,
+  generateMerkleProofForValidator,
   getEraRewardPoints,
-  getValidatorCredentials,
-  type ValidatorProofData
+  getValidatorCredentials
 } from "../utils/rewards-helpers";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
@@ -47,7 +46,9 @@ let totalPoints!: bigint;
 let newRootIndex!: bigint;
 // Persisted state from first successful claim for double-claim test
 let claimedOperatorAddress!: Address;
-let claimedProofData!: ValidatorProofData;
+let claimedValidatorAccount!: string;
+let claimedPoints!: number;
+let claimedMerkleData!: { proof: string[]; numberOfLeaves: number; leafIndex: number };
 let firstClaimGasUsed!: bigint;
 let firstClaimBlockNumber!: bigint;
 
@@ -190,21 +191,20 @@ describe("Rewards Message Flow", () => {
     it(
       "should successfully claim rewards for validator",
       async () => {
-        // Generate merkle proofs for the era
-        const [eraPoints, proofMap] = await Promise.all([
-          getEraRewardPoints(dhApi, eraIndex),
-          generateMerkleProofsForEra(dhApi, eraIndex)
-        ]);
-
+        // Get era reward points and pick one validator
+        const eraPoints = await getEraRewardPoints(dhApi, eraIndex);
         expect(eraPoints.total).toBeGreaterThan(0);
-        expect(proofMap.size).toBeGreaterThan(0);
 
-        // Select first validator to claim
-        const [, proofData] = proofMap.entries().next().value!;
+        const [validatorAccount, points] = eraPoints.individual.entries().next().value!;
+
+        // Generate merkle proof for just this validator
+        const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
+        expect(merkleData).toBeDefined();
+        if (!merkleData) throw new Error("Failed to generate merkle proof");
 
         // Get validator credentials and create operator wallet
         const factory = suite.getConnectorFactory();
-        const credentials = getValidatorCredentials(proofData.validatorAccount);
+        const credentials = getValidatorCredentials(validatorAccount);
         expect(credentials.privateKey).toBeDefined();
         if (!credentials.privateKey) throw new Error("missing validator private key");
         const operatorWallet = factory.createWalletClient(credentials.privateKey as `0x${string}`);
@@ -222,10 +222,10 @@ describe("Rewards Message Flow", () => {
           args: [
             0, // strategy index
             newRootIndex,
-            BigInt(proofData.points),
-            BigInt(proofData.numberOfLeaves),
-            BigInt(proofData.leafIndex),
-            proofData.proof as readonly Hex[]
+            BigInt(points),
+            BigInt(merkleData.numberOfLeaves),
+            BigInt(merkleData.leafIndex),
+            merkleData.proof as readonly Hex[]
           ]
         });
 
@@ -237,7 +237,9 @@ describe("Rewards Message Flow", () => {
 
         // Persist state for the double-claim test
         claimedOperatorAddress = resolvedOperator;
-        claimedProofData = proofData;
+        claimedValidatorAccount = validatorAccount;
+        claimedPoints = points;
+        claimedMerkleData = merkleData;
         firstClaimGasUsed = claimReceipt.gasUsed;
         firstClaimBlockNumber = claimReceipt.blockNumber;
 
@@ -268,7 +270,7 @@ describe("Rewards Message Flow", () => {
         // Validate claim event data
         expect(isAddressEqual(claimArgs.operatorAddress, resolvedOperator)).toBe(true);
         expect(claimArgs.rootIndex).toEqual(newRootIndex);
-        expect(claimArgs.points).toEqual(BigInt(proofData.points));
+        expect(claimArgs.points).toEqual(BigInt(points));
         expect(claimArgs.rewardsAmount > 0n).toBe(true);
 
         logger.success("Rewards claimed successfully:");
@@ -288,7 +290,7 @@ describe("Rewards Message Flow", () => {
         logger.info(`  Adjusted balance increase: ${adjustedIncrease} wei`);
 
         expect(BigInt(adjustedIncrease)).toEqual(claimArgs.rewardsAmount);
-        expect(claimArgs.rewardsAmount).toEqual(BigInt(proofData.points));
+        expect(claimArgs.rewardsAmount).toEqual(BigInt(points));
       },
       CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
     );
@@ -299,7 +301,8 @@ describe("Rewards Message Flow", () => {
         logger.info("🚫 Testing double-claim prevention (on-chain revert)...");
 
         // Preconditions from previous test
-        expect(claimedProofData).toBeDefined();
+        expect(claimedValidatorAccount).toBeDefined();
+        expect(claimedMerkleData).toBeDefined();
         expect(claimedOperatorAddress).toBeDefined();
         expect(firstClaimGasUsed).toBeDefined();
         expect(firstClaimBlockNumber).toBeDefined();
@@ -307,9 +310,7 @@ describe("Rewards Message Flow", () => {
         if (newRootIndex === undefined) throw new Error("Merkle root not updated yet");
 
         const factory = suite.getConnectorFactory();
-        const credentials = getValidatorCredentials(
-          claimedProofData.validatorAccount
-        );
+        const credentials = getValidatorCredentials(claimedValidatorAccount);
         if (!credentials.privateKey) throw new Error("missing validator private key");
         const operatorWallet = factory.createWalletClient(credentials.privateKey as `0x${string}`);
 
@@ -323,10 +324,10 @@ describe("Rewards Message Flow", () => {
           args: [
             0,
             newRootIndex,
-            BigInt(claimedProofData.points),
-            BigInt(claimedProofData.numberOfLeaves),
-            BigInt(claimedProofData.leafIndex),
-            claimedProofData.proof as readonly Hex[]
+            BigInt(claimedPoints),
+            BigInt(claimedMerkleData.numberOfLeaves),
+            BigInt(claimedMerkleData.leafIndex),
+            claimedMerkleData.proof as readonly Hex[]
           ],
           gas: gasLimit,
           chain: null
@@ -346,10 +347,10 @@ describe("Rewards Message Flow", () => {
             args: [
               0,
               newRootIndex,
-              BigInt(claimedProofData.points),
-              BigInt(claimedProofData.numberOfLeaves),
-              BigInt(claimedProofData.leafIndex),
-              claimedProofData.proof as readonly Hex[]
+              BigInt(claimedPoints),
+              BigInt(claimedMerkleData.numberOfLeaves),
+              BigInt(claimedMerkleData.leafIndex),
+              claimedMerkleData.proof as readonly Hex[]
             ],
             blockNumber: revertReceipt.blockNumber
           });

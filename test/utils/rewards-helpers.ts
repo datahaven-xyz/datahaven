@@ -35,17 +35,6 @@ export async function getEraRewardPoints(
   };
 }
 
-// Merkle proof generation using DataHaven runtime API
-export interface ValidatorProofData {
-  validatorAccount: string;
-  operatorAddress: string;
-  points: number;
-  proof: string[];
-  leaf: string;
-  numberOfLeaves: number;
-  leafIndex: number;
-}
-
 export async function generateMerkleProofForValidator(
   dhApi: DataHavenApi,
   validatorAccount: string,
@@ -114,35 +103,4 @@ export function getValidatorCredentials(validatorAccount: string): ValidatorCred
     operatorAddress: validatorAccount as `0x${string}`,
     privateKey: null
   };
-}
-
-// Generate merkle proofs for all validators in an era
-export async function generateMerkleProofsForEra(
-  dhApi: DataHavenApi,
-  eraIndex: number
-): Promise<Map<string, ValidatorProofData>> {
-  const eraPoints = await getEraRewardPoints(dhApi, eraIndex);
-
-  const entries = await Promise.all(
-    [...eraPoints.individual].map(async ([validatorAccount, points]) => {
-      const merkleData = await generateMerkleProofForValidator(dhApi, validatorAccount, eraIndex);
-      if (!merkleData) return null;
-      const credentials = getValidatorCredentials(validatorAccount);
-      const value: ValidatorProofData = {
-        validatorAccount,
-        operatorAddress: credentials.operatorAddress,
-        points,
-        proof: merkleData.proof,
-        leaf: merkleData.leaf,
-        numberOfLeaves: merkleData.numberOfLeaves,
-        leafIndex: merkleData.leafIndex
-      };
-      return [credentials.operatorAddress, value] as const;
-    })
-  );
-
-  const filtered = entries.filter(Boolean) as [string, ValidatorProofData][];
-  const proofs = new Map(filtered);
-  logger.info(`Generated ${proofs.size} merkle proofs for era ${eraIndex}`);
-  return proofs;
 }

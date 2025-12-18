@@ -2,6 +2,8 @@ participants:
   - el_type: reth
     el_image: ghcr.io/paradigmxyz/reth:v1.9.3
     cl_type: lodestar
+    cl_extra_params:
+      - "--serveHistoricalState"
     count: 2
 
 additional_services:

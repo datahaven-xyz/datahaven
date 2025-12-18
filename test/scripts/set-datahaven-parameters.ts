@@ -6,25 +6,13 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
 import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
 
-// Interface for the options object of setDataHavenParameters
-interface SetDataHavenParametersOptions {
-  rpcUrl: string;
-  parametersFilePath: string;
-}
-
 /**
  * Sets DataHaven runtime parameters on the specified RPC URL from a JSON file.
- *
- * @param options - Configuration options for setting parameters
- * @param options.rpcUrl - The RPC URL of the DataHaven node
- * @param options.parametersFilePath - Path to the JSON file containing an array of parameters to set
- * @returns Promise resolving to true if parameters were set successfully, false if skipped
  */
 export const setDataHavenParameters = async (
-  options: SetDataHavenParametersOptions
+  rpcUrl: string,
+  parametersFilePath: string
 ): Promise<boolean> => {
-  const { rpcUrl, parametersFilePath } = options;
-
   // Load parameters from the JSON file
   let parameters: ParsedDataHavenParameter[];
   try {
@@ -133,10 +121,7 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  setDataHavenParameters({
-    rpcUrl: values.rpcUrl,
-    parametersFilePath: values.parametersFile
-  }).catch((error: Error) => {
+  setDataHavenParameters(values.rpcUrl, values.parametersFile).catch((error: Error) => {
     console.error("Setting DataHaven parameters failed:", error.message || error);
     process.exit(1);
   });

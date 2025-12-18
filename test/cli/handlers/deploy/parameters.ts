@@ -30,10 +30,7 @@ export const setParametersFromCollection = async ({
 
   const rpcUrl = `ws://127.0.0.1:${DEFAULT_SUBSTRATE_WS_PORT}`;
 
-  const parametersSet = await setDataHavenParameters({
-    rpcUrl,
-    parametersFilePath
-  });
+  const parametersSet = await setDataHavenParameters(rpcUrl, parametersFilePath);
 
   printDivider();
   return parametersSet;

@@ -99,6 +99,9 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
 
   // Iterate through validators to register them
   for (const [i, validator] of config.validators.entries()) {
+    // Only register validators named 'alice' or 'bob'
+    if (!["alice", "bob"].includes((validator.solochainAuthorityName || "").toLowerCase())) continue;
+
     logger.info(`🔧 Setting up validator ${i} (${validator.publicKey})`);
 
     const env = {

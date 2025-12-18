@@ -12,9 +12,7 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import {
   addValidatorToAllowlist,
   getOwnerAccount,
-  isValidatorInAllowlist,
-  registerSingleOperator,
-  serviceManagerHasOperator
+  registerSingleOperator
 } from "launcher/validators";
 import {
   type Deployments,
@@ -134,16 +132,38 @@ describe("Validator Set Update", () => {
     ]);
 
     // Verify allowlist and registration status
+    const { publicClient } = opts.connectors;
+    const isAllowlisted = (name: string) =>
+      publicClient.readContract({
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        functionName: "validatorsAllowlist",
+        args: [getValidator(name).publicKey as `0x${string}`]
+      });
+
+    const isRegistered = async (name: string) => {
+      const validator = getValidator(name);
+      const solochainAddress = await publicClient.readContract({
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        functionName: "validatorEthAddressToSolochainAddress",
+        args: [validator.publicKey as `0x${string}`]
+      });
+      return solochainAddress.toLowerCase() === validator.solochainAddress.toLowerCase();
+    };
+
     const [charlieAllowlisted, daveAllowlisted, charlieRegistered, daveRegistered] =
       await Promise.all([
-        isValidatorInAllowlist("charlie", opts),
-        isValidatorInAllowlist("dave", opts),
-        serviceManagerHasOperator("charlie", opts),
-        serviceManagerHasOperator("dave", opts)
+        isAllowlisted("charlie"),
+        isAllowlisted("dave"),
+        isRegistered("charlie"),
+        isRegistered("dave")
       ]);
 
-    expect([charlieAllowlisted, daveAllowlisted]).toEqual([true, true]);
-    expect([charlieRegistered, daveRegistered]).toEqual([true, true]);
+    expect(charlieAllowlisted).toBe(true);
+    expect(daveAllowlisted).toBe(true);
+    expect(charlieRegistered).toBe(true);
+    expect(daveRegistered).toBe(true);
   });
 
   it("should send updated validator set to DataHaven", async () => {

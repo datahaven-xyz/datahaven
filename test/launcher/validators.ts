@@ -172,31 +172,6 @@ export async function registerSingleOperator(
   }
 }
 
-/**
- * Checks if the service manager has the specified operator.
- *
- * @param validatorName - The name of the validator to check
- * @param options - Extended validator options including connectors and deployments
- * @returns Promise resolving to true if the operator exists
- */
-export async function serviceManagerHasOperator(
-  validatorName: string,
-  options: ValidatorOptionsExt
-): Promise<boolean> {
-  const { connectors, deployments } = options;
-  const validator = await getValidatorInfo(validatorName);
-
-  const validatorEthAddressToSolochainAddress = await connectors.publicClient.readContract({
-    address: deployments.ServiceManager as `0x${string}`,
-    abi: dataHavenServiceManagerAbi,
-    functionName: "validatorEthAddressToSolochainAddress",
-    args: [validator.publicKey as `0x${string}`]
-  });
-
-  return (
-    validatorEthAddressToSolochainAddress.toLowerCase() === validator.solochainAddress.toLowerCase()
-  );
-}
 
 /**
  * Adds a validator to the allowlist.
@@ -229,29 +204,3 @@ export async function addValidatorToAllowlist(
   logger.debug(`Added ${validatorName} to allowlist (gas: ${receipt.gasUsed})`);
 }
 
-/**
- * Checks if a validator is in the allowlist.
- *
- * @param validatorName - The name of the validator to check
- * @param options - Extended validator options including connectors and deployments
- * @returns Promise resolving to true if the validator is allowlisted
- */
-export async function isValidatorInAllowlist(
-  validatorName: string,
-  options: ValidatorOptionsExt
-): Promise<boolean> {
-  const { connectors, deployments } = options;
-  const validator = await getValidatorInfo(validatorName);
-
-  logger.info(`🔍 Checking allowlist status for ${validatorName} (${validator.publicKey})...`);
-
-  const isAllowlisted = await connectors.publicClient.readContract({
-    address: deployments.ServiceManager as `0x${string}`,
-    abi: dataHavenServiceManagerAbi,
-    functionName: "validatorsAllowlist",
-    args: [validator.publicKey as `0x${string}`]
-  });
-
-  logger.info(`📋 Allowlist status for ${validatorName}: ${isAllowlisted}`);
-  return isAllowlisted;
-}

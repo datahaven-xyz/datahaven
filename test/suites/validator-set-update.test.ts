@@ -15,6 +15,7 @@ import {
   registerOperator
 } from "launcher/validators";
 import {
+  CROSS_CHAIN_TIMEOUTS,
   type Deployments,
   isValidatorRunning,
   launchDatahavenValidator,
@@ -194,7 +195,7 @@ describe("Validator Set Update", () => {
       api: dhApi,
       pallet: "ExternalValidators",
       event: "ExternalValidatorsSet",
-      timeout: 600_000
+      timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
     });
 
     // Verify new validators are in storage
@@ -204,5 +205,5 @@ describe("Validator Set Update", () => {
     for (const address of expectedAddresses) {
       expect(validators.some((v) => v.toLowerCase() === address)).toBe(true);
     }
-  }, 600_000);
+  }, CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS);
 });

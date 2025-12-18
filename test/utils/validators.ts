@@ -25,18 +25,6 @@ export interface ValidatorInfo {
 }
 
 /**
- * Information about a launched DataHaven validator node
- */
-export interface LaunchedValidatorInfo {
-  nodeId: string;
-  containerName: string;
-  rpcUrl: string;
-  wsUrl: string;
-  publicPort: number;
-  internalPort: number;
-}
-
-/**
  * Options for launching a DataHaven validator
  */
 export interface LaunchValidatorOptions {
@@ -65,12 +53,11 @@ export const isValidatorRunning = async (name: string, networkId: string) =>
  * Launches a single DataHaven validator node on demand
  * @param name - The validator name (e.g., "alice", "bob", "charlie")
  * @param options - Configuration options for launching the node
- * @returns Information about the launched node
  */
 export const launchDatahavenValidator = async (
   name: string,
   options: LaunchValidatorOptions
-): Promise<LaunchedValidatorInfo> => {
+): Promise<void> => {
   const nodeId = name.toLowerCase();
   const networkId = options.launchedNetwork.networkId;
   const datahavenImageTag = options.datahavenImageTag || "datahavenxyz/datahaven:local";
@@ -79,17 +66,7 @@ export const launchDatahavenValidator = async (
   // Check if node is already running
   if (await isValidatorRunning(nodeId, networkId)) {
     logger.warn(`⚠️ Node ${nodeId} is already running in network ${networkId}`);
-
-    // Get existing node info
-    const publicPort = await getPublicPort(containerName, DEFAULT_SUBSTRATE_WS_PORT);
-    return {
-      nodeId,
-      containerName,
-      rpcUrl: `http://127.0.0.1:${publicPort}`,
-      wsUrl: `ws://127.0.0.1:${publicPort}`,
-      publicPort,
-      internalPort: DEFAULT_SUBSTRATE_WS_PORT
-    };
+    return;
   }
 
   logger.info(`🚀 Launching DataHaven validator node: ${nodeId}...`);
@@ -126,15 +103,6 @@ export const launchDatahavenValidator = async (
   );
 
   logger.success(`DataHaven validator node ${nodeId} launched successfully on port ${publicPort}`);
-
-  return {
-    nodeId,
-    containerName,
-    rpcUrl: `http://127.0.0.1:${publicPort}`,
-    wsUrl: `ws://127.0.0.1:${publicPort}`,
-    publicPort,
-    internalPort: DEFAULT_SUBSTRATE_WS_PORT
-  };
 };
 
 

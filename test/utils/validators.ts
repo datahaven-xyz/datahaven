@@ -58,51 +58,39 @@ export const launchDatahavenValidator = async (
   name: string,
   options: LaunchValidatorOptions
 ): Promise<void> => {
+  const { launchedNetwork, datahavenImageTag = "datahavenxyz/datahaven:local" } = options;
   const nodeId = name.toLowerCase();
-  const networkId = options.launchedNetwork.networkId;
-  const datahavenImageTag = options.datahavenImageTag || "datahavenxyz/datahaven:local";
-  const containerName = `datahaven-${nodeId}-${networkId}`;
+  const containerName = `datahaven-${nodeId}-${launchedNetwork.networkId}`;
 
-  // Check if node is already running
-  if (await isValidatorRunning(nodeId, networkId)) {
-    logger.warn(`⚠️ Node ${nodeId} is already running in network ${networkId}`);
+  if (await isValidatorRunning(nodeId, launchedNetwork.networkId)) {
+    logger.warn(`⚠️ Node ${nodeId} is already running`);
     return;
   }
 
   logger.info(`🚀 Launching DataHaven validator node: ${nodeId}...`);
 
-  // Expose internal port, Docker assigns random external port
-  const portArg = `-p ${DEFAULT_SUBSTRATE_WS_PORT}`;
-
-  const command: string[] = [
-    "docker",
+  const args = [
     "run",
     "-d",
     "--name",
     containerName,
     "--network",
-    options.launchedNetwork.networkName,
-    ...portArg.split(" "),
+    launchedNetwork.networkName,
+    "-p",
+    String(DEFAULT_SUBSTRATE_WS_PORT),
     datahavenImageTag,
     `--${nodeId}`,
     ...COMMON_LAUNCH_ARGS
   ];
 
-  logger.debug(await $`sh -c "${command.join(" ")}"`.text());
+  await $`docker ${args}`.quiet();
 
   await waitForContainerToStart(containerName);
 
-  // Get the dynamic port and register in the network
   const publicPort = await getPublicPort(containerName, DEFAULT_SUBSTRATE_WS_PORT);
+  launchedNetwork.addContainer(containerName, { ws: publicPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
-  // Add container to the launched network
-  options.launchedNetwork.addContainer(
-    containerName,
-    { ws: publicPort },
-    { ws: DEFAULT_SUBSTRATE_WS_PORT }
-  );
-
-  logger.success(`DataHaven validator node ${nodeId} launched successfully on port ${publicPort}`);
+  logger.success(`DataHaven validator ${nodeId} launched on port ${publicPort}`);
 };
 
 

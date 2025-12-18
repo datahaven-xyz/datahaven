@@ -2,7 +2,7 @@ participants:
   - el_type: reth
     el_image: ghcr.io/paradigmxyz/reth:v1.9.3
     cl_type: lodestar
-    count: 2
+    count: 1
 
 additional_services:
   - dora

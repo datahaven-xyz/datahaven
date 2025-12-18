@@ -22,13 +22,14 @@ export const setDataHavenParameters = async (
   }
 
   const client = createClient(withPolkadotSdkCompat(getWsProvider(rpcUrl)));
-  const dhApi = client.getTypedApi(datahaven);
-  logger.trace("Substrate client created");
-
-  const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
-  logger.trace("Signer created for SUDO (ALITH)");
 
   try {
+    const dhApi = client.getTypedApi(datahaven);
+    logger.trace("Substrate client created");
+
+    const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
+    logger.trace("Signer created for SUDO (ALITH)");
+
     // Build all parameter set calls
     const setParameterCalls = parameters.map((param) => {
       logger.info(`🔧 Preparing parameter: ${param.name.toString()} = ${param.value.asHex()}`);

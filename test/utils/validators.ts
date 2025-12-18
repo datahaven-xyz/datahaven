@@ -67,7 +67,7 @@ export const launchDatahavenValidator = async (
     return;
   }
 
-  logger.info(`🚀 Launching DataHaven validator node: ${nodeId}...`);
+  logger.debug(`Launching DataHaven validator node: ${nodeId}...`);
 
   const args = [
     "run",
@@ -90,7 +90,7 @@ export const launchDatahavenValidator = async (
   const publicPort = await getPublicPort(containerName, DEFAULT_SUBSTRATE_WS_PORT);
   launchedNetwork.addContainer(containerName, { ws: publicPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
-  logger.success(`DataHaven validator ${nodeId} launched on port ${publicPort}`);
+  logger.debug(`DataHaven validator ${nodeId} launched on port ${publicPort}`);
 };
 
 

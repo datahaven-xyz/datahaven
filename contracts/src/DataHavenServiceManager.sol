@@ -27,6 +27,7 @@ import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
 import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
+import "forge-std/Test.sol";
 
 /**
  * @title DataHaven ServiceManager contract
@@ -43,8 +44,7 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
-    event ValidatorsSlashedTest();
-    event ValidatorsSlashedTestBis(address);
+    event ValidatorsSlashedTest(address);
 
     IGatewayV2 private _snowbridgeGateway;
 
@@ -297,18 +297,20 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     }
 
     function slashValidatorsOperator(address[] calldata operators) external {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
+
+        uint256 wadToSlash = 1e16;
+        string memory description = "slashing validator";
+
+        uint256[] memory wadsToSlash = new uint256[](strategies.length);        
+        for(uint i=0; i<wadsToSlash.length; i++){
+            wadsToSlash[i] = wadToSlash;
+        }
+
         for(uint i=0; i<operators.length; i++){
-            emit ValidatorsSlashedTestBis(operators[i]);
-        
-            uint256[] memory wadsToSlash = new uint256[](3);
-            wadsToSlash[0] = 1e16;
-            wadsToSlash[1] = 1e16;
-            wadsToSlash[2] = 1e16;
-            string memory description = "Test slashing by non-ServiceManager";
-
-            OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-            IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
-
+            emit ValidatorsSlashedTest(operators[i]);
+    
             IAllocationManagerTypes.SlashingParams memory slashingParams = IAllocationManagerTypes.SlashingParams({
                 operator: operators[i],
                 operatorSetId: VALIDATORS_SET_ID,

@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const AuthorRewardPoints: u32 = 20;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -351,22 +350,9 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
-pub struct RewardsPoints;
-
-impl pallet_authorship::EventHandler<AccountId, BlockNumber> for RewardsPoints {
-    fn note_author(author: AccountId) {
-        let whitelisted_validators =
-            pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get();
-        // Do not reward whitelisted validators
-        if !whitelisted_validators.contains(&author) {
-            ExternalValidatorsRewards::reward_by_ids(vec![(author, AuthorRewardPoints::get())])
-        }
-    }
-}
-
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-    type EventHandler = (RewardsPoints, ImOnline);
+    type EventHandler = (ExternalValidatorsRewards, ImOnline);
 }
 
 impl pallet_offences::Config for Runtime {
@@ -393,7 +379,11 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
+    // Wrap the session manager with performance tracking to implement 50/30/20 formula
+    type SessionManager = pallet_external_validators_rewards::SessionPerformanceManager<
+        Runtime,
+        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>,
+    >;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -1416,6 +1406,8 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
+    type AuthorizedOrigin =
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress;
     type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;
@@ -1522,6 +1514,47 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 }
 
+/// Wrapper to check if a validator is online in the current session.
+/// Uses ImOnline's is_online() which considers a validator online if:
+/// - They sent a heartbeat in the current session, OR
+/// - They authored at least one block in the current session
+pub struct ValidatorIsOnline;
+impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
+    fn contains(account: &AccountId) -> bool {
+        let validators = Session::validators();
+        if let Some(index) = validators.iter().position(|v| v == account) {
+            // Check if validator is online (heartbeat OR block authorship)
+            ImOnline::is_online(index as u32)
+        } else {
+            // Not a validator in current session, consider offline
+            false
+        }
+    }
+}
+
+/// Wrapper to check if a validator has been slashed in a given era
+pub struct ValidatorSlashChecker;
+impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorSlashChecker {
+    fn is_slashed(era_index: u32, validator: &AccountId) -> bool {
+        pallet_external_validator_slashes::ValidatorSlashInEra::<Runtime>::contains_key(
+            era_index, validator,
+        )
+    }
+}
+
+parameter_types! {
+    /// Expected number of blocks per era for inflation scaling.
+    /// Computed as SessionsPerEra × EpochDurationInBlocks to ensure consistency.
+    pub ExpectedBlocksPerEra: u32 = (SessionsPerEra::get() as u32)
+        .saturating_mul(EpochDurationInBlocks::get());
+
+    /// Minimum inflation percentage even with zero block production (network halt protection)
+    pub const MinInflationPercent: u32 = 20;
+
+    /// Maximum inflation percentage (caps at 100% even if blocks exceed expectations)
+    pub const MaxInflationPercent: u32 = 100;
+}
+
 impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
@@ -1536,6 +1569,18 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
+    type ValidatorSet = Session;
+    type LivenessCheck = ValidatorIsOnline;
+    type SlashingCheck = ValidatorSlashChecker;
+    type BasePointsPerBlock = ConstU32<320>;
+    type BlockAuthoringWeight =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;
+    type LivenessWeight =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsLivenessWeight;
+    type FairShareCap = runtime_params::dynamic_params::runtime_config::OperatorRewardsFairShareCap;
+    type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
+    type MinInflationPercent = MinInflationPercent;
+    type MaxInflationPercent = MaxInflationPercent;
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
@@ -1636,7 +1681,9 @@ impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAd
         let calldata = Vec::new();
 
         let command = Command::CallContract {
-            target: runtime_params::dynamic_params::runtime_config::DatahavenAVSAddress::get(),
+            target:
+                runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get(
+                ),
             calldata,
             gas: 1_000_000, // TODO: Determine appropriate gas value after testing
             value: 0,
@@ -1690,6 +1737,15 @@ parameter_types! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dhp_bridge::{
+        InboundCommand, Message as BridgeMessage, Payload as BridgePayload, EL_MESSAGE_ID,
+    };
+    use frame_support::assert_ok;
+    use snowbridge_inbound_queue_primitives::v2::{
+        EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload,
+    };
+    use sp_core::H160;
+    use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;
     use xcm_executor::traits::ConvertLocation;
 
@@ -1712,7 +1768,6 @@ mod tests {
     #[test]
     fn test_rewards_send_adapter_with_zero_address() {
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
-        use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
             // Create test rewards utils
@@ -1735,9 +1790,7 @@ mod tests {
 
     #[test]
     fn test_rewards_send_adapter_with_valid_address() {
-        use frame_support::assert_ok;
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
-        use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
             // Set a valid (non-zero) rewards registry address
@@ -1781,6 +1834,88 @@ mod tests {
                     _ => panic!("Expected CallContract command"),
                 }
             }
+        });
+    }
+
+    fn build_snowbridge_message(origin: H160) -> SnowbridgeMessage {
+        // Minimal valid EigenLayer payload carrying an empty validator set
+        let bridge_payload = BridgePayload::<Runtime> {
+            message_id: EL_MESSAGE_ID,
+            message: BridgeMessage::V1(InboundCommand::ReceiveValidators {
+                validators: Vec::new(),
+                external_index: 0,
+            }),
+        };
+
+        let payload_bytes = bridge_payload.encode();
+
+        SnowbridgeMessage {
+            gateway: H160::zero(),
+            nonce: 0,
+            origin,
+            assets: Vec::<EthereumAsset>::new(),
+            xcm: SnowPayload::Raw(payload_bytes),
+            claimer: None,
+            value: 0,
+            execution_fee: 0,
+            relayer_fee: 0,
+        }
+    }
+
+    #[test]
+    fn test_eigenlayer_message_processor_rejects_wrong_origin() {
+        use sp_runtime::DispatchError;
+
+        TestExternalities::default().execute_with(|| {
+            // Configure an authorized origin address in runtime parameters
+            let authorized_origin = H160::from_low_u64_be(0x1234);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
+                        Some(authorized_origin),
+                    ),
+                ),
+            ));
+
+            // Build a message with a different (unauthorized) origin
+            let wrong_origin = H160::from_low_u64_be(0x9999);
+            let snow_msg = build_snowbridge_message(wrong_origin);
+
+            let relayer: AccountId = Default::default();
+            let result =
+                dhp_bridge::EigenLayerMessageProcessor::<Runtime>::process_message(relayer, snow_msg);
+
+            assert!(matches!(
+                result,
+                Err(DispatchError::Other("unauthorized validator-set origin"))
+            ));
+        });
+    }
+
+    #[test]
+    fn test_eigenlayer_message_processor_accepts_authorized_origin() {
+        TestExternalities::default().execute_with(|| {
+            // Configure the authorized origin to match the ServiceManager address
+            let authorized_origin = H160::from_low_u64_be(0x1234);
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
+                        Some(authorized_origin),
+                    ),
+                ),
+            ));
+
+            let snow_msg = build_snowbridge_message(authorized_origin);
+            let relayer: AccountId = Default::default();
+
+            let result =
+                dhp_bridge::EigenLayerMessageProcessor::<Runtime>::process_message(relayer, snow_msg);
+
+            assert!(result.is_ok(), "Message from authorized origin should be accepted");
         });
     }
 }

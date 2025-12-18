@@ -23,7 +23,6 @@ import {
   ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
-import { waitForDataHavenStorageContains } from "utils/storage";
 import { decodeEventLog, parseEther } from "viem";
 import validatorSet from "../configs/validator-set.json";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
@@ -161,155 +160,49 @@ describe("Validator Set Update", () => {
     expect(daveRegistered).toBe(true);
   });
 
-  it("should send updated validator set to DataHaven", async () => {
-    // proceed directly to sending, allowlist/register already covered in previous tests
-    logger.info("📤 Sending updated validator set (Charlie, Dave) to DataHaven...");
+  it("should send updated validator set and verify on DataHaven", async () => {
+    const { publicClient, walletClient, dhApi } = connectors;
 
-    // Build the updated validator set message
-    // Debug: Check what validators are registered in the ServiceManager contract
-    logger.info("🔍 Checking registered validators in DataHavenServiceManager...");
-
-    // Check all validators (initial + new)
-    const allValidators = [...initialValidators, ...newValidators];
-    for (const validator of allValidators) {
-      const registeredAddress = await connectors.publicClient.readContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "validatorEthAddressToSolochainAddress",
-        args: [validator.publicKey as `0x${string}`]
-      });
-
-      const isRegistered = registeredAddress !== "0x0000000000000000000000000000000000000000";
-      logger.info(`  ${validator.publicKey} -> ${registeredAddress} (registered: ${isRegistered})`);
-    }
-
-    logger.info("🔍 Building validator set message...");
-    const updatedMessageBytes = await connectors.publicClient.readContract({
+    // Send the updated validator set via Snowbridge
+    const hash = await walletClient.writeContract({
       address: deployments.ServiceManager as `0x${string}`,
       abi: dataHavenServiceManagerAbi,
-      functionName: "buildNewValidatorSetMessage",
-      args: []
+      functionName: "sendNewValidatorSet",
+      args: [parseEther("0.1"), parseEther("0.2")],
+      value: parseEther("0.3"),
+      gas: 1000000n,
+      account: getOwnerAccount(),
+      chain: null
     });
 
-    logger.info(`📊 Updated validator set message size: ${updatedMessageBytes.length} bytes`);
-    logger.info(`📊 Message bytes (first 100): ${updatedMessageBytes.slice(0, 100)}`);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    expect(receipt.status).toBe("success");
 
-    // Verify that new validators are properly registered before sending message
-    logger.info("🔍 Verifying new validators are registered before sending message...");
-    for (const validator of newValidators) {
-      const registeredAddress = await connectors.publicClient.readContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "validatorEthAddressToSolochainAddress",
-        args: [validator.publicKey as `0x${string}`]
-      });
-
-      const isRegistered = registeredAddress !== "0x0000000000000000000000000000000000000000";
-      if (!isRegistered) {
-        throw new Error(
-          `Validator ${validator.publicKey} is not registered in ServiceManager before sending message`
-        );
+    // Verify OutboundMessageAccepted event was emitted
+    const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
+      try {
+        const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+        return decoded.eventName === "OutboundMessageAccepted";
+      } catch {
+        return false;
       }
-      logger.success(`${validator.publicKey} is registered -> ${registeredAddress}`);
-    }
+    });
+    expect(hasOutboundAccepted).toBe(true);
 
-    // Log the expected validators that should be in the message
-    logger.info("🔍 Expected validators in message:");
-    for (let i = 0; i < newValidators.length; i++) {
-      logger.info(`  Validator ${i}: ${newValidators[i].solochainAddress}`);
-    }
-
-    // Send the updated validator set
-    const executionFee = parseEther("0.1");
-    const relayerFee = parseEther("0.2");
-    const totalValue = parseEther("0.3");
-
-    logger.info(
-      `Sending validator set with executionFee=${executionFee},
-      relayerFee=${relayerFee},
-      totalValue=${totalValue}`
-    );
-
-    try {
-      const hash = await connectors.walletClient.writeContract({
-        address: deployments.ServiceManager as `0x${string}`,
-        abi: dataHavenServiceManagerAbi,
-        functionName: "sendNewValidatorSet",
-        args: [executionFee, relayerFee],
-        value: totalValue,
-        gas: 1000000n,
-        account: getOwnerAccount(),
-        chain: null
-      });
-
-      logger.info(`📝 Transaction hash for validator set update: ${hash}`);
-
-      const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-      logger.info(
-        `📋 Validator set update receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-      );
-
-      if (receipt.status === "success") {
-        logger.success(`Transaction sent: ${hash}`);
-        logger.info(`⛽ Gas used: ${receipt.gasUsed}`);
-      } else {
-        logger.error(`Transaction failed with status: ${receipt.status}`);
-        throw new Error(`Transaction failed with status: ${receipt.status}`);
-      }
-
-      logger.info("🔍 Checking for OutboundMessageAccepted event in transaction receipt...");
-
-      const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
-        try {
-          const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
-          return decoded.eventName === "OutboundMessageAccepted";
-        } catch {
-          return false;
-        }
-      });
-
-      if (hasOutboundAccepted) {
-        logger.success("OutboundMessageAccepted event found in transaction receipt!");
-      } else {
-        throw new Error("OutboundMessageAccepted event not found in transaction receipt");
-      }
-    } catch (error) {
-      logger.error(`Error sending validator set update: ${error}`);
-      throw error;
-    }
-  }, 300_000);
-
-  it("should verify validator set update on DataHaven substrate", async () => {
-    logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
-
-    logger.info("⏳ Waiting for ExternalValidatorsSet event...");
+    // Wait for the validator set to be updated on Substrate
     await waitForDataHavenEvent({
-      api: connectors.dhApi,
+      api: dhApi,
       pallet: "ExternalValidators",
       event: "ExternalValidatorsSet",
       timeout: 600_000
     });
-    logger.success("ExternalValidatorsSet event found");
 
-    logger.info(
-      "🔍 Checking the new validators are present in the ExternalValidators pallet storage..."
-    );
+    // Verify new validators are in storage
+    const validators = await dhApi.query.ExternalValidators.ExternalValidators.getValue();
+    const expectedAddresses = newValidators.map((v) => v.solochainAddress.toLowerCase());
 
-    const expectedAddresses = newValidators.map((v) => v.solochainAddress as `0x${string}`);
-
-    const storageResult = await waitForDataHavenStorageContains({
-      api: connectors.dhApi,
-      pallet: "ExternalValidators",
-      storage: "ExternalValidators",
-      contains: expectedAddresses,
-      timeout: 10_000,
-      failOnTimeout: true
-    });
-
-    if (!storageResult.value) {
-      throw new Error("Failed to get ExternalValidators storage value");
+    for (const address of expectedAddresses) {
+      expect(validators.some((v) => v.toLowerCase() === address)).toBe(true);
     }
-
-    logger.success("New validators are present in the ExternalValidators pallet storage");
   }, 600_000);
 });

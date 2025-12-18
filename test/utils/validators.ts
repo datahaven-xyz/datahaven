@@ -16,22 +16,6 @@ import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 import type { TestConnectors } from "framework";
 import validatorSet from "../configs/validator-set.json";
 
-export interface ValidatorInfo {
-  publicKey: string;
-  privateKey: string;
-  solochainAddress: string;
-  solochainPrivateKey: string;
-  solochainAuthorityName: string;
-}
-
-/**
- * Options for launching a DataHaven validator
- */
-export interface LaunchValidatorOptions {
-  datahavenImageTag?: string;
-  launchedNetwork: LaunchedNetwork;
-}
-
 export const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
   "--tmp",
@@ -52,7 +36,7 @@ export const isValidatorRunning = async (name: string, networkId: string) =>
 /** Launches a single DataHaven validator node on demand */
 export const launchDatahavenValidator = async (
   name: string,
-  options: LaunchValidatorOptions
+  options: { launchedNetwork: LaunchedNetwork; datahavenImageTag?: string }
 ): Promise<void> => {
   const { launchedNetwork, datahavenImageTag = "datahavenxyz/datahaven:local" } = options;
   const nodeId = name.toLowerCase();
@@ -95,7 +79,7 @@ export const launchDatahavenValidator = async (
  * @param name - Validator name (e.g., "alice", "bob")
  * @returns Validator info
  */
-export const getValidator = (name: string): ValidatorInfo => {
+export const getValidator = (name: string) => {
   const node = validatorSet.validators.find(
     (v) => v.solochainAuthorityName === name.toLowerCase()
   );

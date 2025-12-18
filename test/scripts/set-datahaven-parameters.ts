@@ -14,7 +14,7 @@ export const setDataHavenParameters = async (
   parametersFilePath: string
 ): Promise<boolean> => {
   const parametersJson = await Bun.file(parametersFilePath).json();
-  const parameters = parseJsonToParameters(parametersJson);
+  const parameters = parseJsonToParameters(parametersJson).filter((p) => p.value !== undefined);
 
   if (parameters.length === 0) {
     logger.warn("⚠️ No parameters to set.");

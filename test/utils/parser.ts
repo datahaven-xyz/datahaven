@@ -58,6 +58,7 @@ export const BeefyRelayConfigSchema = z.object({
     })
   }),
   "on-demand-sync": z.object({
+    "asset-hub-channel-id": z.string(),
     "max-tasks": z.number(),
     "merge-period": z.number(),
     "expired-period": z.number()
@@ -68,7 +69,8 @@ export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 export const SolochainRelayConfigSchema = z.object({
   source: z.object({
     ethereum: z.object({
-      endpoint: z.string()
+      endpoint: z.string(),
+      "skip-fee-check": z.boolean().optional()
     }),
     solochain: z.object({
       endpoint: z.string()
@@ -101,7 +103,8 @@ export const SolochainRelayConfigSchema = z.object({
       Gateway: z.string()
     }),
     ethereum: z.object({
-      endpoint: z.string()
+      endpoint: z.string(),
+      "skip-fee-check": z.boolean().optional()
     })
   }),
   schedule: z.object({

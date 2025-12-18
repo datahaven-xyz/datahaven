@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import {
   addValidatorToAllowlist,
   getOwnerAccount,
-  registerSingleOperator
+  registerOperator
 } from "launcher/validators";
 import {
   type Deployments,
@@ -127,8 +127,8 @@ describe("Validator Set Update", () => {
       addValidatorToAllowlist("dave", opts)
     ]);
     await Promise.all([
-      registerSingleOperator("charlie", opts),
-      registerSingleOperator("dave", opts)
+      registerOperator("charlie", opts),
+      registerOperator("dave", opts)
     ]);
 
     // Verify allowlist and registration status

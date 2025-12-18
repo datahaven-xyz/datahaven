@@ -17,10 +17,6 @@ export interface ValidatorOptions {
   rpcUrl: string;
 }
 
-export interface ValidatorOptionsExt extends ValidatorOptions {
-  connectors: TestConnectors;
-  deployments: Deployments;
-}
 
 /**
  * Funds validators with tokens and ETH.
@@ -100,76 +96,60 @@ export function getOwnerAccount() {
 }
 
 /**
- * Registers a single operator in EigenLayer and for operator sets.
+ * Register an operator in EigenLayer and for operator sets.
  *
  * @param validatorName - The name of the validator to register
  * @param options - Extended validator options including connectors and deployments
  * @throws {Error} If registration transactions fail
  */
-export async function registerSingleOperator(
+export async function registerOperator(
   validatorName: string,
-  options: ValidatorOptionsExt
+  options: { connectors: TestConnectors; deployments: Deployments }
 ): Promise<void> {
   const { connectors, deployments } = options;
   const validator = await getValidatorInfo(validatorName);
+  const account = privateKeyToAccount(validator.privateKey as `0x${string}`);
 
-  logger.info(`🔧 Registering ${validator.publicKey} as operator...`);
+  // Register as EigenLayer operator
+  const operatorHash = await connectors.walletClient.writeContract({
+    address: deployments.DelegationManager as `0x${string}`,
+    abi: delegationManagerAbi,
+    functionName: "registerAsOperator",
+    args: ["0x0000000000000000000000000000000000000000", 0, ""],
+    account,
+    chain: null
+  });
 
-  try {
-    const operatorHash = await connectors.walletClient.writeContract({
-      address: deployments.DelegationManager as `0x${string}`,
-      abi: delegationManagerAbi,
-      functionName: "registerAsOperator",
-      args: [
-        "0x0000000000000000000000000000000000000000", // initDelegationApprover (no approver)
-        0, // allocationDelay
-        "" // metadataURI
-      ],
-      account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-      chain: null
-    });
-
-    const operatorReceipt = await connectors.publicClient.waitForTransactionReceipt({
-      hash: operatorHash
-    });
-    if (operatorReceipt.status !== "success") {
-      throw new Error(
-        `EigenLayer operator registration failed with status: ${operatorReceipt.status}`
-      );
-    }
-    logger.success(`Registered ${validator.publicKey} as EigenLayer operator`);
-
-    logger.info(`🔧 Registering ${validator.publicKey} for operator sets...`);
-    const hash = await connectors.walletClient.writeContract({
-      address: deployments.AllocationManager as `0x${string}`,
-      abi: allocationManagerAbi,
-      functionName: "registerForOperatorSets",
-      args: [
-        validator.publicKey as `0x${string}`,
-        {
-          avs: deployments.ServiceManager as `0x${string}`,
-          operatorSetIds: [0],
-          data: validator.solochainAddress as `0x${string}`
-        }
-      ],
-      account: privateKeyToAccount(validator.privateKey as `0x${string}`),
-      chain: null
-    });
-
-    logger.info(`📝 Transaction hash for operator set registration: ${hash}`);
-
-    const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-    logger.info(
-      `📋 Operator set registration receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-    );
-
-    if (receipt.status === "success") {
-      logger.success(`Registered ${validator.publicKey} for operator sets`);
-    }
-  } catch (error) {
-    logger.warn(`Failed to register ${validator.publicKey} for operator sets: ${error}`);
-    throw error;
+  const operatorReceipt = await connectors.publicClient.waitForTransactionReceipt({
+    hash: operatorHash
+  });
+  if (operatorReceipt.status !== "success") {
+    throw new Error(`EigenLayer operator registration failed: ${operatorReceipt.status}`);
   }
+
+  // Register for operator sets
+  const hash = await connectors.walletClient.writeContract({
+    address: deployments.AllocationManager as `0x${string}`,
+    abi: allocationManagerAbi,
+    functionName: "registerForOperatorSets",
+    args: [
+      validator.publicKey as `0x${string}`,
+      {
+        avs: deployments.ServiceManager as `0x${string}`,
+        operatorSetIds: [0],
+        data: validator.solochainAddress as `0x${string}`
+      }
+    ],
+    account,
+    chain: null
+  });
+
+  const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`Operator set registration failed: ${receipt.status}`);
+  }
+
+  logger.debug(`Registered ${validatorName} as operator (gas: ${receipt.gasUsed})`);
 }
 
 
@@ -182,7 +162,7 @@ export async function registerSingleOperator(
  */
 export async function addValidatorToAllowlist(
   validatorName: string,
-  options: ValidatorOptionsExt
+  options: { connectors: TestConnectors; deployments: Deployments }
 ): Promise<void> {
   const { connectors, deployments } = options;
   const validator = await getValidatorInfo(validatorName);

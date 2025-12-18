@@ -1536,24 +1536,6 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 }
 
-/// Wrapper to check if a validator is online in the current session.
-/// Uses ImOnline's is_online() which considers a validator online if:
-/// - They sent a heartbeat in the current session, OR
-/// - They authored at least one block in the current session
-pub struct ValidatorIsOnline;
-impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
-    fn contains(account: &AccountId) -> bool {
-        let validators = Session::validators();
-        if let Some(index) = validators.iter().position(|v| v == account) {
-            // Check if validator is online (heartbeat OR block authorship)
-            ImOnline::is_online(index as u32)
-        } else {
-            // Not a validator in current session, consider offline
-            false
-        }
-    }
-}
-
 /// Wrapper to check if a validator has been slashed in a given era
 pub struct ValidatorSlashChecker;
 impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorSlashChecker {

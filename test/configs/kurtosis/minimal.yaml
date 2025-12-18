@@ -4,7 +4,7 @@ participants:
     cl_type: lodestar
     cl_extra_params:
       - "--serveHistoricalState"
-    count: 2
+    count: 1
 
 additional_services:
   - dora

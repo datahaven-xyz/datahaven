@@ -192,14 +192,6 @@ export type DataHavenRuntimeParameterKey =
   | "DatahavenServiceManagerAddress";
 
 /**
- * Interface for raw JSON parameters before conversion
- */
-export interface RawJsonParameter {
-  name: DataHavenRuntimeParameterKey;
-  value: string | null | undefined;
-}
-
-/**
  * Schema for raw EthereumGatewayAddress parameter
  */
 const rawEthereumGatewayAddressSchema = z.object({
@@ -263,68 +255,16 @@ export interface ParsedDataHavenParameter {
   value: any;
 }
 
-/**
- * Converts a parsed raw parameter to its typed version
- */
-function convertParameter(rawParam: any): ParsedDataHavenParameter {
-  if (rawParam.name === "EthereumGatewayAddress" && rawParam.value) {
-    return {
-      name: rawParam.name,
-      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
-    };
-  }
-  if (rawParam.name === "RewardsRegistryAddress" && rawParam.value) {
-    return {
-      name: rawParam.name,
-      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
-    };
-  }
-  if (rawParam.name === "RewardsUpdateSelector" && rawParam.value) {
-    return {
-      name: rawParam.name,
-      value: new FixedSizeBinary<4>(hexToUint8Array(rawParam.value))
-    };
-  }
-  if (rawParam.name === "RewardsAgentOrigin" && rawParam.value) {
-    return {
-      name: rawParam.name,
-      value: new FixedSizeBinary<32>(hexToUint8Array(rawParam.value))
-    };
-  }
-  if (rawParam.name === "DatahavenServiceManagerAddress" && rawParam.value) {
-    return {
-      name: rawParam.name,
-      value: new FixedSizeBinary<20>(hexToUint8Array(rawParam.value))
-    };
-  }
-
-  // For other parameter types, add conversion logic here
-  return rawParam;
+/** Converts a raw parameter to its typed version with FixedSizeBinary value */
+function convertParameter(rawParam: {
+  name: DataHavenRuntimeParameterKey;
+  value?: string | null;
+}): ParsedDataHavenParameter {
+  return {
+    name: rawParam.name,
+    value: rawParam.value ? new FixedSizeBinary(hexToUint8Array(rawParam.value)) : undefined
+  };
 }
-
-/**
- * Parses and converts a JSON object into a typed DataHaven parameter.
- *
- * @param jsonInput - The JSON parameter object to parse.
- * @returns The parsed and converted parameter.
- */
-export const parseJsonToParameter = (jsonInput: any): ParsedDataHavenParameter => {
-  try {
-    // First validate the raw structure
-    const rawParam = rawDataHavenParameterSchema.parse(jsonInput);
-    // Then convert to typed version
-    return convertParameter(rawParam);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(
-        `Invalid JSON structure for DataHaven parameter: ${error.errors
-          .map((e) => `${e.path.join(".")} - ${e.message}`)
-          .join(", ")}`
-      );
-    }
-    throw error;
-  }
-};
 
 /**
  * Parses and converts an array of JSON parameters into typed DataHaven parameters.

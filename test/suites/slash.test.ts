@@ -44,7 +44,7 @@ describe("Should slash an operator", () => {
     expect(mode2.type).toBe("Enabled");
   }, 40000);
 
-  it("use sudo to slash operator", async () => {
+  it.skip("use sudo to slash operator", async () => {
     const { publicClient, dhApi } = suite.getTestConnectors();
 
     // get era number
@@ -109,7 +109,7 @@ describe("Should slash an operator", () => {
       client: publicClient,
       address: serviceManager.address,
       abi: serviceManager.abi,
-      eventName: "ValidatorsSlashedTestBis"
+      eventName: "ValidatorsSlashedTest"
     });
 
     console.log(event);

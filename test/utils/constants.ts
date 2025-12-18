@@ -59,7 +59,7 @@ export const CONTAINER_NAMES = {
 /**
  * Cross-chain timing breakdown (E2E config: 2s ETH slots, fast-runtime DH)
  *
- * DH → ETH (typical: 30–120s, timeout: 3 min)
+ * DH → ETH (typical: 2–5 min, timeout: 8 min)
  * ─────────────────────────────────────────────
  * 1. Message queued in outbound-queue           → instant
  * 2. Block finalized (GRANDPA)                  → ~6s (1 DH block)
@@ -82,9 +82,9 @@ export const CONTAINER_NAMES = {
  * Total: ~150s best case, ~210s typical, up to 300s with variance
  */
 export const CROSS_CHAIN_TIMEOUTS = {
-  /** DH → ETH message relay (3 min conservative) */
-  DH_TO_ETH_MS: 3 * 60 * 1000,
-  /** ETH → DH message relay (6 min conservative, beacon finality dominates) */
+  /** DH → ETH message relay (8 min) */
+  DH_TO_ETH_MS: 8 * 60 * 1000,
+  /** ETH → DH message relay (6 min, beacon finality dominates) */
   ETH_TO_DH_MS: 6 * 60 * 1000,
   /** On-chain event confirmation (30s) */
   EVENT_CONFIRMATION_MS: 30 * 1000

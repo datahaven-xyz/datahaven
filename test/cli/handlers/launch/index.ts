@@ -4,6 +4,7 @@ import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { createParameterCollection } from "utils/parameters";
 import { getBlockscoutUrl } from "../../../launcher/kurtosis";
 import { LaunchedNetwork } from "../../../launcher/types/launchedNetwork";
+import { updateParameters } from "../../../scripts/deploy-contracts";
 import { checkBaseDependencies } from "../common/checks";
 import { deployContracts } from "./contracts";
 import { launchDataHavenSolochain } from "./datahaven";
@@ -65,7 +66,10 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
 
   await launchDataHavenSolochain(options, launchedNetwork);
 
-  await launchKurtosis(options, launchedNetwork);
+  // Default injectContracts to true if not specified
+  const injectContracts = options.injectContracts !== undefined ? options.injectContracts : true;
+
+  await launchKurtosis({ ...options, injectContracts }, launchedNetwork);
 
   logger.trace("Checking if Blockscout is enabled...");
   let blockscoutBackendUrl: string | undefined;
@@ -79,7 +83,8 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     );
   }
 
-  if (options.deployContracts) {
+  // skip deploying contracts if we have injected it
+  if (options.deployContracts && !options.injectContracts) {
     const contractsDeployed = await deployContracts({
       rpcUrl: launchedNetwork.elRpcUrl,
       verified: options.verified,
@@ -89,6 +94,9 @@ const launchFunction = async (options: LaunchOptions, launchedNetwork: LaunchedN
     });
 
     await performValidatorOperations(options, launchedNetwork.elRpcUrl, contractsDeployed);
+  } else {
+    // We are injecting contracts but we still need the addresses
+    await updateParameters(parameterCollection);
   }
 
   await setParametersFromCollection({

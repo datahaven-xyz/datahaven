@@ -14,6 +14,7 @@ import { getPublicPort } from "utils/docker";
 import { privateKeyToAccount } from "viem/accounts";
 import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 import type { TestConnectors } from "framework";
+import { getOwnerAccount } from "../launcher/validators";
 import validatorSet from "../configs/validator-set.json";
 
 export const COMMON_LAUNCH_ARGS = [
@@ -101,7 +102,7 @@ export const addValidatorToAllowlist = async (
     abi: dataHavenServiceManagerAbi,
     functionName: "addValidatorToAllowlist",
     args: [validator.publicKey as `0x${string}`],
-    account: privateKeyToAccount(validator.privateKey as `0x${string}`),
+    account: getOwnerAccount(),
     chain: null
   });
   await connectors.publicClient.waitForTransactionReceipt({ hash });

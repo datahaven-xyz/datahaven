@@ -51,14 +51,10 @@ export const setDataHavenParameters = async (
   const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
   logger.trace("Signer created for SUDO (ALITH)");
 
-  let allSuccessful = true;
-
   try {
-    for (const param of parameters) {
-      // TODO: Add a graceful way to print the value of the parameter, since it won't always be representable as a hex string
-      logger.info(
-        `🔧 Attempting to set parameter: ${param.name.toString()} = ${param.value.asHex()}`
-      );
+    // Build all parameter set calls
+    const setParameterCalls = parameters.map((param) => {
+      logger.info(`🔧 Preparing parameter: ${param.name.toString()} = ${param.value.asHex()}`);
 
       const setParameterArgs: any = {
         key_value: {
@@ -70,45 +66,44 @@ export const setDataHavenParameters = async (
         }
       };
 
-      try {
-        const setParameterCall = dhApi.tx.Parameters.set_parameter(setParameterArgs);
+      const setParameterCall = dhApi.tx.Parameters.set_parameter(setParameterArgs);
+      logger.debug(`Parameter call: ${JSON.stringify(setParameterCall.decodedCall)}`);
+      return setParameterCall.decodedCall;
+    });
 
-        logger.debug("Parameter set call:");
-        logger.debug(setParameterCall.decodedCall);
+    // Batch all parameter calls into a single Utility.batch_all call
+    const batchCall = dhApi.tx.Utility.batch_all({
+      calls: setParameterCalls
+    });
 
-        const sudoCall = dhApi.tx.Sudo.sudo({
-          call: setParameterCall.decodedCall
-        });
+    logger.debug("Batch call:");
+    logger.debug(batchCall.decodedCall);
 
-        logger.debug(`Submitting transaction to set ${String(param.name)}...`);
-        const txFinalisedPayload = await sudoCall.signAndSubmit(signer);
+    // Wrap in Sudo to execute with elevated privileges
+    const sudoCall = dhApi.tx.Sudo.sudo({
+      call: batchCall.decodedCall
+    });
 
-        if (!txFinalisedPayload.ok) {
-          logger.error(
-            `❌ Transaction to set parameter ${String(param.name)} failed. Block: ${txFinalisedPayload.block.hash}, Tx Hash: ${txFinalisedPayload.txHash}`
-          );
-          logger.error(`Events: ${JSON.stringify(txFinalisedPayload.events)}`);
-          allSuccessful = false;
-        }
-      } catch (txError: any) {
-        logger.error(
-          `❌ Error submitting transaction for parameter ${String(param.name)}: ${txError.message || txError}`
-        );
-        allSuccessful = false;
-      }
+    logger.info(`📦 Submitting batched transaction with ${parameters.length} parameters...`);
+    const txResult = await sudoCall.signAndSubmit(signer);
+
+    if (!txResult.ok) {
+      logger.error(
+        `❌ Batched transaction failed. Block: ${txResult.block.hash}, Tx Hash: ${txResult.txHash}`
+      );
+      logger.error(`Events: ${JSON.stringify(txResult.events)}`);
+      return false;
     }
+
+    logger.success("All specified DataHaven parameters processed successfully.");
+    return true;
+  } catch (txError: any) {
+    logger.error(`❌ Error submitting batched transaction: ${txError.message || txError}`);
+    return false;
   } finally {
     client.destroy();
     logger.trace("Substrate client destroyed");
   }
-
-  if (allSuccessful) {
-    logger.success("All specified DataHaven parameters processed successfully.");
-  } else {
-    logger.warn("Some DataHaven parameters could not be set. Please check logs.");
-  }
-
-  return allSuccessful;
 };
 
 // Allow script to be run directly with CLI arguments

@@ -27,7 +27,7 @@ import { waitForDataHavenStorageContains } from "utils/storage";
 import { decodeEventLog, parseEther } from "viem";
 import validatorSet from "../configs/validator-set.json";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
-import { BaseTestSuite } from "../framework";
+import { BaseTestSuite, type TestConnectors } from "../framework";
 
 const getValidator = (name: string) => {
   const v = validatorSet.validators.find((v) => v.solochainAuthorityName === name);
@@ -59,18 +59,12 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
     return this.getConnectors().launchedNetwork.networkId;
   }
 
-  public getValidatorOptions() {
-    return {
-      rpcUrl: this.getConnectors().launchedNetwork.elRpcUrl,
-      connectors: this.getTestConnectors(),
-      deployments,
-    };
-  }
 }
 
 // Create the test suite instance
 const suite = new ValidatorSetUpdateTestSuite();
 let deployments: Deployments;
+let connectors: TestConnectors;
 
 describe("Validator Set Update", () => {
   const initialValidators = [getValidator("alice"), getValidator("bob")];
@@ -78,11 +72,12 @@ describe("Validator Set Update", () => {
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
+    connectors = suite.getTestConnectors();
   });
 
   it("should verify test environment", async () => {
     const networkId = suite.getNetworkId();
-    const { publicClient, papiClient } = suite.getTestConnectors();
+    const { publicClient, papiClient } = connectors;
 
     // Validators running
     expect(await isValidatorRunning("alice", networkId)).toBe(true);
@@ -99,7 +94,7 @@ describe("Validator Set Update", () => {
   });
 
   it("should verify initial validator set state", async () => {
-    const { publicClient } = suite.getTestConnectors();
+    const { publicClient } = connectors;
     const readSolochainAddress = (validator: (typeof initialValidators)[0]) =>
       publicClient.readContract({
         address: deployments.ServiceManager as `0x${string}`,
@@ -119,7 +114,7 @@ describe("Validator Set Update", () => {
   });
 
   it("should allowlist and register new validators as operators", async () => {
-    const opts = suite.getValidatorOptions();
+    const opts = { connectors, deployments };
 
     // Add to allowlist and register as operators
     await Promise.all([
@@ -132,7 +127,7 @@ describe("Validator Set Update", () => {
     ]);
 
     // Verify allowlist and registration status
-    const { publicClient } = opts.connectors;
+    const { publicClient } = connectors;
     const isAllowlisted = (name: string) =>
       publicClient.readContract({
         address: deployments.ServiceManager as `0x${string}`,
@@ -167,8 +162,6 @@ describe("Validator Set Update", () => {
   });
 
   it("should send updated validator set to DataHaven", async () => {
-    const connectors = suite.getTestConnectors();
-
     // proceed directly to sending, allowlist/register already covered in previous tests
     logger.info("📤 Sending updated validator set (Charlie, Dave) to DataHaven...");
 
@@ -287,8 +280,6 @@ describe("Validator Set Update", () => {
   }, 300_000);
 
   it("should verify validator set update on DataHaven substrate", async () => {
-    const connectors = suite.getTestConnectors();
-
     logger.info("🔍 Verifying validator set on DataHaven substrate chain...");
 
     logger.info("⏳ Waiting for ExternalValidatorsSet event...");

@@ -9,7 +9,7 @@
  * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
-import { getOwnerAccount, registerOperator } from "launcher/validators";
+import { getOwnerAccount } from "launcher/validators";
 import {
   addValidatorToAllowlist,
   CROSS_CHAIN_TIMEOUTS,
@@ -18,6 +18,7 @@ import {
   launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
+  registerOperator,
   ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";

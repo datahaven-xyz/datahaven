@@ -3,7 +3,11 @@
  */
 
 import { $ } from "bun";
-import { dataHavenServiceManagerAbi } from "contract-bindings";
+import {
+  allocationManagerAbi,
+  dataHavenServiceManagerAbi,
+  delegationManagerAbi
+} from "contract-bindings";
 import { logger, waitForContainerToStart, type Deployments } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { getPublicPort } from "utils/docker";
@@ -154,16 +158,70 @@ export const addValidatorToAllowlist = async (
   validatorName: string,
   options: { connectors: TestConnectors; deployments: Deployments }
 ): Promise<void> => {
-  logger.info(`Adding validator ${validatorName} to allowlist...`);
+  logger.debug(`Adding validator ${validatorName} to allowlist...`);
+
+  const { connectors, deployments } = options;
   const validator = await getValidatorInfo(validatorName);
-  const hash = await options.connectors.walletClient.writeContract({
-    address: options.deployments.ServiceManager as `0x${string}`,
+  const hash = await connectors.walletClient.writeContract({
+    address: deployments.ServiceManager as `0x${string}`,
     abi: dataHavenServiceManagerAbi,
     functionName: "addValidatorToAllowlist",
     args: [validator.publicKey as `0x${string}`],
     account: privateKeyToAccount(validator.privateKey as `0x${string}`),
     chain: null
   });
-  await options.connectors.publicClient.waitForTransactionReceipt({ hash });
-  logger.info(`✅ Validator ${validatorName} added to allowlist`);
+  await connectors.publicClient.waitForTransactionReceipt({ hash });
+
+  logger.debug(`Validator ${validatorName} added to allowlist`);
 };
+
+/** Register an operator in EigenLayer and for operator sets */
+export async function registerOperator(
+  validatorName: string,
+  options: { connectors: TestConnectors; deployments: Deployments }
+): Promise<void> {
+  const { connectors, deployments } = options;
+  const validator = await getValidatorInfo(validatorName);
+  const account = privateKeyToAccount(validator.privateKey as `0x${string}`);
+
+  // Register as EigenLayer operator
+  const operatorHash = await connectors.walletClient.writeContract({
+    address: deployments.DelegationManager as `0x${string}`,
+    abi: delegationManagerAbi,
+    functionName: "registerAsOperator",
+    args: ["0x0000000000000000000000000000000000000000", 0, ""],
+    account,
+    chain: null
+  });
+
+  const operatorReceipt = await connectors.publicClient.waitForTransactionReceipt({
+    hash: operatorHash
+  });
+  if (operatorReceipt.status !== "success") {
+    throw new Error(`EigenLayer operator registration failed: ${operatorReceipt.status}`);
+  }
+
+  // Register for operator sets
+  const hash = await connectors.walletClient.writeContract({
+    address: deployments.AllocationManager as `0x${string}`,
+    abi: allocationManagerAbi,
+    functionName: "registerForOperatorSets",
+    args: [
+      validator.publicKey as `0x${string}`,
+      {
+        avs: deployments.ServiceManager as `0x${string}`,
+        operatorSetIds: [0],
+        data: validator.solochainAddress as `0x${string}`
+      }
+    ],
+    account,
+    chain: null
+  });
+
+  const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`Operator set registration failed: ${receipt.status}`);
+  }
+
+  logger.debug(`Registered ${validatorName} as operator (gas: ${receipt.gasUsed})`);
+}

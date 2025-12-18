@@ -3,7 +3,7 @@ import {
   createWriteContract,
   createSimulateContract,
   createWatchContractEvent,
-} from 'wagmi/codegen'
+} from '@wagmi/core/codegen'
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // AVSDirectory
@@ -8355,7 +8355,7 @@ export const rewardsRegistryAbi = [
         name: 'newRoot',
         internalType: 'bytes32',
         type: 'bytes32',
-        indexed: false,
+        indexed: true,
       },
       {
         name: 'newRootIndex',

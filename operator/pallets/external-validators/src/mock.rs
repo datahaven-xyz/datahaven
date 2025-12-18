@@ -133,6 +133,14 @@ parameter_types! {
     pub const SessionsPerEra: SessionIndex = 6;
 }
 
+/// Mock current session index provider.
+pub struct MockCurrentSessionIndex;
+impl frame_support::traits::Get<SessionIndex> for MockCurrentSessionIndex {
+    fn get() -> SessionIndex {
+        Session::current_index()
+    }
+}
+
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureSignedBy<RootAccount, u64>;
@@ -147,6 +155,8 @@ impl Config for Test {
     type OnEraStart = Mock;
     type OnEraEnd = Mock;
     type OnSessionEnd = Mock;
+    type Key = UintAuthorityId;
+    type CurrentSessionIndex = MockCurrentSessionIndex;
     type AuthorizedOrigin = MockAuthorizedOrigin;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]

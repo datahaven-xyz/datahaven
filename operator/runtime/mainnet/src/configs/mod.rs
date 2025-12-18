@@ -135,7 +135,7 @@ use sp_consensus_beefy::{
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
-    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
+    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, UniqueSaturatedInto},
     FixedPointNumber, Perbill, Perquintill,
 };
 use sp_staking::EraIndex;
@@ -381,7 +381,15 @@ impl pallet_session::Config for Runtime {
     type NextSessionRotation = Babe;
     type SessionManager =
         pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
-    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+    // ExternalValidators must come BEFORE ImOnline so that on_before_session_ending
+    // can cache liveness data before ImOnline clears its AuthoredBlocks storage.
+    type SessionHandler = (
+        ExternalValidators,
+        crate::Grandpa,
+        crate::Babe,
+        crate::ImOnline,
+        crate::Beefy,
+    );
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
@@ -1390,6 +1398,24 @@ parameter_types! {
     pub const MaxExternalValidators: u32 = 100;
 }
 
+/// Wrapper to check if a validator has authored blocks this session.
+/// Reads from ImOnline's AuthoredBlocks storage.
+pub struct ImOnlineLivenessTracker;
+impl Contains<AccountId> for ImOnlineLivenessTracker {
+    fn contains(v: &AccountId) -> bool {
+        let current_session = Session::current_index();
+        pallet_im_online::AuthoredBlocks::<Runtime>::get(current_session, v) != 0
+    }
+}
+
+/// Wrapper to get the current session index from pallet_session.
+pub struct CurrentSessionIndexGetter;
+impl Get<sp_staking::SessionIndex> for CurrentSessionIndexGetter {
+    fn get() -> sp_staking::SessionIndex {
+        Session::current_index()
+    }
+}
+
 impl pallet_external_validators::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -1404,6 +1430,8 @@ impl pallet_external_validators::Config for Runtime {
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
     type OnSessionEnd = ExternalValidatorsRewards;
+    type Key = sp_consensus_babe::AuthorityId;
+    type CurrentSessionIndex = CurrentSessionIndexGetter;
     type AuthorizedOrigin =
         runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress;
     type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
@@ -1540,17 +1568,6 @@ impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorS
     }
 }
 
-/// Wrapper to check if the current block is the last block of the session.
-/// Used by ExternalValidatorsRewards to cache liveness data before ImOnline clears it.
-pub struct IsLastBlockOfSession;
-impl Get<bool> for IsLastBlockOfSession {
-    fn get() -> bool {
-        <Babe as pallet_session::ShouldEndSession<BlockNumber>>::should_end_session(
-            System::block_number(),
-        )
-    }
-}
-
 parameter_types! {
     /// Expected number of blocks per era for inflation scaling.
     /// Computed as SessionsPerEra × EpochDurationInBlocks to ensure consistency.
@@ -1579,8 +1596,8 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type ValidatorSet = Session;
-    type LivenessCheck = ValidatorIsOnline;
     type SlashingCheck = ValidatorSlashChecker;
+    type LivenessTracker = ImOnlineLivenessTracker;
     type BasePointsPerBlock = ConstU32<320>;
     type BlockAuthoringWeight =
         runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;
@@ -1596,7 +1613,6 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
     type WeightInfo = mainnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
-    type IsLastBlockOfSession = IsLastBlockOfSession;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }

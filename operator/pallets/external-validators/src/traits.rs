@@ -78,7 +78,8 @@ impl OnEraEnd for Tuple {
 /// Implementors can use this to perform session-end logic such as awarding performance points.
 ///
 /// This is called from `SessionHandler::on_before_session_ending()` which runs before
-/// other session handlers (like ImOnline) clear their per-session data.
+/// other session handlers (like ImOnline) clear their per-session data. Implementors
+/// should read any required liveness data directly from ImOnline at this point.
 pub trait OnSessionEnd {
     fn on_session_end(_session_index: sp_staking::SessionIndex) {}
 }

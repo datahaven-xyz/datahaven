@@ -108,11 +108,11 @@ describe("Validator Set Update", () => {
   it("should allowlist and register new validators as operators", async () => {
     const opts = { connectors, deployments };
 
-    // Add to allowlist and register as operators
-    await Promise.all([
-      addValidatorToAllowlist("charlie", opts),
-      addValidatorToAllowlist("dave", opts)
-    ]);
+    // Add to allowlist sequentially
+    await addValidatorToAllowlist("charlie", opts);
+    await addValidatorToAllowlist("dave", opts);
+
+    // Register operators in parallel (each uses their own validator account)
     await Promise.all([
       registerOperator("charlie", opts),
       registerOperator("dave", opts)

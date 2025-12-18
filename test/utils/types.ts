@@ -180,114 +180,37 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
   }
 };
 
-/**
- * The key of the DataHaven runtime parameter.
- * This is an union type with all the possible parameter keys.
- */
-export type DataHavenRuntimeParameterKey =
-  | "EthereumGatewayAddress"
-  | "RewardsRegistryAddress"
-  | "RewardsUpdateSelector"
-  | "RewardsAgentOrigin"
-  | "DatahavenServiceManagerAddress";
+/** Valid parameter names for DataHaven runtime configuration */
+const DATAHAVEN_PARAM_NAMES = [
+  "EthereumGatewayAddress",
+  "RewardsRegistryAddress",
+  "RewardsUpdateSelector",
+  "RewardsAgentOrigin",
+  "DatahavenServiceManagerAddress"
+] as const;
 
-/**
- * Schema for raw EthereumGatewayAddress parameter
- */
-const rawEthereumGatewayAddressSchema = z.object({
-  name: z.literal("EthereumGatewayAddress"),
+export type DataHavenRuntimeParameterKey = (typeof DATAHAVEN_PARAM_NAMES)[number];
+
+/** Schema for a single parameter: { name, value } */
+const parameterSchema = z.object({
+  name: z.enum(DATAHAVEN_PARAM_NAMES),
   value: hexStringSchema.nullable().optional()
 });
 
-/**
- * Schema for raw RewardsRegistryAddress parameter
- */
-const rawRewardsRegistryAddressSchema = z.object({
-  name: z.literal("RewardsRegistryAddress"),
-  value: hexStringSchema.nullable().optional()
-});
-
-/**
- * Schema for raw RewardsUpdateSelector parameter
- */
-const rawRewardsUpdateSelectorSchema = z.object({
-  name: z.literal("RewardsUpdateSelector"),
-  value: hexStringSchema.nullable().optional()
-});
-
-/**
- * Schema for raw RewardsOrigin parameter
- */
-const rawRewardsAgentOriginSchema = z.object({
-  name: z.literal("RewardsAgentOrigin"),
-  value: hexStringSchema.nullable().optional()
-});
-
-/**
- * Schema for raw DatahavenServiceManagerAddress parameter
- */
-const rawDatahavenServiceManagerAddressSchema = z.object({
-  name: z.literal("DatahavenServiceManagerAddress"),
-  value: hexStringSchema.nullable().optional()
-});
-
-/**
- * Union schema for raw DataHaven parameters (for parsing JSON)
- */
-export const rawDataHavenParameterSchema = z.discriminatedUnion("name", [
-  rawEthereumGatewayAddressSchema,
-  rawRewardsRegistryAddressSchema,
-  rawRewardsUpdateSelectorSchema,
-  rawRewardsAgentOriginSchema,
-  rawDatahavenServiceManagerAddressSchema
-]);
-
-/**
- * Schema for an array of raw DataHaven parameters
- */
-export const rawDataHavenParametersArraySchema = z.array(rawDataHavenParameterSchema);
-
-/**
- * The parsed type of a DataHaven runtime parameter.
- */
 export interface ParsedDataHavenParameter {
   name: DataHavenRuntimeParameterKey;
-  value: any;
+  value: FixedSizeBinary<number> | undefined;
 }
 
-/** Converts a raw parameter to its typed version with FixedSizeBinary value */
-function convertParameter(rawParam: {
-  name: DataHavenRuntimeParameterKey;
-  value?: string | null;
-}): ParsedDataHavenParameter {
-  return {
-    name: rawParam.name,
-    value: rawParam.value ? new FixedSizeBinary(hexToUint8Array(rawParam.value)) : undefined
-  };
-}
-
-/**
- * Parses and converts an array of JSON parameters into typed DataHaven parameters.
- *
- * @param jsonInput - Array of JSON parameter objects to parse.
- * @returns Array of parsed and converted parameters.
- */
-export const parseJsonToParameters = (jsonInput: any[]): ParsedDataHavenParameter[] => {
-  try {
-    // First validate the raw structure of all parameters
-    const rawParams = rawDataHavenParametersArraySchema.parse(jsonInput);
-    // Then convert each parameter to its typed version
-    return rawParams.map(convertParameter);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(
-        `Invalid JSON structure for DataHaven parameters array: ${error.errors
-          .map((e) => `${e.path.join(".")} - ${e.message}`)
-          .join(", ")}`
-      );
-    }
-    throw error;
-  }
+/** Parses JSON array into typed parameters with FixedSizeBinary values */
+export const parseJsonToParameters = (jsonInput: unknown[]): ParsedDataHavenParameter[] => {
+  return z
+    .array(parameterSchema)
+    .parse(jsonInput)
+    .map((p) => ({
+      name: p.name,
+      value: p.value ? new FixedSizeBinary(hexToUint8Array(p.value)) : undefined
+    }));
 };
 
 /**

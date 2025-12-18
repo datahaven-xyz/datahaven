@@ -4,7 +4,7 @@ import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
-import { type ParsedDataHavenParameter, parseJsonToParameters } from "utils/types";
+import { parseJsonToParameters } from "utils/types";
 
 /**
  * Sets DataHaven runtime parameters on the specified RPC URL from a JSON file.
@@ -13,23 +13,12 @@ export const setDataHavenParameters = async (
   rpcUrl: string,
   parametersFilePath: string
 ): Promise<boolean> => {
-  // Load parameters from the JSON file
-  let parameters: ParsedDataHavenParameter[];
-  try {
-    const parametersFile = Bun.file(parametersFilePath);
-    const parametersJson = await parametersFile.text();
-    // Parse and convert the parameters using our utility
-    parameters = parseJsonToParameters(JSON.parse(parametersJson));
+  const parametersJson = await Bun.file(parametersFilePath).json();
+  const parameters = parseJsonToParameters(parametersJson);
 
-    if (parameters.length === 0) {
-      logger.warn("⚠️ The parameters file is empty. No parameters to set.");
-      return false;
-    }
-  } catch (error: any) {
-    logger.error(
-      `❌ Error reading or parsing parameters file at '${parametersFilePath}': ${error.message}`
-    );
-    throw error;
+  if (parameters.length === 0) {
+    logger.warn("⚠️ No parameters to set.");
+    return false;
   }
 
   const client = createClient(withPolkadotSdkCompat(getWsProvider(rpcUrl)));

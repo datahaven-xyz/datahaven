@@ -22,35 +22,23 @@ contract SlashingTest is AVSDeployer {
 
     }
 
-    function test_registerOperator() public {
+    function test_fulfilSlashingRequest() public {
+        vm.prank(avsOwner);
+        serviceManager.addValidatorToAllowlist(operator);
+
+        cheats.startPrank(operator);
+        delegationManager.registerAsOperator(address(0), 0, "");
+
         uint32[] memory operatorSetIds = new uint32[](1);
         operatorSetIds[0] = serviceManager.VALIDATORS_SET_ID();
         IAllocationManagerTypes.RegisterParams memory registerParams =
             IAllocationManagerTypes.RegisterParams({
                 avs: address(serviceManager),
                 operatorSetIds: operatorSetIds,
-                data: hex""
+                data: abi.encodePacked(address(operator))
             });
 
-
         allocationManager.registerForOperatorSets(operator, registerParams);
-    }
-
-    function test_fulfilSlashingRequest() public {
-        // uint32 operatorSetId = 1;
-        // IStrategy[] memory strategies = new IStrategy[](1);
-        // strategies[0] = deployedStrategies[0];
-        // uint256[] memory wadsToSlash = new uint256[](1);
-        // wadsToSlash[0] = 1e16;
-        // string memory description = "Test slashing";
-
-        // IAllocationManagerTypes.SlashingParams memory params = IAllocationManagerTypes.SlashingParams({
-        //     operator: operator,
-        //     operatorSetId: operatorSetId,
-        //     strategies: strategies,
-        //     wadsToSlash: wadsToSlash,
-        //     description: description
-        // });
 
         address[] memory operators = new address[](1);
         operators[0] = operator;
@@ -60,7 +48,7 @@ contract SlashingTest is AVSDeployer {
         console.log(block.number);
         vm.expectEmit();
         // We emit the event we expect to see.
-        emit DataHavenServiceManager.ValidatorsSlashedTestBis(operator);
+        emit DataHavenServiceManager.ValidatorsSlashedTest(operator);
         serviceManager.slashValidatorsOperator(operators);
     }
 

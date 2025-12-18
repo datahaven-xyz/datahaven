@@ -4,11 +4,12 @@
 
 import { $ } from "bun";
 import { dataHavenServiceManagerAbi } from "contract-bindings";
-import { logger, waitForContainerToStart } from "utils";
+import { logger, waitForContainerToStart, type Deployments } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { getPublicPort } from "utils/docker";
 import { privateKeyToAccount } from "viem/accounts";
 import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
+import type { TestConnectors } from "framework";
 
 export interface ValidatorInfo {
   publicKey: string;
@@ -89,8 +90,8 @@ export const launchDatahavenValidator = async (
 
   logger.info(`🚀 Launching DataHaven validator node: ${nodeId}...`);
 
-  // Get port mapping for the node
-  const portMapping = getPortMappingForNode(nodeId, networkId);
+  // Expose internal port, Docker assigns random external port
+  const portArg = `-p ${DEFAULT_SUBSTRATE_WS_PORT}`;
 
   const command: string[] = [
     "docker",
@@ -100,7 +101,7 @@ export const launchDatahavenValidator = async (
     containerName,
     "--network",
     options.launchedNetwork.networkName,
-    ...portMapping,
+    ...portArg.split(" "),
     datahavenImageTag,
     `--${nodeId}`,
     ...COMMON_LAUNCH_ARGS
@@ -132,25 +133,6 @@ export const launchDatahavenValidator = async (
   };
 };
 
-/**
- * Determines the port mapping for a DataHaven node based on the network type.
- * Reused from launcher/datahaven.ts
- * @param nodeId - The node identifier (e.g., "alice", "bob")
- * @param networkId - The network identifier
- * @returns Array of port mapping arguments for Docker run command
- */
-const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
-  const isCliLaunch = networkId === "cli-launch";
-
-  if (isCliLaunch && nodeId === "alice") {
-    // For CLI-launch networks, only alice gets the fixed port mapping
-    return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}:${DEFAULT_SUBSTRATE_WS_PORT}`];
-  }
-
-  // For other networks or non-alice nodes, only expose internal port
-  // Docker will assign a random external port
-  return ["-p", `${DEFAULT_SUBSTRATE_WS_PORT}`];
-};
 
 /**
  * Get node info by account name from validator set JSON
@@ -167,25 +149,21 @@ export const getValidatorInfo = async (name: string): Promise<ValidatorInfo> => 
   return node;
 };
 
-/**
- * Adds a validator to the EigenLayer allowlist
- * @param connectors - The connectors to use
- * @param validator - The validator to add to the allowlist
- */
+/** Adds a validator to the EigenLayer allowlist */
 export const addValidatorToAllowlist = async (
-  connectors: any,
-  validator: ValidatorInfo,
-  deployments: any
-) => {
-  logger.info(`Adding validator ${validator.publicKey} to allowlist...`);
-  const hash = await connectors.walletClient.writeContract({
-    address: deployments.ServiceManager as `0x${string}`,
+  validatorName: string,
+  options: { connectors: TestConnectors; deployments: Deployments }
+): Promise<void> => {
+  logger.info(`Adding validator ${validatorName} to allowlist...`);
+  const validator = await getValidatorInfo(validatorName);
+  const hash = await options.connectors.walletClient.writeContract({
+    address: options.deployments.ServiceManager as `0x${string}`,
     abi: dataHavenServiceManagerAbi,
     functionName: "addValidatorToAllowlist",
     args: [validator.publicKey as `0x${string}`],
     account: privateKeyToAccount(validator.privateKey as `0x${string}`),
     chain: null
   });
-  await connectors.publicClient.waitForTransactionReceipt({ hash });
-  logger.info(`✅ Validator ${validator.publicKey} added to allowlist`);
+  await options.connectors.publicClient.waitForTransactionReceipt({ hash });
+  logger.info(`✅ Validator ${validatorName} added to allowlist`);
 };

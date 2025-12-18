@@ -151,36 +151,3 @@ export async function registerOperator(
 
   logger.debug(`Registered ${validatorName} as operator (gas: ${receipt.gasUsed})`);
 }
-
-
-/**
- * Adds a validator to the allowlist.
- *
- * @param validatorName - The name of the validator to add
- * @param options - Extended validator options including connectors and deployments
- * @throws {Error} If the allowlist transaction fails
- */
-export async function addValidatorToAllowlist(
-  validatorName: string,
-  options: { connectors: TestConnectors; deployments: Deployments }
-): Promise<void> {
-  const { connectors, deployments } = options;
-  const validator = await getValidatorInfo(validatorName);
-
-  const hash = await connectors.walletClient.writeContract({
-    address: deployments.ServiceManager as `0x${string}`,
-    abi: dataHavenServiceManagerAbi,
-    functionName: "addValidatorToAllowlist",
-    args: [validator.publicKey as `0x${string}`],
-    account: getOwnerAccount(),
-    chain: null
-  });
-
-  const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status !== "success") {
-    throw new Error(`Failed to add ${validatorName} to allowlist: ${receipt.status}`);
-  }
-
-  logger.debug(`Added ${validatorName} to allowlist (gas: ${receipt.gasUsed})`);
-}
-

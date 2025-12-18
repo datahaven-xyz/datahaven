@@ -9,12 +9,9 @@
  * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
+import { getOwnerAccount, registerOperator } from "launcher/validators";
 import {
   addValidatorToAllowlist,
-  getOwnerAccount,
-  registerOperator
-} from "launcher/validators";
-import {
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
   isValidatorRunning,

@@ -47,18 +47,14 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   }
 
   override async onSetup(): Promise<void> {
-    logger.info("Waiting for cross-chain infrastructure to stabilize...");
+    // Launch two new nodes to be authorities
+    logger.debug("Launching Charlie and Dave validators...");
 
-    // Launch to new nodes to be authorities
-    console.log("Launching Charlie...");
-    await launchDatahavenValidator("charlie", {
-      launchedNetwork: this.getConnectors().launchedNetwork
-    });
-
-    console.log("Launching Dave...");
-    await launchDatahavenValidator("dave", {
-      launchedNetwork: this.getConnectors().launchedNetwork
-    });
+    const { launchedNetwork } = this.getConnectors();
+    await Promise.all([
+      launchDatahavenValidator("charlie", { launchedNetwork }),
+      launchDatahavenValidator("dave", { launchedNetwork }),
+    ]);
   }
 
   public getNetworkId(): string {
@@ -69,7 +65,7 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
     return {
       rpcUrl: this.getConnectors().launchedNetwork.elRpcUrl,
       connectors: this.getTestConnectors(),
-      deployments
+      deployments,
     };
   }
 }
@@ -148,7 +144,7 @@ describe("Validator Set Update", () => {
 
     expect([charlieAllowlisted, daveAllowlisted]).toEqual([true, true]);
     expect([charlieRegistered, daveRegistered]).toEqual([true, true]);
-  }, 60_000);
+  });
 
   it("should send updated validator set to DataHaven", async () => {
     const connectors = suite.getTestConnectors();

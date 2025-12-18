@@ -14,6 +14,7 @@ import { getPublicPort } from "utils/docker";
 import { privateKeyToAccount } from "viem/accounts";
 import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
 import type { TestConnectors } from "framework";
+import validatorSet from "../configs/validator-set.json";
 
 export interface ValidatorInfo {
   publicKey: string;
@@ -21,7 +22,6 @@ export interface ValidatorInfo {
   solochainAddress: string;
   solochainPrivateKey: string;
   solochainAuthorityName: string;
-  isActive: boolean;
 }
 
 /**
@@ -49,11 +49,7 @@ export const COMMON_LAUNCH_ARGS = [
 export const isValidatorRunning = async (name: string, networkId: string) =>
   (await $`docker ps -q -f name=^datahaven-${name}-${networkId}`.text()).trim().length > 0;
 
-/**
- * Launches a single DataHaven validator node on demand
- * @param name - The validator name (e.g., "alice", "bob", "charlie")
- * @param options - Configuration options for launching the node
- */
+/** Launches a single DataHaven validator node on demand */
 export const launchDatahavenValidator = async (
   name: string,
   options: LaunchValidatorOptions
@@ -95,17 +91,15 @@ export const launchDatahavenValidator = async (
 
 
 /**
- * Get node info by account name from validator set JSON
+ * Get validator info by name from validator set JSON
  * @param name - Validator name (e.g., "alice", "bob")
- * @returns Node info
+ * @returns Validator info
  */
-export const getValidatorInfo = async (name: string): Promise<ValidatorInfo> => {
-  const validatorSetJson = await Bun.file("./configs/validator-set.json").json();
-  const validatorsRaw = validatorSetJson.validators as Array<ValidatorInfo>;
-  const node = validatorsRaw.find((v) => v.solochainAuthorityName === name.toLowerCase());
-  if (!node) {
-    throw new Error(`Node ${name} not found in validator set`);
-  }
+export const getValidator = (name: string): ValidatorInfo => {
+  const node = validatorSet.validators.find(
+    (v) => v.solochainAuthorityName === name.toLowerCase()
+  );
+  if (!node) throw new Error(`Validator ${name} not found`);
   return node;
 };
 
@@ -117,7 +111,7 @@ export const addValidatorToAllowlist = async (
   logger.debug(`Adding validator ${validatorName} to allowlist...`);
 
   const { connectors, deployments } = options;
-  const validator = await getValidatorInfo(validatorName);
+  const validator = getValidator(validatorName);
   const hash = await connectors.walletClient.writeContract({
     address: deployments.ServiceManager as `0x${string}`,
     abi: dataHavenServiceManagerAbi,
@@ -137,7 +131,7 @@ export async function registerOperator(
   options: { connectors: TestConnectors; deployments: Deployments }
 ): Promise<void> {
   const { connectors, deployments } = options;
-  const validator = await getValidatorInfo(validatorName);
+  const validator = getValidator(validatorName);
   const account = privateKeyToAccount(validator.privateKey as `0x${string}`);
 
   // Register as EigenLayer operator

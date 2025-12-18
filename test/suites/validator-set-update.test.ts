@@ -14,6 +14,7 @@ import {
   addValidatorToAllowlist,
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
+  getValidator,
   isValidatorRunning,
   launchDatahavenValidator,
   logger,
@@ -23,15 +24,8 @@ import {
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { decodeEventLog, parseEther } from "viem";
-import validatorSet from "../configs/validator-set.json";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite, type TestConnectors } from "../framework";
-
-const getValidator = (name: string) => {
-  const v = validatorSet.validators.find((v) => v.solochainAuthorityName === name);
-  if (!v) throw new Error(`Validator ${name} not found`);
-  return v;
-};
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {

@@ -154,14 +154,11 @@ const getPortMappingForNode = (nodeId: string, networkId: string): string[] => {
 
 /**
  * Get node info by account name from validator set JSON
- * @param validatorSetJson - Validator set JSON
  * @param name - Validator name (e.g., "alice", "bob")
  * @returns Node info
  */
-export const getValidatorInfoByName = (
-  validatorSetJson: any,
-  name: string
-): ValidatorInfo => {
+export const getValidatorInfo = async (name: string): Promise<ValidatorInfo> => {
+  const validatorSetJson = await Bun.file("./configs/validator-set.json").json();
   const validatorsRaw = validatorSetJson.validators as Array<ValidatorInfo>;
   const node = validatorsRaw.find((v) => v.solochainAuthorityName === name.toLowerCase());
   if (!node) {

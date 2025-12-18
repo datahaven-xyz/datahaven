@@ -7,7 +7,7 @@ import type { TestConnectors } from "framework";
 import { fundValidators as fundValidatorsScript } from "scripts/fund-validators";
 import { setupValidators as setupValidatorsScript } from "scripts/setup-validators";
 import { updateValidatorSet as updateValidatorSetScript } from "scripts/update-validator-set";
-import { ANVIL_FUNDED_ACCOUNTS, type Deployments, getValidatorInfoByName, logger } from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, type Deployments, getValidatorInfo, logger } from "utils";
 import { privateKeyToAccount } from "viem/accounts";
 
 /**
@@ -111,10 +111,7 @@ export async function registerSingleOperator(
   options: ValidatorOptionsExt
 ): Promise<void> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(
-    await Bun.file("./configs/validator-set.json").json(),
-    validatorName
-  );
+  const validator = await getValidatorInfo(validatorName);
 
   logger.info(`🔧 Registering ${validator.publicKey} as operator...`);
 
@@ -187,10 +184,7 @@ export async function serviceManagerHasOperator(
   options: ValidatorOptionsExt
 ): Promise<boolean> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(
-    await Bun.file("./configs/validator-set.json").json(),
-    validatorName
-  );
+  const validator = await getValidatorInfo(validatorName);
 
   const validatorEthAddressToSolochainAddress = await connectors.publicClient.readContract({
     address: deployments.ServiceManager as `0x${string}`,
@@ -216,40 +210,23 @@ export async function addValidatorToAllowlist(
   options: ValidatorOptionsExt
 ): Promise<void> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(
-    await Bun.file("./configs/validator-set.json").json(),
-    validatorName
-  );
+  const validator = await getValidatorInfo(validatorName);
 
-  logger.info(`🔧 Adding ${validatorName} (${validator.publicKey}) to allowlist...`);
+  const hash = await connectors.walletClient.writeContract({
+    address: deployments.ServiceManager as `0x${string}`,
+    abi: dataHavenServiceManagerAbi,
+    functionName: "addValidatorToAllowlist",
+    args: [validator.publicKey as `0x${string}`],
+    account: getOwnerAccount(),
+    chain: null
+  });
 
-  try {
-    const hash = await connectors.walletClient.writeContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "addValidatorToAllowlist",
-      args: [validator.publicKey as `0x${string}`],
-      account: getOwnerAccount(),
-      chain: null
-    });
-
-    logger.info(`📝 Transaction hash for allowlist: ${hash}`);
-
-    const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
-    logger.info(
-      `📋 Allowlist transaction receipt: status=${receipt.status}, gasUsed=${receipt.gasUsed}`
-    );
-
-    if (receipt.status === "success") {
-      logger.success(`Added ${validator.publicKey} to allowlist`);
-    } else {
-      logger.error(`Failed to add ${validator.publicKey} to allowlist`);
-      throw new Error(`Transaction failed with status: ${receipt.status}`);
-    }
-  } catch (error) {
-    logger.error(`Error adding ${validatorName} to allowlist: ${error}`);
-    throw error;
+  const receipt = await connectors.publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`Failed to add ${validatorName} to allowlist: ${receipt.status}`);
   }
+
+  logger.debug(`Added ${validatorName} to allowlist (gas: ${receipt.gasUsed})`);
 }
 
 /**
@@ -264,10 +241,7 @@ export async function isValidatorInAllowlist(
   options: ValidatorOptionsExt
 ): Promise<boolean> {
   const { connectors, deployments } = options;
-  const validator = getValidatorInfoByName(
-    await Bun.file("./configs/validator-set.json").json(),
-    validatorName
-  );
+  const validator = await getValidatorInfo(validatorName);
 
   logger.info(`🔍 Checking allowlist status for ${validatorName} (${validator.publicKey})...`);
 

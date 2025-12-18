@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import invariant from "tiny-invariant";
-import { getValidatorInfoByName, logger, runShellCommandWithLogger } from "../utils/index";
+import { getValidatorInfo, logger, runShellCommandWithLogger } from "../utils/index";
 
 interface SetupValidatorsOptions {
   rpcUrl: string;
@@ -95,7 +95,7 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     }
   }
 
-  const validators = [getValidatorInfoByName(config, "alice"), getValidatorInfoByName(config, "bob")];
+  const validators = [await getValidatorInfo("alice"), await getValidatorInfo("bob")];
 
   logger.info(`🔎 Registering ${validators.length} validators`);
 

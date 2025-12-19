@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import { type Address, decodeEventLog, type Hex, isAddressEqual, padHex } from "viem";
-import { BaseTestSuite } from "../framework";
 import validatorSet from "../configs/validator-set.json";
+import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
 
@@ -130,7 +130,8 @@ describe("Rewards Message Flow", () => {
     expect(fundingReceipt.status).toBe("success");
 
     // Get era reward points and pick first validator
-    const rewardPoints = await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
+    const rewardPoints =
+      await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
     expect(rewardPoints).toBeDefined();
     expect(rewardPoints.total).toBeGreaterThan(0);
 
@@ -211,13 +212,16 @@ describe("Rewards Message Flow", () => {
 
     // Decode and validate claim event from receipt
     const claimLog = claimReceipt.logs.find(
-      (log: { address: string }) => log.address.toLowerCase() === rewardsRegistry.address.toLowerCase()
+      (log: { address: string }) =>
+        log.address.toLowerCase() === rewardsRegistry.address.toLowerCase()
     )!;
     const { args: claimArgs } = decodeEventLog({
       abi: rewardsRegistry.abi,
       data: claimLog.data,
       topics: claimLog.topics
-    }) as { args: { operatorAddress: Address; rootIndex: bigint; points: bigint; rewardsAmount: bigint } };
+    }) as {
+      args: { operatorAddress: Address; rootIndex: bigint; points: bigint; rewardsAmount: bigint };
+    };
 
     expect(isAddressEqual(claimArgs.operatorAddress, resolvedOperator)).toBe(true);
     expect(claimArgs.rootIndex).toEqual(newRootIndex);

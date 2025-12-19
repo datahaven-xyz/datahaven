@@ -11,7 +11,6 @@ export interface ValidatorOptions {
   rpcUrl: string;
 }
 
-
 /**
  * Funds validators with tokens and ETH.
  *
@@ -88,4 +87,3 @@ export const updateValidatorSet = async (options: ValidatorOptions): Promise<voi
 export function getOwnerAccount() {
   return privateKeyToAccount(ANVIL_FUNDED_ACCOUNTS[6].privateKey as `0x${string}`);
 }
-

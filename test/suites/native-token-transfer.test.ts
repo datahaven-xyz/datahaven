@@ -25,7 +25,7 @@ import {
   waitForEthereumEvent,
   ZERO_ADDRESS
 } from "utils";
-import { decodeEventLog, encodeAbiParameters, erc20Abi, parseEventLogs, parseEther } from "viem";
+import { decodeEventLog, encodeAbiParameters, erc20Abi, parseEther, parseEventLogs } from "viem";
 import { gatewayAbi } from "../contract-bindings";
 import { BaseTestSuite } from "../framework";
 import type { TestConnectors } from "../framework/connectors";
@@ -51,7 +51,12 @@ async function getBalanceSnapshot(
     dhAccount ? dhApi.query.System.Account.getValue(dhAccount) : null,
     dhApi.query.System.Account.getValue(ethereumSovereignAccount),
     erc20Address && ethAccount
-      ? publicClient.readContract({ address: erc20Address, abi: erc20Abi, functionName: "balanceOf", args: [ethAccount] })
+      ? publicClient.readContract({
+          address: erc20Address,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [ethAccount]
+        })
       : 0n
   ]);
 
@@ -105,7 +110,7 @@ async function requireNativeERC20Address(connectors: any): Promise<`0x${string}`
   if (!address) {
     throw new Error(
       `Native ERC20 address not available (nativeTokenId=${nativeTokenId ?? "null"}). ` +
-      `Did the 'register DataHaven native token on Ethereum' test succeed?`
+        `Did the 'register DataHaven native token on Ethereum' test succeed?`
     );
   }
   return address;
@@ -130,254 +135,304 @@ describe("Native Token Transfer", () => {
     deployments = await parseDeploymentsFile();
 
     const connectors = suite.getTestConnectors();
-    ethereumSovereignAccount = await (connectors.dhApi.constants as any).DataHavenNativeTransfer.EthereumSovereignAccount();
+    ethereumSovereignAccount = await (
+      connectors.dhApi.constants as any
+    ).DataHavenNativeTransfer.EthereumSovereignAccount();
     logger.debug(`Ethereum sovereign account: ${ethereumSovereignAccount}`);
   });
 
-  it("should register DataHaven native token on Ethereum", async () => {
-    const connectors = suite.getTestConnectors();
+  it(
+    "should register DataHaven native token on Ethereum",
+    async () => {
+      const connectors = suite.getTestConnectors();
 
-    // Ensure token is not already deployed (nativeTokenId is null until registered)
-    expect(await getNativeERC20Address(connectors)).toBeNull();
+      // Ensure token is not already deployed (nativeTokenId is null until registered)
+      expect(await getNativeERC20Address(connectors)).toBeNull();
 
-    const fromBlock = await connectors.publicClient.getBlockNumber();
+      const fromBlock = await connectors.publicClient.getBlockNumber();
 
-    // Build transaction to register token
-    const sudoTx = connectors.dhApi.tx.Sudo.sudo({
-      call: connectors.dhApi.tx.SnowbridgeSystemV2.register_token({
-        sender: { type: "V5", value: { parents: 0, interior: { type: "Here", value: undefined } } },
-        asset_id: { type: "V5", value: { parents: 0, interior: { type: "Here", value: undefined } } },
-        metadata: {
-          name: Binary.fromText("HAVE"),
-          symbol: Binary.fromText("wHAVE"),
-          decimals: 18
-        }
-      }).decodedCall
-    });
+      // Build transaction to register token
+      const sudoTx = connectors.dhApi.tx.Sudo.sudo({
+        call: connectors.dhApi.tx.SnowbridgeSystemV2.register_token({
+          sender: {
+            type: "V5",
+            value: { parents: 0, interior: { type: "Here", value: undefined } }
+          },
+          asset_id: {
+            type: "V5",
+            value: { parents: 0, interior: { type: "Here", value: undefined } }
+          },
+          metadata: {
+            name: Binary.fromText("HAVE"),
+            symbol: Binary.fromText("wHAVE"),
+            decimals: 18
+          }
+        }).decodedCall
+      });
 
-    const dhTxResult = await sudoTx.signAndSubmit(alithSigner);
-    expect(dhTxResult.ok).toBe(true);
+      const dhTxResult = await sudoTx.signAndSubmit(alithSigner);
+      expect(dhTxResult.ok).toBe(true);
 
-    // Verify token IDs match across chains and store for subsequent tests
-    const registerEvent = dhTxResult.events.find(
-      (e: any) => e.type === "SnowbridgeSystemV2" && e.value?.type === "RegisterToken"
-    );
-    expect(registerEvent).toBeDefined();
-    nativeTokenId = registerEvent!.value.value.foreign_token_id.asHex();
-    logger.debug(`Native token ID: ${nativeTokenId}`);
+      // Verify token IDs match across chains and store for subsequent tests
+      const registerEvent = dhTxResult.events.find(
+        (e: any) => e.type === "SnowbridgeSystemV2" && e.value?.type === "RegisterToken"
+      );
+      expect(registerEvent).toBeDefined();
+      nativeTokenId = registerEvent!.value.value.foreign_token_id.asHex();
+      logger.debug(`Native token ID: ${nativeTokenId}`);
 
-    // Wait for cross-chain confirmation after we have the token ID (and filter by it).
-    const ethEvent = await waitForEthereumEvent({
-      client: connectors.publicClient,
-      address: deployments!.Gateway,
-      abi: gatewayAbi,
-      eventName: "ForeignTokenRegistered",
-      args: { tokenID: nativeTokenId },
-      fromBlock: fromBlock > 0n ? fromBlock - 1n : fromBlock,
-      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-    });
+      // Wait for cross-chain confirmation after we have the token ID (and filter by it).
+      const ethEvent = await waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: deployments!.Gateway,
+        abi: gatewayAbi,
+        eventName: "ForeignTokenRegistered",
+        args: { tokenID: nativeTokenId },
+        fromBlock: fromBlock > 0n ? fromBlock - 1n : fromBlock,
+        timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
+      });
 
-    const { args: ethTokenEvent } = decodeEventLog({
-      abi: gatewayAbi,
-      eventName: "ForeignTokenRegistered",
-      data: ethEvent.data,
-      topics: ethEvent.topics
-    }) as { args: { tokenID: string; token: `0x${string}` } };
+      const { args: ethTokenEvent } = decodeEventLog({
+        abi: gatewayAbi,
+        eventName: "ForeignTokenRegistered",
+        data: ethEvent.data,
+        topics: ethEvent.topics
+      }) as { args: { tokenID: string; token: `0x${string}` } };
 
-    expect(ethTokenEvent.tokenID).toBe(nativeTokenId!);
+      expect(ethTokenEvent.tokenID).toBe(nativeTokenId!);
 
-    // Verify ERC20 metadata
-    const deployedERC20 = ethTokenEvent.token;
-    logger.debug(`DataHaven native token deployed at: ${deployedERC20}`);
+      // Verify ERC20 metadata
+      const deployedERC20 = ethTokenEvent.token;
+      logger.debug(`DataHaven native token deployed at: ${deployedERC20}`);
 
-    const [name, symbol, decimals] = await Promise.all([
-      connectors.publicClient.readContract({ address: deployedERC20, abi: erc20Abi, functionName: "name" }),
-      connectors.publicClient.readContract({ address: deployedERC20, abi: erc20Abi, functionName: "symbol" }),
-      connectors.publicClient.readContract({ address: deployedERC20, abi: erc20Abi, functionName: "decimals" })
-    ]);
+      const [name, symbol, decimals] = await Promise.all([
+        connectors.publicClient.readContract({
+          address: deployedERC20,
+          abi: erc20Abi,
+          functionName: "name"
+        }),
+        connectors.publicClient.readContract({
+          address: deployedERC20,
+          abi: erc20Abi,
+          functionName: "symbol"
+        }),
+        connectors.publicClient.readContract({
+          address: deployedERC20,
+          abi: erc20Abi,
+          functionName: "decimals"
+        })
+      ]);
 
-    expect(name).toBe("HAVE");
-    expect(symbol).toBe("wHAVE");
-    expect(decimals).toBe(18);
-  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS + CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS);
+      expect(name).toBe("HAVE");
+      expect(symbol).toBe("wHAVE");
+      expect(decimals).toBe(18);
+    },
+    CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS + CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
+  );
 
-  it("should transfer tokens from DataHaven to Ethereum", async () => {
-    const connectors = suite.getTestConnectors();
+  it(
+    "should transfer tokens from DataHaven to Ethereum",
+    async () => {
+      const connectors = suite.getTestConnectors();
 
-    const erc20Address = await requireNativeERC20Address(connectors);
+      const erc20Address = await requireNativeERC20Address(connectors);
 
-    // Set up transfer parameters
-    const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
-    const amount = parseEther("100");
-    const fee = parseEther("1");
+      // Set up transfer parameters
+      const recipient = ANVIL_FUNDED_ACCOUNTS[0].publicKey;
+      const amount = parseEther("100");
+      const fee = parseEther("1");
 
-    // Capture initial balances
-    const before = await getBalanceSnapshot(connectors, {
-      dhAccount: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey,
-      ethAccount: recipient,
-      erc20Address
-    });
-
-    // Build transfer transaction
-    const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
-      recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
-      amount,
-      fee
-    });
-
-    // Submit transaction and wait for cross-chain confirmation
-    const startBlock = await connectors.publicClient.getBlockNumber();
-    const dhTxResult = await tx.signAndSubmit(alithSigner);
-    expect(dhTxResult.ok).toBe(true);
-
-    await waitForEthereumEvent({
-      client: connectors.publicClient,
-      address: erc20Address,
-      abi: erc20Abi,
-      eventName: "Transfer",
-      args: { from: ZERO_ADDRESS, to: recipient },
-      fromBlock: startBlock > 0n ? startBlock - 1n : startBlock,
-      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-    });
-
-    // Verify DataHaven events
-    expect(dhTxResult.events.find(
-      (e: any) => e.type === "DataHavenNativeTransfer" && e.value?.type === "TokensTransferredToEthereum"
-        && e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
-    )).toBeDefined();
-    expect(dhTxResult.events.find(
-      (e: any) => e.type === "DataHavenNativeTransfer" && e.value?.type === "TokensLocked"
-        && e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
-    )).toBeDefined();
-
-    // Capture final balances
-    const after = await getBalanceSnapshot(connectors, {
-      dhAccount: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey,
-      ethAccount: recipient,
-      erc20Address
-    });
-
-    // Verify balance changes
-    expectBalanceDeltas(before, after, {
-      dhMin: amount + fee,
-      sovereign: amount,
-      erc20: amount
-    });
-
-    // Verify 1:1 backing ratio is maintained
-    const totalSupply = (await connectors.publicClient.readContract({
-      address: erc20Address,
-      abi: erc20Abi,
-      functionName: "totalSupply"
-    })) as bigint;
-
-    const sovereignBalance = await connectors.dhApi.query.System.Account.getValue(
-      ethereumSovereignAccount
-    );
-    expect(sovereignBalance.data.free).toBeGreaterThanOrEqual(totalSupply);
-  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS + CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS);
-
-  it("should transfer tokens from Ethereum to DataHaven", async () => {
-    const connectors = suite.getTestConnectors();
-
-    const erc20Address = await requireNativeERC20Address(connectors);
-    const ethWalletClient = connectors.walletClient;
-    const ethereumSender = ethWalletClient.account.address as `0x${string}`;
-    const dhRecipient = SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey as `0x${string}`;
-
-    const amount = parseEther("5");
-    const executionFee = parseEther("0.1");
-    const relayerFee = parseEther("0.4");
-
-    // Capture initial balances and supply for ETH -> DH leg
-    const [before, initialTotalSupply] = await Promise.all([
-      getBalanceSnapshot(connectors, {
-        dhAccount: dhRecipient,
-        ethAccount: ethereumSender,
+      // Capture initial balances
+      const before = await getBalanceSnapshot(connectors, {
+        dhAccount: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey,
+        ethAccount: recipient,
         erc20Address
-      }),
-      connectors.publicClient.readContract({
+      });
+
+      // Build transfer transaction
+      const tx = connectors.dhApi.tx.DataHavenNativeTransfer.transfer_to_ethereum({
+        recipient: FixedSizeBinary.fromHex(recipient) as FixedSizeBinary<20>,
+        amount,
+        fee
+      });
+
+      // Submit transaction and wait for cross-chain confirmation
+      const startBlock = await connectors.publicClient.getBlockNumber();
+      const dhTxResult = await tx.signAndSubmit(alithSigner);
+      expect(dhTxResult.ok).toBe(true);
+
+      await waitForEthereumEvent({
+        client: connectors.publicClient,
+        address: erc20Address,
+        abi: erc20Abi,
+        eventName: "Transfer",
+        args: { from: ZERO_ADDRESS, to: recipient },
+        fromBlock: startBlock > 0n ? startBlock - 1n : startBlock,
+        timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
+      });
+
+      // Verify DataHaven events
+      expect(
+        dhTxResult.events.find(
+          (e: any) =>
+            e.type === "DataHavenNativeTransfer" &&
+            e.value?.type === "TokensTransferredToEthereum" &&
+            e.value?.value?.from === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
+        )
+      ).toBeDefined();
+      expect(
+        dhTxResult.events.find(
+          (e: any) =>
+            e.type === "DataHavenNativeTransfer" &&
+            e.value?.type === "TokensLocked" &&
+            e.value?.value?.account === SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey
+        )
+      ).toBeDefined();
+
+      // Capture final balances
+      const after = await getBalanceSnapshot(connectors, {
+        dhAccount: SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey,
+        ethAccount: recipient,
+        erc20Address
+      });
+
+      // Verify balance changes
+      expectBalanceDeltas(before, after, {
+        dhMin: amount + fee,
+        sovereign: amount,
+        erc20: amount
+      });
+
+      // Verify 1:1 backing ratio is maintained
+      const totalSupply = (await connectors.publicClient.readContract({
         address: erc20Address,
         abi: erc20Abi,
         functionName: "totalSupply"
-      }) as Promise<bigint>
-    ]);
-    expect(before.erc20).toBeGreaterThanOrEqual(amount);
+      })) as bigint;
 
-    // Send tokens to DataHaven via Gateway
-    const sendHash = await ethWalletClient.writeContract({
-      address: deployments!.Gateway as `0x${string}`,
-      abi: gatewayAbi,
-      functionName: "v2_sendMessage",
-      args: [
-        "0x" as `0x${string}`,
-        [
-          encodeAbiParameters(
-            [
-              { name: "kind", type: "uint8" },
-              { name: "token", type: "address" },
-              { name: "value", type: "uint128" }
-            ],
-            [0, erc20Address, amount]
-          )
-        ] as any,
-        dhRecipient,
-        executionFee,
-        relayerFee
-      ],
-      value: executionFee + relayerFee,
-      chain: null
-    });
-    const sendReceipt = await connectors.publicClient.waitForTransactionReceipt({ hash: sendHash });
-    expect(sendReceipt.status).toBe("success");
+      const sovereignBalance =
+        await connectors.dhApi.query.System.Account.getValue(ethereumSovereignAccount);
+      expect(sovereignBalance.data.free).toBeGreaterThanOrEqual(totalSupply);
+    },
+    CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS + CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
+  );
 
-    // Assert OutboundMessageAccepted event was emitted
-    const gatewayLogs = sendReceipt.logs!.filter((log) => log.address.toLowerCase() === deployments!.Gateway.toLowerCase());
-    const decodedEvents = parseEventLogs({ abi: gatewayAbi, logs: gatewayLogs });
-    const hasOutboundAccepted = decodedEvents.some((event) => event.eventName === "OutboundMessageAccepted");
-    expect(hasOutboundAccepted).toBe(true);
+  it(
+    "should transfer tokens from Ethereum to DataHaven",
+    async () => {
+      const connectors = suite.getTestConnectors();
 
-    // Assert ERC20 was burned (Transfer to zero address)
-    const erc20Logs = sendReceipt.logs!.filter((log) => log.address.toLowerCase() === erc20Address.toLowerCase());
-    const transferEvents = parseEventLogs({ abi: erc20Abi, logs: erc20Logs });
-    const burnEvent = transferEvents.find(
-      (event) =>
-        event.eventName === "Transfer" &&
-        event.args.from?.toLowerCase() === ethereumSender.toLowerCase() &&
-        event.args.to?.toLowerCase() === ZERO_ADDRESS.toLowerCase() &&
-        event.args.value === amount
-    );
-    expect(burnEvent).toBeDefined();
+      const erc20Address = await requireNativeERC20Address(connectors);
+      const ethWalletClient = connectors.walletClient;
+      const ethereumSender = ethWalletClient.account.address as `0x${string}`;
+      const dhRecipient = SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey as `0x${string}`;
 
-    // Wait for relay (takes ~2-3 min due to Ethereum finality)
-    await waitForDataHavenEvent<{ account: any; amount: bigint }>({
-      api: connectors.dhApi,
-      pallet: "DataHavenNativeTransfer",
-      event: "TokensUnlocked",
-      filter: (e) => String(e.account).toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
-      timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
-    });
+      const amount = parseEther("5");
+      const executionFee = parseEther("0.1");
+      const relayerFee = parseEther("0.4");
 
-    // Final balances
-    const [after, finalTotalSupply] = await Promise.all([
-      getBalanceSnapshot(connectors, {
-        dhAccount: dhRecipient,
-        ethAccount: ethereumSender,
-        erc20Address
-      }),
-      connectors.publicClient.readContract({
-        address: erc20Address,
-        abi: erc20Abi,
-        functionName: "totalSupply"
-      }) as Promise<bigint>
-    ]);
+      // Capture initial balances and supply for ETH -> DH leg
+      const [before, initialTotalSupply] = await Promise.all([
+        getBalanceSnapshot(connectors, {
+          dhAccount: dhRecipient,
+          ethAccount: ethereumSender,
+          erc20Address
+        }),
+        connectors.publicClient.readContract({
+          address: erc20Address,
+          abi: erc20Abi,
+          functionName: "totalSupply"
+        }) as Promise<bigint>
+      ]);
+      expect(before.erc20).toBeGreaterThanOrEqual(amount);
 
-    // Assertions: burn on Ethereum and unlock on DataHaven
-    expect(after.erc20).toBe(before.erc20 - amount);
-    expect(finalTotalSupply).toBe(initialTotalSupply - amount);
-    expectBalanceDeltas(before, after, {
-      dhExact: amount, // recipient gets exactly amount
-      sovereign: -amount // sovereign decreases by amount (unlocked)
-    });
-  }, CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS + CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS + CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS); // includes funding (DH→ETH) + transfer (ETH→DH)
+      // Send tokens to DataHaven via Gateway
+      const sendHash = await ethWalletClient.writeContract({
+        address: deployments!.Gateway as `0x${string}`,
+        abi: gatewayAbi,
+        functionName: "v2_sendMessage",
+        args: [
+          "0x" as `0x${string}`,
+          [
+            encodeAbiParameters(
+              [
+                { name: "kind", type: "uint8" },
+                { name: "token", type: "address" },
+                { name: "value", type: "uint128" }
+              ],
+              [0, erc20Address, amount]
+            )
+          ] as any,
+          dhRecipient,
+          executionFee,
+          relayerFee
+        ],
+        value: executionFee + relayerFee,
+        chain: null
+      });
+      const sendReceipt = await connectors.publicClient.waitForTransactionReceipt({
+        hash: sendHash
+      });
+      expect(sendReceipt.status).toBe("success");
+
+      // Assert OutboundMessageAccepted event was emitted
+      const gatewayLogs = sendReceipt.logs!.filter(
+        (log) => log.address.toLowerCase() === deployments!.Gateway.toLowerCase()
+      );
+      const decodedEvents = parseEventLogs({ abi: gatewayAbi, logs: gatewayLogs });
+      const hasOutboundAccepted = decodedEvents.some(
+        (event) => event.eventName === "OutboundMessageAccepted"
+      );
+      expect(hasOutboundAccepted).toBe(true);
+
+      // Assert ERC20 was burned (Transfer to zero address)
+      const erc20Logs = sendReceipt.logs!.filter(
+        (log) => log.address.toLowerCase() === erc20Address.toLowerCase()
+      );
+      const transferEvents = parseEventLogs({ abi: erc20Abi, logs: erc20Logs });
+      const burnEvent = transferEvents.find(
+        (event) =>
+          event.eventName === "Transfer" &&
+          event.args.from?.toLowerCase() === ethereumSender.toLowerCase() &&
+          event.args.to?.toLowerCase() === ZERO_ADDRESS.toLowerCase() &&
+          event.args.value === amount
+      );
+      expect(burnEvent).toBeDefined();
+
+      // Wait for relay (takes ~2-3 min due to Ethereum finality)
+      await waitForDataHavenEvent<{ account: any; amount: bigint }>({
+        api: connectors.dhApi,
+        pallet: "DataHavenNativeTransfer",
+        event: "TokensUnlocked",
+        filter: (e) =>
+          String(e.account).toLowerCase() === dhRecipient.toLowerCase() && e.amount === amount,
+        timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
+      });
+
+      // Final balances
+      const [after, finalTotalSupply] = await Promise.all([
+        getBalanceSnapshot(connectors, {
+          dhAccount: dhRecipient,
+          ethAccount: ethereumSender,
+          erc20Address
+        }),
+        connectors.publicClient.readContract({
+          address: erc20Address,
+          abi: erc20Abi,
+          functionName: "totalSupply"
+        }) as Promise<bigint>
+      ]);
+
+      // Assertions: burn on Ethereum and unlock on DataHaven
+      expect(after.erc20).toBe(before.erc20 - amount);
+      expect(finalTotalSupply).toBe(initialTotalSupply - amount);
+      expectBalanceDeltas(before, after, {
+        dhExact: amount, // recipient gets exactly amount
+        sovereign: -amount // sovereign decreases by amount (unlocked)
+      });
+    },
+    CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS +
+      CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS +
+      CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
+  ); // includes funding (DH→ETH) + transfer (ETH→DH)
 });

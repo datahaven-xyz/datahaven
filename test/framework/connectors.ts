@@ -9,9 +9,9 @@ import {
   createWalletClient,
   fallback,
   http,
-  webSocket,
   type PublicClient,
-  type WalletClient
+  type WalletClient,
+  webSocket
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
@@ -47,10 +47,9 @@ export class ConnectorFactory {
     // Prefer WebSocket for event-heavy public client; fall back to HTTP when WS is unavailable.
     const wsUrl = this.connectors.ethereumWsUrl;
 
-    const publicTransport =
-      wsUrl && wsUrl.startsWith("ws")
-        ? fallback([webSocket(wsUrl), http(this.connectors.ethereumRpcUrl)])
-        : http(this.connectors.ethereumRpcUrl);
+    const publicTransport = wsUrl?.startsWith("ws")
+      ? fallback([webSocket(wsUrl), http(this.connectors.ethereumRpcUrl)])
+      : http(this.connectors.ethereumRpcUrl);
 
     // Create Ethereum clients
     const publicClient = createPublicClient({

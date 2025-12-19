@@ -24,7 +24,7 @@ export async function waitForDataHavenEvent<T = unknown>(
     throw new Error(`Event ${pallet}.${event} not found in API`);
   }
 
-  const result = await firstValueFrom(
+  const result = (await firstValueFrom(
     watcher.watch().pipe(
       rxFilter(({ payload }: { payload: T }) => (filter ? filter(payload) : true)),
       take(1),
@@ -35,7 +35,7 @@ export async function waitForDataHavenEvent<T = unknown>(
         }
       })
     )
-  ) as { payload: T };
+  )) as { payload: T };
 
   return result.payload;
 }
@@ -58,7 +58,7 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
 ): Promise<Log> {
   const { client, address, abi, eventName, args, timeout = 30000, fromBlock } = options;
 
-  let unwatch: () => void = () => { };
+  let unwatch: () => void = () => {};
   let timeoutId!: Timer;
 
   const eventPromise = new Promise<Log>((resolve, reject) => {
@@ -82,7 +82,8 @@ export async function waitForEthereumEvent<TAbi extends Abi = Abi>(
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(
-      () => reject(new Error(`Timeout waiting for ${eventName} from ${address} after ${timeout}ms`)),
+      () =>
+        reject(new Error(`Timeout waiting for ${eventName} from ${address} after ${timeout}ms`)),
       timeout
     );
   });

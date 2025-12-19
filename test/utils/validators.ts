@@ -8,14 +8,14 @@ import {
   dataHavenServiceManagerAbi,
   delegationManagerAbi
 } from "contract-bindings";
-import { logger, waitForContainerToStart, type Deployments } from "utils";
+import type { TestConnectors } from "framework";
+import { type Deployments, logger, waitForContainerToStart } from "utils";
 import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
 import { getPublicPort } from "utils/docker";
 import { privateKeyToAccount } from "viem/accounts";
-import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
-import type { TestConnectors } from "framework";
-import { getOwnerAccount } from "../launcher/validators";
 import validatorSet from "../configs/validator-set.json";
+import type { LaunchedNetwork } from "../launcher/types/launchedNetwork";
+import { getOwnerAccount } from "../launcher/validators";
 
 export const COMMON_LAUNCH_ARGS = [
   "--unsafe-force-node-key-generation",
@@ -69,11 +69,14 @@ export const launchDatahavenValidator = async (
   await waitForContainerToStart(containerName);
 
   const publicPort = await getPublicPort(containerName, DEFAULT_SUBSTRATE_WS_PORT);
-  launchedNetwork.addContainer(containerName, { ws: publicPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
+  launchedNetwork.addContainer(
+    containerName,
+    { ws: publicPort },
+    { ws: DEFAULT_SUBSTRATE_WS_PORT }
+  );
 
   logger.debug(`DataHaven validator ${nodeId} launched on port ${publicPort}`);
 };
-
 
 /**
  * Get validator info by name from validator set JSON
@@ -81,9 +84,7 @@ export const launchDatahavenValidator = async (
  * @returns Validator info
  */
 export const getValidator = (name: string) => {
-  const node = validatorSet.validators.find(
-    (v) => v.solochainAuthorityName === name.toLowerCase()
-  );
+  const node = validatorSet.validators.find((v) => v.solochainAuthorityName === name.toLowerCase());
   if (!node) throw new Error(`Validator ${name} not found`);
   return node;
 };

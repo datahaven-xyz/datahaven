@@ -30,7 +30,7 @@ import { BaseTestSuite, type TestConnectors } from "../framework";
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "validator-set-update",
+      suiteName: "validator-set-update"
     });
 
     this.setupHooks();
@@ -43,14 +43,13 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
     const { launchedNetwork } = this.getConnectors();
     await Promise.all([
       launchDatahavenValidator("charlie", { launchedNetwork }),
-      launchDatahavenValidator("dave", { launchedNetwork }),
+      launchDatahavenValidator("dave", { launchedNetwork })
     ]);
   }
 
   public getNetworkId(): string {
     return this.getConnectors().launchedNetwork.networkId;
   }
-
 }
 
 // Create the test suite instance
@@ -101,7 +100,9 @@ describe("Validator Set Update", () => {
       Promise.all(newValidators.map(readSolochainAddress))
     ]);
 
-    expect(initialResults).toEqual(initialValidators.map((v) => v.solochainAddress as `0x${string}`));
+    expect(initialResults).toEqual(
+      initialValidators.map((v) => v.solochainAddress as `0x${string}`)
+    );
     expect(newResults).toEqual(newValidators.map(() => ZERO_ADDRESS));
   });
 
@@ -113,10 +114,7 @@ describe("Validator Set Update", () => {
     await addValidatorToAllowlist("dave", opts);
 
     // Register operators in parallel (each uses their own validator account)
-    await Promise.all([
-      registerOperator("charlie", opts),
-      registerOperator("dave", opts)
-    ]);
+    await Promise.all([registerOperator("charlie", opts), registerOperator("dave", opts)]);
 
     // Verify allowlist and registration status
     const { publicClient } = connectors;
@@ -153,49 +151,53 @@ describe("Validator Set Update", () => {
     expect(daveRegistered).toBe(true);
   });
 
-  it("should send updated validator set and verify on DataHaven", async () => {
-    const { publicClient, walletClient, dhApi } = connectors;
+  it(
+    "should send updated validator set and verify on DataHaven",
+    async () => {
+      const { publicClient, walletClient, dhApi } = connectors;
 
-    // Send the updated validator set via Snowbridge
-    const hash = await walletClient.writeContract({
-      address: deployments.ServiceManager as `0x${string}`,
-      abi: dataHavenServiceManagerAbi,
-      functionName: "sendNewValidatorSet",
-      args: [parseEther("0.1"), parseEther("0.2")],
-      value: parseEther("0.3"),
-      gas: 1000000n,
-      account: getOwnerAccount(),
-      chain: null
-    });
+      // Send the updated validator set via Snowbridge
+      const hash = await walletClient.writeContract({
+        address: deployments.ServiceManager as `0x${string}`,
+        abi: dataHavenServiceManagerAbi,
+        functionName: "sendNewValidatorSet",
+        args: [parseEther("0.1"), parseEther("0.2")],
+        value: parseEther("0.3"),
+        gas: 1000000n,
+        account: getOwnerAccount(),
+        chain: null
+      });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    expect(receipt.status).toBe("success");
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      expect(receipt.status).toBe("success");
 
-    // Verify OutboundMessageAccepted event was emitted
-    const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
-      try {
-        const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
-        return decoded.eventName === "OutboundMessageAccepted";
-      } catch {
-        return false;
+      // Verify OutboundMessageAccepted event was emitted
+      const hasOutboundAccepted = (receipt.logs ?? []).some((log: any) => {
+        try {
+          const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+          return decoded.eventName === "OutboundMessageAccepted";
+        } catch {
+          return false;
+        }
+      });
+      expect(hasOutboundAccepted).toBe(true);
+
+      // Wait for the validator set to be updated on Substrate
+      await waitForDataHavenEvent({
+        api: dhApi,
+        pallet: "ExternalValidators",
+        event: "ExternalValidatorsSet",
+        timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
+      });
+
+      // Verify new validators are in storage
+      const validators = await dhApi.query.ExternalValidators.ExternalValidators.getValue();
+      const expectedAddresses = newValidators.map((v) => v.solochainAddress.toLowerCase());
+
+      for (const address of expectedAddresses) {
+        expect(validators.some((v) => v.toLowerCase() === address)).toBe(true);
       }
-    });
-    expect(hasOutboundAccepted).toBe(true);
-
-    // Wait for the validator set to be updated on Substrate
-    await waitForDataHavenEvent({
-      api: dhApi,
-      pallet: "ExternalValidators",
-      event: "ExternalValidatorsSet",
-      timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
-    });
-
-    // Verify new validators are in storage
-    const validators = await dhApi.query.ExternalValidators.ExternalValidators.getValue();
-    const expectedAddresses = newValidators.map((v) => v.solochainAddress.toLowerCase());
-
-    for (const address of expectedAddresses) {
-      expect(validators.some((v) => v.toLowerCase() === address)).toBe(true);
-    }
-  }, CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS);
+    },
+    CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
+  );
 });

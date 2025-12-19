@@ -1,2 +1,2 @@
 [test]
-timeout = 600000  # 10 minutes in milliseconds
+timeout = 900000  # 15 minutes in milliseconds

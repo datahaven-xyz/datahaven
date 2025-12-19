@@ -37,7 +37,10 @@ library SortedMerkleProof {
     /**
      * @notice Efficiently hashes two bytes32 values using assembly
      */
-    function efficientHash(bytes32 a, bytes32 b) internal pure returns (bytes32 value) {
+    function efficientHash(
+        bytes32 a,
+        bytes32 b
+    ) internal pure returns (bytes32 value) {
         assembly {
             mstore(0x00, a)
             mstore(0x20, b)

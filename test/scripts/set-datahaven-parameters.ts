@@ -25,94 +25,65 @@ export const setDataHavenParameters = async (
 
   try {
     const dhApi = client.getTypedApi(datahaven);
-    logger.trace("Substrate client created");
-
     const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
-    logger.trace("Signer created for SUDO (ALITH)");
 
-    // Build all parameter set calls
-    const setParameterCalls = parameters.map((param) => {
-      logger.info(`🔧 Preparing parameter: ${param.name.toString()} = ${param.value.asHex()}`);
+    // Log parameters being set
+    for (const p of parameters) {
+      logger.debug(`🔧 Setting ${p.name} = ${p.value!.asHex()}`);
+    }
 
-      const setParameterArgs: any = {
+    // Build parameter calls
+    const calls = parameters.map((p) =>
+      dhApi.tx.Parameters.set_parameter({
         key_value: {
-          type: "RuntimeConfig" as const,
-          value: {
-            type: param.name,
-            value: [param.value]
-          }
+          type: "RuntimeConfig",
+          value: { type: p.name, value: [p.value] }
         }
-      };
+      }).decodedCall
+    );
 
-      const setParameterCall = dhApi.tx.Parameters.set_parameter(setParameterArgs);
-      logger.debug(`Parameter call: ${JSON.stringify(setParameterCall.decodedCall)}`);
-      return setParameterCall.decodedCall;
+    // Batch all calls and wrap in sudo
+    const tx = dhApi.tx.Sudo.sudo({
+      call: dhApi.tx.Utility.batch_all({ calls }).decodedCall
     });
 
-    // Batch all parameter calls into a single Utility.batch_all call
-    const batchCall = dhApi.tx.Utility.batch_all({
-      calls: setParameterCalls
-    });
+    const result = await tx.signAndSubmit(signer);
 
-    logger.debug("Batch call:");
-    logger.debug(batchCall.decodedCall);
-
-    // Wrap in Sudo to execute with elevated privileges
-    const sudoCall = dhApi.tx.Sudo.sudo({
-      call: batchCall.decodedCall
-    });
-
-    logger.info(`📦 Submitting batched transaction with ${parameters.length} parameters...`);
-    const txResult = await sudoCall.signAndSubmit(signer);
-
-    if (!txResult.ok) {
-      logger.error(
-        `❌ Batched transaction failed. Block: ${txResult.block.hash}, Tx Hash: ${txResult.txHash}`
-      );
-      logger.error(`Events: ${JSON.stringify(txResult.events)}`);
+    if (!result.ok) {
+      logger.error(`❌ Transaction failed: ${result.block.hash}`);
       return false;
     }
 
-    logger.success("All specified DataHaven parameters processed successfully.");
+    logger.success("Runtime parameters set successfully");
     return true;
-  } catch (txError: any) {
-    logger.error(`❌ Error submitting batched transaction: ${txError.message || txError}`);
+  } catch (error) {
+    logger.error(`❌ ${error instanceof Error ? error.message : error}`);
     return false;
   } finally {
     client.destroy();
-    logger.trace("Substrate client destroyed");
   }
 };
 
-// Allow script to be run directly with CLI arguments
+// CLI entry point
 if (import.meta.main) {
   const { values } = parseArgs({
     args: process.argv,
     options: {
-      rpcUrl: {
-        type: "string",
-        short: "r"
-      },
-      parametersFile: {
-        type: "string",
-        short: "f"
-      }
+      rpcUrl: { type: "string", short: "r" },
+      parametersFile: { type: "string", short: "f" }
     },
     strict: true
   });
 
-  if (!values.rpcUrl) {
-    console.error("Error: --rpc-url parameter is required");
+  if (!values.rpcUrl || !values.parametersFile) {
+    console.error("Usage: --rpc-url <url> --parameters-file <path>");
     process.exit(1);
   }
 
-  if (!values.parametersFile) {
-    console.error("Error: --parameters-file <path_to_json_file> parameter is required.");
-    process.exit(1);
-  }
-
-  setDataHavenParameters(values.rpcUrl, values.parametersFile).catch((error: Error) => {
-    console.error("Setting DataHaven parameters failed:", error.message || error);
-    process.exit(1);
-  });
+  setDataHavenParameters(values.rpcUrl, values.parametersFile)
+    .then((ok) => process.exit(ok ? 0 : 1))
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    });
 }

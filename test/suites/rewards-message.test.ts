@@ -1,12 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
-import {
-  type Address,
-  decodeEventLog,
-  type Hex,
-  isAddressEqual,
-  padHex
-} from "viem";
+import { type Address, decodeEventLog, type Hex, isAddressEqual, padHex } from "viem";
 import { BaseTestSuite } from "../framework";
 import validatorSet from "../configs/validator-set.json";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
@@ -178,8 +172,22 @@ describe("Rewards Message Flow", () => {
       expect(updateReceipt.status).toBe("success");
     }
 
-    // Record initial balance for validation
-    const balanceBefore = BigInt(await publicClient.getBalance({ address: resolvedOperator }));
+    // Ensure claim not already recorded
+    const claimedBefore = (await publicClient.readContract({
+      address: rewardsRegistry.address,
+      abi: rewardsRegistry.abi,
+      functionName: "hasClaimedByIndex",
+      args: [resolvedOperator, newRootIndex]
+    })) as boolean;
+    expect(claimedBefore).toBe(false);
+
+    // Record balances for validation
+    const operatorBalanceBefore = BigInt(
+      await publicClient.getBalance({ address: resolvedOperator })
+    );
+    const registryBalanceBefore = BigInt(
+      await publicClient.getBalance({ address: rewardsRegistry.address as Address })
+    );
 
     // Submit claim transaction
     const claimTx = await operatorWallet.writeContract({
@@ -216,12 +224,25 @@ describe("Rewards Message Flow", () => {
     expect(claimArgs.points).toEqual(BigInt(points));
     expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
 
-    // Validate balance change accounting for gas costs
-    const balanceAfter = BigInt(await publicClient.getBalance({ address: resolvedOperator }));
-    const gasUsedWei = BigInt(claimReceipt.gasUsed) * BigInt(claimReceipt.effectiveGasPrice);
-    const adjustedIncrease = balanceAfter - balanceBefore + gasUsedWei;
+    const claimedAfter = (await publicClient.readContract({
+      address: rewardsRegistry.address,
+      abi: rewardsRegistry.abi,
+      functionName: "hasClaimedByIndex",
+      args: [resolvedOperator, newRootIndex]
+    })) as boolean;
+    expect(claimedAfter).toBe(true);
 
-    expect(adjustedIncrease).toEqual(claimArgs.rewardsAmount);
+    // Validate RewardsRegistry balance decrease matches claimed rewards
+    const registryBalanceAfter = BigInt(
+      await publicClient.getBalance({ address: rewardsRegistry.address as Address })
+    );
+    expect(registryBalanceBefore - registryBalanceAfter).toEqual(claimArgs.rewardsAmount);
+
+    // Validate operator balance change (gas-adjusted)
+    const operatorBalanceAfter = await publicClient.getBalance({ address: resolvedOperator });
+    const gasCost = BigInt(claimReceipt.gasUsed) * (claimReceipt.effectiveGasPrice ?? 0n);
+    const actualIncrease = operatorBalanceAfter - operatorBalanceBefore + gasCost;
+    expect(actualIncrease).toEqual(claimArgs.rewardsAmount);
     expect(claimArgs.rewardsAmount).toEqual(BigInt(points));
   });
 });

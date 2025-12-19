@@ -50,18 +50,6 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
       constructorArgTypes: ["address", "address", "address"]
     },
     {
-      name: "VetoableSlasher",
-      address: deployments.VetoableSlasher,
-      artifactName: "VetoableSlasher",
-      constructorArgs: [
-        deployments.AllocationManager,
-        deployments.ServiceManager,
-        "0x0000000000000000000000000000000000000000",
-        "0"
-      ],
-      constructorArgTypes: ["address", "address", "address", "uint32"]
-    },
-    {
       name: "RewardsRegistry",
       address: deployments.RewardsRegistry,
       artifactName: "RewardsRegistry",

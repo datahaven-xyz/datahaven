@@ -1,6 +1,4 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { firstValueFrom } from "rxjs";
-import { filter } from "rxjs/operators";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import {
   type Address,
@@ -12,7 +10,7 @@ import {
 import { BaseTestSuite } from "../framework";
 import validatorSet from "../configs/validator-set.json";
 import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
-import { waitForEthereumEvent } from "../utils/events";
+import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -71,33 +69,22 @@ describe("Rewards Message Flow", () => {
   });
 
   it("should wait for era end and update merkle root on Ethereum", async () => {
-    const { papiClient } = suite.getTestConnectors();
-
-    // Get current era and block
-    const [currentEra, currentBlock, fromBlock] = await Promise.all([
+    // Get current era and Ethereum block for event filtering
+    const [currentEra, fromBlock] = await Promise.all([
       dhApi.query.ExternalValidators.ActiveEra.getValue(),
-      dhApi.query.System.Number.getValue(),
       publicClient.getBlockNumber()
     ]);
 
-    // Calculate era end block
-    const sessionsPerEra = Number(dhApi.constants.ExternalValidators.SessionsPerEra);
-    const blocksPerSession = Number(dhApi.constants.Babe.EpochDuration);
-    const eraLength = sessionsPerEra * blocksPerSession;
-    const eraEndBlock = Math.ceil((currentBlock + 1) / eraLength) * eraLength;
+    const currentEraIndex = currentEra?.index ?? 0;
+    logger.debug(`Waiting for RewardsMessageSent for era ${currentEraIndex}`);
 
-    logger.debug(`Waiting for era ${currentEra?.index} to end at block ${eraEndBlock}`);
-
-    // Wait for era end block
-    const eraEndBlockInfo = await firstValueFrom(
-      papiClient.finalizedBlock$.pipe(filter((block) => block.number === eraEndBlock))
-    );
-
-    // Fetch RewardsMessageSent event from era end block
-    const events = await dhApi.query.System.Events.getValue({ at: eraEndBlockInfo.hash });
-    const payload = events.find(
-      (e: any) => e.type === "ExternalValidatorsRewards" && e.value?.type === "RewardsMessageSent"
-    )?.value?.value;
+    const payload = await waitForDataHavenEvent<any>({
+      api: dhApi,
+      pallet: "ExternalValidatorsRewards",
+      event: "RewardsMessageSent",
+      filter: (e) => e.era_index === currentEraIndex,
+      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
+    });
 
     expect(payload).toBeDefined();
     const merkleRoot: Hex = payload.rewards_merkle_root.asHex() as Hex;
@@ -169,6 +156,27 @@ describe("Rewards Message Flow", () => {
     );
     const operatorWallet = factory.createWalletClient(match!.privateKey as `0x${string}`);
     const resolvedOperator: Address = operatorWallet.account.address;
+
+    // Ensure the ServiceManager maps the operator ETH address to the solochain address
+    const expectedSolochain = String(validatorAccount) as Address;
+    const mappedSolochain = (await publicClient.readContract({
+      address: serviceManager.address as Address,
+      abi: serviceManager.abi,
+      functionName: "validatorEthAddressToSolochainAddress",
+      args: [resolvedOperator]
+    })) as Address;
+
+    if (mappedSolochain.toLowerCase() !== expectedSolochain.toLowerCase()) {
+      const updateTx = await operatorWallet.writeContract({
+        address: serviceManager.address as Address,
+        abi: serviceManager.abi,
+        functionName: "updateSolochainAddressForValidator",
+        args: [expectedSolochain],
+        chain: null
+      });
+      const updateReceipt = await publicClient.waitForTransactionReceipt({ hash: updateTx });
+      expect(updateReceipt.status).toBe("success");
+    }
 
     // Record initial balance for validation
     const balanceBefore = BigInt(await publicClient.getBalance({ address: resolvedOperator }));

@@ -153,6 +153,37 @@ jobs:
       - run: bun install
       - name: Run E2E tests
         run: bun test:e2e
+      - name: Collect container logs (docker talking to podman)
+        if: always()
+        run: |
+          mkdir -p tmp/container-logs
+
+          if command -v docker &> /dev/null; then
+            echo "Collecting container logs via docker (DOCKER_HOST=${DOCKER_HOST})..."
+            docker ps -a --format '{{.Names}}' > tmp/container-logs/container-names.txt || true
+
+            # Dump logs for all containers; adjust filtering here if needed
+            for c in $(docker ps -a --format '{{.Names}}'); do
+              echo "Saving logs for container: $c"
+              docker logs "$c" > "tmp/container-logs/${c}.log" || true
+            done
+
+            # Optionally include a small tail of each log in the job logs
+            for c in $(docker ps -a --format '{{.Names}}'); do
+              echo "===== Tail of logs for $c ====="
+              docker logs --tail 200 "$c" || true
+            done
+          else
+            echo "docker command not found; skipping container log collection."
+          fi
+
+      - name: Upload container logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-logs
+          path: tmp/container-logs
+          if-no-files-found: ignore
 
       - name: Delete volumes not used
         if: always()

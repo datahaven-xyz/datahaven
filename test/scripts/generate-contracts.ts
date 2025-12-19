@@ -143,9 +143,9 @@ function generateChecksum(): string {
   const hash = createHash("sha1");
 
   for (const content of contents) {
-    const stats = lstatSync(path.join(contractsPath, content));
+    const stats = lstatSync(path.join(contractsPath, content.toString()));
     if (stats.isFile()) {
-      const data = readFileSync(path.join(contractsPath, content));
+      const data = readFileSync(path.join(contractsPath, content.toString()));
       hash.update(data);
     }
   }
@@ -196,7 +196,7 @@ export async function generateContracts(): Promise<void> {
     logger.info("✅ Contract state-diff generation complete!");
     logger.info(`   - State file: ${STATE_DIFF_PATH}`);
     logger.info(`   - Checksum: ${STATE_DIFF_CHECKSUM_PATH}`);
-    logger.info(`   - Run 'bun test scripts/test-generated-contracts.ts' to validate`);
+    logger.info(`   - Run 'bun test scripts/check-generated-state.js' to validate`);
   } catch (error) {
     logger.error("❌ Failed to generate contract state-diff:", error);
     throw error;

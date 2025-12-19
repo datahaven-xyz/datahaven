@@ -95,12 +95,15 @@ export const setupValidators = async (options: SetupValidatorsOptions): Promise<
     }
   }
 
-  logger.info(`🔎 Registering ${config.validators.length} validators`);
+  // Filter to only alice and bob validators
+  const validatorsToRegister = config.validators.filter((v) =>
+    ["alice", "bob"].includes((v.solochainAuthorityName || "").toLowerCase())
+  );
+
+  logger.info(`🔎 Registering ${validatorsToRegister.length} validators`);
 
   // Iterate through validators to register them
-  for (const [i, validator] of config.validators.entries()) {
-    // Only register validators named 'alice' or 'bob'
-    if (!["alice", "bob"].includes((validator.solochainAuthorityName || "").toLowerCase())) continue;
+  for (const [i, validator] of validatorsToRegister.entries()) {
 
     logger.info(`🔧 Setting up validator ${i} (${validator.publicKey})`);
 

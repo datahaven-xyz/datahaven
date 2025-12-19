@@ -240,7 +240,8 @@ describe("Rewards Message Flow", () => {
 
     // Validate operator balance change (gas-adjusted)
     const operatorBalanceAfter = await publicClient.getBalance({ address: resolvedOperator });
-    const gasCost = BigInt(claimReceipt.gasUsed) * (claimReceipt.effectiveGasPrice ?? 0n);
+    const tx = await publicClient.getTransaction({ hash: claimTx });
+    const gasCost = BigInt(claimReceipt.gasUsed) * (tx.gasPrice ?? 0n);
     const actualIncrease = operatorBalanceAfter - operatorBalanceBefore + gasCost;
     expect(actualIncrease).toEqual(claimArgs.rewardsAmount);
     expect(claimArgs.rewardsAmount).toEqual(BigInt(points));

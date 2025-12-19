@@ -30,8 +30,6 @@ import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyM
 import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
 import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
-import {IVetoableSlasher} from "../../src/interfaces/IVetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
@@ -52,10 +50,8 @@ contract AVSDeployer is Test {
     // AVS contracts
     DataHavenServiceManager public serviceManager;
     DataHavenServiceManager public serviceManagerImplementation;
-    VetoableSlasher public vetoableSlasher;
     RewardsRegistry public rewardsRegistry;
 
-    // VetoableSlasher roles and parameters
     address public vetoCommitteeMember =
         address(uint160(uint256(keccak256("vetoCommitteeMember"))));
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
@@ -278,18 +274,6 @@ contract AVSDeployer is Test {
         cheats.stopPrank();
         console.log("ServiceManager implementation deployed");
 
-        // Deploy and configure the VetoableSlasher
-        cheats.prank(regularDeployer);
-        vetoableSlasher = new VetoableSlasher(
-            allocationManager, serviceManager, vetoCommitteeMember, vetoWindowBlocks
-        );
-
-        // Set the slasher in the ServiceManager
-        cheats.prank(avsOwner);
-        serviceManager.setSlasher(vetoableSlasher);
-
-        console.log("VetoableSlasher deployed and configured");
-
         // Deploy the RewardsRegistry contract
         cheats.prank(regularDeployer);
         rewardsRegistry = new RewardsRegistry(address(serviceManager), mockRewardsAgent);
@@ -390,7 +374,6 @@ contract AVSDeployer is Test {
         cheats.label(address(allocationManagerImplementation), "AllocationManagerImplementation");
         cheats.label(address(serviceManager), "ServiceManager");
         cheats.label(address(serviceManagerImplementation), "ServiceManagerImplementation");
-        cheats.label(address(vetoableSlasher), "VetoableSlasher");
     }
 
     /// @dev Sort to ensure that the array is in ascending order for strategies

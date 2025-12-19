@@ -1425,7 +1425,7 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
-    type OnSessionEnd = ExternalValidatorsRewards;
+    type OnBeforeSessionEnding = ExternalValidatorsRewards;
     type Key = sp_consensus_babe::AuthorityId;
     type CurrentSessionIndex = CurrentSessionIndexGetter;
     type AuthorizedOrigin =

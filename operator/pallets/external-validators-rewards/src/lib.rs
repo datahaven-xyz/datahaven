@@ -36,7 +36,7 @@ pub use pallet::*;
 use {
     crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
     frame_support::traits::{Defensive, Get, ValidatorSet},
-    pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart, OnSessionEnd},
+    pallet_external_validators::traits::{ExternalIndexProvider, OnBeforeSessionEnding, OnEraEnd, OnEraStart},
     parity_scale_codec::Encode,
     polkadot_primitives::ValidatorIndex,
     runtime_parachains::session_info,
@@ -729,11 +729,11 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> OnSessionEnd for Pallet<T>
+    impl<T: Config> OnBeforeSessionEnding for Pallet<T>
     where
         <T as Config>::ValidatorSet: ValidatorSet<T::AccountId, ValidatorId = T::AccountId>,
     {
-        fn on_session_end(session_index: SessionIndex) {
+        fn on_before_session_ending(session_index: SessionIndex) {
             // Get validators for liveness check and point calculation
             let validators = <T as Config>::ValidatorSet::validators();
             let whitelisted = T::GetWhitelistedValidators::get();
@@ -742,7 +742,7 @@ pub mod pallet {
             let _ = SessionLivenessCache::<T>::clear(u32::MAX, None);
 
             // Read liveness directly from LivenessTracker (ImOnline) and cache it.
-            // This is called from on_before_session_ending BEFORE ImOnline clears its data.
+            // This is called BEFORE ImOnline clears its data.
             for validator in validators.iter() {
                 let is_online = T::LivenessTracker::contains(validator);
                 SessionLivenessCache::<T>::insert(validator, is_online);
@@ -848,7 +848,7 @@ where
     }
 }
 
-/// Implementation of `OnSessionEnd` for awarding performance-based points at session end.
+/// Implementation of `OnBeforeSessionEnding` for awarding performance-based points at session end.
 ///
 /// This implements the configurable performance formula for solochain validators:
 /// - BlockAuthoringWeight: Block production (BABE participation)

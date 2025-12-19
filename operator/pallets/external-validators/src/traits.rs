@@ -74,20 +74,20 @@ impl OnEraEnd for Tuple {
     }
 }
 
-/// Called when a session is about to end.
+/// Called when a session is about to end, BEFORE other session handlers run.
 /// Implementors can use this to perform session-end logic such as awarding performance points.
 ///
-/// This is called from `SessionHandler::on_before_session_ending()` which runs before
+/// This is called from `OneSessionHandler::on_before_session_ending()` which runs before
 /// other session handlers (like ImOnline) clear their per-session data. Implementors
 /// should read any required liveness data directly from ImOnline at this point.
-pub trait OnSessionEnd {
-    fn on_session_end(_session_index: sp_staking::SessionIndex) {}
+pub trait OnBeforeSessionEnding {
+    fn on_before_session_ending(_session_index: sp_staking::SessionIndex) {}
 }
 
 #[impl_trait_for_tuples::impl_for_tuples(5)]
-impl OnSessionEnd for Tuple {
-    fn on_session_end(session_index: sp_staking::SessionIndex) {
-        for_tuples!( #( Tuple::on_session_end(session_index); )* );
+impl OnBeforeSessionEnding for Tuple {
+    fn on_before_session_ending(session_index: sp_staking::SessionIndex) {
+        for_tuples!( #( Tuple::on_before_session_ending(session_index); )* );
     }
 }
 

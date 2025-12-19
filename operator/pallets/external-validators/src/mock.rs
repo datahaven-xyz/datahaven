@@ -17,7 +17,7 @@
 use {
     super::*,
     crate as pallet_external_validators,
-    crate::traits::OnSessionEnd,
+    crate::traits::OnBeforeSessionEnding,
     frame_support::{
         assert_ok, ord_parameter_types, parameter_types,
         traits::{
@@ -154,7 +154,7 @@ impl Config for Test {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = Mock;
     type OnEraEnd = Mock;
-    type OnSessionEnd = Mock;
+    type OnBeforeSessionEnding = Mock;
     type Key = UintAuthorityId;
     type CurrentSessionIndex = MockCurrentSessionIndex;
     type AuthorizedOrigin = MockAuthorizedOrigin;
@@ -290,8 +290,8 @@ impl<T> OnEraEnd for mock_data::Pallet<T> {
     }
 }
 
-impl<T> OnSessionEnd for mock_data::Pallet<T> {
-    fn on_session_end(_session_index: sp_staking::SessionIndex) {
+impl<T> OnBeforeSessionEnding for mock_data::Pallet<T> {
+    fn on_before_session_ending(_session_index: sp_staking::SessionIndex) {
         // No-op for tests, just verify the callback is called
     }
 }

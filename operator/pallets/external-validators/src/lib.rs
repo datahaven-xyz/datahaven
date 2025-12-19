@@ -46,7 +46,7 @@ use {
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
     traits::{
         ActiveEraInfo, EraIndex, EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider,
-        OnEraEnd, OnEraStart, OnSessionEnd, ValidatorProvider,
+        OnBeforeSessionEnding, OnEraEnd, OnEraStart, ValidatorProvider,
     },
 };
 
@@ -171,7 +171,7 @@ pub mod pallet {
         /// Used to award performance-based points at session end.
         /// Called from `OneSessionHandler::on_before_session_ending()` BEFORE ImOnline clears data.
         /// Implementors should read liveness data directly from ImOnline at this point.
-        type OnSessionEnd: OnSessionEnd;
+        type OnBeforeSessionEnding: OnBeforeSessionEnding;
 
         /// Session key type used by this pallet for OneSessionHandler implementation.
         /// This should be set to an existing key type from SessionKeys (e.g., Babe's key).
@@ -706,7 +706,7 @@ impl<T: Config> pallet_session::SessionManager<T::ValidatorId> for Pallet<T> {
     }
     fn end_session(end_index: SessionIndex) {
         log!(log::Level::Trace, "ending session {}", end_index);
-        // Note: OnSessionEnd is called from OneSessionHandler::on_before_session_ending()
+        // Note: OnBeforeSessionEnding is called from OneSessionHandler::on_before_session_ending()
         // which runs BEFORE ImOnline clears its liveness data.
         Self::end_session(end_index)
     }
@@ -751,11 +751,11 @@ impl<T: Config> OneSessionHandler<T::ValidatorId> for Pallet<T> {
     }
 
     fn on_before_session_ending() {
-        // Call OnSessionEnd callback BEFORE ImOnline clears its AuthoredBlocks storage.
+        // Call OnBeforeSessionEnding callback BEFORE ImOnline clears its AuthoredBlocks storage.
         // This handler must be placed BEFORE ImOnline in the SessionHandler tuple.
         // The rewards pallet should read liveness directly from ImOnline at this point.
         let session_index = T::CurrentSessionIndex::get();
-        T::OnSessionEnd::on_session_end(session_index);
+        T::OnBeforeSessionEnding::on_before_session_ending(session_index);
     }
 
     fn on_disabled(_validator_index: u32) {

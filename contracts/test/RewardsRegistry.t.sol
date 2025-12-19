@@ -50,7 +50,7 @@ contract RewardsRegistryTest is AVSDeployer {
         leafIndex = 0; // Position of our leaf in the tree
         numberOfLeaves = 2; // Simple tree with 2 leaves
 
-        // For Substrate-compatible Merkle proofs, we need to use SCALE encoding
+        // For sorted-hash Merkle proofs, we need to use SCALE encoding
         // Our leaf (the one we want to prove exists in the tree)
         bytes memory preimage =
             abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
@@ -61,9 +61,10 @@ contract RewardsRegistryTest is AVSDeployer {
             abi.encodePacked(address(0x1234), ScaleCodec.encodeU32(uint32(50)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
 
-        // For Substrate positional merkle proof, we construct the root based on position
-        // Since leafIndex = 0, our leaf is on the left
-        merkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
+        // For sorted-hash merkle proof, smaller hash goes first
+        merkleRoot = leaf < siblingLeaf
+            ? keccak256(abi.encodePacked(leaf, siblingLeaf))
+            : keccak256(abi.encodePacked(siblingLeaf, leaf));
 
         // The proof to verify our leaf is just the sibling leaf
         validProof = new bytes32[](1);
@@ -73,7 +74,10 @@ contract RewardsRegistryTest is AVSDeployer {
         bytes memory newSiblingPreimage =
             abi.encodePacked(address(0x5678), ScaleCodec.encodeU32(uint32(75)));
         bytes32 newSiblingLeaf = keccak256(newSiblingPreimage);
-        newMerkleRoot = keccak256(abi.encodePacked(leaf, newSiblingLeaf));
+        // For sorted-hash merkle proof, smaller hash goes first
+        newMerkleRoot = leaf < newSiblingLeaf
+            ? keccak256(abi.encodePacked(leaf, newSiblingLeaf))
+            : keccak256(abi.encodePacked(newSiblingLeaf, leaf));
 
         // An invalid proof
         invalidProof = new bytes32[](1);

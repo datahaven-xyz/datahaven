@@ -183,9 +183,7 @@ describe("Rewards Message Flow", () => {
     expect(claimedBefore).toBe(false);
 
     // Record balances for validation
-    const operatorBalanceBefore = BigInt(
-      await publicClient.getBalance({ address: resolvedOperator })
-    );
+    const operatorBalanceBefore = await publicClient.getBalance({ address: resolvedOperator });
     const registryBalanceBefore = BigInt(
       await publicClient.getBalance({ address: rewardsRegistry.address as Address })
     );
@@ -209,6 +207,9 @@ describe("Rewards Message Flow", () => {
     // Wait for transaction confirmation
     const claimReceipt = await publicClient.waitForTransactionReceipt({ hash: claimTx });
     expect(claimReceipt.status).toBe("success");
+    logger.debug(
+      `Claim tx type: ${claimReceipt.type}, effectiveGasPrice: ${claimReceipt.effectiveGasPrice}, gasUsed: ${claimReceipt.gasUsed}`
+    );
 
     // Decode and validate claim event from receipt
     const claimLog = claimReceipt.logs.find(
@@ -241,13 +242,13 @@ describe("Rewards Message Flow", () => {
       await publicClient.getBalance({ address: rewardsRegistry.address as Address })
     );
     expect(registryBalanceBefore - registryBalanceAfter).toEqual(claimArgs.rewardsAmount);
-
-    // Validate operator balance change (gas-adjusted)
-    const operatorBalanceAfter = await publicClient.getBalance({ address: resolvedOperator });
-    const tx = await publicClient.getTransaction({ hash: claimTx });
-    const gasCost = BigInt(claimReceipt.gasUsed) * (tx.gasPrice ?? 0n);
-    const actualIncrease = operatorBalanceAfter - operatorBalanceBefore + gasCost;
-    expect(actualIncrease).toEqual(claimArgs.rewardsAmount);
     expect(claimArgs.rewardsAmount).toEqual(BigInt(points));
+
+    // Validate operator received rewards (accounting for gas)
+    const operatorBalanceAfter = await publicClient.getBalance({ address: resolvedOperator });
+    const gasCost = BigInt(claimReceipt.gasUsed) * BigInt(claimReceipt.effectiveGasPrice);
+    const netBalanceChange = BigInt(operatorBalanceAfter) - BigInt(operatorBalanceBefore);
+    // Operator balance should have changed by: rewards - gasCost
+    expect(netBalanceChange + gasCost).toEqual(claimArgs.rewardsAmount);
   });
 });

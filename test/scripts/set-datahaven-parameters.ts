@@ -33,13 +33,14 @@ export const setDataHavenParameters = async (
     }
 
     // Build parameter calls
-    const calls = parameters.map((p) =>
-      dhApi.tx.Parameters.set_parameter({
-        key_value: {
-          type: "RuntimeConfig",
-          value: { type: p.name, value: [p.value] }
-        }
-      }).decodedCall
+    const calls = parameters.map(
+      (p) =>
+        dhApi.tx.Parameters.set_parameter({
+          key_value: {
+            type: "RuntimeConfig",
+            value: { type: p.name, value: [p.value] }
+          }
+        }).decodedCall
     );
 
     // Batch all calls and wrap in sudo

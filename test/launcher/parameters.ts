@@ -45,10 +45,11 @@ export const setDataHavenParameters = async (options: ParametersOptions): Promis
   const rpcUrl = `ws://127.0.0.1:${launchedNetwork.getPublicWsPort()}`;
 
   // Execute the parameter update
-  await setDataHavenParametersScript({
-    rpcUrl,
-    parametersFilePath
-  });
+  const success = await setDataHavenParametersScript(rpcUrl, parametersFilePath);
+
+  if (!success) {
+    throw new Error("Failed to set DataHaven parameters");
+  }
 
   logger.success("DataHaven parameters set successfully");
 };

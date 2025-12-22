@@ -1,7 +1,7 @@
 import { datahaven } from "@polkadot-api/descriptors";
 import { createClient as createPapiClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
 import { ANVIL_FUNDED_ACCOUNTS, type DataHavenApi, logger } from "utils";
 import {
   type Account,
@@ -15,6 +15,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
+import { socketClientCache } from "viem/utils";
 import type { LaunchNetworkResult } from "../launcher";
 
 export interface TestConnectors {
@@ -101,6 +102,20 @@ export class ConnectorFactory {
    */
   async cleanup(connectors: TestConnectors): Promise<void> {
     logger.debug("Cleaning up test connectors...");
+
+    // Close any cached WebSocket clients used by viem to prevent reconnect noise after teardown.
+    try {
+      for (const client of socketClientCache.values()) {
+        try {
+          client.close();
+        } catch {
+          // Ignore individual socket close errors
+        }
+      }
+      socketClientCache.clear();
+    } catch {
+      // Ignore cache errors during cleanup
+    }
 
     // Destroy PAPI client
     if (connectors.papiClient) {

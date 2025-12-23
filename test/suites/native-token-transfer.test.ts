@@ -52,11 +52,11 @@ async function getBalanceSnapshot(
     dhApi.query.System.Account.getValue(ethereumSovereignAccount),
     erc20Address && ethAccount
       ? publicClient.readContract({
-          address: erc20Address,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [ethAccount]
-        })
+        address: erc20Address,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [ethAccount]
+      })
       : 0n
   ]);
 
@@ -110,7 +110,7 @@ async function requireNativeERC20Address(connectors: any): Promise<`0x${string}`
   if (!address) {
     throw new Error(
       `Native ERC20 address not available (nativeTokenId=${nativeTokenId ?? "null"}). ` +
-        `Did the 'register DataHaven native token on Ethereum' test succeed?`
+      `Did the 'register DataHaven native token on Ethereum' test succeed?`
     );
   }
   return address;
@@ -432,7 +432,7 @@ describe("Native Token Transfer", () => {
       });
     },
     CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS +
-      CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS +
-      CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
+    CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS +
+    CROSS_CHAIN_TIMEOUTS.EVENT_CONFIRMATION_MS
   ); // includes funding (DH→ETH) + transfer (ETH→DH)
 });

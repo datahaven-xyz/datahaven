@@ -1,11 +1,107 @@
 import { afterAll, beforeAll } from "bun:test";
+import { closeSync, existsSync, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import readline from "node:readline";
 import { isCI } from "launcher/network";
 import { logger } from "utils";
-import { launchNetwork } from "../launcher";
-import type { LaunchNetworkResult } from "../launcher/types";
+import { attachNetwork, launchNetwork } from "../launcher";
+import type { LaunchNetworkResult, NetworkLaunchOptions } from "../launcher/types";
 import { ConnectorFactory, type TestConnectors } from "./connectors";
 import { TestSuiteManager } from "./manager";
+
+const REUSE_INFRA_ENV = "E2E_REUSE_INFRA";
+const REUSE_NETWORK_ID_ENV = "E2E_NETWORK_ID";
+const DEFAULT_REUSE_NETWORK_ID = "e2e-test";
+const REUSE_LOCK_PATH = join(process.cwd(), "tmp", "e2e-reuse.lock");
+const REUSE_WAIT_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+const REUSE_POLL_MS = 2000;
+
+const isReuseInfraEnabled = (): boolean => {
+  const value = process.env[REUSE_INFRA_ENV];
+  return value === "true" || value === "1";
+};
+
+const sanitizeNetworkId = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+const getReuseNetworkId = (): string =>
+  sanitizeNetworkId(process.env[REUSE_NETWORK_ID_ENV] || DEFAULT_REUSE_NETWORK_ID);
+
+const ensureTmpDir = (): void => {
+  const dir = join(process.cwd(), "tmp");
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+};
+
+const tryAcquireReuseLock = (): number | null => {
+  ensureTmpDir();
+  try {
+    const fd = openSync(REUSE_LOCK_PATH, "wx");
+    writeFileSync(fd, `${process.pid}`);
+    return fd;
+  } catch (error) {
+    const errorCode = (error as NodeJS.ErrnoException)?.code;
+    if (errorCode === "EEXIST") {
+      return null;
+    }
+    throw error;
+  }
+};
+
+const releaseReuseLock = (fd: number): void => {
+  try {
+    closeSync(fd);
+  } finally {
+    try {
+      unlinkSync(REUSE_LOCK_PATH);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+};
+
+const waitForReusableNetwork = async (networkId: string): Promise<LaunchNetworkResult> => {
+  const start = Date.now();
+  let lastError: unknown;
+
+  while (Date.now() - start < REUSE_WAIT_TIMEOUT_MS) {
+    try {
+      return await attachNetwork({ networkId });
+    } catch (error) {
+      lastError = error;
+    }
+    await Bun.sleep(REUSE_POLL_MS);
+  }
+
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(
+    `Timed out waiting for shared E2E network '${networkId}' to become ready. ` +
+      `Last error: ${detail}. ` +
+      `If no other process is launching the network, remove ${REUSE_LOCK_PATH} and retry.`
+  );
+};
+
+const getOrCreateReusableNetwork = async (
+  launchOptions: NetworkLaunchOptions
+): Promise<LaunchNetworkResult> => {
+  const lockFd = tryAcquireReuseLock();
+  if (lockFd === null) {
+    logger.info("⏳ Waiting for shared E2E network to be ready...");
+    return await waitForReusableNetwork(launchOptions.networkId);
+  }
+
+  try {
+    try {
+      return await attachNetwork({ networkId: launchOptions.networkId });
+    } catch {
+      logger.info("📦 No existing E2E network found; launching shared infrastructure...");
+      return await launchNetwork(launchOptions);
+    }
+  } finally {
+    releaseReuseLock(lockFd);
+  }
+};
 
 export interface TestSuiteOptions {
   /** Unique name for the test suite */
@@ -34,11 +130,16 @@ export abstract class BaseTestSuite {
   private connectorFactory?: ConnectorFactory;
   private options: TestSuiteOptions;
   private manager: TestSuiteManager;
+  private reuseInfra: boolean;
 
   constructor(options: TestSuiteOptions) {
     this.options = options;
-    // Generate unique network ID using suite name and timestamp
-    this.networkId = `${options.suiteName}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    this.reuseInfra = isReuseInfraEnabled();
+    // Generate unique network ID using suite name and timestamp unless reusing shared infra
+    const rawNetworkId = this.reuseInfra
+      ? getReuseNetworkId()
+      : `${options.suiteName}-${Date.now()}`;
+    this.networkId = sanitizeNetworkId(rawNetworkId);
     this.manager = TestSuiteManager.getInstance();
   }
 
@@ -46,13 +147,15 @@ export abstract class BaseTestSuite {
     beforeAll(async () => {
       logger.info(`🧪 Setting up test suite: ${this.options.suiteName}`);
       logger.info(`📝 Network ID: ${this.networkId}`);
+      if (this.reuseInfra) {
+        logger.info(`♻️ Reusing shared E2E infrastructure (network ID: ${this.networkId})`);
+      }
 
       try {
         // Register suite with manager
         this.manager.registerSuite(this.options.suiteName, this.networkId);
 
-        // Launch the network
-        this.connectors = await launchNetwork({
+        const launchOptions: NetworkLaunchOptions = {
           networkId: this.networkId,
           datahavenImageTag:
             this.options.networkOptions?.datahavenImageTag || "datahavenxyz/datahaven:local",
@@ -60,7 +163,12 @@ export abstract class BaseTestSuite {
             this.options.networkOptions?.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
           buildDatahaven: false, // default to false in the test suite so we can speed up the CI
           ...this.options.networkOptions
-        });
+        };
+
+        // Launch or attach to the network
+        this.connectors = this.reuseInfra
+          ? await getOrCreateReusableNetwork(launchOptions)
+          : await launchNetwork(launchOptions);
 
         // Create test connectors
         this.connectorFactory = new ConnectorFactory(this.connectors);
@@ -94,8 +202,8 @@ export abstract class BaseTestSuite {
           await this.connectorFactory.cleanup(this.testConnectors);
         }
 
-        // Cleanup the network
-        if (this.connectors?.cleanup) {
+        // Cleanup the network (skip when reusing shared infra)
+        if (!this.reuseInfra && this.connectors?.cleanup) {
           await this.connectors.cleanup();
         }
 

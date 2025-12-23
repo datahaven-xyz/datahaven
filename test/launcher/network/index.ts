@@ -3,8 +3,13 @@ import { getContainersMatchingImage, getPortFromKurtosis, logger } from "utils";
 import { ParameterCollection } from "utils/parameters";
 import { updateParameters } from "../../scripts/deploy-contracts";
 import { deployContracts } from "../contracts";
-import { launchLocalDataHavenSolochain } from "../datahaven";
-import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
+import { launchLocalDataHavenSolochain, registerNodes } from "../datahaven";
+import {
+  checkKurtosisEnclaveRunning,
+  getRunningKurtosisEnclaves,
+  launchKurtosisNetwork,
+  registerServices
+} from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
 import { launchRelayers } from "../relayers";
 import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
@@ -23,6 +28,9 @@ const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
 const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   logger.info(`🔍 Validating network ID uniqueness: ${networkId}`);
 
+  const isCheckpointContainer = (names: string[]) =>
+    names.some((name) => name.includes("generate-beacon-checkpoint-"));
+
   // Check for existing DataHaven containers
   const datahavenContainers = await getContainersMatchingImage(COMPONENTS.datahaven.imageName);
   const conflictingDatahaven = datahavenContainers.filter((c) =>
@@ -38,7 +46,7 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   // Check for existing relayer containers
   const relayerContainers = await getContainersMatchingImage(COMPONENTS.snowbridge.imageName);
   const conflictingRelayers = relayerContainers.filter((c) =>
-    c.Names.some((name) => name.includes(networkId))
+    c.Names.some((name) => name.includes(networkId)) && !isCheckpointContainer(c.Names)
   );
   if (conflictingRelayers.length > 0) {
     throw new Error(
@@ -295,6 +303,57 @@ export const launchNetwork = async (
 
     throw error;
   }
+};
+
+/**
+ * Attaches to an already running network stack instead of launching a new one.
+ *
+ * This is useful for reusing a shared E2E infrastructure across test suites.
+ *
+ * @param options - Configuration options for the network attachment
+ * @returns NetworkConnectors with cleanup function
+ * @throws {Error} if required network resources are not running
+ */
+export const attachNetwork = async (options: {
+  networkId: string;
+}): Promise<LaunchNetworkResult> => {
+  const { networkId } = options;
+  const launchedNetwork = new LaunchedNetwork();
+  launchedNetwork.networkId = networkId;
+  launchedNetwork.networkName = `datahaven-${networkId}`;
+
+  logger.info(`🔌 Attaching to existing network stack: ${networkId}`);
+
+  // Ensure base dependencies are present (Docker, Kurtosis, etc.)
+  await checkBaseDependencies();
+
+  // Ensure Kurtosis enclave exists before attempting to register endpoints
+  const kurtosisEnclaveName = `eth-${networkId}`;
+  const enclaveRunning = await checkKurtosisEnclaveRunning(kurtosisEnclaveName);
+  if (!enclaveRunning) {
+    throw new Error(`Kurtosis enclave '${kurtosisEnclaveName}' is not running`);
+  }
+
+  // Register Kurtosis endpoints
+  await registerServices(launchedNetwork, kurtosisEnclaveName);
+
+  // Register DataHaven node (alice) from running containers
+  await registerNodes(networkId, launchedNetwork);
+
+  const aliceContainerName = `datahaven-alice-${networkId}`;
+  const wsPort = launchedNetwork.getContainerPort(aliceContainerName);
+  if (!wsPort || wsPort <= 0) {
+    throw new Error(`DataHaven RPC port not available for ${aliceContainerName}`);
+  }
+
+  return {
+    launchedNetwork,
+    dataHavenRpcUrl: `http://127.0.0.1:${wsPort}`,
+    ethereumRpcUrl: launchedNetwork.elRpcUrl,
+    ethereumWsUrl: launchedNetwork.elWsUrl,
+    ethereumClEndpoint: launchedNetwork.clEndpoint,
+    cleanup: createCleanupFunction(networkId)
+  };
 };
 
 export const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";

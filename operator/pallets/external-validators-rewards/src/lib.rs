@@ -35,8 +35,8 @@ pub use pallet::*;
 
 use {
     crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
-    frame_support::traits::{Contains, Defensive, Get, ValidatorSet},
-    pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
+    frame_support::traits::{Defensive, Get, ValidatorSet},
+    pallet_external_validators::traits::{ExternalIndexProvider, OnBeforeSessionEnding, OnEraEnd, OnEraStart},
     parity_scale_codec::Encode,
     polkadot_primitives::ValidatorIndex,
     runtime_parachains::session_info,
@@ -64,7 +64,7 @@ impl<AccountId> SlashingCheck<AccountId> for () {
 
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::traits::fungible;
+    use frame_support::traits::{fungible, Contains};
     use sp_runtime::PerThing;
 
     pub use crate::weights::WeightInfo;
@@ -108,14 +108,17 @@ pub mod pallet {
 
         type GetWhitelistedValidators: Get<Vec<Self::AccountId>>;
 
-        /// Validator set provider for performance tracking
-        type ValidatorSet: frame_support::traits::ValidatorSet<Self::AccountId>;
-
-        /// Provider to check if validators are online (sent heartbeat this session)
-        type LivenessCheck: frame_support::traits::Contains<Self::AccountId>;
+        /// Validator set provider for performance tracking.
+        /// Requires ValidatorId = AccountId so we can use validators() directly.
+        type ValidatorSet: frame_support::traits::ValidatorSet<Self::AccountId, ValidatorId = Self::AccountId>;
 
         /// Check if a validator has been slashed in a given era
         type SlashingCheck: SlashingCheck<Self::AccountId>;
+
+        /// Something that can check if a validator is online (sent heartbeat or authored blocks).
+        /// Typically this would be ImOnline's AuthoredBlocks tracker.
+        /// Called during on_session_end BEFORE ImOnline clears its storage.
+        type LivenessTracker: frame_support::traits::Contains<Self::AccountId>;
 
         /// Base points added to the reward pool per block produced.
         /// These points are distributed according to the weighted formula:
@@ -285,6 +288,14 @@ pub mod pallet {
     #[pallet::storage]
     pub type BlocksProducedInEra<T: Config> =
         StorageMap<_, Twox64Concat, EraIndex, u32, ValueQuery>;
+
+    /// Cache of validator liveness for the current session.
+    /// Populated in on_session_end from LivenessTracker (ImOnline) BEFORE
+    /// ImOnline clears its AuthoredBlocks storage, then read during
+    /// award_session_performance_points.
+    #[pallet::storage]
+    pub type SessionLivenessCache<T: Config> =
+        StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
 
     impl<T: Config> Pallet<T> {
         /// Reward validators. Does not check if the validators are valid, caller needs to make sure of that.
@@ -579,9 +590,10 @@ pub mod pallet {
                 // credited_blocks = min(blocks_authored, max_credited_blocks)
                 let credited_blocks = blocks_authored.min(max_credited_blocks);
 
-                // Liveness score: based on ImOnline's is_online() which considers
-                // heartbeats OR block authorship
-                let is_online = T::LivenessCheck::contains(validator);
+                // Liveness score: Read from SessionLivenessCache.
+                // The cache was populated at the start of on_session_end from LivenessTracker,
+                // BEFORE ImOnline clears its AuthoredBlocks storage.
+                let is_online = SessionLivenessCache::<T>::get(validator);
                 let liveness_score = if is_online {
                     Perbill::one()
                 } else {
@@ -716,6 +728,30 @@ pub mod pallet {
             }
         }
     }
+
+    impl<T: Config> OnBeforeSessionEnding for Pallet<T>
+    where
+        <T as Config>::ValidatorSet: ValidatorSet<T::AccountId, ValidatorId = T::AccountId>,
+    {
+        fn on_before_session_ending(session_index: SessionIndex) {
+            // Get validators for liveness check and point calculation
+            let validators = <T as Config>::ValidatorSet::validators();
+            let whitelisted = T::GetWhitelistedValidators::get();
+
+            // Clear previous session's liveness data
+            let _ = SessionLivenessCache::<T>::clear(u32::MAX, None);
+
+            // Read liveness directly from LivenessTracker (ImOnline) and cache it.
+            // This is called BEFORE ImOnline clears its data.
+            for validator in validators.iter() {
+                let is_online = T::LivenessTracker::contains(validator);
+                SessionLivenessCache::<T>::insert(validator, is_online);
+            }
+
+            // Award performance points using the cached liveness data
+            Self::award_session_performance_points(session_index, validators, whitelisted);
+        }
+    }
 }
 
 /// Rewards validators for participating in parachains with era points in pallet-staking.
@@ -812,78 +848,12 @@ where
     }
 }
 
-/// Wrapper for pallet_session::SessionManager that awards performance-based points at session end.
+/// Implementation of `OnBeforeSessionEnding` for awarding performance-based points at session end.
 ///
-/// This implements the 60/30/10 performance formula for solochain validators:
-/// - 60% weight: Block production (BABE participation)
-/// - 30% weight: Heartbeat/liveness (ImOnline participation)
-/// - 10% weight: Base guarantee (always awarded)
-///
-/// Wraps an inner SessionManager (typically `NoteHistoricalRoot<ExternalValidators>`) and calls
-/// the performance tracking logic at session end before forwarding to the inner manager.
-pub struct SessionPerformanceManager<T, Inner>(core::marker::PhantomData<(T, Inner)>);
-
-impl<T, Inner> pallet_session::SessionManager<T::AccountId> for SessionPerformanceManager<T, Inner>
-where
-    T: pallet::Config,
-    Inner: pallet_session::SessionManager<T::AccountId>,
-    <T as pallet::Config>::ValidatorSet: ValidatorSet<T::AccountId, ValidatorId = T::AccountId>,
-{
-    fn new_session(new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
-        <Inner as pallet_session::SessionManager<T::AccountId>>::new_session(new_index)
-    }
-
-    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
-        <Inner as pallet_session::SessionManager<T::AccountId>>::new_session_genesis(new_index)
-    }
-
-    fn start_session(start_index: SessionIndex) {
-        <Inner as pallet_session::SessionManager<T::AccountId>>::start_session(start_index)
-    }
-
-    fn end_session(end_index: SessionIndex) {
-        // Award performance-based points before ending the session
-        let validators = <T as pallet::Config>::ValidatorSet::validators();
-        let whitelisted = T::GetWhitelistedValidators::get();
-
-        pallet::Pallet::<T>::award_session_performance_points(end_index, validators, whitelisted);
-
-        <Inner as pallet_session::SessionManager<T::AccountId>>::end_session(end_index)
-    }
-}
-
-impl<T, Inner> pallet_session::historical::SessionManager<T::AccountId, ()>
-    for SessionPerformanceManager<T, Inner>
-where
-    T: pallet::Config,
-    Inner: pallet_session::historical::SessionManager<T::AccountId, ()>,
-    <T as pallet::Config>::ValidatorSet: ValidatorSet<T::AccountId, ValidatorId = T::AccountId>,
-{
-    fn new_session(new_index: SessionIndex) -> Option<Vec<(T::AccountId, ())>> {
-        <Inner as pallet_session::historical::SessionManager<T::AccountId, ()>>::new_session(
-            new_index,
-        )
-    }
-
-    fn start_session(start_index: SessionIndex) {
-        <Inner as pallet_session::historical::SessionManager<T::AccountId, ()>>::start_session(
-            start_index,
-        )
-    }
-
-    fn end_session(end_index: SessionIndex) {
-        // Award performance-based points before ending the session
-        let validators = <T as pallet::Config>::ValidatorSet::validators();
-        let whitelisted = T::GetWhitelistedValidators::get();
-
-        pallet::Pallet::<T>::award_session_performance_points(end_index, validators, whitelisted);
-
-        <Inner as pallet_session::historical::SessionManager<T::AccountId, ()>>::end_session(
-            end_index,
-        )
-    }
-}
-
+/// This implements the configurable performance formula for solochain validators:
+/// - BlockAuthoringWeight: Block production (BABE participation)
+/// - LivenessWeight: Heartbeat/liveness (ImOnline participation)
+/// - Remainder: Base guarantee (always awarded)
 /// Implementation of EventHandler for tracking block authorship
 impl<T: Config>
     pallet_authorship::EventHandler<T::AccountId, frame_system::pallet_prelude::BlockNumberFor<T>>

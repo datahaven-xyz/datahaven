@@ -17,6 +17,7 @@
 use {
     super::*,
     crate as pallet_external_validators,
+    crate::traits::OnBeforeSessionEnding,
     frame_support::{
         assert_ok, ord_parameter_types, parameter_types,
         traits::{
@@ -132,6 +133,14 @@ parameter_types! {
     pub const SessionsPerEra: SessionIndex = 6;
 }
 
+/// Mock current session index provider.
+pub struct MockCurrentSessionIndex;
+impl frame_support::traits::Get<SessionIndex> for MockCurrentSessionIndex {
+    fn get() -> SessionIndex {
+        Session::current_index()
+    }
+}
+
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureSignedBy<RootAccount, u64>;
@@ -145,6 +154,9 @@ impl Config for Test {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = Mock;
     type OnEraEnd = Mock;
+    type OnBeforeSessionEnding = Mock;
+    type Key = UintAuthorityId;
+    type CurrentSessionIndex = MockCurrentSessionIndex;
     type AuthorizedOrigin = MockAuthorizedOrigin;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
@@ -255,7 +267,10 @@ pub struct Mocks {
 
 // We use the mock_data pallet to test hooks: we store a list of all the calls, and then check that
 // no eras are skipped.
-impl<T> OnEraStart for mock_data::Pallet<T> {
+impl<T> OnEraStart for mock_data::Pallet<T>
+where
+    T: mock_data::Config,
+{
     fn on_era_start(era_index: EraIndex, session_start: u32, external_idx: u64) {
         Mock::mutate(|m| {
             m.called_hooks.push(HookCall::OnEraStart {
@@ -272,6 +287,12 @@ impl<T> OnEraEnd for mock_data::Pallet<T> {
         Mock::mutate(|m| {
             m.called_hooks.push(HookCall::OnEraEnd { era: era_index });
         });
+    }
+}
+
+impl<T> OnBeforeSessionEnding for mock_data::Pallet<T> {
+    fn on_before_session_ending(_session_index: sp_staking::SessionIndex) {
+        // No-op for tests, just verify the callback is called
     }
 }
 

@@ -34,16 +34,19 @@
 
 pub use pallet::*;
 use {
-    frame_support::pallet_prelude::Weight,
+    frame_support::{
+        pallet_prelude::Weight,
+        traits::OneSessionHandler,
+    },
     log::log,
     parity_scale_codec::{Decode, Encode, MaxEncodedLen},
     scale_info::TypeInfo,
-    sp_runtime::{traits::Get, RuntimeDebug},
+    sp_runtime::{traits::Get, BoundToRuntimeAppPublic, RuntimeAppPublic, RuntimeDebug},
     sp_staking::SessionIndex,
     sp_std::{collections::btree_set::BTreeSet, vec::Vec},
     traits::{
         ActiveEraInfo, EraIndex, EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider,
-        OnEraEnd, OnEraStart, ValidatorProvider,
+        OnBeforeSessionEnding, OnEraEnd, OnEraStart, ValidatorProvider,
     },
 };
 
@@ -163,6 +166,22 @@ pub mod pallet {
 
         type OnEraStart: OnEraStart;
         type OnEraEnd: OnEraEnd;
+
+        /// Callback invoked when a session is about to end.
+        /// Used to award performance-based points at session end.
+        /// Called from `OneSessionHandler::on_before_session_ending()` BEFORE ImOnline clears data.
+        /// Implementors should read liveness data directly from ImOnline at this point.
+        type OnBeforeSessionEnding: OnBeforeSessionEnding;
+
+        /// Session key type used by this pallet for OneSessionHandler implementation.
+        /// This should be set to an existing key type from SessionKeys (e.g., Babe's key).
+        /// The pallet doesn't use this key for cryptographic operations - it's only needed
+        /// to satisfy the OneSessionHandler trait bounds.
+        type Key: Decode + RuntimeAppPublic;
+
+        /// Provider of the current session index.
+        /// Typically set to `pallet_session::CurrentIndex`.
+        type CurrentSessionIndex: Get<SessionIndex>;
 
         /// Authorized Ethereum origin for validator-set update messages coming via Snowbridge.
         #[pallet::constant]
@@ -687,6 +706,8 @@ impl<T: Config> pallet_session::SessionManager<T::ValidatorId> for Pallet<T> {
     }
     fn end_session(end_index: SessionIndex) {
         log!(log::Level::Trace, "ending session {}", end_index);
+        // Note: OnBeforeSessionEnding is called from OneSessionHandler::on_before_session_ending()
+        // which runs BEFORE ImOnline clears its liveness data.
         Self::end_session(end_index)
     }
 }
@@ -703,6 +724,42 @@ impl<T: Config> pallet_session::historical::SessionManager<T::ValidatorId, ()> f
 
     fn end_session(end_index: SessionIndex) {
         <Self as pallet_session::SessionManager<_>>::end_session(end_index)
+    }
+}
+
+impl<T: Config> BoundToRuntimeAppPublic for Pallet<T> {
+    type Public = T::Key;
+}
+
+impl<T: Config> OneSessionHandler<T::ValidatorId> for Pallet<T> {
+    type Key = T::Key;
+
+    fn on_genesis_session<'a, I>(_validators: I)
+    where
+        I: Iterator<Item = (&'a T::ValidatorId, Self::Key)> + 'a,
+        T::ValidatorId: 'a,
+    {
+        // No-op: we don't use session keys in this pallet
+    }
+
+    fn on_new_session<'a, I>(_changed: bool, _validators: I, _queued_validators: I)
+    where
+        I: Iterator<Item = (&'a T::ValidatorId, Self::Key)> + 'a,
+        T::ValidatorId: 'a,
+    {
+        // No-op: session rotation handling is done elsewhere
+    }
+
+    fn on_before_session_ending() {
+        // Call OnBeforeSessionEnding callback BEFORE ImOnline clears its AuthoredBlocks storage.
+        // This handler must be placed BEFORE ImOnline in the SessionHandler tuple.
+        // The rewards pallet should read liveness directly from ImOnline at this point.
+        let session_index = T::CurrentSessionIndex::get();
+        T::OnBeforeSessionEnding::on_before_session_ending(session_index);
+    }
+
+    fn on_disabled(_validator_index: u32) {
+        // No-op: validator disabling is handled elsewhere
     }
 }
 

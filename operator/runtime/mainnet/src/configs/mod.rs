@@ -135,7 +135,7 @@ use sp_consensus_beefy::{
 use sp_core::{crypto::KeyTypeId, Get, H160, H256, U256};
 use sp_runtime::FixedU128;
 use sp_runtime::{
-    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, OpaqueKeys, UniqueSaturatedInto},
+    traits::{Convert, ConvertInto, IdentityLookup, Keccak256, UniqueSaturatedInto},
     FixedPointNumber, Perbill, Perquintill,
 };
 use sp_staking::EraIndex;
@@ -379,12 +379,17 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    // Wrap the session manager with performance tracking to implement 50/30/20 formula
-    type SessionManager = pallet_external_validators_rewards::SessionPerformanceManager<
-        Runtime,
-        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>,
-    >;
-    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+    type SessionManager =
+        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
+    // ExternalValidators must come BEFORE ImOnline so that on_before_session_ending
+    // can cache liveness data before ImOnline clears its AuthoredBlocks storage.
+    type SessionHandler = (
+        ExternalValidators,
+        crate::Grandpa,
+        crate::Babe,
+        crate::ImOnline,
+        crate::Beefy,
+    );
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
@@ -1393,6 +1398,24 @@ parameter_types! {
     pub const MaxExternalValidators: u32 = 100;
 }
 
+/// Wrapper to check if a validator has authored blocks this session.
+/// Reads from ImOnline's AuthoredBlocks storage.
+pub struct ImOnlineLivenessTracker;
+impl Contains<AccountId> for ImOnlineLivenessTracker {
+    fn contains(v: &AccountId) -> bool {
+        let current_session = Session::current_index();
+        pallet_im_online::AuthoredBlocks::<Runtime>::get(current_session, v) != 0
+    }
+}
+
+/// Wrapper to get the current session index from pallet_session.
+pub struct CurrentSessionIndexGetter;
+impl Get<sp_staking::SessionIndex> for CurrentSessionIndexGetter {
+    fn get() -> sp_staking::SessionIndex {
+        Session::current_index()
+    }
+}
+
 impl pallet_external_validators::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -1406,6 +1429,9 @@ impl pallet_external_validators::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = (ExternalValidatorsSlashes, ExternalValidatorsRewards);
     type OnEraEnd = ExternalValidatorsRewards;
+    type OnBeforeSessionEnding = ExternalValidatorsRewards;
+    type Key = sp_consensus_babe::AuthorityId;
+    type CurrentSessionIndex = CurrentSessionIndexGetter;
     type AuthorizedOrigin =
         runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress;
     type WeightInfo = mainnet_weights::pallet_external_validators::WeightInfo<Runtime>;
@@ -1514,24 +1540,6 @@ impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapt
     }
 }
 
-/// Wrapper to check if a validator is online in the current session.
-/// Uses ImOnline's is_online() which considers a validator online if:
-/// - They sent a heartbeat in the current session, OR
-/// - They authored at least one block in the current session
-pub struct ValidatorIsOnline;
-impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
-    fn contains(account: &AccountId) -> bool {
-        let validators = Session::validators();
-        if let Some(index) = validators.iter().position(|v| v == account) {
-            // Check if validator is online (heartbeat OR block authorship)
-            ImOnline::is_online(index as u32)
-        } else {
-            // Not a validator in current session, consider offline
-            false
-        }
-    }
-}
-
 /// Wrapper to check if a validator has been slashed in a given era
 pub struct ValidatorSlashChecker;
 impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorSlashChecker {
@@ -1570,8 +1578,8 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type ValidatorSet = Session;
-    type LivenessCheck = ValidatorIsOnline;
     type SlashingCheck = ValidatorSlashChecker;
+    type LivenessTracker = ImOnlineLivenessTracker;
     type BasePointsPerBlock = ConstU32<320>;
     type BlockAuthoringWeight =
         runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;

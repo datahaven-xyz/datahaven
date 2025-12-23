@@ -183,15 +183,15 @@ impl frame_support::traits::ValidatorSet<u64> for MockValidatorSet {
     }
 }
 
-/// Configurable liveness check that mirrors ImOnline behavior.
+/// Configurable liveness tracker that mirrors ImOnline behavior.
 /// A validator is considered online if:
 /// 1. They are NOT in the offline_validators list, OR
 /// 2. They have authored at least one block in the current session
 ///
 /// This matches the real ImOnline pallet which considers block authorship
 /// as proof of liveness (no heartbeat needed if you authored a block).
-pub struct MockLivenessCheck;
-impl frame_support::traits::Contains<u64> for MockLivenessCheck {
+pub struct MockLivenessTracker;
+impl frame_support::traits::Contains<u64> for MockLivenessTracker {
     fn contains(validator: &u64) -> bool {
         // Check if validator authored any blocks this session
         let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
@@ -214,6 +214,25 @@ impl crate::SlashingCheck<u64> for MockSlashingCheck {
     }
 }
 
+/// Test helper that simulates the full session end flow.
+/// In production, pallet_external_validators caches liveness in on_before_session_ending
+/// then calls OnSessionEnd. In tests, we populate the SessionLivenessCache directly.
+pub fn award_session_performance_points_for_test(
+    session_index: u32,
+    validators: Vec<u64>,
+    whitelisted: Vec<u64>,
+) {
+    // Populate SessionLivenessCache based on mock data
+    // A validator is online if they authored blocks OR are not in the offline list
+    for validator in validators.iter() {
+        let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
+        let is_online = authored_blocks > 0 || !Mock::mock().offline_validators.contains(validator);
+        crate::SessionLivenessCache::<Test>::insert(validator, is_online);
+    }
+
+    ExternalValidatorsRewards::award_session_performance_points(session_index, validators, whitelisted);
+}
+
 impl pallet_external_validators_rewards::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = mock_data::Pallet<Test>;
@@ -224,8 +243,8 @@ impl pallet_external_validators_rewards::Config for Test {
     type ExternalIndexProvider = TimestampProvider;
     type GetWhitelistedValidators = ();
     type ValidatorSet = MockValidatorSet;
-    type LivenessCheck = MockLivenessCheck;
     type SlashingCheck = MockSlashingCheck;
+    type LivenessTracker = MockLivenessTracker;
     type BasePointsPerBlock = BasePointsPerBlock;
     type BlockAuthoringWeight = BlockAuthoringWeight;
     type LivenessWeight = LivenessWeight;

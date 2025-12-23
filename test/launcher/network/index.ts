@@ -31,7 +31,7 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   if (conflictingDatahaven.length > 0) {
     throw new Error(
       `DataHaven containers with network ID '${networkId}' already exist. ` +
-      `Run 'bun cli stop --all' or remove containers manually.`
+        `Run 'bun cli stop --all' or remove containers manually.`
     );
   }
 
@@ -43,7 +43,7 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   if (conflictingRelayers.length > 0) {
     throw new Error(
       `Relayer containers with network ID '${networkId}' already exist. ` +
-      `Run 'bun cli stop --all' or remove containers manually.`
+        `Run 'bun cli stop --all' or remove containers manually.`
     );
   }
 
@@ -54,7 +54,7 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   if (conflictingEnclaves.length > 0) {
     throw new Error(
       `Kurtosis enclave '${enclaveName}' already exists. ` +
-      `Run 'kurtosis enclave rm ${enclaveName}' to remove it.`
+        `Run 'kurtosis enclave rm ${enclaveName}' to remove it.`
     );
   }
 
@@ -65,7 +65,7 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
   if (networkOutput.trim()) {
     throw new Error(
       `Docker network '${dockerNetworkName}' already exists. ` +
-      `Run 'docker network rm ${dockerNetworkName}' to remove it.`
+        `Run 'docker network rm ${dockerNetworkName}' to remove it.`
     );
   }
 

@@ -1,5 +1,5 @@
-// Export network launcher and attach helper
-export { attachNetwork, launchNetwork } from "./network";
+// Export the main network launch function
+export { launchNetwork } from "./network";
 
 // Export types
 export * from "./types";

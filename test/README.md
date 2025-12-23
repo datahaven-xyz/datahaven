@@ -83,7 +83,6 @@ bun cli launch --deploy-contracts --execute-owner-transactions
 When tx execution is off, the CLI prints a list of `{to, data, value}` objects for:
 
 1. `updateAVSMetadataURI("")`
-2. `setSlasher(vetoableSlasher)`
 3. `setRewardsRegistry(validatorsSetId, rewardsRegistry)`
 4. `setRewardsAgent(validatorsSetId, rewardsAgent)`
 

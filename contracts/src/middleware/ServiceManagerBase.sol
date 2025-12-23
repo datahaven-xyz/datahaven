@@ -26,7 +26,6 @@ import {
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
 import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
-import {IVetoableSlasher} from "../interfaces/IVetoableSlasher.sol";
 import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
 
 /**
@@ -58,17 +57,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
     ) internal virtual onlyInitializing {
         _transferOwnership(initialOwner);
         _setRewardsInitiator(_rewardsInitiator);
-    }
-
-    /**
-     * @notice Sets the slasher contract
-     * @param slasher The slasher contract address
-     * @dev Only callable by the owner
-     */
-    function setSlasher(
-        IVetoableSlasher slasher
-    ) external virtual onlyOwner {
-        _slasher = slasher;
     }
 
     /**
@@ -109,30 +97,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
         IStrategy[] calldata strategies
     ) external virtual onlyOwner {
         _allocationManager.removeStrategiesFromOperatorSet(address(this), operatorSetId, strategies);
-    }
-
-    /**
-     * Queue a slashing request in the vetoable slasher
-     * @param params Parameters defining the slashing request
-     * @dev Can only be called by the owner
-     */
-    function queueSlashingRequest(
-        IAllocationManager.SlashingParams calldata params
-    ) external virtual onlyOwner {
-        require(address(_slasher) != address(0), "Slasher not set");
-        _slasher.queueSlashingRequest(params);
-    }
-
-    /**
-     * fulfils a slashing request that has passed the veto period
-     * @param requestId The ID of the slashing request to fulfil
-     * @dev Can be called by anyone
-     */
-    function fulfilSlashingRequest(
-        uint256 requestId
-    ) external virtual {
-        require(address(_slasher) != address(0), "Slasher not set");
-        _slasher.fulfilSlashingRequest(requestId);
     }
 
     /**

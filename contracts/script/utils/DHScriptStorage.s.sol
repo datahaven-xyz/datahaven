@@ -6,7 +6,6 @@ import {Script} from "forge-std/Script.sol";
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 /**
@@ -16,7 +15,6 @@ import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 contract DHScriptStorage is Script {
     // DataHaven Contract declarations
     DataHavenServiceManager public serviceManager;
-    VetoableSlasher public vetoableSlasher;
     RewardsRegistry public rewardsRegistry;
 
     /**
@@ -32,7 +30,6 @@ contract DHScriptStorage is Script {
         // Store the contract addresses
         serviceManager =
             DataHavenServiceManager(vm.parseJsonAddress(deploymentFile, ".ServiceManager"));
-        vetoableSlasher = VetoableSlasher(vm.parseJsonAddress(deploymentFile, ".VetoableSlasher"));
         rewardsRegistry =
             RewardsRegistry(payable(vm.parseJsonAddress(deploymentFile, ".RewardsRegistry")));
     }

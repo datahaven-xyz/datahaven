@@ -101,9 +101,8 @@ datahaven/
 ### Key Components
 1. **DataHavenServiceManager**: Core AVS contract managing operator lifecycle
 2. **RewardsRegistry**: Tracks validator performance and reward distribution
-3. **VetoableSlasher**: Implements slashing with veto period for dispute resolution
-4. **External Validators Pallet**: Manages validator set on Substrate side
-5. **Native Transfer Pallet**: Handles cross-chain token transfers via Snowbridge
+3. **External Validators Pallet**: Manages validator set on Substrate side
+4. **Native Transfer Pallet**: Handles cross-chain token transfers via Snowbridge
 
 ### Testing Strategy
 - **Unit Tests**: Component-specific (`cargo test`, `forge test`)

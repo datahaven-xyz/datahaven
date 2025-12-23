@@ -4,7 +4,7 @@ Deploy DataHaven AVS contracts to supported chains (Hoodi, Mainnet).
 
 ## What Gets Deployed
 
-- **DataHaven**: ServiceManager, VetoableSlasher, RewardsRegistry  
+- **DataHaven**: ServiceManager, RewardsRegistry  
 - **Snowbridge**: BeefyClient, AgentExecutor, Gateway, RewardsAgent
 - **EigenLayer**: References existing contracts (not deployed)
 

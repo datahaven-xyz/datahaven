@@ -25,7 +25,6 @@ import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // DataHaven imports for function signatures
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 // Additional imports specific to local deployment
@@ -71,7 +70,6 @@ import {
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
@@ -209,7 +207,6 @@ contract DeployLocal is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
@@ -223,7 +220,6 @@ contract DeployLocal is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection("EigenLayer Core Contracts");
@@ -273,9 +269,6 @@ contract DeployLocal is DeployBase {
             '"ServiceManagerImplementation": "',
             vm.toString(address(serviceManagerImplementation)),
             '",'
-        );
-        json = string.concat(
-            json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",'
         );
         json = string.concat(
             json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'

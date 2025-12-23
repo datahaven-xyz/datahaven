@@ -297,11 +297,10 @@ const emitOwnerTransactionCalldata = async (chain?: string) => {
     const rewardsInfo = await parseRewardsInfoFile(chain);
 
     const serviceManager = deployments.ServiceManager;
-    const vetoableSlasher = deployments.VetoableSlasher;
     const rewardsRegistry = deployments.RewardsRegistry;
     const rewardsAgent = rewardsInfo.RewardsAgent;
 
-    if (!serviceManager || !vetoableSlasher || !rewardsRegistry || !rewardsAgent) {
+    if (!serviceManager || !rewardsRegistry || !rewardsAgent) {
       logger.warn("⚠️ Missing deployment artifacts; cannot produce multisig calldata.");
       return;
     }
@@ -316,17 +315,6 @@ const emitOwnerTransactionCalldata = async (chain?: string) => {
           abi: dataHavenServiceManagerAbi,
           functionName: "updateAVSMetadataURI",
           args: [""]
-        })
-      },
-      {
-        label: "Set slasher",
-        description: "DataHavenServiceManager.setSlasher(address)",
-        to: serviceManager,
-        value: "0",
-        data: encodeFunctionData({
-          abi: dataHavenServiceManagerAbi,
-          functionName: "setSlasher",
-          args: [vetoableSlasher]
         })
       },
       {

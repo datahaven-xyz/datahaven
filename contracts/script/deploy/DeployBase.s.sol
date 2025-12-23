@@ -40,7 +40,6 @@ import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETH
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
@@ -134,7 +133,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         (
             DataHavenServiceManager serviceManager,
             DataHavenServiceManager serviceManagerImplementation,
-            VetoableSlasher vetoableSlasher,
             RewardsRegistry rewardsRegistry,
             bytes4 updateRewardsMerkleRootSelector
         ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
@@ -162,7 +160,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            vetoableSlasher,
             rewardsRegistry,
             rewardsAgentAddress
         );
@@ -256,16 +253,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway
-    )
-        internal
-        returns (
-            DataHavenServiceManager,
-            DataHavenServiceManager,
-            VetoableSlasher,
-            RewardsRegistry,
-            bytes4
-        )
-    {
+    ) internal returns (DataHavenServiceManager, DataHavenServiceManager, RewardsRegistry, bytes4) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
@@ -290,16 +278,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             _createServiceManagerProxy(serviceManagerImplementation, proxyAdmin, initParams);
         Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
-        // Deploy VetoableSlasher
-        vm.broadcast(_deployerPrivateKey);
-        VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager,
-            serviceManager,
-            avsConfig.vetoCommitteeMember,
-            avsConfig.vetoWindowBlocks
-        );
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
-
         // Deploy RewardsRegistry
         vm.broadcast(_deployerPrivateKey);
         RewardsRegistry rewardsRegistry = new RewardsRegistry(
@@ -320,15 +298,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             Logging.logInfo("TX EXECUTION DISABLED: call updateAVSMetadataURI via multisig");
         }
 
-        // Set the slasher in the ServiceManager
-        if (_txExecutionEnabled) {
-            vm.broadcast(_avsOwnerPrivateKey);
-            serviceManager.setSlasher(vetoableSlasher);
-            Logging.logStep("Slasher set in ServiceManager");
-        } else {
-            Logging.logInfo("TX EXECUTION DISABLED: call setSlasher via multisig");
-        }
-
         // Set the RewardsRegistry in the ServiceManager
         uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();
         if (_txExecutionEnabled) {
@@ -342,7 +311,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         return (
             serviceManager,
             serviceManagerImplementation,
-            vetoableSlasher,
             rewardsRegistry,
             updateRewardsMerkleRootSelector
         );
@@ -366,7 +334,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal virtual;

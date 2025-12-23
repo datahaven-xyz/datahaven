@@ -631,6 +631,8 @@ const launchRelayerContainers = async (
   const isLocal = relayerImageTag.endsWith(":local");
   const networkName = launchedNetwork.networkName;
   invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
+  const restartArgs = ["--restart", "on-failure:5"];
+  logger.info(`🔁 Relayer restart policy enabled: ${restartArgs.join(" ")}`);
 
   for (const { configFilePath, name, config, pk } of relayersToStart) {
     try {
@@ -652,6 +654,7 @@ const launchRelayerContainers = async (
         containerName,
         "--network",
         networkName,
+        ...restartArgs,
         ...(isLocal ? [] : ["--pull", "always"])
       ];
 

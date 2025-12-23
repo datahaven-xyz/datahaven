@@ -45,8 +45,8 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
 
   // Check for existing relayer containers
   const relayerContainers = await getContainersMatchingImage(COMPONENTS.snowbridge.imageName);
-  const conflictingRelayers = relayerContainers.filter((c) =>
-    c.Names.some((name) => name.includes(networkId)) && !isCheckpointContainer(c.Names)
+  const conflictingRelayers = relayerContainers.filter(
+    (c) => c.Names.some((name) => name.includes(networkId)) && !isCheckpointContainer(c.Names)
   );
   if (conflictingRelayers.length > 0) {
     throw new Error(

@@ -274,10 +274,13 @@ export const launchNetwork = async (
     // Return connectors
     const aliceContainerName = `datahaven-alice-${networkId}`;
     const wsPort = launchedNetwork.getContainerPort(aliceContainerName);
+    // Use the WebSocket URL from LaunchedNetwork (set by registerServices from Kurtosis)
+    const ethereumWsUrl = launchedNetwork.elWsUrl;
     return {
       launchedNetwork,
       dataHavenRpcUrl: `http://127.0.0.1:${wsPort}`,
       ethereumRpcUrl: launchedNetwork.elRpcUrl,
+      ethereumWsUrl,
       ethereumClEndpoint: launchedNetwork.clEndpoint,
       cleanup
     };

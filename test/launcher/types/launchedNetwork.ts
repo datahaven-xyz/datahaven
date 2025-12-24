@@ -19,6 +19,8 @@ export class LaunchedNetwork {
   protected _activeRelayers: RelayerType[];
   /** The RPC URL for the Ethereum Execution Layer (EL) client. */
   protected _elRpcUrl?: string;
+  /** The WebSocket URL for the Ethereum Execution Layer (EL) client. */
+  protected _elWsUrl?: string;
   /** The HTTP endpoint for the Ethereum Consensus Layer (CL) client. */
   protected _clEndpoint?: string;
   /** The Kubernetes namespace for the network. Used only for deploy commands. */
@@ -33,6 +35,7 @@ export class LaunchedNetwork {
     this._networkName = "";
     this._networkId = "";
     this._elRpcUrl = undefined;
+    this._elWsUrl = undefined;
     this._clEndpoint = undefined;
     this._kubeNamespace = undefined;
     this._datahavenAuthorities = undefined;
@@ -111,6 +114,22 @@ export class LaunchedNetwork {
   public get elRpcUrl(): string {
     invariant(this._elRpcUrl, "❌ EL RPC URL not set in LaunchedNetwork");
     return this._elRpcUrl;
+  }
+
+  /**
+   * Sets the WebSocket URL for the Ethereum Execution Layer (EL) client.
+   * @param url - The EL WebSocket URL string.
+   */
+  public set elWsUrl(url: string) {
+    this._elWsUrl = url;
+  }
+
+  /**
+   * Gets the WebSocket URL for the Ethereum Execution Layer (EL) client.
+   * @returns The EL WebSocket URL string, or undefined if not set.
+   */
+  public get elWsUrl(): string | undefined {
+    return this._elWsUrl;
   }
 
   /**

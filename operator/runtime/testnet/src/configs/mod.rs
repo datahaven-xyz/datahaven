@@ -1421,14 +1421,20 @@ impl Get<Vec<AccountId>> for GetWhitelistedValidators {
 
 /// Type alias for the era inflation provider using common runtime implementation.
 ///
+/// Implements **linear (non-compounding) inflation** where a fixed annual amount (5M HAVE)
+/// is minted regardless of current total supply. This ensures:
+/// - Consistent, predictable rewards for validators and stakers
+/// - Publicly auditable emissions on the blockchain
+/// - 5% of genesis supply (100M HAVE for testnet), not 5% of current supply
+///
 /// Calculates per-era inflation based on:
-/// - Total token issuance (from Balances pallet)
-/// - Annual inflation rate (from InflationTargetedAnnualRate dynamic parameter)
+/// - Fixed annual inflation amount (from InflationAnnualAmount dynamic parameter)
 /// - Era duration calculated from SessionsPerEra, EpochDurationInBlocks, and MILLISECS_PER_BLOCK
+///
+/// Per-era inflation ≈ 3,422 HAVE (5M / ~1461 eras per year)
 pub type ExternalRewardsEraInflationProvider =
     datahaven_runtime_common::inflation::ExternalRewardsEraInflationProvider<
-        Balances,
-        runtime_params::dynamic_params::runtime_config::InflationTargetedAnnualRate,
+        runtime_params::dynamic_params::runtime_config::InflationAnnualAmount,
         SessionsPerEra,
         EpochDurationInBlocks,
         ConstU64<MILLISECS_PER_BLOCK>,

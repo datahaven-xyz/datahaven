@@ -88,7 +88,7 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
     }
 
     function _createFirstMerkleTree() internal {
-        // Create first merkle tree with Substrate-compatible SCALE encoding
+        // Create first merkle tree with SCALE encoding
         bytes memory preimage =
             abi.encodePacked(operatorAddress, ScaleCodec.encodeU32(uint32(operatorPoints)));
         bytes32 leaf = keccak256(preimage);
@@ -97,9 +97,10 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodePacked(address(0x1111), ScaleCodec.encodeU32(uint32(50)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
 
-        // For Substrate positional merkle proof, we construct the root based on position
-        // Since leafIndex = 0, our leaf is on the left
-        merkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
+        // For sorted-hash merkle proof, smaller hash goes first
+        merkleRoot = leaf < siblingLeaf
+            ? keccak256(abi.encodePacked(leaf, siblingLeaf))
+            : keccak256(abi.encodePacked(siblingLeaf, leaf));
         validProof = new bytes32[](1);
         validProof[0] = siblingLeaf;
     }
@@ -114,8 +115,10 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodePacked(address(0x2222), ScaleCodec.encodeU32(uint32(75)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
 
-        // Since leafIndex = 0, our leaf is on the left
-        secondMerkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
+        // For sorted-hash merkle proof, smaller hash goes first
+        secondMerkleRoot = leaf < siblingLeaf
+            ? keccak256(abi.encodePacked(leaf, siblingLeaf))
+            : keccak256(abi.encodePacked(siblingLeaf, leaf));
         secondValidProof = new bytes32[](1);
         secondValidProof[0] = siblingLeaf;
     }
@@ -130,8 +133,10 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodePacked(address(0x3333), ScaleCodec.encodeU32(uint32(60)));
         bytes32 siblingLeaf = keccak256(siblingPreimage);
 
-        // Since leafIndex = 0, our leaf is on the left
-        thirdMerkleRoot = keccak256(abi.encodePacked(leaf, siblingLeaf));
+        // For sorted-hash merkle proof, smaller hash goes first
+        thirdMerkleRoot = leaf < siblingLeaf
+            ? keccak256(abi.encodePacked(leaf, siblingLeaf))
+            : keccak256(abi.encodePacked(siblingLeaf, leaf));
         thirdValidProof = new bytes32[](1);
         thirdValidProof[0] = siblingLeaf;
     }
@@ -593,9 +598,10 @@ contract ServiceManagerRewardsRegistryTest is AVSDeployer {
             abi.encodePacked(address(0x4444), ScaleCodec.encodeU32(uint32(80)));
         bytes32 secondSiblingLeaf = keccak256(secondSiblingPreimage);
 
-        // Since leafIndex = 0, our leaf is on the left
-        bytes32 secondRegistryMerkleRoot =
-            keccak256(abi.encodePacked(secondLeaf, secondSiblingLeaf));
+        // For sorted-hash merkle proof, smaller hash goes first
+        bytes32 secondRegistryMerkleRoot = secondLeaf < secondSiblingLeaf
+            ? keccak256(abi.encodePacked(secondLeaf, secondSiblingLeaf))
+            : keccak256(abi.encodePacked(secondSiblingLeaf, secondLeaf));
 
         // Set the merkle root in the second registry
         vm.prank(mockRewardsAgent);

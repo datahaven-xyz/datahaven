@@ -8355,7 +8355,7 @@ export const rewardsRegistryAbi = [
         name: 'newRoot',
         internalType: 'bytes32',
         type: 'bytes32',
-        indexed: false,
+        indexed: true,
       },
       {
         name: 'newRootIndex',

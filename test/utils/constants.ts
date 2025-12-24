@@ -1,5 +1,7 @@
 export const DEFAULT_SUBSTRATE_WS_PORT = 9944;
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+
 export const ANVIL_FUNDED_ACCOUNTS = {
   0: {
     publicKey: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -52,6 +54,40 @@ export const CONTAINER_NAMES = {
   EL2: "el-2-reth-lodestar",
   "blockscout-be": "blockscout--",
   "blockscout-fe": "blockscout-frontend--"
+} as const;
+
+/**
+ * Cross-chain timing breakdown (E2E config: 1s ETH slots, fast-runtime DH)
+ *
+ * DH → ETH (typical: 1–3 min, timeout: 8 min)
+ * ─────────────────────────────────────────────
+ * 1. Message queued in outbound-queue           → instant
+ * 2. Block finalized (GRANDPA)                  → ~6s (1 DH block)
+ * 3. Wait for next BEEFY commitment             → 0–48s
+ *    - min_block_delta = 8 blocks × 6s = 48s max
+ * 4. BEEFY relay picks up commitment            → ~6s (session-bound scanning)
+ * 5. BeefyClient.randaoCommitDelay wait         → ~4s (4 ETH blocks × 1s)
+ * 6. Submit BEEFY proof to Ethereum             → ~2s (2 blocks for tx inclusion)
+ * 7. Solochain relay submits message proof      → ~2s (tx inclusion + polling)
+ * Total: ~20s best case, ~70s typical, up to 120s with variance
+ *
+ * ETH → DH (typical: 1–2 min, timeout: 6 min)
+ * ─────────────────────────────────────────────
+ * 1. Transaction included in ETH block          → ~2s (2 blocks)
+ * 2. Wait for beacon finality                   → ~64s (64 slots × 1s)
+ * 3. Beacon relay updates light client          → 0–30s
+ *    - updateSlotInterval = 30 slots × 1s = 30s cadence
+ * 4. Execution relay polls for messages         → ~10s
+ * 5. Message submitted to DataHaven             → ~6s (1 DH block)
+ * Total: ~80s best case, ~120s typical, up to 180s with variance
+ */
+export const CROSS_CHAIN_TIMEOUTS = {
+  /** DH → ETH message relay (8 min) */
+  DH_TO_ETH_MS: 8 * 60 * 1000,
+  /** ETH → DH message relay (6 min, beacon finality dominates) */
+  ETH_TO_DH_MS: 6 * 60 * 1000,
+  /** On-chain event confirmation (30s) */
+  EVENT_CONFIRMATION_MS: 30 * 1000
 } as const;
 
 export const SUBSTRATE_FUNDED_ACCOUNTS = {

@@ -3,7 +3,7 @@ import { datahaven } from "@polkadot-api/descriptors";
 import { $ } from "bun";
 import { createClient, type PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
 import invariant from "tiny-invariant";
 import {
   ANVIL_FUNDED_ACCOUNTS,
@@ -631,6 +631,8 @@ const launchRelayerContainers = async (
   const isLocal = relayerImageTag.endsWith(":local");
   const networkName = launchedNetwork.networkName;
   invariant(networkName, "❌ Docker network name not found in LaunchedNetwork instance");
+  const restartArgs = ["--restart", "on-failure:5"];
+  logger.info(`🔁 Relayer restart policy enabled: ${restartArgs.join(" ")}`);
 
   for (const { configFilePath, name, config, pk } of relayersToStart) {
     try {
@@ -652,6 +654,7 @@ const launchRelayerContainers = async (
         containerName,
         "--network",
         networkName,
+        ...restartArgs,
         ...(isLocal ? [] : ["--pull", "always"])
       ];
 

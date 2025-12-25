@@ -116,7 +116,7 @@ class NativeTokenTransferTestSuite extends BaseTestSuite {
     super({
       suiteName: "native-token-transfer",
       networkOptions: {
-        slotTime: 2
+        slotTime: 1
       }
     });
 

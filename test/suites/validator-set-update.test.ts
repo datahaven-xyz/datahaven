@@ -37,7 +37,7 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
     super({
       suiteName: "validator-set-update",
       networkOptions: {
-        slotTime: 2,
+        slotTime: 1,
         blockscout: false
       }
     });

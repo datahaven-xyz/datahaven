@@ -192,7 +192,7 @@ export const launchNetwork = async (
       {
         kurtosisEnclaveName: kurtosisEnclaveName,
         blockscout: options.blockscout ?? false,
-        slotTime: options.slotTime || 2,
+        slotTime: options.slotTime || 1,
         kurtosisNetworkArgs: options.kurtosisNetworkArgs,
         injectContracts
       },

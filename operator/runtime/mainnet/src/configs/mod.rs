@@ -164,7 +164,6 @@ const SS58_FORMAT: u16 = EVM_CHAIN_ID as u16;
 parameter_types! {
     pub const MaxAuthorities: u32 = 32;
     pub const BondingDuration: EraIndex = polkadot_runtime_common::prod_or_fast!(28, 3);
-    pub const AuthorRewardPoints: u32 = 20;
 }
 
 //╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -351,22 +350,9 @@ impl pallet_balances::Config for Runtime {
     type DoneSlashHandler = ();
 }
 
-pub struct RewardsPoints;
-
-impl pallet_authorship::EventHandler<AccountId, BlockNumber> for RewardsPoints {
-    fn note_author(author: AccountId) {
-        let whitelisted_validators =
-            pallet_external_validators::WhitelistedValidatorsActiveEra::<Runtime>::get();
-        // Do not reward whitelisted validators
-        if !whitelisted_validators.contains(&author) {
-            ExternalValidatorsRewards::reward_by_ids(vec![(author, AuthorRewardPoints::get())])
-        }
-    }
-}
-
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-    type EventHandler = (RewardsPoints, ImOnline);
+    type EventHandler = (ExternalValidatorsRewards, ImOnline);
 }
 
 impl pallet_offences::Config for Runtime {
@@ -393,7 +379,11 @@ impl pallet_session::Config for Runtime {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>;
+    // Wrap the session manager with performance tracking to implement 50/30/20 formula
+    type SessionManager = pallet_external_validators_rewards::SessionPerformanceManager<
+        Runtime,
+        pallet_session::historical::NoteHistoricalRoot<Self, ExternalValidators>,
+    >;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -1492,6 +1482,47 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
 pub type RewardsSendAdapter =
     datahaven_runtime_common::rewards_adapter::RewardsSubmissionAdapter<MainnetRewardsConfig>;
 
+/// Wrapper to check if a validator is online in the current session.
+/// Uses ImOnline's is_online() which considers a validator online if:
+/// - They sent a heartbeat in the current session, OR
+/// - They authored at least one block in the current session
+pub struct ValidatorIsOnline;
+impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
+    fn contains(account: &AccountId) -> bool {
+        let validators = Session::validators();
+        if let Some(index) = validators.iter().position(|v| v == account) {
+            // Check if validator is online (heartbeat OR block authorship)
+            ImOnline::is_online(index as u32)
+        } else {
+            // Not a validator in current session, consider offline
+            false
+        }
+    }
+}
+
+/// Wrapper to check if a validator has been slashed in a given era
+pub struct ValidatorSlashChecker;
+impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorSlashChecker {
+    fn is_slashed(era_index: u32, validator: &AccountId) -> bool {
+        pallet_external_validator_slashes::ValidatorSlashInEra::<Runtime>::contains_key(
+            era_index, validator,
+        )
+    }
+}
+
+parameter_types! {
+    /// Expected number of blocks per era for inflation scaling.
+    /// Computed as SessionsPerEra × EpochDurationInBlocks to ensure consistency.
+    pub ExpectedBlocksPerEra: u32 = (SessionsPerEra::get() as u32)
+        .saturating_mul(EpochDurationInBlocks::get());
+
+    /// Minimum inflation percentage even with zero block production (network halt protection)
+    pub const MinInflationPercent: u32 = 20;
+
+    /// Maximum inflation percentage (caps at 100% even if blocks exceed expectations)
+    pub const MaxInflationPercent: u32 = 100;
+}
+
 impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
@@ -1506,6 +1537,18 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
+    type ValidatorSet = Session;
+    type LivenessCheck = ValidatorIsOnline;
+    type SlashingCheck = ValidatorSlashChecker;
+    type BasePointsPerBlock = ConstU32<320>;
+    type BlockAuthoringWeight =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsBlockAuthoringWeight;
+    type LivenessWeight =
+        runtime_params::dynamic_params::runtime_config::OperatorRewardsLivenessWeight;
+    type FairShareCap = runtime_params::dynamic_params::runtime_config::OperatorRewardsFairShareCap;
+    type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
+    type MinInflationPercent = MinInflationPercent;
+    type MaxInflationPercent = MaxInflationPercent;
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;

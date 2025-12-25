@@ -8981,6 +8981,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-external-validators",
  "pallet-session",

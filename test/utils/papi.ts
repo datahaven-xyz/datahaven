@@ -4,7 +4,7 @@ import { datahaven } from "@polkadot-api/descriptors";
 import { createClient, type PolkadotClient, type TypedApi } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getPolkadotSigner, type PolkadotSigner } from "polkadot-api/signer";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
 import { SUBSTRATE_FUNDED_ACCOUNTS } from "./constants";
 import type { Prettify } from "./types";
 

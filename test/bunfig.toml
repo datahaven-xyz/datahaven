@@ -1,5 +1,2 @@
-# Keeping this file around to remind us
-#  to check patch notes to see if they add things here we can use
-
 [test]
-# Sadly there isnt any global timeout options here yet
+timeout = 900000  # 15 minutes in milliseconds

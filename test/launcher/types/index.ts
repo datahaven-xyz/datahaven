@@ -23,6 +23,7 @@ export interface LaunchNetworkResult {
   launchedNetwork: LaunchedNetwork;
   dataHavenRpcUrl: string;
   ethereumRpcUrl: string;
+  ethereumWsUrl?: string;
   ethereumClEndpoint: string;
   cleanup: () => Promise<void>;
 }

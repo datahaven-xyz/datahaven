@@ -33,7 +33,7 @@ env:
   KURTOSIS_CORE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-core
   KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
   KURTOSIS_VERSION: 1.11.1
-  INJECT_CONTRACTS: true
+  INJECT_CONTRACTS: false
 
 jobs:
   kurtosis:

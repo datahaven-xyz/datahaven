@@ -303,6 +303,21 @@ export const registerServices = async (
     launchedNetwork.elRpcUrl = elRpcUrl;
     logger.info(`📝 Execution Layer RPC URL configured: ${elRpcUrl}`);
 
+    // Configure EL WebSocket URL
+    try {
+      const rethWsPort = await getPortFromKurtosis("el-1-reth-lodestar", "ws", enclaveName);
+      if (rethWsPort && rethWsPort > 0) {
+        const elWsUrl = `ws://127.0.0.1:${rethWsPort}`;
+        launchedNetwork.elWsUrl = elWsUrl;
+        logger.info(`📝 Execution Layer WebSocket URL configured: ${elWsUrl}`);
+      } else {
+        logger.warn("⚠️ EL WebSocket port not found, WebSocket will not be available");
+      }
+    } catch (error) {
+      logger.warn(`⚠️ Could not determine EL WebSocket port: ${error}`);
+      // Don't throw - WebSocket is optional, HTTP fallback will be used
+    }
+
     // Configure CL Endpoint
     const lodestarPublicPort = await getPortFromKurtosis("cl-1-lodestar-reth", "http", enclaveName);
     const clEndpoint = `http://127.0.0.1:${lodestarPublicPort}`;
@@ -348,7 +363,7 @@ export const runKurtosisEnclave = async (
   logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
 
   await runShellCommandWithLogger(
-    `kurtosis run github.com/ethpandaops/ethereum-package --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
+    `kurtosis run github.com/ethpandaops/ethereum-package@6ae24741119d429704d41251f47a7d0e0893bc39 --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
     {
       logLevel: "debug"
     }

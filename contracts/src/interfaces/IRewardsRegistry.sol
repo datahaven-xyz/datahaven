@@ -33,7 +33,7 @@ interface IRewardsRegistryEvents {
      * @param newRoot The new merkle root
      * @param newRootIndex The index of the new root in the history
      */
-    event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 newRoot, uint256 newRootIndex);
+    event RewardsMerkleRootUpdated(bytes32 oldRoot, bytes32 indexed newRoot, uint256 newRootIndex);
 
     /**
      * @notice Emitted when rewards are claimed for a specific root index

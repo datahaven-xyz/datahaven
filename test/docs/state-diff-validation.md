@@ -46,7 +46,7 @@ If `check-generated-state.ts` throws an error, it means:
 2. `state-diff.json` (and its checksum file) are likely out of date.
 3. The developer needs to:
    - Launch a local Kurtosis network with contracts deployed.
-   - Run the `generate-contracts.ts` script (e.g. via `bun generate:contracts`) to:
+   - From the repository root, run `cd test && bun generate:contracts` to:
      - Extract the new state into `../contracts/deployments/state-diff.json`.
      - Compute and store the new checksum in `../contracts/deployments/state-diff.checksum`.
    - Commit the updated `state-diff.json` and `state-diff.checksum`.

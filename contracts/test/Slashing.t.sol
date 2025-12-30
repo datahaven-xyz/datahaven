@@ -8,7 +8,6 @@ import {
     IAllocationManager,
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {ISlasher, ISlasherErrors, ISlasherEvents} from "../src/interfaces/ISlasher.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import "forge-std/Test.sol";

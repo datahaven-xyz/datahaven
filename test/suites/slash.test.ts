@@ -3,7 +3,6 @@ import { getPapiSigner } from "utils";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance } from "../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
-import * as rewardsHelpers from "../utils/rewards-helpers";
 
 class SlashTestSuite extends BaseTestSuite {
   constructor() {
@@ -73,33 +72,33 @@ describe("Should slash an operator", () => {
     // Track current era and blocks until era end
     const blocksUntilEraEnd = await rewardsHelpers.getBlocksUntilEraEnd(dhApi); // TODO: rename rewardHelper to helper
     const timeout = blocksUntilEraEnd * 6000 + 10000 * 12;
-    const resultEventSlashInjected = await waitForDataHavenEvent({
+    const resultEventSlashInjected = await waitForDataHavenEvent<{ slash_id: number, era: number }>({
       api: dhApi,
       pallet: "ExternalValidatorsSlashes",
       event: "SlashInjected",
       timeout
     });
-    if (!resultEventSlashInjected.data) {
+    if (!resultEventSlashInjected) {
       throw new Error("SlashInjected event not found");
     }
 
-    const resultEventSlashesProccessed = await waitForDataHavenEvent({
+    const resultEventSlashesProccessed = await waitForDataHavenEvent<{ number: number, era: number }>({
       api: dhApi,
       pallet: "ExternalValidatorsSlashes",
       event: "SlashAddedToQueue",
       timeout
     });
-    if (!resultEventSlashesProccessed.data) {
+    if (!resultEventSlashesProccessed) {
       throw new Error("SlashAddedToQueue event not found");
     }
 
-    const resultEventSlashesMessageSent = await waitForDataHavenEvent({
+    const resultEventSlashesMessageSent = await waitForDataHavenEvent<{ message_id: any }>({
       api: dhApi,
       pallet: "ExternalValidatorsSlashes",
       event: "SlashesMessageSent",
       timeout
     });
-    if (!resultEventSlashesMessageSent.data) {
+    if (!resultEventSlashesMessageSent) {
       throw new Error("SlashesMessageSent event not found");
     }
 

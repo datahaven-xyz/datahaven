@@ -176,7 +176,7 @@ export async function generateContracts(): Promise<void> {
     logger.info("✅ Contract state-diff generation complete!");
     logger.info(`   - State file: ${STATE_DIFF_PATH}`);
     logger.info(`   - Checksum: ${STATE_DIFF_CHECKSUM_PATH}`);
-    logger.info(`   - Run 'bun test scripts/check-generated-state.ts' to validate`);
+    logger.info(`   - Run 'bun run ./scripts/check-generated-state.ts' to validate`);
   } catch (error) {
     logger.error("❌ Failed to generate contract state-diff:", error);
     throw error;

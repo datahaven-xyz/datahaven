@@ -22,13 +22,13 @@ async function findRethContainer(): Promise<string> {
       "bun cli launch --launch-kurtosis --deploy-contracts --no-inject-contracts --no-datahaven --no-relayer --no-set-parameters --no-setup-validators --no-fund-validators";
     throw new Error(
       "❌ Could not find Reth container with contracts deployed.\n\n" +
-      "To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n" +
-      "Run this command to launch the network and deploy contracts:\n\n" +
-      `   ${setupCommand}\n\n` +
-      "Note: The --no-inject-contracts flag ensures contracts are actually deployed\n" +
-      "instead of being injected from state-diff.json.\n\n" +
-      `If you already have a Kurtosis network running, you'll need to deploy contracts\n` +
-      "using the launch command with --no-launch-kurtosis --no-inject-contracts flags."
+        "To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n" +
+        "Run this command to launch the network and deploy contracts:\n\n" +
+        `   ${setupCommand}\n\n` +
+        "Note: The --no-inject-contracts flag ensures contracts are actually deployed\n" +
+        "instead of being injected from state-diff.json.\n\n" +
+        `If you already have a Kurtosis network running, you'll need to deploy contracts\n` +
+        "using the launch command with --no-launch-kurtosis --no-inject-contracts flags."
     );
   }
 

@@ -12,6 +12,6 @@ const currentHash = generateContractsChecksum(contractsPath);
 
 if (currentHash !== originalHash) {
   throw new Error(
-    "State generated file is outdated. From the repository root, run `cd test && bun generate:contracts` to regenerate it.",
+    "State generated file is outdated. From the repository root, run `cd test && bun generate:contracts` to regenerate it."
   );
 }

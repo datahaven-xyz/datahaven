@@ -1,9 +1,9 @@
-import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { platform } from "node:process";
 import { $ } from "bun";
-import { logger } from "utils";
+import { logger } from "../utils/logger.ts";
+import { generateContractsChecksum } from "./contracts-checksum.ts";
 
 const CHAOS_VERSION = "v0.1.2";
 const CHAOS_RELEASE_URL = `https://github.com/undercover-cactus/Chaos/releases/download/${CHAOS_VERSION}/`;
@@ -22,13 +22,13 @@ async function findRethContainer(): Promise<string> {
       "bun cli launch --launch-kurtosis --deploy-contracts --no-inject-contracts --no-datahaven --no-relayer --no-set-parameters --no-setup-validators --no-fund-validators";
     throw new Error(
       "❌ Could not find Reth container with contracts deployed.\n\n" +
-        "To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n" +
-        "Run this command to launch the network and deploy contracts:\n\n" +
-        `   ${setupCommand}\n\n` +
-        "Note: The --no-inject-contracts flag ensures contracts are actually deployed\n" +
-        "instead of being injected from state-diff.json.\n\n" +
-        `If you already have a Kurtosis network running, you'll need to deploy contracts\n` +
-        "using the launch command with --no-launch-kurtosis --no-inject-contracts flags."
+      "To generate state-diff.json, you need a running Kurtosis network with contracts deployed.\n\n" +
+      "Run this command to launch the network and deploy contracts:\n\n" +
+      `   ${setupCommand}\n\n` +
+      "Note: The --no-inject-contracts flag ensures contracts are actually deployed\n" +
+      "instead of being injected from state-diff.json.\n\n" +
+      `If you already have a Kurtosis network running, you'll need to deploy contracts\n` +
+      "using the launch command with --no-launch-kurtosis --no-inject-contracts flags."
     );
   }
 
@@ -133,26 +133,6 @@ async function formatStateDiff(): Promise<void> {
 }
 
 /**
- * Generates a checksum for the state-diff.json file
- */
-function generateChecksum(): string {
-  const contractsPath = "../contracts/src";
-  const contents = readdirSync(contractsPath, { recursive: true });
-
-  // Create a hash object
-  const hash = createHash("sha1");
-
-  for (const content of contents) {
-    const stats = lstatSync(path.join(contractsPath, content.toString()));
-    if (stats.isFile()) {
-      const data = readFileSync(path.join(contractsPath, content.toString()));
-      hash.update(data);
-    }
-  }
-  return hash.digest("hex");
-}
-
-/**
  * Saves the checksum to a file
  */
 function saveChecksum(checksum: string): void {
@@ -187,7 +167,7 @@ export async function generateContracts(): Promise<void> {
 
     // 7. Generate checksum
     logger.info("🔐 Generating checksum...");
-    const checksum = generateChecksum();
+    const checksum = generateContractsChecksum("../contracts/src");
     logger.info(`📝 Checksum: ${checksum}`);
 
     // 7. Save checksum
@@ -196,7 +176,7 @@ export async function generateContracts(): Promise<void> {
     logger.info("✅ Contract state-diff generation complete!");
     logger.info(`   - State file: ${STATE_DIFF_PATH}`);
     logger.info(`   - Checksum: ${STATE_DIFF_CHECKSUM_PATH}`);
-    logger.info(`   - Run 'bun test scripts/check-generated-state.js' to validate`);
+    logger.info(`   - Run 'bun test scripts/check-generated-state.ts' to validate`);
   } catch (error) {
     logger.error("❌ Failed to generate contract state-diff:", error);
     throw error;

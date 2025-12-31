@@ -232,6 +232,12 @@ contractsCommand
     "Private key for deployment",
     process.env.DEPLOYER_PRIVATE_KEY || ""
   )
+  .option("--avs-owner-address <value>", "Address to set as AVS owner (required for non-local)")
+  .option("--avs-owner-key <value>", "Private key for the AVS owner (hex string)")
+  .option(
+    "--execute-owner-transactions",
+    "Execute AVS owner transactions immediately (tx execution on)"
+  )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsDeploy);
@@ -254,6 +260,8 @@ contractsCommand
   .option("--uri <value>", "New metadata URI (required)")
   .option("--reset", "Use if you want to reset the metadata URI")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--avs-owner-key <value>", "Private key for the AVS owner (hex string)")
+  .option("--execute", "Execute transaction immediately instead of emitting calldata", false)
   .action(async (options: any, command: any) => {
     // Try to get chain from options or command
     let chain = options.chain;
@@ -272,7 +280,10 @@ contractsCommand
     if (!chain) {
       throw new Error("--chain parameter is required");
     }
-    await updateAVSMetadataURI(chain, options.uri);
+    await updateAVSMetadataURI(chain, options.uri, {
+      execute: options.execute,
+      avsOwnerKey: options.avsOwnerKey
+    });
   });
 
 // Default Contracts command (runs check)

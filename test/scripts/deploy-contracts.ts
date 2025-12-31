@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { CHAIN_CONFIGS } from "configs/contracts/config";
+import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
 import {
   logger,
@@ -8,6 +8,9 @@ import {
   runShellCommandWithLogger
 } from "utils";
 import type { ParameterCollection } from "utils/parameters";
+import { encodeFunctionData } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { dataHavenServiceManagerAbi } from "../contract-bindings/generated";
 
 interface ContractDeploymentOptions {
   chain?: string;
@@ -15,6 +18,9 @@ interface ContractDeploymentOptions {
   privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
+  avsOwnerAddress?: string;
+  avsOwnerKey?: string;
+  txExecution?: boolean;
 }
 
 /**
@@ -84,14 +90,14 @@ export const executeDeployment = async (
   deployCommand: string,
   parameterCollection?: ParameterCollection,
   chain?: string,
-  privateKey?: string
+  env?: Record<string, string>
 ) => {
   logger.info("⌛️ Deploying contracts (this might take a few minutes)...");
 
   // Using custom shell command to improve logging with forge's stdoutput
   await runShellCommandWithLogger(deployCommand, {
     cwd: "../contracts",
-    env: privateKey ? { DEPLOYER_PRIVATE_KEY: privateKey } : undefined
+    env
   });
 
   // After deployment, read the:
@@ -121,6 +127,7 @@ export const updateParameters = async (
     const rewardsRegistryAddress = deployments.RewardsRegistry;
     const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
     const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
+    const serviceManagerAddress = deployments.ServiceManager;
 
     if (gatewayAddress) {
       logger.debug(`📝 Adding EthereumGatewayAddress parameter: ${gatewayAddress}`);
@@ -162,6 +169,16 @@ export const updateParameters = async (
     } else {
       logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
     }
+
+    if (serviceManagerAddress) {
+      logger.debug(`📝 Adding DatahavenServiceManagerAddress parameter: ${serviceManagerAddress}`);
+      parameterCollection.addParameter({
+        name: "DatahavenServiceManagerAddress",
+        value: serviceManagerAddress
+      });
+    } else {
+      logger.warn("⚠️ ServiceManager address not found in deployments file");
+    }
   } catch (error) {
     logger.error(`Failed to read parameters from deployment: ${error}`);
   }
@@ -177,6 +194,9 @@ export const deployContracts = async (options: {
   privateKey?: string | undefined;
   verified?: boolean;
   blockscoutBackendUrl?: string;
+  avsOwnerKey?: string;
+  avsOwnerAddress?: string;
+  txExecution?: boolean;
 }) => {
   const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
 
@@ -185,13 +205,43 @@ export const deployContracts = async (options: {
   }
 
   const finalRpcUrl = options.rpcUrl || chainConfig.RPC_URL;
+  const isLocalChain = options.chain === "anvil";
+  const txExecutionEnabled = options.txExecution ?? isLocalChain;
+  const normalizedOwnerKey = normalizePrivateKey(
+    options.avsOwnerKey || process.env.AVS_OWNER_PRIVATE_KEY
+  );
+
+  let resolvedAvsOwnerAddress = options.avsOwnerAddress;
+  if (!resolvedAvsOwnerAddress && normalizedOwnerKey) {
+    resolvedAvsOwnerAddress = privateKeyToAccount(normalizedOwnerKey).address;
+  }
+
+  if (!resolvedAvsOwnerAddress && isLocalChain) {
+    const config = await loadChainConfig(options.chain);
+    resolvedAvsOwnerAddress = config?.avs?.avsOwner;
+  }
+
+  if (!resolvedAvsOwnerAddress) {
+    throw new Error(
+      "AVS owner address is required. Provide --avs-owner-address, --avs-owner-key, or AVS_OWNER_ADDRESS."
+    );
+  }
+
+  if (txExecutionEnabled && !normalizedOwnerKey) {
+    throw new Error(
+      "Executing AVS owner transactions requires --avs-owner-key or AVS_OWNER_PRIVATE_KEY to be set."
+    );
+  }
 
   const deploymentOptions: ContractDeploymentOptions = {
     chain: options.chain,
     rpcUrl: finalRpcUrl,
     privateKey: options.privateKey,
     verified: options.verified,
-    blockscoutBackendUrl: options.blockscoutBackendUrl
+    blockscoutBackendUrl: options.blockscoutBackendUrl,
+    avsOwnerAddress: resolvedAvsOwnerAddress,
+    avsOwnerKey: normalizedOwnerKey,
+    txExecution: txExecutionEnabled
   };
 
   // Validate parameters
@@ -202,9 +252,106 @@ export const deployContracts = async (options: {
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  await executeDeployment(deployCommand, undefined, options.chain, options.privateKey);
+  const env = buildDeploymentEnv(deploymentOptions);
+  await executeDeployment(deployCommand, undefined, options.chain, env);
+
+  if (!txExecutionEnabled) {
+    await emitOwnerTransactionCalldata(options.chain);
+  }
 
   logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
+};
+
+const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
+  if (!key) {
+    return undefined;
+  }
+  return (key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`;
+};
+
+const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
+  const env: Record<string, string> = {};
+
+  if (options.privateKey) {
+    env.DEPLOYER_PRIVATE_KEY = options.privateKey;
+  }
+
+  if (options.avsOwnerKey) {
+    env.AVS_OWNER_PRIVATE_KEY = options.avsOwnerKey;
+  }
+
+  if (options.avsOwnerAddress) {
+    env.AVS_OWNER_ADDRESS = options.avsOwnerAddress;
+  }
+
+  if (typeof options.txExecution === "boolean") {
+    env.TX_EXECUTION = options.txExecution ? "true" : "false";
+  }
+
+  return env;
+};
+
+const emitOwnerTransactionCalldata = async (chain?: string) => {
+  try {
+    const deployments = await parseDeploymentsFile(chain);
+    const rewardsInfo = await parseRewardsInfoFile(chain);
+
+    const serviceManager = deployments.ServiceManager;
+    const rewardsRegistry = deployments.RewardsRegistry;
+    const rewardsAgent = rewardsInfo.RewardsAgent;
+
+    if (!serviceManager || !rewardsRegistry || !rewardsAgent) {
+      logger.warn("⚠️ Missing deployment artifacts; cannot produce multisig calldata.");
+      return;
+    }
+
+    const calls = [
+      {
+        label: "Set metadata URI",
+        description: 'DataHavenServiceManager.updateAVSMetadataURI("")',
+        to: serviceManager,
+        value: "0",
+        data: encodeFunctionData({
+          abi: dataHavenServiceManagerAbi,
+          functionName: "updateAVSMetadataURI",
+          args: [""]
+        })
+      },
+      {
+        label: "Attach RewardsRegistry",
+        description: "DataHavenServiceManager.setRewardsRegistry(VALIDATORS_SET_ID, address)",
+        to: serviceManager,
+        value: "0",
+        data: encodeFunctionData({
+          abi: dataHavenServiceManagerAbi,
+          functionName: "setRewardsRegistry",
+          args: [0, rewardsRegistry]
+        })
+      },
+      {
+        label: "Set Rewards Agent",
+        description: "DataHavenServiceManager.setRewardsAgent(VALIDATORS_SET_ID, address)",
+        to: serviceManager,
+        value: "0",
+        data: encodeFunctionData({
+          abi: dataHavenServiceManagerAbi,
+          functionName: "setRewardsAgent",
+          args: [0, rewardsAgent]
+        })
+      }
+    ];
+
+    logger.info(
+      "🔐 On-chain owner transactions were deferred. Submit the following calls via your multisig:"
+    );
+    calls.forEach((call, index) => {
+      logger.info(`\n#${index + 1} ${call.label}`);
+      logger.info(call.description);
+      logger.info(JSON.stringify(call, null, 2));
+    });
+  } catch (error) {
+    logger.warn(`⚠️ Failed to build multisig calldata: ${error}`);
+  }
 };
 
 // Allow script to be run directly with CLI arguments
@@ -255,5 +402,6 @@ if (import.meta.main) {
   await buildContracts();
 
   const deployCommand = constructDeployCommand(options);
-  await executeDeployment(deployCommand, undefined, undefined, options.privateKey);
+  const directEnv = options.privateKey ? { DEPLOYER_PRIVATE_KEY: options.privateKey } : undefined;
+  await executeDeployment(deployCommand, undefined, undefined, directEnv);
 }

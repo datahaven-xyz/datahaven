@@ -18,6 +18,7 @@ export interface ContractsOptions {
   verified?: boolean;
   blockscoutBackendUrl?: string;
   parameterCollection?: ParameterCollection;
+  txExecution?: boolean;
 }
 
 /**
@@ -54,14 +55,22 @@ export const deployContracts = async (options: ContractsOptions): Promise<void> 
 
     // Construct and execute deployment with parameter collection
     const deployCommand = constructDeployCommand(options);
-    await executeDeployment(deployCommand, options.parameterCollection, options.chain);
+    const env: Record<string, string> = {};
+    if (options.privateKey) {
+      env.DEPLOYER_PRIVATE_KEY = options.privateKey;
+    }
+    if (typeof options.txExecution === "boolean") {
+      env.TX_EXECUTION = options.txExecution ? "true" : "false";
+    }
+    await executeDeployment(deployCommand, options.parameterCollection, options.chain, env);
   } else {
     await deployContractsCore({
       chain: options.chain || "anvil",
       rpcUrl: options.rpcUrl,
       privateKey: options.privateKey,
       verified: options.verified,
-      blockscoutBackendUrl: options.blockscoutBackendUrl
+      blockscoutBackendUrl: options.blockscoutBackendUrl,
+      txExecution: options.txExecution
     });
   }
 

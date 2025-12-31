@@ -2,7 +2,7 @@ import { datahaven } from "@polkadot-api/descriptors";
 import { Binary } from "@polkadot-api/substrate-bindings";
 import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
 import { generateRandomAccount, getEvmEcdsaSigner, logger, printDivider, printHeader } from "utils";
 import { createWalletClient, defineChain, http, parseEther, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";

@@ -23,7 +23,7 @@ use sp_std::vec;
 use crate::Runtime;
 
 use crate::configs::storagehub::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};
-use crate::currency::{GIGAWEI, HAVE};
+use crate::currency::{GIGAWEI, HAVE, SUPPLY_FACTOR};
 use datahaven_runtime_common::{Balance, BlockNumber};
 
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
@@ -338,17 +338,29 @@ pub mod dynamic_params {
 
         #[codec(index = 36)]
         #[allow(non_upper_case_globals)]
-        /// The AVS ethereum address for Datahaven. Via this address we relay slashing requests or other requests.
-        pub static DatahavenAVSAddress: H160 = H160::repeat_byte(0x0);
+        /// The Ethereum address of the DataHavenServiceManager contract.
+        /// This address is used both for authorized slashing requests and validator-set update messages.
+        pub static DatahavenServiceManagerAddress: H160 = H160::repeat_byte(0x0);
 
         // ╔══════════════════════ Validator Rewards Inflation ═══════════════════════╗
 
         #[codec(index = 37)]
         #[allow(non_upper_case_globals)]
-        /// Targeted annual inflation rate.
-        /// Default: 5% per annum
-        /// This rate is divided across all eras in a year to calculate per-era inflation.
-        pub static InflationTargetedAnnualRate: Perbill = Perbill::from_percent(5);
+        /// Fixed annual inflation amount in base units (wei).
+        ///
+        /// This implements **linear (non-compounding) inflation** where a fixed amount of tokens
+        /// is minted annually, regardless of current total supply. This ensures:
+        /// - Consistent, predictable rewards for validators and stakers
+        /// - Publicly auditable emissions on the blockchain
+        /// - 5% of genesis supply, not 5% of current supply
+        ///
+        /// Formula: 5_000_000 * HAVE * SUPPLY_FACTOR
+        /// - Base: 5M HAVE annual inflation (5% of 100M base supply)
+        /// - Testnet (SUPPLY_FACTOR=1): 5M HAVE annual (5% of 100M)
+        ///
+        /// The annual amount is divided equally across all eras in a year (~1461 eras with 6-hour eras).
+        /// Per-era inflation ≈ 3,422 HAVE (testnet)
+        pub static InflationAnnualAmount: Balance = 5_000_000 * HAVE * SUPPLY_FACTOR;
 
         #[codec(index = 38)]
         #[allow(non_upper_case_globals)]
@@ -356,6 +368,33 @@ pub mod dynamic_params {
         /// Default: 20% of minted rewards go to treasury, 80% to validator rewards
         /// The treasury portion is minted separately and sent to the treasury account.
         pub static InflationTreasuryProportion: Perbill = Perbill::from_percent(20);
+
+        #[codec(index = 39)]
+        #[allow(non_upper_case_globals)]
+        /// Weight of block authoring in the operator rewards formula.
+        /// Default: 60% of base points are allocated based on block production performance.
+        /// Combined with OperatorRewardsLivenessWeight, the sum should not exceed 100%.
+        /// The remainder (100% - block - liveness) is the unconditional base reward.
+        /// If the sum exceeds 100%, values are proportionally scaled down.
+        pub static OperatorRewardsBlockAuthoringWeight: Perbill = Perbill::from_percent(60);
+
+        #[codec(index = 40)]
+        #[allow(non_upper_case_globals)]
+        /// Weight of liveness (heartbeat/block authorship) in the operator rewards formula.
+        /// Default: 30% of base points are allocated based on validator online status.
+        /// Combined with OperatorRewardsBlockAuthoringWeight, the sum should not exceed 100%.
+        /// The remainder (100% - block - liveness) is the unconditional base reward.
+        /// If the sum exceeds 100%, values are proportionally scaled down.
+        pub static OperatorRewardsLivenessWeight: Perbill = Perbill::from_percent(30);
+
+        #[codec(index = 41)]
+        #[allow(non_upper_case_globals)]
+        /// Soft cap on block authoring rewards as a percentage above fair share.
+        /// Default: 50% means validators can earn credit for up to 150% of their fair share.
+        /// With 60% BlockAuthoringWeight, this gives over-performers up to 30% bonus reward.
+        /// Example: With fair share of 10 blocks and 50% cap, a validator producing 15 blocks
+        /// gets full credit (150%), but one producing 20 blocks is capped at 15 blocks credit.
+        pub static OperatorRewardsFairShareCap: Perbill = Perbill::from_percent(50);
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
     }

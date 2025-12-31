@@ -19,7 +19,8 @@
         "epochsPerSyncCommitteePeriod": 256,
         "forkVersions": {
           "deneb": 0,
-          "electra": 0
+          "electra": 0,
+          "fulu": 0
         }
       },
       "datastore": {
@@ -30,7 +31,8 @@
   },
   "sink": {
     "ethereum": {
-      "endpoint": ""
+      "endpoint": "",
+      "skip-fee-check": true
     },
     "contracts": {
       "Gateway": ""

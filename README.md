@@ -23,7 +23,6 @@ DataHaven bridges two major blockchain ecosystems:
 │  │  EigenLayer AVS Contracts                              │   │
 │  │  • DataHavenServiceManager (operator lifecycle)        │   │
 │  │  • RewardsRegistry (performance tracking)              │   │
-│  │  • VetoableSlasher (misbehavior penalties)             │   │
 │  └────────────────────────────────────────────────────────┘   │
 │                            ↕                                  │
 │                  Snowbridge Protocol                          │
@@ -148,7 +147,7 @@ Full Ethereum Virtual Machine support via Frontier pallets:
 Validator security anchored to Ethereum:
 - Operators register via `DataHavenServiceManager` contract
 - Economic security through ETH restaking
-- Slashing protection with veto period via `VetoableSlasher`
+- Slashing protection with veto period
 - Performance-based rewards through `RewardsRegistry`
 
 ### Cross-chain Communication

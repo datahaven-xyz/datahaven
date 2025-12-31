@@ -19,7 +19,8 @@ export const BeaconRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number()
+          electra: z.number(),
+          fulu: z.number()
         })
       }),
       datastore: z.object({
@@ -57,9 +58,10 @@ export const BeefyRelayConfigSchema = z.object({
     })
   }),
   "on-demand-sync": z.object({
-    "max-tokens": z.number(),
-    "refill-amount": z.number(),
-    "refill-period": z.number()
+    "asset-hub-channel-id": z.string(),
+    "max-tasks": z.number(),
+    "merge-period": z.number(),
+    "expired-period": z.number()
   })
 });
 export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
@@ -67,7 +69,8 @@ export type BeefyRelayConfig = z.infer<typeof BeefyRelayConfigSchema>;
 export const SolochainRelayConfigSchema = z.object({
   source: z.object({
     ethereum: z.object({
-      endpoint: z.string()
+      endpoint: z.string(),
+      "skip-fee-check": z.boolean().optional()
     }),
     solochain: z.object({
       endpoint: z.string()
@@ -85,7 +88,8 @@ export const SolochainRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number()
+          electra: z.number(),
+          fulu: z.number()
         })
       }),
       datastore: z.object({
@@ -99,7 +103,8 @@ export const SolochainRelayConfigSchema = z.object({
       Gateway: z.string()
     }),
     ethereum: z.object({
-      endpoint: z.string()
+      endpoint: z.string(),
+      "skip-fee-check": z.boolean().optional()
     })
   }),
   schedule: z.object({
@@ -132,7 +137,8 @@ export const ExecutionRelayConfigSchema = z.object({
         epochsPerSyncCommitteePeriod: z.number(),
         forkVersions: z.object({
           deneb: z.number(),
-          electra: z.number()
+          electra: z.number(),
+          fulu: z.number()
         })
       }),
       datastore: z.object({

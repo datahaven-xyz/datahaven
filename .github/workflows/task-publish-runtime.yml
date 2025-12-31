@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write  # Required for uploading artifacts
     steps:
       - uses: actions/checkout@v5
       - name: Upload scripts
@@ -49,6 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write  # Required for uploading artifacts
     strategy:
       matrix:
         chain: ["stagenet", "testnet", "mainnet"]
@@ -104,6 +106,8 @@ jobs:
   ####### Prepare the release draft #######
   publish-draft-release:
     runs-on: ubuntu-latest
+    # Require approval before creating release drafts
+    environment: releases
     permissions:
       contents: write
     needs: ["setup-scripts", "build-srtool-runtimes"]

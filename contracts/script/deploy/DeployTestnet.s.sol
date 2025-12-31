@@ -13,7 +13,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {Logging} from "../utils/Logging.sol";
 
 // DataHaven imports for function signatures
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 // EigenLayer core contract imports for type casting
@@ -35,17 +34,9 @@ import {
 
 /**
  * @title DeployTestnet
- * @notice Deployment script for testnets (hoodi, holesky) - references existing EigenLayer contracts
+ * @notice Deployment script for testnets (hoodi) - references existing EigenLayer contracts
  */
 contract DeployTestnet is DeployBase {
-    // Supported testnet chains
-    enum TestnetChain {
-        HOODI,
-        HOLESKY
-    }
-
-    // Current testnet being deployed to
-    TestnetChain public currentTestnet;
     string public networkName;
 
     function run() public {
@@ -56,8 +47,14 @@ contract DeployTestnet is DeployBase {
             "NETWORK environment variable required for testnet deployment"
         );
 
-        currentTestnet = _detectAndValidateNetwork(networkName);
+        _validateNetwork(networkName);
         totalSteps = 4;
+
+        address avsOwnerEnv = vm.envOr("AVS_OWNER_ADDRESS", address(0));
+        require(
+            avsOwnerEnv != address(0),
+            "AVS_OWNER_ADDRESS env variable required for testnet deployments"
+        );
 
         _executeSharedDeployment();
     }
@@ -68,12 +65,7 @@ contract DeployTestnet is DeployBase {
     }
 
     function _getDeploymentMode() internal view override returns (string memory) {
-        if (currentTestnet == TestnetChain.HOODI) {
-            return "HOODI_TESTNET";
-        } else if (currentTestnet == TestnetChain.HOLESKY) {
-            return "HOLESKY_TESTNET";
-        }
-        return "UNKNOWN_TESTNET";
+        return "HOODI_TESTNET";
     }
 
     function _setupEigenLayerContracts(
@@ -147,7 +139,6 @@ contract DeployTestnet is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
@@ -161,7 +152,6 @@ contract DeployTestnet is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection(
@@ -201,9 +191,6 @@ contract DeployTestnet is DeployBase {
             '",'
         );
         json = string.concat(
-            json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",'
-        );
-        json = string.concat(
             json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
         );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
@@ -234,24 +221,20 @@ contract DeployTestnet is DeployBase {
     // TESTNET-SPECIFIC FUNCTIONS
 
     /**
-     * @notice Detect and validate the target testnet network
+     * @notice Validate that the network is hoodi (the only supported testnet)
      */
-    function _detectAndValidateNetwork(
+    function _validateNetwork(
         string memory network
-    ) internal pure returns (TestnetChain) {
+    ) internal pure {
         bytes32 networkHash = keccak256(abi.encodePacked(network));
 
-        if (networkHash == keccak256(abi.encodePacked("hoodi"))) {
-            return TestnetChain.HOODI;
-        } else if (networkHash == keccak256(abi.encodePacked("holesky"))) {
-            return TestnetChain.HOLESKY;
+        if (networkHash != keccak256(abi.encodePacked("hoodi"))) {
+            revert(
+                string.concat(
+                    "Unsupported testnet network: ", network, ". Supported networks: hoodi"
+                )
+            );
         }
-
-        revert(
-            string.concat(
-                "Unsupported testnet network: ", network, ". Supported networks: hoodi, holesky"
-            )
-        );
     }
 
     /**
@@ -275,18 +258,5 @@ contract DeployTestnet is DeployBase {
                 "No contract found at ", contractName, " address: ", vm.toString(contractAddress)
             )
         );
-    }
-
-    /**
-     * @notice Get testnet-specific configuration parameters
-     * @dev Override this function to add testnet-specific logic in the future
-     */
-    function _getTestnetConfig() internal view returns (string memory) {
-        if (currentTestnet == TestnetChain.HOODI) {
-            return "hoodi";
-        } else if (currentTestnet == TestnetChain.HOLESKY) {
-            return "holesky";
-        }
-        return "unknown";
     }
 }

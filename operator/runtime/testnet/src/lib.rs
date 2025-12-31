@@ -31,6 +31,12 @@ pub mod weights;
 pub use configs::governance;
 pub use configs::Precompiles;
 
+// TODO: Temporary workaround before upgrading to latest polkadot-sdk - fix https://github.com/paritytech/polkadot-sdk/pull/6435
+#[allow(unused_imports)]
+use pallet_collective as pallet_collective_treasury_council;
+#[allow(unused_imports)]
+use pallet_collective as pallet_collective_technical_committee;
+
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
 use fp_rpc::TransactionStatus;
@@ -138,7 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 800,
+    spec_version: 900,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,

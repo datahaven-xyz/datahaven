@@ -131,6 +131,7 @@ pallet-evm-precompile-balances-erc20 = { workspace = true }
 pallet-evm-precompile-batch = { workspace = true }
 pallet-evm-precompile-call-permit = { workspace = true }
 pallet-evm-precompile-collective = { workspace = true }
+pallet-evm-precompile-datahaven-native-transfer = { workspace = true }
 pallet-evm-precompile-identity = { workspace = true }
 pallet-evm-precompile-preimage = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
@@ -211,6 +212,7 @@ std = [
     "pallet-evm-precompile-preimage/std",
     "pallet-evm-precompile-collective/std",
     "pallet-evm-precompile-conviction-voting/std",
+    "pallet-evm-precompile-datahaven-native-transfer/std",
     "pallet-evm-precompile-identity/std",
     "pallet-evm-precompile-proxy/std",
     "pallet-evm-precompile-referenda/std",

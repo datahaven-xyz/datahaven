@@ -1,7 +1,13 @@
 import path from "node:path";
 import { $ } from "bun";
 import { logger } from "./logger";
-import type { ParsedDataHavenParameter } from "./types";
+import type { DataHavenRuntimeParameterKey } from "./types";
+
+/** Raw parameter for JSON storage (hex strings, not FixedSizeBinary) */
+interface RawParameter {
+  name: DataHavenRuntimeParameterKey;
+  value: string | null | undefined;
+}
 
 // Constants for paths
 export const PARAMETERS_TEMPLATE_PATH = "configs/parameters/datahaven-parameters.json";
@@ -15,13 +21,13 @@ export const PARAMETERS_OUTPUT_PATH = path.join(PARAMETERS_OUTPUT_DIR, PARAMETER
  * and then generate a JSON file to be used by the setDataHavenParameters script.
  */
 export class ParameterCollection {
-  private parameters: ParsedDataHavenParameter[] = [];
+  private parameters: RawParameter[] = [];
 
   /**
    * Adds a parameter to the collection
    * @param param The parameter to add
    */
-  public addParameter(param: ParsedDataHavenParameter): void {
+  public addParameter(param: RawParameter): void {
     // Check if parameter with same name already exists
     const existingIndex = this.parameters.findIndex((p) => p.name === param.name);
     if (existingIndex !== -1) {
@@ -38,7 +44,7 @@ export class ParameterCollection {
   /**
    * Returns the current parameters
    */
-  public getParameters(): ParsedDataHavenParameter[] {
+  public getParameters(): RawParameter[] {
     return [...this.parameters];
   }
 

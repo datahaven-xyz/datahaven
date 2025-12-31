@@ -1,10 +1,10 @@
 # DataHaven Contracts Deployment
 
-Deploy DataHaven AVS contracts to supported chains (Hoodi, Holesky, Mainnet).
+Deploy DataHaven AVS contracts to supported chains (Hoodi, Mainnet).
 
 ## What Gets Deployed
 
-- **DataHaven**: ServiceManager, VetoableSlasher, RewardsRegistry  
+- **DataHaven**: ServiceManager, RewardsRegistry  
 - **Snowbridge**: BeefyClient, AgentExecutor, Gateway, RewardsAgent
 - **EigenLayer**: References existing contracts (not deployed)
 
@@ -13,11 +13,9 @@ Deploy DataHaven AVS contracts to supported chains (Hoodi, Holesky, Mainnet).
 1. **Account Setup**: Create or import an account in Metamask (you'll need the private key)
 2. **Funding**: Get native tokens for deployment fees:
    - **Hoodi**: Use PoW Faucet at https://hoodi-faucet.pk910.de/#/mine/cc7df92c-9629-4ad8-aaa4-53b1e1c294e8
-   - **Holesky**: Use public faucets or bridge from mainnet
    - **Mainnet**: Purchase ETH
 3. **API Key** (optional): Generate API token from block explorer for contract verification:
    - Hoodi: Etherscan-compatible endpoint
-   - Holesky: https://holesky.etherscan.io/apis  
    - Mainnet: https://etherscan.io/apis
 
 ## Setup
@@ -43,11 +41,6 @@ ETHERSCAN_API_KEY=your_api_key_here
 ### Deploy to Hoodi
 ```bash
 bun cli contracts deploy --chain hoodi
-```
-
-### Deploy to Holesky  
-```bash
-bun cli contracts deploy --chain holesky
 ```
 
 ### Deploy to Mainnet

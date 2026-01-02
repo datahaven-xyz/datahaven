@@ -43,7 +43,6 @@
     "cli/**/*.ts",
     "wagmi.config.ts",
     "contract-bindings/*.ts",
-    "launcher/**/*.ts",
-    "moonwall/**/*.ts"
+    "launcher/**/*.ts"
   ]
 }

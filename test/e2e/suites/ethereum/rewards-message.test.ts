@@ -2,9 +2,9 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import { type Address, decodeEventLog, type Hex, isAddressEqual, padHex } from "viem";
 import validatorSet from "../../../configs/validator-set.json";
-import { BaseTestSuite } from "../../framework";
 import { getContractInstance, parseRewardsInfoFile } from "../../../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../../../utils/events";
+import { BaseTestSuite } from "../../framework";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {

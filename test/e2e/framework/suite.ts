@@ -1,7 +1,7 @@
 import { afterAll, beforeAll } from "bun:test";
 import readline from "node:readline";
-import { isCI, launchNetwork } from "../../launcher/network";
 import { logger } from "utils";
+import { isCI, launchNetwork } from "../../launcher/network";
 import type {
   DataHavenLaunchResult,
   LaunchNetworkResult,

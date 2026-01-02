@@ -202,7 +202,7 @@ where
 
     let signers = Vec::new();
     let pending_consensus_data_provider: Option<
-        Box<(dyn fc_rpc::pending::ConsensusDataProvider<_>)>,
+        Box<dyn fc_rpc::pending::ConsensusDataProvider<_>>,
     > = Some(BabeConsensusDataProvider::new().into());
 
     let pending_create_inherent_data_providers = move |_, _| async move {

@@ -41,11 +41,15 @@ runs:
       shell: bash
       run: sccache --show-stats
 
-    # Cache ~/.local for locally installed tools (mold, llvm, protoc, libpq)
+    # Cache specific ~/.local subdirs for locally installed tools (mold, llvm, protoc, libpq)
+    # Note: We don't cache all of ~/.local to avoid container storage in ~/.local/share
     - name: Cache local tools
       uses: actions/cache@v4
       with:
-        path: ~/.local
+        path: |
+          ~/.local/bin
+          ~/.local/lib
+          ~/.local/include
         key: ${{ runner.os }}-local-tools-${{ env.TOOLS_HASH }}
 
     # Set up PATH and env vars for cached tools (must run after cache restore)

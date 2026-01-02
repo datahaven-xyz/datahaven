@@ -1,15 +1,35 @@
 import { afterAll, beforeAll } from "bun:test";
 import readline from "node:readline";
-import { isCI } from "launcher/network";
+import { isCI, launchNetwork } from "../../launcher/network";
 import { logger } from "utils";
-import { launchNetwork } from "../launcher";
-import type { LaunchNetworkResult } from "../launcher/types";
-import { ConnectorFactory, type TestConnectors } from "./connectors";
+import type {
+  DataHavenLaunchResult,
+  LaunchNetworkResult,
+  StorageHubLaunchResult
+} from "../../launcher/types";
+import { SuiteType } from "../../launcher/types";
+import {
+  ConnectorFactory,
+  type DataHavenTestConnectors,
+  type StorageHubTestConnectors,
+  type TestConnectors
+} from "./connectors";
 import { TestSuiteManager } from "./manager";
+
+// Re-export SuiteType for convenience
+export { SuiteType } from "../../launcher/types";
+
+// Union type for all launch results
+type AnyLaunchResult = LaunchNetworkResult | StorageHubLaunchResult | DataHavenLaunchResult;
+
+// Union type for all connector types
+type AnyTestConnectors = TestConnectors | StorageHubTestConnectors | DataHavenTestConnectors;
 
 export interface TestSuiteOptions {
   /** Unique name for the test suite */
   suiteName: string;
+  /** Type of suite (determines which network components to launch) */
+  suiteType?: SuiteType;
   /** Network configuration options */
   networkOptions?: {
     /** Slot time in milliseconds for the network */
@@ -29,8 +49,8 @@ export interface TestSuiteOptions {
 
 export abstract class BaseTestSuite {
   protected networkId: string;
-  protected connectors?: LaunchNetworkResult;
-  protected testConnectors?: TestConnectors;
+  protected connectors?: AnyLaunchResult;
+  protected testConnectors?: AnyTestConnectors;
   private connectorFactory?: ConnectorFactory;
   private options: TestSuiteOptions;
   private manager: TestSuiteManager;
@@ -44,16 +64,18 @@ export abstract class BaseTestSuite {
 
   protected setupHooks(): void {
     beforeAll(async () => {
-      logger.info(`🧪 Setting up test suite: ${this.options.suiteName}`);
+      const suiteType = this.options.suiteType ?? SuiteType.ETHEREUM;
+      logger.info(`🧪 Setting up test suite: ${this.options.suiteName} (${suiteType})`);
       logger.info(`📝 Network ID: ${this.networkId}`);
 
       try {
         // Register suite with manager
         this.manager.registerSuite(this.options.suiteName, this.networkId);
 
-        // Launch the network
+        // Launch the network based on suite type
         this.connectors = await launchNetwork({
           networkId: this.networkId,
+          suiteType,
           datahavenImageTag:
             this.options.networkOptions?.datahavenImageTag || "datahavenxyz/datahaven:local",
           relayerImageTag:
@@ -62,8 +84,8 @@ export abstract class BaseTestSuite {
           ...this.options.networkOptions
         });
 
-        // Create test connectors
-        this.connectorFactory = new ConnectorFactory(this.connectors);
+        // Create test connectors based on suite type
+        this.connectorFactory = new ConnectorFactory(this.connectors, suiteType);
         this.testConnectors = await this.connectorFactory.createTestConnectors();
 
         // Allow derived classes to perform additional setup
@@ -127,7 +149,7 @@ export abstract class BaseTestSuite {
   /**
    * Get network connectors - throws if not initialized
    */
-  protected getConnectors(): LaunchNetworkResult {
+  protected getConnectors(): AnyLaunchResult {
     if (!this.connectors) {
       throw new Error("Network connectors not initialized. Did you call setupHooks()?");
     }
@@ -136,12 +158,49 @@ export abstract class BaseTestSuite {
 
   /**
    * Get test connectors - throws if not initialized
+   * Returns the appropriate connector type based on suite type
    */
-  public getTestConnectors(): TestConnectors {
+  public getTestConnectors(): AnyTestConnectors {
     if (!this.testConnectors) {
       throw new Error("Test connectors not initialized. Did you call setupHooks()?");
     }
     return this.testConnectors;
+  }
+
+  /**
+   * Get Ethereum test connectors - throws if suite type is not ETHEREUM
+   */
+  public getEthereumTestConnectors(): TestConnectors {
+    if (!this.testConnectors) {
+      throw new Error("Test connectors not initialized. Did you call setupHooks()?");
+    }
+    if (this.options.suiteType && this.options.suiteType !== SuiteType.ETHEREUM) {
+      throw new Error(`Cannot get Ethereum connectors for suite type: ${this.options.suiteType}`);
+    }
+    return this.testConnectors as TestConnectors;
+  }
+
+  /**
+   * Get DataHaven test connectors - available for all suite types
+   */
+  public getDataHavenTestConnectors(): DataHavenTestConnectors {
+    if (!this.testConnectors) {
+      throw new Error("Test connectors not initialized. Did you call setupHooks()?");
+    }
+    return this.testConnectors as DataHavenTestConnectors;
+  }
+
+  /**
+   * Get StorageHub test connectors - throws if suite type is not STORAGEHUB
+   */
+  public getStorageHubTestConnectors(): StorageHubTestConnectors {
+    if (!this.testConnectors) {
+      throw new Error("Test connectors not initialized. Did you call setupHooks()?");
+    }
+    if (this.options.suiteType !== SuiteType.STORAGEHUB) {
+      throw new Error(`Cannot get StorageHub connectors for suite type: ${this.options.suiteType}`);
+    }
+    return this.testConnectors as StorageHubTestConnectors;
   }
 
   /**
@@ -158,13 +217,29 @@ export abstract class BaseTestSuite {
     try {
       const connectors = this.getConnectors();
       const ln = connectors.launchedNetwork;
+      const suiteType = this.options.suiteType ?? SuiteType.ETHEREUM;
+
       logger.info("🛠 Keep-alive mode enabled. Network will remain running until you press Enter.");
-      logger.info("📡 Network info:");
+      logger.info(`📡 Network info (${suiteType}):`);
       logger.info(`  • Network ID: ${ln.networkId}`);
       logger.info(`  • Network Name: ${ln.networkName}`);
       logger.info(`  • DataHaven RPC: ${connectors.dataHavenRpcUrl}`);
-      logger.info(`  • Ethereum RPC: ${connectors.ethereumRpcUrl}`);
-      logger.info(`  • Ethereum CL:  ${connectors.ethereumClEndpoint}`);
+
+      // Show Ethereum info only for ETHEREUM suite
+      if (suiteType === SuiteType.ETHEREUM) {
+        const ethConnectors = connectors as LaunchNetworkResult;
+        logger.info(`  • Ethereum RPC: ${ethConnectors.ethereumRpcUrl}`);
+        logger.info(`  • Ethereum CL:  ${ethConnectors.ethereumClEndpoint}`);
+      }
+
+      // Show StorageHub info for STORAGEHUB suite
+      if (suiteType === SuiteType.STORAGEHUB) {
+        const shConnectors = connectors as StorageHubLaunchResult;
+        logger.info(`  • MSP RPC: ${shConnectors.mspRpcUrl}`);
+        logger.info(`  • BSP RPC: ${shConnectors.bspRpcUrl}`);
+        logger.info(`  • Indexer RPC: ${shConnectors.indexerRpcUrl}`);
+      }
+
       const containers = ln.containers || [];
       if (containers.length > 0) {
         logger.info("  • Containers:");

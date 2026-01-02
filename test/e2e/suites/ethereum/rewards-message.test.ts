@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import { type Address, decodeEventLog, type Hex, isAddressEqual, padHex } from "viem";
-import validatorSet from "../configs/validator-set.json";
-import { BaseTestSuite } from "../framework";
-import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
-import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
+import validatorSet from "../../../configs/validator-set.json";
+import { BaseTestSuite } from "../../framework";
+import { getContractInstance, parseRewardsInfoFile } from "../../../utils/contracts";
+import { waitForDataHavenEvent, waitForEthereumEvent } from "../../../utils/events";
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -28,7 +28,7 @@ describe("Rewards Message Flow", () => {
   let newRootIndex!: bigint;
 
   beforeAll(async () => {
-    const connectors = suite.getTestConnectors();
+    const connectors = suite.getEthereumTestConnectors();
     publicClient = connectors.publicClient;
     dhApi = connectors.dhApi;
 
@@ -120,7 +120,7 @@ describe("Rewards Message Flow", () => {
 
   it("should successfully claim rewards for validator", async () => {
     // Fund RewardsRegistry for reward payouts
-    const { walletClient: fundingWallet } = suite.getTestConnectors();
+    const { walletClient: fundingWallet } = suite.getEthereumTestConnectors();
     const fundingTx = await fundingWallet.sendTransaction({
       to: rewardsRegistry.address as Address,
       value: totalPoints,

@@ -24,8 +24,8 @@ import {
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { decodeEventLog, parseEther } from "viem";
-import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
-import { BaseTestSuite, type TestConnectors } from "../framework";
+import { dataHavenServiceManagerAbi, gatewayAbi } from "../../../contract-bindings";
+import { BaseTestSuite, type TestConnectors } from "../../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
@@ -63,7 +63,7 @@ describe("Validator Set Update", () => {
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
-    connectors = suite.getTestConnectors();
+    connectors = suite.getEthereumTestConnectors();
   });
 
   it("should verify test environment", async () => {

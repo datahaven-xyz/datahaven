@@ -36,10 +36,14 @@ env:
   INJECT_CONTRACTS: false
 
 jobs:
-  kurtosis:
+  e2e:
     runs-on:
       group: DH-Testing
-    name: E2E Tests with Kurtosis Ethereum Network
+    name: E2E Tests (${{ matrix.suite }})
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [datahaven, storagehub, ethereum]
     defaults:
       run:
         working-directory: test
@@ -151,8 +155,8 @@ jobs:
           docker tag ghcr.io/datahaven-xyz/datahaven/datahaven:${{ inputs.image-tag }} datahavenxyz/datahaven:local
 
       - run: bun install
-      - name: Run E2E tests
-        run: bun test:e2e
+      - name: Run E2E tests (${{ matrix.suite }})
+        run: bun test:e2e:${{ matrix.suite }}
 
       - name: Delete volumes not used
         if: always()

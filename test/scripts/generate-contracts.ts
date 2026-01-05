@@ -1,5 +1,4 @@
 import { existsSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import { platform } from "node:process";
 import { $ } from "bun";
 import { logger } from "../utils/logger.ts";
@@ -9,6 +8,7 @@ const CHAOS_VERSION = "v0.1.2";
 const CHAOS_RELEASE_URL = `https://github.com/undercover-cactus/Chaos/releases/download/${CHAOS_VERSION}/`;
 const STATE_DIFF_PATH = "../contracts/deployments/state-diff.json";
 const STATE_DIFF_CHECKSUM_PATH = "../contracts/deployments/state-diff.checksum";
+const HOST_DB_PATH = "/tmp/db";
 
 /**
  * Finds the Reth container by name pattern and verifies contracts are deployed
@@ -40,8 +40,11 @@ async function copyDatabaseFromContainer(containerName: string): Promise<void> {
   logger.info("📋 Copying database from container...");
 
   // Copy database in the host machine
-  logger.info("Import the database in the /tmp folder from the container");
-  const result = await $`docker cp ${containerName}:/data/reth/execution-data/db /tmp/db`;
+  logger.info(`Import the database into ${HOST_DB_PATH} from the container`);
+
+  await $`rm -rf ${HOST_DB_PATH}`.quiet();
+
+  const result = await $`docker cp ${containerName}:/data/reth/execution-data/db ${HOST_DB_PATH}`;
   if (result.exitCode !== 0) {
     throw new Error("Fail to copy the reth database into the /tmp folder.");
   }
@@ -88,7 +91,7 @@ async function setupChaos(): Promise<void> {
 async function runChaos(): Promise<void> {
   logger.info("🔍 Running Chaos to extract contract state...");
 
-  const result = await $`/tmp/target/release/chaos --database-path /tmp/db`;
+  const result = await $`/tmp/target/release/chaos --database-path ${HOST_DB_PATH}`;
   if (result.exitCode !== 0) {
     throw new Error("Fail to generate state.");
   }

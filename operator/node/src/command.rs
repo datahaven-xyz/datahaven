@@ -388,6 +388,13 @@ pub fn run() -> sc_cli::Result<()> {
                 ));
             };
 
+            if let Some(logical_cpus) = std::thread::available_parallelism().map(|n| n.get()).ok() {
+                log::info!(
+                    "💻 DataHaven node starting with {} logical CPU(s) visible to the process",
+                    logical_cpus
+                );
+            }
+
             runner.run_node_until_exit(|config| async move {
                 let sealing_mode = match (cli.sealing, config.chain_spec.chain_type()) {
                     (Some(mode), ChainType::Development) => Some(mode),

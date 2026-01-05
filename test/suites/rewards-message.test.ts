@@ -182,10 +182,17 @@ describe("Rewards Message Flow", () => {
     })) as boolean;
     expect(claimedBefore).toBe(false);
 
-    // Record balances for validation
-    const operatorBalanceBefore = await publicClient.getBalance({ address: resolvedOperator });
+    // Record balances at a specific block to avoid stale RPC reads
+    const balanceBlockNumber = Number(await publicClient.getBlockNumber());
+    const operatorBalanceBefore = await publicClient.getBalance({
+      address: resolvedOperator,
+      blockNumber: balanceBlockNumber
+    });
     const registryBalanceBefore = BigInt(
-      await publicClient.getBalance({ address: rewardsRegistry.address as Address })
+      await publicClient.getBalance({
+        address: rewardsRegistry.address as Address,
+        blockNumber: balanceBlockNumber
+      })
     );
 
     // Submit claim transaction
@@ -238,14 +245,19 @@ describe("Rewards Message Flow", () => {
     expect(claimedAfter).toBe(true);
 
     // Validate RewardsRegistry balance decrease matches claimed rewards
-    const registryBalanceAfter = BigInt(
-      await publicClient.getBalance({ address: rewardsRegistry.address as Address })
-    );
+    const claimBlockNumber = Number(claimReceipt.blockNumber);
+    const registryBalanceAfter = await publicClient.getBalance({
+      address: rewardsRegistry.address as Address,
+      blockNumber: claimBlockNumber
+    });
     expect(registryBalanceBefore - registryBalanceAfter).toEqual(claimArgs.rewardsAmount);
     expect(claimArgs.rewardsAmount).toEqual(BigInt(points));
 
     // Validate operator received rewards (accounting for gas)
-    const operatorBalanceAfter = await publicClient.getBalance({ address: resolvedOperator });
+    const operatorBalanceAfter = await publicClient.getBalance({
+      address: resolvedOperator,
+      blockNumber: claimBlockNumber
+    });
     const gasCost = BigInt(claimReceipt.gasUsed) * BigInt(claimReceipt.effectiveGasPrice);
     const netBalanceChange = BigInt(operatorBalanceAfter) - BigInt(operatorBalanceBefore);
     // Operator balance should have changed by: rewards - gasCost

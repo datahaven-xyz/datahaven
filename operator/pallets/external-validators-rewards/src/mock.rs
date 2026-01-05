@@ -177,8 +177,8 @@ parameter_types! {
 }
 
 pub struct MockValidatorSet;
-impl frame_support::traits::ValidatorSet<u64> for MockValidatorSet {
-    type ValidatorId = u64;
+impl frame_support::traits::ValidatorSet<H160> for MockValidatorSet {
+    type ValidatorId = H160;
     type ValidatorIdOf = sp_runtime::traits::ConvertInto;
 
     fn session_index() -> sp_staking::SessionIndex {
@@ -199,8 +199,8 @@ impl frame_support::traits::ValidatorSet<u64> for MockValidatorSet {
 /// This matches the real ImOnline pallet which considers block authorship
 /// as proof of liveness (no heartbeat needed if you authored a block).
 pub struct MockLivenessCheck;
-impl frame_support::traits::Contains<u64> for MockLivenessCheck {
-    fn contains(validator: &u64) -> bool {
+impl frame_support::traits::Contains<H160> for MockLivenessCheck {
+    fn contains(validator: &H160) -> bool {
         // Check if validator authored any blocks this session
         let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
 
@@ -214,8 +214,8 @@ impl frame_support::traits::Contains<u64> for MockLivenessCheck {
 /// Configurable slashing check that reads slashed validators from mock data.
 /// Validators in the slashed_validators list (for the given era) are considered slashed.
 pub struct MockSlashingCheck;
-impl crate::SlashingCheck<u64> for MockSlashingCheck {
-    fn is_slashed(era_index: u32, validator: &u64) -> bool {
+impl crate::SlashingCheck<H160> for MockSlashingCheck {
+    fn is_slashed(era_index: u32, validator: &H160) -> bool {
         Mock::mock()
             .slashed_validators
             .contains(&(era_index, *validator))
@@ -306,9 +306,9 @@ pub mod mock_data {
         pub active_era: Option<ActiveEraInfo>,
         pub era_inflation: Option<u128>,
         /// Set of validators that are considered offline (for liveness testing)
-        pub offline_validators: sp_std::vec::Vec<u64>,
+        pub offline_validators: sp_std::vec::Vec<sp_core::H160>,
         /// Set of (era_index, validator_id) pairs that are slashed
-        pub slashed_validators: sp_std::vec::Vec<(u32, u64)>,
+        pub slashed_validators: sp_std::vec::Vec<(u32, sp_core::H160)>,
     }
 
     #[pallet::config]

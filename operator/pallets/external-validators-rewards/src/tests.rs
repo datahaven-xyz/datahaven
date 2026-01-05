@@ -108,8 +108,8 @@ fn history_limit_blocks_produced() {
         });
 
         // Simulate block production in era 1
-        ExternalValidatorsRewards::note_block_author(1);
-        ExternalValidatorsRewards::note_block_author(2);
+        ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
 
         let blocks_era1 = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
         assert_eq!(blocks_era1, 2, "Era 1 should have 2 blocks");
@@ -148,7 +148,7 @@ fn test_on_era_end() {
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -297,7 +297,7 @@ fn test_inflation_minting() {
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         // Trigger era end which should mint inflation
@@ -341,7 +341,7 @@ fn test_inflation_calculation_with_different_rates() {
 
             // Author expected blocks to get 100% inflation
             for _ in 0..600 {
-                ExternalValidatorsRewards::note_block_author(1);
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             }
 
             // Trigger era end
@@ -414,7 +414,7 @@ fn test_inflation_calculation_accuracy() {
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         // Trigger era end
@@ -455,16 +455,16 @@ fn test_performance_multiplier_with_full_participation() {
 
         // Award equal points to all validators
         ExternalValidatorsRewards::reward_by_ids([
-            (1, 100),
-            (2, 100),
-            (3, 100),
-            (4, 100),
-            (5, 100),
+            (H160::from_low_u64_be(1), 100),
+            (H160::from_low_u64_be(2), 100),
+            (H160::from_low_u64_be(3), 100),
+            (H160::from_low_u64_be(4), 100),
+            (H160::from_low_u64_be(5), 100),
         ]);
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -510,11 +510,11 @@ fn test_performance_multiplier_with_partial_participation() {
         let initial_treasury_balance = Balances::free_balance(&treasury_account);
 
         // Award points to only 3 validators (others get 0 points but inflation is still full)
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100), (3, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100), (H160::from_low_u64_be(3), 100)]);
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -600,16 +600,16 @@ fn test_inflation_calculation_precision_with_multiplier() {
 
         // Full participation
         ExternalValidatorsRewards::reward_by_ids([
-            (1, 1000),
-            (2, 1000),
-            (3, 1000),
-            (4, 1000),
-            (5, 1000),
+            (H160::from_low_u64_be(1), 1000),
+            (H160::from_low_u64_be(2), 1000),
+            (H160::from_low_u64_be(3), 1000),
+            (H160::from_low_u64_be(4), 1000),
+            (H160::from_low_u64_be(5), 1000),
         ]);
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -649,15 +649,15 @@ fn test_multiple_eras_with_varying_participation() {
 
         let balance_era1_start = Balances::free_balance(&rewards_account);
         ExternalValidatorsRewards::reward_by_ids([
-            (1, 100),
-            (2, 100),
-            (3, 100),
-            (4, 100),
-            (5, 100),
+            (H160::from_low_u64_be(1), 100),
+            (H160::from_low_u64_be(2), 100),
+            (H160::from_low_u64_be(3), 100),
+            (H160::from_low_u64_be(4), 100),
+            (H160::from_low_u64_be(5), 100),
         ]);
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         ExternalValidatorsRewards::on_era_end(1);
         let balance_era1_end = Balances::free_balance(&rewards_account);
@@ -672,10 +672,10 @@ fn test_multiple_eras_with_varying_participation() {
         });
 
         let balance_era2_start = Balances::free_balance(&rewards_account);
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100)]);
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         ExternalValidatorsRewards::on_era_end(2);
         let balance_era2_end = Balances::free_balance(&rewards_account);
@@ -733,15 +733,15 @@ fn test_weighting_formula_60_30_10() {
         // Formula: (60% × 100%) + (30% × heartbeat) + 10% base = 100% (assuming perfect heartbeats)
         let balance_before = Balances::free_balance(&rewards_account);
         ExternalValidatorsRewards::reward_by_ids([
-            (1, 100),
-            (2, 100),
-            (3, 100),
-            (4, 100),
-            (5, 100),
+            (H160::from_low_u64_be(1), 100),
+            (H160::from_low_u64_be(2), 100),
+            (H160::from_low_u64_be(3), 100),
+            (H160::from_low_u64_be(4), 100),
+            (H160::from_low_u64_be(5), 100),
         ]);
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         ExternalValidatorsRewards::on_era_end(1);
         let balance_after = Balances::free_balance(&rewards_account);
@@ -762,10 +762,10 @@ fn test_weighting_formula_60_30_10() {
             });
         });
         let balance_before = Balances::free_balance(&rewards_account);
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100)]);
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         ExternalValidatorsRewards::on_era_end(2);
         let balance_after = Balances::free_balance(&rewards_account);
@@ -818,7 +818,7 @@ fn test_treasury_receives_20_percent_of_inflation() {
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -875,7 +875,7 @@ fn test_treasury_allocation_with_different_amounts() {
             ]);
             // Author expected blocks to get 100% inflation
             for _ in 0..600 {
-                ExternalValidatorsRewards::note_block_author(1);
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             }
             ExternalValidatorsRewards::on_era_end(era);
 
@@ -931,7 +931,7 @@ fn test_treasury_allocation_maintains_precision() {
         ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         ExternalValidatorsRewards::on_era_end(1);
 
@@ -1094,10 +1094,10 @@ fn test_uneven_validator_participation() {
 
         // Heavily uneven distribution - one validator does most work
         ExternalValidatorsRewards::reward_by_ids([
-            (1, 1000), // 80% of points
-            (2, 100),
-            (3, 100),
-            (4, 50),
+            (H160::from_low_u64_be(1), 1000), // 80% of points
+            (H160::from_low_u64_be(2), 100),
+            (H160::from_low_u64_be(3), 100),
+            (H160::from_low_u64_be(4), 50),
         ]);
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -1142,12 +1142,12 @@ fn test_performance_multiplier_gradual_degradation() {
             let treasury_balance_before = Balances::free_balance(&treasury_account);
 
             // Award equal points to varying number of validators
-            let validators: Vec<_> = (1..=num_validators).map(|i| (i, 100)).collect();
+            let validators: Vec<_> = (1..=num_validators).map(|i| (H160::from_low_u64_be(i as u64), 100)).collect();
             ExternalValidatorsRewards::reward_by_ids(validators);
 
             // Author expected blocks to get 100% inflation
             for _ in 0..600 {
-                ExternalValidatorsRewards::note_block_author(1);
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             }
 
             ExternalValidatorsRewards::on_era_end(era);
@@ -1191,10 +1191,10 @@ fn test_alternating_participation_patterns() {
 
         // Test oscillating participation
         let patterns = vec![
-            (1, vec![(1, 100), (2, 100), (3, 100), (4, 100), (5, 100)]), // Full
-            (2, vec![(1, 100)]),                                         // Minimal
-            (3, vec![(1, 100), (2, 100), (3, 100), (4, 100), (5, 100)]), // Full again
-            (4, vec![(2, 100), (3, 100)]),                               // Partial
+            (1, vec![(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100), (H160::from_low_u64_be(3), 100), (H160::from_low_u64_be(4), 100), (H160::from_low_u64_be(5), 100)]), // Full
+            (2, vec![(H160::from_low_u64_be(1), 100)]),                                         // Minimal
+            (3, vec![(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100), (H160::from_low_u64_be(3), 100), (H160::from_low_u64_be(4), 100), (H160::from_low_u64_be(5), 100)]), // Full again
+            (4, vec![(H160::from_low_u64_be(2), 100), (H160::from_low_u64_be(3), 100)]),                               // Partial
         ];
 
         for (era, validators) in patterns {
@@ -1252,7 +1252,7 @@ fn test_consistent_inflation_across_eras() {
 
             // Author expected blocks to get 100% inflation
             for _ in 0..600 {
-                ExternalValidatorsRewards::note_block_author(1);
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             }
 
             ExternalValidatorsRewards::on_era_end(era);
@@ -1332,7 +1332,7 @@ fn test_total_issuance_increases_correctly() {
 
         // Author expected blocks to get 100% inflation
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -1364,9 +1364,9 @@ fn test_session_performance_block_authorship_tracking() {
             });
         });
 
-        let validator1 = 1u64;
-        let validator2 = 2u64;
-        let validator3 = 3u64;
+        let validator1 = H160::from_low_u64_be(1);
+        let validator2 = H160::from_low_u64_be(2);
+        let validator3 = H160::from_low_u64_be(3);
 
         // Simulate block authorship during a session
         ExternalValidatorsRewards::note_block_author(validator1);
@@ -1406,7 +1406,7 @@ fn test_session_performance_60_30_10_formula() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64, 4u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3), H160::from_low_u64_be(4)];
 
         // Simulate varied block production:
         // Validator 1: 4 blocks
@@ -1414,11 +1414,11 @@ fn test_session_performance_60_30_10_formula() {
         // Validator 3: 2 blocks
         // Validator 4: 0 blocks
         for _ in 0..4 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
         for _ in 0..2 {
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         // MockIsOnline always returns true, so all validators are considered online
@@ -1466,14 +1466,14 @@ fn test_session_performance_whitelisted_validators_excluded() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
-        let whitelisted = vec![2u64]; // Validator 2 is whitelisted
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
+        let whitelisted = vec![H160::from_low_u64_be(2)]; // Validator 2 is whitelisted
 
         // All validators author equal blocks (3 each = 9 total)
         for _ in 0..3 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         // Award session performance points
@@ -1518,15 +1518,15 @@ fn test_session_performance_whitelisted_fair_share_calculation() {
 
         // Scenario: 4 validators total, 2 whitelisted, 2 normal
         // All author equal blocks (3 each = 12 total)
-        let validators = vec![1u64, 2u64, 3u64, 4u64];
-        let whitelisted = vec![2u64, 4u64]; // Validators 2 and 4 are whitelisted
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3), H160::from_low_u64_be(4)];
+        let whitelisted = vec![H160::from_low_u64_be(2), H160::from_low_u64_be(4)]; // Validators 2 and 4 are whitelisted
 
         // All validators author 3 blocks each
         for _ in 0..3 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
-            ExternalValidatorsRewards::note_block_author(3);
-            ExternalValidatorsRewards::note_block_author(4);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(4));
         }
 
         // Award session performance points
@@ -1555,22 +1555,22 @@ fn test_session_performance_whitelisted_fair_share_calculation() {
 
         // Verify individual points
         assert_eq!(
-            era_rewards.individual.get(&1u64).copied().unwrap_or(0),
+            era_rewards.individual.get(&H160::from_low_u64_be(1)).copied().unwrap_or(0),
             960,
             "Validator 1 should have 960 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&2u64).copied().unwrap_or(0),
+            era_rewards.individual.get(&H160::from_low_u64_be(2)).copied().unwrap_or(0),
             0,
             "Validator 2 (whitelisted) should have 0 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&3u64).copied().unwrap_or(0),
+            era_rewards.individual.get(&H160::from_low_u64_be(3)).copied().unwrap_or(0),
             960,
             "Validator 3 should have 960 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&4u64).copied().unwrap_or(0),
+            era_rewards.individual.get(&H160::from_low_u64_be(4)).copied().unwrap_or(0),
             0,
             "Validator 4 (whitelisted) should have 0 points"
         );
@@ -1589,7 +1589,7 @@ fn test_session_performance_block_count_reset_per_session() {
             });
         });
 
-        let validator = 1u64;
+        let validator = H160::from_low_u64_be(1);
 
         // Author blocks in session 1
         ExternalValidatorsRewards::note_block_author(validator);
@@ -1627,7 +1627,7 @@ fn test_session_performance_zero_total_blocks() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // No blocks authored by anyone
 
@@ -1662,15 +1662,15 @@ fn test_session_performance_fair_share_capping() {
             });
         });
 
-        let validators = vec![1u64, 2u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2)];
 
         // Validator 1 authors many more blocks than fair share (overperformer)
         // Validator 2 authors below fair share
         for _ in 0..10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         for _ in 0..5 {
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
         // Total: 15 blocks, 2 validators
@@ -1711,11 +1711,11 @@ fn test_session_performance_single_validator() {
             });
         });
 
-        let validators = vec![1u64];
+        let validators = vec![H160::from_low_u64_be(1)];
 
         // Single validator authors all blocks
         for _ in 0..10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -1775,7 +1775,7 @@ fn test_session_performance_checked_math_division() {
         });
 
         // Test that division by zero is handled safely
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // Session 1: No blocks produced
         ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
@@ -1794,9 +1794,9 @@ fn test_session_performance_checked_math_division() {
 
         // Session 2: Author blocks equally among all validators
         for _ in 0..6 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(2, validators, vec![]);
@@ -1832,12 +1832,12 @@ fn test_session_performance_multiple_sessions_cumulative() {
             });
         });
 
-        let validators = vec![1u64, 2u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2)];
 
         // Session 1
         for _ in 0..4 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
@@ -1853,8 +1853,8 @@ fn test_session_performance_multiple_sessions_cumulative() {
 
         // Session 2
         for _ in 0..4 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(2, validators, vec![]);
@@ -1882,11 +1882,11 @@ fn test_session_performance_base_reward_points_config() {
             });
         });
 
-        let validators = vec![1u64];
+        let validators = vec![H160::from_low_u64_be(1)];
 
         // Single validator with perfect performance
         for _ in 0..5 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -1929,7 +1929,7 @@ fn test_inflation_scaling_zero_blocks_produced() {
         let initial_treasury = Balances::free_balance(&treasury_account);
 
         // Award points but don't author any blocks
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100)]);
 
         // Trigger era end without authoring blocks
         ExternalValidatorsRewards::on_era_end(1);
@@ -1975,9 +1975,9 @@ fn test_inflation_scaling_half_expected_blocks() {
         let initial_treasury = Balances::free_balance(&treasury_account);
 
         // Award points and author half the expected blocks (300 out of 600)
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100)]);
         for _ in 0..300 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2023,9 +2023,9 @@ fn test_inflation_scaling_full_expected_blocks() {
         let initial_treasury = Balances::free_balance(&treasury_account);
 
         // Award points and author all expected blocks (600)
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100)]);
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2071,9 +2071,9 @@ fn test_inflation_scaling_overproduction_capped() {
         let initial_treasury = Balances::free_balance(&treasury_account);
 
         // Award points and author more than expected blocks (900 > 600)
-        ExternalValidatorsRewards::reward_by_ids([(1, 100), (2, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100), (H160::from_low_u64_be(2), 100)]);
         for _ in 0..900 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2117,9 +2117,9 @@ fn test_inflation_scaling_quarter_blocks() {
         let initial_rewards = Balances::free_balance(&rewards_account);
 
         // Award points and author 25% of expected blocks (150 out of 600)
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..150 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2156,9 +2156,9 @@ fn test_inflation_scaling_three_quarters_blocks() {
         let initial_rewards = Balances::free_balance(&rewards_account);
 
         // Award points and author 75% of expected blocks (450 out of 600)
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..450 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2193,9 +2193,9 @@ fn test_inflation_scaling_blocks_tracked_per_era() {
             mock.era_inflation = Some(base_inflation);
         });
 
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..300 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         let blocks_era1 = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
@@ -2212,9 +2212,9 @@ fn test_inflation_scaling_blocks_tracked_per_era() {
             mock.era_inflation = Some(base_inflation);
         });
 
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..450 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         let blocks_era2 = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(2);
@@ -2243,7 +2243,7 @@ fn test_inflation_scaling_multiple_eras_different_performance() {
             });
             mock.era_inflation = Some(base_inflation);
         });
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         let balance_before_era1 = Balances::free_balance(&rewards_account);
         ExternalValidatorsRewards::on_era_end(1);
         let balance_after_era1 = Balances::free_balance(&rewards_account);
@@ -2257,9 +2257,9 @@ fn test_inflation_scaling_multiple_eras_different_performance() {
             });
             mock.era_inflation = Some(base_inflation);
         });
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..300 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         let balance_before_era2 = Balances::free_balance(&rewards_account);
         ExternalValidatorsRewards::on_era_end(2);
@@ -2274,9 +2274,9 @@ fn test_inflation_scaling_multiple_eras_different_performance() {
             });
             mock.era_inflation = Some(base_inflation);
         });
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         let balance_before_era3 = Balances::free_balance(&rewards_account);
         ExternalValidatorsRewards::on_era_end(3);
@@ -2317,9 +2317,9 @@ fn test_inflation_scaling_precision_with_large_numbers() {
         let initial_balance = Balances::free_balance(&rewards_account);
 
         // Author 50% of expected blocks
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
         for _ in 0..300 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2366,7 +2366,7 @@ fn test_inflation_scaling_with_zero_points_no_minting() {
 
         // Author blocks but don't award any points
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::on_era_end(1);
@@ -2399,7 +2399,7 @@ fn test_inflation_scaling_block_counter_increments_correctly() {
 
         // Author some blocks
         for i in 1..=10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             let count = pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
             assert_eq!(count, i, "Block count should increment to {}", i);
         }
@@ -2424,13 +2424,13 @@ fn test_inflation_scaling_different_validators_same_era() {
 
         // Multiple validators author blocks in the same era
         for _ in 0..100 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         for _ in 0..200 {
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
         for _ in 0..100 {
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         // Total blocks should be 400
@@ -2457,16 +2457,16 @@ fn test_session_performance_offline_validator_gets_reduced_points() {
                 start: None,
             });
             // Mark validator 2 as offline (no heartbeat)
-            mock.offline_validators = vec![2];
+            mock.offline_validators = vec![H160::from_low_u64_be(2)];
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // Validators 1 and 3 author blocks (they are online)
         // Validator 2 doesn't author blocks AND is in offline list (truly offline)
         for _ in 0..6 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -2491,17 +2491,17 @@ fn test_session_performance_offline_validator_gets_reduced_points() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.individual.get(&1),
+            era_rewards.individual.get(&H160::from_low_u64_be(1)),
             Some(&1664),
             "Online validator 1 should get 1664 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&2),
+            era_rewards.individual.get(&H160::from_low_u64_be(2)),
             Some(&128),
             "Offline validator 2 (no blocks, no heartbeat) should get only base points (128)"
         );
         assert_eq!(
-            era_rewards.individual.get(&3),
+            era_rewards.individual.get(&H160::from_low_u64_be(3)),
             Some(&1664),
             "Online validator 3 should get 1664 points"
         );
@@ -2520,10 +2520,10 @@ fn test_session_performance_all_validators_offline() {
                 start: None,
             });
             // All validators offline (no heartbeat, no blocks)
-            mock.offline_validators = vec![1, 2, 3];
+            mock.offline_validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // No validators author blocks - they are all truly offline
 
@@ -2561,16 +2561,16 @@ fn test_session_performance_offline_but_authored_blocks() {
                 start: None,
             });
             // Mark validator 2 as offline (didn't send heartbeat)
-            mock.offline_validators = vec![2];
+            mock.offline_validators = vec![H160::from_low_u64_be(2)];
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // All validators author blocks - validator 2 proves liveness through blocks
         for _ in 0..6 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2); // Authored blocks = online!
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2)); // Authored blocks = online!
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -2589,7 +2589,7 @@ fn test_session_performance_offline_but_authored_blocks() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.individual.get(&2),
+            era_rewards.individual.get(&H160::from_low_u64_be(2)),
             Some(&1920),
             "Validator 2 authored blocks, so is considered online despite no heartbeat"
         );
@@ -2608,15 +2608,15 @@ fn test_session_performance_offline_validator_zero_blocks() {
                 start: None,
             });
             // Mark validator 2 as offline
-            mock.offline_validators = vec![2];
+            mock.offline_validators = vec![H160::from_low_u64_be(2)];
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // Only validators 1 and 3 author blocks
         for _ in 0..5 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -2632,7 +2632,7 @@ fn test_session_performance_offline_validator_zero_blocks() {
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.individual.get(&2),
+            era_rewards.individual.get(&H160::from_low_u64_be(2)),
             Some(&106),
             "Offline validator with 0 blocks should only get base 10% = 106 points"
         );
@@ -2666,10 +2666,10 @@ fn test_session_performance_weight_overflow_handled() {
         // Since we can't change the config types easily in tests,
         // we verify the current behavior works correctly
 
-        let validators = vec![1u64];
+        let validators = vec![H160::from_low_u64_be(1)];
 
         for _ in 0..10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -2706,21 +2706,21 @@ fn test_slashing_check_mock_works() {
                 start: None,
             });
             // Mark validator 2 as slashed in era 1
-            mock.slashed_validators = vec![(1, 2)];
+            mock.slashed_validators = vec![(1, H160::from_low_u64_be(2))];
         });
 
         // Verify MockSlashingCheck works correctly
         use crate::SlashingCheck;
         assert!(
-            !MockSlashingCheck::is_slashed(1, &1),
+            !MockSlashingCheck::is_slashed(1, &H160::from_low_u64_be(1)),
             "Validator 1 should not be slashed"
         );
         assert!(
-            MockSlashingCheck::is_slashed(1, &2),
+            MockSlashingCheck::is_slashed(1, &H160::from_low_u64_be(2)),
             "Validator 2 should be slashed in era 1"
         );
         assert!(
-            !MockSlashingCheck::is_slashed(2, &2),
+            !MockSlashingCheck::is_slashed(2, &H160::from_low_u64_be(2)),
             "Validator 2 should not be slashed in era 2"
         );
     })
@@ -2740,14 +2740,14 @@ fn test_session_performance_slashed_validator_still_gets_points_when_disabled() 
                 start: None,
             });
             // Mark validator 2 as slashed
-            mock.slashed_validators = vec![(1, 2)];
+            mock.slashed_validators = vec![(1, H160::from_low_u64_be(2))];
         });
 
-        let validators = vec![1u64, 2u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2)];
 
         for _ in 0..5 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -2764,7 +2764,7 @@ fn test_session_performance_slashed_validator_still_gets_points_when_disabled() 
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert!(
-            era_rewards.individual.get(&2).unwrap_or(&0) > &0,
+            era_rewards.individual.get(&H160::from_low_u64_be(2)).unwrap_or(&0) > &0,
             "With slashing disabled, slashed validator 2 should still receive points"
         );
         assert_eq!(
@@ -2792,11 +2792,11 @@ fn test_fair_share_non_integer_division_rounding() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // 10 blocks total - doesn't divide evenly by 3
         for _ in 0..10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -2838,12 +2838,12 @@ fn test_all_validators_whitelisted_no_panic() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
-        let whitelisted = vec![1u64, 2u64, 3u64]; // All are whitelisted
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
+        let whitelisted = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)]; // All are whitelisted
 
         // Author some blocks
         for _ in 0..10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         // Should not panic, just skip awarding points
@@ -2870,11 +2870,11 @@ fn test_blocks_less_than_validators() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64, 4u64, 5u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3), H160::from_low_u64_be(4), H160::from_low_u64_be(5)];
 
         // Only 2 blocks for 5 validators
-        ExternalValidatorsRewards::note_block_author(1);
-        ExternalValidatorsRewards::note_block_author(1);
+        ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
@@ -2915,10 +2915,10 @@ fn test_single_block_many_validators() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64, 4u64, 5u64, 6u64, 7u64, 8u64, 9u64, 10u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3), H160::from_low_u64_be(4), H160::from_low_u64_be(5), H160::from_low_u64_be(6), H160::from_low_u64_be(7), H160::from_low_u64_be(8), H160::from_low_u64_be(9), H160::from_low_u64_be(10)];
 
         // Only 1 block for 10 validators
-        ExternalValidatorsRewards::note_block_author(1);
+        ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
 
@@ -2958,7 +2958,7 @@ fn test_perbill_precision_many_sessions() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // Simulate 100 sessions with varying block counts
         for session in 0..100 {
@@ -2971,9 +2971,9 @@ fn test_perbill_precision_many_sessions() {
             // Each validator authors (session % 10 + 1) blocks
             let blocks_per_validator = (session % 10) + 1;
             for _ in 0..blocks_per_validator {
-                ExternalValidatorsRewards::note_block_author(1);
-                ExternalValidatorsRewards::note_block_author(2);
-                ExternalValidatorsRewards::note_block_author(3);
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
+                ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
             }
 
             ExternalValidatorsRewards::award_session_performance_points(
@@ -2991,9 +2991,9 @@ fn test_perbill_precision_many_sessions() {
         );
 
         // With equal block distribution, all validators should have equal points
-        let v1_points = era_rewards.individual.get(&1).unwrap_or(&0);
-        let v2_points = era_rewards.individual.get(&2).unwrap_or(&0);
-        let v3_points = era_rewards.individual.get(&3).unwrap_or(&0);
+        let v1_points = era_rewards.individual.get(&H160::from_low_u64_be(1)).unwrap_or(&0);
+        let v2_points = era_rewards.individual.get(&H160::from_low_u64_be(2)).unwrap_or(&0);
+        let v3_points = era_rewards.individual.get(&H160::from_low_u64_be(3)).unwrap_or(&0);
 
         assert_eq!(
             v1_points, v2_points,
@@ -3018,8 +3018,8 @@ fn test_history_depth_exact_boundary() {
             });
         });
 
-        ExternalValidatorsRewards::note_block_author(1);
-        ExternalValidatorsRewards::reward_by_ids([(1, 100)]);
+        ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+        ExternalValidatorsRewards::reward_by_ids([(H160::from_low_u64_be(1), 100)]);
 
         let blocks_era1_before =
             pallet_external_validators_rewards::BlocksProducedInEra::<Test>::get(1);
@@ -3067,14 +3067,14 @@ fn test_total_points_sum_equals_expected_pool() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64, 4u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3), H160::from_low_u64_be(4)];
 
         // Equal block distribution: 5 blocks each = 20 total
         for _ in 0..5 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
-            ExternalValidatorsRewards::note_block_author(3);
-            ExternalValidatorsRewards::note_block_author(4);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(4));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
@@ -3115,14 +3115,14 @@ fn test_total_points_with_uneven_distribution() {
             });
         });
 
-        let validators = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // Uneven distribution: 10, 5, 0 blocks
         for _ in 0..10 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         for _ in 0..5 {
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
         // Validator 3 authors no blocks
 
@@ -3159,17 +3159,17 @@ fn test_total_points_with_uneven_distribution() {
         // Total = 1984 + 1600 + 640 = 4224
 
         assert_eq!(
-            era_rewards.individual.get(&1),
+            era_rewards.individual.get(&H160::from_low_u64_be(1)),
             Some(&1984),
             "Validator 1 should have 1984 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&2),
+            era_rewards.individual.get(&H160::from_low_u64_be(2)),
             Some(&1600),
             "Validator 2 should have 1600 points"
         );
         assert_eq!(
-            era_rewards.individual.get(&3),
+            era_rewards.individual.get(&H160::from_low_u64_be(3)),
             Some(&640),
             "Validator 3 should have 640 points"
         );
@@ -3196,18 +3196,18 @@ fn test_whitelisted_overproducer_does_not_affect_nonwhitelisted() {
         });
 
         // 4 validators: 3 whitelisted, 1 non-whitelisted
-        let validators = vec![1u64, 2u64, 3u64, 4u64];
-        let whitelisted = vec![1u64, 2u64, 3u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3), H160::from_low_u64_be(4)];
+        let whitelisted = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2), H160::from_low_u64_be(3)];
 
         // Whitelisted validators produce most blocks (15 each)
         // Non-whitelisted produces minimal (2 blocks)
         for _ in 0..15 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
-            ExternalValidatorsRewards::note_block_author(3);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
         for _ in 0..2 {
-            ExternalValidatorsRewards::note_block_author(4);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(4));
         }
 
         ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
@@ -3227,12 +3227,12 @@ fn test_whitelisted_overproducer_does_not_affect_nonwhitelisted() {
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
 
         assert_eq!(
-            era_rewards.individual.get(&4),
+            era_rewards.individual.get(&H160::from_low_u64_be(4)),
             Some(&1888),
             "Non-whitelisted validator should get fair liveness/base share regardless of whitelisted production"
         );
         assert_eq!(
-            era_rewards.individual.get(&1).copied().unwrap_or(0),
+            era_rewards.individual.get(&H160::from_low_u64_be(1)).copied().unwrap_or(0),
             0,
             "Whitelisted validator 1 should get 0 points"
         );
@@ -3255,8 +3255,8 @@ fn test_whitelisted_majority_fair_share_calculation() {
         });
 
         // 10 validators: 9 whitelisted, 1 non-whitelisted
-        let validators: Vec<u64> = (1..=10).collect();
-        let whitelisted: Vec<u64> = (1..=9).collect();
+        let validators: Vec<H160> = (1..=10).map(H160::from_low_u64_be).collect();
+        let whitelisted: Vec<H160> = (1..=9).map(H160::from_low_u64_be).collect();
 
         // All validators produce equal blocks (3 each = 30 total)
         for v in validators.iter() {
@@ -3284,7 +3284,7 @@ fn test_whitelisted_majority_fair_share_calculation() {
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
 
         assert_eq!(
-            era_rewards.individual.get(&10),
+            era_rewards.individual.get(&H160::from_low_u64_be(10)),
             Some(&960),
             "Non-whitelisted validator should get proper points based on total validator count"
         );
@@ -3293,7 +3293,7 @@ fn test_whitelisted_majority_fair_share_calculation() {
         // Verify no whitelisted validators got points
         for v in 1..=9u64 {
             assert_eq!(
-                era_rewards.individual.get(&v).copied().unwrap_or(0),
+                era_rewards.individual.get(&H160::from_low_u64_be(v)).copied().unwrap_or(0),
                 0,
                 "Whitelisted validator {} should have 0 points",
                 v
@@ -3319,7 +3319,7 @@ fn test_large_block_count_no_overflow() {
             });
         });
 
-        let validators = vec![1u64];
+        let validators = vec![H160::from_low_u64_be(1)];
 
         // Simulate a very large number of blocks (near practical limits)
         // In reality, with 6-second blocks and 1-hour sessions, max ~600 blocks
@@ -3328,7 +3328,7 @@ fn test_large_block_count_no_overflow() {
 
         // Directly set BlocksAuthoredInSession to avoid loop overhead
         pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::insert(
-            1u64,
+            H160::from_low_u64_be(1),
             large_block_count,
         );
         // Also need to set BlocksProducedInEra for consistency
@@ -3374,7 +3374,7 @@ fn test_saturating_arithmetic_protection() {
             });
         });
 
-        let validators = vec![1u64];
+        let validators = vec![H160::from_low_u64_be(1)];
 
         // Set blocks to a value that would overflow if multiplied naively
         // credited_blocks × base_points could overflow u32 if both are large
@@ -3382,7 +3382,7 @@ fn test_saturating_arithmetic_protection() {
         let extreme_block_count = u32::MAX / 320 - 1; // Just under overflow threshold
 
         pallet_external_validators_rewards::BlocksAuthoredInSession::<Test>::insert(
-            1u64,
+            H160::from_low_u64_be(1),
             extreme_block_count,
         );
         pallet_external_validators_rewards::BlocksProducedInEra::<Test>::insert(
@@ -3420,12 +3420,12 @@ fn test_multiple_sessions_accumulate_to_era_correctly() {
             mock.era_inflation = Some(base_inflation);
         });
 
-        let validators = vec![1u64, 2u64];
+        let validators = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(2)];
 
         // Session 1: Equal blocks
         for _ in 0..50 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
         ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
         let points_after_s1 =
@@ -3439,8 +3439,8 @@ fn test_multiple_sessions_accumulate_to_era_correctly() {
 
         // Session 2: More blocks
         for _ in 0..100 {
-            ExternalValidatorsRewards::note_block_author(1);
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
         ExternalValidatorsRewards::award_session_performance_points(2, validators.clone(), vec![]);
         let points_after_s2 =
@@ -3454,10 +3454,10 @@ fn test_multiple_sessions_accumulate_to_era_correctly() {
 
         // Session 3: Uneven blocks
         for _ in 0..80 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
         for _ in 0..20 {
-            ExternalValidatorsRewards::note_block_author(2);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
         ExternalValidatorsRewards::award_session_performance_points(3, validators.clone(), vec![]);
         let points_after_s3 =
@@ -3514,11 +3514,11 @@ fn test_era_end_uses_correct_era_blocks_not_session() {
             mock.era_inflation = Some(base_inflation);
         });
 
-        let validators = vec![1u64];
+        let validators = vec![H160::from_low_u64_be(1)];
 
         // Author 600 blocks (full expected) across the era
         for _ in 0..600 {
-            ExternalValidatorsRewards::note_block_author(1);
+            ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
         // Award session points

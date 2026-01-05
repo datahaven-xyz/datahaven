@@ -1711,9 +1711,13 @@ parameter_types! {
 mod tests {
     use super::*;
     use crate::SnowbridgeSystemV2;
-    use dhp_bridge::{EL_MESSAGE_ID, InboundCommand, Message as BridgeMessage, Payload as BridgePayload};
+    use dhp_bridge::{
+        InboundCommand, Message as BridgeMessage, Payload as BridgePayload, EL_MESSAGE_ID,
+    };
     use frame_support::assert_ok;
-    use snowbridge_inbound_queue_primitives::v2::{EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload};
+    use snowbridge_inbound_queue_primitives::v2::{
+        EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload,
+    };
     use sp_core::H160;
     use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;

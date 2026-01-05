@@ -40,13 +40,6 @@ pub mod dynamic_params {
         /// and then change it later via governance, to the actual address of the deployed contract.
         pub static EthereumGatewayAddress: H160 = H160::repeat_byte(0x0);
 
-        #[codec(index = 1)]
-        #[allow(non_upper_case_globals)]
-        /// Set the initial address of the Rewards Registry contract on Ethereum.
-        /// The fact that this is a parameter means that we can set it initially to the zero address,
-        /// and then change it later via governance, to the actual address of the deployed contract.
-        pub static RewardsRegistryAddress: H160 = H160::repeat_byte(0x0);
-
         #[codec(index = 2)]
         #[allow(non_upper_case_globals)]
         /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("updateRewardsMerkleRoot(bytes32)")

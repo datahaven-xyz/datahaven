@@ -48,7 +48,7 @@ describe("StorageHub Basic", () => {
     const connectors = suite.getStorageHubTestConnectors();
     const chainSpec = await connectors.dhApi.constants.System.Version();
     expect(chainSpec).toBeDefined();
-    expect(chainSpec.spec_name).toBe("datahaven-stagenet-runtime");
+    expect(chainSpec.spec_name).toBe("datahaven-stagenet");
   });
 
   it("should get current block number", async () => {

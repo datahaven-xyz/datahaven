@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { CROSS_CHAIN_TIMEOUTS, logger } from "utils";
+import { ANVIL_FUNDED_ACCOUNTS, CROSS_CHAIN_TIMEOUTS, logger } from "utils";
 import { type Address, decodeEventLog, type Hex, isAddressEqual, padHex } from "viem";
 import validatorSet from "../configs/validator-set.json";
 import { BaseTestSuite } from "../framework";
@@ -135,7 +135,22 @@ describe("Rewards Message Flow", () => {
     expect(rewardPoints).toBeDefined();
     expect(rewardPoints.total).toBeGreaterThan(0);
 
-    const [validatorAccount, points] = rewardPoints.individual[0];
+    const relayerEthAccount = ANVIL_FUNDED_ACCOUNTS[1].publicKey.toLowerCase();
+    const pick = rewardPoints.individual.find(([account]: [any, any]) => {
+      const v = validatorSet.validators.find(
+        (cfg) => cfg.solochainAddress.toLowerCase() === String(account).toLowerCase()
+      );
+      return v && v.publicKey.toLowerCase() !== relayerEthAccount;
+    });
+    const [validatorAccount, points] = (pick ?? rewardPoints.individual[0]) as [any, any];
+    const match = validatorSet.validators.find(
+      (v) => v.solochainAddress.toLowerCase() === String(validatorAccount).toLowerCase()
+    );
+    if (!match) {
+      throw new Error(
+        `Validator config not found for solochain address ${String(validatorAccount)}`
+      );
+    }
 
     // Generate merkle proof via runtime API
     const merkleProof = await dhApi.apis.ExternalValidatorsRewardsApi.generate_rewards_merkle_proof(
@@ -146,32 +161,8 @@ describe("Rewards Message Flow", () => {
 
     // Get validator credentials and create operator wallet
     const factory = suite.getConnectorFactory();
-    const match = validatorSet.validators.find(
-      (v) => v.solochainAddress.toLowerCase() === String(validatorAccount).toLowerCase()
-    );
     const operatorWallet = factory.createWalletClient(match!.privateKey as `0x${string}`);
     const resolvedOperator: Address = operatorWallet.account.address;
-
-    // Ensure the ServiceManager maps the operator ETH address to the solochain address
-    const expectedSolochain = String(validatorAccount) as Address;
-    const mappedSolochain = (await publicClient.readContract({
-      address: serviceManager.address as Address,
-      abi: serviceManager.abi,
-      functionName: "validatorEthAddressToSolochainAddress",
-      args: [resolvedOperator]
-    })) as Address;
-
-    if (mappedSolochain.toLowerCase() !== expectedSolochain.toLowerCase()) {
-      const updateTx = await operatorWallet.writeContract({
-        address: serviceManager.address as Address,
-        abi: serviceManager.abi,
-        functionName: "updateSolochainAddressForValidator",
-        args: [expectedSolochain],
-        chain: null
-      });
-      const updateReceipt = await publicClient.waitForTransactionReceipt({ hash: updateTx });
-      expect(updateReceipt.status).toBe("success");
-    }
 
     // Ensure claim not already recorded
     const claimedBefore = (await publicClient.readContract({

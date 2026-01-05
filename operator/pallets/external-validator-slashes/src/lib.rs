@@ -102,8 +102,6 @@ pub mod pallet {
         /// We injected a slash
         SlashInjected { slash_id: T::SlashId, era: u32 },
         /// Number of slashes processed
-        SlashesProccessed { number: u32 },
-        /// Number of slashes processed
         SlashAddedToQueue { number: u32, era: u32 },
     }
 
@@ -371,8 +369,6 @@ pub mod pallet {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
 
-            Self::deposit_event(Event::<T>::SlashesProccessed { number: processed });
-
             T::WeightInfo::process_slashes_queue(processed)
         }
     }
@@ -579,10 +575,12 @@ impl<T: Config> Pallet<T> {
 
         UnreportedSlashesQueue::<T>::mutate(|queue| queue.append(&mut slashes));
 
-        Self::deposit_event(Event::<T>::SlashAddedToQueue {
-            number: len as u32,
-            era: active_era,
-        });
+        if len > 0 {
+            Self::deposit_event(Event::<T>::SlashAddedToQueue {
+                number: len as u32,
+                era: active_era,
+            });
+        }
     }
 
     /// Returns number of slashes that were sent to ethereum.

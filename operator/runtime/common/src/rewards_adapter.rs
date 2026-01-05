@@ -177,9 +177,13 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
         log::debug!(target: LOG_TARGET, "Reward distribution remainder (dust): {} tokens", remainder);
     }
 
+    // Sort strategies by address (required by EigenLayer)
+    let mut strategies_and_multipliers = C::strategies_and_multipliers();
+    strategies_and_multipliers.sort_by_key(|(strategy, _)| *strategy);
+
     let calldata = encode_rewards_calldata(
         whave_token_address,
-        &C::strategies_and_multipliers(),
+        &strategies_and_multipliers,
         &operator_rewards,
         rewards_utils.era_start_timestamp,
         C::rewards_duration(),

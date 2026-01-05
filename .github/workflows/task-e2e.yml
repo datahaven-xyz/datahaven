@@ -48,7 +48,6 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-      - run: ls -lh
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: test/.bun-version

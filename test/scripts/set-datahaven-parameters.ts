@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 import { datahaven } from "@polkadot-api/descriptors";
 import { createClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
 import { getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
 import { parseJsonToParameters } from "utils/types";
 

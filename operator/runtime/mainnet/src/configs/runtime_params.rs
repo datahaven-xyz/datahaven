@@ -22,7 +22,7 @@ use sp_runtime::{BoundedVec, Perbill};
 use sp_std::vec;
 
 use crate::configs::storagehub::{ChallengeTicksTolerance, ReplicationTargetType, SpMinDeposit};
-use crate::currency::{GIGAWEI, HAVE};
+use crate::currency::{GIGAWEI, HAVE, SUPPLY_FACTOR};
 use datahaven_runtime_common::{Balance, BlockNumber};
 
 #[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
@@ -338,10 +338,21 @@ pub mod dynamic_params {
 
         #[codec(index = 37)]
         #[allow(non_upper_case_globals)]
-        /// Targeted annual inflation rate.
-        /// Default: 5% per annum
-        /// This rate is divided across all eras in a year to calculate per-era inflation.
-        pub static InflationTargetedAnnualRate: Perbill = Perbill::from_percent(5);
+        /// Fixed annual inflation amount in base units (wei).
+        ///
+        /// This implements **linear (non-compounding) inflation** where a fixed amount of tokens
+        /// is minted annually, regardless of current total supply. This ensures:
+        /// - Consistent, predictable rewards for validators and stakers
+        /// - Publicly auditable emissions on the blockchain
+        /// - 5% of genesis supply, not 5% of current supply
+        ///
+        /// Formula: 5_000_000 * HAVE * SUPPLY_FACTOR
+        /// - Base: 5M HAVE annual inflation (5% of 100M base supply)
+        /// - Mainnet (SUPPLY_FACTOR=100): 500M HAVE annual (5% of 10B)
+        ///
+        /// The annual amount is divided equally across all eras in a year (~1461 eras with 6-hour eras).
+        /// Per-era inflation ≈ 342,231 HAVE (mainnet)
+        pub static InflationAnnualAmount: Balance = 5_000_000 * HAVE * SUPPLY_FACTOR;
 
         #[codec(index = 38)]
         #[allow(non_upper_case_globals)]

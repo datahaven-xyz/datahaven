@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 // EigenLayer imports
-import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {
     IRewardsCoordinatorTypes

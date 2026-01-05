@@ -18,53 +18,64 @@
 //!
 //! This module provides reusable implementations for calculating and minting
 //! inflation-based rewards that can be shared across different runtime configurations.
+//!
+//! ## Linear (Non-Compounding) Inflation Model
+//!
+//! DataHaven uses a **linear inflation model** where a fixed amount of tokens (500M HAVE)
+//! is minted annually, regardless of the current total supply. This ensures:
+//! - Consistent, predictable rewards for validators and stakers
+//! - Publicly auditable emissions on the blockchain
+//! - Non-compounding inflation (5% of genesis supply, not current supply)
+//!
+//! The annual inflation amount is divided equally across all eras in a year.
 
 use crate::constants::time::MILLISECONDS_PER_YEAR;
-use frame_support::traits::{fungible::Inspect, Get};
+use frame_support::traits::Get;
 use sp_runtime::Perbill;
 
-/// Generic era inflation provider that calculates per-era inflation based on annual inflation rate.
+/// Generic era inflation provider that calculates per-era inflation based on a fixed annual amount.
+///
+/// This implements **linear (non-compounding) inflation** where the annual inflation amount
+/// is fixed (e.g., 500M tokens), regardless of current total supply. This is in contrast to
+/// compounding inflation where the rate is applied to the current supply.
 ///
 /// # Type Parameters
-/// * `R` - Runtime type that provides access to necessary pallets and configuration
-/// * `Balances` - Pallet implementing fungible::Inspect for total issuance
-/// * `AnnualRate` - Get<Perbill> providing the target annual inflation rate
+/// * `AnnualAmount` - Get<u128> providing the fixed annual inflation amount in base units
 /// * `SessionsPerEra` - Get<u32> providing the number of sessions per era
 /// * `BlocksPerSession` - Get<u32> providing the number of blocks per session
 /// * `MillisecsPerBlock` - Get<u64> providing milliseconds per block
 ///
 /// # Calculation
-/// 1. Gets total token issuance from Balances pallet
-/// 2. Retrieves annual inflation rate from runtime parameters
-/// 3. Calculates eras per year based on era duration
-/// 4. Divides annual inflation by eras per year to get per-era amount
+/// 1. Retrieves the fixed annual inflation amount (e.g., 500M HAVE)
+/// 2. Calculates eras per year based on era duration
+/// 3. Divides annual inflation by eras per year to get per-era amount
+///
+/// # Example
+/// With 500M annual inflation and ~1461 eras per year (6-hour eras):
+/// Per-era inflation ≈ 342,231 HAVE
 pub struct ExternalRewardsEraInflationProvider<
-    Balances,
-    AnnualRate,
+    AnnualAmount,
     SessionsPerEra,
     BlocksPerSession,
     MillisecsPerBlock,
 >(
     sp_std::marker::PhantomData<(
-        Balances,
-        AnnualRate,
+        AnnualAmount,
         SessionsPerEra,
         BlocksPerSession,
         MillisecsPerBlock,
     )>,
 );
 
-impl<Balances, AnnualRate, SessionsPerEra, BlocksPerSession, MillisecsPerBlock> Get<u128>
+impl<AnnualAmount, SessionsPerEra, BlocksPerSession, MillisecsPerBlock> Get<u128>
     for ExternalRewardsEraInflationProvider<
-        Balances,
-        AnnualRate,
+        AnnualAmount,
         SessionsPerEra,
         BlocksPerSession,
         MillisecsPerBlock,
     >
 where
-    Balances: Inspect<crate::AccountId, Balance = u128>,
-    AnnualRate: Get<Perbill>,
+    AnnualAmount: Get<u128>,
     SessionsPerEra: Get<u32>,
     BlocksPerSession: Get<u32>,
     MillisecsPerBlock: Get<u64>,
@@ -72,12 +83,14 @@ where
     fn get() -> u128 {
         use sp_runtime::traits::Zero;
 
-        let total_issuance = Balances::total_issuance();
-        if total_issuance.is_zero() {
+        let annual_inflation_amount = AnnualAmount::get();
+        if annual_inflation_amount.is_zero() {
+            log::warn!(
+                target: "ext_validators_rewards",
+                "Annual inflation amount is zero, no inflation will be minted"
+            );
             return 0;
         }
-
-        let annual_inflation_rate = AnnualRate::get();
 
         // Calculate eras per year
         // - SessionsPerEra: number of sessions in an era
@@ -110,14 +123,16 @@ where
             return 0;
         }
 
-        // Calculate per-era inflation
-        let annual_inflation = annual_inflation_rate.mul_floor(total_issuance);
-        let per_era_inflation = annual_inflation.saturating_div(eras_per_year);
+        // Calculate per-era inflation from the fixed annual amount
+        // This is linear (non-compounding) - the same absolute amount each year
+        let per_era_inflation = annual_inflation_amount.saturating_div(eras_per_year);
 
         log::info!(
             target: "ext_validators_rewards",
-            "Per-era inflation: {}",
-            per_era_inflation
+            "Linear inflation: {} annual, {} per-era ({} eras/year)",
+            annual_inflation_amount,
+            per_era_inflation,
+            eras_per_year
         );
 
         per_era_inflation
@@ -348,6 +363,7 @@ mod tests {
         BALANCES.with(|b| *b.borrow().get(who).unwrap_or(&0))
     }
 
+    #[allow(dead_code)]
     fn set_total_issuance(amount: u128) {
         TOTAL_ISSUANCE.with(|v| *v.borrow_mut() = amount);
     }
@@ -355,105 +371,104 @@ mod tests {
     mod era_inflation_provider {
         use super::*;
 
+        // Constants for linear inflation testing
+        // 1 HAVE = 10^18 wei (18 decimals)
+        const HAVE: u128 = 1_000_000_000_000_000_000;
+        // 500 million HAVE annual inflation (5% of 10B genesis supply)
+        const ANNUAL_500M_HAVE: u128 = 500_000_000 * HAVE;
+        // 1 billion HAVE annual inflation (for comparison tests)
+        const ANNUAL_1B_HAVE: u128 = 1_000_000_000 * HAVE;
+
         parameter_types! {
-            pub const AnnualRate5Percent: Perbill = Perbill::from_percent(5);
-            pub const AnnualRate10Percent: Perbill = Perbill::from_percent(10);
+            // Fixed annual inflation amounts (linear, non-compounding)
+            pub const AnnualInflation500M: u128 = ANNUAL_500M_HAVE;
+            pub const AnnualInflation1B: u128 = ANNUAL_1B_HAVE;
+            pub const ZeroInflation: u128 = 0;
             pub const SessionsPerEra: u32 = 6;
             pub const BlocksPerSession: u32 = 600;
             pub const MillisecsPerBlock: u64 = 6000;
         }
 
         type TestInflationProvider = ExternalRewardsEraInflationProvider<
-            MockBalances,
-            AnnualRate5Percent,
+            AnnualInflation500M,
             SessionsPerEra,
             BlocksPerSession,
             MillisecsPerBlock,
         >;
 
-        type TestInflationProvider10Pct = ExternalRewardsEraInflationProvider<
-            MockBalances,
-            AnnualRate10Percent,
+        type TestInflationProvider1B = ExternalRewardsEraInflationProvider<
+            AnnualInflation1B,
+            SessionsPerEra,
+            BlocksPerSession,
+            MillisecsPerBlock,
+        >;
+
+        type ZeroInflationProvider = ExternalRewardsEraInflationProvider<
+            ZeroInflation,
             SessionsPerEra,
             BlocksPerSession,
             MillisecsPerBlock,
         >;
 
         #[test]
-        fn returns_zero_when_total_issuance_is_zero() {
-            reset_balances();
-            set_total_issuance(0);
-            assert_eq!(TestInflationProvider::get(), 0);
+        fn returns_zero_when_annual_amount_is_zero() {
+            // Linear inflation: zero annual amount means zero per-era inflation
+            assert_eq!(ZeroInflationProvider::get(), 0);
         }
 
         #[test]
-        fn calculates_correct_per_era_inflation_5_percent() {
-            reset_balances();
-            // 1 billion tokens total issuance
-            let total_issuance = 1_000_000_000_000_000_000u128;
-            set_total_issuance(total_issuance);
-
+        fn calculates_correct_per_era_linear_inflation_500m() {
             // With 6 sessions per era, 600 blocks per session, 6000ms per block:
             // millisecs_per_era = 6 * 600 * 6000 = 21,600,000ms = 6 hours
             // eras_per_year = 31,557,600,000 / 21,600,000 = 1461 eras
-            // annual_inflation = 5% of 1B = 50M
-            // per_era_inflation = 50M / 1461 ≈ 34,223,312
+            // annual_inflation = 500M HAVE (fixed, linear)
+            // per_era_inflation = 500M HAVE / 1461 ≈ 342,231 HAVE
 
             let per_era_inflation = TestInflationProvider::get();
 
-            // Expected: 5% of total_issuance / number of eras per year
-            // With the calculation: total_issuance * rate * millisecs_per_era / MILLISECONDS_PER_YEAR
-            let expected = 34_223_134_839_151u128;
+            // Expected: 500M HAVE / 1461 eras
+            // = 500_000_000 * 10^18 / 1461 = 342,231,348,391,512,662,559,890 wei
+            let expected = 342_231_348_391_512_662_559_890u128;
             assert_eq!(per_era_inflation, expected);
         }
 
         #[test]
-        fn calculates_correct_per_era_inflation_10_percent() {
-            reset_balances();
-            let total_issuance = 1_000_000_000_000_000_000u128;
-            set_total_issuance(total_issuance);
+        fn calculates_correct_per_era_linear_inflation_1b() {
+            let per_era_inflation = TestInflationProvider1B::get();
 
-            let per_era_inflation = TestInflationProvider10Pct::get();
-
-            // Expected: 10% of total_issuance / number of eras per year
-            let expected = 68_446_269_678_302u128;
+            // Expected: 1B HAVE / 1461 eras (double the 500M case)
+            // = 1_000_000_000 * 10^18 / 1461 = 684,462,696,783,025,325,119,780 wei
+            let expected = 684_462_696_783_025_325_119_780u128;
             assert_eq!(per_era_inflation, expected);
         }
 
         #[test]
-        fn scales_with_total_issuance() {
-            reset_balances();
+        fn linear_inflation_does_not_scale_with_total_issuance() {
+            // This is the key test for linear (non-compounding) inflation:
+            // The per-era inflation should be the SAME regardless of current total supply
 
-            // Test with 100M tokens
-            set_total_issuance(100_000_000_000_000_000u128);
-            let inflation_100m = TestInflationProvider::get();
+            // Get inflation with any total issuance (it doesn't matter for linear inflation)
+            let inflation = TestInflationProvider::get();
 
-            // Test with 1B tokens (10x more)
-            set_total_issuance(1_000_000_000_000_000_000u128);
-            let inflation_1b = TestInflationProvider::get();
+            // The inflation should always be 500M HAVE / 1461 eras
+            // regardless of how many tokens are in circulation
+            let expected = 342_231_348_391_512_662_559_890u128;
+            assert_eq!(inflation, expected);
 
-            // Inflation should scale proportionally (allow 1 unit tolerance for rounding)
-            let expected = inflation_100m * 10;
-            assert!(
-                inflation_1b >= expected.saturating_sub(1) && inflation_1b <= expected + 1,
-                "Expected inflation to be ~{}, got {}",
-                expected,
-                inflation_1b
-            );
+            // Verify it's approximately 342,231 HAVE per era
+            // (500M HAVE / 1461 eras ≈ 342,231 HAVE)
+            let per_era_in_have = inflation / HAVE;
+            assert!(per_era_in_have >= 342_230 && per_era_in_have <= 342_232);
         }
 
         #[test]
         fn handles_different_era_durations() {
-            reset_balances();
-            set_total_issuance(1_000_000_000_000_000_000u128);
-
             parameter_types! {
                 pub const LongEraSessionsPerEra: u32 = 12; // Double the sessions
             }
 
             type LongEraProvider = ExternalRewardsEraInflationProvider<
-                MockBalances,
-                AnnualRate5Percent,
+                AnnualInflation500M,
                 LongEraSessionsPerEra,
                 BlocksPerSession,
                 MillisecsPerBlock,
@@ -463,9 +478,36 @@ mod tests {
             let long_era = LongEraProvider::get();
 
             // Longer eras should have roughly 2x the inflation per era
-            // (since there are half as many eras per year)
+            // (since there are half as many eras per year, but the annual total is the same)
             assert!(long_era > standard_era * 19 / 10); // Allow some rounding tolerance
             assert!(long_era < standard_era * 21 / 10);
+        }
+
+        #[test]
+        fn annual_inflation_sums_correctly() {
+            // Verify that per-era inflation * eras_per_year ≈ annual inflation
+            let per_era = TestInflationProvider::get();
+
+            // eras_per_year = 31,557,600,000 / 21,600,000 = 1461
+            let eras_per_year: u128 = 1461;
+            let calculated_annual = per_era * eras_per_year;
+
+            // Should be very close to 500M HAVE (within rounding error)
+            let annual_500m = ANNUAL_500M_HAVE;
+
+            // Allow up to 1461 wei difference due to integer division rounding
+            let diff = if calculated_annual > annual_500m {
+                calculated_annual - annual_500m
+            } else {
+                annual_500m - calculated_annual
+            };
+
+            assert!(
+                diff <= eras_per_year,
+                "Annual sum differs by more than expected rounding error: diff={}, expected max={}",
+                diff,
+                eras_per_year
+            );
         }
     }
 

@@ -1,9 +1,9 @@
 // @ts-nocheck
 
-import { createHash } from "crypto";
-import type { Dirent } from "fs";
-import { readdirSync, readFileSync } from "fs";
-import path from "path";
+import { createHash } from "node:crypto";
+import type { Dirent } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 /**
  * Recursively walks a directory and feeds all file contents into a SHA1 hash.

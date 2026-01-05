@@ -33,7 +33,7 @@ jobs:
           skip-libpq: true
 
       - name: Set build flags
-        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+        run: echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
       - name: Build node binary
         run: |

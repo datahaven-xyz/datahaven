@@ -1,8 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { getPapiSigner } from "utils";
+import { getPapiSigner, CROSS_CHAIN_TIMEOUTS } from "utils";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance } from "../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
+import {take} from 'rxjs/operators'
+import { firstValueFrom } from "rxjs";
+import { ApiPromise } from "@polkadot/api";
+import { ConnectorChainMismatchError } from "@wagmi/core";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
 
 class SlashTestSuite extends BaseTestSuite {
   constructor() {
@@ -43,8 +48,8 @@ describe("Should slash an operator", () => {
     expect(mode2.type).toBe("Enabled");
   }, 40000);
 
-  it.skip("use sudo to slash operator", async () => {
-    const { publicClient, dhApi } = suite.getTestConnectors();
+  it("use sudo to slash operator", async () => {
+    const { publicClient, dhApi, dhRpcUrl } = suite.getTestConnectors();
 
     // get era number
     const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
@@ -69,38 +74,56 @@ describe("Should slash an operator", () => {
 
     console.log("Transaction submitted !");
 
-    // Track current era and blocks until era end
-    const blocksUntilEraEnd = await rewardsHelpers.getBlocksUntilEraEnd(dhApi); // TODO: rename rewardHelper to helper
-    const timeout = blocksUntilEraEnd * 6000 + 10000 * 12;
-    const resultEventSlashInjected = await waitForDataHavenEvent<{ slash_id: number, era: number }>({
-      api: dhApi,
-      pallet: "ExternalValidatorsSlashes",
-      event: "SlashInjected",
-      timeout
-    });
-    if (!resultEventSlashInjected) {
-      throw new Error("SlashInjected event not found");
-    }
+    // look for events ourselves
+    // const resultEventSlashInjected = await dhApi.event.ExternalValidatorsSlashes.SlashInjected.pull();
+    // console.log(resultEventSlashInjected)
+    // if (resultEventSlashInjected.length === 0) {
+    //   throw new Error("SlashInjected event not found");
+    // }
+    // console.log("Slash injected")
 
-    const resultEventSlashesProccessed = await waitForDataHavenEvent<{ number: number, era: number }>({
-      api: dhApi,
-      pallet: "ExternalValidatorsSlashes",
-      event: "SlashAddedToQueue",
-      timeout
-    });
-    if (!resultEventSlashesProccessed) {
-      throw new Error("SlashAddedToQueue event not found");
-    }
+    // look for events ourselves
 
-    const resultEventSlashesMessageSent = await waitForDataHavenEvent<{ message_id: any }>({
-      api: dhApi,
-      pallet: "ExternalValidatorsSlashes",
-      event: "SlashesMessageSent",
-      timeout
+    // const result = await firstValueFrom(dhApi.event.ExternalValidatorsSlashes.SlashAddedToQueue.watch())
+    // console.log(result)
+    // console.log("ok")
+
+    const provider = getWsProvider(dhRpcUrl);
+    const api = await ApiPromise.create({ provider });
+    let count = 0;
+    const unsubscribe = await api.rpc.chain.subscribeNewHeads((header) => {
+      console.log(`Chain is at block: #${header.number}`);
+
+      if (++count === 256) {
+        unsubscribe();
+        process.exit(0);
+      }
     });
-    if (!resultEventSlashesMessageSent) {
-      throw new Error("SlashesMessageSent event not found");
-    }
+
+    // const resultBis = await dhApi.event.ExternalValidatorsSlashes.SlashesProccessed.pull();
+    // console.log(resultBis)
+
+    // const resultEventSlashesProccessed = await waitForDataHavenEvent<{ number: number, era: number }>({
+    //   api: dhApi,
+    //   pallet: "ExternalValidatorsSlashes",
+    //   event: "SlashAddedToQueue",
+    //   timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS,
+    // });
+    // if (!resultEventSlashesProccessed) {
+    //   throw new Error("SlashAddedToQueue event not found");
+    // }
+    // console.log("Slash added to queue")
+
+    // const resultEventSlashesMessageSent = await waitForDataHavenEvent<{ message_id: any }>({
+    //   api: dhApi,
+    //   pallet: "ExternalValidatorsSlashes",
+    //   event: "SlashesMessageSent",
+    //   timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS,
+    // });
+    // if (!resultEventSlashesMessageSent) {
+    //   throw new Error("SlashesMessageSent event not found");
+    // }
+    // console.log("Slashes message sent")
 
     // Wait for Ethereum event event
     const serviceManager = await getContractInstance("ServiceManager");

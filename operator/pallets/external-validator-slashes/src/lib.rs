@@ -579,12 +579,10 @@ impl<T: Config> Pallet<T> {
 
         UnreportedSlashesQueue::<T>::mutate(|queue| queue.append(&mut slashes));
 
-        if len > 0 {
-            Self::deposit_event(Event::<T>::SlashAddedToQueue {
-                number: len as u32,
-                era: active_era,
-            });
-        }
+        Self::deposit_event(Event::<T>::SlashAddedToQueue {
+            number: len as u32,
+            era: active_era,
+        });
     }
 
     /// Returns number of slashes that were sent to ethereum.

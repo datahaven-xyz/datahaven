@@ -1,44 +1,73 @@
 # DataHaven 🫎
 
-An EVM-compatible Substrate blockchain secured by EigenLayer, bridging Ethereum and Substrate ecosystems through trustless cross-chain communication.
+AI-First Decentralized Storage secured by EigenLayer — a verifiable storage network for AI training data, machine learning models, and Web3 applications.
 
 ## Overview
 
-DataHaven is an EigenLayer Actively Validated Service (AVS) that combines:
+DataHaven is a decentralized storage and retrieval network designed for applications that need verifiable, production-scale data storage. Built on [StorageHub](https://github.com/Moonsong-Labs/storage-hub) and secured by EigenLayer's restaking protocol, DataHaven separates storage from verification: providers store data off-chain while cryptographic commitments are anchored on-chain for tamper-evident verification.
 
-- **EVM Compatibility**: Full Ethereum support via Frontier pallets for smart contracts and dApps
-- **EigenLayer Security**: Validator set secured by Ethereum's economic security through restaking
-- **Cross-chain Bridge**: Seamless asset and message transfers with Ethereum via Snowbridge
-- **Dynamic Validators**: Operator registry managed on-chain through EigenLayer contracts
-- **Performance Rewards**: Validator incentives distributed cross-chain from Ethereum
+**Core Capabilities:**
+
+- **Verifiable Storage**: Files are chunked, hashed into Merkle trees, and committed on-chain — enabling cryptographic proof that data hasn't been tampered with
+- **Provider Network**: Main Storage Providers (MSPs) serve data with competitive offerings, while Backup Storage Providers (BSPs) ensure redundancy through decentralized replication with on-chain slashing for failed proof challenges
+- **EigenLayer Security**: Validator set secured by Ethereum restaking — DataHaven validators register as EigenLayer operators with slashing for misbehavior
+- **EVM Compatibility**: Full Ethereum support via Frontier pallets for smart contracts and familiar Web3 tooling
+- **Cross-chain Bridge**: Native, trustless bridging with Ethereum via Snowbridge for tokens and messages
 
 ## Architecture
 
-DataHaven bridges two major blockchain ecosystems:
+DataHaven combines EigenLayer's shared security with StorageHub's decentralized storage infrastructure:
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│                       Ethereum (L1)                           │
-│  ┌────────────────────────────────────────────────────────┐   │
-│  │  EigenLayer AVS Contracts                              │   │
-│  │  • DataHavenServiceManager (operator lifecycle)        │   │
-│  │  • RewardsRegistry (performance tracking)              │   │
-│  └────────────────────────────────────────────────────────┘   │
-│                            ↕                                  │
-│                  Snowbridge Protocol                          │
-└───────────────────────────────────────────────────────────────┘
-                             ↕
-┌───────────────────────────────────────────────────────────────┐
-│                    DataHaven (Substrate)                      │
-│  ┌────────────────────────────────────────────────────────┐   │
-│  │  Custom Pallets                                        │   │
-│  │  • External Validators (sync validator set)            │   │
-│  │  • Native Transfer (cross-chain tokens)                │   │
-│  │  • Rewards (distribute validator rewards)              │   │
-│  │  • Frontier (EVM compatibility)                        │   │
-│  └────────────────────────────────────────────────────────┘   │
-└───────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Ethereum (L1)                                  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  EigenLayer AVS Contracts                                             │  │
+│  │  • DataHavenServiceManager (validator lifecycle & slashing)           │  │
+│  │  • RewardsRegistry (validator performance & rewards)                  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                    ↕                                        │
+│                          Snowbridge Protocol                                │
+│                    (trustless cross-chain messaging)                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     ↕
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          DataHaven (Substrate)                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  StorageHub Pallets                     DataHaven Pallets             │  │
+│  │  • file-system (file operations)        • External Validators         │  │
+│  │  • providers (MSP/BSP registry)         • Native Transfer             │  │
+│  │  • proofs-dealer (challenge/verify)     • Rewards                     │  │
+│  │  • payment-streams (storage payments)   • Frontier (EVM)              │  │
+│  │  • bucket-nfts (bucket ownership)                                     │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     ↕
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Storage Provider Network                             │
+│  ┌─────────────────────────────┐    ┌─────────────────────────────┐        │
+│  │  Main Storage Providers     │    │  Backup Storage Providers   │        │
+│  │  (MSP)                      │    │  (BSP)                      │        │
+│  │  • User-selected            │    │  • Network-assigned         │        │
+│  │  • Serve read requests      │    │  • Replicate data           │        │
+│  │  • Anchor bucket roots      │    │  • Proof challenges         │        │
+│  │  • MSP Backend service      │    │  • On-chain slashing        │        │
+│  └─────────────────────────────┘    └─────────────────────────────┘        │
+│  ┌─────────────────────────────┐    ┌─────────────────────────────┐        │
+│  │  Indexer                    │    │  Fisherman                  │        │
+│  │  • Index on-chain events    │    │  • Audit storage proofs     │        │
+│  │  • Query storage metadata   │    │  • Trigger challenges       │        │
+│  │  • PostgreSQL backend       │    │  • Detect misbehavior       │        │
+│  └─────────────────────────────┘    └─────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### How Storage Works
+
+1. **Upload**: User selects an MSP, creates a bucket, and uploads files. Files are chunked (8KB default), hashed into Merkle trees, and the root is anchored on-chain.
+2. **Replication**: The MSP coordinates with BSPs to replicate data across the network based on the bucket's replication policy.
+3. **Retrieval**: MSP returns files with Merkle proofs that users verify against on-chain commitments.
+4. **Verification**: BSPs face periodic proof challenges — failure to prove data custody results in on-chain slashing via StorageHub pallets.
 
 ## Repository Structure
 
@@ -96,6 +125,7 @@ This deploys a complete environment including:
 - **Ethereum network**: 2x EL clients (reth), 2x CL clients (lodestar)
 - **Block explorers**: Blockscout (optional), Dora consensus explorer
 - **DataHaven node**: Single validator with fast block times
+- **Storage providers**: MSP and BSP nodes for decentralized storage
 - **AVS contracts**: Deployed and configured on Ethereum
 - **Snowbridge relayers**: Bidirectional message passing
 
@@ -137,18 +167,32 @@ bun generate:types        # Regenerate runtime types
 
 ## Key Features
 
+### Verifiable Decentralized Storage
+Production-scale storage with cryptographic guarantees:
+- **Buckets**: User-created containers managed by an MSP, summarized by a Merkle-Patricia trie root on-chain
+- **Files**: Deterministically chunked, hashed into Merkle trees, with roots serving as immutable fingerprints
+- **Proofs**: Merkle proofs enable verification of data integrity without trusting intermediaries
+- **Audits**: BSPs prove ongoing data custody via randomized proof challenges
+
+### Storage Provider Network
+Two-tier provider model balancing performance and reliability:
+- **MSPs**: User-selected providers offering data retrieval with competitive service offerings
+- **BSPs**: Network-assigned backup providers ensuring data redundancy and availability, with on-chain slashing for failed proof challenges
+- **Fisherman**: Auditing service that monitors proofs and triggers challenges for misbehavior
+- **Indexer**: Indexes on-chain storage events for efficient querying
+
+### EigenLayer Security
+DataHaven validators secured through Ethereum restaking:
+- Validators register as operators via `DataHavenServiceManager` contract
+- Economic security through ETH restaking
+- Slashing for validator misbehavior (separate from BSP slashing which is on-chain)
+- Performance-based validator rewards through `RewardsRegistry`
+
 ### EVM Compatibility
 Full Ethereum Virtual Machine support via Frontier pallets:
 - Deploy Solidity smart contracts
 - Use existing Ethereum tooling (MetaMask, Hardhat, etc.)
 - Compatible with ERC-20, ERC-721, and other standards
-
-### EigenLayer Integration
-Validator security anchored to Ethereum:
-- Operators register via `DataHavenServiceManager` contract
-- Economic security through ETH restaking
-- Slashing protection with veto period
-- Performance-based rewards through `RewardsRegistry`
 
 ### Cross-chain Communication
 Trustless bridging via Snowbridge:
@@ -157,12 +201,13 @@ Trustless bridging via Snowbridge:
 - Finality proofs via BEEFY consensus
 - Three specialized relayers (beacon, BEEFY, execution)
 
-### Dynamic Validator Set
-Validator management synchronized with Ethereum:
-- EigenLayer operator registry as source of truth
-- On-chain validator set updates via External Validators pallet
-- Automatic consensus participation changes
-- Cross-chain coordination for validator lifecycle
+## Use Cases
+
+DataHaven is designed for applications requiring verifiable, tamper-proof data storage:
+
+- **AI & Machine Learning**: Store training datasets, model weights, and agent configurations with cryptographic proofs of integrity — enabling federated learning and verifiable AI pipelines
+- **DePIN (Decentralized Physical Infrastructure)**: Persistent storage for IoT sensor data, device configurations, and operational logs with provable data lineage
+- **Real World Assets (RWAs)**: Immutable storage for asset documentation, ownership records, and compliance data with on-chain verification
 
 ## Docker Images
 
@@ -283,6 +328,9 @@ GPL-3.0 - See LICENSE file for details
 
 ## Links
 
+- [DataHaven Website](https://datahaven.xyz/)
+- [DataHaven Documentation](https://docs.datahaven.xyz/)
+- [StorageHub Repository](https://github.com/Moonsong-Labs/storage-hub)
 - [EigenLayer Documentation](https://docs.eigenlayer.xyz/)
 - [Substrate Documentation](https://docs.substrate.io/)
 - [Snowbridge Documentation](https://docs.snowbridge.network/)

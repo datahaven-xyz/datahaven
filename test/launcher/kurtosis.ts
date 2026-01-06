@@ -61,7 +61,7 @@ export const launchKurtosisNetwork = async (
     await pullMacOSImages();
   }
 
-  await runKurtosisEnclave(options, configFilePath);
+  await runKurtosisEnclave({ ...options }, configFilePath);
   await registerServices(launchedNetwork, options.kurtosisEnclaveName);
 
   logger.success("Kurtosis network launched successfully");
@@ -352,6 +352,7 @@ export const runKurtosisEnclave = async (
     blockscout?: boolean;
     slotTime?: number;
     kurtosisNetworkArgs?: string;
+    injectContracts?: boolean;
   },
   configFilePath: string
 ): Promise<void> => {

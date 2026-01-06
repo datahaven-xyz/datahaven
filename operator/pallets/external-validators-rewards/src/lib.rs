@@ -689,8 +689,10 @@ pub mod pallet {
 
     impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
-            // Get inflation amount first - needed for both minting and EraRewardsUtils
-            let inflation_amount = T::EraInflationProvider::get();
+            // Calculate performance-scaled inflation based on blocks produced.
+            // This must be done first since we use it for both minting and the rewards message.
+            let base_inflation = T::EraInflationProvider::get();
+            let scaled_inflation = Self::calculate_scaled_inflation(era_index, base_inflation);
 
             // Get era start timestamp from the active era (still the ending era at this point).
             // Convert from milliseconds to seconds for EigenLayer compatibility.
@@ -699,11 +701,13 @@ pub mod pallet {
                 .map(|ms| (ms / 1000) as u32)
                 .unwrap_or(0);
 
+            // Generate era rewards utils with the scaled inflation amount.
+            // This ensures the message to EigenLayer matches the actual minted amount.
             let utils = match RewardPointsForEra::<T>::get(&era_index)
                 .generate_era_rewards_utils::<<T as Config>::Hashing>(
                     era_index,
                     None,
-                    inflation_amount,
+                    scaled_inflation,
                     era_start_timestamp,
                 ) {
                 Some(utils) => utils,
@@ -717,10 +721,7 @@ pub mod pallet {
                 }
             };
 
-            // Calculate performance-scaled inflation based on blocks produced
             let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
-            let base_inflation = T::EraInflationProvider::get();
-            let scaled_inflation = Self::calculate_scaled_inflation(era_index, base_inflation);
 
             // Mint scaled inflation tokens using the configurable handler
             if let Err(err) =

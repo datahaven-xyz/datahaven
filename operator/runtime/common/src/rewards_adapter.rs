@@ -115,6 +115,12 @@ pub trait RewardsSubmissionConfig {
 
     /// Get the agent origin for outbound messages.
     fn rewards_agent_origin() -> H256;
+
+    /// Handle the remainder (dust) from reward distribution.
+    ///
+    /// Called when there is a non-zero remainder after distributing rewards
+    /// proportionally to operators. Implementations can transfer to treasury, burn, etc.
+    fn handle_remainder(remainder: u128);
 }
 
 /// Generic rewards submission adapter.
@@ -175,6 +181,7 @@ fn build_rewards_message<C: RewardsSubmissionConfig>(
 
     if remainder > 0 {
         log::debug!(target: LOG_TARGET, "Reward distribution remainder (dust): {} tokens", remainder);
+        C::handle_remainder(remainder);
     }
 
     // Sort strategies by address (required by EigenLayer)
@@ -372,6 +379,10 @@ mod tests {
         fn rewards_agent_origin() -> H256 {
             H256::from_low_u64_be(0x4242)
         }
+
+        fn handle_remainder(_remainder: u128) {
+            // No-op in tests
+        }
     }
 
     struct ZeroServiceManagerConfig;
@@ -394,6 +405,10 @@ mod tests {
         fn rewards_agent_origin() -> H256 {
             HappyPathConfig::rewards_agent_origin()
         }
+
+        fn handle_remainder(_remainder: u128) {
+            // No-op in tests
+        }
     }
 
     struct ZeroTokenConfig;
@@ -415,6 +430,10 @@ mod tests {
 
         fn rewards_agent_origin() -> H256 {
             HappyPathConfig::rewards_agent_origin()
+        }
+
+        fn handle_remainder(_remainder: u128) {
+            // No-op in tests
         }
     }
 
@@ -442,6 +461,10 @@ mod tests {
 
         fn rewards_agent_origin() -> H256 {
             HappyPathConfig::rewards_agent_origin()
+        }
+
+        fn handle_remainder(_remainder: u128) {
+            // No-op in tests
         }
     }
 

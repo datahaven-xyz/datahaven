@@ -1482,6 +1482,25 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
     fn rewards_agent_origin() -> H256 {
         runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
     }
+
+    fn handle_remainder(remainder: u128) {
+        use frame_support::traits::{fungible::Mutate, tokens::Preservation};
+        let source = ExternalValidatorRewardsAccount::get();
+        let dest = TreasuryAccount::get();
+        if let Err(e) = Balances::transfer(&source, &dest, remainder, Preservation::Preserve) {
+            log::error!(
+                target: "rewards_adapter",
+                "Failed to transfer remainder to treasury: {:?}",
+                e
+            );
+        } else {
+            log::info!(
+                target: "rewards_adapter",
+                "Transferred {} remainder to treasury",
+                remainder
+            );
+        }
+    }
 }
 
 /// Type alias for the rewards submission adapter.

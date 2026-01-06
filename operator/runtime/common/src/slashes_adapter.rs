@@ -1,0 +1,96 @@
+use alloy_core::{
+    primitives::Address,
+    sol,
+    sol_types::SolCall,
+};
+use pallet_external_validator_slashes::SlashData;
+use snowbridge_outbound_queue_primitives::v2::{
+    Command, Message as OutboundMessage,
+};
+use snowbridge_outbound_queue_primitives::v2::SendMessage;
+use snowbridge_outbound_queue_primitives::SendError;
+use sp_core::{H160, H256};
+use sp_std::vec;
+use sp_std::vec::Vec;
+use frame_system::unique;
+
+use crate::AccountId;
+
+sol! {
+    function slashValidatorsOperator(address[] calldata operators) external;
+}
+
+/// Gas limit for the submitRewards call on Ethereum.
+pub const SLASH_VALIDATORS_GAS_LIMIT: u64 = 1_000_000;
+
+/// Configuration for slashes submission.
+///
+/// Runtimes implement this trait to provide environment-specific values
+/// such as contract address and the slash agent origin.
+pub trait SlashesSubmissionConfig {
+    type OutboundQueue: snowbridge_outbound_queue_primitives::v2::SendMessage<
+        Ticket = OutboundMessage,
+    >;
+
+    /// Get the DataHaven ServiceManager contract address on Ethereum.
+    fn service_manager_address() -> H160;
+
+    /// Get the agent origin for outbound messages.
+    fn slashes_agent_origin() -> H256;
+}
+
+
+/// Generic slashes submission adapter.
+///
+/// This adapter implements [`SendMessage`] and uses the configuration provided
+/// by [`SlashesSubmissionConfig`] to build, validate, and deliver slashes
+/// messages to EigenLayer via Snowbridge.
+pub struct SlashesSubmissionAdapter<C>(core::marker::PhantomData<C>);
+
+impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSubmissionAdapter<C> {
+    type Message = OutboundMessage;
+    type Ticket = OutboundMessage;
+    fn build(slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
+        let mut slashes: Vec<Address> = vec![];
+
+        // Extend with operator address to slash
+        for slash_operator in slashes_utils.into_iter() {
+            let slashed_address = Address::from(slash_operator.validator.0);
+            slashes.push(slashed_address);
+        }
+
+        // Use the `slashValidatorsOperator` function defined in the sol! macro to build the Ethereum call and encoded it correctly
+        let calldata = slashValidatorsOperatorCall { operators: slashes }.abi_encode();
+
+        let command = Command::CallContract {
+            target: C::service_manager_address(),
+            calldata,
+            gas: SLASH_VALIDATORS_GAS_LIMIT,
+            value: 0,
+        };
+        let message = OutboundMessage {
+            origin: C::slashes_agent_origin(),
+            // TODO: Replace with `H256::from_low_u64_be(slashes_utils.era_index as u64).into()`
+            id: unique(1).into(), 
+            fee: 0,
+            commands: match vec![command].try_into() {
+                Ok(cmds) => cmds,
+                Err(_) => {
+                    log::error!(
+                        target: "slashes_send_adapter",
+                        "Failed to convert commands: too many commands"
+                    );
+                    return None;
+                }
+            },
+        };
+        Some(message)
+    }
+
+    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
+        C::OutboundQueue::validate(&message)
+    }
+    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
+        C::OutboundQueue::deliver(message)
+    }
+}

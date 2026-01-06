@@ -325,19 +325,13 @@ pub mod dynamic_params {
 
         #[codec(index = 35)]
         #[allow(non_upper_case_globals)]
-        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
-        pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
-            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
-
-        #[codec(index = 36)]
-        #[allow(non_upper_case_globals)]
         /// The Ethereum address of the DataHavenServiceManager contract.
         /// This address is used both for authorized slashing requests and validator-set update messages.
         pub static DatahavenServiceManagerAddress: H160 = H160::repeat_byte(0x0);
 
         // ╔══════════════════════ Validator Rewards Inflation ═══════════════════════╗
 
-        #[codec(index = 37)]
+        #[codec(index = 36)]
         #[allow(non_upper_case_globals)]
         /// Fixed annual inflation amount in base units (wei).
         ///
@@ -355,14 +349,14 @@ pub mod dynamic_params {
         /// Per-era inflation ≈ 3,422 HAVE (testnet)
         pub static InflationAnnualAmount: Balance = 5_000_000 * HAVE * SUPPLY_FACTOR;
 
-        #[codec(index = 38)]
+        #[codec(index = 37)]
         #[allow(non_upper_case_globals)]
         /// Proportion of inflation rewards allocated to the treasury.
         /// Default: 20% of minted rewards go to treasury, 80% to validator rewards
         /// The treasury portion is minted separately and sent to the treasury account.
         pub static InflationTreasuryProportion: Perbill = Perbill::from_percent(20);
 
-        #[codec(index = 39)]
+        #[codec(index = 38)]
         #[allow(non_upper_case_globals)]
         /// Weight of block authoring in the operator rewards formula.
         /// Default: 60% of base points are allocated based on block production performance.
@@ -371,7 +365,7 @@ pub mod dynamic_params {
         /// If the sum exceeds 100%, values are proportionally scaled down.
         pub static OperatorRewardsBlockAuthoringWeight: Perbill = Perbill::from_percent(60);
 
-        #[codec(index = 40)]
+        #[codec(index = 39)]
         #[allow(non_upper_case_globals)]
         /// Weight of liveness (heartbeat/block authorship) in the operator rewards formula.
         /// Default: 30% of base points are allocated based on validator online status.
@@ -380,7 +374,7 @@ pub mod dynamic_params {
         /// If the sum exceeds 100%, values are proportionally scaled down.
         pub static OperatorRewardsLivenessWeight: Perbill = Perbill::from_percent(30);
 
-        #[codec(index = 41)]
+        #[codec(index = 40)]
         #[allow(non_upper_case_globals)]
         /// Soft cap on block authoring rewards as a percentage above fair share.
         /// Default: 50% means validators can earn credit for up to 150% of their fair share.

@@ -2882,6 +2882,7 @@ dependencies = [
  "pallet-evm-chain-id",
  "pallet-evm-precompile-proxy",
  "pallet-external-validators-rewards",
+ "pallet-external-validator-slashes",
  "pallet-migrations",
  "pallet-safe-mode",
  "pallet-timestamp",

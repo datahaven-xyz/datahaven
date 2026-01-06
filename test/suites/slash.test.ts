@@ -69,7 +69,7 @@ describe("Should slash an operator", () => {
 
     console.log("Transaction submitted !");
 
-    // look for events ourselves
+    // look for event inject event
     const resultEventSlashInjected =
       await dhApi.event.ExternalValidatorsSlashes.SlashInjected.pull();
     console.log(resultEventSlashInjected);

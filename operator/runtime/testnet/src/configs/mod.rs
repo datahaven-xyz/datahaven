@@ -31,7 +31,6 @@ use super::{
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
-use pallet_external_validator_slashes::SlashData;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 
@@ -1679,49 +1678,24 @@ impl pallet_tx_pause::Config for Runtime {
     type WeightInfo = testnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 
-// Stub SendMessage implementation for slash pallet
-pub struct SlashesSendAdapter;
-impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
-    type Message = OutboundMessage;
-    type Ticket = OutboundMessage;
-    fn build(_slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
-        let calldata = Vec::new();
+/// Testnet slashes configuration for EigenLayer submission.
+pub struct TestnetSlashesConfig;
 
-        let command = Command::CallContract {
-            target:
-                runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get(
-                ),
-            calldata,
-            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
-            value: 0,
-        };
-        let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
-            // TODO: Determine appropriate id value
-            id: unique(1).into(),
-            fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => {
-                    log::error!(
-                        target: "slashes_send_adapter",
-                        "Failed to convert commands: too many commands"
-                    );
-                    return None;
-                }
-            },
-        };
-        Some(message)
+impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for TestnetSlashesConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
+
+    fn service_manager_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
     }
 
-    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        EthereumOutboundQueueV2::validate(&message)
-    }
-    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(message)
+    fn slashes_agent_origin() -> H256 {
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get() // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 }
 
+
+// Stub SendMessage implementation for slash pallet
+pub type SlashesSendAdapter = datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<TestnetSlashesConfig>;
 impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = AccountId;

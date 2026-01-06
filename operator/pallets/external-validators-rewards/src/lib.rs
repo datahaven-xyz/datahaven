@@ -706,18 +706,12 @@ pub mod pallet {
                     inflation_amount,
                     era_start_timestamp,
                 ) {
-                Some(utils) if !utils.total_points.is_zero() => utils,
-                Some(_) => {
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "Not sending message because total_points is 0"
-                    );
-                    return;
-                }
+                Some(utils) => utils,
                 None => {
+                    // Returns None when total_points is zero or no validators have rewards
                     log::error!(
                         target: "ext_validators_rewards",
-                        "Failed to generate era rewards utils"
+                        "Failed to generate era rewards utils (no rewards to distribute)"
                     );
                     return;
                 }

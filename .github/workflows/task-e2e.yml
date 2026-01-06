@@ -51,6 +51,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: test/.bun-version
+      - name: Check for outdated state-diff.json
+        run: bun ./scripts/check-generated-state.ts
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
       - name: Pull Kurtosis images

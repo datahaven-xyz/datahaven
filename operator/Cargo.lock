@@ -947,6 +947,85 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
+name = "axum"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b52af3cb4058c895d37317bb27508dccc8e5f2d39454016b297bf4a400597b8"
+dependencies = [
+ "axum-core",
+ "bytes",
+ "form_urlencoded",
+ "futures-util",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.7.0",
+ "hyper-util",
+ "itoa",
+ "matchit",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "serde_core",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
+ "sync_wrapper",
+ "tokio",
+ "tower 0.5.2",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-core"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08c78f31d7b1291f7ee735c1c6780ccde7785daae9a9206026862dab7d8792d1"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "sync_wrapper",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-extra"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9963ff19f40c6102c76756ef0a46004c0d58957d87259fc9208ff8441c12ab96"
+dependencies = [
+ "axum",
+ "axum-core",
+ "bytes",
+ "fastrand",
+ "futures-util",
+ "headers",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "mime",
+ "multer",
+ "pin-project-lite",
+ "rustversion",
+ "serde_core",
+ "tokio",
+ "tokio-util",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3659,6 +3738,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "enum-as-inner"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5308,6 +5396,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8094feaf31ff591f651a2664fb9cfd92bba7a60ce3197265e9482ebe753c8f7"
 dependencies = [
  "hashbrown 0.14.5",
+]
+
+[[package]]
+name = "headers"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3314d5adb5d94bcdf56771f2e50dbbc80bb4bdf88967526706205ac9eff24eb"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "headers-core",
+ "http 1.3.1",
+ "httpdate",
+ "mime",
+ "sha1",
+]
+
+[[package]]
+name = "headers-core"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54b4a22553d4242c49fddb9ba998a99962b5cc6f22cb5a3482bec22522403ce4"
+dependencies = [
+ "http 1.3.1",
 ]
 
 [[package]]
@@ -7395,6 +7507,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 
 [[package]]
+name = "matchit"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
+
+[[package]]
 name = "matrixmultiply"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7663,6 +7781,23 @@ dependencies = [
  "smallvec",
  "tagptr",
  "uuid",
+]
+
+[[package]]
+name = "multer"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83e87776546dc87511aa5ee218730c92b666d7264ab6ed41f9d215af9cd5224b"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "futures-util",
+ "http 1.3.1",
+ "httparse",
+ "memchr",
+ "mime",
+ "spin 0.9.8",
+ "version_check",
 ]
 
 [[package]]
@@ -8436,8 +8571,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-bucket-nfts"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8493,8 +8628,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-cr-randomness"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8777,8 +8912,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-file-system"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "fp-account",
  "fp-evm",
@@ -9031,8 +9166,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-file-system"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9058,8 +9193,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-file-system-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9254,8 +9389,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-payment-streams"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9274,8 +9409,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-payment-streams-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9302,8 +9437,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-proofs-dealer"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9324,8 +9459,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-proofs-dealer-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9346,8 +9481,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-randomness"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9487,8 +9622,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-storage-providers"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9509,8 +9644,8 @@ dependencies = [
 
 [[package]]
 name = "pallet-storage-providers-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -13543,6 +13678,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_path_to_error"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10a9ff822e371bb5403e391ecd83e182e0e77ba7f6fe0160b795797109d1b457"
+dependencies = [
+ "itoa",
+ "serde",
+ "serde_core",
+]
+
+[[package]]
 name = "serde_spanned"
 version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13661,8 +13807,8 @@ dependencies = [
 
 [[package]]
 name = "shc-actors-derive"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "once_cell",
  "proc-macro2",
@@ -13674,8 +13820,8 @@ dependencies = [
 
 [[package]]
 name = "shc-actors-framework"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "anyhow",
  "bincode",
@@ -13692,8 +13838,8 @@ dependencies = [
 
 [[package]]
 name = "shc-blockchain-service"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13736,6 +13882,7 @@ dependencies = [
  "shp-tx-implicits-runtime-api",
  "sp-api",
  "sp-blockchain",
+ "sp-consensus",
  "sp-core",
  "sp-keystore",
  "sp-runtime",
@@ -13746,8 +13893,8 @@ dependencies = [
 
 [[package]]
 name = "shc-blockchain-service-db"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "chrono",
  "diesel",
@@ -13770,13 +13917,15 @@ dependencies = [
 
 [[package]]
 name = "shc-client"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "anyhow",
  "array-bytes",
  "async-channel 1.9.0",
  "async-trait",
+ "axum",
+ "axum-extra",
  "chrono",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -13832,12 +13981,14 @@ dependencies = [
  "substrate-build-script-utils",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-stream",
+ "tower-http 0.5.2",
 ]
 
 [[package]]
 name = "shc-common"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "anyhow",
  "bigdecimal",
@@ -13900,8 +14051,8 @@ dependencies = [
 
 [[package]]
 name = "shc-file-manager"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "bincode",
  "hash-db",
@@ -13924,8 +14075,8 @@ dependencies = [
 
 [[package]]
 name = "shc-file-transfer-service"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13953,8 +14104,8 @@ dependencies = [
 
 [[package]]
 name = "shc-fisherman-service"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "async-trait",
  "diesel",
@@ -13983,8 +14134,8 @@ dependencies = [
 
 [[package]]
 name = "shc-forest-manager"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "async-trait",
  "bincode",
@@ -14008,8 +14159,8 @@ dependencies = [
 
 [[package]]
 name = "shc-indexer-db"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -14036,8 +14187,8 @@ dependencies = [
 
 [[package]]
 name = "shc-indexer-service"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -14087,8 +14238,8 @@ dependencies = [
 
 [[package]]
 name = "shc-rpc"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "array-bytes",
  "async-trait",
@@ -14139,8 +14290,8 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "shp-constants"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "sp-core",
  "sp-runtime",
@@ -14148,8 +14299,8 @@ dependencies = [
 
 [[package]]
 name = "shp-data-price-updater"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14163,8 +14314,8 @@ dependencies = [
 
 [[package]]
 name = "shp-file-key-verifier"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14181,8 +14332,8 @@ dependencies = [
 
 [[package]]
 name = "shp-file-metadata"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "hex",
  "num-bigint",
@@ -14197,8 +14348,8 @@ dependencies = [
 
 [[package]]
 name = "shp-forest-verifier"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14214,16 +14365,16 @@ dependencies = [
 
 [[package]]
 name = "shp-opaque"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "sp-runtime",
 ]
 
 [[package]]
 name = "shp-session-keys"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
@@ -14237,8 +14388,8 @@ dependencies = [
 
 [[package]]
 name = "shp-traits"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14251,8 +14402,8 @@ dependencies = [
 
 [[package]]
 name = "shp-treasury-funding"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "log",
  "shp-traits",
@@ -14262,8 +14413,8 @@ dependencies = [
 
 [[package]]
 name = "shp-tx-implicits-runtime-api"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -14275,8 +14426,8 @@ dependencies = [
 
 [[package]]
 name = "shp-types"
-version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
+version = "0.3.0"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.3.0#a41f0bef38c164585e84d7951e8db14e236de37a"
 dependencies = [
  "sp-core",
  "sp-runtime",
@@ -17043,6 +17194,7 @@ dependencies = [
  "tokio",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -17059,6 +17211,7 @@ dependencies = [
  "pin-project-lite",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

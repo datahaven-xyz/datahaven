@@ -1461,64 +1461,51 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
     }
 }
 
-// Stub SendMessage implementation for rewards pallet
-pub struct RewardsSendAdapter;
-impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
-    type Message = OutboundMessage;
-    type Ticket = OutboundMessage;
-    fn build(
-        rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
-    ) -> Option<Self::Message> {
-        let rewards_registry_address =
-            runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get();
+/// Mainnet rewards configuration for EigenLayer submission.
+pub struct MainnetRewardsConfig;
 
-        // Skip sending message if RewardsRegistryAddress is zero (invalid)
-        if rewards_registry_address == H160::zero() {
-            log::warn!(
-                target: "rewards_send_adapter",
-                "Skipping rewards message: RewardsRegistryAddress is zero"
+impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for MainnetRewardsConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
+
+    fn rewards_duration() -> u32 {
+        runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
+    }
+
+    fn whave_token_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
+    }
+
+    fn service_manager_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
+    }
+
+    fn rewards_agent_origin() -> H256 {
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+    }
+
+    fn handle_remainder(remainder: u128) {
+        use frame_support::traits::{fungible::Mutate, tokens::Preservation};
+        let source = ExternalValidatorRewardsAccount::get();
+        let dest = TreasuryAccount::get();
+        if let Err(e) = Balances::transfer(&source, &dest, remainder, Preservation::Preserve) {
+            log::error!(
+                target: "rewards_adapter",
+                "Failed to transfer remainder to treasury: {:?}",
+                e
             );
-            return None;
+        } else {
+            log::info!(
+                target: "rewards_adapter",
+                "Transferred {} remainder to treasury",
+                remainder
+            );
         }
-
-        let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
-
-        let mut calldata = Vec::new();
-        calldata.extend_from_slice(&selector);
-        calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
-
-        let command = Command::CallContract {
-            target: rewards_registry_address,
-            calldata,
-            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
-            value: 0,
-        };
-        let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
-            // TODO: Determine appropriate id value
-            id: unique(rewards_utils.rewards_merkle_root).into(),
-            fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => {
-                    log::error!(
-                        target: "rewards_send_adapter",
-                        "Failed to convert commands: too many commands"
-                    );
-                    return None;
-                }
-            },
-        };
-        Some(message)
-    }
-
-    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        EthereumOutboundQueueV2::validate(&message)
-    }
-    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(message)
     }
 }
+
+/// Type alias for the rewards submission adapter.
+pub type RewardsSendAdapter =
+    datahaven_runtime_common::rewards_adapter::RewardsSubmissionAdapter<MainnetRewardsConfig>;
 
 /// Wrapper to check if a validator is online in the current session.
 /// Uses ImOnline's is_online() which considers a validator online if:
@@ -1743,6 +1730,7 @@ parameter_types! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SnowbridgeSystemV2;
     use dhp_bridge::{
         InboundCommand, Message as BridgeMessage, Payload as BridgePayload, EL_MESSAGE_ID,
     };
@@ -1776,66 +1764,95 @@ mod tests {
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
 
         TestExternalities::default().execute_with(|| {
-            // Create test rewards utils
+            // Create test rewards utils with V2 fields
             let rewards_utils = EraRewardsUtils {
+                era_index: 1,
+                era_start_timestamp: 1_700_000_000,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
+                individual_points: vec![
+                    (H160::from_low_u64_be(1), 500),
+                    (H160::from_low_u64_be(2), 500),
+                ],
+                inflation_amount: 1000000,
             };
 
-            // By default, RewardsRegistryAddress is zero (H160::repeat_byte(0x0))
+            // By default, DatahavenServiceManagerAddress is zero (H160::repeat_byte(0x0))
             // So the adapter should return None
             let message = RewardsSendAdapter::build(&rewards_utils);
             assert!(
                 message.is_none(),
-                "Should return None when RewardsRegistryAddress is zero"
+                "Should return None when DatahavenServiceManagerAddress is zero"
             );
         });
     }
 
     #[test]
-    fn test_rewards_send_adapter_with_valid_address() {
+    fn test_rewards_send_adapter_with_valid_config() {
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
 
         TestExternalities::default().execute_with(|| {
-            // Set a valid (non-zero) rewards registry address
-            let valid_address = H160::from_low_u64_be(0x1234567890abcdef);
+            // Set valid V2 configuration
+            let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
+            let whave_token_address = H160::from_low_u64_be(0xabcdef);
+
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::RewardsRegistryAddress(
-                        runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress,
-                        Some(valid_address),
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
+                        Some(service_manager),
+                    ),
+                ),
+            ));
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenAddress(
+                        runtime_params::dynamic_params::runtime_config::WHAVETokenAddress,
+                        Some(whave_token_address),
                     ),
                 ),
             ));
 
-            // Create test rewards utils
+            // Register native token in Snowbridge for DataHavenTokenId::get() to work
+            let native_location = Location::here();
+            let reanchored = SnowbridgeSystemV2::reanchor(native_location.clone()).unwrap();
+            let token_id = snowbridge_core::TokenIdOf::convert_location(&reanchored).unwrap();
+            snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
+            snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
+
+            // Create test rewards utils with V2 fields
+            let op1 = H160::from_low_u64_be(1);
+            let op2 = H160::from_low_u64_be(2);
             let rewards_utils = EraRewardsUtils {
+                era_index: 1,
+                era_start_timestamp: 1_700_000_000,
                 rewards_merkle_root: H256::random(),
                 leaves: vec![H256::random()],
                 leaf_index: Some(1),
                 total_points: 1000,
+                individual_points: vec![(op1, 600), (op2, 400)],
+                inflation_amount: 1_000_000_000, // 1 billion smallest units
             };
 
             // Now the adapter should return a valid message
             let message = RewardsSendAdapter::build(&rewards_utils);
             assert!(
                 message.is_some(),
-                "Should return Some(message) when RewardsRegistryAddress is non-zero"
+                "Should return Some(message) when all V2 params are configured"
             );
 
-            // Verify the message contains the correct target address
+            // Verify the message structure
             if let Some(msg) = message {
-                // Check that the first command has the correct target
-                let command = &msg.commands[0];
-                match command {
+                assert_eq!(msg.commands.len(), 1, "Should have 1 command: CallContract");
+
+                // Command should be CallContract
+                match &msg.commands[0] {
                     Command::CallContract { target, .. } => {
-                        assert_eq!(
-                            *target, valid_address,
-                            "Message should target the configured address"
-                        );
+                        assert_eq!(*target, service_manager, "Target should be ServiceManager");
                     }
                     _ => panic!("Expected CallContract command"),
                 }

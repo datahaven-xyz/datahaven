@@ -52,6 +52,7 @@ AUTHORS=(
 NAMES=(
     "ring"  # v0.16.20 has null license metadata but contains Apache-2.0 AND ISC LICENSE file
     "shp-tx-implicits-runtime-api"
+    "pq-src" # License is the same as postgres
 )
 licenses_filter=$(printf ' .license != "%s" and' "${LICENSES[@]}")
 authors_filter=$(printf ' .authors != "%s" and' "${AUTHORS[@]}")

@@ -125,7 +125,7 @@ pub mod pallet {
         /// The remainder (100% - block - liveness) is the unconditional base reward.
         type BlockAuthoringWeight: Get<Perbill>;
 
-        /// Weight of liveness (heartbeat/block authorship) in the rewards formula.
+        /// Weight of liveness (block authorship) in the rewards formula.
         /// Combined with BlockAuthoringWeight, the sum should not exceed 100%.
         /// The remainder (100% - block - liveness) is the unconditional base reward.
         type LivenessWeight: Get<Perbill>;
@@ -459,9 +459,9 @@ pub mod pallet {
         ///
         /// # Liveness Scoring
         ///
-        /// Based on ImOnline's is_online() which considers a validator online if:
-        /// - They sent a heartbeat in the current session, OR
-        /// - They authored at least one block in the current session
+        /// Uses block authorship as proof of liveness. A validator is considered online if
+        /// they authored at least one block in the current session. This is simpler and more
+        /// reliable than ImOnline heartbeats, which have timing issues with session rotation.
         ///
         /// # Weight Validation
         ///
@@ -746,8 +746,8 @@ pub mod pallet {
 /// Wrapper for pallet_session::SessionManager that awards performance-based points at session end.
 ///
 /// This implements the 60/30/10 performance formula for solochain validators:
-/// - 60% weight: Block production (BABE participation)
-/// - 30% weight: Heartbeat/liveness (ImOnline participation)
+/// - 60% weight: Block production (credited blocks vs fair share)
+/// - 30% weight: Liveness (1.0 if authored at least one block, 0.0 otherwise)
 /// - 10% weight: Base guarantee (always awarded)
 ///
 /// Wraps an inner SessionManager (typically `NoteHistoricalRoot<ExternalValidators>`) and calls

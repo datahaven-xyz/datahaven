@@ -6,7 +6,8 @@ import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy
 import {
     IAllocationManagerErrors,
     IAllocationManager,
-    IAllocationManagerTypes
+    IAllocationManagerTypes,
+    IAllocationManagerEvents
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
@@ -39,16 +40,29 @@ contract SlashingTest is AVSDeployer {
 
         allocationManager.registerForOperatorSets(operator, registerParams);
 
-        address[] memory operators = new address[](1);
-        operators[0] = operator;
+        DataHavenServiceManager.SlashingRequests[] memory slashings = new DataHavenServiceManager.SlashingRequests[](1);
+        uint256[] memory wadsToSlash = new uint256[](3); // 3 wadsToSlash because we have register 3 strategies for the Validator set 
+        wadsToSlash[0] = 1e16;
+        wadsToSlash[1] = 1e16;
+        wadsToSlash[2] = 1e16;
+
+        slashings[0] = DataHavenServiceManager.SlashingRequests(operator, wadsToSlash, "Testing slashing");
 
         console.log(block.number);
         vm.roll(block.number + uint32(7 days) + 1);
         console.log(block.number);
         vm.expectEmit();
+
+        OperatorSet memory operatorSet = OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        IStrategy[] memory strategies = allocationManager.getStrategiesInOperatorSet(operatorSet);
+
+
+        // Because the current magnituse for the allocation is 0
+        uint256[] memory wadsToSlashed = new uint256[](3);
+
         // We emit the event we expect to see.
-        emit DataHavenServiceManager.ValidatorsSlashedTest(operator);
-        serviceManager.slashValidatorsOperator(operators);
+        emit IAllocationManagerEvents.OperatorSlashed(operator, operatorSet, strategies, wadsToSlashed, "Testing slashing");
+        serviceManager.slashValidatorsOperator(slashings);
     }
 
 }

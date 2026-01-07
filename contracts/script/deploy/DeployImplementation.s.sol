@@ -11,12 +11,16 @@ import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 // EigenLayer imports
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
-import {PermissionController} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
+import {
+    PermissionController
+} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 
 // OpenZeppelin imports
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    ITransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @title DeployImplementation
@@ -113,7 +117,8 @@ contract DeployImplementation is Script {
         require(proxyAdmin != address(0), "PROXY_ADMIN not set");
 
         vm.broadcast();
-        ProxyAdmin(proxyAdmin).upgrade(ITransparentUpgradeableProxy(payable(serviceManager)), newImplementation);
+        ProxyAdmin(proxyAdmin)
+            .upgrade(ITransparentUpgradeableProxy(payable(serviceManager)), newImplementation);
 
         console.log("ServiceManager proxy updated to new implementation:", newImplementation);
     }

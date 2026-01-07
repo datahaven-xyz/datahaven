@@ -1,77 +1,15 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { FixedSizeBinary } from "polkadot-api";
 import {
-  ANVIL_FUNDED_ACCOUNTS,
   CROSS_CHAIN_TIMEOUTS,
   getEvmEcdsaSigner,
   logger,
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
-import { type Address, createWalletClient, decodeEventLog, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { type Address, decodeEventLog } from "viem";
 import { BaseTestSuite } from "../framework";
-import {
-  getContractInstance,
-  parseDeploymentsFile,
-  parseRewardsInfoFile
-} from "../utils/contracts";
+import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
-import { createChainConfig } from "../utils/viem";
-
-/**
- * Temporary helper to set the ServiceManager's rewardsInitiator to the Snowbridge Agent.
- * This is needed because Snowbridge calls submitRewards() from the Agent contract address,
- * but the default rewardsInitiator is set to a different address.
- */
-async function setRewardsInitiatorToSnowbridgeAgent(
-  serviceManager: any,
-  publicClient: any
-) {
-  const rewardsInfo = await parseRewardsInfoFile();
-  const rewardsAgentAddress = rewardsInfo.RewardsAgent as Address;
-
-  // Check current rewardsInitiator
-  const currentInitiator = (await publicClient.readContract({
-    address: serviceManager.address,
-    abi: serviceManager.abi,
-    functionName: "rewardsInitiator",
-    args: []
-  })) as Address;
-
-  if (currentInitiator.toLowerCase() === rewardsAgentAddress.toLowerCase()) {
-    logger.debug(`rewardsInitiator already set to RewardsAgent: ${rewardsAgentAddress}`);
-    return;
-  }
-
-  logger.debug(
-    `Setting rewardsInitiator from ${currentInitiator} to RewardsAgent: ${rewardsAgentAddress}`
-  );
-
-  // AVS owner is ANVIL_FUNDED_ACCOUNTS[6]
-  const avsOwnerAccount = privateKeyToAccount(
-    ANVIL_FUNDED_ACCOUNTS[6].privateKey as `0x${string}`
-  );
-  const avsOwnerWallet = createWalletClient({
-    account: avsOwnerAccount,
-    chain: await createChainConfig(),
-    transport: http()
-  });
-
-  // Call setRewardsInitiator
-  const txHash = await avsOwnerWallet.writeContract({
-    address: serviceManager.address as Address,
-    abi: serviceManager.abi,
-    functionName: "setRewardsInitiator",
-    args: [rewardsAgentAddress]
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  if (receipt.status !== "success") {
-    throw new Error("Failed to set rewardsInitiator");
-  }
-
-  logger.debug("rewardsInitiator set to RewardsAgent successfully");
-}
 
 /**
  * Temporary helper to set V2 rewards parameters via sudo.
@@ -157,9 +95,6 @@ describe("Rewards Message Flow", () => {
 
     // Set V2 rewards parameters (temporary until launcher configures them)
     await setV2RewardsParameters(dhApi);
-
-    // Set rewardsInitiator to Snowbridge Agent (temporary until deployment configures it)
-    await setRewardsInitiatorToSnowbridgeAgent(serviceManager, publicClient);
   });
 
   it("should verify rewards infrastructure deployment", async () => {

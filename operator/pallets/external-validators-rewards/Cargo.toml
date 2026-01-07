@@ -61,6 +61,7 @@ std = [
 	"scale-info/std",
 	"snowbridge-core/std",
 	"snowbridge-merkle-tree/std",
+	"snowbridge-outbound-queue-primitives/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",

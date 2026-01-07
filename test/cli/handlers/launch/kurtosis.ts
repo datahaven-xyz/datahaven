@@ -80,7 +80,8 @@ export const launchKurtosis = async (
       kurtosisEnclaveName: options.kurtosisEnclaveName,
       blockscout: options.blockscout,
       slotTime: options.slotTime,
-      kurtosisNetworkArgs: options.kurtosisNetworkArgs
+      kurtosisNetworkArgs: options.kurtosisNetworkArgs,
+      injectContracts: options.injectContracts
     },
     launchedNetwork
   );

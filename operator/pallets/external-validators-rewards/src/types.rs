@@ -15,16 +15,21 @@
 // along with Tanssi.  If not, see <http://www.gnu.org/licenses/>
 
 use snowbridge_outbound_queue_primitives::SendError;
-use sp_core::H256;
+use sp_core::{H160, H256};
 use sp_std::vec::Vec;
 
 /// Utils needed to generate/verify merkle roots/proofs inside this pallet.
+/// Also contains data needed for EigenLayer rewards submission.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EraRewardsUtils {
+    pub era_index: u32,
+    pub era_start_timestamp: u32,
     pub rewards_merkle_root: H256,
     pub leaves: Vec<H256>,
     pub leaf_index: Option<u64>,
     pub total_points: u128,
+    pub individual_points: Vec<(H160, u32)>,
+    pub inflation_amount: u128,
 }
 
 pub trait SendMessage {

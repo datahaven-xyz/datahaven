@@ -40,13 +40,6 @@ pub mod dynamic_params {
         /// and then change it later via governance, to the actual address of the deployed contract.
         pub static EthereumGatewayAddress: H160 = H160::repeat_byte(0x0);
 
-        #[codec(index = 1)]
-        #[allow(non_upper_case_globals)]
-        /// Set the initial address of the Rewards Registry contract on Ethereum.
-        /// The fact that this is a parameter means that we can set it initially to the zero address,
-        /// and then change it later via governance, to the actual address of the deployed contract.
-        pub static RewardsRegistryAddress: H160 = H160::repeat_byte(0x0);
-
         #[codec(index = 2)]
         #[allow(non_upper_case_globals)]
         /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("updateRewardsMerkleRoot(bytes32)")
@@ -396,6 +389,28 @@ pub mod dynamic_params {
         pub static OperatorRewardsFairShareCap: Perbill = Perbill::from_percent(50);
 
         // ╚══════════════════════ Validator Rewards Inflation ═══════════════════════╝
+
+        // ╔══════════════════════ EigenLayer Rewards V2 ═══════════════════════╗
+
+        #[codec(index = 42)]
+        #[allow(non_upper_case_globals)]
+        /// The wHAVE ERC20 token address on Ethereum.
+        /// Used in the OperatorDirectedRewardsSubmission struct.
+        pub static WHAVETokenAddress: H160 = H160::repeat_byte(0x0);
+
+        #[codec(index = 43)]
+        #[allow(non_upper_case_globals)]
+        /// EigenLayer-aligned genesis timestamp for rewards calculation.
+        /// Must be divisible by 86400 (seconds per day) as per EigenLayer requirements.
+        /// Default: 0 (must be set via governance to actual deployment timestamp).
+        pub static RewardsGenesisTimestamp: u32 = 0;
+
+        #[codec(index = 44)]
+        #[allow(non_upper_case_globals)]
+        /// Rewards duration in seconds. Fixed at 86400 (1 day) for EigenLayer.
+        pub static RewardsDuration: u32 = 86400;
+
+        // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
     }
 }
 

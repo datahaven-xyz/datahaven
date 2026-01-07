@@ -183,7 +183,6 @@ export const parseJsonToBeaconCheckpoint = (jsonInput: any): BeaconCheckpoint =>
 /** Valid parameter names for DataHaven runtime configuration */
 const DATAHAVEN_PARAM_NAMES = [
   "EthereumGatewayAddress",
-  "RewardsRegistryAddress",
   "RewardsUpdateSelector",
   "RewardsAgentOrigin",
   "DatahavenServiceManagerAddress"

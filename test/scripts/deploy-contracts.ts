@@ -102,7 +102,6 @@ export const executeDeployment = async (
 
   // After deployment, read the:
   // - Gateway address
-  // - RewardsRegistry address
   // - RewardsAgent address
   // - RewardsAgentOrigin (bytes32)
   // and add it to parameters if collection is provided
@@ -124,7 +123,6 @@ export const updateParameters = async (
     const deployments = await parseDeploymentsFile(chain);
     const rewardsInfo = await parseRewardsInfoFile(chain);
     const gatewayAddress = deployments.Gateway;
-    const rewardsRegistryAddress = deployments.RewardsRegistry;
     const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
     const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
     const serviceManagerAddress = deployments.ServiceManager;
@@ -138,16 +136,6 @@ export const updateParameters = async (
       });
     } else {
       logger.warn("⚠️ Gateway address not found in deployments file");
-    }
-
-    if (rewardsRegistryAddress) {
-      logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
-      parameterCollection.addParameter({
-        name: "RewardsRegistryAddress",
-        value: rewardsRegistryAddress
-      });
-    } else {
-      logger.warn("⚠️ RewardsRegistry address not found in deployments file");
     }
 
     if (updateRewardsMerkleRootSelector) {

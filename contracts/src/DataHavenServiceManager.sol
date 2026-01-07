@@ -11,10 +11,13 @@ import {
     IPermissionController
 } from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 import {
-    IRewardsCoordinator
+    IRewardsCoordinator,
+    IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Snowbridge imports
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
@@ -27,9 +30,10 @@ import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
 
 /**
  * @title DataHaven ServiceManager contract
- * @notice Manages validators in the DataHaven network
+ * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
  */
 contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
+    using SafeERC20 for IERC20;
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
 
@@ -231,6 +235,48 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     function snowbridgeGateway() external view returns (address) {
         return address(_snowbridgeGateway);
     }
+
+    // ============ Rewards Submitter Functions ============
+
+    /// @inheritdoc IDataHavenServiceManager
+    function submitRewards(
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
+    ) external override onlyRewardsInitiator {
+        // Calculate total amount for event
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < submission.operatorRewards.length; i++) {
+            totalAmount += submission.operatorRewards[i].amount;
+        }
+
+        // Approve RewardsCoordinator to spend tokens
+        submission.token.safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
+
+        // Wrap in array for RewardsCoordinator
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+        submissions[0] = submission;
+
+        // Submit to EigenLayer RewardsCoordinator
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
+            operatorSet, submissions
+        );
+
+        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
+    }
+
+    /// @notice Sets the rewards initiator address (overrides deprecated base implementation)
+    /// @param newRewardsInitiator The new rewards initiator address
+    /// @dev Only callable by the owner
+    function setRewardsInitiator(
+        address newRewardsInitiator
+    ) external override(IDataHavenServiceManager, ServiceManagerBase) onlyOwner {
+        address oldInitiator = rewardsInitiator;
+        _setRewardsInitiator(newRewardsInitiator);
+        emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
+    }
+
+    // ============ Internal Functions ============
 
     /**
      * @notice Creates the initial operator set for DataHaven in the AllocationManager.

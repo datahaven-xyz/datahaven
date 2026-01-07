@@ -70,7 +70,8 @@ pub struct Cli {
         "bsp_charge_fees_task", "bsp_charge_fees_min_debt",
         "bsp_submit_proof_task", "bsp_submit_proof_max_attempts",
         "pending_db_url",
-        "fisherman", "fisherman_database_url",
+        "fisherman", "fisherman_database_url", 
+        "trusted_file_transfer_server", "trusted_file_transfer_server_host", "trusted_file_transfer_server_port",
     ])]
     pub provider_config_file: Option<String>,
 

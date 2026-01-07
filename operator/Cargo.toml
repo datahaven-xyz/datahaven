@@ -156,7 +156,6 @@ parachains-common = { git = "https://github.com/paritytech/polkadot-sdk.git", ta
 polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
-runtime-parachains = { package = "polkadot-runtime-parachains", git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }

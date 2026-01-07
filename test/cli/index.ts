@@ -205,6 +205,12 @@ const contractsCommand = program
     --rpc-url: Chain RPC URL (optional, defaults based on chain)
     --private-key: Private key for deployment
     --skip-verification: Skip contract verification
+
+    Versioning:
+    - Each deployments/<chain>.json carries a single version field alongside contract addresses.
+    - bun cli contracts deploy performs a MINOR bump (X.Y.0) after a successful full deployment.
+    - bun cli contracts upgrade performs a PATCH bump (X.Y.Z+1) after a successful upgrade.
+    - The meaning of a given version is defined by the current git branch and external docs, not by the CLI.
     `
   )
   .description("Deploy and manage DataHaven AVS contracts on supported chains");

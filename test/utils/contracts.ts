@@ -45,6 +45,22 @@ const DeploymentsSchema = z.object({
   ProxyAdmin: ethAddressCustom.optional(),
   // Version tag for this set of deployed contracts (optional for backwards compatibility)
   version: z.string().optional(),
+  deps: z
+    .object({
+      eigenlayer: z
+        .object({
+          release: z.string().optional(),
+          gitCommit: z.string().optional()
+        })
+        .optional(),
+      snowbridge: z
+        .object({
+          release: z.string().optional(),
+          gitCommit: z.string().optional()
+        })
+        .optional()
+    })
+    .optional(),
   DeployedStrategies: z.array(DeployedStrategySchema).optional()
 });
 

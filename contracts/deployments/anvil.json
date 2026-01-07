@@ -25,5 +25,14 @@
             "tokenCreator": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
         }
     ],
-    "version": "1.0.0"
+    "version": "0.1.0",
+    "deps": {
+        "eigenlayer": {
+            "gitCommit": "7ecc83c7b180850531bc5b8b953a7340adeecd43",
+            "release": "v1.8.0-testnet-final"
+        },
+        "snowbridge": {
+            "gitCommit": "290579d6d246091dad12c612d643402ec04b6ac7"
+        }
+    }
 }

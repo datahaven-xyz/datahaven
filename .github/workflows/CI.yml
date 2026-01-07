@@ -73,3 +73,6 @@ jobs:
     # Note: GITHUB_TOKEN is automatically available to reusable workflows
     with:
       image-tag: ${{ needs.docker-build-ci.outputs.image-tag }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

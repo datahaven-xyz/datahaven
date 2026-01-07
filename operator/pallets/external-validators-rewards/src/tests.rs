@@ -1462,7 +1462,7 @@ fn test_session_performance_60_30_10_formula() {
         // MockIsOnline always returns true, so all validators are considered online
 
         // Award session performance points
-        ExternalValidatorsRewards::award_session_performance_points(
+        end_session(
             1, // session_index
             validators.clone(),
             vec![], // no whitelisted validators
@@ -1473,21 +1473,23 @@ fn test_session_performance_60_30_10_formula() {
         // fair_share = 10/4 = 2, max_credited = 2 + 50%×2 = 3
         // effective_total_for_other = max(10, 4) = 10
         //
+        // Liveness is determined by block authorship (blocks_authored > 0)
         // New formula per validator (with BasePointsPerBlock = 320):
         //   block_contribution = 60% × credited × 320
-        //   liveness_base_contribution = 40% × 10 × 320 / 4 = 320
+        //   For online validators (authored blocks): liveness_base = 40% × 10 × 320 / 4 = 320
+        //   For offline validators (no blocks): liveness_base = 10% × 10 × 320 / 4 = 80
         //
-        // - Validator 1: 4 blocks → credited=3, block=576, other=320, total=896
-        // - Validator 2: 4 blocks → credited=3, block=576, other=320, total=896
-        // - Validator 3: 2 blocks → credited=2, block=384, other=320, total=704
-        // - Validator 4: 0 blocks → credited=0, block=0, other=320, total=320
+        // - Validator 1: 4 blocks → online, credited=3, block=576, other=320, total=896
+        // - Validator 2: 4 blocks → online, credited=3, block=576, other=320, total=896
+        // - Validator 3: 2 blocks → online, credited=2, block=384, other=320, total=704
+        // - Validator 4: 0 blocks → offline, credited=0, block=0, other=80, total=80
 
         // Check total points for the active era (era 1)
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
             era_rewards.total,
-            2816, // 896 + 896 + 704 + 320
-            "Total points should be 2816"
+            2576, // 896 + 896 + 704 + 80
+            "Total points should be 2576"
         );
     })
 }
@@ -1519,7 +1521,7 @@ fn test_session_performance_whitelisted_validators_excluded() {
         }
 
         // Award session performance points
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
+        end_session(1, validators, whitelisted);
 
         // Fair share and liveness/base both use total validator count:
         // 9 blocks total, 3 validators, 2 non-whitelisted
@@ -1577,7 +1579,7 @@ fn test_session_performance_whitelisted_fair_share_calculation() {
         }
 
         // Award session performance points
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
+        end_session(1, validators, whitelisted);
 
         // Fair share and liveness/base both use total validator count:
         // fair_share = 12 total blocks / 4 total validators = 3 blocks
@@ -1696,23 +1698,23 @@ fn test_session_performance_zero_total_blocks() {
             H160::from_low_u64_be(3),
         ];
 
-        // No blocks authored by anyone
+        // No blocks authored by anyone - all validators are considered offline
 
         // Award session performance points
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // With 0 total blocks, fair_share defaults to 1 (via .max(1))
         // effective_total_for_other = max(0, 3) = 3
-        // Each validator: 0 blocks
+        // Each validator: 0 blocks → offline (no liveness bonus)
         // - block_contribution = 60% × 0 × 320 = 0
-        // - liveness_base_contribution = 40% × 3 × 320 / 3 = 128
-        // - total = 128 points
-        // Total: 3 validators × 128 points = 384 points
+        // - liveness_base_contribution = 10% × 3 × 320 / 3 = 32 (only base, no liveness)
+        // - total = 32 points
+        // Total: 3 validators × 32 points = 96 points
 
         assert_eq!(
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total,
-            384,
-            "Should award liveness + base points even with zero blocks"
+            96,
+            "Should award only base points when no blocks authored (all validators offline)"
         );
     })
 }
@@ -1745,7 +1747,7 @@ fn test_session_performance_fair_share_capping() {
         // effective_total_for_other = max(15, 2) = 15
 
         // Award session performance points
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // New formula (with BasePointsPerBlock = 320):
         // block_contribution = 60% × credited × 320
@@ -1785,7 +1787,7 @@ fn test_session_performance_single_validator() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // Fair share: 10 / 1 = 10 blocks
         // max_credited = 10 + 50%×10 = 15
@@ -1818,7 +1820,7 @@ fn test_session_performance_no_active_validators() {
         let validators = vec![];
 
         // Award session performance points with empty validator set
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // Should handle gracefully without panicking
         assert_eq!(
@@ -1848,19 +1850,19 @@ fn test_session_performance_checked_math_division() {
             H160::from_low_u64_be(3),
         ];
 
-        // Session 1: No blocks produced
-        ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
+        // Session 1: No blocks produced - all validators offline
+        end_session(1, validators.clone(), vec![]);
 
         // Should not panic, checked_div returns Some or defaults to 1 via .max(1)
         // With 0 blocks, effective_total_for_other = max(0, 3) = 3
-        // Each validator: block_contribution = 0
-        // liveness_base_contribution = 40% × 3 × 320 / 3 = 128 per validator
-        // Total for 3 validators = 384 points
+        // Each validator: block_contribution = 0, offline (no blocks authored)
+        // liveness_base_contribution = 10% × 3 × 320 / 3 = 32 per validator
+        // Total for 3 validators = 96 points
         let points_after_session1 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
         assert_eq!(
-            points_after_session1, 384,
-            "Should award 384 points (128 per validator) with zero blocks"
+            points_after_session1, 96,
+            "Should award 96 points (32 per validator) with zero blocks (all offline)"
         );
 
         // Session 2: Author blocks equally among all validators
@@ -1870,23 +1872,23 @@ fn test_session_performance_checked_math_division() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(2, validators, vec![]);
+        end_session(2, validators, vec![]);
 
         // With 18 blocks (6 per validator):
         // fair_share = 18 / 3 = 6, max_credited = 6 + 50%×6 = 9
         // effective_total_for_other = max(18, 3) = 18
         //
-        // Each validator: 6 blocks → credited 6
+        // Each validator: 6 blocks → online, credited 6
         // block_contribution = 60% × 6 × 320 = 1152
         // liveness_base_contribution = 40% × 18 × 320 / 3 = 768
         // Total per validator = 1920
         // Total for 3 validators = 5760 points
-        // Cumulative total = 384 + 5760 = 6144 points
+        // Cumulative total = 96 + 5760 = 5856 points
         let points_after_session2 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
         assert_eq!(
-            points_after_session2, 6144,
-            "Should have 6144 total points (384 from session 1 + 5760 from session 2)"
+            points_after_session2, 5856,
+            "Should have 5856 total points (96 from session 1 + 5760 from session 2)"
         );
     })
 }
@@ -1911,7 +1913,7 @@ fn test_session_performance_multiple_sessions_cumulative() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
+        end_session(1, validators.clone(), vec![]);
 
         let points_after_session1 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
@@ -1928,7 +1930,7 @@ fn test_session_performance_multiple_sessions_cumulative() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(2, validators, vec![]);
+        end_session(2, validators, vec![]);
 
         let points_after_session2 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
@@ -1960,7 +1962,7 @@ fn test_session_performance_base_reward_points_config() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // BasePointsPerBlock is 320 (points per block)
         // fair_share = 5 blocks, effective_total_for_other = max(5, 1) = 5
@@ -2556,7 +2558,7 @@ fn test_session_performance_offline_validator_gets_reduced_points() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // With 12 blocks total, fair_share = 12 / 3 = 4
         // max_credited = 4 + 50%×4 = 6
@@ -2622,7 +2624,7 @@ fn test_session_performance_all_validators_offline() {
 
         // No validators author blocks - they are all truly offline
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // With 0 blocks total, fair_share = max(0/3, 1) = 1
         // effective_total_for_other = max(0, 3) = 3
@@ -2672,7 +2674,7 @@ fn test_session_performance_offline_but_authored_blocks() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // With 18 blocks total, fair_share = 6
         // max_credited = 6 + 50%×6 = 9
@@ -2722,7 +2724,7 @@ fn test_session_performance_offline_validator_zero_blocks() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // With 10 blocks total, fair_share = 10 / 3 = 3
         // max_credited = 3 + 50%×3 = 4
@@ -2775,7 +2777,7 @@ fn test_session_performance_weight_overflow_handled() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // Verify the formula works with current weights
         // fair_share = 10, effective_total_for_other = max(10, 1) = 10
@@ -2853,7 +2855,7 @@ fn test_session_performance_slashed_validator_still_gets_points_when_disabled() 
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // With slashing DISABLED, validator 2 still gets points
         // fair_share = 10 / 2 = 5
@@ -2910,27 +2912,29 @@ fn test_fair_share_non_integer_division_rounding() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // New formula with 10 blocks, 3 validators:
         // fair_share = 10/3 = 3, max_credited = 3 + 50%×3 = 4
         // effective_total_for_other = max(10, 3) = 10
         //
-        // block_contribution = 60% × credited × 320
-        // liveness_base_contribution = 40% × 10 × 320 / 3 = 1280 / 3 = 426
+        // Liveness is determined by block authorship (blocks_authored > 0)
         //
-        // Validator 1 (10 blocks): credited=4, block=768, other=426, total=1194
-        // Validators 2, 3 (0 blocks): block=0, other=426, total=426 each
+        // Validator 1 (10 blocks): online, credited=4
+        // block_contribution = 60% × 4 × 320 = 768
+        // liveness_base_contribution = 40% × 10 × 320 / 3 = 426
+        // total = 1194
         //
-        // Total = 1194 + 426 + 426 = 2046
+        // Validators 2, 3 (0 blocks): offline
+        // block_contribution = 0
+        // liveness_base_contribution = 10% × 10 × 320 / 3 = 106 (only base, no liveness)
+        // total = 106 each
         //
-        // This demonstrates the fix for:
-        // 1. Perbill capping - validator 1 now gets proper over-performance bonus (credited 4 > fair_share 3)
-        // 2. Fair share truncation - using total_blocks (10) for liveness/base pool, not fair_share×count (9)
+        // Total = 1194 + 106 + 106 = 1406
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.total, 2046,
+            era_rewards.total, 1406,
             "Non-integer division should not lose points"
         );
     })
@@ -2966,7 +2970,7 @@ fn test_all_validators_whitelisted_no_panic() {
         }
 
         // Should not panic, just skip awarding points
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
+        end_session(1, validators, whitelisted);
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
@@ -3001,27 +3005,29 @@ fn test_blocks_less_than_validators() {
         ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
         ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // fair_share = 2 / 5 = 0, but .max(1) ensures minimum of 1
         // max_credited = 1 + 50%×1 = 1
         // effective_total_for_other = max(2, 5) = 5
+        //
+        // Liveness is determined by block authorship (blocks_authored > 0)
 
-        // Validator 1: 2 blocks, credited = min(2, 1) = 1
+        // Validator 1: 2 blocks → online, credited = min(2, 1) = 1
         // block_contribution = 60% × 1 × 320 = 192
         // liveness_base_contribution = 40% × 5 × 320 / 5 = 128
         // total = 320
 
-        // Validators 2-5: 0 blocks
+        // Validators 2-5: 0 blocks → offline
         // block_contribution = 0
-        // liveness_base_contribution = 128
-        // total = 128
+        // liveness_base_contribution = 10% × 5 × 320 / 5 = 32 (only base)
+        // total = 32
 
-        // Total = 320 + 128×4 = 832
+        // Total = 320 + 32×4 = 448
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.total, 832,
+            era_rewards.total, 448,
             "Should handle fewer blocks than validators"
         );
     })
@@ -3056,26 +3062,28 @@ fn test_single_block_many_validators() {
         // Only 1 block for 10 validators
         ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // fair_share = 1 / 10 = 0, but .max(1) ensures minimum of 1
         // effective_total_for_other = max(1, 10) = 10
+        //
+        // Liveness is determined by block authorship (blocks_authored > 0)
 
-        // Validator 1: 1 block, credited = min(1, 1) = 1
+        // Validator 1: 1 block → online, credited = min(1, 1) = 1
         // block_contribution = 60% × 1 × 320 = 192
         // liveness_base_contribution = 40% × 10 × 320 / 10 = 128
         // total = 320
 
-        // Validators 2-10: 0 blocks
+        // Validators 2-10: 0 blocks → offline
         // block_contribution = 0
-        // liveness_base_contribution = 128
-        // total = 128 each
+        // liveness_base_contribution = 10% × 10 × 320 / 10 = 32 (only base)
+        // total = 32 each
 
-        // Total = 320 + 128×9 = 1472
+        // Total = 320 + 32×9 = 608
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert_eq!(
-            era_rewards.total, 1472,
+            era_rewards.total, 608,
             "Should handle 1 block for many validators"
         );
     })
@@ -3116,11 +3124,7 @@ fn test_perbill_precision_many_sessions() {
                 ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(3));
             }
 
-            ExternalValidatorsRewards::award_session_performance_points(
-                session,
-                validators.clone(),
-                vec![],
-            );
+            end_session(session, validators.clone(), vec![]);
         }
 
         // Verify total points accumulated without overflow or significant precision loss
@@ -3231,7 +3235,7 @@ fn test_total_points_sum_equals_expected_pool() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(4));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
 
@@ -3284,7 +3288,7 @@ fn test_total_points_with_uneven_distribution() {
         }
         // Validator 3 authors no blocks
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
 
@@ -3299,22 +3303,22 @@ fn test_total_points_with_uneven_distribution() {
         // fair_share = 5, max_credited = 7
         // effective_total_for_other = max(15, 3) = 15
         //
-        // Validator 1: 10 blocks → credited = 7 (capped)
+        // Validator 1: 10 blocks → online, credited = 7 (capped)
         // block = 60% × 7 × 320 = 1344
         // other = 40% × 15 × 320 / 3 = 640
         // total = 1984
         //
-        // Validator 2: 5 blocks → credited = 5
+        // Validator 2: 5 blocks → online, credited = 5
         // block = 60% × 5 × 320 = 960
         // other = 640
         // total = 1600
         //
-        // Validator 3: 0 blocks
+        // Validator 3: 0 blocks → offline
         // block = 0
-        // other = 640
-        // total = 640
+        // other = 10% × 15 × 320 / 3 = 160 (only base, no liveness)
+        // total = 160
         //
-        // Total = 1984 + 1600 + 640 = 4224
+        // Total = 1984 + 1600 + 160 = 3744
 
         assert_eq!(
             era_rewards.individual.get(&H160::from_low_u64_be(1)),
@@ -3328,10 +3332,10 @@ fn test_total_points_with_uneven_distribution() {
         );
         assert_eq!(
             era_rewards.individual.get(&H160::from_low_u64_be(3)),
-            Some(&640),
-            "Validator 3 should have 640 points"
+            Some(&160),
+            "Validator 3 should have 160 points (offline, only base)"
         );
-        assert_eq!(era_rewards.total, 4224, "Total should be 4224 points");
+        assert_eq!(era_rewards.total, 3744, "Total should be 3744 points");
     })
 }
 
@@ -3368,7 +3372,7 @@ fn test_whitelisted_overproducer_does_not_affect_nonwhitelisted() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(4));
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, whitelisted);
+        end_session(1, validators, whitelisted);
 
         // 47 blocks total, 4 validators (1 non-whitelisted)
         // fair_share = 47 / 4 = 11
@@ -3423,11 +3427,7 @@ fn test_whitelisted_majority_fair_share_calculation() {
             }
         }
 
-        ExternalValidatorsRewards::award_session_performance_points(
-            1,
-            validators.clone(),
-            whitelisted,
-        );
+        end_session(1, validators.clone(), whitelisted);
 
         // 30 blocks total, 10 validators
         // fair_share = 30 / 10 = 3
@@ -3499,7 +3499,7 @@ fn test_large_block_count_no_overflow() {
             large_block_count,
         );
 
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         // Should not panic
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
@@ -3553,7 +3553,7 @@ fn test_saturating_arithmetic_protection() {
         );
 
         // Should not panic due to saturating arithmetic
-        ExternalValidatorsRewards::award_session_performance_points(1, validators, vec![]);
+        end_session(1, validators, vec![]);
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         assert!(
@@ -3589,7 +3589,7 @@ fn test_multiple_sessions_accumulate_to_era_correctly() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
-        ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
+        end_session(1, validators.clone(), vec![]);
         let points_after_s1 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
 
@@ -3604,7 +3604,7 @@ fn test_multiple_sessions_accumulate_to_era_correctly() {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(1));
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
-        ExternalValidatorsRewards::award_session_performance_points(2, validators.clone(), vec![]);
+        end_session(2, validators.clone(), vec![]);
         let points_after_s2 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
 
@@ -3621,7 +3621,7 @@ fn test_multiple_sessions_accumulate_to_era_correctly() {
         for _ in 0..20 {
             ExternalValidatorsRewards::note_block_author(H160::from_low_u64_be(2));
         }
-        ExternalValidatorsRewards::award_session_performance_points(3, validators.clone(), vec![]);
+        end_session(3, validators.clone(), vec![]);
         let points_after_s3 =
             pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1).total;
 
@@ -3684,7 +3684,7 @@ fn test_era_end_uses_correct_era_blocks_not_session() {
         }
 
         // Award session points
-        ExternalValidatorsRewards::award_session_performance_points(1, validators.clone(), vec![]);
+        end_session(1, validators.clone(), vec![]);
 
         // Clear session storage (simulating session end)
         // This should NOT affect era inflation calculation

@@ -61,8 +61,8 @@ pub struct Cli {
     /// Provider configurations file path (allow to specify the provider configuration in a file instead of the cli)
     #[arg(long, conflicts_with_all = [
         "provider", "provider_type", "max_storage_capacity", "jump_capacity",
-        "storage_layer", "storage_path", "extrinsic_retry_timeout", "sync_mode_min_blocks_behind",
-        "check_for_pending_proofs_period", "max_blocks_behind_to_catch_up_root_changes",
+        "storage_layer", "storage_path", "extrinsic_retry_timeout",
+        "check_for_pending_proofs_period",
         "msp_charging_period", "msp_charge_fees_task", "msp_charge_fees_min_debt",
         "msp_move_bucket_task", "msp_move_bucket_max_try_count", "msp_move_bucket_max_tip",
         "bsp_upload_file_task", "bsp_upload_file_max_try_count", "bsp_upload_file_max_tip",
@@ -232,17 +232,9 @@ pub struct ProviderConfigurations {
     #[arg(long, default_value = "60")]
     pub extrinsic_retry_timeout: Option<u64>,
 
-    /// The minimum number of blocks behind the current best block to consider the node out of sync.
-    #[arg(long, default_value = "5")]
-    pub sync_mode_min_blocks_behind: Option<u32>,
-
     /// On blocks that are multiples of this number, the blockchain service will trigger the catch of proofs.
     #[arg(long, default_value = "4")]
     pub check_for_pending_proofs_period: Option<u32>,
-
-    /// The maximum number of blocks from the past that will be processed for catching up the root changes.
-    #[arg(long, default_value = "10")]
-    pub max_blocks_behind_to_catch_up_root_changes: Option<u32>,
 
     /// Enable MSP file distribution to BSPs (disabled by default unless set via config/CLI).
     /// Only applicable when running as an MSP provider.
@@ -587,21 +579,8 @@ impl ProviderConfigurations {
             bs_changed = true;
         }
 
-        if let Some(sync_mode_min_blocks_behind) = self.sync_mode_min_blocks_behind {
-            bs_options.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
-            bs_changed = true;
-        }
-
         if let Some(check_for_pending_proofs_period) = self.check_for_pending_proofs_period {
             bs_options.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
-            bs_changed = true;
-        }
-
-        if let Some(max_blocks_behind_to_catch_up_root_changes) =
-            self.max_blocks_behind_to_catch_up_root_changes
-        {
-            bs_options.max_blocks_behind_to_catch_up_root_changes =
-                Some(max_blocks_behind_to_catch_up_root_changes);
             bs_changed = true;
         }
 

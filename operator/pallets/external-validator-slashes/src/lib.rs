@@ -307,7 +307,6 @@ pub mod pallet {
             era: EraIndex,
             validator: T::AccountId,
             percentage: Perbill,
-            external_idx: u64,
         ) -> DispatchResult {
             ensure_root(origin)?;
             let active_era = T::EraIndexProvider::active_era().index;
@@ -327,7 +326,6 @@ pub mod pallet {
                 era,
                 validator,
                 slash_defer_duration,
-                external_idx,
             )
             .ok_or(Error::<T>::ErrorComputingSlash)?;
 
@@ -477,7 +475,6 @@ where
                 slash_era,
                 stash.clone(),
                 slash_defer_duration,
-                external_idx,
             );
 
             if let Some(mut slash) = slash {
@@ -649,8 +646,6 @@ impl<T: Config> Pallet<T> {
 /// rather deferred for several eras.
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo, Clone, PartialEq)]
 pub struct Slash<AccountId, SlashId> {
-    /// external index identifying a given set of validators
-    pub external_idx: u64,
     /// The stash ID of the offending validator.
     pub validator: AccountId,
     /// Reporters of the offence; bounty payout recipients.
@@ -666,7 +661,6 @@ impl<AccountId, SlashId: One> Slash<AccountId, SlashId> {
     /// Initializes the default object using the given `validator`.
     pub fn default_from(validator: AccountId) -> Self {
         Self {
-            external_idx: 0,
             validator,
             reporters: vec![],
             slash_id: One::one(),
@@ -688,7 +682,6 @@ pub(crate) fn compute_slash<T: Config>(
     slash_era: EraIndex,
     stash: T::AccountId,
     slash_defer_duration: EraIndex,
-    external_idx: u64,
 ) -> Option<Slash<T::AccountId, T::SlashId>> {
     let prior_slash_p = ValidatorSlashInEra::<T>::get(slash_era, &stash).unwrap_or(Zero::zero());
 
@@ -709,7 +702,6 @@ pub(crate) fn compute_slash<T: Config>(
 
     let confirmed = slash_defer_duration.is_zero();
     Some(Slash {
-        external_idx,
         validator: stash.clone(),
         percentage: slash_fraction,
         slash_id,

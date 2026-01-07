@@ -40,6 +40,8 @@ LICENSES=(
     "Zlib"
     "Unicode-3.0"
     "(Apache-2.0 OR MIT) AND Unicode-3.0"
+    "(Apache-2.0 OR MIT) AND BSD-3-Clause"
+    "BSD-3-Clause AND MIT"
 )
 AUTHORS=(
     "PureStake"

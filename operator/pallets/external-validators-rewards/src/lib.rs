@@ -35,11 +35,9 @@ pub use pallet::*;
 
 use {
     crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
-    frame_support::traits::{Contains, Defensive, Get, ValidatorSet},
+    frame_support::traits::{Get, ValidatorSet},
     pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
-    parity_scale_codec::Encode,
-    polkadot_primitives::ValidatorIndex,
-    runtime_parachains::session_info,
+    parity_scale_codec::{Decode, Encode},
     snowbridge_merkle_tree::{merkle_proof, merkle_root, verify_proof, MerkleProof},
     sp_core::{H160, H256},
     sp_runtime::{
@@ -47,7 +45,7 @@ use {
         Perbill,
     },
     sp_staking::SessionIndex,
-    sp_std::{collections::btree_set::BTreeSet, vec::Vec},
+    sp_std::vec::Vec,
 };
 
 /// Trait for checking if a validator has been slashed in a given era
@@ -92,14 +90,6 @@ pub mod pallet {
         #[pallet::constant]
         type HistoryDepth: Get<EraIndex>;
 
-        /// The amount of era points given by backing a candidate that is included.
-        #[pallet::constant]
-        type BackingPoints: Get<u32>;
-
-        /// The amount of era points given by dispute voting on a candidate.
-        #[pallet::constant]
-        type DisputeStatementPoints: Get<u32>;
-
         /// Provider to know how may tokens were inflated (added) in a specific era.
         type EraInflationProvider: Get<u128>;
 
@@ -108,11 +98,12 @@ pub mod pallet {
 
         type GetWhitelistedValidators: Get<Vec<Self::AccountId>>;
 
-        /// Validator set provider for performance tracking
-        type ValidatorSet: frame_support::traits::ValidatorSet<Self::AccountId>;
-
-        /// Provider to check if validators are online (sent heartbeat this session)
-        type LivenessCheck: frame_support::traits::Contains<Self::AccountId>;
+        /// Validator set provider for performance tracking.
+        /// Requires ValidatorId = AccountId so we can use validators() directly.
+        type ValidatorSet: frame_support::traits::ValidatorSet<
+            Self::AccountId,
+            ValidatorId = Self::AccountId,
+        >;
 
         /// Check if a validator has been slashed in a given era
         type SlashingCheck: SlashingCheck<Self::AccountId>;
@@ -134,7 +125,7 @@ pub mod pallet {
         /// The remainder (100% - block - liveness) is the unconditional base reward.
         type BlockAuthoringWeight: Get<Perbill>;
 
-        /// Weight of liveness (heartbeat/block authorship) in the rewards formula.
+        /// Weight of liveness (block authorship) in the rewards formula.
         /// Combined with BlockAuthoringWeight, the sum should not exceed 100%.
         /// The remainder (100% - block - liveness) is the unconditional base reward.
         type LivenessWeight: Get<Perbill>;
@@ -468,9 +459,9 @@ pub mod pallet {
         ///
         /// # Liveness Scoring
         ///
-        /// Based on ImOnline's is_online() which considers a validator online if:
-        /// - They sent a heartbeat in the current session, OR
-        /// - They authored at least one block in the current session
+        /// Uses block authorship as proof of liveness. A validator is considered online if
+        /// they authored at least one block in the current session. This is simpler and more
+        /// reliable than ImOnline heartbeats, which have timing issues with session rotation.
         ///
         /// # Weight Validation
         ///
@@ -602,9 +593,11 @@ pub mod pallet {
                 // credited_blocks = min(blocks_authored, max_credited_blocks)
                 let credited_blocks = blocks_authored.min(max_credited_blocks);
 
-                // Liveness score: based on ImOnline's is_online() which considers
-                // heartbeats OR block authorship
-                let is_online = T::LivenessCheck::contains(validator);
+                // Liveness score: Use block authorship as proof of liveness.
+                // A validator who authored at least one block is definitively online.
+                // This is simpler and more reliable than trying to cache ImOnline state
+                // which has timing issues with session rotation.
+                let is_online = blocks_authored > 0;
                 let liveness_score = if is_online {
                     Perbill::one()
                 } else {
@@ -750,105 +743,11 @@ pub mod pallet {
     }
 }
 
-/// Rewards validators for participating in parachains with era points in pallet-staking.
-pub struct RewardValidatorsWithEraPoints<C>(core::marker::PhantomData<C>);
-
-impl<C> RewardValidatorsWithEraPoints<C>
-where
-    C: pallet::Config
-        + session_info::Config<
-            ValidatorSet: frame_support::traits::ValidatorSet<
-                C::AccountId,
-                ValidatorId = C::AccountId,
-            >,
-        >,
-    <C as pallet::Config>::ValidatorSet:
-        frame_support::traits::ValidatorSet<C::AccountId, ValidatorId = C::AccountId>,
-    C::AccountId: Ord,
-{
-    /// Reward validators in session with points, but only if they are in the active set.
-    fn reward_only_active(
-        session_index: SessionIndex,
-        indices: impl IntoIterator<Item = ValidatorIndex>,
-        points: u32,
-    ) {
-        let validators = session_info::AccountKeys::<C>::get(&session_index);
-        let validators = match validators
-            .defensive_proof("account_keys are present for dispute_period sessions")
-        {
-            Some(validators) => validators,
-            None => return,
-        };
-        // limit rewards to the active validator set
-        let mut active_set: BTreeSet<C::AccountId> =
-            <C as pallet::Config>::ValidatorSet::validators()
-                .into_iter()
-                .collect();
-
-        // Remove whitelisted validators, we don't want to reward them
-        let whitelisted_validators = C::GetWhitelistedValidators::get();
-        for validator in whitelisted_validators {
-            active_set.remove(&validator);
-        }
-
-        let rewards = indices
-            .into_iter()
-            .filter_map(|i| validators.get(i.0 as usize).cloned())
-            .filter(|v| active_set.contains(v))
-            .map(|v| (v, points));
-
-        pallet::Pallet::<C>::reward_by_ids(rewards);
-    }
-}
-
-impl<C> runtime_parachains::inclusion::RewardValidators for RewardValidatorsWithEraPoints<C>
-where
-    C: pallet::Config
-        + runtime_parachains::shared::Config
-        + session_info::Config<
-            ValidatorSet: frame_support::traits::ValidatorSet<
-                C::AccountId,
-                ValidatorId = C::AccountId,
-            >,
-        >,
-    <C as pallet::Config>::ValidatorSet:
-        frame_support::traits::ValidatorSet<C::AccountId, ValidatorId = C::AccountId>,
-    C::AccountId: Ord,
-{
-    fn reward_backing(indices: impl IntoIterator<Item = ValidatorIndex>) {
-        let session_index = runtime_parachains::shared::CurrentSessionIndex::<C>::get();
-        Self::reward_only_active(session_index, indices, C::BackingPoints::get());
-    }
-
-    fn reward_bitfields(_validators: impl IntoIterator<Item = ValidatorIndex>) {}
-}
-
-impl<C> runtime_parachains::disputes::RewardValidators for RewardValidatorsWithEraPoints<C>
-where
-    C: pallet::Config
-        + session_info::Config<
-            ValidatorSet: frame_support::traits::ValidatorSet<
-                C::AccountId,
-                ValidatorId = C::AccountId,
-            >,
-        >,
-    <C as pallet::Config>::ValidatorSet:
-        frame_support::traits::ValidatorSet<C::AccountId, ValidatorId = C::AccountId>,
-    C::AccountId: Ord,
-{
-    fn reward_dispute_statement(
-        session: SessionIndex,
-        validators: impl IntoIterator<Item = ValidatorIndex>,
-    ) {
-        Self::reward_only_active(session, validators, C::DisputeStatementPoints::get());
-    }
-}
-
 /// Wrapper for pallet_session::SessionManager that awards performance-based points at session end.
 ///
 /// This implements the 60/30/10 performance formula for solochain validators:
-/// - 60% weight: Block production (BABE participation)
-/// - 30% weight: Heartbeat/liveness (ImOnline participation)
+/// - 60% weight: Block production (credited blocks vs fair share)
+/// - 30% weight: Liveness (1.0 if authored at least one block, 0.0 otherwise)
 /// - 10% weight: Base guarantee (always awarded)
 ///
 /// Wraps an inner SessionManager (typically `NoteHistoricalRoot<ExternalValidators>`) and calls

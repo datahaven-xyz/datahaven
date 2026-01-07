@@ -3,7 +3,8 @@ import {
   constructDeployCommand,
   deployContracts as deployContractsCore,
   executeDeployment,
-  validateDeploymentParams
+  validateDeploymentParams,
+  bumpVersionAndUpdateDepsForDeploy
 } from "scripts/deploy-contracts";
 import { logger } from "utils";
 import type { ParameterCollection } from "utils/parameters";
@@ -64,6 +65,10 @@ export const deployContracts = async (options: ContractsOptions): Promise<void> 
       blockscoutBackendUrl: options.blockscoutBackendUrl
     });
   }
+
+  // Ensure deployment metadata (version + deps) is updated regardless of path.
+  const chain = options.chain || "anvil";
+  await bumpVersionAndUpdateDepsForDeploy(chain);
 
   logger.success("Smart contracts deployed successfully");
 };

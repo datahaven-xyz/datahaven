@@ -91,6 +91,9 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
     // Update proxy contracts to point to new implementations
     await updateProxyContracts(options);
 
+    // Bump version (patch) to reflect upgraded contracts
+    await bumpVersionForUpgrade(options.chain);
+
     // Verify contracts if requested
     if (options.verify) {
       logger.info("🔍 Verifying upgraded contracts...");
@@ -443,5 +446,35 @@ const updateDeploymentFile = async (chain: string, newAddresses: Record<string, 
   } catch (error) {
     logger.error(`❌ Failed to update deployment file: ${error}`);
     throw error;
+  }
+};
+
+const bumpVersionForUpgrade = async (chain: string) => {
+  try {
+    const deployments = await parseDeploymentsFile(chain);
+    const anyDeployments = deployments as any;
+
+    const current = anyDeployments.version as string | undefined;
+    let next = "0.0.1";
+
+    if (current) {
+      const [majorStr, minorStr, patchStr] = current.split(".");
+      const major = Number(majorStr);
+      const minor = Number(minorStr);
+      const patch = Number(patchStr);
+
+      if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
+        next = `${major}.${minor}.${patch + 1}`;
+      }
+    }
+
+    const updated = { ...anyDeployments, version: next };
+    const deploymentPath = `../contracts/deployments/${chain}.json`;
+    const jsonContent = JSON.stringify(updated, null, 2);
+    writeFileSync(deploymentPath, jsonContent);
+
+    logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
+  } catch (error) {
+    logger.warn(`⚠️ Failed to bump deployment version for ${chain}: ${error}`);
   }
 };

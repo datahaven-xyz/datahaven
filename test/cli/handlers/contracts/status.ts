@@ -1,5 +1,6 @@
 import { logger, printDivider } from "utils";
 import { getChainDeploymentParams, loadChainConfig } from "../../../configs/contracts/config";
+import { parseDeploymentsFile } from "utils/contracts";
 import { checkContractVerification } from "./verify";
 
 /**
@@ -10,6 +11,12 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
     const config = await loadChainConfig(chain);
     const deploymentParams = getChainDeploymentParams(chain);
 
+    const deployments = await parseDeploymentsFile(chain);
+    const deps = (deployments as any).deps as {
+      eigenlayer?: { release?: string; gitCommit?: string };
+      snowbridge?: { release?: string; gitCommit?: string };
+    } | undefined;
+
     const displayData = {
       Network: `${deploymentParams.network} (Chain ID: ${deploymentParams.chainId})`,
       "RPC URL": deploymentParams.rpcUrl,
@@ -17,7 +24,10 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
       "Genesis Time": new Date(deploymentParams.genesisTime * 1000).toISOString(),
       "AVS Owner": `${config.avs.avsOwner.slice(0, 10)}...${config.avs.avsOwner.slice(-8)}`,
       "Rewards Initiator": `${config.avs.rewardsInitiator.slice(0, 10)}...${config.avs.rewardsInitiator.slice(-8)}`,
-      "Veto Committee Member": `${config.avs.vetoCommitteeMember.slice(0, 10)}...${config.avs.vetoCommitteeMember.slice(-8)}`
+      "Veto Committee Member": `${config.avs.vetoCommitteeMember.slice(0, 10)}...${config.avs.vetoCommitteeMember.slice(-8)}`,
+      "DataHaven Version": deployments.version ?? "(unset)",
+      "EigenLayer Version": deps?.eigenlayer?.release ?? deps?.eigenlayer?.gitCommit ?? "(unset)",
+      "Snowbridge Version": deps?.snowbridge?.release ?? deps?.snowbridge?.gitCommit ?? "(unset)"
     };
     console.table(displayData);
 

@@ -1,12 +1,10 @@
 import { $ } from "bun";
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { CHAIN_CONFIGS } from "configs/contracts/config";
 import invariant from "tiny-invariant";
-import {
-  logger,
-  parseDeploymentsFile,
-  parseRewardsInfoFile,
-  runShellCommandWithLogger
-} from "utils";
+import { logger, parseDeploymentsFile, parseRewardsInfoFile, runShellCommandWithLogger } from "utils";
+import { getDependencyVersions } from "utils/dependencyVersions";
 import type { ParameterCollection } from "utils/parameters";
 
 interface ContractDeploymentOptions {
@@ -107,6 +105,60 @@ export const executeDeployment = async (
   logger.success("Contracts deployed successfully");
 };
 
+export const bumpVersionAndUpdateDepsForDeploy = async (chain: string | undefined) => {
+  if (!chain) {
+    return;
+  }
+
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
+
+    const raw = readFileSync(deploymentPath, "utf8");
+    const deploymentsJson = JSON.parse(
+      raw
+    ) as { version?: string; deps?: { eigenlayer?: any; snowbridge?: any } };
+
+    const current = deploymentsJson.version;
+    let next = "0.1.0";
+
+    if (current) {
+      const [majorStr, minorStr, patchStr] = current.split(".");
+      const major = Number(majorStr);
+      const minor = Number(minorStr);
+      const patch = Number(patchStr);
+
+      if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
+        next = `${major}.${minor + 1}.0`;
+      }
+    }
+
+    deploymentsJson.version = next;
+
+    const deps = await getDependencyVersions();
+    deploymentsJson.deps = {
+      ...(deploymentsJson.deps ?? {}),
+      eigenlayer: {
+        ...(deploymentsJson.deps?.eigenlayer ?? {}),
+        ...deps.eigenlayer
+      },
+      snowbridge: {
+        ...(deploymentsJson.deps?.snowbridge ?? {}),
+        ...deps.snowbridge
+      }
+    };
+
+    writeFileSync(deploymentPath, JSON.stringify(deploymentsJson, null, 2));
+    logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
+    logger.info(
+      `📝 Updated dependency versions for ${chain}: eigenlayer=${deps.eigenlayer.release ?? deps.eigenlayer.gitCommit}, snowbridge=${deps.snowbridge.release ?? deps.snowbridge.gitCommit}`
+    );
+  } catch (error) {
+    logger.warn(`⚠️ Failed to update deployment version/dependency metadata for ${chain}: ${error}`);
+  }
+};
+
 /**
  * Read the parameters from the deployed contracts and add it to the collection.
  */
@@ -203,6 +255,8 @@ export const deployContracts = async (options: {
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
   await executeDeployment(deployCommand, undefined, options.chain, options.privateKey);
+
+  await bumpVersionAndUpdateDepsForDeploy(options.chain);
 
   logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
 };

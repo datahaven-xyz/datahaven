@@ -33,6 +33,11 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
 
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// This is informational and should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string public constant DATAHAVEN_VERSION = "1.0.0";
+
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
 
@@ -230,6 +235,14 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     function snowbridgeGateway() external view returns (address) {
         return address(_snowbridgeGateway);
+    }
+
+    /**
+     * @notice Returns the semantic version of the deployed DataHaven AVS stack.
+     * @dev This is an informational helper and is not used for on-chain enforcement.
+     */
+    function datahavenVersion() external pure returns (string memory) {
+        return DATAHAVEN_VERSION;
     }
 
     /**

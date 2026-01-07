@@ -44,9 +44,13 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
-    event ValidatorsSlashedTest(address);
-
     IGatewayV2 private _snowbridgeGateway;
+
+    struct SlashingRequests {
+        address operator;
+        uint256[] wadsToSlash;
+        string description;
+    }
 
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
@@ -296,27 +300,21 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _allocationManager.createOperatorSets(address(this), operatorSets);
     }
 
-    function slashValidatorsOperator(address[] calldata operators) external {
+    /**
+     * @notice Slash the operators of the validators set
+     * @dev This function should be called during initialisation to set up the required operator set.
+     */
+    function slashValidatorsOperator(SlashingRequests[] calldata slashings) external {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
 
-        uint256 wadToSlash = 1e16;
-        string memory description = "slashing validator";
-
-        uint256[] memory wadsToSlash = new uint256[](strategies.length);        
-        for(uint i=0; i<wadsToSlash.length; i++){
-            wadsToSlash[i] = wadToSlash;
-        }
-
-        for(uint i=0; i<operators.length; i++){
-            emit ValidatorsSlashedTest(operators[i]);
-    
+        for(uint i=0; i<slashings.length; i++){    
             IAllocationManagerTypes.SlashingParams memory slashingParams = IAllocationManagerTypes.SlashingParams({
-                operator: operators[i],
+                operator: slashings[i].operator,
                 operatorSetId: VALIDATORS_SET_ID,
                 strategies: strategies,
-                wadsToSlash: wadsToSlash,
-                description: description
+                wadsToSlash: slashings[i].wadsToSlash,
+                description: slashings[i].description
             });
 
             _allocationManager.slashOperator(address(this), slashingParams);

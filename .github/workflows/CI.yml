@@ -23,20 +23,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # First Tier - Build the binary first
+  # Tier 0 - Warm sccache for all Rust jobs
+  warm-sccache:
+    uses: ./.github/workflows/task-warm-sccache.yml
+
+  # First Tier - Build the binary (depends on warm cache)
   build-operator:
+    needs: [warm-sccache]
     uses: ./.github/workflows/task-build-operator.yml
-    
+
   # First Tier - Other parallel jobs
   ts-build:
     uses: ./.github/workflows/task-ts-build.yml
   ts-lint:
     uses: ./.github/workflows/task-ts-lint.yml
   unit-tests:
+    needs: [warm-sccache]
     uses: ./.github/workflows/task-rust-tests.yml
   contract-tests:
     uses: ./.github/workflows/task-foundry-tests.yml
   rust-lint:
+    needs: [warm-sccache]
     uses: ./.github/workflows/task-rust-lint.yml
     
   # Second Tier - Jobs that depend on operator build

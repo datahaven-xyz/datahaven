@@ -128,7 +128,7 @@ contract DeployLocal is DeployBase {
         address tokenAddress = deployedStrategies[0].underlyingToken;
 
         // Transfer 500,000 tokens (half of minted supply) to ServiceManager
-        uint256 fundAmount = 500_000 * 1e18;
+        uint256 fundAmount = 500000 * 1e18;
 
         Logging.logSection("Funding ServiceManager with Reward Tokens");
         vm.broadcast(_operatorPrivateKey);

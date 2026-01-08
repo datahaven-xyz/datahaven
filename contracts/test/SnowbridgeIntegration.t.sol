@@ -4,12 +4,7 @@ pragma solidity ^0.8.13;
 /* solhint-disable func-name-mixedcase */
 
 import {IGatewayV2} from "snowbridge/src/Types.sol";
-import {
-    Payload,
-    Message,
-    MessageKind,
-    Asset
-} from "snowbridge/src/v2/Types.sol";
+import {Payload, Message, MessageKind, Asset} from "snowbridge/src/v2/Types.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";

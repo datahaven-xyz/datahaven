@@ -127,8 +127,10 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         _logProgress();
 
         // Deploy DataHaven contracts (same for both modes)
-        (DataHavenServiceManager serviceManager, DataHavenServiceManager serviceManagerImplementation)
-        = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
+        (
+            DataHavenServiceManager serviceManager,
+            DataHavenServiceManager serviceManagerImplementation
+        ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
 
         Logging.logFooter();
         _logProgress();

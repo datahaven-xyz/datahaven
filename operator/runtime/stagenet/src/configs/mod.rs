@@ -1509,24 +1509,6 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Stag
 pub type RewardsSendAdapter =
     datahaven_runtime_common::rewards_adapter::RewardsSubmissionAdapter<StagenetRewardsConfig>;
 
-/// Wrapper to check if a validator is online in the current session.
-/// Uses ImOnline's is_online() which considers a validator online if:
-/// - They sent a heartbeat in the current session, OR
-/// - They authored at least one block in the current session
-pub struct ValidatorIsOnline;
-impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
-    fn contains(account: &AccountId) -> bool {
-        let validators = Session::validators();
-        if let Some(index) = validators.iter().position(|v| v == account) {
-            // Check if validator is online (heartbeat OR block authorship)
-            ImOnline::is_online(index as u32)
-        } else {
-            // Not a validator in current session, consider offline
-            false
-        }
-    }
-}
-
 /// Wrapper to check if a validator has been slashed in a given era
 pub struct ValidatorSlashChecker;
 impl pallet_external_validators_rewards::SlashingCheck<AccountId> for ValidatorSlashChecker {
@@ -1554,18 +1536,10 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
     type HistoryDepth = ConstU32<64>;
-
-    // NOT USED: DataHaven is a solochain with BABE+GRANDPA consensus, not a parachain.
-    // Backing and dispute points are only relevant for parachain validation.
-    // These are set to 0 to make it explicit they're unused.
-    type BackingPoints = ConstU32<0>;
-    type DisputeStatementPoints = ConstU32<0>;
-
     type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type ValidatorSet = Session;
-    type LivenessCheck = ValidatorIsOnline;
     type SlashingCheck = ValidatorSlashChecker;
     type BasePointsPerBlock = ConstU32<320>;
     type BlockAuthoringWeight =
@@ -1579,9 +1553,9 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
-    type WeightInfo = stagenet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
+    type WeightInfo = stagenet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }

@@ -15,17 +15,78 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set tool versions and cache key
+      shell: bash
+      run: |
+        # Define tool versions in one place
+        echo "MOLD_VERSION=2.40.4" >> $GITHUB_ENV
+        echo "LLVM_VERSION=18.1.8" >> $GITHUB_ENV
+        echo "PROTOC_VERSION=28.3" >> $GITHUB_ENV
+        echo "LIBPQ_VERSION=18.1-1" >> $GITHUB_ENV
+
+        # Create a hash from tool versions for cache key
+        TOOLS_HASH=$(echo "mold-2.40.4|llvm-18.1.8|protoc-28.3|libpq-18.1-1" | sha256sum | cut -c1-16)
+        echo "TOOLS_HASH=$TOOLS_HASH" >> $GITHUB_ENV
+        echo "Tools cache key hash: $TOOLS_HASH"
+
     - name: Set Rust version
       shell: bash
       run: |
         echo "BUILD_RUST_VERSION=$(rustc --version)" >> $GITHUB_ENV
+
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
-    
+
     - name: Show sccache stats
       shell: bash
       run: sccache --show-stats
-      
+
+    # Cache specific ~/.local subdirs for locally installed tools (mold, llvm, protoc, libpq)
+    # Note: We don't cache all of ~/.local to avoid container storage in ~/.local/share
+    - name: Cache local tools
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/bin
+          ~/.local/lib
+          ~/.local/include
+        key: ${{ runner.os }}-local-tools-${{ env.TOOLS_HASH }}
+
+    # Set up PATH and env vars for cached tools (must run after cache restore)
+    - name: Setup paths for cached tools
+      shell: bash
+      run: |
+        # Add ~/.local/bin to PATH for cached tools
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        export PATH="$HOME/.local/bin:$PATH"
+
+        # Setup library paths if ~/.local/lib exists (from cached libpq/llvm)
+        if [ -d "$HOME/.local/lib" ]; then
+          echo "LD_LIBRARY_PATH=$HOME/.local/lib:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$HOME/.local/lib:${LIBRARY_PATH:-}" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$HOME/.local/lib ${LDFLAGS:-}" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-L $HOME/.local/lib" >> $GITHUB_ENV
+        fi
+
+        # Setup include paths if ~/.local/include exists
+        if [ -d "$HOME/.local/include" ]; then
+          echo "C_INCLUDE_PATH=$HOME/.local/include:${C_INCLUDE_PATH:-}" >> $GITHUB_ENV
+          echo "CPLUS_INCLUDE_PATH=$HOME/.local/include:${CPLUS_INCLUDE_PATH:-}" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$HOME/.local/include ${CPPFLAGS:-}" >> $GITHUB_ENV
+        fi
+
+        # Setup LLVM paths if libclang exists in cache
+        if [ -d "$HOME/.local/lib" ] && ls $HOME/.local/lib/libclang* &>/dev/null; then
+          echo "LIBCLANG_PATH=$HOME/.local/lib" >> $GITHUB_ENV
+          echo "LLVM_CONFIG_PATH=$HOME/.local/bin/llvm-config" >> $GITHUB_ENV
+        fi
+
+        # Export mold path if it exists
+        if command -v mold &>/dev/null; then
+          echo "MOLD_PATH=$(which mold)" >> $GITHUB_ENV
+        fi
+
     - uses: actions/cache@v4
       with:
         path: |
@@ -45,7 +106,6 @@ runs:
       shell: bash
       run: |
         # Check if mold is already available and the right version
-        MOLD_VERSION="2.40.4"
         if ! command -v mold &> /dev/null || [[ $(mold --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1) != "$MOLD_VERSION" ]]; then
           echo "Installing mold $MOLD_VERSION in ~/.local"
           mkdir -p ~/.local/bin
@@ -56,7 +116,7 @@ runs:
         else
           echo "mold is already installed: $(mold --version)"
         fi
-        
+
         # Export the mold path for use in RUSTFLAGS
         MOLD_PATH=$(which mold)
         echo "MOLD_PATH=${MOLD_PATH}" >> $GITHUB_ENV
@@ -69,88 +129,75 @@ runs:
       run: sudo apt-get update && sudo apt-get install -y libpq-dev libclang-dev
     
     # Auto-install missing dependencies when install-deps is false (for self-hosted runners)
+    # Note: PATH and env vars are already set up in "Setup paths for cached tools" step
     - name: Setup system dependencies (self-hosted)
       if: inputs.install-deps == 'false'
       shell: bash
       run: |
         echo "Checking and installing system dependencies locally if needed..."
-        
+
         # Setup local directories
         LOCAL_DIR="$HOME/.local"
         LOCAL_BIN="$LOCAL_DIR/bin"
         LOCAL_LIB="$LOCAL_DIR/lib"
         LOCAL_INCLUDE="$LOCAL_DIR/include"
         LOCAL_PKG_CONFIG="$LOCAL_DIR/lib/pkgconfig"
-        
+
         mkdir -p "$LOCAL_BIN" "$LOCAL_LIB" "$LOCAL_INCLUDE" "$LOCAL_PKG_CONFIG"
-        
-        # Export paths for future steps (avoid duplication)
-        echo "$LOCAL_BIN" >> $GITHUB_PATH
-        echo "LD_LIBRARY_PATH=$LOCAL_LIB:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=$LOCAL_PKG_CONFIG:${PKG_CONFIG_PATH:-}" >> $GITHUB_ENV
-        echo "C_INCLUDE_PATH=$LOCAL_INCLUDE:${C_INCLUDE_PATH:-}" >> $GITHUB_ENV
-        echo "CPLUS_INCLUDE_PATH=$LOCAL_INCLUDE:${CPLUS_INCLUDE_PATH:-}" >> $GITHUB_ENV
-        
+
         # Check and install PostgreSQL client libraries if needed
         if ! pkg-config --exists libpq 2>/dev/null; then
-          echo "Installing libpq..."
+          echo "Installing libpq $LIBPQ_VERSION..."
           ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
           WORK_DIR="$LOCAL_DIR/tmp"
           mkdir -p "$WORK_DIR" && cd "$WORK_DIR"
-          
+
           # Download PostgreSQL 18 packages
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.1-1.pgdg+2_${ARCH}.deb"
-          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_18.1-1.pgdg+2_${ARCH}.deb"
-          
+          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_${LIBPQ_VERSION}.pgdg+2_${ARCH}.deb"
+          wget -q "https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq-dev_${LIBPQ_VERSION}.pgdg+2_${ARCH}.deb"
+
           # Extract and install
           for pkg in *.deb; do
             ar p "$pkg" data.tar.xz | tar -xJ --no-same-owner 2>/dev/null || true
           done
-          
+
           cp -r usr/lib/*/libpq* usr/lib/libpq* "$LOCAL_LIB/" 2>/dev/null || true
           cp -r usr/include/* "$LOCAL_INCLUDE/" 2>/dev/null || true
           find usr -name "*.pc" -exec cp {} "$LOCAL_PKG_CONFIG/" \; 2>/dev/null || true
-          
+
           # Fix pkg-config paths
           sed -i "s|/usr|$LOCAL_DIR|g" "$LOCAL_PKG_CONFIG"/*.pc 2>/dev/null || true
-          
+
           cd "$HOME" && rm -rf "$WORK_DIR"
-          
-          # Export build flags for libpq
-          echo "LDFLAGS=-L$LOCAL_LIB ${LDFLAGS:-}" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$LOCAL_INCLUDE ${CPPFLAGS:-}" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$LOCAL_LIB:${LIBRARY_PATH:-}" >> $GITHUB_ENV
-          echo "RUSTFLAGS=-L $LOCAL_LIB" >> $GITHUB_ENV
-          
+
           echo "✓ libpq installed"
         else
           echo "✓ libpq found: $(pkg-config --modversion libpq 2>/dev/null || echo 'version unknown')"
         fi
-        
+
         # Check and install LLVM/Clang if needed
         if ! command -v clang &> /dev/null || ! ls $LOCAL_LIB/libclang* 2>/dev/null && ! ldconfig -p 2>/dev/null | grep -q libclang; then
           echo "LLVM/Clang not found, installing locally..."
-          LLVM_VERSION="18.1.8"
           ARCH=$(uname -m)
-          
+
           # Map architecture names
           case "$ARCH" in
             x86_64) LLVM_ARCH="x86_64-linux-gnu-ubuntu-22.04" ;;
             aarch64) LLVM_ARCH="aarch64-linux-gnu" ;;
             *) LLVM_ARCH="$ARCH-linux-gnu" ;;
           esac
-          
+
           # Download pre-built LLVM/Clang binaries
           echo "Downloading LLVM ${LLVM_VERSION} for ${LLVM_ARCH}..."
           wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-${LLVM_ARCH}.tar.xz" | \
             tar -xJf - -C /tmp --strip-components=1 || {
               echo "Failed to download pre-built binaries, trying alternative version..."
               # Try an older, more widely available version
-              LLVM_VERSION="17.0.6"
-              wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-${LLVM_ARCH}.tar.xz" | \
+              LLVM_FALLBACK="17.0.6"
+              wget -q -O- "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_FALLBACK}/clang+llvm-${LLVM_FALLBACK}-${LLVM_ARCH}.tar.xz" | \
                 tar -xJf - -C /tmp --strip-components=1
           }
-          
+
           # Copy required files
           if [ -d "/tmp/bin" ]; then
             cp /tmp/bin/clang* "$LOCAL_BIN/" 2>/dev/null || true
@@ -159,17 +206,17 @@ runs:
             cp -r /tmp/lib/clang "$LOCAL_LIB/" 2>/dev/null || true
             cp -r /tmp/include/clang* "$LOCAL_INCLUDE/" 2>/dev/null || true
             rm -rf /tmp/bin /tmp/lib /tmp/include /tmp/share
-            
-            # Set LIBCLANG_PATH for rust bindgen
+
+            # Set LIBCLANG_PATH for rust bindgen (in case not set by cache)
             echo "LIBCLANG_PATH=$LOCAL_LIB" >> $GITHUB_ENV
             echo "LLVM_CONFIG_PATH=$LOCAL_BIN/llvm-config" >> $GITHUB_ENV
           fi
-          
+
           echo "✓ LLVM/Clang ${LLVM_VERSION} installed locally"
         else
           echo "✓ clang found: $(clang --version 2>/dev/null | head -n1 || echo 'installed')"
         fi
-        
+
         echo "All required system dependencies ready!"
     
     # Install protoc only when install-deps is true
@@ -185,11 +232,10 @@ runs:
       shell: bash
       run: |
         echo "Checking and installing protoc locally if needed..."
-        
+
         if ! command -v protoc &> /dev/null; then
           echo "protoc not found, installing locally..."
-          
-          PROTOC_VERSION="28.3"
+
           ARCH=$(uname -m)
           
           # Map architecture names for protoc

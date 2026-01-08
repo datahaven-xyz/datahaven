@@ -1,8 +1,4 @@
 # Rust Tests: CI for Rust components (DataHaven runtime and node Rust tests)
-#
-# Overview:
-# All Rust Tests: Executes the full suite of Rust tests across two partitions to
-#    to reduce total execution time.
 
 name: DataHaven Operator Rust Tests
 
@@ -15,14 +11,10 @@ permissions:
   contents: read
 
 jobs:
-  all-rust-tests:
-    name: Run all Operator Rust tests (/w partitioning)
+  rust-tests:
+    name: Run Operator Rust tests
     runs-on:
       group: DH-runners
-    strategy:
-      fail-fast: false
-      matrix:
-        partition: [1, 2]
     env:
       RUSTC_WRAPPER: "sccache"
       CARGO_INCREMENTAL: "0"
@@ -36,39 +28,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
       - uses: ./.github/workflows/actions/setup-env
         with:
           cache-key: "TEST"
           install-deps: false
+
       - name: Set build flags
         run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
-      - name: Install nextest
-        run: |
-          if ! command -v cargo-nextest &> /dev/null; then
-            echo "Installing cargo-nextest version 0.9.100"
-            cargo install cargo-nextest --version 0.9.100 --locked
-          else
-            echo "cargo-nextest is already installed: $(cargo-nextest --version)"
-          fi
-      - name: Run Tests for All Projects!
-        run: |
-          ~/.cargo/bin/cargo-nextest nextest run \
-            --partition count:${{ matrix.partition }}/2
 
-  tests-result-checker:
-    name: Check tests were successful
-    needs: [all-rust-tests]
-    runs-on:
-      group: DH-runners
-    steps:
-      - name: Validate test results
-        run: |
-          echo "matrix result: ${{ needs.all-rust-tests.result }}"
-
-          if [ "${{ needs.all-rust-tests.result }}" != "success" ]; then
-            echo "Rust tests failed or were cancelled"
-            exit 1
-          else
-            echo "Rust tests passed"
-          fi
+      - name: Run tests
+        run: cargo test --locked
 

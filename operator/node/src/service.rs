@@ -1182,6 +1182,9 @@ where
             bsp_submit_proof,
             blockchain_service,
             msp_database_url,
+            trusted_file_transfer_server,
+            trusted_file_transfer_server_host,
+            trusted_file_transfer_server_port,
             ..
         }) => {
             info!(
@@ -1215,6 +1218,16 @@ where
                     let msp_db_pool = setup_database_pool(db_url.clone()).await?;
                     builder.with_indexer_db_pool(Some(msp_db_pool));
                 }
+            }
+
+            if *trusted_file_transfer_server {
+                let file_transfer_config = shc_client::trusted_file_transfer::server::Config {
+                    host: trusted_file_transfer_server_host
+                        .clone()
+                        .unwrap_or_else(|| "127.0.0.1".to_string()),
+                    port: trusted_file_transfer_server_port.unwrap_or(7070),
+                };
+                builder.with_trusted_file_transfer_server(file_transfer_config);
             }
 
             if let Some(c) = blockchain_service {
@@ -1294,6 +1307,9 @@ where
             maintenance_mode,
         )
         .await;
+
+    // Spawn the trusted file transfer server if configured
+    sh_builder.spawn_trusted_file_transfer_server().await;
 
     // Initialize the BSP peer manager
     sh_builder.with_peer_manager(rocks_db_path.clone());

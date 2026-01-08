@@ -1,0 +1,56 @@
+# Warm sccache: Pre-populate the sccache cache for downstream Rust jobs
+#
+# This job runs first and compiles the project to warm up the shared
+# sccache cache, ensuring better cache hit rates for parallel Rust jobs.
+
+name: Warm sccache
+
+on:
+  workflow_call:
+
+# Explicit minimal permissions
+permissions:
+  contents: read
+
+jobs:
+  warm-cache:
+    name: Warm sccache cache
+    runs-on:
+      group: DH-runners
+    env:
+      RUSTC_WRAPPER: "sccache"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+      SCCACHE_GHA_ENABLED: "true"
+    defaults:
+      run:
+        working-directory: ./operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: ./.github/workflows/actions/setup-env
+        with:
+          cache-key: WARM
+          install-deps: false
+
+      - name: Set build flags
+        run: echo "RUSTFLAGS=${{ env.RUSTFLAGS }} -C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+
+      # Compile with release mode and superset of features to warm the cache
+      # This covers: build-operator (fast-runtime) and rust-lint (try-runtime, runtime-benchmarks)
+      - name: Warm cache - release build with all features
+        run: |
+          echo "Building release with combined features to warm sccache..."
+          SKIP_WASM_BUILD=1 cargo check --release --locked --features fast-runtime,try-runtime,runtime-benchmarks
+
+      # Also warm the debug build cache for tests
+      - name: Warm cache - debug build for tests
+        run: |
+          echo "Building debug mode to warm sccache for tests..."
+          cargo check --locked
+
+      - name: Show sccache stats
+        run: sccache --show-stats

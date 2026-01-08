@@ -191,26 +191,6 @@ impl frame_support::traits::ValidatorSet<H160> for MockValidatorSet {
     }
 }
 
-/// Configurable liveness check that mirrors ImOnline behavior.
-/// A validator is considered online if:
-/// 1. They are NOT in the offline_validators list, OR
-/// 2. They have authored at least one block in the current session
-///
-/// This matches the real ImOnline pallet which considers block authorship
-/// as proof of liveness (no heartbeat needed if you authored a block).
-pub struct MockLivenessCheck;
-impl frame_support::traits::Contains<H160> for MockLivenessCheck {
-    fn contains(validator: &H160) -> bool {
-        // Check if validator authored any blocks this session
-        let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
-
-        // Validator is online if:
-        // 1. They authored blocks (proves they're online), OR
-        // 2. They're not in the offline list (sent heartbeat)
-        authored_blocks > 0 || !Mock::mock().offline_validators.contains(validator)
-    }
-}
-
 /// Configurable slashing check that reads slashed validators from mock data.
 /// Validators in the slashed_validators list (for the given era) are considered slashed.
 pub struct MockSlashingCheck;
@@ -226,13 +206,10 @@ impl pallet_external_validators_rewards::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = mock_data::Pallet<Test>;
     type HistoryDepth = ConstU32<10>;
-    type BackingPoints = ConstU32<20>;
-    type DisputeStatementPoints = ConstU32<20>;
     type EraInflationProvider = EraInflationProvider;
     type ExternalIndexProvider = TimestampProvider;
     type GetWhitelistedValidators = ();
     type ValidatorSet = MockValidatorSet;
-    type LivenessCheck = MockLivenessCheck;
     type SlashingCheck = MockSlashingCheck;
     type BasePointsPerBlock = BasePointsPerBlock;
     type BlockAuthoringWeight = BlockAuthoringWeight;
@@ -388,4 +365,13 @@ pub fn run_to_block(n: u64) {
         System::set_block_number(x + 1);
         Timestamp::set_timestamp(System::block_number() * BLOCK_TIME + INIT_TIMESTAMP);
     }
+}
+
+/// Helper function for tests to award session performance points.
+pub fn end_session(session_index: u32, validators: Vec<H160>, whitelisted: Vec<H160>) {
+    ExternalValidatorsRewards::award_session_performance_points(
+        session_index,
+        validators,
+        whitelisted,
+    );
 }

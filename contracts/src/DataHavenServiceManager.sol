@@ -310,21 +310,19 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
 
+        for(uint i=0; i<slashings.length; i++){    
+            IAllocationManagerTypes.SlashingParams memory slashingParams = IAllocationManagerTypes.SlashingParams({
+                operator: slashings[i].operator,
+                operatorSetId: VALIDATORS_SET_ID,
+                strategies: strategies,
+                wadsToSlash: slashings[i].wadsToSlash,
+                description: slashings[i].description
+            });
+
+            _allocationManager.slashOperator(address(this), slashingParams);
+        }
+
         emit SlashingComplete();
-
-        // for(uint i=0; i<slashings.length; i++){    
-        //     IAllocationManagerTypes.SlashingParams memory slashingParams = IAllocationManagerTypes.SlashingParams({
-        //         operator: slashings[i].operator,
-        //         operatorSetId: VALIDATORS_SET_ID,
-        //         strategies: strategies,
-        //         wadsToSlash: slashings[i].wadsToSlash,
-        //         description: slashings[i].description
-        //     });
-
-        //     _allocationManager.slashOperator(address(this), slashingParams);
-        // }
-
-        // emit SlashingComplete();
     }
 
 }

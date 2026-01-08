@@ -1,5 +1,5 @@
 use alloy_core::{
-    primitives::Address,
+    primitives::{Address, U256},
     sol,
     sol_types::SolCall,
 };
@@ -17,7 +17,15 @@ use frame_system::unique;
 use crate::AccountId;
 
 sol! {
-    function slashValidatorsOperator(address[] calldata operators) external;
+    // Slashing request to be send to the DatahavenServiceManager
+    struct SlashingRequest {
+        address operator;
+        uint256[] wadsToSlash;
+        string description;
+    }
+
+    // function to call in the DatahavenServiceManager to process all the slashing requests (batching)
+    function slashValidatorsOperator(SlashingRequest[] calldata slashings) external;
 }
 
 /// Gas limit for the submitRewards call on Ethereum.
@@ -51,16 +59,21 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
     fn build(slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
-        let mut slashes: Vec<Address> = vec![];
+        let mut slashings: Vec<SlashingRequest> = vec![];
 
         // Extend with operator address to slash
         for slash_operator in slashes_utils.into_iter() {
-            let slashed_address = Address::from(slash_operator.validator.0);
-            slashes.push(slashed_address);
+            let slashing_request = SlashingRequest {
+                operator: Address::from(slash_operator.validator.0),
+                wadsToSlash: vec![U256::from(1e16)], // We only have one strategy deployed
+                description: "Slashing validator".into(),
+            };
+
+            slashings.push(slashing_request);
         }
 
         // Use the `slashValidatorsOperator` function defined in the sol! macro to build the Ethereum call and encoded it correctly
-        let calldata = slashValidatorsOperatorCall { operators: slashes }.abi_encode();
+        let calldata = slashValidatorsOperatorCall { slashings }.abi_encode();
 
         let command = Command::CallContract {
             target: C::service_manager_address(),
@@ -94,3 +107,6 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
         C::OutboundQueue::deliver(message)
     }
 }
+
+
+

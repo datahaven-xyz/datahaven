@@ -2449,7 +2449,16 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'operators', internalType: 'address[]', type: 'address[]' },
+      {
+        name: 'slashings',
+        internalType: 'struct DataHavenServiceManager.SlashingRequest[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'operator', internalType: 'address', type: 'address' },
+          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
     ],
     name: 'slashValidatorsOperator',
     outputs: [],
@@ -2666,6 +2675,29 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
+<<<<<<< HEAD
+=======
+        name: 'operatorSetId',
+        internalType: 'uint32',
+        type: 'uint32',
+        indexed: true,
+      },
+      {
+        name: 'rewardsRegistry',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RewardsRegistrySet',
+  },
+  { type: 'event', anonymous: false, inputs: [], name: 'SlashingComplete' },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+>>>>>>> 32b293f2 (is encoding failing ?)
         name: 'totalAmount',
         internalType: 'uint256',
         type: 'uint256',
@@ -2718,14 +2750,6 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'ValidatorRemovedFromAllowlist',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: '', internalType: 'address', type: 'address', indexed: false },
-    ],
-    name: 'ValidatorsSlashedTest',
   },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
@@ -11611,15 +11635,6 @@ export const watchDataHavenServiceManagerValidatorRemovedFromAllowlistEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'ValidatorRemovedFromAllowlist',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"ValidatorsSlashedTest"`
- */
-export const watchDataHavenServiceManagerValidatorsSlashedTestEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'ValidatorsSlashedTest',
   })
 
 /**

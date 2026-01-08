@@ -40,13 +40,13 @@ contract SlashingTest is AVSDeployer {
 
         allocationManager.registerForOperatorSets(operator, registerParams);
 
-        DataHavenServiceManager.SlashingRequests[] memory slashings = new DataHavenServiceManager.SlashingRequests[](1);
+        DataHavenServiceManager.SlashingRequest[] memory slashings = new DataHavenServiceManager.SlashingRequest[](1);
         uint256[] memory wadsToSlash = new uint256[](3); // 3 wadsToSlash because we have register 3 strategies for the Validator set 
         wadsToSlash[0] = 1e16;
         wadsToSlash[1] = 1e16;
         wadsToSlash[2] = 1e16;
 
-        slashings[0] = DataHavenServiceManager.SlashingRequests(operator, wadsToSlash, "Testing slashing");
+        slashings[0] = DataHavenServiceManager.SlashingRequest(operator, wadsToSlash, "Testing slashing");
 
         console.log(block.number);
         vm.roll(block.number + uint32(7 days) + 1);

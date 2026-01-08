@@ -2664,7 +2664,6 @@ dependencies = [
  "pallet-external-validator-slashes",
  "pallet-external-validators",
  "pallet-external-validators-rewards",
- "pallet-external-validators-rewards-runtime-api",
  "pallet-file-system",
  "pallet-file-system-runtime-api",
  "pallet-grandpa",
@@ -2959,7 +2958,6 @@ dependencies = [
  "pallet-external-validator-slashes",
  "pallet-external-validators",
  "pallet-external-validators-rewards",
- "pallet-external-validators-rewards-runtime-api",
  "pallet-file-system",
  "pallet-file-system-runtime-api",
  "pallet-grandpa",
@@ -3111,7 +3109,6 @@ dependencies = [
  "pallet-external-validator-slashes",
  "pallet-external-validators",
  "pallet-external-validators-rewards",
- "pallet-external-validators-rewards-runtime-api",
  "pallet-file-system",
  "pallet-file-system-runtime-api",
  "pallet-grandpa",
@@ -9130,14 +9127,6 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-external-validators-rewards-runtime-api"
-version = "0.12.0"
-dependencies = [
- "parity-scale-codec",
- "sp-api",
 ]
 
 [[package]]

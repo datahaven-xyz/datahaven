@@ -944,12 +944,6 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_external_validators_rewards_runtime_api::ExternalValidatorsRewardsApi<Block> for Runtime {
-        fn api_version() -> u32 {
-            1
-        }
-    }
-
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (

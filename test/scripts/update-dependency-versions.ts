@@ -25,9 +25,10 @@ const main = async () => {
     const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
 
     const raw = readFileSync(deploymentPath, "utf8");
-    const deploymentsJson = JSON.parse(
-      raw
-    ) as { deps?: { eigenlayer?: any; snowbridge?: any }; version?: string };
+    const deploymentsJson = JSON.parse(raw) as {
+      deps?: { eigenlayer?: any; snowbridge?: any };
+      version?: string;
+    };
 
     const deps = await getDependencyVersions();
 
@@ -58,5 +59,3 @@ main().catch((error) => {
   logger.error(`❌ Dependency metadata refresh failed with unexpected error: ${error}`);
   process.exit(1);
 });
-
-

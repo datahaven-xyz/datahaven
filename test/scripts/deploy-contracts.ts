@@ -1,9 +1,14 @@
-import { $ } from "bun";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { $ } from "bun";
 import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
-import { logger, parseDeploymentsFile, parseRewardsInfoFile, runShellCommandWithLogger } from "utils";
+import {
+  logger,
+  parseDeploymentsFile,
+  parseRewardsInfoFile,
+  runShellCommandWithLogger
+} from "utils";
 import { getDependencyVersions } from "utils/dependencyVersions";
 import type { ParameterCollection } from "utils/parameters";
 import { encodeFunctionData } from "viem";
@@ -121,9 +126,10 @@ export const bumpVersionAndUpdateDepsForDeploy = async (chain: string | undefine
     const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
 
     const raw = readFileSync(deploymentPath, "utf8");
-    const deploymentsJson = JSON.parse(
-      raw
-    ) as { version?: string; deps?: { eigenlayer?: any; snowbridge?: any } };
+    const deploymentsJson = JSON.parse(raw) as {
+      version?: string;
+      deps?: { eigenlayer?: any; snowbridge?: any };
+    };
 
     const current = deploymentsJson.version;
     let next = "0.1.0";

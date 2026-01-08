@@ -1,5 +1,5 @@
-import { $ } from "bun";
 import path from "node:path";
+import { $ } from "bun";
 import { logger } from "./logger";
 
 export interface DependencyInfo {
@@ -22,8 +22,9 @@ const getGitInfo = async (relativePath: string): Promise<DependencyInfo> => {
   const repoRoot = resolveRepoRoot();
   const fullPath = path.join(repoRoot, relativePath);
 
-  const { stdout: shaOut, exitCode: shaCode } =
-    await $`git -C ${fullPath} rev-parse HEAD`.nothrow().quiet();
+  const { stdout: shaOut, exitCode: shaCode } = await $`git -C ${fullPath} rev-parse HEAD`
+    .nothrow()
+    .quiet();
 
   if (shaCode !== 0) {
     throw new Error(`Failed to resolve git commit for ${relativePath}`);
@@ -56,5 +57,3 @@ export const getDependencyVersions = async (): Promise<DependencyVersions> => {
     throw error;
   }
 };
-
-

@@ -1,8 +1,8 @@
+import { CHAIN_CONFIGS } from "configs/contracts/config";
 import { logger } from "utils";
 import { getContractInstance, parseDeploymentsFile } from "utils/contracts";
-import { CHAIN_CONFIGS } from "configs/contracts/config";
+import type { ViemClientInterface } from "utils/viem";
 import { createWalletClient, defineChain, http, publicActions } from "viem";
-import { type ViemClientInterface } from "utils/viem";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -12,7 +12,8 @@ const isInfraUnavailableError = (error: unknown): boolean => {
 
   return (
     message.includes("Failed to connect to Docker daemon") ||
-    (message.includes("container") && message.includes("cannot be found  in running container list")) ||
+    (message.includes("container") &&
+      message.includes("cannot be found  in running container list")) ||
     message.includes("ECONNREFUSED") ||
     message.includes("ECONNRESET") ||
     message.includes("ENOTFOUND") ||
@@ -64,15 +65,15 @@ const main = async () => {
       },
       blockExplorers: chainConfig.BLOCK_EXPLORER
         ? {
-          default: { name: "Explorer", url: chainConfig.BLOCK_EXPLORER }
-        }
+            default: { name: "Explorer", url: chainConfig.BLOCK_EXPLORER }
+          }
         : undefined
     });
 
-    viemClient = (createWalletClient({
+    viemClient = createWalletClient({
       chain: chainDef,
       transport: http()
-    }).extend(publicActions) as unknown) as ViemClientInterface;
+    }).extend(publicActions) as unknown as ViemClientInterface;
   }
 
   let ok = true;
@@ -143,7 +144,9 @@ const main = async () => {
     process.exit(1);
   }
 
-  logger.info(`✅ All checked contract versions match deployments version=${version} on '${chain}'.`);
+  logger.info(
+    `✅ All checked contract versions match deployments version=${version} on '${chain}'.`
+  );
 };
 
 main().catch((error) => {

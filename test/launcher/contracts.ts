@@ -1,10 +1,10 @@
 import {
   buildContracts,
+  bumpVersionAndUpdateDepsForDeploy,
   constructDeployCommand,
   deployContracts as deployContractsCore,
   executeDeployment,
-  validateDeploymentParams,
-  bumpVersionAndUpdateDepsForDeploy
+  validateDeploymentParams
 } from "scripts/deploy-contracts";
 import { logger } from "utils";
 import type { ParameterCollection } from "utils/parameters";

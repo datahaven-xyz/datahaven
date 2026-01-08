@@ -1,6 +1,6 @@
 import { logger, printDivider } from "utils";
-import { getChainDeploymentParams, loadChainConfig } from "../../../configs/contracts/config";
 import { parseDeploymentsFile } from "utils/contracts";
+import { getChainDeploymentParams, loadChainConfig } from "../../../configs/contracts/config";
 import { checkContractVerification } from "./verify";
 
 /**
@@ -12,10 +12,12 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
     const deploymentParams = getChainDeploymentParams(chain);
 
     const deployments = await parseDeploymentsFile(chain);
-    const deps = (deployments as any).deps as {
-      eigenlayer?: { release?: string; gitCommit?: string };
-      snowbridge?: { release?: string; gitCommit?: string };
-    } | undefined;
+    const deps = (deployments as any).deps as
+      | {
+          eigenlayer?: { release?: string; gitCommit?: string };
+          snowbridge?: { release?: string; gitCommit?: string };
+        }
+      | undefined;
 
     const displayData = {
       Network: `${deploymentParams.network} (Chain ID: ${deploymentParams.chainId})`,

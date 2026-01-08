@@ -118,7 +118,12 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
 const buildContracts = async () => {
   logger.info("🛳️ Building contracts...");
   try {
-      const result = await executeCommand("forge", ["build"], process.env as Record<string, string>, "../contracts");
+    const result = await executeCommand(
+      "forge",
+      ["build"],
+      process.env as Record<string, string>,
+      "../contracts"
+    );
     logger.debug(result);
     logger.success("Contracts built successfully");
   } catch (error) {
@@ -221,7 +226,12 @@ const deployServiceManagerImplementation = async (
   ];
 
   try {
-    const result = await executeCommand("forge", deployArgs, env as Record<string, string>, "../contracts");
+    const result = await executeCommand(
+      "forge",
+      deployArgs,
+      env as Record<string, string>,
+      "../contracts"
+    );
 
     // Extract the deployed address from the output
     const addressMatch = result.match(
@@ -283,7 +293,12 @@ const deployVetoableSlasher = async (
   ];
 
   try {
-    const result = await executeCommand("forge", deployArgs, env as Record<string, string>, "../contracts");
+    const result = await executeCommand(
+      "forge",
+      deployArgs,
+      env as Record<string, string>,
+      "../contracts"
+    );
 
     const addressMatch = result.match(/VetoableSlasher deployed at: (0x[a-fA-F0-9]{40})/);
     if (addressMatch) {
@@ -340,7 +355,12 @@ const deployRewardsRegistry = async (
   ];
 
   try {
-    const result = await executeCommand("forge", deployArgs, env as Record<string, string>, "../contracts");
+    const result = await executeCommand(
+      "forge",
+      deployArgs,
+      env as Record<string, string>,
+      "../contracts"
+    );
 
     const addressMatch = result.match(/RewardsRegistry deployed at: (0x[a-fA-F0-9]{40})/);
     if (addressMatch) {

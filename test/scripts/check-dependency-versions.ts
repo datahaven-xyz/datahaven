@@ -62,5 +62,3 @@ main().catch((error) => {
   logger.error(`❌ Dependency version check failed with unexpected error: ${error}`);
   process.exit(1);
 });
-
-

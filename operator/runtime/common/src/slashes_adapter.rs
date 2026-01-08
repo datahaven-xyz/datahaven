@@ -59,21 +59,7 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
     fn build(slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
-        let mut slashings: Vec<SlashingRequest> = vec![];
-
-        // Extend with operator address to slash
-        for slash_operator in slashes_utils.into_iter() {
-            let slashing_request = SlashingRequest {
-                operator: Address::from(slash_operator.validator.0),
-                wadsToSlash: vec![U256::from(1e16)], // We only have one strategy deployed
-                description: "Slashing validator".into(),
-            };
-
-            slashings.push(slashing_request);
-        }
-
-        // Use the `slashValidatorsOperator` function defined in the sol! macro to build the Ethereum call and encoded it correctly
-        let calldata = slashValidatorsOperatorCall { slashings }.abi_encode();
+        let calldata = encode_slashing_request(slashes_utils);
 
         let command = Command::CallContract {
             target: C::service_manager_address(),
@@ -108,5 +94,22 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
     }
 }
 
+fn encode_slashing_request(slashes_utils: &Vec<SlashData<AccountId>>) -> Vec<u8> {
+    let mut slashings: Vec<SlashingRequest> = vec![];
 
+    // Extend with operator address to slash
+    for slash_operator in slashes_utils.into_iter() {
+        let slashing_request = SlashingRequest {
+            operator: Address::from(slash_operator.validator.0),
+            wadsToSlash: vec![U256::from(slash_operator.amount_to_slash)], // We only have one strategy deployed
+            description: "Slashing validator".into(),
+        };
 
+        slashings.push(slashing_request);
+    }
+
+    // Use the `slashValidatorsOperator` function defined in the sol! macro to build the Ethereum call and encoded it correctly
+    let calldata = slashValidatorsOperatorCall { slashings }.abi_encode();
+
+    return calldata;
+}

@@ -1,18 +1,15 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { FixedSizeBinary } from "polkadot-api";
 import {
-  ANVIL_FUNDED_ACCOUNTS,
   CROSS_CHAIN_TIMEOUTS,
   getEvmEcdsaSigner,
   logger,
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
-import { type Address, createWalletClient, decodeEventLog, erc20Abi, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { type Address, decodeEventLog } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
 import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
-import { createChainConfig } from "../utils/viem";
 
 /**
  * Temporary helper to set V2 rewards parameters via sudo.
@@ -68,64 +65,6 @@ async function setV2RewardsParameters(dhApi: any) {
   logger.debug("V2 rewards parameters set successfully");
 }
 
-/**
- * Temporary helper to fund the ServiceManager with wHAVE tokens.
- * The ServiceManager needs tokens to distribute as rewards.
- * Tokens are minted to the operator account during deployment, so we transfer from there.
- */
-async function fundServiceManagerWithTokens(
-  serviceManagerAddress: Address,
-  publicClient: any
-) {
-  const deployments = await parseDeploymentsFile();
-  const tokenAddress = deployments.DeployedStrategies?.[0]?.underlyingToken as Address;
-
-  if (!tokenAddress) {
-    throw new Error("No token address found in deployments");
-  }
-
-  // Operator account holds the minted tokens (ANVIL_FUNDED_ACCOUNTS[1])
-  const operatorAccount = privateKeyToAccount(
-    ANVIL_FUNDED_ACCOUNTS[1].privateKey as `0x${string}`
-  );
-  const operatorWallet = createWalletClient({
-    account: operatorAccount,
-    chain: await createChainConfig(),
-    transport: http()
-  });
-
-  // Check current balance of ServiceManager
-  const currentBalance = (await publicClient.readContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: "balanceOf",
-    args: [serviceManagerAddress]
-  })) as bigint;
-
-  // Fund with 100,000 tokens if balance is low
-  const fundAmount = 100_000n * 10n ** 18n;
-  if (currentBalance >= fundAmount) {
-    logger.debug(`ServiceManager already has sufficient tokens: ${currentBalance}`);
-    return;
-  }
-
-  logger.debug(`Funding ServiceManager with ${fundAmount} tokens from operator`);
-
-  const txHash = await operatorWallet.writeContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: "transfer",
-    args: [serviceManagerAddress, fundAmount]
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  if (receipt.status !== "success") {
-    throw new Error("Failed to fund ServiceManager with tokens");
-  }
-
-  logger.debug("ServiceManager funded with tokens successfully");
-}
-
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
     super({
@@ -156,9 +95,6 @@ describe("Rewards Message Flow", () => {
 
     // Set V2 rewards parameters (temporary until launcher configures them)
     await setV2RewardsParameters(dhApi);
-
-    // Fund ServiceManager with wHAVE tokens for rewards distribution
-    await fundServiceManagerWithTokens(serviceManager.address, publicClient);
   });
 
   it("should verify rewards infrastructure deployment", async () => {

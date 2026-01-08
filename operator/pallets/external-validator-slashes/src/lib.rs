@@ -202,7 +202,7 @@ pub mod pallet {
     /// All slashing events on validators, mapped by era to the highest slash proportion
     /// and slash value of the era.
     #[pallet::storage]
-    pub(crate) type ValidatorSlashInEra<T: Config> =
+    pub type ValidatorSlashInEra<T: Config> =
         StorageDoubleMap<_, Twox64Concat, EraIndex, Twox64Concat, T::AccountId, Perbill>;
 
     /// A mapping from still-bonded eras to the first session index of that era.

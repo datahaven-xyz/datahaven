@@ -16,8 +16,9 @@
     }
   },
   "on-demand-sync": {
-    "max-tokens": 5,
-    "refill-amount": 1,
-    "refill-period": 3600
+    "asset-hub-channel-id": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "max-tasks": 3,
+    "merge-period": 900,
+    "expired-period": 3600
   }
 }

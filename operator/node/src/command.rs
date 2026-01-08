@@ -16,15 +16,17 @@
 
 use std::sync::Arc;
 
+#[cfg(feature = "runtime-benchmarks")]
+use crate::benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder};
 use crate::config;
 use crate::service::frontier_database_dir;
 use crate::{
-    benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec::{self, NetworkType},
     cli::{Cli, ProviderType, StorageLayer, Subcommand},
     service,
 };
 use datahaven_runtime_common::Block;
+#[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use sc_cli::SubstrateCli;
 use sc_service::{ChainType, DatabaseSource};
@@ -172,6 +174,7 @@ macro_rules! construct_async_run {
 	}}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
 macro_rules! construct_benchmark_partials {
     ($cli:expr, $config:expr, |$partials:ident| $code:expr) => {
         match $config.chain_spec {
@@ -260,6 +263,7 @@ pub fn run() -> sc_cli::Result<()> {
                 Ok(cmd.run(components.client, components.backend, Some(aux_revert)))
             })
         }
+        #[cfg(feature = "runtime-benchmarks")]
         Some(Subcommand::Benchmark(cmd)) => {
             let runner = cli.create_runner(cmd)?;
 
@@ -267,29 +271,14 @@ pub fn run() -> sc_cli::Result<()> {
                 // This switch needs to be in the client, since the client decides
                 // which sub-commands it wants to support.
                 match cmd {
-                    BenchmarkCmd::Pallet(cmd) => {
-                        if !cfg!(feature = "runtime-benchmarks") {
-                            return Err(
-                                "Runtime benchmarking wasn't enabled when building the node. \
-            				You can enable it with `--features runtime-benchmarks`."
-                                    .into(),
-                            );
-                        }
-
-                        cmd.run_with_spec::<sp_runtime::traits::HashingFor<Block>, ()>(Some(
+                    BenchmarkCmd::Pallet(cmd) => cmd
+                        .run_with_spec::<sp_runtime::traits::HashingFor<Block>, ()>(Some(
                             config.chain_spec,
-                        ))
-                    }
+                        )),
                     BenchmarkCmd::Block(cmd) => {
                         construct_benchmark_partials!(cli, config, |partials| cmd
                             .run(partials.client))
                     }
-                    #[cfg(not(feature = "runtime-benchmarks"))]
-                    BenchmarkCmd::Storage(_) => Err(
-                        "Storage benchmarking can be enabled with `--features runtime-benchmarks`."
-                            .into(),
-                    ),
-                    #[cfg(feature = "runtime-benchmarks")]
                     BenchmarkCmd::Storage(cmd) => {
                         construct_benchmark_partials!(cli, config, |partials| {
                             let db = partials.backend.expose_db();
@@ -398,6 +387,13 @@ pub fn run() -> sc_cli::Result<()> {
                         .expect("Clap/TOML configurations should prevent this from ever failing"),
                 ));
             };
+
+            if let Some(logical_cpus) = std::thread::available_parallelism().map(|n| n.get()).ok() {
+                log::info!(
+                    "💻 DataHaven node starting with {} logical CPU(s) visible to the process",
+                    logical_cpus
+                );
+            }
 
             runner.run_node_until_exit(|config| async move {
                 let sealing_mode = match (cli.sealing, config.chain_spec.chain_type()) {

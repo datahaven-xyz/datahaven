@@ -24,7 +24,7 @@ use {
     pallet_balances::AccountData,
     pallet_external_validators::traits::ExternalIndexProvider,
     snowbridge_outbound_queue_primitives::{SendError, SendMessageFeeProvider},
-    sp_core::H256,
+    sp_core::{H160, H256},
     sp_runtime::{
         traits::{BlakeTwo256, IdentityLookup, Keccak256},
         BuildStorage, DispatchError,
@@ -32,6 +32,12 @@ use {
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
+
+/// Treasury account constant
+pub const TREASURY_ACCOUNT: H160 = H160([0xAA; 20]);
+
+/// Rewards sovereign account constant
+pub const REWARDS_ACCOUNT: H160 = H160([0xFF; 20]);
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -60,7 +66,7 @@ impl frame_system::Config for Test {
     type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = H160;
     type Lookup = IdentityLookup<Self::AccountId>;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
@@ -85,7 +91,7 @@ impl frame_system::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: u64 = 5;
+    pub const ExistentialDeposit: u128 = 5;
     pub const MaxReserves: u32 = 50;
 }
 
@@ -117,14 +123,17 @@ impl mock_data::Config for Test {}
 
 pub struct MockOkOutboundQueue;
 impl crate::types::SendMessage for MockOkOutboundQueue {
-    type Ticket = ();
-    type Message = ();
-    fn build(_: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
-        Some(())
+    type Ticket = crate::types::EraRewardsUtils;
+    type Message = crate::types::EraRewardsUtils;
+
+    fn build(utils: &crate::types::EraRewardsUtils) -> Option<Self::Ticket> {
+        Some(utils.clone())
     }
-    fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {
-        Ok(())
+
+    fn validate(ticket: Self::Ticket) -> Result<Self::Ticket, SendError> {
+        Ok(ticket)
     }
+
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
         Ok(H256::zero())
     }
@@ -146,11 +155,71 @@ impl ExternalIndexProvider for TimestampProvider {
 }
 
 parameter_types! {
-    pub const RewardsEthereumSovereignAccount: u64
-        = 0xffffffffffffffff;
-    pub const TreasuryAccount: u64 = 999;
+    pub RewardsEthereumSovereignAccount: H160 = REWARDS_ACCOUNT;
+    pub TreasuryAccount: H160 = TREASURY_ACCOUNT;
     pub const InflationTreasuryProportion: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(20);
     pub EraInflationProvider: u128 = Mock::mock().era_inflation.unwrap_or(42);
+    // Inflation scaling parameters for tests
+    // Using 600 blocks as the expected blocks per era for test simplicity
+    // (In production: 6-second blocks, 1-hour sessions, 6 sessions = 3600 blocks per era)
+    pub const ExpectedBlocksPerEra: u32 = 600;
+    pub const MinInflationPercent: u32 = 20; // 20% minimum even with 0 blocks
+    pub const MaxInflationPercent: u32 = 100; // 100% maximum
+    // Reward split parameters: 60% block authoring, 30% liveness, 10% base
+    pub const BlockAuthoringWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(60);
+    pub const LivenessWeight: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(30);
+    // Soft cap: validators can earn up to 150% of fair share (50% bonus)
+    pub const FairShareCap: sp_runtime::Perbill = sp_runtime::Perbill::from_percent(50);
+    // Base points per block: 320 points added to the pool per block
+    // With 32 validators: author gets 196 pts, each non-author gets 4 pts per block
+    // Per session (600 blocks): ~6,000 pts/validator, Per era: ~36,000 pts/validator
+    pub const BasePointsPerBlock: u32 = 320;
+}
+
+pub struct MockValidatorSet;
+impl frame_support::traits::ValidatorSet<H160> for MockValidatorSet {
+    type ValidatorId = H160;
+    type ValidatorIdOf = sp_runtime::traits::ConvertInto;
+
+    fn session_index() -> sp_staking::SessionIndex {
+        0
+    }
+
+    fn validators() -> Vec<Self::ValidatorId> {
+        // Return empty vec for now - tests will populate via reward_by_ids
+        vec![]
+    }
+}
+
+/// Configurable liveness check that mirrors ImOnline behavior.
+/// A validator is considered online if:
+/// 1. They are NOT in the offline_validators list, OR
+/// 2. They have authored at least one block in the current session
+///
+/// This matches the real ImOnline pallet which considers block authorship
+/// as proof of liveness (no heartbeat needed if you authored a block).
+pub struct MockLivenessCheck;
+impl frame_support::traits::Contains<H160> for MockLivenessCheck {
+    fn contains(validator: &H160) -> bool {
+        // Check if validator authored any blocks this session
+        let authored_blocks = crate::BlocksAuthoredInSession::<Test>::get(validator);
+
+        // Validator is online if:
+        // 1. They authored blocks (proves they're online), OR
+        // 2. They're not in the offline list (sent heartbeat)
+        authored_blocks > 0 || !Mock::mock().offline_validators.contains(validator)
+    }
+}
+
+/// Configurable slashing check that reads slashed validators from mock data.
+/// Validators in the slashed_validators list (for the given era) are considered slashed.
+pub struct MockSlashingCheck;
+impl crate::SlashingCheck<H160> for MockSlashingCheck {
+    fn is_slashed(era_index: u32, validator: &H160) -> bool {
+        Mock::mock()
+            .slashed_validators
+            .contains(&(era_index, *validator))
+    }
 }
 
 impl pallet_external_validators_rewards::Config for Test {
@@ -162,6 +231,16 @@ impl pallet_external_validators_rewards::Config for Test {
     type EraInflationProvider = EraInflationProvider;
     type ExternalIndexProvider = TimestampProvider;
     type GetWhitelistedValidators = ();
+    type ValidatorSet = MockValidatorSet;
+    type LivenessCheck = MockLivenessCheck;
+    type SlashingCheck = MockSlashingCheck;
+    type BasePointsPerBlock = BasePointsPerBlock;
+    type BlockAuthoringWeight = BlockAuthoringWeight;
+    type LivenessWeight = LivenessWeight;
+    type FairShareCap = FairShareCap;
+    type ExpectedBlocksPerEra = ExpectedBlocksPerEra;
+    type MinInflationPercent = MinInflationPercent;
+    type MaxInflationPercent = MaxInflationPercent;
     type Hashing = Keccak256;
     type SendMessage = MockOkOutboundQueue;
     type HandleInflation = InflationMinter;
@@ -173,8 +252,8 @@ impl pallet_external_validators_rewards::Config for Test {
 }
 
 pub struct InflationMinter;
-impl HandleInflation<u64> for InflationMinter {
-    fn mint_inflation(rewards_account: &u64, total_amount: u128) -> sp_runtime::DispatchResult {
+impl HandleInflation<H160> for InflationMinter {
+    fn mint_inflation(rewards_account: &H160, total_amount: u128) -> sp_runtime::DispatchResult {
         use sp_runtime::traits::Zero;
 
         if total_amount.is_zero() {
@@ -226,6 +305,10 @@ pub mod mock_data {
     pub struct Mocks {
         pub active_era: Option<ActiveEraInfo>,
         pub era_inflation: Option<u128>,
+        /// Set of validators that are considered offline (for liveness testing)
+        pub offline_validators: sp_std::vec::Vec<sp_core::H160>,
+        /// Set of (era_index, validator_id) pairs that are slashed
+        pub slashed_validators: sp_std::vec::Vec<(u32, sp_core::H160)>,
     }
 
     #[pallet::config]
@@ -274,15 +357,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     let balances = vec![
-        (1, 100),
-        (2, 100),
-        (3, 100),
-        (4, 100),
-        (5, 100),
-        (TreasuryAccount::get(), ExistentialDeposit::get().into()), // Treasury needs existential deposit
+        (H160::from_low_u64_be(1), 100),
+        (H160::from_low_u64_be(2), 100),
+        (H160::from_low_u64_be(3), 100),
+        (H160::from_low_u64_be(4), 100),
+        (H160::from_low_u64_be(5), 100),
+        (TreasuryAccount::get(), ExistentialDeposit::get()), // Treasury needs existential deposit
         (
             RewardsEthereumSovereignAccount::get(),
-            ExistentialDeposit::get().into(),
+            ExistentialDeposit::get(),
         ), // Rewards account needs existential deposit
     ];
     pallet_balances::GenesisConfig::<Test> { balances }

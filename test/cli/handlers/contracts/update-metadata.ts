@@ -1,5 +1,5 @@
 import { logger, parseDeploymentsFile, printDivider } from "utils";
-import { createPublicClient, createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, encodeFunctionData, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getChainDeploymentParams } from "../../../configs/contracts/config";
 import { dataHavenServiceManagerAbi } from "../../../contract-bindings/generated";
@@ -7,12 +7,19 @@ import { dataHavenServiceManagerAbi } from "../../../contract-bindings/generated
 /**
  * Updates the AVS metadata URI for the DataHaven Service Manager
  */
-export const updateAVSMetadataURI = async (chain: string, uri: string) => {
+export const updateAVSMetadataURI = async (
+  chain: string,
+  uri: string,
+  opts: { execute?: boolean; avsOwnerKey?: string } = {}
+) => {
   try {
-    // Load environment variables
-    const avsOwnerPrivateKey = process.env.AVS_OWNER_PRIVATE_KEY;
-    if (!avsOwnerPrivateKey) {
-      throw new Error("AVS_OWNER_PRIVATE_KEY environment variable is required");
+    const execute = opts.execute ?? false;
+    const avsOwnerPrivateKey = normalizePrivateKey(
+      opts.avsOwnerKey || process.env.AVS_OWNER_PRIVATE_KEY
+    );
+
+    if (execute && !avsOwnerPrivateKey) {
+      throw new Error("AVS owner private key is required to execute this transaction");
     }
 
     // Get chain configuration
@@ -21,6 +28,31 @@ export const updateAVSMetadataURI = async (chain: string, uri: string) => {
     logger.info(`Network: ${deploymentParams.network} (Chain ID: ${deploymentParams.chainId})`);
     logger.info(`RPC URL: ${deploymentParams.rpcUrl}`);
     logger.info(`New URI: ${uri}`);
+
+    const deployments = await parseDeploymentsFile(chain);
+    const serviceManagerAddress = deployments.ServiceManager;
+
+    if (!serviceManagerAddress) {
+      throw new Error("ServiceManager address not found in deployments file");
+    }
+
+    const calldata = encodeFunctionData({
+      abi: dataHavenServiceManagerAbi,
+      functionName: "updateAVSMetadataURI",
+      args: [uri]
+    });
+
+    if (!execute) {
+      logger.info("🔐 Tx execution disabled: submit the following transaction via your multisig");
+      const payload = {
+        to: serviceManagerAddress,
+        value: "0",
+        data: calldata
+      };
+      logger.info(JSON.stringify(payload, null, 2));
+      printDivider();
+      return payload;
+    }
 
     // Create wallet client for the AVS owner
     const account = privateKeyToAccount(avsOwnerPrivateKey as `0x${string}`);
@@ -35,10 +67,6 @@ export const updateAVSMetadataURI = async (chain: string, uri: string) => {
     });
 
     logger.info(`Using account: ${account.address}`);
-
-    const deployments = await parseDeploymentsFile(chain);
-    const serviceManagerAddress = deployments.ServiceManager;
-
     logger.info(`ServiceManager contract address: ${serviceManagerAddress}`);
 
     // Call the updateAVSMetadataURI function
@@ -72,4 +100,11 @@ export const updateAVSMetadataURI = async (chain: string, uri: string) => {
     logger.error(`❌ Failed to update AVS metadata URI: ${error}`);
     throw error;
   }
+};
+
+const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
+  if (!key) {
+    return undefined;
+  }
+  return (key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`;
 };

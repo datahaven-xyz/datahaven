@@ -13,7 +13,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {Logging} from "../utils/Logging.sol";
 
 // DataHaven imports for function signatures
-import {VetoableSlasher} from "../../src/middleware/VetoableSlasher.sol";
 import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 // EigenLayer core contract imports for type casting
@@ -50,6 +49,12 @@ contract DeployTestnet is DeployBase {
 
         _validateNetwork(networkName);
         totalSteps = 4;
+
+        address avsOwnerEnv = vm.envOr("AVS_OWNER_ADDRESS", address(0));
+        require(
+            avsOwnerEnv != address(0),
+            "AVS_OWNER_ADDRESS env variable required for testnet deployments"
+        );
 
         _executeSharedDeployment();
     }
@@ -134,7 +139,6 @@ contract DeployTestnet is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        VetoableSlasher vetoableSlasher,
         RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
@@ -148,7 +152,6 @@ contract DeployTestnet is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
         Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection(
@@ -186,9 +189,6 @@ contract DeployTestnet is DeployBase {
             '"ServiceManagerImplementation": "',
             vm.toString(address(serviceManagerImplementation)),
             '",'
-        );
-        json = string.concat(
-            json, '"VetoableSlasher": "', vm.toString(address(vetoableSlasher)), '",'
         );
         json = string.concat(
             json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'

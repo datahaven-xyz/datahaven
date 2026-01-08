@@ -51,10 +51,11 @@
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
+use crate::pallet_collective_technical_committee;
 
 /// Weights for `pallet_collective_technical_committee`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_collective_technical_committee::WeightInfo for WeightInfo<T> {
 	/// Storage: `TechnicalCommittee::Members` (r:1 w:1)
 	/// Proof: `TechnicalCommittee::Members` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `TechnicalCommittee::Proposals` (r:1 w:0)

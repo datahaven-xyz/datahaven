@@ -2005,11 +2005,11 @@ export const beefyClientAbi = [
   { type: 'error', inputs: [], name: 'InvalidMMRLeaf' },
   { type: 'error', inputs: [], name: 'InvalidMMRLeafProof' },
   { type: 'error', inputs: [], name: 'InvalidMMRRootLength' },
+  { type: 'error', inputs: [], name: 'InvalidSamplingParams' },
   { type: 'error', inputs: [], name: 'InvalidSignature' },
   { type: 'error', inputs: [], name: 'InvalidTicket' },
   { type: 'error', inputs: [], name: 'InvalidValidatorProof' },
   { type: 'error', inputs: [], name: 'InvalidValidatorProofLength' },
-  { type: 'error', inputs: [], name: 'NotEnoughClaims' },
   { type: 'error', inputs: [], name: 'PrevRandaoAlreadyCaptured' },
   { type: 'error', inputs: [], name: 'PrevRandaoNotCaptured' },
   { type: 'error', inputs: [], name: 'ProofSizeExceeded' },
@@ -2291,13 +2291,6 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'requestId', internalType: 'uint256', type: 'uint256' }],
-    name: 'fulfilSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
     name: 'getOperatorRestakedStrategies',
     outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
@@ -2345,30 +2338,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'params',
-        internalType: 'struct IAllocationManagerTypes.SlashingParams',
-        type: 'tuple',
-        components: [
-          { name: 'operator', internalType: 'address', type: 'address' },
-          { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-          {
-            name: 'strategies',
-            internalType: 'contract IStrategy[]',
-            type: 'address[]',
-          },
-          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
-          { name: 'description', internalType: 'string', type: 'string' },
-        ],
-      },
-    ],
-    name: 'queueSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2542,19 +2511,6 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       {
-        name: 'slasher',
-        internalType: 'contract IVetoableSlasher',
-        type: 'address',
-      },
-    ],
-    name: 'setSlasher',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
         name: '_newSnowbridgeGateway',
         internalType: 'address',
         type: 'address',
@@ -2570,6 +2526,49 @@ export const dataHavenServiceManagerAbi = [
     name: 'snowbridgeGateway',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'submission',
+        internalType:
+          'struct IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission',
+        type: 'tuple',
+        components: [
+          {
+            name: 'strategiesAndMultipliers',
+            internalType:
+              'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+            type: 'tuple[]',
+            components: [
+              {
+                name: 'strategy',
+                internalType: 'contract IStrategy',
+                type: 'address',
+              },
+              { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+            ],
+          },
+          { name: 'token', internalType: 'contract IERC20', type: 'address' },
+          {
+            name: 'operatorRewards',
+            internalType: 'struct IRewardsCoordinatorTypes.OperatorReward[]',
+            type: 'tuple[]',
+            components: [
+              { name: 'operator', internalType: 'address', type: 'address' },
+              { name: 'amount', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+          { name: 'startTimestamp', internalType: 'uint32', type: 'uint32' },
+          { name: 'duration', internalType: 'uint32', type: 'uint32' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
+    ],
+    name: 'submitRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2694,6 +2693,25 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'oldInitiator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newInitiator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RewardsInitiatorSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'prevRewardsInitiator',
         internalType: 'address',
         type: 'address',
@@ -2726,6 +2744,25 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'RewardsRegistrySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'totalAmount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'operatorCount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsSubmitted',
   },
   {
     type: 'event',
@@ -8355,7 +8392,7 @@ export const rewardsRegistryAbi = [
         name: 'newRoot',
         internalType: 'bytes32',
         type: 'bytes32',
-        indexed: false,
+        indexed: true,
       },
       {
         name: 'newRootIndex',
@@ -9691,287 +9728,6 @@ export const upgradeableBeaconAbi = [
     ],
     name: 'Upgraded',
   },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// VetoableSlasher
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const vetoableSlasherAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      {
-        name: '_allocationManager',
-        internalType: 'contract IAllocationManager',
-        type: 'address',
-      },
-      {
-        name: '_serviceManager',
-        internalType: 'contract IServiceManager',
-        type: 'address',
-      },
-      { name: '_vetoCommittee', internalType: 'address', type: 'address' },
-      { name: '_vetoWindowBlocks', internalType: 'uint32', type: 'uint32' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'allocationManager',
-    outputs: [
-      {
-        name: '',
-        internalType: 'contract IAllocationManager',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'requestId', internalType: 'uint256', type: 'uint256' }],
-    name: 'cancelSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'requestId', internalType: 'uint256', type: 'uint256' }],
-    name: 'fulfilSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'nextRequestId',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'params',
-        internalType: 'struct IAllocationManagerTypes.SlashingParams',
-        type: 'tuple',
-        components: [
-          { name: 'operator', internalType: 'address', type: 'address' },
-          { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-          {
-            name: 'strategies',
-            internalType: 'contract IStrategy[]',
-            type: 'address[]',
-          },
-          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
-          { name: 'description', internalType: 'string', type: 'string' },
-        ],
-      },
-    ],
-    name: 'queueSlashingRequest',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'serviceManager',
-    outputs: [
-      { name: '', internalType: 'contract IServiceManager', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'slasher',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'slashingRequests',
-    outputs: [
-      {
-        name: 'params',
-        internalType: 'struct IAllocationManagerTypes.SlashingParams',
-        type: 'tuple',
-        components: [
-          { name: 'operator', internalType: 'address', type: 'address' },
-          { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-          {
-            name: 'strategies',
-            internalType: 'contract IStrategy[]',
-            type: 'address[]',
-          },
-          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
-          { name: 'description', internalType: 'string', type: 'string' },
-        ],
-      },
-      { name: 'requestBlock', internalType: 'uint256', type: 'uint256' },
-      { name: 'isPending', internalType: 'bool', type: 'bool' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'vetoCommittee',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'vetoWindowBlocks',
-    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'slashingRequestId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'operator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'operatorSetId',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: true,
-      },
-      {
-        name: 'wadsToSlash',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-      {
-        name: 'description',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-    ],
-    name: 'OperatorSlashed',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'operator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'operatorSetId',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'wadsToSlash',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-      {
-        name: 'description',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-    ],
-    name: 'SlashingRequestCancelled',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'operator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'operatorSetId',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'wadsToSlash',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-      {
-        name: 'description',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-    ],
-    name: 'SlashingRequestFulfilled',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'requestId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'operator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'operatorSetId',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: false,
-      },
-      {
-        name: 'wadsToSlash',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-      {
-        name: 'description',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-    ],
-    name: 'SlashingRequested',
-  },
-  { type: 'error', inputs: [], name: 'OnlySlasher' },
-  { type: 'error', inputs: [], name: 'OnlyVetoCommittee' },
-  { type: 'error', inputs: [], name: 'SlashingRequestIsCancelled' },
-  { type: 'error', inputs: [], name: 'SlashingRequestNotRequested' },
-  { type: 'error', inputs: [], name: 'VetoPeriodNotPassed' },
-  { type: 'error', inputs: [], name: 'VetoPeriodPassed' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -11676,30 +11432,12 @@ export const writeDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
- */
-export const writeDataHavenServiceManagerFulfilSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'fulfilSlashingRequest',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
  */
 export const writeDataHavenServiceManagerInitialise =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'initialise',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"queueSlashingRequest"`
- */
-export const writeDataHavenServiceManagerQueueSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'queueSlashingRequest',
   })
 
 /**
@@ -11838,21 +11576,21 @@ export const writeDataHavenServiceManagerSetRewardsRegistry =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSlasher"`
- */
-export const writeDataHavenServiceManagerSetSlasher =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSlasher',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
+ */
+export const writeDataHavenServiceManagerSubmitRewards =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'submitRewards',
   })
 
 /**
@@ -12006,30 +11744,12 @@ export const simulateDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
- */
-export const simulateDataHavenServiceManagerFulfilSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'fulfilSlashingRequest',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
  */
 export const simulateDataHavenServiceManagerInitialise =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'initialise',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"queueSlashingRequest"`
- */
-export const simulateDataHavenServiceManagerQueueSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'queueSlashingRequest',
   })
 
 /**
@@ -12168,21 +11888,21 @@ export const simulateDataHavenServiceManagerSetRewardsRegistry =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSlasher"`
- */
-export const simulateDataHavenServiceManagerSetSlasher =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setSlasher',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setSnowbridgeGateway"`
  */
 export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
+ */
+export const simulateDataHavenServiceManagerSubmitRewards =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'submitRewards',
   })
 
 /**
@@ -12255,6 +11975,15 @@ export const watchDataHavenServiceManagerOwnershipTransferredEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorSet"`
+ */
+export const watchDataHavenServiceManagerRewardsInitiatorSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'RewardsInitiatorSet',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorUpdated"`
  */
 export const watchDataHavenServiceManagerRewardsInitiatorUpdatedEvent =
@@ -12270,6 +11999,15 @@ export const watchDataHavenServiceManagerRewardsRegistrySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'RewardsRegistrySet',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsSubmitted"`
+ */
+export const watchDataHavenServiceManagerRewardsSubmittedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'RewardsSubmitted',
   })
 
 /**
@@ -17561,184 +17299,4 @@ export const watchUpgradeableBeaconUpgradedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: upgradeableBeaconAbi,
     eventName: 'Upgraded',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__
- */
-export const readVetoableSlasher = /*#__PURE__*/ createReadContract({
-  abi: vetoableSlasherAbi,
-})
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"allocationManager"`
- */
-export const readVetoableSlasherAllocationManager =
-  /*#__PURE__*/ createReadContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'allocationManager',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"nextRequestId"`
- */
-export const readVetoableSlasherNextRequestId =
-  /*#__PURE__*/ createReadContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'nextRequestId',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"serviceManager"`
- */
-export const readVetoableSlasherServiceManager =
-  /*#__PURE__*/ createReadContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'serviceManager',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"slasher"`
- */
-export const readVetoableSlasherSlasher = /*#__PURE__*/ createReadContract({
-  abi: vetoableSlasherAbi,
-  functionName: 'slasher',
-})
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"slashingRequests"`
- */
-export const readVetoableSlasherSlashingRequests =
-  /*#__PURE__*/ createReadContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'slashingRequests',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"vetoCommittee"`
- */
-export const readVetoableSlasherVetoCommittee =
-  /*#__PURE__*/ createReadContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'vetoCommittee',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"vetoWindowBlocks"`
- */
-export const readVetoableSlasherVetoWindowBlocks =
-  /*#__PURE__*/ createReadContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'vetoWindowBlocks',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link vetoableSlasherAbi}__
- */
-export const writeVetoableSlasher = /*#__PURE__*/ createWriteContract({
-  abi: vetoableSlasherAbi,
-})
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"cancelSlashingRequest"`
- */
-export const writeVetoableSlasherCancelSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'cancelSlashingRequest',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
- */
-export const writeVetoableSlasherFulfilSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'fulfilSlashingRequest',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"queueSlashingRequest"`
- */
-export const writeVetoableSlasherQueueSlashingRequest =
-  /*#__PURE__*/ createWriteContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'queueSlashingRequest',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link vetoableSlasherAbi}__
- */
-export const simulateVetoableSlasher = /*#__PURE__*/ createSimulateContract({
-  abi: vetoableSlasherAbi,
-})
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"cancelSlashingRequest"`
- */
-export const simulateVetoableSlasherCancelSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'cancelSlashingRequest',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"fulfilSlashingRequest"`
- */
-export const simulateVetoableSlasherFulfilSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'fulfilSlashingRequest',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `functionName` set to `"queueSlashingRequest"`
- */
-export const simulateVetoableSlasherQueueSlashingRequest =
-  /*#__PURE__*/ createSimulateContract({
-    abi: vetoableSlasherAbi,
-    functionName: 'queueSlashingRequest',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link vetoableSlasherAbi}__
- */
-export const watchVetoableSlasherEvent = /*#__PURE__*/ createWatchContractEvent(
-  { abi: vetoableSlasherAbi },
-)
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `eventName` set to `"OperatorSlashed"`
- */
-export const watchVetoableSlasherOperatorSlashedEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: vetoableSlasherAbi,
-    eventName: 'OperatorSlashed',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `eventName` set to `"SlashingRequestCancelled"`
- */
-export const watchVetoableSlasherSlashingRequestCancelledEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: vetoableSlasherAbi,
-    eventName: 'SlashingRequestCancelled',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `eventName` set to `"SlashingRequestFulfilled"`
- */
-export const watchVetoableSlasherSlashingRequestFulfilledEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: vetoableSlasherAbi,
-    eventName: 'SlashingRequestFulfilled',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link vetoableSlasherAbi}__ and `eventName` set to `"SlashingRequested"`
- */
-export const watchVetoableSlasherSlashingRequestedEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: vetoableSlasherAbi,
-    eventName: 'SlashingRequested',
   })

@@ -30,7 +30,8 @@
   },
   "sink": {
     "ethereum": {
-      "endpoint": ""
+      "endpoint": "",
+      "skip-fee-check": true
     },
     "contracts": {
       "Gateway": ""

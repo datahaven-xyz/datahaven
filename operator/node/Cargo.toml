@@ -40,7 +40,7 @@ pallet-beefy-mmr = { workspace = true, default-features = true }
 pallet-mmr = { workspace = true, default-features = true }
 
 # Polkadot SDK
-frame-benchmarking-cli = { workspace = true, default-features = true }
+frame-benchmarking-cli = { workspace = true, default-features = true, optional = true }
 frame-metadata-hash-extension = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 frame-system-rpc-runtime-api = { workspace = true }
@@ -131,6 +131,11 @@ sp-keystore = { workspace = true }
 serde = { workspace = true, default-features = true }
 toml = { workspace = true }
 
+# Static linking
+#### Needed to build static binaries ####
+pq-sys = { workspace = true, optional = true }
+
+
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
 
@@ -146,7 +151,8 @@ std = [
 
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
-    "frame-benchmarking-cli/runtime-benchmarks",
+    "dep:frame-benchmarking-cli",
+    "frame-benchmarking-cli?/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "sc-service/runtime-benchmarks",
     "datahaven-runtime-common/runtime-benchmarks",
@@ -171,3 +177,6 @@ metadata-hash = [
 	"datahaven-mainnet-runtime/metadata-hash",
 	"datahaven-testnet-runtime/metadata-hash",
 ]
+
+# Bundle the postgres source in the binary to avoid having to install the deps in the system (simplify installation)
+static = ["pq-sys", "pq-sys/bundled"]

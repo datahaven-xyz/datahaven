@@ -2,8 +2,10 @@
 pragma solidity ^0.8.27;
 
 // EigenLayer imports
-import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 /**
  * @title DataHaven Service Manager Errors Interface
@@ -50,6 +52,16 @@ interface IDataHavenServiceManagerEvents {
     /// @notice Emitted when the Snowbridge Gateway address is set
     /// @param snowbridgeGateway Address of the Snowbridge Gateway
     event SnowbridgeGatewaySet(address indexed snowbridgeGateway);
+
+    /// @notice Emitted when rewards are successfully submitted to EigenLayer
+    /// @param totalAmount The total amount of rewards distributed
+    /// @param operatorCount The number of operators that received rewards
+    event RewardsSubmitted(uint256 totalAmount, uint256 operatorCount);
+
+    /// @notice Emitted when the rewards initiator address is updated
+    /// @param oldInitiator The previous rewards initiator address
+    /// @param newInitiator The new rewards initiator address
+    event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
 }
 
 /**
@@ -168,5 +180,28 @@ interface IDataHavenServiceManager is
      */
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
+    ) external;
+
+    // ============ Rewards Submitter Functions ============
+
+    /**
+     * @notice Submit rewards to EigenLayer
+     * @param submission The operator-directed rewards submission containing all reward parameters
+     * @dev Only callable by the authorized Snowbridge Agent
+     * @dev Strategies must be sorted in ascending order by address
+     * @dev Operators must be sorted in ascending order by address
+     * @dev Token must be pre-approved or held by the ServiceManager
+     */
+    function submitRewards(
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
+    ) external;
+
+    /**
+     * @notice Set the rewards initiator address authorized to submit rewards
+     * @param initiator The address of the rewards initiator (Snowbridge Agent)
+     * @dev Only callable by the owner
+     */
+    function setRewardsInitiator(
+        address initiator
     ) external;
 }

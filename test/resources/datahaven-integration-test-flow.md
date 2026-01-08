@@ -54,7 +54,6 @@ After the infrastructure is set up, we deploy all the necessary smart contracts 
 - **DataHaven Contracts**
   - DataHavenServiceManager: Main contract for managing the DataHaven service
   - RewardsRegistry: Handles validator rewards
-  - VetoableSlasher: Manages slashing with veto capabilities
 
 ### Initial Configuration
 
@@ -208,7 +207,6 @@ Another testing scenario is testing the operational aspects of the validator set
 3. **Slashing Mechanisms**
 
    - Test slashing for various offenses
-   - Verify VetoableSlasher functions correctly
    - Test veto committee mechanisms
 
 4. **Operator Set Modifications**

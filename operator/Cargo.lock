@@ -1442,7 +1442,7 @@ dependencies = [
  "pallet-message-queue",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -2528,7 +2528,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-mainnet-runtime"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
@@ -2637,8 +2637,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -2680,7 +2680,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-node"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "async-channel 1.9.0",
  "clap",
@@ -2726,6 +2726,7 @@ dependencies = [
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
+ "pq-sys",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -2789,8 +2790,9 @@ dependencies = [
 
 [[package]]
 name = "datahaven-runtime-common"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
+ "alloy-core",
  "fp-account",
  "frame-support",
  "frame-system",
@@ -2800,6 +2802,7 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-evm-precompile-proxy",
+ "pallet-external-validators-rewards",
  "pallet-migrations",
  "pallet-safe-mode",
  "pallet-timestamp",
@@ -2810,6 +2813,7 @@ dependencies = [
  "polkadot-runtime-common",
  "precompile-utils",
  "scale-info",
+ "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -2819,7 +2823,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-stagenet-runtime"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
@@ -2928,8 +2932,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -2971,7 +2975,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-testnet-runtime"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
@@ -3080,8 +3084,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -3272,7 +3276,7 @@ dependencies = [
 
 [[package]]
 name = "dhp-bridge"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -3280,7 +3284,7 @@ dependencies = [
  "pallet-datahaven-native-transfer",
  "pallet-external-validators",
  "parity-scale-codec",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -8433,7 +8437,7 @@ dependencies = [
 [[package]]
 name = "pallet-bucket-nfts"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8490,7 +8494,7 @@ dependencies = [
 [[package]]
 name = "pallet-cr-randomness"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8509,7 +8513,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-datahaven-native-transfer"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8517,7 +8521,7 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -8621,7 +8625,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-balances-erc20"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -8644,7 +8648,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-batch"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8683,7 +8687,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-call-permit"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8749,7 +8753,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-datahaven-native-transfer"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8763,7 +8767,7 @@ dependencies = [
  "parity-scale-codec",
  "precompile-utils",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -8774,7 +8778,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-file-system"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "fp-account",
  "fp-evm",
@@ -8842,7 +8846,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-proxy"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8886,7 +8890,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-registry"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -8937,7 +8941,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -8947,7 +8951,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8971,13 +8975,14 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators-rewards"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-external-validators",
  "pallet-session",
@@ -8986,7 +8991,7 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-parachains",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
@@ -8998,7 +9003,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators-rewards-runtime-api"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "parity-scale-codec",
  "snowbridge-merkle-tree",
@@ -9027,7 +9032,7 @@ dependencies = [
 [[package]]
 name = "pallet-file-system"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9054,7 +9059,7 @@ dependencies = [
 [[package]]
 name = "pallet-file-system-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9221,7 +9226,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-outbound-commitment-store"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9250,7 +9255,7 @@ dependencies = [
 [[package]]
 name = "pallet-payment-streams"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9270,7 +9275,7 @@ dependencies = [
 [[package]]
 name = "pallet-payment-streams-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9298,7 +9303,7 @@ dependencies = [
 [[package]]
 name = "pallet-proofs-dealer"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9320,7 +9325,7 @@ dependencies = [
 [[package]]
 name = "pallet-proofs-dealer-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9342,7 +9347,7 @@ dependencies = [
 [[package]]
 name = "pallet-randomness"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9483,7 +9488,7 @@ dependencies = [
 [[package]]
 name = "pallet-storage-providers"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9505,7 +9510,7 @@ dependencies = [
 [[package]]
 name = "pallet-storage-providers-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -10550,6 +10555,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pq-src"
+version = "0.3.10+libpq-18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56ef39ce621f4993d6084fdcd4cbf1e01c84bdba53109cfad095d2cf441b85b9"
+dependencies = [
+ "cc",
+ "openssl-sys",
+]
+
+[[package]]
 name = "pq-sys"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10557,6 +10572,7 @@ checksum = "089d5dc8f44104b719912ad4478fd558b59a431ce19ef9101f637be8c656b90a"
 dependencies = [
  "libc",
  "pkg-config",
+ "pq-src",
  "vcpkg",
 ]
 
@@ -13646,7 +13662,7 @@ dependencies = [
 [[package]]
 name = "shc-actors-derive"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "once_cell",
  "proc-macro2",
@@ -13659,7 +13675,7 @@ dependencies = [
 [[package]]
 name = "shc-actors-framework"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "anyhow",
  "bincode",
@@ -13677,7 +13693,7 @@ dependencies = [
 [[package]]
 name = "shc-blockchain-service"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13731,7 +13747,7 @@ dependencies = [
 [[package]]
 name = "shc-blockchain-service-db"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "chrono",
  "diesel",
@@ -13755,7 +13771,7 @@ dependencies = [
 [[package]]
 name = "shc-client"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13821,7 +13837,7 @@ dependencies = [
 [[package]]
 name = "shc-common"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "anyhow",
  "bigdecimal",
@@ -13885,7 +13901,7 @@ dependencies = [
 [[package]]
 name = "shc-file-manager"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "bincode",
  "hash-db",
@@ -13909,7 +13925,7 @@ dependencies = [
 [[package]]
 name = "shc-file-transfer-service"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -13938,7 +13954,7 @@ dependencies = [
 [[package]]
 name = "shc-fisherman-service"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "async-trait",
  "diesel",
@@ -13968,7 +13984,7 @@ dependencies = [
 [[package]]
 name = "shc-forest-manager"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "async-trait",
  "bincode",
@@ -13993,7 +14009,7 @@ dependencies = [
 [[package]]
 name = "shc-indexer-db"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -14021,7 +14037,7 @@ dependencies = [
 [[package]]
 name = "shc-indexer-service"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "anyhow",
  "array-bytes",
@@ -14072,7 +14088,7 @@ dependencies = [
 [[package]]
 name = "shc-rpc"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "array-bytes",
  "async-trait",
@@ -14124,7 +14140,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "shp-constants"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "sp-core",
  "sp-runtime",
@@ -14133,7 +14149,7 @@ dependencies = [
 [[package]]
 name = "shp-data-price-updater"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14148,7 +14164,7 @@ dependencies = [
 [[package]]
 name = "shp-file-key-verifier"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14166,7 +14182,7 @@ dependencies = [
 [[package]]
 name = "shp-file-metadata"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "hex",
  "num-bigint",
@@ -14182,7 +14198,7 @@ dependencies = [
 [[package]]
 name = "shp-forest-verifier"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14199,7 +14215,7 @@ dependencies = [
 [[package]]
 name = "shp-opaque"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "sp-runtime",
 ]
@@ -14207,7 +14223,7 @@ dependencies = [
 [[package]]
 name = "shp-session-keys"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
@@ -14222,7 +14238,7 @@ dependencies = [
 [[package]]
 name = "shp-traits"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -14236,7 +14252,7 @@ dependencies = [
 [[package]]
 name = "shp-treasury-funding"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "log",
  "shp-traits",
@@ -14247,7 +14263,7 @@ dependencies = [
 [[package]]
 name = "shp-tx-implicits-runtime-api"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -14260,7 +14276,7 @@ dependencies = [
 [[package]]
 name = "shp-types"
 version = "0.1.0"
-source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.3#527f303055e6ac136db4d6ca373ecc8fd6feeec6"
+source = "git+https://github.com/Moonsong-Labs/storage-hub.git?tag=v0.2.9#a2c15c6a25071d2060403a469b663eec51974010"
 dependencies = [
  "sp-core",
  "sp-runtime",
@@ -14518,7 +14534,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-beacon-primitives"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "byte-slice-cast",
  "frame-support",
@@ -14562,7 +14578,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "bp-relayers",
  "ethabi-decode",
@@ -14662,8 +14678,8 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-verification-primitives",
  "sp-core",
  "sp-io",
@@ -14676,7 +14692,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-merkle-tree"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "array-bytes",
  "hex",
@@ -14717,7 +14733,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-primitives"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "alloy-core",
  "ethabi-decode",
@@ -14729,7 +14745,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-verification-primitives",
  "sp-arithmetic",
  "sp-core",
@@ -14743,12 +14759,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-v2-runtime-api"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "sp-api",
@@ -14758,7 +14774,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -14771,8 +14787,8 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-ethereum 0.3.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client-fixtures",
@@ -14788,8 +14804,8 @@ name = "snowbridge-pallet-ethereum-client-fixtures"
 version = "0.9.0"
 dependencies = [
  "hex-literal 0.3.4",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -14797,7 +14813,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -14811,8 +14827,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2-fixtures",
@@ -14833,8 +14849,8 @@ name = "snowbridge-pallet-inbound-queue-v2-fixtures"
 version = "0.10.0"
 dependencies = [
  "hex-literal 0.3.4",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -14864,7 +14880,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-outbound-queue-v2"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -14878,8 +14894,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-beacon-primitives 0.9.0",
- "snowbridge-core 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -14910,7 +14926,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-outbound-queue",
  "sp-core",
@@ -14923,7 +14939,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-system-v2"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -14935,7 +14951,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-pallet-system",
@@ -14951,10 +14967,10 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-system-v2-runtime-api"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "parity-scale-codec",
- "snowbridge-core 0.9.0",
+ "snowbridge-core 0.12.0",
  "sp-api",
  "sp-std",
  "staging-xcm",
@@ -14962,7 +14978,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-test-utils"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -14982,12 +14998,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-verification-primitives"
-version = "0.9.0"
+version = "0.12.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-beacon-primitives 0.9.0",
+ "snowbridge-beacon-primitives 0.12.0",
  "sp-core",
  "sp-std",
 ]

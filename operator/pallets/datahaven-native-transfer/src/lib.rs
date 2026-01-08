@@ -79,6 +79,7 @@ pub mod pallet {
         /// The sovereign account for Ethereum bridge reserves
         /// This should be derived from the Ethereum location using
         /// a location-to-account converter (e.g., HashedDescription)
+        #[pallet::constant]
         type EthereumSovereignAccount: Get<Self::AccountId>;
 
         /// The Snowbridge outbound queue for sending messages to Ethereum

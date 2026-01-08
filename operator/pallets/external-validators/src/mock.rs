@@ -25,7 +25,7 @@ use {
     },
     frame_system::{self as system, EnsureSignedBy},
     pallet_balances::AccountData,
-    sp_core::H256,
+    sp_core::{H160, H256},
     sp_runtime::{
         testing::UintAuthorityId,
         traits::{BlakeTwo256, ConvertInto, IdentityLookup, OpaqueKeys},
@@ -51,6 +51,8 @@ frame_support::construct_runtime!(
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
+    // Dummy authorized origin used only for tests.
+    pub static MockAuthorizedOrigin: H160 = H160::repeat_byte(0x0);
 }
 
 impl system::Config for Test {
@@ -143,6 +145,7 @@ impl Config for Test {
     type SessionsPerEra = SessionsPerEra;
     type OnEraStart = Mock;
     type OnEraEnd = Mock;
+    type AuthorizedOrigin = MockAuthorizedOrigin;
     type WeightInfo = ();
     #[cfg(feature = "runtime-benchmarks")]
     type Currency = Balances;

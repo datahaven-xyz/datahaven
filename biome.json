@@ -15,8 +15,10 @@
       "!**/contract-bindings/**/*",
       "!**/html/**/*",
       "!**/datahaven/contracts/out/**/*",
-      "!**/contracts/out/**/*"
-    ]
+      "!**/contracts/out/**/*",
+      "!**/contracts/deployments/state-diff.checksum"
+    ],
+    "maxSize": 3000000
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "formatter": {

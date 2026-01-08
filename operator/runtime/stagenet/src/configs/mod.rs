@@ -1736,9 +1736,6 @@ mod tests {
             let rewards_utils = EraRewardsUtils {
                 era_index: 1,
                 era_start_timestamp: 1_700_000_000,
-                rewards_merkle_root: H256::random(),
-                leaves: vec![H256::random()],
-                leaf_index: Some(1),
                 total_points: 1000,
                 individual_points: vec![
                     (H160::from_low_u64_be(1), 500),
@@ -1791,9 +1788,6 @@ mod tests {
             let rewards_utils = EraRewardsUtils {
                 era_index: 1,
                 era_start_timestamp: 1_700_000_000,
-                rewards_merkle_root: H256::random(),
-                leaves: vec![H256::random()],
-                leaf_index: Some(1),
                 total_points: 1000,
                 individual_points: vec![(H160::from_low_u64_be(1), 600), (H160::from_low_u64_be(2), 400)],
                 inflation_amount: 1_000_000_000,

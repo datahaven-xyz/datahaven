@@ -1,12 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { FixedSizeBinary } from "polkadot-api";
-import {
-  CROSS_CHAIN_TIMEOUTS,
-  getEvmEcdsaSigner,
-  logger,
-  SUBSTRATE_FUNDED_ACCOUNTS
-} from "utils";
-import { type Address } from "viem";
+import { CROSS_CHAIN_TIMEOUTS, getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
+import type { Address } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
 import { waitForDataHavenEvent } from "../utils/events";
@@ -24,19 +19,18 @@ async function setV2RewardsParameters(dhApi: any) {
     deployments.DeployedStrategies?.[0]?.underlyingToken ??
     "0x95401dc811bb5740090279Ba06cfA8fcF6113778";
   const strategyAddress =
-    deployments.DeployedStrategies?.[0]?.address ??
-    "0x0000000000000000000000000000000000000000";
+    deployments.DeployedStrategies?.[0]?.address ?? "0x0000000000000000000000000000000000000000";
   const serviceManagerAddress = deployments.ServiceManager;
 
   // Set RewardsGenesisTimestamp to 1 day ago (aligned to day boundary) to ensure valid rewards periods
   const genesisTimestamp = Math.floor((Date.now() / 1000 - 86400) / 86400) * 86400;
 
   logger.debug(
-    `Setting V2 rewards parameters:\n` +
-    `  WHAVETokenAddress=${whaveTokenAddress}\n` +
-    `  StrategyAddress=${strategyAddress}\n` +
-    `  ServiceManagerAddress=${serviceManagerAddress}\n` +
-    `  RewardsGenesisTimestamp=${genesisTimestamp}`
+    "Setting V2 rewards parameters:\n" +
+      `  WHAVETokenAddress=${whaveTokenAddress}\n` +
+      `  StrategyAddress=${strategyAddress}\n` +
+      `  ServiceManagerAddress=${serviceManagerAddress}\n` +
+      `  RewardsGenesisTimestamp=${genesisTimestamp}`
   );
 
   // Build sudo calls to set parameters

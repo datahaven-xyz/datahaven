@@ -146,8 +146,14 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             vm.broadcast(_avsOwnerPrivateKey);
             serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
             Logging.logStep("Agent set in RewardsRegistry");
+
+            // Set rewardsInitiator to RewardsAgent for V2 rewards flow
+            vm.broadcast(_avsOwnerPrivateKey);
+            serviceManager.setRewardsInitiator(rewardsAgentAddress);
+            Logging.logStep("RewardsInitiator set to RewardsAgent");
         } else {
             Logging.logInfo("TX EXECUTION DISABLED: call setRewardsAgent via multisig");
+            Logging.logInfo("TX EXECUTION DISABLED: call setRewardsInitiator via multisig");
         }
         Logging.logContractDeployed("Agent Address", rewardsAgentAddress);
         Logging.logFooter();

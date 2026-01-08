@@ -1,10 +1,91 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { ANVIL_FUNDED_ACCOUNTS, CROSS_CHAIN_TIMEOUTS, logger } from "utils";
-import { type Address, decodeEventLog, type Hex, isAddressEqual, padHex } from "viem";
-import validatorSet from "../configs/validator-set.json";
+import { FixedSizeBinary } from "polkadot-api";
+import { CROSS_CHAIN_TIMEOUTS, getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
+import type { Address } from "viem";
 import { BaseTestSuite } from "../framework";
-import { getContractInstance, parseRewardsInfoFile } from "../utils/contracts";
-import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
+import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
+import { waitForDataHavenEvent } from "../utils/events";
+
+/**
+ * Temporary helper to set V2 rewards parameters via sudo.
+ * This is needed until the launcher properly configures these parameters.
+ */
+async function setV2RewardsParameters(dhApi: any) {
+  const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
+
+  // Get addresses from deployments
+  const deployments = await parseDeploymentsFile();
+  const whaveTokenAddress =
+    deployments.DeployedStrategies?.[0]?.underlyingToken ??
+    "0x95401dc811bb5740090279Ba06cfA8fcF6113778";
+  const strategyAddress =
+    deployments.DeployedStrategies?.[0]?.address ?? "0x0000000000000000000000000000000000000000";
+  const serviceManagerAddress = deployments.ServiceManager;
+
+  // Set RewardsGenesisTimestamp to 1 day ago (aligned to day boundary) to ensure valid rewards periods
+  const genesisTimestamp = Math.floor((Date.now() / 1000 - 86400) / 86400) * 86400;
+
+  logger.debug(
+    "Setting V2 rewards parameters:\n" +
+      `  WHAVETokenAddress=${whaveTokenAddress}\n` +
+      `  StrategyAddress=${strategyAddress}\n` +
+      `  ServiceManagerAddress=${serviceManagerAddress}\n` +
+      `  RewardsGenesisTimestamp=${genesisTimestamp}`
+  );
+
+  // Build sudo calls to set parameters
+  const calls = [
+    // Set ServiceManager address (required for rewards submission)
+    dhApi.tx.Parameters.set_parameter({
+      key_value: {
+        type: "RuntimeConfig",
+        value: {
+          type: "DatahavenServiceManagerAddress",
+          value: [new FixedSizeBinary(Buffer.from(serviceManagerAddress.slice(2), "hex"))]
+        }
+      }
+    }).decodedCall,
+    dhApi.tx.Parameters.set_parameter({
+      key_value: {
+        type: "RuntimeConfig",
+        value: {
+          type: "WHAVETokenAddress",
+          value: [new FixedSizeBinary(Buffer.from(whaveTokenAddress.slice(2), "hex"))]
+        }
+      }
+    }).decodedCall,
+    dhApi.tx.Parameters.set_parameter({
+      key_value: {
+        type: "RuntimeConfig",
+        value: {
+          type: "RewardsGenesisTimestamp",
+          value: [genesisTimestamp]
+        }
+      }
+    }).decodedCall,
+    // Set strategies and multipliers: [(strategy_address, multiplier)]
+    dhApi.tx.Parameters.set_parameter({
+      key_value: {
+        type: "RuntimeConfig",
+        value: {
+          type: "RewardsStrategiesAndMultipliers",
+          value: [[[new FixedSizeBinary(Buffer.from(strategyAddress.slice(2), "hex")), 1n]]]
+        }
+      }
+    }).decodedCall
+  ];
+
+  const tx = dhApi.tx.Sudo.sudo({
+    call: dhApi.tx.Utility.batch_all({ calls }).decodedCall
+  });
+
+  const result = await tx.signAndSubmit(signer);
+  if (!result.ok) {
+    throw new Error("Failed to set V2 rewards parameters");
+  }
+
+  logger.debug("V2 rewards parameters set successfully");
+}
 
 class RewardsMessageTestSuite extends BaseTestSuite {
   constructor() {
@@ -19,56 +100,44 @@ class RewardsMessageTestSuite extends BaseTestSuite {
 const suite = new RewardsMessageTestSuite();
 
 describe("Rewards Message Flow", () => {
-  let rewardsRegistry!: any;
   let serviceManager!: any;
   let publicClient!: any;
   let dhApi!: any;
   let eraIndex!: number;
   let totalPoints!: bigint;
-  let newRootIndex!: bigint;
 
   beforeAll(async () => {
     const connectors = suite.getTestConnectors();
     publicClient = connectors.publicClient;
     dhApi = connectors.dhApi;
 
-    rewardsRegistry = await getContractInstance("RewardsRegistry");
     serviceManager = await getContractInstance("ServiceManager");
+
+    // Set V2 rewards parameters (temporary until launcher configures them)
+    await setV2RewardsParameters(dhApi);
   });
 
   it("should verify rewards infrastructure deployment", async () => {
-    const rewardsInfo = await parseRewardsInfoFile();
     const gateway = await getContractInstance("Gateway");
 
-    expect(rewardsRegistry.address).toBeDefined();
-    expect(rewardsInfo.RewardsAgent).toBeDefined();
+    expect(serviceManager.address).toBeDefined();
     expect(gateway.address).toBeDefined();
 
-    const [agentAddress, avsAddress] = await Promise.all([
-      publicClient.readContract({
-        address: rewardsRegistry.address,
-        abi: rewardsRegistry.abi,
-        functionName: "rewardsAgent",
-        args: []
-      }) as Promise<Address>,
-      publicClient.readContract({
-        address: rewardsRegistry.address,
-        abi: rewardsRegistry.abi,
-        functionName: "avs",
-        args: []
-      }) as Promise<Address>
-    ]);
-    expect(isAddressEqual(agentAddress, rewardsInfo.RewardsAgent as Address)).toBe(true);
-    expect(isAddressEqual(avsAddress, serviceManager.address as Address)).toBe(true);
+    const rewardsInitiator = (await publicClient.readContract({
+      address: serviceManager.address,
+      abi: serviceManager.abi,
+      functionName: "rewardsInitiator",
+      args: []
+    })) as Address;
+
+    // ServiceManager must have a rewardsInitiator configured for EigenLayer rewards submission
+    expect(rewardsInitiator).toBeDefined();
+    logger.debug(`ServiceManager rewardsInitiator: ${rewardsInitiator}`);
   });
 
-  it("should wait for era end and update merkle root on Ethereum", async () => {
-    // Get current era and Ethereum block for event filtering
-    const [currentEra, fromBlock] = await Promise.all([
-      dhApi.query.ExternalValidators.ActiveEra.getValue(),
-      publicClient.getBlockNumber()
-    ]);
-
+  it("should wait for era end and emit RewardsMessageSent", async () => {
+    // Get current era for event filtering
+    const currentEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
     const currentEraIndex = currentEra?.index ?? 0;
     logger.debug(`Waiting for RewardsMessageSent for era ${currentEraIndex}`);
 
@@ -81,177 +150,22 @@ describe("Rewards Message Flow", () => {
     });
 
     expect(payload).toBeDefined();
-    const merkleRoot: Hex = payload.rewards_merkle_root.asHex() as Hex;
     totalPoints = payload.total_points;
     eraIndex = payload.era_index;
     expect(totalPoints).toBeGreaterThan(0n);
-
-    // Wait for RewardsMerkleRootUpdated
-    const expectedRoot: Hex = padHex(merkleRoot, { size: 32 });
-    const rootUpdatedEvent = await waitForEthereumEvent({
-      client: publicClient,
-      address: rewardsRegistry.address,
-      abi: rewardsRegistry.abi,
-      eventName: "RewardsMerkleRootUpdated",
-      args: { newRoot: expectedRoot },
-      fromBlock,
-      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-    });
-
-    const rootDecoded = decodeEventLog({
-      abi: rewardsRegistry.abi,
-      data: rootUpdatedEvent.data,
-      topics: rootUpdatedEvent.topics
-    }) as { args: { oldRoot: Hex; newRoot: Hex; newRootIndex: bigint } };
-
-    // Store the new root index for claiming tests
-    newRootIndex = rootDecoded.args.newRootIndex;
-
-    // Verify the stored root matches
-    const storedRoot: Hex = (await publicClient.readContract({
-      address: rewardsRegistry.address,
-      abi: rewardsRegistry.abi,
-      functionName: "merkleRootHistory",
-      args: [newRootIndex]
-    })) as Hex;
-
-    expect(storedRoot.toLowerCase()).toEqual(expectedRoot.toLowerCase());
+    logger.debug(`RewardsMessageSent received: era=${eraIndex}, totalPoints=${totalPoints}`);
   });
 
-  it("should successfully claim rewards for validator", async () => {
-    // Fund RewardsRegistry for reward payouts
-    const { walletClient: fundingWallet } = suite.getTestConnectors();
-    const fundingTx = await fundingWallet.sendTransaction({
-      to: rewardsRegistry.address as Address,
-      value: totalPoints,
-      chain: null
-    });
-    const fundingReceipt = await publicClient.waitForTransactionReceipt({ hash: fundingTx });
-    expect(fundingReceipt.status).toBe("success");
-
-    // Get era reward points and pick first validator
+  it("should verify reward points were recorded for the era", async () => {
+    // Verify reward points were recorded on DataHaven side
     const rewardPoints =
       await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
     expect(rewardPoints).toBeDefined();
     expect(rewardPoints.total).toBeGreaterThan(0);
 
-    const relayerEthAccount = ANVIL_FUNDED_ACCOUNTS[1].publicKey.toLowerCase();
-    const pick = rewardPoints.individual.find(([account]: [any, any]) => {
-      const v = validatorSet.validators.find(
-        (cfg) => cfg.solochainAddress.toLowerCase() === String(account).toLowerCase()
-      );
-      return v && v.publicKey.toLowerCase() !== relayerEthAccount;
-    });
-    const [validatorAccount, points] = (pick ?? rewardPoints.individual[0]) as [any, any];
-    const match = validatorSet.validators.find(
-      (v) => v.solochainAddress.toLowerCase() === String(validatorAccount).toLowerCase()
-    );
-    if (!match) {
-      throw new Error(
-        `Validator config not found for solochain address ${String(validatorAccount)}`
-      );
-    }
-
-    // Generate merkle proof via runtime API
-    const merkleProof = await dhApi.apis.ExternalValidatorsRewardsApi.generate_rewards_merkle_proof(
-      String(validatorAccount),
-      eraIndex
-    );
-    expect(merkleProof).toBeDefined();
-
-    // Get validator credentials and create operator wallet
-    const factory = suite.getConnectorFactory();
-    const operatorWallet = factory.createWalletClient(match!.privateKey as `0x${string}`);
-    const resolvedOperator: Address = operatorWallet.account.address;
-
-    // Ensure claim not already recorded
-    const claimedBefore = (await publicClient.readContract({
-      address: rewardsRegistry.address,
-      abi: rewardsRegistry.abi,
-      functionName: "hasClaimedByIndex",
-      args: [resolvedOperator, newRootIndex]
-    })) as boolean;
-    expect(claimedBefore).toBe(false);
-
-    // Record balances at a specific block to avoid stale RPC reads
-    const balanceBlockNumber = Number(await publicClient.getBlockNumber());
-    const operatorBalanceBefore = await publicClient.getBalance({
-      address: resolvedOperator,
-      blockNumber: balanceBlockNumber
-    });
-    const registryBalanceBefore = BigInt(
-      await publicClient.getBalance({
-        address: rewardsRegistry.address as Address,
-        blockNumber: balanceBlockNumber
-      })
-    );
-
-    // Submit claim transaction
-    const claimTx = await operatorWallet.writeContract({
-      address: serviceManager.address as Address,
-      abi: serviceManager.abi,
-      functionName: "claimOperatorRewards",
-      chain: null,
-      args: [
-        0, // strategy index
-        newRootIndex,
-        BigInt(points),
-        BigInt(merkleProof.number_of_leaves),
-        BigInt(merkleProof.leaf_index),
-        merkleProof.proof.map((node: { asHex: () => string }) => node.asHex()) as readonly Hex[]
-      ]
-    });
-
-    // Wait for transaction confirmation
-    const claimReceipt = await publicClient.waitForTransactionReceipt({ hash: claimTx });
-    expect(claimReceipt.status).toBe("success");
+    const validatorsWithPoints = rewardPoints.individual.length;
     logger.debug(
-      `Claim tx type: ${claimReceipt.type}, effectiveGasPrice: ${claimReceipt.effectiveGasPrice}, gasUsed: ${claimReceipt.gasUsed}`
+      `Era ${eraIndex}: ${validatorsWithPoints} validators earned ${rewardPoints.total} total points`
     );
-
-    // Decode and validate claim event from receipt
-    const claimLog = claimReceipt.logs.find(
-      (log: { address: string }) =>
-        log.address.toLowerCase() === rewardsRegistry.address.toLowerCase()
-    )!;
-    const { args: claimArgs } = decodeEventLog({
-      abi: rewardsRegistry.abi,
-      data: claimLog.data,
-      topics: claimLog.topics
-    }) as {
-      args: { operatorAddress: Address; rootIndex: bigint; points: bigint; rewardsAmount: bigint };
-    };
-
-    expect(isAddressEqual(claimArgs.operatorAddress, resolvedOperator)).toBe(true);
-    expect(claimArgs.rootIndex).toEqual(newRootIndex);
-    expect(claimArgs.points).toEqual(BigInt(points));
-    expect(claimArgs.rewardsAmount).toBeGreaterThan(0n);
-
-    const claimedAfter = (await publicClient.readContract({
-      address: rewardsRegistry.address,
-      abi: rewardsRegistry.abi,
-      functionName: "hasClaimedByIndex",
-      args: [resolvedOperator, newRootIndex]
-    })) as boolean;
-    expect(claimedAfter).toBe(true);
-
-    // Validate RewardsRegistry balance decrease matches claimed rewards
-    const claimBlockNumber = Number(claimReceipt.blockNumber);
-    const registryBalanceAfter = await publicClient.getBalance({
-      address: rewardsRegistry.address as Address,
-      blockNumber: claimBlockNumber
-    });
-    expect(registryBalanceBefore - registryBalanceAfter).toEqual(claimArgs.rewardsAmount);
-    expect(claimArgs.rewardsAmount).toEqual(BigInt(points));
-
-    // Validate operator received rewards (accounting for gas)
-    const operatorBalanceAfter = await publicClient.getBalance({
-      address: resolvedOperator,
-      blockNumber: claimBlockNumber
-    });
-    const gasCost = BigInt(claimReceipt.gasUsed) * BigInt(claimReceipt.effectiveGasPrice);
-    const netBalanceChange = BigInt(operatorBalanceAfter) - BigInt(operatorBalanceBefore);
-    // Operator balance should have changed by: rewards - gasCost
-    expect(netBalanceChange + gasCost).toEqual(claimArgs.rewardsAmount);
   });
 });

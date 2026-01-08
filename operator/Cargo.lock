@@ -9124,7 +9124,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snowbridge-core 0.12.0",
- "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9138,9 +9137,7 @@ name = "pallet-external-validators-rewards-runtime-api"
 version = "0.12.0"
 dependencies = [
  "parity-scale-codec",
- "snowbridge-merkle-tree",
  "sp-api",
- "sp-core",
 ]
 
 [[package]]

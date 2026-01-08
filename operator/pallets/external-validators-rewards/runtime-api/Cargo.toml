@@ -14,15 +14,11 @@ workspace = true
 
 [dependencies]
 parity-scale-codec = { workspace = true }
-snowbridge-merkle-tree = { workspace = true }
 sp-api = { workspace = true }
-sp-core = { workspace = true }
 
 [features]
 default = [ "std" ]
 std = [
 	"parity-scale-codec/std",
-	"snowbridge-merkle-tree/std",
 	"sp-api/std",
-	"sp-core/std",
 ]

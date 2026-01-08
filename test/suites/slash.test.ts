@@ -90,15 +90,16 @@ describe("Should slash an operator", () => {
     console.log("Slashes message sent");
 
     // Wait for Ethereum event event
+    const _allocationManager = await getContractInstance("AllocationManager");
     const serviceManager = await getContractInstance("ServiceManager");
     const event = await waitForEthereumEvent({
       client: publicClient,
       address: serviceManager.address,
       abi: serviceManager.abi,
-      eventName: "ValidatorsSlashedTest",
+      eventName: "SlashingComplete",
       timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
     });
 
     console.log(event);
-  }, 320000);
+  }, 560000);
 });

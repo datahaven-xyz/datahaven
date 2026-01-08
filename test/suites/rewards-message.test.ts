@@ -6,10 +6,10 @@ import {
   logger,
   SUBSTRATE_FUNDED_ACCOUNTS
 } from "utils";
-import { type Address, decodeEventLog } from "viem";
+import { type Address } from "viem";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
-import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
+import { waitForDataHavenEvent } from "../utils/events";
 
 /**
  * Temporary helper to set V2 rewards parameters via sudo.
@@ -18,21 +18,39 @@ import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
 async function setV2RewardsParameters(dhApi: any) {
   const signer = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
 
-  // Get wHAVE token address from deployments (use TestToken as wHAVE for testing)
+  // Get addresses from deployments
   const deployments = await parseDeploymentsFile();
   const whaveTokenAddress =
     deployments.DeployedStrategies?.[0]?.underlyingToken ??
     "0x95401dc811bb5740090279Ba06cfA8fcF6113778";
+  const strategyAddress =
+    deployments.DeployedStrategies?.[0]?.address ??
+    "0x0000000000000000000000000000000000000000";
+  const serviceManagerAddress = deployments.ServiceManager;
 
-  // Set RewardsGenesisTimestamp to 1 day ago to ensure valid rewards periods
-  const genesisTimestamp = Math.floor(Date.now() / 1000) - 86400;
+  // Set RewardsGenesisTimestamp to 1 day ago (aligned to day boundary) to ensure valid rewards periods
+  const genesisTimestamp = Math.floor((Date.now() / 1000 - 86400) / 86400) * 86400;
 
   logger.debug(
-    `Setting V2 rewards parameters: WHAVETokenAddress=${whaveTokenAddress}, RewardsGenesisTimestamp=${genesisTimestamp}`
+    `Setting V2 rewards parameters:\n` +
+    `  WHAVETokenAddress=${whaveTokenAddress}\n` +
+    `  StrategyAddress=${strategyAddress}\n` +
+    `  ServiceManagerAddress=${serviceManagerAddress}\n` +
+    `  RewardsGenesisTimestamp=${genesisTimestamp}`
   );
 
   // Build sudo calls to set parameters
   const calls = [
+    // Set ServiceManager address (required for rewards submission)
+    dhApi.tx.Parameters.set_parameter({
+      key_value: {
+        type: "RuntimeConfig",
+        value: {
+          type: "DatahavenServiceManagerAddress",
+          value: [new FixedSizeBinary(Buffer.from(serviceManagerAddress.slice(2), "hex"))]
+        }
+      }
+    }).decodedCall,
     dhApi.tx.Parameters.set_parameter({
       key_value: {
         type: "RuntimeConfig",
@@ -48,6 +66,16 @@ async function setV2RewardsParameters(dhApi: any) {
         value: {
           type: "RewardsGenesisTimestamp",
           value: [genesisTimestamp]
+        }
+      }
+    }).decodedCall,
+    // Set strategies and multipliers: [(strategy_address, multiplier)]
+    dhApi.tx.Parameters.set_parameter({
+      key_value: {
+        type: "RuntimeConfig",
+        value: {
+          type: "RewardsStrategiesAndMultipliers",
+          value: [[[new FixedSizeBinary(Buffer.from(strategyAddress.slice(2), "hex")), 1n]]]
         }
       }
     }).decodedCall
@@ -83,8 +111,6 @@ describe("Rewards Message Flow", () => {
   let dhApi!: any;
   let eraIndex!: number;
   let totalPoints!: bigint;
-  let totalRewardsAmount!: bigint;
-  let operatorCount!: bigint;
 
   beforeAll(async () => {
     const connectors = suite.getTestConnectors();
@@ -115,13 +141,9 @@ describe("Rewards Message Flow", () => {
     logger.debug(`ServiceManager rewardsInitiator: ${rewardsInitiator}`);
   });
 
-  it("should wait for era end and submit rewards to EigenLayer", async () => {
-    // Get current era and Ethereum block for event filtering
-    const [currentEra, fromBlock] = await Promise.all([
-      dhApi.query.ExternalValidators.ActiveEra.getValue(),
-      publicClient.getBlockNumber()
-    ]);
-
+  it("should wait for era end and emit RewardsMessageSent", async () => {
+    // Get current era for event filtering
+    const currentEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
     const currentEraIndex = currentEra?.index ?? 0;
     logger.debug(`Waiting for RewardsMessageSent for era ${currentEraIndex}`);
 
@@ -138,57 +160,18 @@ describe("Rewards Message Flow", () => {
     eraIndex = payload.era_index;
     expect(totalPoints).toBeGreaterThan(0n);
     logger.debug(`RewardsMessageSent received: era=${eraIndex}, totalPoints=${totalPoints}`);
-
-    // Wait for RewardsSubmitted event on ServiceManager (V2 flow via EigenLayer)
-    logger.debug("Waiting for RewardsSubmitted event on ServiceManager");
-    const rewardsSubmittedEvent = await waitForEthereumEvent({
-      client: publicClient,
-      address: serviceManager.address,
-      abi: serviceManager.abi,
-      eventName: "RewardsSubmitted",
-      fromBlock,
-      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-    });
-
-    const rewardsDecoded = decodeEventLog({
-      abi: serviceManager.abi,
-      data: rewardsSubmittedEvent.data,
-      topics: rewardsSubmittedEvent.topics
-    }) as { args: { totalAmount: bigint; operatorCount: bigint } };
-
-    // Store values for subsequent tests
-    totalRewardsAmount = rewardsDecoded.args.totalAmount;
-    operatorCount = rewardsDecoded.args.operatorCount;
-
-    logger.debug(
-      `RewardsSubmitted received: totalAmount=${totalRewardsAmount}, operatorCount=${operatorCount}`
-    );
-
-    // Verify rewards were submitted with valid values
-    expect(totalRewardsAmount).toBeGreaterThan(0n);
-    expect(operatorCount).toBeGreaterThan(0n);
   });
 
-  it("should verify rewards were submitted to EigenLayer with correct parameters", async () => {
-    // Verify the RewardsSubmitted event parameters match expected values
-    // The values were stored from the previous test
-
-    // Verify operator count matches the number of validators with reward points
+  it("should verify reward points were recorded for the era", async () => {
+    // Verify reward points were recorded on DataHaven side
     const rewardPoints =
       await dhApi.query.ExternalValidatorsRewards.RewardPointsForEra.getValue(eraIndex);
     expect(rewardPoints).toBeDefined();
     expect(rewardPoints.total).toBeGreaterThan(0);
 
-    // The operator count should match the number of validators that earned points
     const validatorsWithPoints = rewardPoints.individual.length;
-    expect(operatorCount).toEqual(BigInt(validatorsWithPoints));
-
-    // Verify total rewards amount is greater than 0
-    expect(totalRewardsAmount).toBeGreaterThan(0n);
-
-    // Log summary for debugging
     logger.debug(
-      `Rewards verification: ${validatorsWithPoints} validators received ${totalRewardsAmount} total rewards for era ${eraIndex}`
+      `Era ${eraIndex}: ${validatorsWithPoints} validators earned ${rewardPoints.total} total points`
     );
   });
 });

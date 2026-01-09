@@ -35,12 +35,10 @@ fn root_can_inject_manual_offence() {
             0,
             1u64,
             Perbill::from_percent(75),
-            1
         ));
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(0)),
             vec![Slash {
-                external_idx: 1,
                 validator: 1,
                 percentage: Perbill::from_percent(75),
                 confirmed: false,
@@ -61,8 +59,7 @@ fn cannot_inject_future_era_offence() {
                 RuntimeOrigin::root(),
                 1,
                 1u64,
-                Perbill::from_percent(75),
-                1
+                Perbill::from_percent(75)
             ),
             Error::<Test>::ProvidedFutureEra
         );
@@ -79,8 +76,7 @@ fn cannot_inject_era_offence_too_far_in_the_past() {
                 RuntimeOrigin::root(),
                 1,
                 4u64,
-                Perbill::from_percent(75),
-                1
+                Perbill::from_percent(75)
             ),
             Error::<Test>::ProvidedNonSlashableEra
         );
@@ -95,8 +91,7 @@ fn root_can_cancel_deferred_slash() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
         assert_ok!(ExternalValidatorSlashes::cancel_deferred_slash(
             RuntimeOrigin::root(),
@@ -116,8 +111,7 @@ fn root_cannot_cancel_deferred_slash_if_outside_deferring_period() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
 
         start_era(4, 0, 4);
@@ -137,8 +131,7 @@ fn root_cannot_cancel_out_of_bounds() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(
@@ -159,8 +152,7 @@ fn root_cannot_cancel_duplicates() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(RuntimeOrigin::root(), 3, vec![0, 0]),
@@ -177,15 +169,13 @@ fn root_cannot_cancel_if_not_sorted() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
         assert_ok!(ExternalValidatorSlashes::force_inject_slash(
             RuntimeOrigin::root(),
             0,
             2u64,
-            Perbill::from_percent(75),
-            2
+            Perbill::from_percent(75)
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(RuntimeOrigin::root(), 3, vec![1, 0]),
@@ -206,14 +196,12 @@ fn test_after_bonding_period_we_can_remove_slashes() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
 
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(0)),
             vec![Slash {
-                external_idx: 1,
                 validator: 1,
                 percentage: Perbill::from_percent(75),
                 confirmed: false,
@@ -250,7 +238,6 @@ fn test_on_offence_injects_offences() {
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(0)),
             vec![Slash {
-                external_idx: 0,
                 validator: 3,
                 percentage: Perbill::from_percent(75),
                 confirmed: false,
@@ -316,13 +303,11 @@ fn defer_period_of_zero_confirms_immediately_slashes() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(0)),
             vec![Slash {
-                external_idx: 1,
                 validator: 1,
                 percentage: Perbill::from_percent(75),
                 confirmed: true,
@@ -342,8 +327,7 @@ fn we_cannot_cancel_anything_with_defer_period_zero() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75),
-            1
+            Perbill::from_percent(75)
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(RuntimeOrigin::root(), 0, vec![0]),
@@ -371,7 +355,6 @@ fn test_on_offence_defer_period_0() {
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(1)),
             vec![Slash {
-                external_idx: 0,
                 validator: 3,
                 percentage: Perbill::from_percent(75),
                 confirmed: true,
@@ -404,7 +387,6 @@ fn test_slashes_command_matches_event() {
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(1)),
             vec![Slash {
-                external_idx: 0,
                 validator: 3,
                 percentage: Perbill::from_percent(75),
                 confirmed: true,
@@ -463,7 +445,6 @@ fn test_account_id_encoding() {
         let alice_account: [u8; 32] = [4u8; 32];
 
         let slash = Slash::<AccountId20, u32> {
-            external_idx: 0,
             validator: AccountId20::from(alice_account),
             reporters: vec![],
             slash_id: 1,

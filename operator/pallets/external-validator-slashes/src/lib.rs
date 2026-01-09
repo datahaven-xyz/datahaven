@@ -69,16 +69,12 @@ pub struct SlashData<AccountId> {
     pub amount_to_slash: u128,
 }
 
-/// TODO: populate this with what we need
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SlashDataUtils<AccountId>(pub Vec<SlashData<AccountId>>);
-
 // FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
 pub trait SendMessage<AccountId> {
     type Message;
     type Ticket;
 
-    fn build(utils: &SlashDataUtils<AccountId>) -> Option<Self::Message>;
+    fn build(utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message>;
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
 
@@ -87,6 +83,8 @@ pub trait SendMessage<AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
+    use sp_core::uint;
+
     use super::*;
     pub use crate::weights::WeightInfo;
 
@@ -101,6 +99,10 @@ pub mod pallet {
         },
         /// The slashes message was sent correctly.
         SlashesMessageSent { message_id: H256 },
+        /// We injected a slash
+        SlashInjected { slash_id: T::SlashId, era: u32 },
+        /// Number of slashes processed
+        SlashAddedToQueue { number: u32, era: u32 },
     }
 
     #[pallet::config]
@@ -305,7 +307,6 @@ pub mod pallet {
             era: EraIndex,
             validator: T::AccountId,
             percentage: Perbill,
-            external_idx: u64,
         ) -> DispatchResult {
             ensure_root(origin)?;
             let active_era = T::EraIndexProvider::active_era().index;
@@ -325,7 +326,6 @@ pub mod pallet {
                 era,
                 validator,
                 slash_defer_duration,
-                external_idx,
             )
             .ok_or(Error::<T>::ErrorComputingSlash)?;
 
@@ -342,6 +342,12 @@ pub mod pallet {
             });
 
             NextSlashId::<T>::put(next_slash_id.saturating_add(One::one()));
+
+            Self::deposit_event(Event::<T>::SlashInjected {
+                slash_id: next_slash_id,
+                era: era_to_consider,
+            });
+
             Ok(())
         }
 
@@ -360,6 +366,7 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
+
             T::WeightInfo::process_slashes_queue(processed)
         }
     }
@@ -468,7 +475,6 @@ where
                 slash_era,
                 stash.clone(),
                 slash_defer_duration,
-                external_idx,
             );
 
             if let Some(mut slash) = slash {
@@ -562,7 +568,16 @@ impl<T: Config> Pallet<T> {
     fn add_era_slashes_to_queue(active_era: EraIndex) {
         let mut slashes: VecDeque<_> = Slashes::<T>::get(active_era).into();
 
+        let len = slashes.len();
+
         UnreportedSlashesQueue::<T>::mutate(|queue| queue.append(&mut slashes));
+
+        if len > 0 {
+            Self::deposit_event(Event::<T>::SlashAddedToQueue {
+                number: len as u32,
+                era: active_era,
+            });
+        }
     }
 
     /// Returns number of slashes that were sent to ethereum.
@@ -590,7 +605,7 @@ impl<T: Config> Pallet<T> {
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        let outbound = match T::SendMessage::build(&SlashDataUtils(slashes_to_send)) {
+        let outbound = match T::SendMessage::build(&slashes_to_send) {
             Some(send_msg) => send_msg,
             None => {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
@@ -631,8 +646,6 @@ impl<T: Config> Pallet<T> {
 /// rather deferred for several eras.
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo, Clone, PartialEq)]
 pub struct Slash<AccountId, SlashId> {
-    /// external index identifying a given set of validators
-    pub external_idx: u64,
     /// The stash ID of the offending validator.
     pub validator: AccountId,
     /// Reporters of the offence; bounty payout recipients.
@@ -648,7 +661,6 @@ impl<AccountId, SlashId: One> Slash<AccountId, SlashId> {
     /// Initializes the default object using the given `validator`.
     pub fn default_from(validator: AccountId) -> Self {
         Self {
-            external_idx: 0,
             validator,
             reporters: vec![],
             slash_id: One::one(),
@@ -670,7 +682,6 @@ pub(crate) fn compute_slash<T: Config>(
     slash_era: EraIndex,
     stash: T::AccountId,
     slash_defer_duration: EraIndex,
-    external_idx: u64,
 ) -> Option<Slash<T::AccountId, T::SlashId>> {
     let prior_slash_p = ValidatorSlashInEra::<T>::get(slash_era, &stash).unwrap_or(Zero::zero());
 
@@ -691,7 +702,6 @@ pub(crate) fn compute_slash<T: Config>(
 
     let confirmed = slash_defer_duration.is_zero();
     Some(Slash {
-        external_idx,
         validator: stash.clone(),
         percentage: slash_fraction,
         slash_id,

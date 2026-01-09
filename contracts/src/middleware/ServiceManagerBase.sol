@@ -25,7 +25,6 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
 
 import {IServiceManager, IServiceManagerUI} from "../interfaces/IServiceManager.sol";
-import {IRewardsRegistry} from "../interfaces/IRewardsRegistry.sol";
 import {ServiceManagerBaseStorage} from "./ServiceManagerBaseStorage.sol";
 
 /**
@@ -252,117 +251,6 @@ abstract contract ServiceManagerBase is ServiceManagerBaseStorage, IAVSRegistrar
 
         // REVERTING BECAUSE THIS FUNCTION IS DEPRECATED ❗️
         revert("ServiceManagerBase: setRewardsInitiator is deprecated");
-    }
-
-    /**
-     * @notice Sets the rewards registry for an operator set
-     * @param operatorSetId The ID of the operator set
-     * @param rewardsRegistry The address of the rewards registry
-     * @dev Only callable by the owner
-     */
-    function setRewardsRegistry(
-        uint32 operatorSetId,
-        IRewardsRegistry rewardsRegistry
-    ) external virtual override onlyOwner {
-        operatorSetToRewardsRegistry[operatorSetId] = rewardsRegistry;
-        emit RewardsRegistrySet(operatorSetId, address(rewardsRegistry));
-    }
-
-    /**
-     * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs
-     * @param operatorSetId The ID of the operator set
-     * @param rootIndex Index of the merkle root to claim from
-     * @param operatorPoints Points earned by the operator
-     * @param numberOfLeaves The total number of leaves in the Merkle tree
-     * @param leafIndex The index of the operator's leaf in the Merkle tree
-     * @param proof Positional Merkle proof (from leaf to root)
-     */
-    function claimOperatorRewards(
-        uint32 operatorSetId,
-        uint256 rootIndex,
-        uint256 operatorPoints,
-        uint256 numberOfLeaves,
-        uint256 leafIndex,
-        bytes32[] calldata proof
-    ) external virtual override {
-        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
-        if (address(rewardsRegistry) == address(0)) {
-            revert NoRewardsRegistryForOperatorSet();
-        }
-        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-        rewardsRegistry.claimRewards(
-            msg.sender, rootIndex, operatorPoints, numberOfLeaves, leafIndex, proof
-        );
-    }
-
-    /**
-     * @notice Claim rewards for an operator from the latest merkle root using Substrate/Snowbridge positional Merkle proofs
-     * @param operatorSetId The ID of the operator set
-     * @param operatorPoints Points earned by the operator
-     * @param numberOfLeaves The total number of leaves in the Merkle tree
-     * @param leafIndex The index of the operator's leaf in the Merkle tree
-     * @param proof Positional Merkle proof (from leaf to root)
-     */
-    function claimLatestOperatorRewards(
-        uint32 operatorSetId,
-        uint256 operatorPoints,
-        uint256 numberOfLeaves,
-        uint256 leafIndex,
-        bytes32[] calldata proof
-    ) external virtual override {
-        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
-        if (address(rewardsRegistry) == address(0)) {
-            revert NoRewardsRegistryForOperatorSet();
-        }
-        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-        rewardsRegistry.claimLatestRewards(
-            msg.sender, operatorPoints, numberOfLeaves, leafIndex, proof
-        );
-    }
-
-    /**
-     * @notice Claim rewards for an operator from multiple merkle root indices using Substrate/Snowbridge positional Merkle proofs
-     * @param operatorSetId The ID of the operator set
-     * @param rootIndices Array of merkle root indices to claim from
-     * @param operatorPoints Array of points earned by the operator for each root
-     * @param numberOfLeaves Array with the total number of leaves for each Merkle tree
-     * @param leafIndices Array of leaf indices for the operator in each Merkle tree
-     * @param proofs Array of positional Merkle proofs for each claim
-     */
-    function claimOperatorRewardsBatch(
-        uint32 operatorSetId,
-        uint256[] calldata rootIndices,
-        uint256[] calldata operatorPoints,
-        uint256[] calldata numberOfLeaves,
-        uint256[] calldata leafIndices,
-        bytes32[][] calldata proofs
-    ) external virtual override {
-        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
-        if (address(rewardsRegistry) == address(0)) {
-            revert NoRewardsRegistryForOperatorSet();
-        }
-        _ensureOperatorIsPartOfOperatorSet(msg.sender, operatorSetId);
-        rewardsRegistry.claimRewardsBatch(
-            msg.sender, rootIndices, operatorPoints, numberOfLeaves, leafIndices, proofs
-        );
-    }
-
-    /**
-     * @notice Sets the rewards agent address in the RewardsRegistry contract
-     * @param operatorSetId The ID of the operator set
-     * @param rewardsAgent New rewards agent address
-     * @dev Only callable by the owner
-     */
-    function setRewardsAgent(
-        uint32 operatorSetId,
-        address rewardsAgent
-    ) external virtual override onlyOwner {
-        IRewardsRegistry rewardsRegistry = operatorSetToRewardsRegistry[operatorSetId];
-        if (address(rewardsRegistry) == address(0)) {
-            revert NoRewardsRegistryForOperatorSet();
-        }
-
-        rewardsRegistry.setRewardsAgent(rewardsAgent);
     }
 
     /**

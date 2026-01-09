@@ -51,7 +51,6 @@
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
-use crate::frame_system;
 
 /// Weights for `frame_system`.
 pub struct WeightInfo<T>(PhantomData<T>);

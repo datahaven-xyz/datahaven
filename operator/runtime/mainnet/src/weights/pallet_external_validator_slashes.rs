@@ -51,7 +51,6 @@
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
-use crate::pallet_external_validator_slashes;
 
 /// Weights for `pallet_external_validator_slashes`.
 pub struct WeightInfo<T>(PhantomData<T>);
@@ -123,5 +122,15 @@ impl<T: frame_system::Config> pallet_external_validator_slashes::WeightInfo for 
 		// Minimum execution time: 3_911_000 picoseconds.
 		Weight::from_parts(4_080_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	
+	fn root_test_send_msg_to_eth() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `322`
+		//  Estimated: `3601`
+		// Minimum execution time: 994_654_000 picoseconds.
+		Weight::from_parts(1_015_195_000, 3601)
+			.saturating_add(T::DbWeight::get().reads(3_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
 }

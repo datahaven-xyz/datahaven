@@ -30,7 +30,6 @@ import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyM
 import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
 import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
 import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
@@ -50,14 +49,10 @@ contract AVSDeployer is Test {
     // AVS contracts
     DataHavenServiceManager public serviceManager;
     DataHavenServiceManager public serviceManagerImplementation;
-    RewardsRegistry public rewardsRegistry;
 
     address public vetoCommitteeMember =
         address(uint160(uint256(keccak256("vetoCommitteeMember"))));
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
-
-    // RewardsRegistry roles and parameters
-    address public mockRewardsAgent = address(uint160(uint256(keccak256("rewardsAgent"))));
 
     // EigenLayer contracts
     StrategyManager public strategyManager;
@@ -273,16 +268,6 @@ contract AVSDeployer is Test {
         );
         cheats.stopPrank();
         console.log("ServiceManager implementation deployed");
-
-        // Deploy the RewardsRegistry contract
-        cheats.prank(regularDeployer);
-        rewardsRegistry = new RewardsRegistry(address(serviceManager), mockRewardsAgent);
-
-        // Set the rewards registry in the ServiceManager
-        cheats.prank(avsOwner);
-        serviceManager.setRewardsRegistry(0, rewardsRegistry);
-
-        console.log("RewardsRegistry deployed and configured");
     }
 
     function _setUpDefaultStrategiesAndMultipliers() internal virtual {

@@ -150,11 +150,6 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
 
         console.log("Rewards agent deployed at", address(rewardsAgent));
 
-        cheats.prank(avsOwner);
-        serviceManager.setRewardsAgent(0, address(rewardsAgent));
-
-        console.log("Rewards agent set for operator set 0");
-
         cheats.prank(regularDeployer);
         gateway.v2_createAgent(WRONG_MESSAGE_ORIGIN);
 

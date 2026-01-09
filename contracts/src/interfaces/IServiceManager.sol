@@ -13,7 +13,6 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
-import {IRewardsRegistry} from "./IRewardsRegistry.sol";
 
 interface IServiceManagerErrors {
     /// @notice Thrown when a function is called by an address that is not the RegistryCoordinator.
@@ -24,8 +23,6 @@ interface IServiceManagerErrors {
     error OnlyStakeRegistry();
     /// @notice Thrown when a slashing proposal delay has not been met yet.
     error DelayPeriodNotPassed();
-    /// @notice Thrown when the operator set does not have a rewards registry set.
-    error NoRewardsRegistryForOperatorSet();
     /// @notice Thrown when the operator is not part of the specified operator set.
     error OperatorNotInOperatorSet();
 }
@@ -37,13 +34,6 @@ interface IServiceManagerEvents {
      * @param newRewardsInitiator The new rewards initiator address.
      */
     event RewardsInitiatorUpdated(address prevRewardsInitiator, address newRewardsInitiator);
-
-    /**
-     * @notice Emitted when a rewards registry is set for an operator set.
-     * @param operatorSetId The ID of the operator set.
-     * @param rewardsRegistry The address of the rewards registry.
-     */
-    event RewardsRegistrySet(uint32 indexed operatorSetId, address indexed rewardsRegistry);
 }
 
 interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceManagerEvents {
@@ -135,77 +125,4 @@ interface IServiceManager is IServiceManagerUI, IServiceManagerErrors, IServiceM
      * @return The address of the AVS
      */
     function avs() external view returns (address);
-
-    /**
-     * @notice Sets the rewards registry for an operator set
-     * @param operatorSetId The ID of the operator set
-     * @param rewardsRegistry The address of the rewards registry
-     * @dev Only callable by the owner
-     */
-    function setRewardsRegistry(
-        uint32 operatorSetId,
-        IRewardsRegistry rewardsRegistry
-    ) external;
-
-    /**
-     * @notice Claim rewards for an operator from a specific merkle root index using Substrate/Snowbridge positional Merkle proofs
-     * @param operatorSetId The ID of the operator set
-     * @param rootIndex Index of the merkle root to claim from
-     * @param operatorPoints Points earned by the operator
-     * @param numberOfLeaves The total number of leaves in the Merkle tree
-     * @param leafIndex The index of the operator's leaf in the Merkle tree
-     * @param proof Positional Merkle proof (from leaf to root)
-     */
-    function claimOperatorRewards(
-        uint32 operatorSetId,
-        uint256 rootIndex,
-        uint256 operatorPoints,
-        uint256 numberOfLeaves,
-        uint256 leafIndex,
-        bytes32[] calldata proof
-    ) external;
-
-    /**
-     * @notice Claim rewards for an operator from the latest merkle root using Substrate/Snowbridge positional Merkle proofs
-     * @param operatorSetId The ID of the operator set
-     * @param operatorPoints Points earned by the operator
-     * @param numberOfLeaves The total number of leaves in the Merkle tree
-     * @param leafIndex The index of the operator's leaf in the Merkle tree
-     * @param proof Positional Merkle proof (from leaf to root)
-     */
-    function claimLatestOperatorRewards(
-        uint32 operatorSetId,
-        uint256 operatorPoints,
-        uint256 numberOfLeaves,
-        uint256 leafIndex,
-        bytes32[] calldata proof
-    ) external;
-
-    /**
-     * @notice Claim rewards for an operator from multiple merkle root indices using Substrate/Snowbridge positional Merkle proofs
-     * @param operatorSetId The ID of the operator set
-     * @param rootIndices Array of merkle root indices to claim from
-     * @param operatorPoints Array of points earned by the operator for each root
-     * @param numberOfLeaves Array with the total number of leaves for each Merkle tree
-     * @param leafIndices Array of leaf indices for the operator in each Merkle tree
-     * @param proofs Array of positional Merkle proofs for each claim
-     */
-    function claimOperatorRewardsBatch(
-        uint32 operatorSetId,
-        uint256[] calldata rootIndices,
-        uint256[] calldata operatorPoints,
-        uint256[] calldata numberOfLeaves,
-        uint256[] calldata leafIndices,
-        bytes32[][] calldata proofs
-    ) external;
-
-    /**
-     * @notice Sets the rewards agent address in the RewardsRegistry contract
-     * @param rewardsAgent New rewards agent address
-     * @dev Only callable by the owner
-     */
-    function setRewardsAgent(
-        uint32 operatorSetId,
-        address rewardsAgent
-    ) external;
 }

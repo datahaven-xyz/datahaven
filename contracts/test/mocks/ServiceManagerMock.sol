@@ -10,7 +10,6 @@ import {
 import {
     IAllocationManager
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
 import {ServiceManagerBase} from "../../src/middleware/ServiceManagerBase.sol";
 
@@ -33,17 +32,6 @@ contract ServiceManagerMock is ServiceManagerBase {
         address rewardsInitiator
     ) public virtual initializer {
         __ServiceManagerBase_init(initialOwner, rewardsInitiator);
-    }
-
-    /**
-     * @notice Get the rewards registry for an operator set (exposing for testing)
-     * @param operatorSetId The ID of the operator set
-     * @return The rewards registry for the operator set
-     */
-    function getOperatorSetRewardsRegistry(
-        uint32 operatorSetId
-    ) external view returns (IRewardsRegistry) {
-        return operatorSetToRewardsRegistry[operatorSetId];
     }
 
     /**

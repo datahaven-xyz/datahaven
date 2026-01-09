@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  packages: write   # Required for docker-build-release
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}

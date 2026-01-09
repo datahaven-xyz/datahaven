@@ -1,0 +1,32 @@
+#! Release workflow for DataHaven Repository
+#!
+#! This workflow runs when code is merged to main, publishing Docker images
+#! to Docker Hub. Validation checks are handled by CI.yml on pull requests.
+#!
+#! Since PRs require:
+#!   1. Branch to be up-to-date with main before merging
+#!   2. All CI checks to pass
+#! Re-running validation on main would be redundant.
+
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write   # Required for docker-build-release
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build-release:
+    uses: ./.github/workflows/task-docker-release.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

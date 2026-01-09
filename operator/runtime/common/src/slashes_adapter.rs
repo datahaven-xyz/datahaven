@@ -12,7 +12,6 @@ use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
 use sp_std::vec;
 use sp_std::vec::Vec;
-use frame_system::unique;
 
 use crate::AccountId;
 
@@ -58,7 +57,7 @@ pub struct SlashesSubmissionAdapter<C>(core::marker::PhantomData<C>);
 impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSubmissionAdapter<C> {
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
-    fn build(slashes_utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message> {
+    fn build(slashes_utils: &Vec<SlashData<AccountId>>, era: u32) -> Option<Self::Message> {
         let calldata = encode_slashing_request(slashes_utils);
 
         let command = Command::CallContract {
@@ -69,8 +68,7 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
         };
         let message = OutboundMessage {
             origin: C::slashes_agent_origin(),
-            // TODO: Replace with `H256::from_low_u64_be(slashes_utils.era_index as u64).into()`
-            id: unique(1).into(), 
+            id: H256::from_low_u64_be(era as u64).into(), 
             fee: 0,
             commands: match vec![command].try_into() {
                 Ok(cmds) => cmds,

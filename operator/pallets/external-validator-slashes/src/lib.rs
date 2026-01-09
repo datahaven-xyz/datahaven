@@ -74,7 +74,7 @@ pub trait SendMessage<AccountId> {
     type Message;
     type Ticket;
 
-    fn build(utils: &Vec<SlashData<AccountId>>) -> Option<Self::Message>;
+    fn build(utils: &Vec<SlashData<AccountId>>, era: u32) -> Option<Self::Message>;
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
 
@@ -83,8 +83,6 @@ pub trait SendMessage<AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
-    use sp_core::uint;
-
     use super::*;
     pub use crate::weights::WeightInfo;
 
@@ -583,7 +581,7 @@ impl<T: Config> Pallet<T> {
     /// Returns number of slashes that were sent to ethereum.
     fn process_slashes_queue(amount: u32) -> u32 {
         let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
-        let _era_index = T::EraIndexProvider::active_era().index;
+        let era_index = T::EraIndexProvider::active_era().index;
 
         UnreportedSlashesQueue::<T>::mutate(|queue| {
             for _ in 0..amount {
@@ -594,7 +592,7 @@ impl<T: Config> Pallet<T> {
 
                 slashes_to_send.push(SlashData {
                     validator: slash.validator,
-                    amount_to_slash: 0, // TODO: need to compute how much we slash
+                    amount_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
                 });
             }
         });
@@ -605,7 +603,7 @@ impl<T: Config> Pallet<T> {
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        let outbound = match T::SendMessage::build(&slashes_to_send) {
+        let outbound = match T::SendMessage::build(&slashes_to_send, era_index) {
             Some(send_msg) => send_msg,
             None => {
                 log::error!(target: "ext_validators_rewards", "Failed to build outbound message");

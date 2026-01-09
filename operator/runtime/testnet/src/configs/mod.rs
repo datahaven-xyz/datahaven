@@ -103,7 +103,7 @@ use frame_support::{
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
-use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
+use frame_system::{limits::BlockLength, EnsureRoot, EnsureRootWithSuccess};
 use governance::councils::*;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
@@ -123,7 +123,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter, Message as OutboundMessage, SendMessage as SendMessageV2},
+    v2::{Command, ConstantGasMeter},
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;

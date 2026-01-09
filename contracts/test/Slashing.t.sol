@@ -15,7 +15,7 @@ import "forge-std/Test.sol";
 
 contract SlashingTest is AVSDeployer {
     address operator = address(0xabcd);
-
+    address public snowbridgeAgent = address(uint160(uint256(keccak256("snowbridgeAgent"))));
 
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
@@ -23,10 +23,15 @@ contract SlashingTest is AVSDeployer {
     }
 
     function test_fulfilSlashingRequest() public {
+        // Allow our operatir to register
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(operator);
 
-        cheats.startPrank(operator);
+        // Configure the rewards initiator (because only the reward agent can submit slashing request)
+        vm.prank(avsOwner);
+        serviceManager.setRewardsInitiator(snowbridgeAgent);
+
+        vm.prank(operator);
         delegationManager.registerAsOperator(address(0), 0, "");
 
         uint32[] memory operatorSetIds = new uint32[](1);
@@ -38,6 +43,7 @@ contract SlashingTest is AVSDeployer {
                 data: abi.encodePacked(address(operator))
             });
 
+        vm.prank(operator);
         allocationManager.registerForOperatorSets(operator, registerParams);
 
         DataHavenServiceManager.SlashingRequest[] memory slashings = new DataHavenServiceManager.SlashingRequest[](1);
@@ -61,6 +67,7 @@ contract SlashingTest is AVSDeployer {
         uint256[] memory wadsToSlashed = new uint256[](3);
 
         // We emit the event we expect to see.
+        vm.prank(snowbridgeAgent);
         emit IAllocationManagerEvents.OperatorSlashed(operator, operatorSet, strategies, wadsToSlashed, "Testing slashing");
         serviceManager.slashValidatorsOperator(slashings);
     }

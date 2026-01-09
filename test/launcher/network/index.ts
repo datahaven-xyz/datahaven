@@ -7,8 +7,20 @@ import { launchLocalDataHavenSolochain } from "../datahaven";
 import { getRunningKurtosisEnclaves, launchKurtosisNetwork } from "../kurtosis";
 import { setDataHavenParameters } from "../parameters";
 import { launchRelayers } from "../relayers";
-import type { LaunchNetworkResult, NetworkLaunchOptions } from "../types";
-import { LaunchedNetwork } from "../types/launchedNetwork";
+import {
+  launchBspNode,
+  launchFishermanNode,
+  launchIndexerNode,
+  launchMspNode,
+  launchStorageHubPostgres
+} from "../storagehub-docker";
+import type {
+  DataHavenLaunchResult,
+  LaunchNetworkResult,
+  NetworkLaunchOptions,
+  StorageHubLaunchResult
+} from "../types";
+import { LaunchedNetwork, SuiteType } from "../types";
 import { checkBaseDependencies } from "../utils";
 import { COMPONENTS } from "../utils/constants";
 import { fundValidators, setupValidators } from "../validators";
@@ -73,11 +85,90 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
 };
 
 /**
- * Creates a cleanup function for the test network.
+ * Creates a cleanup function for DataHaven-only networks.
  */
-const createCleanupFunction = (networkId: string) => {
+const createDataHavenCleanupFunction = (networkId: string) => {
   return async () => {
-    logger.info(`🧹 Cleaning up test network: ${networkId}`);
+    logger.info(`🧹 Cleaning up DataHaven network: ${networkId}`);
+
+    try {
+      // Stop DataHaven containers
+      const datahavenContainers = await getContainersMatchingImage(COMPONENTS.datahaven.imageName);
+      const networkDatahaven = datahavenContainers.filter((c) =>
+        c.Names.some((name) => name.includes(networkId))
+      );
+      if (networkDatahaven.length > 0) {
+        logger.info(`🔨 Stopping ${networkDatahaven.length} DataHaven containers...`);
+        for (const container of networkDatahaven) {
+          await $`docker stop ${container.Id}`.nothrow();
+          await $`docker rm ${container.Id}`.nothrow();
+        }
+      }
+
+      // Remove Docker network
+      const dockerNetworkName = `datahaven-${networkId}`;
+      logger.info(`🔨 Removing Docker network: ${dockerNetworkName}`);
+      await $`docker network rm -f ${dockerNetworkName}`.nothrow();
+
+      logger.success(`Cleanup completed for DataHaven network: ${networkId}`);
+    } catch (error) {
+      logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
+    }
+  };
+};
+
+/**
+ * Creates a cleanup function for StorageHub networks.
+ */
+const createStorageHubCleanupFunction = (networkId: string) => {
+  return async () => {
+    logger.info(`🧹 Cleaning up StorageHub network: ${networkId}`);
+
+    try {
+      // Stop StorageHub containers (postgres, msp, bsp, indexer, fisherman)
+      const storagehubContainers = [
+        `storagehub-postgres-${networkId}`,
+        `storagehub-msp-${networkId}`,
+        `storagehub-bsp-${networkId}`,
+        `storagehub-indexer-${networkId}`,
+        `storagehub-fisherman-${networkId}`
+      ];
+      for (const containerName of storagehubContainers) {
+        await $`docker stop ${containerName}`.nothrow();
+        await $`docker rm ${containerName}`.nothrow();
+      }
+
+      // Stop DataHaven containers
+      const datahavenContainers = await getContainersMatchingImage(COMPONENTS.datahaven.imageName);
+      const networkDatahaven = datahavenContainers.filter((c) =>
+        c.Names.some((name) => name.includes(networkId))
+      );
+      if (networkDatahaven.length > 0) {
+        logger.info(`🔨 Stopping ${networkDatahaven.length} DataHaven containers...`);
+        for (const container of networkDatahaven) {
+          await $`docker stop ${container.Id}`.nothrow();
+          await $`docker rm ${container.Id}`.nothrow();
+        }
+      }
+
+      // Remove Docker network
+      const dockerNetworkName = `datahaven-${networkId}`;
+      logger.info(`🔨 Removing Docker network: ${dockerNetworkName}`);
+      await $`docker network rm -f ${dockerNetworkName}`.nothrow();
+
+      logger.success(`Cleanup completed for StorageHub network: ${networkId}`);
+    } catch (error) {
+      logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
+    }
+  };
+};
+
+/**
+ * Creates a cleanup function for full Ethereum networks.
+ */
+const createEthereumCleanupFunction = (networkId: string) => {
+  return async () => {
+    logger.info(`🧹 Cleaning up Ethereum network: ${networkId}`);
 
     try {
       // 1. Stop relayer containers
@@ -116,47 +207,32 @@ const createCleanupFunction = (networkId: string) => {
       logger.info(`🔨 Removing Kurtosis enclave: ${enclaveName}`);
       await $`kurtosis enclave rm ${enclaveName} -f`.nothrow();
 
-      logger.success(`Cleanup completed for network: ${networkId}`);
+      logger.success(`Cleanup completed for Ethereum network: ${networkId}`);
     } catch (error) {
       logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
-      // Continue cleanup, don't throw
     }
   };
 };
 
 /**
- * Launches a complete network stack for E2E testing.
+ * Launches a DataHaven-only network (2 validator nodes).
  *
- * This function orchestrates the launch of all network components:
- * 1. DataHaven blockchain nodes
- * 2. Kurtosis Ethereum network
- * 3. Smart contracts deployment
- * 4. Validator setup
- * 5. Runtime parameter configuration
- * 6. Relayer services
- * 7. Validator set update
+ * This is the base network setup used by all suite types.
  *
  * @param options - Configuration options for the network launch
- * @returns NetworkConnectors with cleanup function
- * @throws {Error} if network ID is not unique or any component fails to launch
+ * @returns DataHavenLaunchResult with cleanup function
  */
-export const launchNetwork = async (
+export const launchDataHavenNetwork = async (
   options: NetworkLaunchOptions
-): Promise<LaunchNetworkResult> => {
+): Promise<DataHavenLaunchResult> => {
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
-  let injectContracts = false;
-
-  // Using env to check
-  if (process.env.INJECT_CONTRACTS === "true") {
-    injectContracts = true;
-  }
 
   let cleanup: (() => Promise<void>) | undefined;
 
   try {
-    logger.info(`🚀 Launching complete network stack with ID: ${networkId}`);
+    logger.info(`🚀 Launching DataHaven network with ID: ${networkId}`);
     const startTime = performance.now();
 
     // Check base dependencies
@@ -166,7 +242,178 @@ export const launchNetwork = async (
     await validateNetworkIdUnique(networkId);
 
     // Create cleanup function
-    cleanup = createCleanupFunction(networkId);
+    cleanup = createDataHavenCleanupFunction(networkId);
+
+    // Launch DataHaven network
+    logger.info("📦 Launching DataHaven validator nodes...");
+    await launchLocalDataHavenSolochain(
+      {
+        networkId,
+        datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
+        relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
+        authorityIds: TEST_AUTHORITY_IDS,
+        buildDatahaven: options.buildDatahaven ?? !isCI,
+        datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
+      },
+      launchedNetwork
+    );
+
+    // Log success
+    const endTime = performance.now();
+    const seconds = ((endTime - startTime) / 1000).toFixed(1);
+    logger.success(`DataHaven network launched successfully in ${seconds} seconds`);
+
+    // Return connectors
+    const aliceContainerName = `datahaven-alice-${networkId}`;
+    const wsPort = launchedNetwork.getContainerPort(aliceContainerName);
+
+    return {
+      launchedNetwork,
+      dataHavenRpcUrl: `http://127.0.0.1:${wsPort}`,
+      cleanup
+    };
+  } catch (error) {
+    logger.error("❌ Failed to launch DataHaven network", error);
+
+    if (cleanup) {
+      logger.info("🧹 Running cleanup due to launch failure...");
+      await cleanup();
+    }
+
+    throw error;
+  }
+};
+
+/**
+ * Launches a StorageHub network (DataHaven + StorageHub components).
+ *
+ * Includes: 2 validator nodes, PostgreSQL, MSP, BSP, Indexer, Fisherman
+ *
+ * @param options - Configuration options for the network launch
+ * @returns StorageHubLaunchResult with cleanup function
+ */
+export const launchStorageHubNetwork = async (
+  options: NetworkLaunchOptions
+): Promise<StorageHubLaunchResult> => {
+  const networkId = options.networkId;
+  const launchedNetwork = new LaunchedNetwork();
+  launchedNetwork.networkName = networkId;
+
+  let cleanup: (() => Promise<void>) | undefined;
+
+  try {
+    logger.info(`🚀 Launching StorageHub network with ID: ${networkId}`);
+    const startTime = performance.now();
+
+    // Check base dependencies
+    await checkBaseDependencies();
+
+    // Validate network ID is unique
+    await validateNetworkIdUnique(networkId);
+
+    // Create cleanup function
+    cleanup = createStorageHubCleanupFunction(networkId);
+
+    const datahavenOptions = {
+      networkId,
+      datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
+      relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
+      authorityIds: TEST_AUTHORITY_IDS,
+      buildDatahaven: options.buildDatahaven ?? !isCI,
+      datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
+    };
+
+    // 1. Launch DataHaven validator nodes
+    logger.info("📦 Launching DataHaven validator nodes...");
+    await launchLocalDataHavenSolochain(datahavenOptions, launchedNetwork);
+
+    // 2. Launch PostgreSQL database
+    logger.info("🗄️ Launching StorageHub PostgreSQL...");
+    await launchStorageHubPostgres(datahavenOptions, launchedNetwork);
+
+    // 3. Launch MSP node
+    logger.info("📦 Launching MSP node...");
+    await launchMspNode(datahavenOptions, launchedNetwork);
+
+    // 4. Launch BSP node
+    logger.info("📦 Launching BSP node...");
+    await launchBspNode(datahavenOptions, launchedNetwork);
+
+    // 5. Launch Indexer node
+    logger.info("📦 Launching Indexer node...");
+    await launchIndexerNode(datahavenOptions, launchedNetwork);
+
+    // 6. Launch Fisherman node
+    logger.info("📦 Launching Fisherman node...");
+    await launchFishermanNode(datahavenOptions, launchedNetwork);
+
+    // Log success
+    const endTime = performance.now();
+    const minutes = ((endTime - startTime) / (1000 * 60)).toFixed(1);
+    logger.success(`StorageHub network launched successfully in ${minutes} minutes`);
+
+    // Get container ports
+    const aliceContainerName = `datahaven-alice-${networkId}`;
+    const mspContainerName = `storagehub-msp-${networkId}`;
+    const bspContainerName = `storagehub-bsp-${networkId}`;
+    const indexerContainerName = `storagehub-indexer-${networkId}`;
+    const postgresContainerName = `storagehub-postgres-${networkId}`;
+
+    return {
+      launchedNetwork,
+      dataHavenRpcUrl: `http://127.0.0.1:${launchedNetwork.getContainerPort(aliceContainerName)}`,
+      mspRpcUrl: `http://127.0.0.1:${launchedNetwork.getContainerPort(mspContainerName, "ws")}`,
+      bspRpcUrl: `http://127.0.0.1:${launchedNetwork.getContainerPort(bspContainerName, "ws")}`,
+      indexerRpcUrl: `http://127.0.0.1:${launchedNetwork.getContainerPort(indexerContainerName, "ws")}`,
+      postgresUrl: `postgresql://indexer:indexer@127.0.0.1:${launchedNetwork.getContainerPort(postgresContainerName, "postgres")}/datahaven`,
+      cleanup
+    };
+  } catch (error) {
+    logger.error("❌ Failed to launch StorageHub network", error);
+
+    if (cleanup) {
+      logger.info("🧹 Running cleanup due to launch failure...");
+      await cleanup();
+    }
+
+    throw error;
+  }
+};
+
+/**
+ * Launches a full Ethereum network (DataHaven + Ethereum + contracts + relayers).
+ *
+ * This is the original full network setup for cross-chain testing.
+ *
+ * @param options - Configuration options for the network launch
+ * @returns LaunchNetworkResult with cleanup function
+ */
+export const launchEthereumNetwork = async (
+  options: NetworkLaunchOptions
+): Promise<LaunchNetworkResult> => {
+  const networkId = options.networkId;
+  const launchedNetwork = new LaunchedNetwork();
+  launchedNetwork.networkName = networkId;
+  let injectContracts = false;
+
+  if (process.env.INJECT_CONTRACTS === "true") {
+    injectContracts = true;
+  }
+
+  let cleanup: (() => Promise<void>) | undefined;
+
+  try {
+    logger.info(`🚀 Launching Ethereum network stack with ID: ${networkId}`);
+    const startTime = performance.now();
+
+    // Check base dependencies
+    await checkBaseDependencies();
+
+    // Validate network ID is unique
+    await validateNetworkIdUnique(networkId);
+
+    // Create cleanup function
+    cleanup = createEthereumCleanupFunction(networkId);
 
     // Create parameter collection for use throughout the launch
     const parameterCollection = new ParameterCollection();
@@ -179,7 +426,7 @@ export const launchNetwork = async (
         datahavenImageTag: options.datahavenImageTag || "datahavenxyz/datahaven:local",
         relayerImageTag: options.relayerImageTag || "datahavenxyz/snowbridge-relay:latest",
         authorityIds: TEST_AUTHORITY_IDS,
-        buildDatahaven: options.buildDatahaven ?? !isCI, // if not specified, default to false for CI, true for local testing
+        buildDatahaven: options.buildDatahaven ?? !isCI,
         datahavenBuildExtraArgs: options.datahavenBuildExtraArgs || "--features=fast-runtime"
       },
       launchedNetwork
@@ -235,7 +482,6 @@ export const launchNetwork = async (
     });
 
     if (injectContracts) {
-      // We are injecting contracts but we still need the addresses
       await updateParameters(parameterCollection);
     }
 
@@ -264,7 +510,7 @@ export const launchNetwork = async (
     // Log success
     const endTime = performance.now();
     const minutes = ((endTime - startTime) / (1000 * 60)).toFixed(1);
-    logger.success(`Network launched successfully in ${minutes} minutes`);
+    logger.success(`Ethereum network launched successfully in ${minutes} minutes`);
 
     // Validate required endpoints
     if (!launchedNetwork.clEndpoint) {
@@ -274,8 +520,8 @@ export const launchNetwork = async (
     // Return connectors
     const aliceContainerName = `datahaven-alice-${networkId}`;
     const wsPort = launchedNetwork.getContainerPort(aliceContainerName);
-    // Use the WebSocket URL from LaunchedNetwork (set by registerServices from Kurtosis)
     const ethereumWsUrl = launchedNetwork.elWsUrl;
+
     return {
       launchedNetwork,
       dataHavenRpcUrl: `http://127.0.0.1:${wsPort}`,
@@ -285,15 +531,38 @@ export const launchNetwork = async (
       cleanup
     };
   } catch (error) {
-    logger.error("❌ Failed to launch network", error);
+    logger.error("❌ Failed to launch Ethereum network", error);
 
-    // Run cleanup if we created it
     if (cleanup) {
       logger.info("🧹 Running cleanup due to launch failure...");
       await cleanup();
     }
 
     throw error;
+  }
+};
+
+/**
+ * Launches a network based on the specified suite type.
+ *
+ * This is the main entry point that dispatches to the appropriate launcher.
+ *
+ * @param options - Configuration options including suiteType
+ * @returns The appropriate launch result based on suite type
+ */
+export const launchNetwork = async (
+  options: NetworkLaunchOptions
+): Promise<LaunchNetworkResult | StorageHubLaunchResult | DataHavenLaunchResult> => {
+  const suiteType = options.suiteType ?? SuiteType.ETHEREUM;
+
+  switch (suiteType) {
+    case SuiteType.DATAHAVEN:
+      return launchDataHavenNetwork(options);
+    case SuiteType.STORAGEHUB:
+      return launchStorageHubNetwork(options);
+    case SuiteType.ETHEREUM:
+    default:
+      return launchEthereumNetwork(options);
   }
 };
 

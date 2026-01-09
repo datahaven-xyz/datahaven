@@ -6,11 +6,11 @@
   "environments": [
     {
       "name": "dev_datahaven",
-      "testFileDir": ["datahaven/suites/dev"],
+      "testFileDir": ["moonwall/suites/dev"],
       "include": ["**/*test*.ts"],
       "timeout": 180000,
       "multiThreads": false,
-      "contracts": "datahaven/contracts/",
+      "contracts": "moonwall/contracts/",
       "runScripts": ["compile-contracts.sh compile"],
       "envVars": ["DEBUG_COLORS=1"],
       "reporters": ["basic", "html", "json"],

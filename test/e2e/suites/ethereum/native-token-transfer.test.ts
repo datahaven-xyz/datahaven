@@ -26,9 +26,9 @@ import {
   ZERO_ADDRESS
 } from "utils";
 import { decodeEventLog, encodeAbiParameters, erc20Abi, parseEther, parseEventLogs } from "viem";
-import { gatewayAbi } from "../contract-bindings";
-import { BaseTestSuite } from "../framework";
-import type { TestConnectors } from "../framework/connectors";
+import { gatewayAbi } from "../../../contract-bindings";
+import { BaseTestSuite } from "../../framework";
+import type { TestConnectors } from "../../framework/connectors";
 
 // Dynamic values fetched from runtime
 let ethereumSovereignAccount: string;
@@ -134,7 +134,7 @@ describe("Native Token Transfer", () => {
     alithSigner = getPapiSigner("ALITH");
     deployments = await parseDeploymentsFile();
 
-    const connectors = suite.getTestConnectors();
+    const connectors = suite.getEthereumTestConnectors();
     ethereumSovereignAccount = await (
       connectors.dhApi.constants as any
     ).DataHavenNativeTransfer.EthereumSovereignAccount();
@@ -144,7 +144,7 @@ describe("Native Token Transfer", () => {
   it(
     "should register DataHaven native token on Ethereum",
     async () => {
-      const connectors = suite.getTestConnectors();
+      const connectors = suite.getEthereumTestConnectors();
 
       // Ensure token is not already deployed (nativeTokenId is null until registered)
       expect(await getNativeERC20Address(connectors)).toBeNull();
@@ -233,7 +233,7 @@ describe("Native Token Transfer", () => {
   it(
     "should transfer tokens from DataHaven to Ethereum",
     async () => {
-      const connectors = suite.getTestConnectors();
+      const connectors = suite.getEthereumTestConnectors();
 
       const erc20Address = await requireNativeERC20Address(connectors);
 
@@ -320,7 +320,7 @@ describe("Native Token Transfer", () => {
   it(
     "should transfer tokens from Ethereum to DataHaven",
     async () => {
-      const connectors = suite.getTestConnectors();
+      const connectors = suite.getEthereumTestConnectors();
 
       const erc20Address = await requireNativeERC20Address(connectors);
       const ethWalletClient = connectors.walletClient;

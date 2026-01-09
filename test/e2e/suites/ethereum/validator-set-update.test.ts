@@ -11,21 +11,24 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { getOwnerAccount } from "launcher/validators";
 import {
-  addValidatorToAllowlist,
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
-  getValidator,
-  isValidatorRunning,
-  launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
-  registerOperator,
   ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { decodeEventLog, parseEther } from "viem";
-import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
-import { BaseTestSuite, type TestConnectors } from "../framework";
+import { dataHavenServiceManagerAbi, gatewayAbi } from "../../../contract-bindings";
+import {
+  addValidatorToAllowlist,
+  BaseTestSuite,
+  getValidator,
+  isValidatorRunning,
+  launchDatahavenValidator,
+  registerOperator,
+  type TestConnectors
+} from "../../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
@@ -63,7 +66,7 @@ describe("Validator Set Update", () => {
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
-    connectors = suite.getTestConnectors();
+    connectors = suite.getEthereumTestConnectors();
   });
 
   it("should verify test environment", async () => {

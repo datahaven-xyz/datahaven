@@ -51,19 +51,24 @@
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
-use crate::pallet_babe;
-
 /// Weights for `pallet_babe`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_babe::WeightInfo for WeightInfo<T> {
 	/// The range of component `x` is `[0, 1]`.
-	fn check_equivocation_proof(x: u32, ) -> Weight {
+	fn plan_config_change() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 88_969_000 picoseconds.
-		Weight::from_parts(89_694_808, 0)
-			// Standard Error: 48_341
-			.saturating_add(Weight::from_parts(21_391, 0).saturating_mul(x.into()))
+		// Minimum execution time: 88_988_000 picoseconds.
+		Weight::from_parts(89_676_965, 0)
+	}
+
+	/// The range of component `x` is `[0, 1]`.
+	fn report_equivocation(_prev: u32, _equivocations: u32) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 88_988_000 picoseconds.
+		Weight::from_parts(89_676_965, 0)
 	}
 }

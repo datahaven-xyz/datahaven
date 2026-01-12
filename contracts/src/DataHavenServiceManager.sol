@@ -60,9 +60,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @notice The address authorized to initiate rewards submissions
     address public rewardsInitiator;
 
-    /// @notice Storage gap for upgradeability
-    uint256[49] private __GAP;
-
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
@@ -71,6 +68,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
+
+    /// @notice Storage gap for upgradeability (must be at end of state variables)
+    // solhint-disable-next-line var-name-mixedcase
+    uint256[46] private __GAP;
 
     // ============ Modifiers ============
 

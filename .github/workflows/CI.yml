@@ -1,4 +1,7 @@
 #! Main CI Specification for DataHaven Repository
+#!
+#! This workflow runs validation checks on pull requests.
+#! For main branch releases, see release.yml
 
 name: CI
 
@@ -6,7 +9,6 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - perm-*
   pull_request:
     branches: [main]
@@ -59,13 +61,6 @@ jobs:
     # Note: GITHUB_TOKEN is automatically available to reusable workflows
     with:
       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
-
-  docker-build-release:
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/task-docker-release.yml
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   moonwall-tests:
     needs: [build-operator]

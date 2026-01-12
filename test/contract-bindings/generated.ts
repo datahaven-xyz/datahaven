@@ -2033,11 +2033,6 @@ export const dataHavenServiceManagerAbi = [
         type: 'address',
       },
       {
-        name: '__permissionController',
-        internalType: 'contract IPermissionController',
-        type: 'address',
-      },
-      {
         name: '__allocationManager',
         internalType: 'contract IAllocationManager',
         type: 'address',
@@ -2058,13 +2053,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'VALIDATORS_SET_ID',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'admin', internalType: 'address', type: 'address' }],
-    name: 'addPendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2155,33 +2143,6 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'admin', internalType: 'address', type: 'address' }],
-    name: 'removeAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'appointee', internalType: 'address', type: 'address' },
-      { name: 'target', internalType: 'address', type: 'address' },
-      { name: 'selector', internalType: 'bytes4', type: 'bytes4' },
-    ],
-    name: 'removeAppointee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'pendingAdmin', internalType: 'address', type: 'address' },
-    ],
-    name: 'removePendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [
       {
         name: '_strategies',
@@ -2223,17 +2184,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'sendNewValidatorSet',
     outputs: [],
     stateMutability: 'payable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'appointee', internalType: 'address', type: 'address' },
-      { name: 'target', internalType: 'address', type: 'address' },
-      { name: 'selector', internalType: 'bytes4', type: 'bytes4' },
-    ],
-    name: 'setAppointee',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -10735,15 +10685,6 @@ export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
 })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
- */
-export const writeDataHavenServiceManagerAddPendingAdmin =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addPendingAdmin',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToValidatorsSupportedStrategies"`
  */
 export const writeDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
@@ -10798,33 +10739,6 @@ export const writeDataHavenServiceManagerRegisterOperator =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAdmin"`
- */
-export const writeDataHavenServiceManagerRemoveAdmin =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAppointee"`
- */
-export const writeDataHavenServiceManagerRemoveAppointee =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAppointee',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
- */
-export const writeDataHavenServiceManagerRemovePendingAdmin =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removePendingAdmin',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromValidatorsSupportedStrategies"`
  */
 export const writeDataHavenServiceManagerRemoveStrategiesFromValidatorsSupportedStrategies =
@@ -10858,15 +10772,6 @@ export const writeDataHavenServiceManagerSendNewValidatorSet =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'sendNewValidatorSet',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setAppointee"`
- */
-export const writeDataHavenServiceManagerSetAppointee =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setAppointee',
   })
 
 /**
@@ -10930,15 +10835,6 @@ export const simulateDataHavenServiceManager =
   /*#__PURE__*/ createSimulateContract({ abi: dataHavenServiceManagerAbi })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
- */
-export const simulateDataHavenServiceManagerAddPendingAdmin =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addPendingAdmin',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToValidatorsSupportedStrategies"`
  */
 export const simulateDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
@@ -10993,33 +10889,6 @@ export const simulateDataHavenServiceManagerRegisterOperator =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAdmin"`
- */
-export const simulateDataHavenServiceManagerRemoveAdmin =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAppointee"`
- */
-export const simulateDataHavenServiceManagerRemoveAppointee =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAppointee',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
- */
-export const simulateDataHavenServiceManagerRemovePendingAdmin =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removePendingAdmin',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromValidatorsSupportedStrategies"`
  */
 export const simulateDataHavenServiceManagerRemoveStrategiesFromValidatorsSupportedStrategies =
@@ -11053,15 +10922,6 @@ export const simulateDataHavenServiceManagerSendNewValidatorSet =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'sendNewValidatorSet',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setAppointee"`
- */
-export const simulateDataHavenServiceManagerSetAppointee =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setAppointee',
   })
 
 /**

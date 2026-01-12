@@ -408,6 +408,13 @@ pub mod dynamic_params {
         /// Rewards duration in seconds.
         pub static RewardsDuration: u32 = 86400;
 
+        #[codec(index = 45)]
+        #[allow(non_upper_case_globals)]
+        /// Strategy addresses and their multipliers for EigenLayer rewards (max 10).
+        /// Each entry is (strategy_address, multiplier).
+        pub static RewardsStrategiesAndMultipliers: BoundedVec<(H160, u128), ConstU32<10>> =
+            BoundedVec::truncate_from(vec![]);
+
         // ╚══════════════════════ EigenLayer Rewards V2 ═══════════════════════╝
     }
 }

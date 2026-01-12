@@ -6,6 +6,9 @@ import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy
 import {
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
+import {
+    IAllocationManager
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 /**
  * @title DataHaven Service Manager Errors Interface
@@ -24,6 +27,10 @@ interface IDataHavenServiceManagerErrors {
     error OperatorNotInAllowlist();
     /// @notice Thrown when the caller is not a Validator in the Validators operator set
     error CallerIsNotValidator();
+    /// @notice Thrown when a function is called by an address that is not the RewardsInitiator
+    error OnlyRewardsInitiator();
+    /// @notice Thrown when the operator is not part of the specified operator set
+    error OperatorNotInOperatorSet();
 }
 
 /**
@@ -203,5 +210,96 @@ interface IDataHavenServiceManager is
      */
     function setRewardsInitiator(
         address initiator
+    ) external;
+
+    // ============ AVS Management Functions ============
+
+    /**
+     * @notice Updates the metadata URI for the AVS
+     * @param _metadataURI is the metadata URI for the AVS
+     * @dev Only callable by the owner
+     */
+    function updateAVSMetadataURI(
+        string memory _metadataURI
+    ) external;
+
+    /**
+     * @notice Deregisters an operator from specified operator sets
+     * @param operator The address of the operator to deregister
+     * @param operatorSetIds The IDs of the operator sets to deregister from
+     */
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] memory operatorSetIds
+    ) external;
+
+    /**
+     * @notice Returns the address of the AVS
+     * @return The address of the AVS
+     */
+    function avs() external view returns (address);
+
+    /**
+     * @notice Creates new operator sets in the AllocationManager
+     * @param params The parameters for creating operator sets
+     * @dev Only callable by the owner
+     */
+    function createOperatorSets(
+        IAllocationManager.CreateSetParams[] calldata params
+    ) external;
+
+    // ============ PermissionController Proxy Functions ============
+
+    /**
+     * @notice Calls `addPendingAdmin` on the `PermissionController` contract
+     * @dev Only callable by the owner
+     * @param admin The address of the admin to add
+     */
+    function addPendingAdmin(
+        address admin
+    ) external;
+
+    /**
+     * @notice Calls `removePendingAdmin` on the `PermissionController` contract
+     * @dev Only callable by the owner
+     * @param pendingAdmin The address of the pending admin to remove
+     */
+    function removePendingAdmin(
+        address pendingAdmin
+    ) external;
+
+    /**
+     * @notice Calls `removeAdmin` on the `PermissionController` contract
+     * @dev Only callable by the owner
+     * @param admin The address of the admin to remove
+     */
+    function removeAdmin(
+        address admin
+    ) external;
+
+    /**
+     * @notice Calls `setAppointee` on the `PermissionController` contract
+     * @dev Only callable by the owner
+     * @param appointee The address of the appointee to set
+     * @param target The address of the target to set the appointee for
+     * @param selector The function selector to set the appointee for
+     */
+    function setAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
+    ) external;
+
+    /**
+     * @notice Calls `removeAppointee` on the `PermissionController` contract
+     * @dev Only callable by the owner
+     * @param appointee The address of the appointee to remove
+     * @param target The address of the target to remove the appointee for
+     * @param selector The function selector to remove the appointee for
+     */
+    function removeAppointee(
+        address appointee,
+        address target,
+        bytes4 selector
     ) external;
 }

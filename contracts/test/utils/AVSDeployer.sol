@@ -29,7 +29,6 @@ import {EigenPodManagerMock} from "eigenlayer-contracts/src/test/mocks/EigenPodM
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
 import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
-import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";

@@ -139,11 +139,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external payable onlyOwner {
         bytes memory message = buildNewValidatorSetMessage();
         _snowbridgeGateway.v2_sendMessage{value: msg.value}(
-            message,
-            new bytes[](0),
-            bytes(""),
-            executionFee,
-            relayerFee
+            message, new bytes[](0), bytes(""), executionFee, relayerFee
         );
     }
 
@@ -331,25 +327,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     function deregisterOperatorFromOperatorSets(
         address operator,
-        uint32[] memory operatorSetIds
-    ) external {
+        uint32[] calldata operatorSetIds
+    ) external onlyOwner {
         IAllocationManagerTypes.DeregisterParams memory params =
             IAllocationManagerTypes.DeregisterParams({
                 operator: operator, avs: address(this), operatorSetIds: operatorSetIds
             });
         _allocationManager.deregisterFromOperatorSets(params);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function avs() external view returns (address) {
-        return address(this);
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function createOperatorSets(
-        IAllocationManager.CreateSetParams[] calldata params
-    ) external onlyOwner {
-        _allocationManager.createOperatorSets(address(this), params);
     }
 
     // ============ PermissionController Proxy Functions ============

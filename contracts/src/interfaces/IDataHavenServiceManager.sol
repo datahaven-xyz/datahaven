@@ -6,9 +6,6 @@ import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy
 import {
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {
-    IAllocationManager
-} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 
 /**
  * @title DataHaven Service Manager Errors Interface
@@ -29,8 +26,6 @@ interface IDataHavenServiceManagerErrors {
     error CallerIsNotValidator();
     /// @notice Thrown when a function is called by an address that is not the RewardsInitiator
     error OnlyRewardsInitiator();
-    /// @notice Thrown when the operator is not part of the specified operator set
-    error OperatorNotInOperatorSet();
 }
 
 /**
@@ -224,28 +219,14 @@ interface IDataHavenServiceManager is
     ) external;
 
     /**
-     * @notice Deregisters an operator from specified operator sets
+     * @notice Force-deregisters an operator from specified operator sets
      * @param operator The address of the operator to deregister
      * @param operatorSetIds The IDs of the operator sets to deregister from
+     * @dev Only callable by the owner. Use for removing misbehaving operators.
      */
     function deregisterOperatorFromOperatorSets(
         address operator,
-        uint32[] memory operatorSetIds
-    ) external;
-
-    /**
-     * @notice Returns the address of the AVS
-     * @return The address of the AVS
-     */
-    function avs() external view returns (address);
-
-    /**
-     * @notice Creates new operator sets in the AllocationManager
-     * @param params The parameters for creating operator sets
-     * @dev Only callable by the owner
-     */
-    function createOperatorSets(
-        IAllocationManager.CreateSetParams[] calldata params
+        uint32[] calldata operatorSetIds
     ) external;
 
     // ============ PermissionController Proxy Functions ============

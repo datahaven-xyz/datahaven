@@ -19,7 +19,6 @@ contract SlashingTest is AVSDeployer {
 
     function setUp() public virtual {
         _deployMockEigenLayerAndAVS();
-
     }
 
     function test_fulfilSlashingRequest() public {
@@ -46,30 +45,33 @@ contract SlashingTest is AVSDeployer {
         vm.prank(operator);
         allocationManager.registerForOperatorSets(operator, registerParams);
 
-        DataHavenServiceManager.SlashingRequest[] memory slashings = new DataHavenServiceManager.SlashingRequest[](1);
-        uint256[] memory wadsToSlash = new uint256[](3); // 3 wadsToSlash because we have register 3 strategies for the Validator set 
+        DataHavenServiceManager.SlashingRequest[] memory slashings =
+            new DataHavenServiceManager.SlashingRequest[](1);
+        uint256[] memory wadsToSlash = new uint256[](3); // 3 wadsToSlash because we have register 3 strategies for the Validator set
         wadsToSlash[0] = 1e16;
         wadsToSlash[1] = 1e16;
         wadsToSlash[2] = 1e16;
 
-        slashings[0] = DataHavenServiceManager.SlashingRequest(operator, wadsToSlash, "Testing slashing");
+        slashings[0] =
+            DataHavenServiceManager.SlashingRequest(operator, wadsToSlash, "Testing slashing");
 
         console.log(block.number);
         vm.roll(block.number + uint32(7 days) + 1);
         console.log(block.number);
         vm.expectEmit();
 
-        OperatorSet memory operatorSet = OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        OperatorSet memory operatorSet =
+            OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
         IStrategy[] memory strategies = allocationManager.getStrategiesInOperatorSet(operatorSet);
-
 
         // Because the current magnituse for the allocation is 0
         uint256[] memory wadsToSlashed = new uint256[](3);
 
         // We emit the event we expect to see.
         vm.prank(snowbridgeAgent);
-        emit IAllocationManagerEvents.OperatorSlashed(operator, operatorSet, strategies, wadsToSlashed, "Testing slashing");
+        emit IAllocationManagerEvents.OperatorSlashed(
+            operator, operatorSet, strategies, wadsToSlashed, "Testing slashing"
+        );
         serviceManager.slashValidatorsOperator(slashings);
     }
-
 }

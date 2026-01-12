@@ -308,18 +308,21 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
      * @notice Slash the operators of the validators set
      * @dev This function should be called during initialisation to set up the required operator set.
      */
-    function slashValidatorsOperator(SlashingRequest[] calldata slashings) external onlyRewardsInitiator {
+    function slashValidatorsOperator(
+        SlashingRequest[] calldata slashings
+    ) external onlyRewardsInitiator {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
 
-        for(uint i=0; i<slashings.length; i++){    
-            IAllocationManagerTypes.SlashingParams memory slashingParams = IAllocationManagerTypes.SlashingParams({
-                operator: slashings[i].operator,
-                operatorSetId: VALIDATORS_SET_ID,
-                strategies: strategies,
-                wadsToSlash: slashings[i].wadsToSlash,
-                description: slashings[i].description
-            });
+        for (uint256 i = 0; i < slashings.length; i++) {
+            IAllocationManagerTypes.SlashingParams memory slashingParams =
+                IAllocationManagerTypes.SlashingParams({
+                    operator: slashings[i].operator,
+                    operatorSetId: VALIDATORS_SET_ID,
+                    strategies: strategies,
+                    wadsToSlash: slashings[i].wadsToSlash,
+                    description: slashings[i].description
+                });
 
             _allocationManager.slashOperator(address(this), slashingParams);
         }

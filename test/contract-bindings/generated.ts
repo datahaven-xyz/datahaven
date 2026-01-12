@@ -2675,28 +2675,6 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
-<<<<<<< HEAD
-=======
-        name: 'operatorSetId',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: true,
-      },
-      {
-        name: 'rewardsRegistry',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'RewardsRegistrySet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
->>>>>>> 32b293f2 (is encoding failing ?)
         name: 'totalAmount',
         internalType: 'uint256',
         type: 'uint256',

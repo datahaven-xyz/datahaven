@@ -16,9 +16,9 @@ test/
 │   │   ├── connectors.ts   # Typed connectors per suite type
 │   │   └── manager.ts      # Test environment manager
 │   └── suites/             # Test files grouped by type
-│       ├── datahaven/      # DataHaven-only tests (no Ethereum)
-│       ├── storagehub/     # StorageHub integration tests
-│       └── ethereum/       # Full cross-chain tests
+│       ├── chain/          # Chain-only tests (no Ethereum)
+│       ├── storage/        # StorageHub integration tests
+│       └── crosschain/     # Full cross-chain tests
 ├── moonwall/               # Moonwall single-node tests
 ├── launcher/               # Network orchestration code
 │   ├── network/            # Modular launch functions
@@ -35,9 +35,9 @@ The framework supports three suite types that determine which components are lau
 
 | Suite Type | Components | Use Case |
 |------------|------------|----------|
-| `DATAHAVEN` | 2 validator nodes | Multi-node consensus, P2P, validator tests |
-| `STORAGEHUB` | 2 validators + MSP/BSP/Indexer | StorageHub integration tests |
-| `ETHEREUM` | 2 validators + Ethereum + relayers | Cross-chain messaging tests |
+| `CHAIN` | 2 validator nodes | Multi-node consensus, P2P, validator tests |
+| `STORAGE` | Chain + MSP/BSP/Indexer | StorageHub integration tests |
+| `CROSSCHAIN` | Chain + Ethereum + relayers | Cross-chain messaging tests |
 
 ### Test Isolation
 
@@ -87,45 +87,45 @@ The `launchNetwork` function orchestrates the following steps:
 ```typescript
 import { BaseTestSuite, SuiteType } from "../../framework";
 
-// DataHaven-only test (no Ethereum network)
-class DataHavenTestSuite extends BaseTestSuite {
+// Chain-only test (no Ethereum network)
+class ChainTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "my-datahaven-test",
-      suiteType: SuiteType.DATAHAVEN,  // Only launches validator nodes
+      suiteName: "my-chain-test",
+      suiteType: SuiteType.CHAIN,  // Only launches validator nodes
       networkOptions: { slotTime: 1 }
     });
     this.setupHooks();
   }
 }
 
-const suite = new DataHavenTestSuite();
+const suite = new ChainTestSuite();
 
-describe("DataHaven Tests", () => {
+describe("Chain Tests", () => {
   test("should query chain", async () => {
-    const connectors = suite.getDataHavenTestConnectors();
+    const connectors = suite.getChainTestConnectors();
     // Use connectors.dhApi, papiClient, dhRpcUrl
   });
 });
 ```
 
 ```typescript
-// Full Ethereum cross-chain test
-class EthereumTestSuite extends BaseTestSuite {
+// Full CrossChain test
+class CrossChainTestSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "my-ethereum-test",
-      suiteType: SuiteType.ETHEREUM,  // Default - full setup
+      suiteName: "my-crosschain-test",
+      suiteType: SuiteType.CROSSCHAIN,  // Default - full setup
     });
     this.setupHooks();
   }
 }
 
-const suite = new EthereumTestSuite();
+const suite = new CrossChainTestSuite();
 
 describe("Cross-Chain Tests", () => {
   test("should interact with Ethereum", async () => {
-    const connectors = suite.getEthereumTestConnectors();
+    const connectors = suite.getCrossChainTestConnectors();
     // Use connectors.publicClient, walletClient, dhApi, papiClient
   });
 });
@@ -133,19 +133,19 @@ describe("Cross-Chain Tests", () => {
 
 ### Available Connectors by Suite Type
 
-**DataHaven Connectors** (`getDataHavenTestConnectors()`):
+**Chain Connectors** (`getChainTestConnectors()`):
 - `dhApi`: DataHaven Substrate API
 - `papiClient`: Polkadot-API client
 - `dhRpcUrl`: DataHaven RPC URL
 
-**StorageHub Connectors** (`getStorageHubTestConnectors()`):
-- All DataHaven connectors, plus:
+**Storage Connectors** (`getStorageTestConnectors()`):
+- All Chain connectors, plus:
 - `mspRpcUrl`: MSP node RPC URL
 - `bspRpcUrl`: BSP node RPC URL
 - `indexerRpcUrl`: Indexer node RPC URL
 
-**Ethereum Connectors** (`getEthereumTestConnectors()`):
-- All DataHaven connectors, plus:
+**CrossChain Connectors** (`getCrossChainTestConnectors()`):
+- All Chain connectors, plus:
 - `publicClient`: Viem public client for Ethereum reads
 - `walletClient`: Viem wallet client for transactions
 - `elRpcUrl`: Ethereum RPC URL
@@ -179,15 +179,15 @@ bun cli
 bun test:e2e
 
 # Run specific suite types (can run in parallel on CI)
-bun test:e2e:datahaven    # DataHaven-only tests
-bun test:e2e:storagehub   # StorageHub integration tests
-bun test:e2e:ethereum     # Full cross-chain tests
+bun test:e2e:chain        # Chain-only tests
+bun test:e2e:storage      # StorageHub integration tests
+bun test:e2e:crosschain   # Full cross-chain tests
 
 # Run tests with concurrency limit
 bun test:e2e:parallel
 
 # Run specific test file
-bun test e2e/suites/ethereum/native-token-transfer.test.ts
+bun test e2e/suites/crosschain/native-token-transfer.test.ts
 
 # Run Moonwall tests
 bun moonwall:test
@@ -235,10 +235,10 @@ NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the c
 
 1. Always extend `BaseTestSuite` for proper lifecycle management
 2. Choose the appropriate `SuiteType` to minimize test setup time:
-   - Use `DATAHAVEN` for tests that don't need Ethereum
-   - Use `STORAGEHUB` for StorageHub integration tests
-   - Use `ETHEREUM` only when cross-chain testing is required
-3. Use typed connector accessors (`getEthereumTestConnectors()`, etc.)
+   - Use `CHAIN` for tests that don't need Ethereum
+   - Use `STORAGE` for StorageHub integration tests
+   - Use `CROSSCHAIN` only when cross-chain testing is required
+3. Use typed connector accessors (`getCrossChainTestConnectors()`, etc.)
 4. Use unique suite names to avoid conflicts
 5. Keep tests isolated and independent
 6. Clean up resources in test teardown

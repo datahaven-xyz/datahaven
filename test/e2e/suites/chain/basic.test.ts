@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { BaseTestSuite, SuiteType } from "../../framework";
 
 /**
- * DataHaven Basic Test Suite
+ * Chain Basic Test Suite
  *
- * This is a placeholder test suite for DataHaven-only E2E tests.
+ * This is a placeholder test suite for Chain-only E2E tests.
  * It launches 2 validator nodes (alice, bob) without Ethereum network or relayers.
  *
  * Use this suite type for tests that:
@@ -13,11 +13,11 @@ import { BaseTestSuite, SuiteType } from "../../framework";
  * - Test P2P networking
  * - Test Substrate-specific functionality that requires multiple nodes
  */
-class DataHavenBasicSuite extends BaseTestSuite {
+class ChainBasicSuite extends BaseTestSuite {
   constructor() {
     super({
-      suiteName: "datahaven-basic",
-      suiteType: SuiteType.DATAHAVEN,
+      suiteName: "chain-basic",
+      suiteType: SuiteType.CHAIN,
       networkOptions: {
         slotTime: 1
       }
@@ -27,24 +27,24 @@ class DataHavenBasicSuite extends BaseTestSuite {
   }
 }
 
-const suite = new DataHavenBasicSuite();
+const suite = new ChainBasicSuite();
 
-describe("DataHaven Basic", () => {
-  it("should connect to DataHaven network", async () => {
-    const connectors = suite.getDataHavenTestConnectors();
+describe("Chain Basic", () => {
+  it("should connect to Chain network", async () => {
+    const connectors = suite.getChainTestConnectors();
     expect(connectors.dhRpcUrl).toBeDefined();
     expect(connectors.dhApi).toBeDefined();
   });
 
   it("should query chain info", async () => {
-    const connectors = suite.getDataHavenTestConnectors();
+    const connectors = suite.getChainTestConnectors();
     const chainSpec = await connectors.dhApi.constants.System.Version();
     expect(chainSpec).toBeDefined();
     expect(chainSpec.spec_name).toBe("datahaven-stagenet");
   });
 
   it("should get current block number", async () => {
-    const connectors = suite.getDataHavenTestConnectors();
+    const connectors = suite.getChainTestConnectors();
     const header = await connectors.papiClient.getBlockHeader();
     expect(header.number).toBeGreaterThanOrEqual(0);
   });

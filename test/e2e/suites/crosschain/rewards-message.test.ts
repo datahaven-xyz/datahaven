@@ -28,7 +28,7 @@ describe("Rewards Message Flow", () => {
   let newRootIndex!: bigint;
 
   beforeAll(async () => {
-    const connectors = suite.getEthereumTestConnectors();
+    const connectors = suite.getCrossChainTestConnectors();
     publicClient = connectors.publicClient;
     dhApi = connectors.dhApi;
 
@@ -120,7 +120,7 @@ describe("Rewards Message Flow", () => {
 
   it("should successfully claim rewards for validator", async () => {
     // Fund RewardsRegistry for reward payouts
-    const { walletClient: fundingWallet } = suite.getEthereumTestConnectors();
+    const { walletClient: fundingWallet } = suite.getCrossChainTestConnectors();
     const fundingTx = await fundingWallet.sendTransaction({
       to: rewardsRegistry.address as Address,
       value: totalPoints,

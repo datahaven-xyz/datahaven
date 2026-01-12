@@ -27,7 +27,7 @@ import {
   isValidatorRunning,
   launchDatahavenValidator,
   registerOperator,
-  type TestConnectors
+  type CrossChainTestConnectors
 } from "../../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
@@ -58,7 +58,7 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
 // Create the test suite instance
 const suite = new ValidatorSetUpdateTestSuite();
 let deployments: Deployments;
-let connectors: TestConnectors;
+let connectors: CrossChainTestConnectors;
 
 describe("Validator Set Update", () => {
   const initialValidators = [getValidator("alice"), getValidator("bob")];
@@ -66,7 +66,7 @@ describe("Validator Set Update", () => {
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
-    connectors = suite.getEthereumTestConnectors();
+    connectors = suite.getCrossChainTestConnectors();
   });
 
   it("should verify test environment", async () => {

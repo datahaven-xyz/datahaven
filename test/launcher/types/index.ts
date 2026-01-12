@@ -4,9 +4,9 @@ import type { LaunchedNetwork } from "./launchedNetwork";
 
 // Suite types for different test configurations
 export enum SuiteType {
-  DATAHAVEN = "datahaven", // DataHaven nodes only
-  STORAGEHUB = "storagehub", // DataHaven + StorageHub components
-  ETHEREUM = "ethereum" // Full setup: DataHaven + Ethereum + contracts + relayers
+  CHAIN = "chain", // DataHaven chain only (2 validator nodes)
+  STORAGE = "storage", // Chain + StorageHub components (MSP, BSP, Indexer)
+  CROSSCHAIN = "crosschain" // Chain + Ethereum bridge (contracts + relayers)
 }
 
 // Network launch options (combines all component options)
@@ -26,27 +26,24 @@ export interface NetworkLaunchOptions {
   clEndpoint?: string;
 }
 
-// DataHaven-only launch result (base for all suites)
-export interface DataHavenLaunchResult {
+// Chain-only launch result (base for all suites)
+export interface ChainLaunchResult {
   launchedNetwork: LaunchedNetwork;
   dataHavenRpcUrl: string;
   cleanup: () => Promise<void>;
 }
 
-// StorageHub launch result (extends DataHaven)
-export interface StorageHubLaunchResult extends DataHavenLaunchResult {
+// Storage launch result (extends Chain with StorageHub components)
+export interface StorageLaunchResult extends ChainLaunchResult {
   mspRpcUrl: string;
   bspRpcUrl: string;
   indexerRpcUrl: string;
   postgresUrl: string;
 }
 
-// Full Ethereum network launch result (existing type, for backward compatibility)
-export interface LaunchNetworkResult {
-  launchedNetwork: LaunchedNetwork;
-  dataHavenRpcUrl: string;
+// CrossChain launch result (extends Chain with Ethereum bridge)
+export interface CrossChainLaunchResult extends ChainLaunchResult {
   ethereumRpcUrl: string;
   ethereumWsUrl?: string;
   ethereumClEndpoint: string;
-  cleanup: () => Promise<void>;
 }

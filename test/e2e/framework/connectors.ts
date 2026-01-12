@@ -17,43 +17,42 @@ import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
 import { socketClientCache } from "viem/utils";
 import type {
-  DataHavenLaunchResult,
-  LaunchNetworkResult,
-  StorageHubLaunchResult
+  ChainLaunchResult,
+  CrossChainLaunchResult,
+  StorageLaunchResult
 } from "../../launcher/types";
 import { SuiteType } from "../../launcher/types";
 
-// DataHaven-only connectors (base for all suites)
-export interface DataHavenTestConnectors {
+// Chain-only connectors (base for all suites)
+export interface ChainTestConnectors {
   papiClient: PolkadotClient;
   dhApi: DataHavenApi;
   dhRpcUrl: string;
 }
 
-// StorageHub connectors (extends DataHaven)
-export interface StorageHubTestConnectors extends DataHavenTestConnectors {
+// Storage connectors (extends Chain with StorageHub providers)
+export interface StorageTestConnectors extends ChainTestConnectors {
   mspRpcUrl: string;
   bspRpcUrl: string;
   indexerRpcUrl: string;
 }
 
-// Full Ethereum connectors (for cross-chain testing)
-export interface TestConnectors extends DataHavenTestConnectors {
-  // Ethereum connectors
+// CrossChain connectors (extends Chain with Ethereum bridge)
+export interface CrossChainTestConnectors extends ChainTestConnectors {
   publicClient: PublicClient;
   walletClient: WalletClient<any, any, Account>;
   elRpcUrl: string;
 }
 
 // Union type for all connector types
-type AnyLaunchResult = LaunchNetworkResult | StorageHubLaunchResult | DataHavenLaunchResult;
-type AnyTestConnectors = TestConnectors | StorageHubTestConnectors | DataHavenTestConnectors;
+type AnyLaunchResult = CrossChainLaunchResult | StorageLaunchResult | ChainLaunchResult;
+type AnyTestConnectors = CrossChainTestConnectors | StorageTestConnectors | ChainTestConnectors;
 
 export class ConnectorFactory {
   private connectors: AnyLaunchResult;
   private suiteType: SuiteType;
 
-  constructor(connectors: AnyLaunchResult, suiteType: SuiteType = SuiteType.ETHEREUM) {
+  constructor(connectors: AnyLaunchResult, suiteType: SuiteType = SuiteType.CROSSCHAIN) {
     this.connectors = connectors;
     this.suiteType = suiteType;
   }
@@ -64,28 +63,28 @@ export class ConnectorFactory {
    */
   async createTestConnectors(): Promise<AnyTestConnectors> {
     switch (this.suiteType) {
-      case SuiteType.DATAHAVEN:
-        return this.createDataHavenTestConnectors();
-      case SuiteType.STORAGEHUB:
-        return this.createStorageHubTestConnectors();
-      case SuiteType.ETHEREUM:
+      case SuiteType.CHAIN:
+        return this.createChainTestConnectors();
+      case SuiteType.STORAGE:
+        return this.createStorageTestConnectors();
+      case SuiteType.CROSSCHAIN:
       default:
-        return this.createEthereumTestConnectors();
+        return this.createCrossChainTestConnectors();
     }
   }
 
   /**
-   * Create DataHaven-only test connectors
+   * Create Chain-only test connectors
    */
-  private async createDataHavenTestConnectors(): Promise<DataHavenTestConnectors> {
-    logger.debug("Creating DataHaven test connectors...");
+  private async createChainTestConnectors(): Promise<ChainTestConnectors> {
+    logger.debug("Creating Chain test connectors...");
 
     // Create DataHaven/Substrate clients
     const wsProvider = getWsProvider(this.connectors.dataHavenRpcUrl);
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
     const dhApi = papiClient.getTypedApi(datahaven);
 
-    logger.debug("DataHaven test connectors created successfully");
+    logger.debug("Chain test connectors created successfully");
 
     return {
       papiClient,
@@ -95,44 +94,44 @@ export class ConnectorFactory {
   }
 
   /**
-   * Create StorageHub test connectors
+   * Create Storage test connectors (Chain + StorageHub providers)
    */
-  private async createStorageHubTestConnectors(): Promise<StorageHubTestConnectors> {
-    logger.debug("Creating StorageHub test connectors...");
+  private async createStorageTestConnectors(): Promise<StorageTestConnectors> {
+    logger.debug("Creating Storage test connectors...");
 
-    const shConnectors = this.connectors as StorageHubLaunchResult;
+    const storageConnectors = this.connectors as StorageLaunchResult;
 
     // Create DataHaven/Substrate clients
     const wsProvider = getWsProvider(this.connectors.dataHavenRpcUrl);
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
     const dhApi = papiClient.getTypedApi(datahaven);
 
-    logger.debug("StorageHub test connectors created successfully");
+    logger.debug("Storage test connectors created successfully");
 
     return {
       papiClient,
       dhApi,
       dhRpcUrl: this.connectors.dataHavenRpcUrl,
-      mspRpcUrl: shConnectors.mspRpcUrl,
-      bspRpcUrl: shConnectors.bspRpcUrl,
-      indexerRpcUrl: shConnectors.indexerRpcUrl
+      mspRpcUrl: storageConnectors.mspRpcUrl,
+      bspRpcUrl: storageConnectors.bspRpcUrl,
+      indexerRpcUrl: storageConnectors.indexerRpcUrl
     };
   }
 
   /**
-   * Create Ethereum test connectors (full cross-chain setup)
+   * Create CrossChain test connectors (Chain + Ethereum bridge)
    */
-  private async createEthereumTestConnectors(): Promise<TestConnectors> {
-    logger.debug("Creating Ethereum test connectors...");
+  private async createCrossChainTestConnectors(): Promise<CrossChainTestConnectors> {
+    logger.debug("Creating CrossChain test connectors...");
 
-    const ethConnectors = this.connectors as LaunchNetworkResult;
+    const crossChainConnectors = this.connectors as CrossChainLaunchResult;
 
     // Prefer WebSocket for event-heavy public client; fall back to HTTP when WS is unavailable.
-    const wsUrl = ethConnectors.ethereumWsUrl;
+    const wsUrl = crossChainConnectors.ethereumWsUrl;
 
     const publicTransport = wsUrl?.startsWith("ws")
-      ? fallback([webSocket(wsUrl), http(ethConnectors.ethereumRpcUrl)])
-      : http(ethConnectors.ethereumRpcUrl);
+      ? fallback([webSocket(wsUrl), http(crossChainConnectors.ethereumRpcUrl)])
+      : http(crossChainConnectors.ethereumRpcUrl);
 
     // Create Ethereum clients
     const publicClient = createPublicClient({
@@ -144,7 +143,7 @@ export class ConnectorFactory {
     const walletClient = createWalletClient({
       account,
       chain: anvil,
-      transport: http(ethConnectors.ethereumRpcUrl)
+      transport: http(crossChainConnectors.ethereumRpcUrl)
     });
 
     // Create DataHaven/Substrate clients
@@ -152,31 +151,31 @@ export class ConnectorFactory {
     const papiClient = createPapiClient(withPolkadotSdkCompat(wsProvider));
     const dhApi = papiClient.getTypedApi(datahaven);
 
-    logger.debug("Ethereum test connectors created successfully");
+    logger.debug("CrossChain test connectors created successfully");
 
     return {
       publicClient,
       walletClient,
       papiClient,
       dhApi,
-      elRpcUrl: ethConnectors.ethereumRpcUrl,
+      elRpcUrl: crossChainConnectors.ethereumRpcUrl,
       dhRpcUrl: this.connectors.dataHavenRpcUrl
     };
   }
 
   /**
-   * Create a wallet client with a specific account (Ethereum suite only)
+   * Create a wallet client with a specific account (CrossChain suite only)
    */
   createWalletClient(privateKey: `0x${string}`): WalletClient<any, any, Account> {
-    if (this.suiteType !== SuiteType.ETHEREUM) {
+    if (this.suiteType !== SuiteType.CROSSCHAIN) {
       throw new Error(`Cannot create wallet client for suite type: ${this.suiteType}`);
     }
-    const ethConnectors = this.connectors as LaunchNetworkResult;
+    const crossChainConnectors = this.connectors as CrossChainLaunchResult;
     const account = privateKeyToAccount(privateKey);
     return createWalletClient({
       account,
       chain: anvil,
-      transport: http(ethConnectors.ethereumRpcUrl)
+      transport: http(crossChainConnectors.ethereumRpcUrl)
     });
   }
 
@@ -187,7 +186,7 @@ export class ConnectorFactory {
     logger.debug("Cleaning up test connectors...");
 
     // Close any cached WebSocket clients used by viem to prevent reconnect noise after teardown.
-    if (this.suiteType === SuiteType.ETHEREUM) {
+    if (this.suiteType === SuiteType.CROSSCHAIN) {
       try {
         for (const client of socketClientCache.values()) {
           try {

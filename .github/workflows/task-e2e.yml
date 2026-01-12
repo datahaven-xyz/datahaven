@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [datahaven, storagehub, ethereum]
+        suite: [chain, storage, crosschain]
     defaults:
       run:
         working-directory: test

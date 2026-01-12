@@ -16,7 +16,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import validatorSet from "../../configs/validator-set.json";
 import type { LaunchedNetwork } from "../../launcher/types/launchedNetwork";
 import { getOwnerAccount } from "../../launcher/validators";
-import type { TestConnectors } from "./connectors";
+import type { CrossChainTestConnectors } from "./connectors";
 
 /**
  * Get validator info by name from validator set JSON
@@ -93,7 +93,7 @@ export const launchDatahavenValidator = async (
 /** Adds a validator to the EigenLayer allowlist */
 export const addValidatorToAllowlist = async (
   validatorName: string,
-  options: { connectors: TestConnectors; deployments: Deployments }
+  options: { connectors: CrossChainTestConnectors; deployments: Deployments }
 ): Promise<void> => {
   logger.debug(`Adding validator ${validatorName} to allowlist...`);
 
@@ -115,7 +115,7 @@ export const addValidatorToAllowlist = async (
 /** Register an operator in EigenLayer and for operator sets */
 export async function registerOperator(
   validatorName: string,
-  options: { connectors: TestConnectors; deployments: Deployments }
+  options: { connectors: CrossChainTestConnectors; deployments: Deployments }
 ): Promise<void> {
   const { connectors, deployments } = options;
   const validator = getValidator(validatorName);

@@ -3,16 +3,16 @@ import readline from "node:readline";
 import { logger } from "utils";
 import { isCI, launchNetwork } from "../../launcher/network";
 import type {
-  DataHavenLaunchResult,
-  LaunchNetworkResult,
-  StorageHubLaunchResult
+  ChainLaunchResult,
+  CrossChainLaunchResult,
+  StorageLaunchResult
 } from "../../launcher/types";
 import { SuiteType } from "../../launcher/types";
 import {
   ConnectorFactory,
-  type DataHavenTestConnectors,
-  type StorageHubTestConnectors,
-  type TestConnectors
+  type ChainTestConnectors,
+  type CrossChainTestConnectors,
+  type StorageTestConnectors
 } from "./connectors";
 import { TestSuiteManager } from "./manager";
 
@@ -20,10 +20,10 @@ import { TestSuiteManager } from "./manager";
 export { SuiteType } from "../../launcher/types";
 
 // Union type for all launch results
-type AnyLaunchResult = LaunchNetworkResult | StorageHubLaunchResult | DataHavenLaunchResult;
+type AnyLaunchResult = CrossChainLaunchResult | StorageLaunchResult | ChainLaunchResult;
 
 // Union type for all connector types
-type AnyTestConnectors = TestConnectors | StorageHubTestConnectors | DataHavenTestConnectors;
+type AnyTestConnectors = CrossChainTestConnectors | StorageTestConnectors | ChainTestConnectors;
 
 export interface TestSuiteOptions {
   /** Unique name for the test suite */
@@ -64,7 +64,7 @@ export abstract class BaseTestSuite {
 
   protected setupHooks(): void {
     beforeAll(async () => {
-      const suiteType = this.options.suiteType ?? SuiteType.ETHEREUM;
+      const suiteType = this.options.suiteType ?? SuiteType.CROSSCHAIN;
       logger.info(`🧪 Setting up test suite: ${this.options.suiteName} (${suiteType})`);
       logger.info(`📝 Network ID: ${this.networkId}`);
 
@@ -168,39 +168,39 @@ export abstract class BaseTestSuite {
   }
 
   /**
-   * Get Ethereum test connectors - throws if suite type is not ETHEREUM
+   * Get CrossChain test connectors - throws if suite type is not CROSSCHAIN
    */
-  public getEthereumTestConnectors(): TestConnectors {
+  public getCrossChainTestConnectors(): CrossChainTestConnectors {
     if (!this.testConnectors) {
       throw new Error("Test connectors not initialized. Did you call setupHooks()?");
     }
-    if (this.options.suiteType && this.options.suiteType !== SuiteType.ETHEREUM) {
-      throw new Error(`Cannot get Ethereum connectors for suite type: ${this.options.suiteType}`);
+    if (this.options.suiteType && this.options.suiteType !== SuiteType.CROSSCHAIN) {
+      throw new Error(`Cannot get CrossChain connectors for suite type: ${this.options.suiteType}`);
     }
-    return this.testConnectors as TestConnectors;
+    return this.testConnectors as CrossChainTestConnectors;
   }
 
   /**
-   * Get DataHaven test connectors - available for all suite types
+   * Get Chain test connectors - available for all suite types (base connectors)
    */
-  public getDataHavenTestConnectors(): DataHavenTestConnectors {
+  public getChainTestConnectors(): ChainTestConnectors {
     if (!this.testConnectors) {
       throw new Error("Test connectors not initialized. Did you call setupHooks()?");
     }
-    return this.testConnectors as DataHavenTestConnectors;
+    return this.testConnectors as ChainTestConnectors;
   }
 
   /**
-   * Get StorageHub test connectors - throws if suite type is not STORAGEHUB
+   * Get Storage test connectors - throws if suite type is not STORAGE
    */
-  public getStorageHubTestConnectors(): StorageHubTestConnectors {
+  public getStorageTestConnectors(): StorageTestConnectors {
     if (!this.testConnectors) {
       throw new Error("Test connectors not initialized. Did you call setupHooks()?");
     }
-    if (this.options.suiteType !== SuiteType.STORAGEHUB) {
-      throw new Error(`Cannot get StorageHub connectors for suite type: ${this.options.suiteType}`);
+    if (this.options.suiteType !== SuiteType.STORAGE) {
+      throw new Error(`Cannot get Storage connectors for suite type: ${this.options.suiteType}`);
     }
-    return this.testConnectors as StorageHubTestConnectors;
+    return this.testConnectors as StorageTestConnectors;
   }
 
   /**
@@ -217,7 +217,7 @@ export abstract class BaseTestSuite {
     try {
       const connectors = this.getConnectors();
       const ln = connectors.launchedNetwork;
-      const suiteType = this.options.suiteType ?? SuiteType.ETHEREUM;
+      const suiteType = this.options.suiteType ?? SuiteType.CROSSCHAIN;
 
       logger.info("🛠 Keep-alive mode enabled. Network will remain running until you press Enter.");
       logger.info(`📡 Network info (${suiteType}):`);
@@ -225,19 +225,19 @@ export abstract class BaseTestSuite {
       logger.info(`  • Network Name: ${ln.networkName}`);
       logger.info(`  • DataHaven RPC: ${connectors.dataHavenRpcUrl}`);
 
-      // Show Ethereum info only for ETHEREUM suite
-      if (suiteType === SuiteType.ETHEREUM) {
-        const ethConnectors = connectors as LaunchNetworkResult;
-        logger.info(`  • Ethereum RPC: ${ethConnectors.ethereumRpcUrl}`);
-        logger.info(`  • Ethereum CL:  ${ethConnectors.ethereumClEndpoint}`);
+      // Show Ethereum info only for CROSSCHAIN suite
+      if (suiteType === SuiteType.CROSSCHAIN) {
+        const crossChainConnectors = connectors as CrossChainLaunchResult;
+        logger.info(`  • Ethereum RPC: ${crossChainConnectors.ethereumRpcUrl}`);
+        logger.info(`  • Ethereum CL:  ${crossChainConnectors.ethereumClEndpoint}`);
       }
 
-      // Show StorageHub info for STORAGEHUB suite
-      if (suiteType === SuiteType.STORAGEHUB) {
-        const shConnectors = connectors as StorageHubLaunchResult;
-        logger.info(`  • MSP RPC: ${shConnectors.mspRpcUrl}`);
-        logger.info(`  • BSP RPC: ${shConnectors.bspRpcUrl}`);
-        logger.info(`  • Indexer RPC: ${shConnectors.indexerRpcUrl}`);
+      // Show Storage info for STORAGE suite
+      if (suiteType === SuiteType.STORAGE) {
+        const storageConnectors = connectors as StorageLaunchResult;
+        logger.info(`  • MSP RPC: ${storageConnectors.mspRpcUrl}`);
+        logger.info(`  • BSP RPC: ${storageConnectors.bspRpcUrl}`);
+        logger.info(`  • Indexer RPC: ${storageConnectors.indexerRpcUrl}`);
       }
 
       const containers = ln.containers || [];

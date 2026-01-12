@@ -15,10 +15,10 @@ import {
   launchStorageHubPostgres
 } from "../storagehub-docker";
 import type {
-  DataHavenLaunchResult,
-  LaunchNetworkResult,
+  ChainLaunchResult,
+  CrossChainLaunchResult,
   NetworkLaunchOptions,
-  StorageHubLaunchResult
+  StorageLaunchResult
 } from "../types";
 import { LaunchedNetwork, SuiteType } from "../types";
 import { checkBaseDependencies } from "../utils";
@@ -85,11 +85,11 @@ const validateNetworkIdUnique = async (networkId: string): Promise<void> => {
 };
 
 /**
- * Creates a cleanup function for DataHaven-only networks.
+ * Creates a cleanup function for Chain-only networks.
  */
-const createDataHavenCleanupFunction = (networkId: string) => {
+const createChainCleanupFunction = (networkId: string) => {
   return async () => {
-    logger.info(`🧹 Cleaning up DataHaven network: ${networkId}`);
+    logger.info(`🧹 Cleaning up Chain network: ${networkId}`);
 
     try {
       // Stop DataHaven containers
@@ -110,7 +110,7 @@ const createDataHavenCleanupFunction = (networkId: string) => {
       logger.info(`🔨 Removing Docker network: ${dockerNetworkName}`);
       await $`docker network rm -f ${dockerNetworkName}`.nothrow();
 
-      logger.success(`Cleanup completed for DataHaven network: ${networkId}`);
+      logger.success(`Cleanup completed for Chain network: ${networkId}`);
     } catch (error) {
       logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
     }
@@ -118,11 +118,11 @@ const createDataHavenCleanupFunction = (networkId: string) => {
 };
 
 /**
- * Creates a cleanup function for StorageHub networks.
+ * Creates a cleanup function for Storage networks.
  */
-const createStorageHubCleanupFunction = (networkId: string) => {
+const createStorageCleanupFunction = (networkId: string) => {
   return async () => {
-    logger.info(`🧹 Cleaning up StorageHub network: ${networkId}`);
+    logger.info(`🧹 Cleaning up Storage network: ${networkId}`);
 
     try {
       // Stop StorageHub containers (postgres, msp, bsp, indexer, fisherman)
@@ -156,7 +156,7 @@ const createStorageHubCleanupFunction = (networkId: string) => {
       logger.info(`🔨 Removing Docker network: ${dockerNetworkName}`);
       await $`docker network rm -f ${dockerNetworkName}`.nothrow();
 
-      logger.success(`Cleanup completed for StorageHub network: ${networkId}`);
+      logger.success(`Cleanup completed for Storage network: ${networkId}`);
     } catch (error) {
       logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
     }
@@ -164,11 +164,11 @@ const createStorageHubCleanupFunction = (networkId: string) => {
 };
 
 /**
- * Creates a cleanup function for full Ethereum networks.
+ * Creates a cleanup function for CrossChain networks.
  */
-const createEthereumCleanupFunction = (networkId: string) => {
+const createCrossChainCleanupFunction = (networkId: string) => {
   return async () => {
-    logger.info(`🧹 Cleaning up Ethereum network: ${networkId}`);
+    logger.info(`🧹 Cleaning up CrossChain network: ${networkId}`);
 
     try {
       // 1. Stop relayer containers
@@ -207,7 +207,7 @@ const createEthereumCleanupFunction = (networkId: string) => {
       logger.info(`🔨 Removing Kurtosis enclave: ${enclaveName}`);
       await $`kurtosis enclave rm ${enclaveName} -f`.nothrow();
 
-      logger.success(`Cleanup completed for Ethereum network: ${networkId}`);
+      logger.success(`Cleanup completed for CrossChain network: ${networkId}`);
     } catch (error) {
       logger.error(`❌ Cleanup failed for network ${networkId}:`, error);
     }
@@ -215,16 +215,16 @@ const createEthereumCleanupFunction = (networkId: string) => {
 };
 
 /**
- * Launches a DataHaven-only network (2 validator nodes).
+ * Launches a Chain-only network (2 validator nodes).
  *
  * This is the base network setup used by all suite types.
  *
  * @param options - Configuration options for the network launch
- * @returns DataHavenLaunchResult with cleanup function
+ * @returns ChainLaunchResult with cleanup function
  */
-export const launchDataHavenNetwork = async (
+export const launchChainNetwork = async (
   options: NetworkLaunchOptions
-): Promise<DataHavenLaunchResult> => {
+): Promise<ChainLaunchResult> => {
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
@@ -232,7 +232,7 @@ export const launchDataHavenNetwork = async (
   let cleanup: (() => Promise<void>) | undefined;
 
   try {
-    logger.info(`🚀 Launching DataHaven network with ID: ${networkId}`);
+    logger.info(`🚀 Launching Chain network with ID: ${networkId}`);
     const startTime = performance.now();
 
     // Check base dependencies
@@ -242,10 +242,10 @@ export const launchDataHavenNetwork = async (
     await validateNetworkIdUnique(networkId);
 
     // Create cleanup function
-    cleanup = createDataHavenCleanupFunction(networkId);
+    cleanup = createChainCleanupFunction(networkId);
 
-    // Launch DataHaven network
-    logger.info("📦 Launching DataHaven validator nodes...");
+    // Launch Chain network
+    logger.info("📦 Launching Chain validator nodes...");
     await launchLocalDataHavenSolochain(
       {
         networkId,
@@ -261,7 +261,7 @@ export const launchDataHavenNetwork = async (
     // Log success
     const endTime = performance.now();
     const seconds = ((endTime - startTime) / 1000).toFixed(1);
-    logger.success(`DataHaven network launched successfully in ${seconds} seconds`);
+    logger.success(`Chain network launched successfully in ${seconds} seconds`);
 
     // Return connectors
     const aliceContainerName = `datahaven-alice-${networkId}`;
@@ -273,7 +273,7 @@ export const launchDataHavenNetwork = async (
       cleanup
     };
   } catch (error) {
-    logger.error("❌ Failed to launch DataHaven network", error);
+    logger.error("❌ Failed to launch Chain network", error);
 
     if (cleanup) {
       logger.info("🧹 Running cleanup due to launch failure...");
@@ -285,16 +285,16 @@ export const launchDataHavenNetwork = async (
 };
 
 /**
- * Launches a StorageHub network (DataHaven + StorageHub components).
+ * Launches a Storage network (Chain + StorageHub components).
  *
  * Includes: 2 validator nodes, PostgreSQL, MSP, BSP, Indexer, Fisherman
  *
  * @param options - Configuration options for the network launch
- * @returns StorageHubLaunchResult with cleanup function
+ * @returns StorageLaunchResult with cleanup function
  */
-export const launchStorageHubNetwork = async (
+export const launchStorageNetwork = async (
   options: NetworkLaunchOptions
-): Promise<StorageHubLaunchResult> => {
+): Promise<StorageLaunchResult> => {
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
@@ -302,7 +302,7 @@ export const launchStorageHubNetwork = async (
   let cleanup: (() => Promise<void>) | undefined;
 
   try {
-    logger.info(`🚀 Launching StorageHub network with ID: ${networkId}`);
+    logger.info(`🚀 Launching Storage network with ID: ${networkId}`);
     const startTime = performance.now();
 
     // Check base dependencies
@@ -312,7 +312,7 @@ export const launchStorageHubNetwork = async (
     await validateNetworkIdUnique(networkId);
 
     // Create cleanup function
-    cleanup = createStorageHubCleanupFunction(networkId);
+    cleanup = createStorageCleanupFunction(networkId);
 
     const datahavenOptions = {
       networkId,
@@ -350,7 +350,7 @@ export const launchStorageHubNetwork = async (
     // Log success
     const endTime = performance.now();
     const minutes = ((endTime - startTime) / (1000 * 60)).toFixed(1);
-    logger.success(`StorageHub network launched successfully in ${minutes} minutes`);
+    logger.success(`Storage network launched successfully in ${minutes} minutes`);
 
     // Get container ports
     const aliceContainerName = `datahaven-alice-${networkId}`;
@@ -369,7 +369,7 @@ export const launchStorageHubNetwork = async (
       cleanup
     };
   } catch (error) {
-    logger.error("❌ Failed to launch StorageHub network", error);
+    logger.error("❌ Failed to launch Storage network", error);
 
     if (cleanup) {
       logger.info("🧹 Running cleanup due to launch failure...");
@@ -381,16 +381,16 @@ export const launchStorageHubNetwork = async (
 };
 
 /**
- * Launches a full Ethereum network (DataHaven + Ethereum + contracts + relayers).
+ * Launches a CrossChain network (Chain + Ethereum + contracts + relayers).
  *
- * This is the original full network setup for cross-chain testing.
+ * This is the full network setup for cross-chain testing.
  *
  * @param options - Configuration options for the network launch
- * @returns LaunchNetworkResult with cleanup function
+ * @returns CrossChainLaunchResult with cleanup function
  */
-export const launchEthereumNetwork = async (
+export const launchCrossChainNetwork = async (
   options: NetworkLaunchOptions
-): Promise<LaunchNetworkResult> => {
+): Promise<CrossChainLaunchResult> => {
   const networkId = options.networkId;
   const launchedNetwork = new LaunchedNetwork();
   launchedNetwork.networkName = networkId;
@@ -403,7 +403,7 @@ export const launchEthereumNetwork = async (
   let cleanup: (() => Promise<void>) | undefined;
 
   try {
-    logger.info(`🚀 Launching Ethereum network stack with ID: ${networkId}`);
+    logger.info(`🚀 Launching CrossChain network stack with ID: ${networkId}`);
     const startTime = performance.now();
 
     // Check base dependencies
@@ -413,7 +413,7 @@ export const launchEthereumNetwork = async (
     await validateNetworkIdUnique(networkId);
 
     // Create cleanup function
-    cleanup = createEthereumCleanupFunction(networkId);
+    cleanup = createCrossChainCleanupFunction(networkId);
 
     // Create parameter collection for use throughout the launch
     const parameterCollection = new ParameterCollection();
@@ -510,7 +510,7 @@ export const launchEthereumNetwork = async (
     // Log success
     const endTime = performance.now();
     const minutes = ((endTime - startTime) / (1000 * 60)).toFixed(1);
-    logger.success(`Ethereum network launched successfully in ${minutes} minutes`);
+    logger.success(`CrossChain network launched successfully in ${minutes} minutes`);
 
     // Validate required endpoints
     if (!launchedNetwork.clEndpoint) {
@@ -531,7 +531,7 @@ export const launchEthereumNetwork = async (
       cleanup
     };
   } catch (error) {
-    logger.error("❌ Failed to launch Ethereum network", error);
+    logger.error("❌ Failed to launch CrossChain network", error);
 
     if (cleanup) {
       logger.info("🧹 Running cleanup due to launch failure...");
@@ -552,17 +552,17 @@ export const launchEthereumNetwork = async (
  */
 export const launchNetwork = async (
   options: NetworkLaunchOptions
-): Promise<LaunchNetworkResult | StorageHubLaunchResult | DataHavenLaunchResult> => {
-  const suiteType = options.suiteType ?? SuiteType.ETHEREUM;
+): Promise<CrossChainLaunchResult | StorageLaunchResult | ChainLaunchResult> => {
+  const suiteType = options.suiteType ?? SuiteType.CROSSCHAIN;
 
   switch (suiteType) {
-    case SuiteType.DATAHAVEN:
-      return launchDataHavenNetwork(options);
-    case SuiteType.STORAGEHUB:
-      return launchStorageHubNetwork(options);
-    case SuiteType.ETHEREUM:
+    case SuiteType.CHAIN:
+      return launchChainNetwork(options);
+    case SuiteType.STORAGE:
+      return launchStorageNetwork(options);
+    case SuiteType.CROSSCHAIN:
     default:
-      return launchEthereumNetwork(options);
+      return launchCrossChainNetwork(options);
   }
 };
 

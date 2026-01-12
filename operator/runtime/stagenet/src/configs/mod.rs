@@ -1513,6 +1513,13 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Stag
         runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
     }
 
+    fn strategies_and_multipliers() -> Vec<(H160, u128)> {
+        runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get()
+            .into_iter()
+            .filter(|(s, _)| *s != H160::zero())
+            .collect()
+    }
+
     fn handle_remainder(remainder: u128) {
         use frame_support::traits::{fungible::Mutate, tokens::Preservation};
         let source = ExternalValidatorRewardsAccount::get();

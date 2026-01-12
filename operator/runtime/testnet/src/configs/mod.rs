@@ -1107,34 +1107,36 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     test
 ))]
 parameter_types! {
+    // Fork versions for benchmarking - must match the fixtures for BLS verification to work
+    // The fixtures are generated with standard testnet fork versions
     pub const ChainForkVersions: ForkVersions = ForkVersions {
         genesis: Fork {
-            version: hex_literal::hex!("10000038"),
+            version: hex_literal::hex!("00000000"),
             epoch: 0,
         },
         altair: Fork {
-            version: hex_literal::hex!("20000038"),
+            version: hex_literal::hex!("01000000"),
             epoch: 0,
         },
         bellatrix: Fork {
-            version: hex_literal::hex!("30000038"),
+            version: hex_literal::hex!("02000000"),
             epoch: 0,
         },
         capella: Fork {
-            version: hex_literal::hex!("40000038"),
+            version: hex_literal::hex!("03000000"),
             epoch: 0,
         },
         deneb: Fork {
-            version: hex_literal::hex!("50000038"),
+            version: hex_literal::hex!("04000000"),
             epoch: 0,
         },
         electra: Fork {
-            version: hex_literal::hex!("60000038"),
-            epoch: 0,
+            version: hex_literal::hex!("05000000"),
+            epoch: 80000000000,
         },
         fulu: Fork {
-            version: hex_literal::hex!("70000038"),
-            epoch: 0,
+            version: hex_literal::hex!("06000000"),
+            epoch: 90000000000,
         },
     };
 }

@@ -70,10 +70,8 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
   const anvilDeployments = await parseDeploymentsFile();
   const beefyClientAddress = anvilDeployments.BeefyClient;
   const gatewayAddress = anvilDeployments.Gateway;
-  const rewardsRegistryAddress = anvilDeployments.RewardsRegistry;
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
-  invariant(rewardsRegistryAddress, "❌ RewardsRegistry address not found in anvil.json");
 
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
@@ -118,7 +116,6 @@ export const deployRelayers = async (options: DeployOptions, launchedNetwork: La
         substrateWsEndpoint,
         beefyClientAddress,
         gatewayAddress,
-        rewardsRegistryAddress,
         ethClEndpoint
       },
       pk: {

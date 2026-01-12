@@ -741,9 +741,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 100u128,
             individual_points: vec![
                 (H160::from_low_u64_be(2), 40),
@@ -802,9 +799,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 3u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1), (H160::from_low_u64_be(2), 2)],
             inflation_amount: 100u128,
@@ -843,9 +837,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 1u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 100u128,
@@ -861,9 +852,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 1000u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 1u128,
@@ -878,9 +866,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 0u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 100u128,
@@ -895,9 +880,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 1u128,
             individual_points: vec![(H160::from_low_u64_be(1), u32::MAX)],
             inflation_amount: u128::MAX,
@@ -912,9 +894,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 1u128,
             individual_points: vec![(H160::from_low_u64_be(1), 1)],
             inflation_amount: 100u128,
@@ -929,9 +908,6 @@ mod tests {
         let rewards_utils = EraRewardsUtils {
             era_index: 7,
             era_start_timestamp: TEST_ERA_START_TIMESTAMP,
-            rewards_merkle_root: H256::zero(),
-            leaves: vec![],
-            leaf_index: None,
             total_points: 100u128,
             individual_points: vec![
                 (H160::from_low_u64_be(2), 40),

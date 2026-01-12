@@ -53,7 +53,6 @@ export type SolochainConfig = {
   substrateWsEndpoint: string;
   beefyClientAddress: string;
   gatewayAddress: string;
-  rewardsRegistryAddress: string;
   ethClEndpoint: string;
 };
 
@@ -172,7 +171,6 @@ export const generateRelayerConfig = async (
       cfg.source.beacon.datastore.location = "/relay-data";
       cfg.sink.ethereum.endpoint = config.ethElRpcEndpoint;
       cfg.sink.contracts.Gateway = config.gatewayAddress;
-      cfg["reward-address"] = config.rewardsRegistryAddress;
 
       await Bun.write(outputFilePath, JSON.stringify(cfg, null, 4));
       logger.success(`Updated solochain config written to ${outputFilePath}`);
@@ -436,10 +434,8 @@ export const launchRelayers = async (
   const deployments = await parseDeploymentsFile();
   const beefyClientAddress = deployments.BeefyClient;
   const gatewayAddress = deployments.Gateway;
-  const rewardsRegistryAddress = deployments.RewardsRegistry;
   invariant(beefyClientAddress, "❌ BeefyClient address not found in anvil.json");
   invariant(gatewayAddress, "❌ Gateway address not found in anvil.json");
-  invariant(rewardsRegistryAddress, "❌ RewardsRegistry address not found in anvil.json");
 
   logger.debug(`Ensuring output directory exists: ${RELAYER_CONFIG_DIR}`);
   await $`mkdir -p ${RELAYER_CONFIG_DIR}`.quiet();
@@ -493,7 +489,6 @@ export const launchRelayers = async (
         substrateWsEndpoint,
         beefyClientAddress,
         gatewayAddress,
-        rewardsRegistryAddress,
         ethClEndpoint
       },
       pk: {

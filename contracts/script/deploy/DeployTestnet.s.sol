@@ -12,9 +12,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 // Logging import
 import {Logging} from "../utils/Logging.sol";
 
-// DataHaven imports for function signatures
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-
 // EigenLayer core contract imports for type casting
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
@@ -139,7 +136,6 @@ contract DeployTestnet is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
@@ -152,7 +148,6 @@ contract DeployTestnet is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection(
             string.concat("EigenLayer Core Contracts (Existing on ", _getDeploymentMode(), ")")
@@ -189,9 +184,6 @@ contract DeployTestnet is DeployBase {
             '"ServiceManagerImplementation": "',
             vm.toString(address(serviceManagerImplementation)),
             '",'
-        );
-        json = string.concat(
-            json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
         );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 

@@ -54,7 +54,6 @@ pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validator-slashes = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
-pallet-external-validators-rewards-runtime-api = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -219,7 +218,6 @@ std = [
     "pallet-evm-precompile-registry/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
-    "pallet-external-validators-rewards-runtime-api/std",
     "pallet-external-validator-slashes/std",
     "pallet-grandpa/std",
     "pallet-identity/std",

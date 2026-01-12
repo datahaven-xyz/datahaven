@@ -50,13 +50,6 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
       constructorArgTypes: ["address", "address", "address"]
     },
     {
-      name: "RewardsRegistry",
-      address: deployments.RewardsRegistry,
-      artifactName: "RewardsRegistry",
-      constructorArgs: [deployments.ServiceManager, deployments.RewardsAgent],
-      constructorArgTypes: ["address", "address"]
-    },
-    {
       name: "Gateway",
       address: deployments.Gateway,
       artifactName: "Gateway",

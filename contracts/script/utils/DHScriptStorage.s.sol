@@ -6,7 +6,6 @@ import {Script} from "forge-std/Script.sol";
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 
 /**
  * @title DHScriptStorage
@@ -15,7 +14,6 @@ import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
 contract DHScriptStorage is Script {
     // DataHaven Contract declarations
     DataHavenServiceManager public serviceManager;
-    RewardsRegistry public rewardsRegistry;
 
     /**
      * @notice Loads the DataHaven contracts from the deployment file.
@@ -30,7 +28,5 @@ contract DHScriptStorage is Script {
         // Store the contract addresses
         serviceManager =
             DataHavenServiceManager(vm.parseJsonAddress(deploymentFile, ".ServiceManager"));
-        rewardsRegistry =
-            RewardsRegistry(payable(vm.parseJsonAddress(deploymentFile, ".RewardsRegistry")));
     }
 }

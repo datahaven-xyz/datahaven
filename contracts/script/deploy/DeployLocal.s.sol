@@ -24,9 +24,6 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
-// DataHaven imports for function signatures
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-
 // Additional imports specific to local deployment
 import {
     ERC20PresetFixedSupply
@@ -70,8 +67,6 @@ import {
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
 /**
  * @title DeployLocal
@@ -207,7 +202,6 @@ contract DeployLocal is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
@@ -220,7 +214,6 @@ contract DeployLocal is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection("EigenLayer Core Contracts");
         Logging.logContractDeployed("DelegationManager", address(delegation));
@@ -269,9 +262,6 @@ contract DeployLocal is DeployBase {
             '"ServiceManagerImplementation": "',
             vm.toString(address(serviceManagerImplementation)),
             '",'
-        );
-        json = string.concat(
-            json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
         );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 

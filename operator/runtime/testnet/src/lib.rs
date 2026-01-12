@@ -54,7 +54,6 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
-use pallet_external_validators::traits::EraIndex;
 use pallet_file_system::types::StorageRequestMetadata;
 use pallet_file_system_runtime_api::*;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
@@ -72,7 +71,6 @@ pub use pallet_timestamp::Call as TimestampCall;
 use shp_file_metadata::ChunkId;
 use smallvec::smallvec;
 use snowbridge_core::AgentId;
-use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
 use sp_consensus_beefy::{
     ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -941,19 +939,6 @@ impl_runtime_apis! {
     impl snowbridge_system_v2_runtime_api::ControlV2Api<Block> for Runtime {
         fn agent_id(location: VersionedLocation) -> Option<AgentId> {
             snowbridge_pallet_system_v2::api::agent_id::<Runtime>(location)
-        }
-    }
-
-    impl pallet_external_validators_rewards_runtime_api::ExternalValidatorsRewardsApi<Block, AccountId, EraIndex> for Runtime
-        where
-        EraIndex: codec::Codec,
-    {
-        fn generate_rewards_merkle_proof(account_id: AccountId, era_index: EraIndex) -> Option<MerkleProof> {
-            ExternalValidatorsRewards::generate_rewards_merkle_proof(account_id, era_index)
-        }
-
-        fn verify_rewards_merkle_proof(merkle_proof: MerkleProof) -> bool {
-            ExternalValidatorsRewards::verify_rewards_merkle_proof(merkle_proof)
         }
     }
 

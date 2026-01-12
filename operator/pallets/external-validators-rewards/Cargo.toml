@@ -32,7 +32,6 @@ pallet-external-validators = { workspace = true }
 pallet-session = { workspace = true, features = [ "historical" ] }
 
 snowbridge-core = { workspace = true }
-snowbridge-merkle-tree = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 
 [dev-dependencies]
@@ -54,7 +53,6 @@ std = [
 	"parity-scale-codec/std",
 	"scale-info/std",
 	"snowbridge-core/std",
-	"snowbridge-merkle-tree/std",
 	"snowbridge-outbound-queue-primitives/std",
 	"sp-core/std",
 	"sp-io/std",

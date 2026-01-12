@@ -138,7 +138,11 @@ fn test_on_era_end() {
         });
         let points = vec![10u32, 30u32, 50u32];
         let total_points: u32 = points.iter().cloned().sum();
-        let accounts = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(3), H160::from_low_u64_be(5)];
+        let accounts = vec![
+            H160::from_low_u64_be(1),
+            H160::from_low_u64_be(3),
+            H160::from_low_u64_be(5),
+        ];
         let accounts_points: Vec<_> = accounts
             .iter()
             .cloned()
@@ -154,18 +158,17 @@ fn test_on_era_end() {
         ExternalValidatorsRewards::on_era_end(1);
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
-        let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        // Use 0 for era_start_timestamp in tests since we're only checking merkle root
-        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation, 0);
-
-        let root = rewards_utils.unwrap().rewards_merkle_root;
+        let inflation =
+            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        // Use 0 for era_start_timestamp in tests
+        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
+        assert!(rewards_utils.is_some());
         System::assert_last_event(RuntimeEvent::ExternalValidatorsRewards(
             crate::Event::RewardsMessageSent {
                 message_id: Default::default(),
                 era_index: 1,
                 total_points: total_points as u128,
                 inflation_amount: inflation,
-                rewards_merkle_root: root,
             },
         ));
     })
@@ -184,8 +187,11 @@ fn test_on_era_end_with_zero_inflation() {
             mock.era_inflation = Some(0);
         });
         let points = vec![10u32, 30u32, 50u32];
-        let total_points: u32 = points.iter().cloned().sum();
-        let accounts = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(3), H160::from_low_u64_be(5)];
+        let accounts = vec![
+            H160::from_low_u64_be(1),
+            H160::from_low_u64_be(3),
+            H160::from_low_u64_be(5),
+        ];
         let accounts_points: Vec<_> = accounts
             .iter()
             .cloned()
@@ -195,23 +201,17 @@ fn test_on_era_end_with_zero_inflation() {
         ExternalValidatorsRewards::on_era_end(1);
 
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
-        let inflation = <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards.generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(1, None, inflation, 0);
-        let root = rewards_utils.unwrap().rewards_merkle_root;
-        let expected_not_thrown_event = RuntimeEvent::ExternalValidatorsRewards(
-            crate::Event::RewardsMessageSent {
-                message_id: Default::default(),
-                era_index: 1,
-                total_points: total_points as u128,
-                inflation_amount: inflation,
-                rewards_merkle_root: root,
-            }
-        );
+        let inflation =
+            <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
+        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
+        assert!(rewards_utils.is_some());
+        // With zero inflation, no RewardsMessageSent event should be emitted
         let events = System::events();
         assert!(
-            !events
-                .iter()
-                .any(|record| record.event == expected_not_thrown_event),
+            !events.iter().any(|record| matches!(
+                &record.event,
+                RuntimeEvent::ExternalValidatorsRewards(crate::Event::RewardsMessageSent { .. })
+            )),
             "event should not have been thrown",
         );
     })
@@ -229,7 +229,11 @@ fn test_on_era_end_with_zero_points() {
             });
         });
         let points = vec![0u32, 0u32, 0u32];
-        let accounts = vec![H160::from_low_u64_be(1), H160::from_low_u64_be(3), H160::from_low_u64_be(5)];
+        let accounts = vec![
+            H160::from_low_u64_be(1),
+            H160::from_low_u64_be(3),
+            H160::from_low_u64_be(5),
+        ];
         let accounts_points: Vec<_> = accounts
             .iter()
             .cloned()
@@ -243,10 +247,7 @@ fn test_on_era_end_with_zero_points() {
         let era_rewards = pallet_external_validators_rewards::RewardPointsForEra::<Test>::get(1);
         let inflation =
             <Test as pallet_external_validators_rewards::Config>::EraInflationProvider::get();
-        let rewards_utils = era_rewards
-            .generate_era_rewards_utils::<<Test as pallet_external_validators_rewards::Config>::Hashing>(
-                1, None, inflation, 0,
-            );
+        let rewards_utils = era_rewards.generate_era_rewards_utils(1, inflation, 0);
         assert!(
             rewards_utils.is_none(),
             "generate_era_rewards_utils should return None when total_points is zero"

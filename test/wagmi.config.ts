@@ -12,7 +12,6 @@ export default defineConfig({
         "AgentExecutor.sol/**",
         "Gateway.sol/**",
         "TransparentUpgradeableProxy.sol/**",
-        "RewardsRegistry.sol/**",
         "Agent.sol/**",
         "StrategyManager.sol/**",
         "AVSDirectory.sol/**",

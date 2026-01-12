@@ -13,9 +13,6 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {
-    IPermissionController
-} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {
     IRewardsCoordinator,
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
@@ -51,9 +48,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice The EigenLayer RewardsCoordinator contract
     IRewardsCoordinator internal immutable _rewardsCoordinator;
-
-    /// @notice The EigenLayer PermissionController contract
-    IPermissionController internal immutable _permissionController;
 
     // ============ State Variables ============
 
@@ -95,15 +89,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Sets the immutable EigenLayer contract references
     /// @param __rewardsCoordinator The EigenLayer RewardsCoordinator contract
-    /// @param __permissionController The EigenLayer PermissionController contract
     /// @param __allocationManager The EigenLayer AllocationManager contract
     constructor(
         IRewardsCoordinator __rewardsCoordinator,
-        IPermissionController __permissionController,
         IAllocationManager __allocationManager
     ) {
         _rewardsCoordinator = __rewardsCoordinator;
-        _permissionController = __permissionController;
         _allocationManager = __allocationManager;
         _disableInitializers();
     }
@@ -335,51 +326,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
                 operator: operator, avs: address(this), operatorSetIds: operatorSetIds
             });
         _allocationManager.deregisterFromOperatorSets(params);
-    }
-
-    // ============ PermissionController Proxy Functions ============
-
-    /// @inheritdoc IDataHavenServiceManager
-    function addPendingAdmin(
-        address admin
-    ) external onlyOwner {
-        _permissionController.addPendingAdmin({account: address(this), admin: admin});
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removePendingAdmin(
-        address pendingAdmin
-    ) external onlyOwner {
-        _permissionController.removePendingAdmin({account: address(this), admin: pendingAdmin});
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removeAdmin(
-        address admin
-    ) external onlyOwner {
-        _permissionController.removeAdmin({account: address(this), admin: admin});
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function setAppointee(
-        address appointee,
-        address target,
-        bytes4 selector
-    ) external onlyOwner {
-        _permissionController.setAppointee({
-            account: address(this), appointee: appointee, target: target, selector: selector
-        });
-    }
-
-    /// @inheritdoc IDataHavenServiceManager
-    function removeAppointee(
-        address appointee,
-        address target,
-        bytes4 selector
-    ) external onlyOwner {
-        _permissionController.removeAppointee({
-            account: address(this), appointee: appointee, target: target, selector: selector
-        });
     }
 
     // ============ Internal Functions ============

@@ -239,7 +239,7 @@ contract AVSDeployer is Test {
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
         serviceManagerImplementation = new DataHavenServiceManager(
-            rewardsCoordinator, permissionControllerMock, allocationManager
+            rewardsCoordinator, allocationManager
         );
 
         // Create array for validators strategies required by DataHavenServiceManager

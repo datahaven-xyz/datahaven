@@ -85,6 +85,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _;
     }
 
+    /// @notice Restricts function to the EigenLayer AllocationManager
+    modifier onlyAllocationManager() {
+        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
+        _;
+    }
+
     // ============ Constructor ============
 
     /// @notice Sets the immutable EigenLayer contract references
@@ -180,7 +186,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address avsAddress,
         uint32[] calldata operatorSetIds,
         bytes calldata data
-    ) external override {
+    ) external override onlyAllocationManager {
         if (avsAddress != address(this)) {
             revert IncorrectAVSAddress();
         }
@@ -208,7 +214,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address operator,
         address avsAddress,
         uint32[] calldata operatorSetIds
-    ) external override {
+    ) external override onlyAllocationManager {
         if (avsAddress != address(this)) {
             revert IncorrectAVSAddress();
         }

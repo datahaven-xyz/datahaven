@@ -26,6 +26,8 @@ interface IDataHavenServiceManagerErrors {
     error CallerIsNotValidator();
     /// @notice Thrown when a function is called by an address that is not the RewardsInitiator
     error OnlyRewardsInitiator();
+    /// @notice Thrown when a function is called by an address that is not the AllocationManager
+    error OnlyAllocationManager();
 }
 
 /**

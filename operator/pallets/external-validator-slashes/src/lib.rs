@@ -606,7 +606,7 @@ impl<T: Config> Pallet<T> {
         let outbound = match T::SendMessage::build(&slashes_to_send, era_index) {
             Some(send_msg) => send_msg,
             None => {
-                log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
+                log::error!(target: "ext_validators_slashes", "Failed to build outbound message");
                 return 0;
             }
         };
@@ -615,7 +615,7 @@ impl<T: Config> Pallet<T> {
         let ticket = T::SendMessage::validate(outbound)
             .map_err(|e| {
                 log::error!(
-                    target: "ext_validators_rewards",
+                    target: "ext_validators_slashes",
                     "Failed to validate outbound message: {:?}",
                     e
                 );
@@ -626,7 +626,7 @@ impl<T: Config> Pallet<T> {
         let message_id = T::SendMessage::deliver(ticket)
             .map_err(|e| {
                 log::error!(
-                    target: "ext_validators_rewards",
+                    target: "ext_validators_slashes",
                     "Failed to deliver outbound message: {:?}",
                     e
                 );

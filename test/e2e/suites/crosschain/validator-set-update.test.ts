@@ -23,11 +23,11 @@ import { dataHavenServiceManagerAbi, gatewayAbi } from "../../../contract-bindin
 import {
   addValidatorToAllowlist,
   BaseTestSuite,
+  type CrossChainTestConnectors,
   getValidator,
   isValidatorRunning,
   launchDatahavenValidator,
-  registerOperator,
-  type CrossChainTestConnectors
+  registerOperator
 } from "../../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {

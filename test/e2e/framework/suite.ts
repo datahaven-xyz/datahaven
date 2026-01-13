@@ -9,8 +9,8 @@ import type {
 } from "../../launcher/types";
 import { SuiteType } from "../../launcher/types";
 import {
-  ConnectorFactory,
   type ChainTestConnectors,
+  ConnectorFactory,
   type CrossChainTestConnectors,
   type StorageTestConnectors
 } from "./connectors";

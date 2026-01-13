@@ -441,6 +441,14 @@ pub struct ProviderConfigurations {
         help_heading = "MSP Database Options"
     )]
     pub msp_database_url: Option<String>,
+
+    /// Maximum number of forest storage instances to keep open simultaneously.
+    /// MSPs have one forest per bucket; this controls how many can be open at once.
+    /// BSPs typically use a single forest, so this setting is effectively ignored for them.
+    /// Default: 512. With RocksDB's default of 512 open files per instance,
+    /// this results in a maximum of ~262K file descriptors.
+    #[arg(long, value_name = "COUNT", default_value = "512")]
+    pub max_open_forests: Option<usize>,
 }
 
 impl ProviderConfigurations {
@@ -610,6 +618,7 @@ impl ProviderConfigurations {
             msp_database_url: self.msp_database_url.clone(),
             // We don't support maintenance mode for now.
             // maintenance_mode: self.maintenance_mode,
+            max_open_forests: self.max_open_forests,
         }
     }
 }

@@ -29,7 +29,6 @@ import {EigenPodManagerMock} from "eigenlayer-contracts/src/test/mocks/EigenPodM
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
 import {IEigenPodManager} from "eigenlayer-contracts/src/contracts/interfaces/IEigenPodManager.sol";
 import {ERC20FixedSupply} from "./ERC20FixedSupply.sol";
-import {IServiceManager} from "../../src/interfaces/IServiceManager.sol";
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
@@ -239,9 +238,8 @@ contract AVSDeployer is Test {
         // Deploying ServiceManager implementation and its proxy.
         // When the proxy is deployed, the `initialize` function is called.
         cheats.startPrank(regularDeployer);
-        serviceManagerImplementation = new DataHavenServiceManager(
-            rewardsCoordinator, permissionControllerMock, allocationManager
-        );
+        serviceManagerImplementation =
+            new DataHavenServiceManager(rewardsCoordinator, allocationManager);
 
         // Create array for validators strategies required by DataHavenServiceManager
         IStrategy[] memory validatorsStrategies = new IStrategy[](deployedStrategies.length);

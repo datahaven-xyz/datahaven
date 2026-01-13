@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
+// OpenZeppelin imports
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 // EigenLayer imports
 import {
     IAllocationManager,
@@ -8,41 +13,51 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {
-    IPermissionController
-} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {
     IRewardsCoordinator,
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Snowbridge imports
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
-import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 
 // DataHaven imports
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
-import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
 
 /**
  * @title DataHaven ServiceManager contract
  * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
  */
-contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
+contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
+
+    // ============ Constants ============
+
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
 
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
 
+    // ============ Immutables ============
+
+    /// @notice The EigenLayer AllocationManager contract
+    IAllocationManager internal immutable _allocationManager;
+
+    /// @notice The EigenLayer RewardsCoordinator contract
+    IRewardsCoordinator internal immutable _rewardsCoordinator;
+
+    // ============ State Variables ============
+
+    /// @notice The address authorized to initiate rewards submissions
+    address public rewardsInitiator;
+
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
+    /// @notice The Snowbridge Gateway contract
     IGatewayV2 private _snowbridgeGateway;
 
     struct SlashingRequest {
@@ -56,14 +71,19 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-    /// @notice Sets the (immutable) `_registryCoordinator` address
-    constructor(
-        IRewardsCoordinator __rewardsCoordinator,
-        IPermissionController __permissionController,
-        IAllocationManager __allocationManager
-    ) ServiceManagerBase(__rewardsCoordinator, __permissionController, __allocationManager) {}
+    /// @notice Storage gap for upgradeability (must be at end of state variables)
+    // solhint-disable-next-line var-name-mixedcase
+    uint256[46] private __GAP;
 
-    /// @notice Modifier to ensure the caller is a registered Validator
+    // ============ Modifiers ============
+
+    /// @notice Restricts function to the rewards initiator
+    modifier onlyRewardsInitiator() {
+        require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
+        _;
+    }
+
+    /// @notice Restricts function to registered validators
     modifier onlyValidator() {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         require(
@@ -73,14 +93,38 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _;
     }
 
+    /// @notice Restricts function to the EigenLayer AllocationManager
+    modifier onlyAllocationManager() {
+        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
+        _;
+    }
+
+    // ============ Constructor ============
+
+    /// @notice Sets the immutable EigenLayer contract references
+    /// @param __rewardsCoordinator The EigenLayer RewardsCoordinator contract
+    /// @param __allocationManager The EigenLayer AllocationManager contract
+    constructor(
+        IRewardsCoordinator __rewardsCoordinator,
+        IAllocationManager __allocationManager
+    ) {
+        _rewardsCoordinator = __rewardsCoordinator;
+        _allocationManager = __allocationManager;
+        _disableInitializers();
+    }
+
+    // ============ Initializer ============
+
     /// @inheritdoc IDataHavenServiceManager
     function initialise(
         address initialOwner,
-        address rewardsInitiator,
+        address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
         address _snowbridgeGatewayAddress
     ) public virtual initializer {
-        __ServiceManagerBase_init(initialOwner, rewardsInitiator);
+        __Ownable_init();
+        _transferOwnership(initialOwner);
+        _setRewardsInitiator(_rewardsInitiator);
 
         // Register the DataHaven service in the AllocationManager.
         _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -89,33 +133,27 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _createDataHavenOperatorSets(validatorsStrategies);
 
         // Set the Snowbridge Gateway address.
-        // This is the contract to which messages are sent, to be relayed to the Solochain network.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
     }
+
+    // ============ Snowbridge Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function sendNewValidatorSet(
         uint128 executionFee,
         uint128 relayerFee
     ) external payable onlyOwner {
-        // Send the new validator set message to the Snowbridge Gateway
         bytes memory message = buildNewValidatorSetMessage();
         _snowbridgeGateway.v2_sendMessage{value: msg.value}(
-            message,
-            new bytes[](0), // No assets to send
-            bytes(""), // No claimer
-            executionFee,
-            relayerFee
+            message, new bytes[](0), bytes(""), executionFee, relayerFee
         );
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function buildNewValidatorSetMessage() public view returns (bytes memory) {
-        // Get the current validator set
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
 
-        // Build the new validator set message
         address[] memory newValidatorSet = new address[](currentValidatorSet.length);
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
             newValidatorSet[i] = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
@@ -125,7 +163,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
             DataHavenSnowbridgeMessages.NewValidatorSet({payload: newValidatorSetPayload});
 
-        // Return the encoded message
         return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
     }
 
@@ -133,7 +170,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     function updateSolochainAddressForValidator(
         address solochainAddress
     ) external onlyValidator {
-        // Update the Solochain address for the Validator
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
     }
 
@@ -145,14 +181,21 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         emit SnowbridgeGatewaySet(_newSnowbridgeGateway);
     }
 
+    /// @inheritdoc IDataHavenServiceManager
+    function snowbridgeGateway() external view returns (address) {
+        return address(_snowbridgeGateway);
+    }
+
+    // ============ IAVSRegistrar Implementation ============
+
     /// @inheritdoc IAVSRegistrar
     function registerOperator(
         address operator,
-        address avs,
+        address avsAddress,
         uint32[] calldata operatorSetIds,
         bytes calldata data
-    ) external override {
-        if (avs != address(this)) {
+    ) external override onlyAllocationManager {
+        if (avsAddress != address(this)) {
             revert IncorrectAVSAddress();
         }
 
@@ -160,7 +203,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert CantRegisterToMultipleOperatorSets();
         }
 
-        // Only validators are supported
         if (operatorSetIds[0] != VALIDATORS_SET_ID) {
             revert InvalidOperatorSetId();
         }
@@ -169,8 +211,6 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert OperatorNotInAllowlist();
         }
 
-        // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
-        // Require validators to provide 20 bytes addresses.
         require(data.length == 20, "Invalid solochain address length");
         validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
 
@@ -180,10 +220,10 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IAVSRegistrar
     function deregisterOperator(
         address operator,
-        address avs,
+        address avsAddress,
         uint32[] calldata operatorSetIds
-    ) external override {
-        if (avs != address(this)) {
+    ) external override onlyAllocationManager {
+        if (avsAddress != address(this)) {
             revert IncorrectAVSAddress();
         }
 
@@ -195,11 +235,19 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
             revert InvalidOperatorSetId();
         }
 
-        // Remove validator from the addresses mapping
         delete validatorEthAddressToSolochainAddress[operator];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }
+
+    /// @inheritdoc IAVSRegistrar
+    function supportsAVS(
+        address avsAddress
+    ) external view override returns (bool) {
+        return avsAddress == address(this);
+    }
+
+    // ============ Validator Management ============
 
     /// @inheritdoc IDataHavenServiceManager
     function addValidatorToAllowlist(
@@ -239,32 +287,23 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         _allocationManager.addStrategiesToOperatorSet(address(this), VALIDATORS_SET_ID, _strategies);
     }
 
-    /// @inheritdoc IDataHavenServiceManager
-    function snowbridgeGateway() external view returns (address) {
-        return address(_snowbridgeGateway);
-    }
-
-    // ============ Rewards Submitter Functions ============
+    // ============ Rewards Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function submitRewards(
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external override onlyRewardsInitiator {
-        // Calculate total amount for event
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < submission.operatorRewards.length; i++) {
             totalAmount += submission.operatorRewards[i].amount;
         }
 
-        // Approve RewardsCoordinator to spend tokens
         submission.token.safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
 
-        // Wrap in array for RewardsCoordinator
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
             new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
         submissions[0] = submission;
 
-        // Submit to EigenLayer RewardsCoordinator
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
             operatorSet, submissions
@@ -273,15 +312,34 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
-    /// @notice Sets the rewards initiator address (overrides deprecated base implementation)
-    /// @param newRewardsInitiator The new rewards initiator address
-    /// @dev Only callable by the owner
+    /// @inheritdoc IDataHavenServiceManager
     function setRewardsInitiator(
         address newRewardsInitiator
-    ) external override(IDataHavenServiceManager, ServiceManagerBase) onlyOwner {
+    ) external override onlyOwner {
         address oldInitiator = rewardsInitiator;
         _setRewardsInitiator(newRewardsInitiator);
         emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
+    }
+
+    // ============ AVS Management Functions ============
+
+    /// @inheritdoc IDataHavenServiceManager
+    function updateAVSMetadataURI(
+        string memory _metadataURI
+    ) external onlyOwner {
+        _allocationManager.updateAVSMetadataURI(address(this), _metadataURI);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] calldata operatorSetIds
+    ) external onlyOwner {
+        IAllocationManagerTypes.DeregisterParams memory params =
+            IAllocationManagerTypes.DeregisterParams({
+                operator: operator, avs: address(this), operatorSetIds: operatorSetIds
+            });
+        _allocationManager.deregisterFromOperatorSets(params);
     }
 
     // ============ Internal Functions ============
@@ -327,5 +385,15 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         }
 
         emit SlashingComplete();
+    }
+    
+    /**
+     * @notice Internal function to set the rewards initiator
+     * @param _rewardsInitiator The new rewards initiator address
+     */
+    function _setRewardsInitiator(
+        address _rewardsInitiator
+    ) internal {
+        rewardsInitiator = _rewardsInitiator;
     }
 }

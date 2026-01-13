@@ -241,9 +241,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
 
         // Deploy the Service Manager
         vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation = new DataHavenServiceManager(
-            rewardsCoordinator, permissionController, allocationManager
-        );
+        DataHavenServiceManager serviceManagerImplementation =
+            new DataHavenServiceManager(rewardsCoordinator, allocationManager);
         Logging.logContractDeployed(
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );

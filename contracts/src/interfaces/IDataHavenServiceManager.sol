@@ -24,6 +24,10 @@ interface IDataHavenServiceManagerErrors {
     error OperatorNotInAllowlist();
     /// @notice Thrown when the caller is not a Validator in the Validators operator set
     error CallerIsNotValidator();
+    /// @notice Thrown when a function is called by an address that is not the RewardsInitiator
+    error OnlyRewardsInitiator();
+    /// @notice Thrown when a function is called by an address that is not the AllocationManager
+    error OnlyAllocationManager();
 }
 
 /**
@@ -203,5 +207,27 @@ interface IDataHavenServiceManager is
      */
     function setRewardsInitiator(
         address initiator
+    ) external;
+
+    // ============ AVS Management Functions ============
+
+    /**
+     * @notice Updates the metadata URI for the AVS
+     * @param _metadataURI is the metadata URI for the AVS
+     * @dev Only callable by the owner
+     */
+    function updateAVSMetadataURI(
+        string memory _metadataURI
+    ) external;
+
+    /**
+     * @notice Force-deregisters an operator from specified operator sets
+     * @param operator The address of the operator to deregister
+     * @param operatorSetIds The IDs of the operator sets to deregister from
+     * @dev Only callable by the owner. Use for removing misbehaving operators.
+     */
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] calldata operatorSetIds
     ) external;
 }

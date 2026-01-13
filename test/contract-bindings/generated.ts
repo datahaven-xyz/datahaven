@@ -2457,6 +2457,7 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
+  { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
 ] as const

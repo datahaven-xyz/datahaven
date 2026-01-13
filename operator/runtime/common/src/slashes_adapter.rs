@@ -4,10 +4,8 @@ use alloy_core::{
     sol_types::SolCall,
 };
 use pallet_external_validator_slashes::SlashData;
-use snowbridge_outbound_queue_primitives::v2::{
-    Command, Message as OutboundMessage,
-};
 use snowbridge_outbound_queue_primitives::v2::SendMessage;
+use snowbridge_outbound_queue_primitives::v2::{Command, Message as OutboundMessage};
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
 use sp_std::vec;
@@ -46,7 +44,6 @@ pub trait SlashesSubmissionConfig {
     fn slashes_agent_origin() -> H256;
 }
 
-
 /// Generic slashes submission adapter.
 ///
 /// This adapter implements [`SendMessage`] and uses the configuration provided
@@ -54,7 +51,9 @@ pub trait SlashesSubmissionConfig {
 /// messages to EigenLayer via Snowbridge.
 pub struct SlashesSubmissionAdapter<C>(core::marker::PhantomData<C>);
 
-impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSubmissionAdapter<C> {
+impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<AccountId>
+    for SlashesSubmissionAdapter<C>
+{
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
     fn build(slashes_utils: &Vec<SlashData<AccountId>>, era: u32) -> Option<Self::Message> {
@@ -68,7 +67,7 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
         };
         let message = OutboundMessage {
             origin: C::slashes_agent_origin(),
-            id: H256::from_low_u64_be(era as u64).into(), 
+            id: H256::from_low_u64_be(era as u64).into(),
             fee: 0,
             commands: match vec![command].try_into() {
                 Ok(cmds) => cmds,

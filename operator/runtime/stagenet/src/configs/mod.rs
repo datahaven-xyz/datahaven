@@ -1685,13 +1685,14 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Stag
     }
 
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get() // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 }
 
-
 // Stub SendMessage implementation for slash pallet
-pub type SlashesSendAdapter = datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<StagenetSlashesConfig>;
+pub type SlashesSendAdapter =
+    datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<StagenetSlashesConfig>;
 
 impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;

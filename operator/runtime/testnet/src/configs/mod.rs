@@ -1689,13 +1689,14 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Test
     }
 
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get() // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 }
 
-
 // Stub SendMessage implementation for slash pallet
-pub type SlashesSendAdapter = datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<TestnetSlashesConfig>;
+pub type SlashesSendAdapter =
+    datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<TestnetSlashesConfig>;
 impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = AccountId;

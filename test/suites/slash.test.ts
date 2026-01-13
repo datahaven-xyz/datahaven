@@ -49,7 +49,9 @@ describe("Should slash an operator", () => {
     // get era number
     const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
 
-    console.log(activeEra);
+    if (activeEra === undefined) {
+      throw new Error("couldn't get current era");
+    }
 
     // need operator address to slash
     const validator = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";

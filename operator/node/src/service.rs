@@ -1182,6 +1182,7 @@ where
             bsp_submit_proof,
             blockchain_service,
             msp_database_url,
+            max_open_forests,
             ..
         }) => {
             info!(
@@ -1191,7 +1192,7 @@ where
 
             // Setup the storage layer and capacity config
             builder
-                .setup_storage_layer(storage_path.clone())
+                .setup_storage_layer(storage_path.clone(), max_open_forests.unwrap_or(512))
                 .with_capacity_config(Some(CapacityConfig::new(
                     max_storage_capacity.unwrap_or_default().saturated_into(),
                     jump_capacity.unwrap_or_default().saturated_into(),
@@ -1246,7 +1247,7 @@ where
             );
 
             // Setup the storage layer (ephemeral for fisherman)
-            builder.setup_storage_layer(None);
+            builder.setup_storage_layer(None, 0);
 
             // Set the indexer db pool
             builder.with_indexer_db_pool(Some(db_pool));

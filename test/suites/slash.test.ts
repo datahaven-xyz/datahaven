@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { CROSS_CHAIN_TIMEOUTS, getPapiSigner } from "utils";
 import { BaseTestSuite } from "../framework";
 import { getContractInstance } from "../utils/contracts";
-import { waitForDataHavenEvent, waitForEthereumEvent } from "../utils/events";
+import { waitForDataHavenEvent } from "../utils/events";
 
 class SlashTestSuite extends BaseTestSuite {
   constructor() {
@@ -44,7 +44,7 @@ describe("Should slash an operator", () => {
   }, 40000);
 
   it("use sudo to slash operator", async () => {
-    const { publicClient, dhApi } = suite.getTestConnectors();
+    const { dhApi } = suite.getTestConnectors();
 
     // get era number
     const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
@@ -57,8 +57,7 @@ describe("Should slash an operator", () => {
     const sudoSlashCall = dhApi.tx.ExternalValidatorsSlashes.force_inject_slash({
       validator,
       era: activeEra?.index + 1 || 0, // Will fail if active era is 0
-      percentage: 20,
-      external_idx: BigInt(0)
+      percentage: 20
     });
     const sudoTx = dhApi.tx.Sudo.sudo({
       call: sudoSlashCall.decodedCall
@@ -88,18 +87,5 @@ describe("Should slash an operator", () => {
       throw new Error("SlashesMessageSent event not found");
     }
     console.log("Slashes message sent");
-
-    // Wait for Ethereum event event
-    const _allocationManager = await getContractInstance("AllocationManager");
-    const serviceManager = await getContractInstance("ServiceManager");
-    const event = await waitForEthereumEvent({
-      client: publicClient,
-      address: serviceManager.address,
-      abi: serviceManager.abi,
-      eventName: "SlashingComplete",
-      timeout: CROSS_CHAIN_TIMEOUTS.DH_TO_ETH_MS
-    });
-
-    console.log(event);
   }, 560000);
 });

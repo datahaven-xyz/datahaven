@@ -55,11 +55,15 @@ use sp_std::marker::PhantomData;
 /// Weights for `pallet_grandpa`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_grandpa::WeightInfo for WeightInfo<T> {
-
-
-	fn report_equivocation(_x: u32, _y: u32) -> Weight {
-		// Approximated using the old `check_equivocation_proof` measurement.
-		Weight::from_parts(84_768_395, 0)
+	/// The range of component `x` is `[0, 1]`.
+	fn report_equivocation(prev: u32, _equivocations: u32) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 78_547_000 picoseconds.
+		Weight::from_parts(78_982_114, 0)
+			// Standard Error: 28_584
+			.saturating_add(Weight::from_parts(129_485, 0).saturating_mul(prev.into()))
 	}
 	/// Storage: `Grandpa::Stalled` (r:0 w:1)
 	/// Proof: `Grandpa::Stalled` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
@@ -67,8 +71,8 @@ impl<T: frame_system::Config> pallet_grandpa::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 3_667_000 picoseconds.
-		Weight::from_parts(3_838_000, 0)
+		// Minimum execution time: 3_815_000 picoseconds.
+		Weight::from_parts(3_947_000, 0)
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 }

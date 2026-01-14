@@ -86,11 +86,9 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
   try {
     const contracts = [
       { name: "DataHavenServiceManager", key: "ServiceManagerImplementation" },
-      { name: "RewardsRegistry", key: "RewardsRegistry" },
       { name: "Snowbridge BeefyClient", key: "BeefyClient" },
       { name: "Snowbridge AgentExecutor", key: "AgentExecutor" },
-      { name: "Snowbridge Gateway", key: "Gateway" },
-      { name: "Snowbridge Agent", key: "RewardsAgent" }
+      { name: "Snowbridge Gateway", key: "Gateway" }
     ];
 
     logger.info("DataHaven contracts");

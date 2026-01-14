@@ -2033,11 +2033,6 @@ export const dataHavenServiceManagerAbi = [
         type: 'address',
       },
       {
-        name: '__permissionController',
-        internalType: 'contract IPermissionController',
-        type: 'address',
-      },
-      {
         name: '__allocationManager',
         internalType: 'contract IAllocationManager',
         type: 'address',
@@ -2058,27 +2053,6 @@ export const dataHavenServiceManagerAbi = [
     name: 'VALIDATORS_SET_ID',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'admin', internalType: 'address', type: 'address' }],
-    name: 'addPendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      {
-        name: 'strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'addStrategiesToOperatorSet',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2103,13 +2077,6 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'avs',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'buildNewValidatorSetMessage',
     outputs: [{ name: '', internalType: 'bytes', type: 'bytes' }],
     stateMutability: 'view',
@@ -2117,165 +2084,11 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
-      { name: 'numberOfLeaves', internalType: 'uint256', type: 'uint256' },
-      { name: 'leafIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    name: 'claimLatestOperatorRewards',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
-      { name: 'numberOfLeaves', internalType: 'uint256', type: 'uint256' },
-      { name: 'leafIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    name: 'claimOperatorRewards',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      { name: 'rootIndices', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'operatorPoints', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'numberOfLeaves', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'leafIndices', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
-    ],
-    name: 'claimOperatorRewardsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'rewardsSubmissions',
-        internalType: 'struct IRewardsCoordinatorTypes.RewardsSubmission[]',
-        type: 'tuple[]',
-        components: [
-          {
-            name: 'strategiesAndMultipliers',
-            internalType:
-              'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
-            type: 'tuple[]',
-            components: [
-              {
-                name: 'strategy',
-                internalType: 'contract IStrategy',
-                type: 'address',
-              },
-              { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
-            ],
-          },
-          { name: 'token', internalType: 'contract IERC20', type: 'address' },
-          { name: 'amount', internalType: 'uint256', type: 'uint256' },
-          { name: 'startTimestamp', internalType: 'uint32', type: 'uint32' },
-          { name: 'duration', internalType: 'uint32', type: 'uint32' },
-        ],
-      },
-    ],
-    name: 'createAVSRewardsSubmission',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'operatorSet',
-        internalType: 'struct OperatorSet',
-        type: 'tuple',
-        components: [
-          { name: 'avs', internalType: 'address', type: 'address' },
-          { name: 'id', internalType: 'uint32', type: 'uint32' },
-        ],
-      },
-      {
-        name: 'operatorDirectedRewardsSubmissions',
-        internalType:
-          'struct IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[]',
-        type: 'tuple[]',
-        components: [
-          {
-            name: 'strategiesAndMultipliers',
-            internalType:
-              'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
-            type: 'tuple[]',
-            components: [
-              {
-                name: 'strategy',
-                internalType: 'contract IStrategy',
-                type: 'address',
-              },
-              { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
-            ],
-          },
-          { name: 'token', internalType: 'contract IERC20', type: 'address' },
-          {
-            name: 'operatorRewards',
-            internalType: 'struct IRewardsCoordinatorTypes.OperatorReward[]',
-            type: 'tuple[]',
-            components: [
-              { name: 'operator', internalType: 'address', type: 'address' },
-              { name: 'amount', internalType: 'uint256', type: 'uint256' },
-            ],
-          },
-          { name: 'startTimestamp', internalType: 'uint32', type: 'uint32' },
-          { name: 'duration', internalType: 'uint32', type: 'uint32' },
-          { name: 'description', internalType: 'string', type: 'string' },
-        ],
-      },
-    ],
-    name: 'createOperatorDirectedOperatorSetRewardsSubmission',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'params',
-        internalType: 'struct IAllocationManagerTypes.CreateSetParams[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-          {
-            name: 'strategies',
-            internalType: 'contract IStrategy[]',
-            type: 'address[]',
-          },
-        ],
-      },
-    ],
-    name: 'createOperatorSets',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'operator', internalType: 'address', type: 'address' },
-      { name: 'avs', internalType: 'address', type: 'address' },
+      { name: 'avsAddress', internalType: 'address', type: 'address' },
       { name: 'operatorSetIds', internalType: 'uint32[]', type: 'uint32[]' },
     ],
     name: 'deregisterOperator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'deregisterOperatorFromAVS',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2291,23 +2104,9 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
-    name: 'getOperatorRestakedStrategies',
-    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getRestakeableStrategies',
-    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'initialOwner', internalType: 'address', type: 'address' },
-      { name: 'rewardsInitiator', internalType: 'address', type: 'address' },
+      { name: '_rewardsInitiator', internalType: 'address', type: 'address' },
       {
         name: 'validatorsStrategies',
         internalType: 'contract IStrategy[]',
@@ -2325,15 +2124,6 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
-    name: 'operatorSetToRewardsRegistry',
-    outputs: [
-      { name: '', internalType: 'contract IRewardsRegistry', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
@@ -2343,72 +2133,11 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       { name: 'operator', internalType: 'address', type: 'address' },
-      { name: 'avs', internalType: 'address', type: 'address' },
+      { name: 'avsAddress', internalType: 'address', type: 'address' },
       { name: 'operatorSetIds', internalType: 'uint32[]', type: 'uint32[]' },
       { name: 'data', internalType: 'bytes', type: 'bytes' },
     ],
     name: 'registerOperator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'address', type: 'address' },
-      {
-        name: '',
-        internalType:
-          'struct ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry',
-        type: 'tuple',
-        components: [
-          { name: 'signature', internalType: 'bytes', type: 'bytes' },
-          { name: 'salt', internalType: 'bytes32', type: 'bytes32' },
-          { name: 'expiry', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-    ],
-    name: 'registerOperatorToAVS',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'admin', internalType: 'address', type: 'address' }],
-    name: 'removeAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'appointee', internalType: 'address', type: 'address' },
-      { name: 'target', internalType: 'address', type: 'address' },
-      { name: 'selector', internalType: 'bytes4', type: 'bytes4' },
-    ],
-    name: 'removeAppointee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'pendingAdmin', internalType: 'address', type: 'address' },
-    ],
-    name: 'removePendingAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      {
-        name: 'strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
-      },
-    ],
-    name: 'removeStrategiesFromOperatorSet',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2459,51 +2188,9 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'appointee', internalType: 'address', type: 'address' },
-      { name: 'target', internalType: 'address', type: 'address' },
-      { name: 'selector', internalType: 'bytes4', type: 'bytes4' },
-    ],
-    name: 'setAppointee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'claimer', internalType: 'address', type: 'address' }],
-    name: 'setClaimerFor',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      { name: 'rewardsAgent', internalType: 'address', type: 'address' },
-    ],
-    name: 'setRewardsAgent',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'newRewardsInitiator', internalType: 'address', type: 'address' },
     ],
     name: 'setRewardsInitiator',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorSetId', internalType: 'uint32', type: 'uint32' },
-      {
-        name: 'rewardsRegistry',
-        internalType: 'contract IRewardsRegistry',
-        type: 'address',
-      },
-    ],
-    name: 'setRewardsRegistry',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2712,44 +2399,6 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'prevRewardsInitiator',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-      {
-        name: 'newRewardsInitiator',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-    ],
-    name: 'RewardsInitiatorUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'operatorSetId',
-        internalType: 'uint32',
-        type: 'uint32',
-        indexed: true,
-      },
-      {
-        name: 'rewardsRegistry',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'RewardsRegistrySet',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
         name: 'totalAmount',
         internalType: 'uint256',
         type: 'uint256',
@@ -2806,15 +2455,11 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
-  { type: 'error', inputs: [], name: 'DelayPeriodNotPassed' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
-  { type: 'error', inputs: [], name: 'NoRewardsRegistryForOperatorSet' },
-  { type: 'error', inputs: [], name: 'OnlyRegistryCoordinator' },
+  { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
-  { type: 'error', inputs: [], name: 'OnlyStakeRegistry' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
-  { type: 'error', inputs: [], name: 'OperatorNotInOperatorSet' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8175,245 +7820,6 @@ export const rewardsCoordinatorAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// RewardsRegistry
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const rewardsRegistryAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: '_avs', internalType: 'address', type: 'address' },
-      { name: '_rewardsAgent', internalType: 'address', type: 'address' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  { type: 'receive', stateMutability: 'payable' },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'avs',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorAddress', internalType: 'address', type: 'address' },
-      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
-      { name: 'numberOfLeaves', internalType: 'uint256', type: 'uint256' },
-      { name: 'leafIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    name: 'claimLatestRewards',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorAddress', internalType: 'address', type: 'address' },
-      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'operatorPoints', internalType: 'uint256', type: 'uint256' },
-      { name: 'numberOfLeaves', internalType: 'uint256', type: 'uint256' },
-      { name: 'leafIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'proof', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    name: 'claimRewards',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorAddress', internalType: 'address', type: 'address' },
-      { name: 'rootIndices', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'operatorPoints', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'numberOfLeaves', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'leafIndices', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'proofs', internalType: 'bytes32[][]', type: 'bytes32[][]' },
-    ],
-    name: 'claimRewardsBatch',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getLatestMerkleRoot',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getLatestMerkleRootIndex',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'index', internalType: 'uint256', type: 'uint256' }],
-    name: 'getMerkleRootByIndex',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getMerkleRootHistoryLength',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operatorAddress', internalType: 'address', type: 'address' },
-      { name: 'rootIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'hasClaimedByIndex',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'merkleRootHistory',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'operatorClaimedByIndex',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'rewardsAgent',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_rewardsAgent', internalType: 'address', type: 'address' },
-    ],
-    name: 'setRewardsAgent',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'newMerkleRoot', internalType: 'bytes32', type: 'bytes32' },
-    ],
-    name: 'updateRewardsMerkleRoot',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'operatorAddress',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'rootIndices',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-      {
-        name: 'points',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-      {
-        name: 'totalRewardsAmount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'RewardsBatchClaimedForIndices',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'operatorAddress',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'rootIndex',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'points',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'rewardsAmount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'RewardsClaimedForIndex',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldRoot',
-        internalType: 'bytes32',
-        type: 'bytes32',
-        indexed: false,
-      },
-      {
-        name: 'newRoot',
-        internalType: 'bytes32',
-        type: 'bytes32',
-        indexed: true,
-      },
-      {
-        name: 'newRootIndex',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'RewardsMerkleRootUpdated',
-  },
-  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
-  { type: 'error', inputs: [], name: 'InvalidMerkleProof' },
-  { type: 'error', inputs: [], name: 'InvalidMerkleRootIndex' },
-  { type: 'error', inputs: [], name: 'OnlyAVS' },
-  { type: 'error', inputs: [], name: 'OnlyRewardsAgent' },
-  { type: 'error', inputs: [], name: 'RewardsAlreadyClaimedForIndex' },
-  { type: 'error', inputs: [], name: 'RewardsMerkleRootNotSet' },
-  { type: 'error', inputs: [], name: 'RewardsTransferFailed' },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // StrategyBaseTVLLimits
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -11201,47 +10607,12 @@ export const readDataHavenServiceManagerValidatorsSetId =
   })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"avs"`
- */
-export const readDataHavenServiceManagerAvs = /*#__PURE__*/ createReadContract({
-  abi: dataHavenServiceManagerAbi,
-  functionName: 'avs',
-})
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"buildNewValidatorSetMessage"`
  */
 export const readDataHavenServiceManagerBuildNewValidatorSetMessage =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'buildNewValidatorSetMessage',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getOperatorRestakedStrategies"`
- */
-export const readDataHavenServiceManagerGetOperatorRestakedStrategies =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'getOperatorRestakedStrategies',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getRestakeableStrategies"`
- */
-export const readDataHavenServiceManagerGetRestakeableStrategies =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'getRestakeableStrategies',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"operatorSetToRewardsRegistry"`
- */
-export const readDataHavenServiceManagerOperatorSetToRewardsRegistry =
-  /*#__PURE__*/ createReadContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'operatorSetToRewardsRegistry',
   })
 
 /**
@@ -11315,24 +10686,6 @@ export const writeDataHavenServiceManager = /*#__PURE__*/ createWriteContract({
 })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
- */
-export const writeDataHavenServiceManagerAddPendingAdmin =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addPendingAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToOperatorSet"`
- */
-export const writeDataHavenServiceManagerAddStrategiesToOperatorSet =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToOperatorSet',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToValidatorsSupportedStrategies"`
  */
 export const writeDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
@@ -11351,75 +10704,12 @@ export const writeDataHavenServiceManagerAddValidatorToAllowlist =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimLatestOperatorRewards"`
- */
-export const writeDataHavenServiceManagerClaimLatestOperatorRewards =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimLatestOperatorRewards',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
- */
-export const writeDataHavenServiceManagerClaimOperatorRewards =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimOperatorRewards',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsBatch"`
- */
-export const writeDataHavenServiceManagerClaimOperatorRewardsBatch =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimOperatorRewardsBatch',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createAVSRewardsSubmission"`
- */
-export const writeDataHavenServiceManagerCreateAvsRewardsSubmission =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'createAVSRewardsSubmission',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorDirectedOperatorSetRewardsSubmission"`
- */
-export const writeDataHavenServiceManagerCreateOperatorDirectedOperatorSetRewardsSubmission =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'createOperatorDirectedOperatorSetRewardsSubmission',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorSets"`
- */
-export const writeDataHavenServiceManagerCreateOperatorSets =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'createOperatorSets',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperator"`
  */
 export const writeDataHavenServiceManagerDeregisterOperator =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'deregisterOperator',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromAVS"`
- */
-export const writeDataHavenServiceManagerDeregisterOperatorFromAvs =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'deregisterOperatorFromAVS',
   })
 
 /**
@@ -11447,51 +10737,6 @@ export const writeDataHavenServiceManagerRegisterOperator =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'registerOperator',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperatorToAVS"`
- */
-export const writeDataHavenServiceManagerRegisterOperatorToAvs =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'registerOperatorToAVS',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAdmin"`
- */
-export const writeDataHavenServiceManagerRemoveAdmin =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAppointee"`
- */
-export const writeDataHavenServiceManagerRemoveAppointee =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAppointee',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
- */
-export const writeDataHavenServiceManagerRemovePendingAdmin =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removePendingAdmin',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromOperatorSet"`
- */
-export const writeDataHavenServiceManagerRemoveStrategiesFromOperatorSet =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromOperatorSet',
   })
 
 /**
@@ -11531,48 +10776,12 @@ export const writeDataHavenServiceManagerSendNewValidatorSet =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setAppointee"`
- */
-export const writeDataHavenServiceManagerSetAppointee =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setAppointee',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setClaimerFor"`
- */
-export const writeDataHavenServiceManagerSetClaimerFor =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setClaimerFor',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsAgent"`
- */
-export const writeDataHavenServiceManagerSetRewardsAgent =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsAgent',
-  })
-
-/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
  */
 export const writeDataHavenServiceManagerSetRewardsInitiator =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setRewardsInitiator',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsRegistry"`
- */
-export const writeDataHavenServiceManagerSetRewardsRegistry =
-  /*#__PURE__*/ createWriteContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsRegistry',
   })
 
 /**
@@ -11627,24 +10836,6 @@ export const simulateDataHavenServiceManager =
   /*#__PURE__*/ createSimulateContract({ abi: dataHavenServiceManagerAbi })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addPendingAdmin"`
- */
-export const simulateDataHavenServiceManagerAddPendingAdmin =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addPendingAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToOperatorSet"`
- */
-export const simulateDataHavenServiceManagerAddStrategiesToOperatorSet =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'addStrategiesToOperatorSet',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"addStrategiesToValidatorsSupportedStrategies"`
  */
 export const simulateDataHavenServiceManagerAddStrategiesToValidatorsSupportedStrategies =
@@ -11663,75 +10854,12 @@ export const simulateDataHavenServiceManagerAddValidatorToAllowlist =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimLatestOperatorRewards"`
- */
-export const simulateDataHavenServiceManagerClaimLatestOperatorRewards =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimLatestOperatorRewards',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewards"`
- */
-export const simulateDataHavenServiceManagerClaimOperatorRewards =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimOperatorRewards',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"claimOperatorRewardsBatch"`
- */
-export const simulateDataHavenServiceManagerClaimOperatorRewardsBatch =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'claimOperatorRewardsBatch',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createAVSRewardsSubmission"`
- */
-export const simulateDataHavenServiceManagerCreateAvsRewardsSubmission =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'createAVSRewardsSubmission',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorDirectedOperatorSetRewardsSubmission"`
- */
-export const simulateDataHavenServiceManagerCreateOperatorDirectedOperatorSetRewardsSubmission =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'createOperatorDirectedOperatorSetRewardsSubmission',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"createOperatorSets"`
- */
-export const simulateDataHavenServiceManagerCreateOperatorSets =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'createOperatorSets',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperator"`
  */
 export const simulateDataHavenServiceManagerDeregisterOperator =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'deregisterOperator',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"deregisterOperatorFromAVS"`
- */
-export const simulateDataHavenServiceManagerDeregisterOperatorFromAvs =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'deregisterOperatorFromAVS',
   })
 
 /**
@@ -11759,51 +10887,6 @@ export const simulateDataHavenServiceManagerRegisterOperator =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'registerOperator',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"registerOperatorToAVS"`
- */
-export const simulateDataHavenServiceManagerRegisterOperatorToAvs =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'registerOperatorToAVS',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAdmin"`
- */
-export const simulateDataHavenServiceManagerRemoveAdmin =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeAppointee"`
- */
-export const simulateDataHavenServiceManagerRemoveAppointee =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeAppointee',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removePendingAdmin"`
- */
-export const simulateDataHavenServiceManagerRemovePendingAdmin =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removePendingAdmin',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"removeStrategiesFromOperatorSet"`
- */
-export const simulateDataHavenServiceManagerRemoveStrategiesFromOperatorSet =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'removeStrategiesFromOperatorSet',
   })
 
 /**
@@ -11843,48 +10926,12 @@ export const simulateDataHavenServiceManagerSendNewValidatorSet =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setAppointee"`
- */
-export const simulateDataHavenServiceManagerSetAppointee =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setAppointee',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setClaimerFor"`
- */
-export const simulateDataHavenServiceManagerSetClaimerFor =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setClaimerFor',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsAgent"`
- */
-export const simulateDataHavenServiceManagerSetRewardsAgent =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsAgent',
-  })
-
-/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsInitiator"`
  */
 export const simulateDataHavenServiceManagerSetRewardsInitiator =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setRewardsInitiator',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setRewardsRegistry"`
- */
-export const simulateDataHavenServiceManagerSetRewardsRegistry =
-  /*#__PURE__*/ createSimulateContract({
-    abi: dataHavenServiceManagerAbi,
-    functionName: 'setRewardsRegistry',
   })
 
 /**
@@ -11981,24 +11028,6 @@ export const watchDataHavenServiceManagerRewardsInitiatorSetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'RewardsInitiatorSet',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsInitiatorUpdated"`
- */
-export const watchDataHavenServiceManagerRewardsInitiatorUpdatedEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'RewardsInitiatorUpdated',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"RewardsRegistrySet"`
- */
-export const watchDataHavenServiceManagerRewardsRegistrySetEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: dataHavenServiceManagerAbi,
-    eventName: 'RewardsRegistrySet',
   })
 
 /**
@@ -15899,229 +14928,6 @@ export const watchRewardsCoordinatorUnpausedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: rewardsCoordinatorAbi,
     eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__
- */
-export const readRewardsRegistry = /*#__PURE__*/ createReadContract({
-  abi: rewardsRegistryAbi,
-})
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"avs"`
- */
-export const readRewardsRegistryAvs = /*#__PURE__*/ createReadContract({
-  abi: rewardsRegistryAbi,
-  functionName: 'avs',
-})
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getLatestMerkleRoot"`
- */
-export const readRewardsRegistryGetLatestMerkleRoot =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'getLatestMerkleRoot',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getLatestMerkleRootIndex"`
- */
-export const readRewardsRegistryGetLatestMerkleRootIndex =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'getLatestMerkleRootIndex',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getMerkleRootByIndex"`
- */
-export const readRewardsRegistryGetMerkleRootByIndex =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'getMerkleRootByIndex',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"getMerkleRootHistoryLength"`
- */
-export const readRewardsRegistryGetMerkleRootHistoryLength =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'getMerkleRootHistoryLength',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"hasClaimedByIndex"`
- */
-export const readRewardsRegistryHasClaimedByIndex =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'hasClaimedByIndex',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"merkleRootHistory"`
- */
-export const readRewardsRegistryMerkleRootHistory =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'merkleRootHistory',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"operatorClaimedByIndex"`
- */
-export const readRewardsRegistryOperatorClaimedByIndex =
-  /*#__PURE__*/ createReadContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'operatorClaimedByIndex',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"rewardsAgent"`
- */
-export const readRewardsRegistryRewardsAgent = /*#__PURE__*/ createReadContract(
-  { abi: rewardsRegistryAbi, functionName: 'rewardsAgent' },
-)
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__
- */
-export const writeRewardsRegistry = /*#__PURE__*/ createWriteContract({
-  abi: rewardsRegistryAbi,
-})
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimLatestRewards"`
- */
-export const writeRewardsRegistryClaimLatestRewards =
-  /*#__PURE__*/ createWriteContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimLatestRewards',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewards"`
- */
-export const writeRewardsRegistryClaimRewards =
-  /*#__PURE__*/ createWriteContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimRewards',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewardsBatch"`
- */
-export const writeRewardsRegistryClaimRewardsBatch =
-  /*#__PURE__*/ createWriteContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimRewardsBatch',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"setRewardsAgent"`
- */
-export const writeRewardsRegistrySetRewardsAgent =
-  /*#__PURE__*/ createWriteContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'setRewardsAgent',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"updateRewardsMerkleRoot"`
- */
-export const writeRewardsRegistryUpdateRewardsMerkleRoot =
-  /*#__PURE__*/ createWriteContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'updateRewardsMerkleRoot',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__
- */
-export const simulateRewardsRegistry = /*#__PURE__*/ createSimulateContract({
-  abi: rewardsRegistryAbi,
-})
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimLatestRewards"`
- */
-export const simulateRewardsRegistryClaimLatestRewards =
-  /*#__PURE__*/ createSimulateContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimLatestRewards',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewards"`
- */
-export const simulateRewardsRegistryClaimRewards =
-  /*#__PURE__*/ createSimulateContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimRewards',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"claimRewardsBatch"`
- */
-export const simulateRewardsRegistryClaimRewardsBatch =
-  /*#__PURE__*/ createSimulateContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'claimRewardsBatch',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"setRewardsAgent"`
- */
-export const simulateRewardsRegistrySetRewardsAgent =
-  /*#__PURE__*/ createSimulateContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'setRewardsAgent',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `functionName` set to `"updateRewardsMerkleRoot"`
- */
-export const simulateRewardsRegistryUpdateRewardsMerkleRoot =
-  /*#__PURE__*/ createSimulateContract({
-    abi: rewardsRegistryAbi,
-    functionName: 'updateRewardsMerkleRoot',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__
- */
-export const watchRewardsRegistryEvent = /*#__PURE__*/ createWatchContractEvent(
-  { abi: rewardsRegistryAbi },
-)
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `eventName` set to `"RewardsBatchClaimedForIndices"`
- */
-export const watchRewardsRegistryRewardsBatchClaimedForIndicesEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsRegistryAbi,
-    eventName: 'RewardsBatchClaimedForIndices',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `eventName` set to `"RewardsClaimedForIndex"`
- */
-export const watchRewardsRegistryRewardsClaimedForIndexEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsRegistryAbi,
-    eventName: 'RewardsClaimedForIndex',
-  })
-
-/**
- * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link rewardsRegistryAbi}__ and `eventName` set to `"RewardsMerkleRootUpdated"`
- */
-export const watchRewardsRegistryRewardsMerkleRootUpdatedEvent =
-  /*#__PURE__*/ createWatchContractEvent({
-    abi: rewardsRegistryAbi,
-    eventName: 'RewardsMerkleRootUpdated',
   })
 
 /**

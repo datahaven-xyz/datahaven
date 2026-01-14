@@ -39,9 +39,6 @@ import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETH
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {MerkleUtils} from "../../src/libraries/MerkleUtils.sol";
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
 // Shared structs
@@ -132,9 +129,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Deploy DataHaven contracts (same for both modes)
         (
             DataHavenServiceManager serviceManager,
-            DataHavenServiceManager serviceManagerImplementation,
-            RewardsRegistry rewardsRegistry,
-            bytes4 updateRewardsMerkleRootSelector
+            DataHavenServiceManager serviceManagerImplementation
         ) = _deployDataHavenContracts(avsConfig, proxyAdmin, gateway);
 
         Logging.logFooter();
@@ -142,14 +137,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
 
         // Final configuration (same for both modes)
         Logging.logHeader("FINAL CONFIGURATION");
-        if (_txExecutionEnabled) {
-            vm.broadcast(_avsOwnerPrivateKey);
-            serviceManager.setRewardsAgent(0, address(rewardsAgentAddress));
-            Logging.logStep("Agent set in RewardsRegistry");
-        } else {
-            Logging.logInfo("TX EXECUTION DISABLED: call setRewardsAgent via multisig");
-        }
-        Logging.logContractDeployed("Agent Address", rewardsAgentAddress);
+        Logging.logContractDeployed("Rewards Agent Address", rewardsAgentAddress);
         Logging.logFooter();
         _logProgress();
 
@@ -160,15 +148,10 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            rewardsRegistry,
             rewardsAgentAddress
         );
 
-        _outputRewardsInfo(
-            rewardsAgentAddress,
-            snowbridgeConfig.rewardsMessageOrigin,
-            updateRewardsMerkleRootSelector
-        );
+        _outputRewardsAgentInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin);
     }
 
     /**
@@ -253,14 +236,13 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         AVSConfig memory avsConfig,
         ProxyAdmin proxyAdmin,
         IGatewayV2 gateway
-    ) internal returns (DataHavenServiceManager, DataHavenServiceManager, RewardsRegistry, bytes4) {
+    ) internal returns (DataHavenServiceManager, DataHavenServiceManager) {
         Logging.logHeader("DATAHAVEN CUSTOM CONTRACTS DEPLOYMENT");
 
         // Deploy the Service Manager
         vm.broadcast(_deployerPrivateKey);
-        DataHavenServiceManager serviceManagerImplementation = new DataHavenServiceManager(
-            rewardsCoordinator, permissionController, allocationManager
-        );
+        DataHavenServiceManager serviceManagerImplementation =
+            new DataHavenServiceManager(rewardsCoordinator, allocationManager);
         Logging.logContractDeployed(
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
@@ -288,15 +270,6 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         );
         Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
 
-        // Deploy RewardsRegistry
-        vm.broadcast(_deployerPrivateKey);
-        RewardsRegistry rewardsRegistry = new RewardsRegistry(
-            address(serviceManager),
-            address(0) // Will be set to the Agent address after creation
-        );
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
-        bytes4 updateRewardsMerkleRootSelector = IRewardsRegistry.updateRewardsMerkleRoot.selector;
-
         Logging.logSection("Configuring Service Manager");
 
         // Register the DataHaven service in the AllocationManager
@@ -308,22 +281,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             Logging.logInfo("TX EXECUTION DISABLED: call updateAVSMetadataURI via multisig");
         }
 
-        // Set the RewardsRegistry in the ServiceManager
-        uint32 validatorsSetId = serviceManager.VALIDATORS_SET_ID();
-        if (_txExecutionEnabled) {
-            vm.broadcast(_avsOwnerPrivateKey);
-            serviceManager.setRewardsRegistry(validatorsSetId, rewardsRegistry);
-            Logging.logStep("RewardsRegistry set in ServiceManager");
-        } else {
-            Logging.logInfo("TX EXECUTION DISABLED: call setRewardsRegistry via multisig");
-        }
-
-        return (
-            serviceManager,
-            serviceManagerImplementation,
-            rewardsRegistry,
-            updateRewardsMerkleRootSelector
-        );
+        return (serviceManager, serviceManagerImplementation);
     }
 
     /**
@@ -344,24 +302,19 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal virtual;
 
     /**
-     * @notice Output rewards info (shared across all deployment types)
+     * @notice Output rewards agent info (shared across all deployment types)
      */
-    function _outputRewardsInfo(
+    function _outputRewardsAgentInfo(
         address rewardsAgent,
-        bytes32 rewardsAgentOrigin,
-        bytes4 updateRewardsMerkleRootSelector
+        bytes32 rewardsAgentOrigin
     ) internal {
         Logging.logHeader("REWARDS AGENT INFO");
         Logging.logContractDeployed("RewardsAgent", rewardsAgent);
         Logging.logAgentOrigin("RewardsAgentOrigin", vm.toString(rewardsAgentOrigin));
-        Logging.logFunctionSelector(
-            "updateRewardsMerkleRootSelector", vm.toString(updateRewardsMerkleRootSelector)
-        );
         Logging.logFooter();
 
         // Write to deployment file for future reference
@@ -375,33 +328,11 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         // Create JSON with rewards info
         string memory json = "{";
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
-        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '",');
-        json = string.concat(
-            json,
-            '"updateRewardsMerkleRootSelector": "',
-            _trimToBytes4(vm.toString(updateRewardsMerkleRootSelector)),
-            '"'
-        );
+        json = string.concat(json, '"RewardsAgentOrigin": "', vm.toString(rewardsAgentOrigin), '"');
         json = string.concat(json, "}");
 
         // Write to file
         vm.writeFile(rewardsInfoPath, json);
         Logging.logInfo(string.concat("Rewards info saved to: ", rewardsInfoPath));
-    }
-
-    /**
-     * @notice Helper function to trim a padded hex string to only the first 4 bytes
-     */
-    function _trimToBytes4(
-        string memory paddedHex
-    ) internal pure returns (string memory) {
-        bytes memory data = bytes(paddedHex);
-        bytes memory trimmed = new bytes(10); // 0x + 8 hex chars = 10 total chars
-
-        for (uint256 i = 0; i < 10; i++) {
-            trimmed[i] = data[i];
-        }
-
-        return string(trimmed);
     }
 }

@@ -54,7 +54,6 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
-use pallet_external_validators::traits::EraIndex;
 use pallet_file_system::types::StorageRequestMetadata;
 use pallet_file_system_runtime_api::*;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
@@ -72,7 +71,6 @@ pub use pallet_timestamp::Call as TimestampCall;
 use shp_file_metadata::ChunkId;
 use smallvec::smallvec;
 use snowbridge_core::AgentId;
-use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
 use sp_consensus_beefy::{
     ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -944,19 +942,6 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_external_validators_rewards_runtime_api::ExternalValidatorsRewardsApi<Block, AccountId, EraIndex> for Runtime
-        where
-        EraIndex: codec::Codec,
-    {
-        fn generate_rewards_merkle_proof(account_id: AccountId, era_index: EraIndex) -> Option<MerkleProof> {
-            ExternalValidatorsRewards::generate_rewards_merkle_proof(account_id, era_index)
-        }
-
-        fn verify_rewards_merkle_proof(merkle_proof: MerkleProof) -> bool {
-            ExternalValidatorsRewards::verify_rewards_merkle_proof(merkle_proof)
-        }
-    }
-
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (
@@ -1283,6 +1268,9 @@ impl_runtime_apis! {
         }
         fn get_current_price_per_giga_unit_per_tick() -> Balance {
             PaymentStreams::get_current_price_per_giga_unit_per_tick()
+        }
+        fn get_number_of_active_users_of_provider(provider_id: &ProviderIdFor<Runtime>) -> u32 {
+            PaymentStreams::get_number_of_active_users_of_provider(provider_id)
         }
     }
 

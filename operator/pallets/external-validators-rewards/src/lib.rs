@@ -38,7 +38,6 @@ use {
     frame_support::traits::{Get, ValidatorSet},
     pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
     parity_scale_codec::{Decode, Encode},
-    snowbridge_merkle_tree::{merkle_proof, merkle_root, verify_proof, MerkleProof},
     sp_core::{H160, H256},
     sp_runtime::{
         traits::{Hash, Zero},
@@ -185,7 +184,6 @@ pub mod pallet {
             era_index: EraIndex,
             total_points: u128,
             inflation_amount: u128,
-            rewards_merkle_root: H256,
         },
     }
 
@@ -197,57 +195,25 @@ pub mod pallet {
     }
 
     impl<AccountId: Ord + sp_runtime::traits::Debug + Parameter> EraRewardPoints<AccountId> {
-        // Helper function used to generate the following utils:
-        //  - rewards_merkle_root: merkle root corresponding [(validatorId, rewardPoints)]
-        //      for the era_index specified.
-        //  - leaves: that were used to generate the previous merkle root.
-        //  - leaf_index: index of the validatorId's leaf in the previous leaves array (if any).
-        //  - total_points: number of total points of the era_index specified.
-        //  - individual_points: (address, points) tuples for each validator.
-        //  - inflation_amount: total inflation tokens to distribute.
-        //  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
-        pub fn generate_era_rewards_utils<Hasher: sp_runtime::traits::Hash<Output = H256>>(
+        /// Generate utils needed for EigenLayer rewards submission:
+        ///  - total_points: number of total points of the era_index specified.
+        ///  - individual_points: (address, points) tuples for each validator.
+        ///  - inflation_amount: total inflation tokens to distribute.
+        ///  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
+        pub fn generate_era_rewards_utils(
             &self,
             era_index: EraIndex,
-            maybe_account_id_check: Option<AccountId>,
             inflation_amount: u128,
             era_start_timestamp: u32,
         ) -> Option<EraRewardsUtils> {
-            let mut leaves = Vec::with_capacity(self.individual.len());
-            let mut leaf_index = None;
             let mut individual_points = Vec::with_capacity(self.individual.len());
 
-            if let Some(account) = &maybe_account_id_check {
-                if !self.individual.contains_key(account) {
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "AccountId {:?} not found for era {:?}!",
-                        account,
-                        era_index
-                    );
-                    return None;
-                }
-            }
-
-            for (index, (account_id, reward_points)) in self.individual.iter().enumerate() {
-                let encoded = (account_id, reward_points).encode();
-                let hashed = <Hasher as sp_runtime::traits::Hash>::hash(&encoded);
-
-                leaves.push(hashed);
-
+            for (account_id, reward_points) in self.individual.iter() {
                 // Convert AccountId to H160 for EigenLayer rewards submission.
                 // In DataHaven, AccountId is H160, so encode() produces exactly 20 bytes.
                 individual_points
                     .push((H160::from_slice(&account_id.encode()[..20]), *reward_points));
-
-                if let Some(ref check_account_id) = maybe_account_id_check {
-                    if account_id == check_account_id {
-                        leaf_index = Some(index as u64);
-                    }
-                }
             }
-
-            let rewards_merkle_root = merkle_root::<Hasher, _>(leaves.iter().cloned());
 
             let total_points: u128 = individual_points.iter().map(|(_, pts)| *pts as u128).sum();
 
@@ -258,9 +224,6 @@ pub mod pallet {
             Some(EraRewardsUtils {
                 era_index,
                 era_start_timestamp,
-                rewards_merkle_root,
-                leaves,
-                leaf_index,
                 total_points,
                 individual_points,
                 inflation_amount,
@@ -309,33 +272,6 @@ pub mod pallet {
                     era_rewards.total.saturating_accrue(points);
                 }
             })
-        }
-
-        pub fn generate_rewards_merkle_proof(
-            account_id: T::AccountId,
-            era_index: EraIndex,
-        ) -> Option<MerkleProof> {
-            let era_rewards = RewardPointsForEra::<T>::get(&era_index);
-            // Pass 0 for inflation_amount and era_start_timestamp as they're not needed for merkle proof generation
-            let utils = era_rewards.generate_era_rewards_utils::<<T as Config>::Hashing>(
-                era_index,
-                Some(account_id),
-                0,
-                0,
-            )?;
-            utils.leaf_index.map(|index| {
-                merkle_proof::<<T as Config>::Hashing, _>(utils.leaves.into_iter(), index)
-            })
-        }
-
-        pub fn verify_rewards_merkle_proof(merkle_proof: MerkleProof) -> bool {
-            verify_proof::<<T as Config>::Hashing, _, _>(
-                &merkle_proof.root,
-                merkle_proof.proof,
-                merkle_proof.number_of_leaves,
-                merkle_proof.leaf_index,
-                merkle_proof.leaf,
-            )
         }
 
         /// Helper to build, validate and deliver an outbound message.
@@ -696,13 +632,11 @@ pub mod pallet {
 
             // Generate era rewards utils with the scaled inflation amount.
             // This ensures the message to EigenLayer matches the actual minted amount.
-            let utils = match RewardPointsForEra::<T>::get(&era_index)
-                .generate_era_rewards_utils::<<T as Config>::Hashing>(
-                    era_index,
-                    None,
-                    scaled_inflation,
-                    era_start_timestamp,
-                ) {
+            let utils = match RewardPointsForEra::<T>::get(&era_index).generate_era_rewards_utils(
+                era_index,
+                scaled_inflation,
+                era_start_timestamp,
+            ) {
                 Some(utils) => utils,
                 None => {
                     // Returns None when total_points is zero or no validators have rewards
@@ -736,7 +670,6 @@ pub mod pallet {
                     era_index,
                     total_points: utils.total_points,
                     inflation_amount: scaled_inflation,
-                    rewards_merkle_root: utils.rewards_merkle_root,
                 });
             }
         }

@@ -1096,12 +1096,47 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type Helper = ();
 }
 
-// For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
-#[cfg(any(
-    feature = "std",
-    feature = "fast-runtime",
-    feature = "runtime-benchmarks",
-    test
+// Fork versions for runtime benchmarks - must match the fixtures for BLS verification to work
+// The fixtures are generated with standard testnet fork versions
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const ChainForkVersions: ForkVersions = ForkVersions {
+        genesis: Fork {
+            version: hex_literal::hex!("00000000"),
+            epoch: 0,
+        },
+        altair: Fork {
+            version: hex_literal::hex!("01000000"),
+            epoch: 0,
+        },
+        bellatrix: Fork {
+            version: hex_literal::hex!("02000000"),
+            epoch: 0,
+        },
+        capella: Fork {
+            version: hex_literal::hex!("03000000"),
+            epoch: 0,
+        },
+        deneb: Fork {
+            version: hex_literal::hex!("04000000"),
+            epoch: 0,
+        },
+        electra: Fork {
+            version: hex_literal::hex!("05000000"),
+            epoch: 80000000000,
+        },
+        fulu: Fork {
+            version: hex_literal::hex!("06000000"),
+            epoch: 90000000000,
+        },
+    };
+}
+
+// For tests, fast-runtime and std configurations we use the mocked fork versions
+// These match the fork versions used by the local Ethereum network in E2E tests
+#[cfg(all(
+    any(feature = "std", feature = "fast-runtime", test),
+    not(feature = "runtime-benchmarks")
 ))]
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
@@ -1478,6 +1513,13 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Stag
         runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
     }
 
+    fn strategies_and_multipliers() -> Vec<(H160, u128)> {
+        runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get()
+            .into_iter()
+            .filter(|(s, _)| *s != H160::zero())
+            .collect()
+    }
+
     fn handle_remainder(remainder: u128) {
         use frame_support::traits::{fungible::Mutate, tokens::Preservation};
         let source = ExternalValidatorRewardsAccount::get();
@@ -1736,9 +1778,6 @@ mod tests {
             let rewards_utils = EraRewardsUtils {
                 era_index: 1,
                 era_start_timestamp: 1_700_000_000,
-                rewards_merkle_root: H256::random(),
-                leaves: vec![H256::random()],
-                leaf_index: Some(1),
                 total_points: 1000,
                 individual_points: vec![
                     (H160::from_low_u64_be(1), 500),
@@ -1791,9 +1830,6 @@ mod tests {
             let rewards_utils = EraRewardsUtils {
                 era_index: 1,
                 era_start_timestamp: 1_700_000_000,
-                rewards_merkle_root: H256::random(),
-                leaves: vec![H256::random()],
-                leaf_index: Some(1),
                 total_points: 1000,
                 individual_points: vec![(H160::from_low_u64_be(1), 600), (H160::from_low_u64_be(2), 400)],
                 inflation_amount: 1_000_000_000,

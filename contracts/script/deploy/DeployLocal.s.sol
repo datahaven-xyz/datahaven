@@ -24,14 +24,12 @@ import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
 import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
-// DataHaven imports for function signatures
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-
 // Additional imports specific to local deployment
 import {
     ERC20PresetFixedSupply
 } from "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {
     ITransparentUpgradeableProxy
@@ -70,14 +68,14 @@ import {
 import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.sol";
 
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-import {IRewardsRegistry} from "../../src/interfaces/IRewardsRegistry.sol";
 
 /**
  * @title DeployLocal
  * @notice Deployment script for local development (anvil) - deploys full EigenLayer infrastructure
  */
 contract DeployLocal is DeployBase {
+    using SafeERC20 for IERC20;
+
     // Local-specific EigenLayer Contract declarations
     EmptyContract public emptyContract;
     RewardsCoordinator public rewardsCoordinatorImplementation;
@@ -99,6 +97,40 @@ contract DeployLocal is DeployBase {
     function run() public {
         totalSteps = 4; // Total major deployment steps for local
         _executeSharedDeployment();
+
+        // Fund ServiceManager with tokens for rewards distribution (local only)
+        _fundServiceManagerWithTokens();
+    }
+
+    /**
+     * @notice Fund the ServiceManager with tokens for rewards distribution
+     * @dev Only for local deployments - transfers tokens from operator to ServiceManager
+     */
+    function _fundServiceManagerWithTokens() internal {
+        if (deployedStrategies.length == 0) {
+            Logging.logInfo("No strategies deployed, skipping ServiceManager funding");
+            return;
+        }
+
+        // Read ServiceManager address from deployments file
+        string memory network = _getNetworkName();
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", network, ".json");
+        string memory json = vm.readFile(deploymentPath);
+        address serviceManager = vm.parseJsonAddress(json, ".ServiceManager");
+
+        // Get token address from deployed strategies
+        address tokenAddress = deployedStrategies[0].underlyingToken;
+
+        // Transfer 500,000 tokens (half of minted supply) to ServiceManager
+        uint256 fundAmount = 500000 * 1e18;
+
+        Logging.logSection("Funding ServiceManager with Reward Tokens");
+        vm.broadcast(_operatorPrivateKey);
+        IERC20(tokenAddress).safeTransfer(serviceManager, fundAmount);
+        Logging.logStep(
+            string.concat("Transferred ", vm.toString(fundAmount), " tokens to ServiceManager")
+        );
     }
 
     // Implementation of abstract functions from DeployBase
@@ -207,7 +239,6 @@ contract DeployLocal is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
@@ -220,7 +251,6 @@ contract DeployLocal is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection("EigenLayer Core Contracts");
         Logging.logContractDeployed("DelegationManager", address(delegation));
@@ -269,9 +299,6 @@ contract DeployLocal is DeployBase {
             '"ServiceManagerImplementation": "',
             vm.toString(address(serviceManagerImplementation)),
             '",'
-        );
-        json = string.concat(
-            json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
         );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 

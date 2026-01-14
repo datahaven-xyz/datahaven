@@ -149,9 +149,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address[] memory newValidatorSet = new address[](currentValidatorSet.length);
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
             address solochainAddr = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
-            if (solochainAddr == address(0)) {
-                revert InvalidSolochainAddress();
-            }
+            require(solochainAddr != address(0), InvalidSolochainAddress());
             newValidatorSet[i] = solochainAddr;
         }
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
@@ -192,22 +190,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         uint32[] calldata operatorSetIds,
         bytes calldata data
     ) external override onlyAllocationManager {
-        if (avsAddress != address(this)) {
-            revert IncorrectAVSAddress();
-        }
-
-        if (operatorSetIds.length != 1) {
-            revert CantRegisterToMultipleOperatorSets();
-        }
-
-        if (operatorSetIds[0] != VALIDATORS_SET_ID) {
-            revert InvalidOperatorSetId();
-        }
-
-        if (!validatorsAllowlist[operator]) {
-            revert OperatorNotInAllowlist();
-        }
-
+        require(avsAddress == address(this), IncorrectAVSAddress());
+        require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
+        require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
+        require(validatorsAllowlist[operator], OperatorNotInAllowlist());
         require(data.length == 20, "Invalid solochain address length");
         address solochainAddress = address(bytes20(data));
         require(solochainAddress != address(0), InvalidSolochainAddress());
@@ -222,17 +208,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address avsAddress,
         uint32[] calldata operatorSetIds
     ) external override onlyAllocationManager {
-        if (avsAddress != address(this)) {
-            revert IncorrectAVSAddress();
-        }
-
-        if (operatorSetIds.length != 1) {
-            revert CantDeregisterFromMultipleOperatorSets();
-        }
-
-        if (operatorSetIds[0] != VALIDATORS_SET_ID) {
-            revert InvalidOperatorSetId();
-        }
+        require(avsAddress == address(this), IncorrectAVSAddress());
+        require(operatorSetIds.length == 1, CantDeregisterFromMultipleOperatorSets());
+        require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
 
         delete validatorEthAddressToSolochainAddress[operator];
 

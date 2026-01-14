@@ -148,7 +148,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         address[] memory newValidatorSet = new address[](currentValidatorSet.length);
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
-            newValidatorSet[i] = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
+            address solochainAddr = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
+            if (solochainAddr == address(0)) {
+                revert InvalidSolochainAddress();
+            }
+            newValidatorSet[i] = solochainAddr;
         }
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
@@ -162,6 +166,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function updateSolochainAddressForValidator(
         address solochainAddress
     ) external onlyValidator {
+        require(solochainAddress != address(0), InvalidSolochainAddress());
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
     }
 
@@ -204,7 +209,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         }
 
         require(data.length == 20, "Invalid solochain address length");
-        validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
+        address solochainAddress = address(bytes20(data));
+        require(solochainAddress != address(0), InvalidSolochainAddress());
+        validatorEthAddressToSolochainAddress[operator] = solochainAddress;
 
         emit OperatorRegistered(operator, operatorSetIds[0]);
     }

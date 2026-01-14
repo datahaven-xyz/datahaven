@@ -160,7 +160,7 @@ export const getBootnodeAddress = async (containerName: string): Promise<string>
 export const launchMspNode = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching StorageHub MSP node...");
 
   const containerName = `storagehub-msp-${options.networkId}`;
@@ -246,6 +246,8 @@ export const launchMspNode = async (
   launchedNetwork.addContainer(containerName, { ws: wsPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
   logger.success(`MSP node started on port ${wsPort}`);
+
+  return `ws://127.0.0.1:${wsPort}`;
 };
 
 /**

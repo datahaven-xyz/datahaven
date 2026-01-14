@@ -36,7 +36,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ Constants ============
 
     /// @notice The metadata for the DataHaven AVS.
-    string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
+    string public constant DATAHAVEN_AVS_METADATA =
+        "https://raw.githubusercontent.com/datahaven-xyz/datahaven-files/refs/heads/main/files/metadata.json";
 
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
@@ -91,8 +92,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _;
     }
 
-    // ============ Constructor ============
-
     /// @notice Sets the immutable EigenLayer contract references
     /// @param __rewardsCoordinator The EigenLayer RewardsCoordinator contract
     /// @param __allocationManager The EigenLayer AllocationManager contract
@@ -104,8 +103,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _allocationManager = __allocationManager;
         _disableInitializers();
     }
-
-    // ============ Initializer ============
 
     /// @inheritdoc IDataHavenServiceManager
     function initialise(
@@ -127,8 +124,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
     }
-
-    // ============ Snowbridge Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function sendNewValidatorSet(

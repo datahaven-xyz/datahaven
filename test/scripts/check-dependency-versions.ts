@@ -35,7 +35,7 @@ const main = async () => {
 
   let ok = true;
 
-  if (!deps.eigenlayer.gitConfirm || deps.eigenlayer.gitCommit !== current.eigenlayer.gitCommit) {
+  if (!deps.eigenlayer.gitCommit || deps.eigenlayer.gitCommit !== current.eigenlayer.gitCommit) {
     logger.error(
       `❌ eigenlayer gitCommit mismatch for '${chain}': deployments=${deps.eigenlayer.gitCommit ?? "(missing)"} current=${current.eigenlayer.gitCommit}`
     );

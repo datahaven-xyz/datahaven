@@ -84,7 +84,7 @@ export const getPortMappingForNode = (nodeId: string, networkId: string): string
 export const launchLocalDataHavenSolochain = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching DataHaven network...");
 
   invariant(options.datahavenImageTag, "❌ DataHaven image tag not defined");
@@ -165,6 +165,8 @@ export const launchLocalDataHavenSolochain = async (
   await setupDataHavenValidatorConfig(launchedNetwork, "datahaven-");
 
   logger.success(`DataHaven network started, primary node accessible on port ${alicePort}`);
+
+  return `ws://127.0.0.1:${alicePort}`;
 };
 
 /**

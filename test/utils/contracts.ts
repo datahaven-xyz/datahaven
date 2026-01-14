@@ -144,6 +144,10 @@ export const getContractInstance = async <C extends ContractName>(
   viemClient?: ViemClientInterface,
   network = "anvil"
 ) => {
+  invariant(
+    contract !== "DeployedStrategies",
+    "getContractInstance does not support 'DeployedStrategies' as it is an array. Use a different method to access deployed strategies."
+  );
   const deployments = await parseDeploymentsFile(network);
   const contractAddress = deployments[contract];
   logger.debug(`Contract ${contract} deployed to ${contractAddress}`);

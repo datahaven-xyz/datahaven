@@ -60,12 +60,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @notice The Snowbridge Gateway contract
     IGatewayV2 private _snowbridgeGateway;
 
-    struct SlashingRequest {
-        address operator;
-        uint256[] wadsToSlash;
-        string description;
-    }
-
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 

@@ -10,6 +10,8 @@ import {
     IAllocationManagerEvents
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
+import {IDataHavenServiceManager} from "../src/interfaces/IDataHavenServiceManager.sol";
+
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import "forge-std/Test.sol";
 
@@ -53,7 +55,7 @@ contract SlashingTest is AVSDeployer {
         wadsToSlash[2] = 1e16;
 
         slashings[0] =
-            DataHavenServiceManager.SlashingRequest(operator, wadsToSlash, "Testing slashing");
+            IDataHavenServiceManager.SlashingRequest(operator, wadsToSlash, "Testing slashing");
 
         console.log(block.number);
         vm.roll(block.number + uint32(7 days) + 1);

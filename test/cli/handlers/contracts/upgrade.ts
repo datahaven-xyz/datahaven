@@ -164,19 +164,12 @@ const deployImplementationContracts = async (options: ContractsUpgradeOptions) =
   );
   logger.success(`ServiceManager Implementation deployed: ${serviceManagerImplAddress}`);
 
-  // Deploy new VetoableSlasher (not upgradeable, but may need new version)
-  const vetoableSlasherAddress = await deployVetoableSlasher(options.chain, rpcUrl, privateKey);
-  logger.success(`VetoableSlasher deployed: ${vetoableSlasherAddress}`);
-
-  // Deploy new RewardsRegistry (not upgradeable, but may need new version)
-  const rewardsRegistryAddress = await deployRewardsRegistry(options.chain, rpcUrl, privateKey);
-  logger.success(`RewardsRegistry deployed: ${rewardsRegistryAddress}`);
+  // Note: VetoableSlasher and RewardsRegistry contracts have been removed
+  // They are no longer part of the deployment process
 
   // Update deployment file with new implementation addresses
   await updateDeploymentFile(options.chain, {
-    ServiceManagerImplementation: serviceManagerImplAddress,
-    VetoableSlasher: vetoableSlasherAddress,
-    RewardsRegistry: rewardsRegistryAddress
+    ServiceManagerImplementation: serviceManagerImplAddress
   });
 };
 
@@ -250,129 +243,6 @@ const deployServiceManagerImplementation = async (
   }
 };
 
-/**
- * Deploys new VetoableSlasher contract
- */
-const deployVetoableSlasher = async (
-  chain: string,
-  rpcUrl: string,
-  privateKey: string
-): Promise<string> => {
-  logger.info("📦 Deploying VetoableSlasher...");
-
-  const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
-  if (!chainConfig) {
-    throw new Error(`Unsupported chain: ${chain}`);
-  }
-  const actualDeployments = await parseDeploymentsFile(chain);
-
-  // Note: Private key is passed via environment variable as required by forge
-  // This is a known limitation of the forge toolchain
-  const env = {
-    ...process.env,
-    PRIVATE_KEY: privateKey,
-    RPC_URL: rpcUrl,
-    ALLOCATION_MANAGER: actualDeployments.AllocationManager,
-    SERVICE_MANAGER: actualDeployments.ServiceManager,
-    ETHERSCAN_API_KEY: process.env.ETHERSCAN_API_KEY
-  };
-
-  const deployArgs = [
-    "script",
-    "script/deploy/DeployImplementation.s.sol:DeployImplementation",
-    "--sig",
-    "deployVetoableSlasher()",
-    "--broadcast",
-    "--verify",
-    "--verifier",
-    "etherscan",
-    "--verifier-url",
-    chainConfig.BLOCK_EXPLORER,
-    "--etherscan-api-key",
-    process.env.ETHERSCAN_API_KEY || ""
-  ];
-
-  try {
-    const result = await executeCommand(
-      "forge",
-      deployArgs,
-      env as Record<string, string>,
-      "../contracts"
-    );
-
-    const addressMatch = result.match(/VetoableSlasher deployed at: (0x[a-fA-F0-9]{40})/);
-    if (addressMatch) {
-      return addressMatch[1];
-    }
-
-    throw new Error("Failed to extract VetoableSlasher address from deployment output");
-  } catch (error) {
-    logger.error(`❌ Failed to deploy VetoableSlasher: ${error}`);
-    throw error;
-  }
-};
-
-/**
- * Deploys new RewardsRegistry contract
- */
-const deployRewardsRegistry = async (
-  chain: string,
-  rpcUrl: string,
-  privateKey: string
-): Promise<string> => {
-  logger.info("📦 Deploying RewardsRegistry...");
-
-  const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
-  if (!chainConfig) {
-    throw new Error(`Unsupported chain: ${chain}`);
-  }
-  const actualDeployments = await parseDeploymentsFile(chain);
-
-  // Note: Private key is passed via environment variable as required by forge
-  // This is a known limitation of the forge toolchain
-  const env = {
-    ...process.env,
-    PRIVATE_KEY: privateKey,
-    RPC_URL: rpcUrl,
-    SERVICE_MANAGER: actualDeployments.ServiceManager,
-    REWARDS_AGENT: actualDeployments.RewardsAgent,
-    ETHERSCAN_API_KEY: process.env.ETHERSCAN_API_KEY
-  };
-
-  const deployArgs = [
-    "script",
-    "script/deploy/DeployImplementation.s.sol:DeployImplementation",
-    "--sig",
-    "deployRewardsRegistry()",
-    "--broadcast",
-    "--verify",
-    "--verifier",
-    "etherscan",
-    "--verifier-url",
-    chainConfig.BLOCK_EXPLORER,
-    "--etherscan-api-key",
-    process.env.ETHERSCAN_API_KEY || ""
-  ];
-
-  try {
-    const result = await executeCommand(
-      "forge",
-      deployArgs,
-      env as Record<string, string>,
-      "../contracts"
-    );
-
-    const addressMatch = result.match(/RewardsRegistry deployed at: (0x[a-fA-F0-9]{40})/);
-    if (addressMatch) {
-      return addressMatch[1];
-    }
-
-    throw new Error("Failed to extract RewardsRegistry address from deployment output");
-  } catch (error) {
-    logger.error(`❌ Failed to deploy RewardsRegistry: ${error}`);
-    throw error;
-  }
-};
 
 /**
  * Updates proxy contracts to point to new implementations

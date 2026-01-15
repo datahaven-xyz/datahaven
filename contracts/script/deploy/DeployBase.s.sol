@@ -260,15 +260,7 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             _createServiceManagerProxy(serviceManagerImplementation, proxyAdmin, initParams);
         Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
-        // Deploy VetoableSlasher
-        vm.broadcast(_deployerPrivateKey);
-        VetoableSlasher vetoableSlasher = new VetoableSlasher(
-            allocationManager,
-            serviceManager,
-            avsConfig.vetoCommitteeMember,
-            avsConfig.vetoWindowBlocks
-        );
-        Logging.logContractDeployed("VetoableSlasher", address(vetoableSlasher));
+        // Note: VetoableSlasher contract has been removed
 
         Logging.logSection("Configuring Service Manager");
 

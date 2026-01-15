@@ -350,14 +350,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ Internal Functions ============
 
     /**
-     * @notice Returns the semantic version of the deployed DataHaven AVS stack.
-     * @dev This is an informational helper and is not used for on-chain enforcement.
-     */
-    function datahavenVersion() external pure returns (string memory) {
-        return DATAHAVEN_VERSION;
-    }
-
-    /**
      * @notice Creates the initial operator set for DataHaven in the AllocationManager.
      * @dev This function should be called during initialisation to set up the required operator set.
      */

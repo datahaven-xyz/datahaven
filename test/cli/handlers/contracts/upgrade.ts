@@ -243,7 +243,6 @@ const deployServiceManagerImplementation = async (
   }
 };
 
-
 /**
  * Updates proxy contracts to point to new implementations
  */

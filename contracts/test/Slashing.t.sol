@@ -23,7 +23,7 @@ contract SlashingTest is AVSDeployer {
     }
 
     function test_fulfilSlashingRequest() public {
-        // Allow our operatir to register
+        // Allow our operator to register
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(operator);
 
@@ -79,7 +79,7 @@ contract SlashingTest is AVSDeployer {
     }
 
     function test_fulfilSlashingRequestForOnlyOneStrategy() public {
-        // Allow our operatir to register
+        // Allow our operator to register
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(operator);
 

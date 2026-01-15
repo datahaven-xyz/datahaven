@@ -113,7 +113,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) public virtual initializer {
         __Ownable_init();
         _transferOwnership(initialOwner);
-        _setRewardsInitiator(_rewardsInitiator);
+        rewardsInitiator = _rewardsInitiator;
 
         // Register the DataHaven service in the AllocationManager.
         _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -302,7 +302,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address newRewardsInitiator
     ) external override onlyOwner {
         address oldInitiator = rewardsInitiator;
-        _setRewardsInitiator(newRewardsInitiator);
+        rewardsInitiator = newRewardsInitiator;
         emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
     }
 
@@ -325,17 +325,5 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
                 operator: operator, avs: address(this), operatorSetIds: operatorSetIds
             });
         _allocationManager.deregisterFromOperatorSets(params);
-    }
-
-    // ============ Internal Functions ============
-
-    /**
-     * @notice Internal function to set the rewards initiator
-     * @param _rewardsInitiator The new rewards initiator address
-     */
-    function _setRewardsInitiator(
-        address _rewardsInitiator
-    ) internal {
-        rewardsInitiator = _rewardsInitiator;
     }
 }

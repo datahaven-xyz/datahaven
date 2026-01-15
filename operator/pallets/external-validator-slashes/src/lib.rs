@@ -365,7 +365,11 @@ pub mod pallet {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
 
-            T::WeightInfo::process_slashes_queue(processed)
+            if let Some(p) = processed {
+                T::WeightInfo::process_slashes_queue(p)
+            } else {
+                T::WeightInfo::process_slashes_queue(0)
+            }
         }
     }
 }
@@ -598,7 +602,7 @@ impl<T: Config> Pallet<T> {
         });
 
         if slashes_to_send.is_empty() {
-            return 0;
+            return None;
         }
 
         let slashes_count = slashes_to_send.len() as u32;
@@ -607,7 +611,7 @@ impl<T: Config> Pallet<T> {
             Some(send_msg) => send_msg,
             None => {
                 log::error!(target: "ext_validators_slashes", "Failed to build outbound message");
-                return 0;
+                return None;
             }
         };
 
@@ -619,7 +623,6 @@ impl<T: Config> Pallet<T> {
                     "Failed to validate outbound message: {:?}",
                     e
                 );
-                return 0;
             })
             .ok()?;
 
@@ -630,13 +633,10 @@ impl<T: Config> Pallet<T> {
                     "Failed to deliver outbound message: {:?}",
                     e
                 );
-                return 0;
             })
-            .ok();
+            .ok()?;
 
-        if let Some(mid) = message_id {
-            Self::deposit_event(Event::<T>::SlashesMessageSent { message_id: mid });
-        }
+        Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
 
         Some(slashes_count)
     }

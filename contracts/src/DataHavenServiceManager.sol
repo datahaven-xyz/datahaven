@@ -363,7 +363,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /**
      * @notice Slash the operators of the validators set
-     * @dev This function should be called during initialisation to set up the required operator set.
+     * @param SlashingRequest[] array of request to slash operator containing the operator to slash, array of proportions to slash and the reason of the slashing.
      */
     function slashValidatorsOperator(
         SlashingRequest[] calldata slashings

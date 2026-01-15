@@ -2118,7 +2118,7 @@ export const dataHavenServiceManagerAbi = [
         type: 'address',
       },
     ],
-    name: 'initialise',
+    name: 'initialize',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2436,6 +2436,25 @@ export const dataHavenServiceManagerAbi = [
         type: 'address',
         indexed: true,
       },
+      {
+        name: 'solochainAddress',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'SolochainAddressUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'validator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
     ],
     name: 'ValidatorAddedToAllowlist',
   },
@@ -2460,6 +2479,7 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
+  { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -10722,12 +10742,12 @@ export const writeDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialize"`
  */
-export const writeDataHavenServiceManagerInitialise =
+export const writeDataHavenServiceManagerInitialize =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'initialise',
+    functionName: 'initialize',
   })
 
 /**
@@ -10872,12 +10892,12 @@ export const simulateDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialize"`
  */
-export const simulateDataHavenServiceManagerInitialise =
+export const simulateDataHavenServiceManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'initialise',
+    functionName: 'initialize',
   })
 
 /**
@@ -11046,6 +11066,15 @@ export const watchDataHavenServiceManagerSnowbridgeGatewaySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'SnowbridgeGatewaySet',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SolochainAddressUpdated"`
+ */
+export const watchDataHavenServiceManagerSolochainAddressUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'SolochainAddressUpdated',
   })
 
 /**

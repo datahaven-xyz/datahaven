@@ -255,7 +255,7 @@ contract AVSDeployer is Test {
                     address(serviceManagerImplementation),
                     address(proxyAdmin),
                     abi.encodeWithSelector(
-                        DataHavenServiceManager.initialise.selector,
+                        DataHavenServiceManager.initialize.selector,
                         avsOwner,
                         rewardsInitiator,
                         validatorsStrategies,

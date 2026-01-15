@@ -111,13 +111,14 @@ export const parseRewardsInfoFile = async (network = "anvil"): Promise<RewardsIn
 };
 
 // Add to this if we add any new contracts
+// Note: RewardsRegistry has been removed but is kept in Deployments for backwards compatibility
 const abiMap = {
   BeefyClient: generated.beefyClientAbi,
   AgentExecutor: generated.agentExecutorAbi,
   Gateway: generated.gatewayAbi,
   ServiceManager: generated.dataHavenServiceManagerAbi,
   ServiceManagerImplementation: generated.dataHavenServiceManagerAbi,
-  RewardsRegistry: generated.rewardsRegistryAbi,
+  RewardsRegistry: [] as Abi, // RewardsRegistry has been removed, using empty ABI for backwards compatibility
   RewardsAgent: generated.agentAbi,
   DelegationManager: generated.delegationManagerAbi,
   StrategyManager: generated.strategyManagerAbi,
@@ -130,7 +131,7 @@ const abiMap = {
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
   DeployedStrategies: erc20Abi
-} as const satisfies Record<keyof Omit<Deployments, "network" | "ProxyAdmin" | "version">, Abi>;
+} as const satisfies Record<keyof Omit<Deployments, "network" | "ProxyAdmin" | "version" | "deps">, Abi>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];

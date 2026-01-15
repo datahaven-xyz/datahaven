@@ -8,6 +8,7 @@ import type { ParameterCollection } from "utils/parameters";
 import { encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { dataHavenServiceManagerAbi } from "../contract-bindings/generated";
+import { getDependencyVersions } from "../utils/dependencyVersions";
 
 interface ContractDeploymentOptions {
   chain?: string;

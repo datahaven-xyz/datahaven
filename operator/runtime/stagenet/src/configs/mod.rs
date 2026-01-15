@@ -1688,6 +1688,11 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Stag
         runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
         // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
+
+    fn strategies() -> Vec<H160> {
+        // We only slash strategy that we reward
+        runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get().iter().map(|(strategy, _mult)| strategy.clone()).collect()
+    }
 }
 
 // Stub SendMessage implementation for slash pallet

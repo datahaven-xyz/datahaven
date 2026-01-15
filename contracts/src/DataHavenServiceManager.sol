@@ -32,7 +32,7 @@ import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.so
  */
 contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
-
+    
     // ============ Constants ============
 
     /// @notice The metadata for the DataHaven AVS.
@@ -361,14 +361,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         SlashingRequest[] calldata slashings
     ) external onlyRewardsInitiator {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        IStrategy[] memory strategies = _allocationManager.getStrategiesInOperatorSet(operatorSet);
 
         for (uint256 i = 0; i < slashings.length; i++) {
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({
                     operator: slashings[i].operator,
                     operatorSetId: VALIDATORS_SET_ID,
-                    strategies: strategies,
+                    strategies: slashings[i].strategies,
                     wadsToSlash: slashings[i].wadsToSlash,
                     description: slashings[i].description
                 });

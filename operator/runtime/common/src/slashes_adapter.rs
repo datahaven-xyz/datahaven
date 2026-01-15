@@ -17,6 +17,7 @@ sol! {
     // Slashing request to be send to the DatahavenServiceManager
     struct SlashingRequest {
         address operator;
+        address[] strategies;
         uint256[] wadsToSlash;
         string description;
     }
@@ -42,6 +43,9 @@ pub trait SlashesSubmissionConfig {
 
     /// Get the agent origin for outbound messages.
     fn slashes_agent_origin() -> H256;
+
+    /// Get the strategies to slash.
+    fn strategies() -> Vec<H160>;
 }
 
 /// Generic slashes submission adapter.
@@ -57,7 +61,8 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
     type Message = OutboundMessage;
     type Ticket = OutboundMessage;
     fn build(slashes_utils: &Vec<SlashData<AccountId>>, era: u32) -> Option<Self::Message> {
-        let calldata = encode_slashing_request(slashes_utils);
+        let strategies = C::strategies();
+        let calldata = encode_slashing_request(slashes_utils, strategies);
 
         let command = Command::CallContract {
             target: C::service_manager_address(),
@@ -91,14 +96,18 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
     }
 }
 
-fn encode_slashing_request(slashes_utils: &Vec<SlashData<AccountId>>) -> Vec<u8> {
+fn encode_slashing_request(slashes_utils: &Vec<SlashData<AccountId>>, strategies: Vec<H160>) -> Vec<u8> {
     let mut slashings: Vec<SlashingRequest> = vec![];
 
     // Extend with operator address to slash
     for slash_operator in slashes_utils.into_iter() {
+        // slashing all the strategies
+        let wads_to_slash = strategies.iter().map(|_| U256::from(slash_operator.wad_to_slash)).collect();
+
         let slashing_request = SlashingRequest {
             operator: Address::from(slash_operator.validator.0),
-            wadsToSlash: vec![U256::from(slash_operator.amount_to_slash)], // We only have one strategy deployed
+            strategies: strategies.iter().map(|s| Address::from(s.as_fixed_bytes())).collect(),
+            wadsToSlash: wads_to_slash, // We only have one strategy deployed
             description: "Slashing validator".into(),
         };
 

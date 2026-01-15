@@ -84,6 +84,7 @@ interface IDataHavenServiceManager is
     /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
     struct SlashingRequest {
         address operator;
+        IStrategy[] strategies;
         uint256[] wadsToSlash;
         string description;
     }

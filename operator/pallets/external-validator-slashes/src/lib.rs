@@ -66,7 +66,7 @@ pub mod weights;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SlashData<AccountId> {
     pub validator: AccountId,
-    pub amount_to_slash: u128,
+    pub wad_to_slash: u128,
 }
 
 // FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
@@ -417,10 +417,10 @@ where
 
         // Fast path for active-era report - most likely.
         // `slash_session` cannot be in a future active era. It must be in `active_era` or before.
-        let (slash_era, external_idx) = if slash_session >= active_era_start_session_index {
-            // Account for get_external_index read.
+        let slash_era = if slash_session >= active_era_start_session_index {
             add_db_reads_writes(1, 0);
-            (active_era, T::ExternalIndexProvider::get_external_index())
+            
+            active_era
         } else {
             let eras = BondedEras::<T>::get();
             add_db_reads_writes(1, 0);
@@ -431,7 +431,7 @@ where
                 .rev()
                 .find(|&(_, sesh, _)| sesh <= &slash_session)
             {
-                Some((slash_era, _, external_idx)) => (*slash_era, *external_idx),
+                Some((slash_era, _, _external_idx)) => *slash_era,
                 // Before bonding period. defensive - should be filtered out.
                 None => return consumed_weight,
             }
@@ -592,7 +592,7 @@ impl<T: Config> Pallet<T> {
 
                 slashes_to_send.push(SlashData {
                     validator: slash.validator,
-                    amount_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
+                    wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
                 });
             }
         });

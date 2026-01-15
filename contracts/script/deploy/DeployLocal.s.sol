@@ -189,7 +189,7 @@ contract DeployLocal is DeployBase {
         _deployImplementations(eigenLayerConfig, pauserRegistry);
         Logging.logStep("Implementation contracts deployed successfully");
 
-        // Upgrade proxies to point to implementations and initialise
+        // Upgrade proxies to point to implementations and initialize
         Logging.logSection("Initializing Contracts");
         _upgradeAndInitializeProxies(eigenLayerConfig, proxyAdmin);
         Logging.logStep("Proxies upgraded and initialized successfully");
@@ -220,7 +220,7 @@ contract DeployLocal is DeployBase {
 
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialise.selector,
+            DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,

@@ -110,7 +110,7 @@ interface IDataHavenServiceManager is
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
      */
-    function initialise(
+    function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,

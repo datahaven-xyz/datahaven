@@ -105,7 +105,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function initialise(
+    function initialize(
         address initialOwner,
         address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,

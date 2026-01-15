@@ -170,7 +170,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function updateSolochainAddressForValidator(
         address solochainAddress
     ) external onlyValidator {
-        require(solochainAddress != address(0), InvalidSolochainAddress());
+        require(solochainAddress != address(0), ZeroAddress());
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
         emit SolochainAddressUpdated(msg.sender, solochainAddress);
     }
@@ -179,7 +179,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function setSnowbridgeGateway(
         address _newSnowbridgeGateway
     ) external onlyOwner {
-        require(_newSnowbridgeGateway != address(0), InvalidSnowbridgeGatewayAddress());
+        require(_newSnowbridgeGateway != address(0), ZeroAddress());
         _snowbridgeGateway = IGatewayV2(_newSnowbridgeGateway);
         emit SnowbridgeGatewaySet(_newSnowbridgeGateway);
     }
@@ -204,7 +204,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
         require(data.length == 20, "Invalid solochain address length");
         address solochainAddress = address(bytes20(data));
-        require(solochainAddress != address(0), InvalidSolochainAddress());
+        require(solochainAddress != address(0), ZeroAddress());
         validatorEthAddressToSolochainAddress[operator] = solochainAddress;
 
         emit OperatorRegistered(operator, operatorSetIds[0]);

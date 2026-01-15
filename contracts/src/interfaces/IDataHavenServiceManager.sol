@@ -28,10 +28,8 @@ interface IDataHavenServiceManagerErrors {
     error OnlyRewardsInitiator();
     /// @notice Thrown when a function is called by an address that is not the AllocationManager
     error OnlyAllocationManager();
-    /// @notice Thrown when an invalid (zero) solochain address is provided
-    error InvalidSolochainAddress();
-    /// @notice Thrown when an invalid (zero) Snowbridge Gateway address is provided
-    error InvalidSnowbridgeGatewayAddress();
+    /// @notice Thrown when a zero address is provided where a non-zero address is required
+    error ZeroAddress();
 }
 
 /**

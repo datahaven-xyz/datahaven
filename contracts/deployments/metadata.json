@@ -2,6 +2,6 @@
     "name": "DataHaven",
     "website": "https://datahaven.xyz/",
     "description": "DataHaven is a decentralized, EigenLayer-secured AVS for distributed storage. By leveraging restaking, it ensures tamper-proof, censorship-resistant, and verifiable data persistence. Designed with AI and Web3 ecosystems in mind, DataHaven integrates seamlessly with smart contracts, offering developers reliable storage infrastructure for models, logs, and digital assets at scale.",
-    "logo": "https://raw.githubusercontent.com/datahaven-xyz/datahaven-files/refs/heads/main/files/datahaven-logo.png",
+    "logo": "https://raw.githubusercontent.com/datahaven-xyz/datahaven/refs/heads/main/contracts/deployments/datahaven-logo.png",
     "twitter": "https://x.com/datahaven_xyz"
 }

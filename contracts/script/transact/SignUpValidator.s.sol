@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 import {SignUpOperatorBase} from "./SignUpOperatorBase.s.sol";
-import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 
 /**
  * @title SignUpValidator

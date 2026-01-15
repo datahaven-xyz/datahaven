@@ -38,6 +38,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
 
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// This is informational and should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string public constant DATAHAVEN_VERSION = "1.0.0";
+
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
 
@@ -77,18 +82,26 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Restricts function to registered validators
     modifier onlyValidator() {
+        _onlyValidator();
+        _;
+    }
+
+    function _onlyValidator() internal {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         require(
             _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
             CallerIsNotValidator()
         );
-        _;
     }
 
     /// @notice Restricts function to the EigenLayer AllocationManager
     modifier onlyAllocationManager() {
-        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
+        _onlyAllocationManager();
         _;
+    }
+
+    function _onlyAllocationManager() internal {
+        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
     }
 
     // ============ Constructor ============

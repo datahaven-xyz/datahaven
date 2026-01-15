@@ -260,6 +260,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             _createServiceManagerProxy(serviceManagerImplementation, proxyAdmin, initParams);
         Logging.logContractDeployed("ServiceManager Proxy", address(serviceManager));
 
+        // Note: VetoableSlasher contract has been removed
+
         Logging.logSection("Configuring Service Manager");
 
         // Register the DataHaven service in the AllocationManager

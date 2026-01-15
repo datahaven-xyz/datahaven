@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
 import type { DeployEnvironment } from "utils";
+import { logger, printHeader } from "utils";
 import {
   contractsCheck,
   contractsDeploy,
   contractsPreActionHook,
+  contractsUpgrade,
   contractsVerify,
   deploy,
   deployPreActionHook,
@@ -87,9 +89,9 @@ program
     "Tag of the relayer image to use",
     "datahavenxyz/snowbridge-relay:latest"
   )
-  .option("--docker-username <value>", "Docker Hub username")
-  .option("--docker-password <value>", "Docker Hub password")
-  .option("--docker-email <value>", "Docker Hub email")
+  .option("--docker-username <value>", "Docker Hub username (use DOCKER_USERNAME env var instead)")
+  .option("--docker-password <value>", "Docker Hub password (use DOCKER_PASSWORD env var instead)")
+  .option("--docker-email <value>", "Docker Hub email (use DOCKER_EMAIL env var instead)")
   .option("--chainspec <value>", "Absolute path to custom chainspec file")
   .option("--skip-cleanup", "Skip cleaning up the network", false)
   .option("--skip-kurtosis", "Skip deploying Kurtosis Ethereum private network", false)
@@ -159,7 +161,7 @@ program
     "--features=fast-runtime"
   )
   .option(
-    "--e --kurtosis-enclave-name <value>",
+    "--ken, --kurtosis-enclave-name <value>",
     "Name of the Kurtosis Enclave",
     "datahaven-ethereum"
   )
@@ -203,6 +205,7 @@ const contractsCommand = program
     Commands:
     - status: Show deployment plan, configuration, and status (default)
     - deploy: Deploy contracts to specified chain
+    - upgrade: Upgrade contracts by deploying new implementations
     - verify: Verify deployed contracts on block explorer
     - update-metadata: Update the metadata URI of an existing AVS contract
     
@@ -211,6 +214,12 @@ const contractsCommand = program
     --rpc-url: Chain RPC URL (optional, defaults based on chain)
     --private-key: Private key for deployment
     --skip-verification: Skip contract verification
+
+    Versioning:
+    - Each deployments/<chain>.json carries a single version field alongside contract addresses.
+    - bun cli contracts deploy performs a MINOR bump (X.Y.0) after a successful full deployment.
+    - bun cli contracts upgrade performs a PATCH bump (X.Y.Z+1) after a successful upgrade.
+    - The meaning of a given version is defined by the current git branch and external docs, not by the CLI.
     `
   )
   .description("Deploy and manage DataHaven AVS contracts on supported chains");
@@ -250,6 +259,39 @@ contractsCommand
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsDeploy);
+
+// Contracts Upgrade
+contractsCommand
+  .command("upgrade")
+  .description("Upgrade DataHaven AVS contracts by deploying new implementations")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .option("--private-key-file <value>", "Path to file containing private key for deployment")
+  .option("--verify", "Verify upgraded contracts on block explorer", false)
+  .hook("preAction", contractsPreActionHook)
+  .action(async (options: any, command: any) => {
+    // Try to get chain from options or command
+    let chain = options.chain;
+    if (!chain && command.parent) {
+      chain = command.parent.getOptionValue("chain");
+    }
+    if (!chain) {
+      chain = command.getOptionValue("chain");
+    }
+
+    printHeader(`Upgrading DataHaven Contracts on ${chain}`);
+
+    try {
+      await contractsUpgrade({
+        chain: chain,
+        rpcUrl: options.rpcUrl,
+        privateKeyFile: options.privateKeyFile,
+        verify: options.verify
+      });
+    } catch (error) {
+      logger.error(`❌ Upgrade failed: ${error}`);
+    }
+  });
 
 // Contracts Verify
 contractsCommand

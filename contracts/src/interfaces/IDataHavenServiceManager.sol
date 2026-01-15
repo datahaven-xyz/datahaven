@@ -66,6 +66,9 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldInitiator The previous rewards initiator address
     /// @param newInitiator The new rewards initiator address
     event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+
+    /// @notice Emitted when a batch of slashing request is being successfully slashed
+    event SlashingComplete();
 }
 
 /**

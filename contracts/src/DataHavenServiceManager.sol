@@ -66,8 +66,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         string description;
     }
 
-    event SlashingComplete();
-
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
@@ -363,7 +361,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /**
      * @notice Slash the operators of the validators set
-     * @param SlashingRequest[] array of request to slash operator containing the operator to slash, array of proportions to slash and the reason of the slashing.
+     * @param slashings array of request to slash operator containing the operator to slash, array of proportions to slash and the reason of the slashing.
      */
     function slashValidatorsOperator(
         SlashingRequest[] calldata slashings

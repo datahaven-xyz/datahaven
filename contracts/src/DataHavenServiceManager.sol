@@ -178,6 +178,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function setSnowbridgeGateway(
         address _newSnowbridgeGateway
     ) external onlyOwner {
+        require(_newSnowbridgeGateway != address(0), InvalidSnowbridgeGatewayAddress());
         _snowbridgeGateway = IGatewayV2(_newSnowbridgeGateway);
         emit SnowbridgeGatewaySet(_newSnowbridgeGateway);
     }

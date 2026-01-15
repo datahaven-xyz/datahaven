@@ -579,7 +579,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Returns number of slashes that were sent to ethereum.
-    fn process_slashes_queue(amount: u32) -> u32 {
+    fn process_slashes_queue(amount: u32) -> Option<u32> {
         let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
         let era_index = T::EraIndexProvider::active_era().index;
 
@@ -621,7 +621,7 @@ impl<T: Config> Pallet<T> {
                 );
                 return 0;
             })
-            .unwrap();
+            .ok()?;
 
         let message_id = T::SendMessage::deliver(ticket)
             .map_err(|e| {
@@ -632,11 +632,13 @@ impl<T: Config> Pallet<T> {
                 );
                 return 0;
             })
-            .unwrap();
+            .ok();
 
-        Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
+        if let Some(mid) = message_id {
+            Self::deposit_event(Event::<T>::SlashesMessageSent { message_id: mid });
+        }
 
-        slashes_count
+        Some(slashes_count)
     }
 }
 

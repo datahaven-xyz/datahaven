@@ -111,6 +111,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         IStrategy[] memory validatorsStrategies,
         address _snowbridgeGatewayAddress
     ) public virtual initializer {
+        require(initialOwner != address(0), ZeroAddress());
+
         __Ownable_init();
         _transferOwnership(initialOwner);
         rewardsInitiator = _rewardsInitiator;
@@ -238,6 +240,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function addValidatorToAllowlist(
         address validator
     ) external onlyOwner {
+        require(validator != address(0), ZeroAddress());
         validatorsAllowlist[validator] = true;
         emit ValidatorAddedToAllowlist(validator);
     }
@@ -301,6 +304,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function setRewardsInitiator(
         address newRewardsInitiator
     ) external override onlyOwner {
+        require(newRewardsInitiator != address(0), ZeroAddress());
         address oldInitiator = rewardsInitiator;
         rewardsInitiator = newRewardsInitiator;
         emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);

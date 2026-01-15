@@ -77,6 +77,7 @@ use sp_runtime::SaturatedConversion;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{default::Default, path::Path, sync::Arc, time::Duration};
+use substrate_prometheus_endpoint::Registry;
 
 pub(crate) type FullClient<RuntimeApi> = StorageHubClient<RuntimeApi>;
 
@@ -602,6 +603,9 @@ where
         );
     }
 
+    // Get prometheus registry for metrics
+    let prometheus_registry = config.prometheus_registry().cloned();
+
     // Storage Hub builder
     let (sh_builder, maybe_storage_hub_client_rpc_config) = match init_sh_builder::<R, S, Runtime>(
         &role_options,
@@ -611,6 +615,7 @@ where
         network.clone(),
         keystore_container.keystore(),
         client.clone(),
+        prometheus_registry.as_ref(),
     )
     .await?
     {
@@ -1113,6 +1118,7 @@ async fn init_sh_builder<R, S, Runtime: StorageEnableRuntime>(
     network: Arc<dyn NetworkService>,
     keystore: KeystorePtr,
     client: Arc<StorageEnableClient<Runtime>>,
+    prometheus_registry: Option<&Registry>,
 ) -> Result<
     Option<(
         StorageHubBuilder<R, S, Runtime>,
@@ -1150,7 +1156,7 @@ where
         RoleOptions::Fisherman(_) => "fisherman-service",
     };
     let task_spawner = TaskSpawner::new(task_manager.spawn_handle(), task_spawner_name);
-    let mut builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner);
+    let mut builder = StorageHubBuilder::<R, S, Runtime>::new(task_spawner, prometheus_registry);
 
     // Setup file transfer service (common to all roles)
     let (file_transfer_request_protocol_name, file_transfer_request_receiver) =
@@ -1171,6 +1177,7 @@ where
             rpc_config,
             provider_type,
             storage_path,
+            max_open_forests,
             max_storage_capacity,
             jump_capacity,
             msp_charging_period,
@@ -1194,7 +1201,7 @@ where
 
             // Setup the storage layer and capacity config
             builder
-                .setup_storage_layer(storage_path.clone())
+                .setup_storage_layer(storage_path.clone(), max_open_forests.unwrap_or(512))
                 .with_capacity_config(Some(CapacityConfig::new(
                     max_storage_capacity.unwrap_or_default().saturated_into(),
                     jump_capacity.unwrap_or_default().saturated_into(),
@@ -1259,7 +1266,7 @@ where
             );
 
             // Setup the storage layer (ephemeral for fisherman)
-            builder.setup_storage_layer(None);
+            builder.setup_storage_layer(None, 0);
 
             // Set the indexer db pool
             builder.with_indexer_db_pool(Some(db_pool));

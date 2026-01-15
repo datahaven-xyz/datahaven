@@ -30,6 +30,8 @@ interface IDataHavenServiceManagerErrors {
     error OnlyAllocationManager();
     /// @notice Thrown when an invalid (zero) solochain address is provided
     error InvalidSolochainAddress();
+    /// @notice Thrown when an invalid (zero) Snowbridge Gateway address is provided
+    error InvalidSnowbridgeGatewayAddress();
 }
 
 /**
@@ -68,6 +70,11 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldInitiator The previous rewards initiator address
     /// @param newInitiator The new rewards initiator address
     event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+
+    /// @notice Emitted when a validator updates their solochain address
+    /// @param validator Address of the validator
+    /// @param solochainAddress The new solochain address
+    event SolochainAddressUpdated(address indexed validator, address indexed solochainAddress);
 }
 
 /**

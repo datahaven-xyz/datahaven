@@ -172,6 +172,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     ) external onlyValidator {
         require(solochainAddress != address(0), InvalidSolochainAddress());
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
+        emit SolochainAddressUpdated(msg.sender, solochainAddress);
     }
 
     /// @inheritdoc IDataHavenServiceManager

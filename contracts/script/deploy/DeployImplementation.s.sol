@@ -42,13 +42,11 @@ contract DeployImplementation is Script {
 
         vm.broadcast();
         DataHavenServiceManager serviceManagerImpl = new DataHavenServiceManager(
-            RewardsCoordinator(rewardsCoordinator),
-            AllocationManager(allocationManager)
+            RewardsCoordinator(rewardsCoordinator), AllocationManager(allocationManager)
         );
 
         console.log("ServiceManager Implementation deployed at:", address(serviceManagerImpl));
     }
-
 
     /**
      * @notice Update ServiceManager proxy to point to new implementation

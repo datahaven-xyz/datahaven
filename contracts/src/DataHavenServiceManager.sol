@@ -82,18 +82,26 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Restricts function to registered validators
     modifier onlyValidator() {
+        _onlyValidator();
+        _;
+    }
+
+    function _onlyValidator() internal {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         require(
             _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
             CallerIsNotValidator()
         );
-        _;
     }
 
     /// @notice Restricts function to the EigenLayer AllocationManager
     modifier onlyAllocationManager() {
-        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
+        _onlyAllocationManager();
         _;
+    }
+
+    function _onlyAllocationManager() internal {
+        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
     }
 
     // ============ Constructor ============

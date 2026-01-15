@@ -141,18 +141,24 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
 
+        // Allocate max size, then resize after filtering
         address[] memory newValidatorSet = new address[](currentValidatorSet.length);
+        uint256 validCount = 0;
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
             address solochainAddr = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
-            require(solochainAddr != address(0), InvalidSolochainAddress());
-            newValidatorSet[i] = solochainAddr;
+            if (solochainAddr != address(0)) {
+                newValidatorSet[validCount] = solochainAddr;
+                ++validCount;
+            }
         }
-        DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
-            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
-        DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
-            DataHavenSnowbridgeMessages.NewValidatorSet({payload: newValidatorSetPayload});
+        // Resize array to actual count
+        assembly {
+            mstore(newValidatorSet, validCount)
+        }
 
-        return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
+        return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(
+            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet})
+        );
     }
 
     /// @inheritdoc IDataHavenServiceManager

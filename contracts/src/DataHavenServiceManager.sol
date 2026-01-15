@@ -119,7 +119,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
         // Create the operator set for the DataHaven service.
-        _createDataHavenOperatorSets(validatorsStrategies);
+        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
+            new IAllocationManagerTypes.CreateSetParams[](1);
+        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
+            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
+        });
+        _allocationManager.createOperatorSets(address(this), operatorSets);
 
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
@@ -321,21 +326,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     // ============ Internal Functions ============
-
-    /**
-     * @notice Creates the initial operator set for DataHaven in the AllocationManager.
-     * @dev This function should be called during initialisation to set up the required operator set.
-     */
-    function _createDataHavenOperatorSets(
-        IStrategy[] memory validatorsStrategies
-    ) internal {
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
-        });
-        _allocationManager.createOperatorSets(address(this), operatorSets);
-    }
 
     /**
      * @notice Internal function to set the rewards initiator

@@ -32,7 +32,7 @@ import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.so
  */
 contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
-    
+
     // ============ Constants ============
 
     /// @notice The metadata for the DataHaven AVS.
@@ -377,7 +377,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         emit SlashingComplete();
     }
-    
+
     /**
      * @notice Internal function to set the rewards initiator
      * @param _rewardsInitiator The new rewards initiator address

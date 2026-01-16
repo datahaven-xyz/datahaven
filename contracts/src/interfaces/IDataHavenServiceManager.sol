@@ -80,7 +80,6 @@ interface IDataHavenServiceManager is
     IDataHavenServiceManagerErrors,
     IDataHavenServiceManagerEvents
 {
-
     /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
     struct SlashingRequest {
         address operator;

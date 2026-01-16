@@ -423,7 +423,7 @@ where
         // `slash_session` cannot be in a future active era. It must be in `active_era` or before.
         let slash_era = if slash_session >= active_era_start_session_index {
             add_db_reads_writes(1, 0);
-            
+
             active_era
         } else {
             let eras = BondedEras::<T>::get();

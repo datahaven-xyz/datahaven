@@ -96,17 +96,26 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
     }
 }
 
-fn encode_slashing_request(slashes_utils: &Vec<SlashData<AccountId>>, strategies: Vec<H160>) -> Vec<u8> {
+fn encode_slashing_request(
+    slashes_utils: &Vec<SlashData<AccountId>>,
+    strategies: Vec<H160>,
+) -> Vec<u8> {
     let mut slashings: Vec<SlashingRequest> = vec![];
 
     // Extend with operator address to slash
     for slash_operator in slashes_utils {
         // slashing all the strategies
-        let wads_to_slash = strategies.iter().map(|_| U256::from(slash_operator.wad_to_slash)).collect();
+        let wads_to_slash = strategies
+            .iter()
+            .map(|_| U256::from(slash_operator.wad_to_slash))
+            .collect();
 
         let slashing_request = SlashingRequest {
             operator: Address::from(slash_operator.validator.0),
-            strategies: strategies.iter().map(|s| Address::from(s.as_fixed_bytes())).collect(),
+            strategies: strategies
+                .iter()
+                .map(|s| Address::from(s.as_fixed_bytes()))
+                .collect(),
             wadsToSlash: wads_to_slash, // We only have one strategy deployed
             description: "Slashing validator".into(),
         };

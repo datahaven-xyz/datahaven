@@ -10,7 +10,10 @@ import {
     IAllocationManagerEvents
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
-import {IDataHavenServiceManagerEvents, IDataHavenServiceManager} from "../src/interfaces/IDataHavenServiceManager.sol";
+import {
+    IDataHavenServiceManagerEvents,
+    IDataHavenServiceManager
+} from "../src/interfaces/IDataHavenServiceManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import "forge-std/Test.sol";
 
@@ -57,8 +60,9 @@ contract SlashingTest is AVSDeployer {
             OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
         IStrategy[] memory strategies = allocationManager.getStrategiesInOperatorSet(operatorSet);
 
-        slashings[0] =
-            IDataHavenServiceManager.SlashingRequest(operator, strategies, wadsToSlash, "Testing slashing");
+        slashings[0] = IDataHavenServiceManager.SlashingRequest(
+            operator, strategies, wadsToSlash, "Testing slashing"
+        );
 
         console.log(block.number);
         vm.roll(block.number + uint32(7 days) + 1);
@@ -114,8 +118,9 @@ contract SlashingTest is AVSDeployer {
         IStrategy[] memory strategiesToSlash = new IStrategy[](1);
         strategiesToSlash[0] = strategies[0];
 
-        slashings[0] =
-            IDataHavenServiceManager.SlashingRequest(operator, strategiesToSlash, wadsToSlash, "Testing slashing");
+        slashings[0] = IDataHavenServiceManager.SlashingRequest(
+            operator, strategiesToSlash, wadsToSlash, "Testing slashing"
+        );
 
         console.log(block.number);
         vm.roll(block.number + uint32(7 days) + 1);

@@ -14,7 +14,7 @@
       "!**/.papi/descriptors/**/*",
       "!**/contract-bindings/**/*",
       "!**/html/**/*",
-      "!**/datahaven/contracts/out/**/*",
+      "!**/moonwall/contracts/out/**/*",
       "!**/contracts/out/**/*",
       "!**/contracts/deployments/state-diff.checksum"
     ],

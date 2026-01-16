@@ -11,21 +11,24 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { getOwnerAccount } from "launcher/validators";
 import {
-  addValidatorToAllowlist,
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
-  getValidator,
-  isValidatorRunning,
-  launchDatahavenValidator,
   logger,
   parseDeploymentsFile,
-  registerOperator,
   ZERO_ADDRESS
 } from "utils";
 import { waitForDataHavenEvent } from "utils/events";
 import { decodeEventLog, parseEther } from "viem";
-import { dataHavenServiceManagerAbi, gatewayAbi } from "../contract-bindings";
-import { BaseTestSuite, type TestConnectors } from "../framework";
+import { dataHavenServiceManagerAbi, gatewayAbi } from "../../../contract-bindings";
+import {
+  addValidatorToAllowlist,
+  BaseTestSuite,
+  type CrossChainTestConnectors,
+  getValidator,
+  isValidatorRunning,
+  launchDatahavenValidator,
+  registerOperator
+} from "../../framework";
 
 class ValidatorSetUpdateTestSuite extends BaseTestSuite {
   constructor() {
@@ -55,7 +58,7 @@ class ValidatorSetUpdateTestSuite extends BaseTestSuite {
 // Create the test suite instance
 const suite = new ValidatorSetUpdateTestSuite();
 let deployments: Deployments;
-let connectors: TestConnectors;
+let connectors: CrossChainTestConnectors;
 
 describe("Validator Set Update", () => {
   const initialValidators = [getValidator("alice"), getValidator("bob")];
@@ -63,7 +66,7 @@ describe("Validator Set Update", () => {
 
   beforeAll(async () => {
     deployments = await parseDeploymentsFile();
-    connectors = suite.getTestConnectors();
+    connectors = suite.getCrossChainTestConnectors();
   });
 
   it("should verify test environment", async () => {

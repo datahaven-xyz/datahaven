@@ -68,17 +68,17 @@ export class LaunchedNetwork {
   }
 
   /**
-   * Gets the port for a DataHaven RPC node.
+   * Gets the port for a container by ID and optional port name.
    *
-   * In reality, it just looks for the "ws" port of the
-   * `datahaven-alice` container, if it was registered.
-   * @returns The port number of the container, or -1 if ws port is not found.
+   * @param id - The container ID/name to look up.
+   * @param portName - The port name to retrieve (defaults to "ws").
+   * @returns The port number of the container, or -1 if the port is not found.
    * @throws If the container is not found.
    */
-  getContainerPort(id: string): number {
+  getContainerPort(id: string, portName = "ws"): number {
     const container = this._containers.find((x) => x.name === id);
     invariant(container, `❌ Container ${id} not found`);
-    return container.publicPorts.ws ?? -1;
+    return container.publicPorts[portName] ?? -1;
   }
 
   addContainer(

@@ -45,14 +45,19 @@ bun i
 # Interactive CLI to launch a full local DataHaven network
 bun cli launch
 
-# Run all the e2e tests
+# Run all e2e tests
 bun test:e2e
+
+# Run specific suite types (can run in parallel on CI)
+bun test:e2e:datahaven    # DataHaven-only tests (no Ethereum)
+bun test:e2e:storagehub   # StorageHub integration tests
+bun test:e2e:ethereum     # Full cross-chain tests
 
 # Run all the e2e tests with limited concurrency
 bun test:e2e:parallel
 
-# Run a specific test suite
-bun test suites/some-test.test.ts
+# Run a specific test file
+bun test e2e/suites/ethereum/native-token-transfer.test.ts
 ```
 
 NOTES: Adding the environment variable `INJECT_CONTRACTS=true` will inject the contracts when starting the tests to speed up setup.
@@ -158,6 +163,9 @@ For more information on the E2E testing framework, see the [E2E Testing Framewor
 | `bun stop:eth`            | Stop Ethereum network only                                                                         |
 | **Testing**               |                                                                                                    |
 | `bun test:e2e`            | Run all E2E test suites                                                                            |
+| `bun test:e2e:datahaven`  | Run DataHaven-only tests (no Ethereum network)                                                     |
+| `bun test:e2e:storagehub` | Run StorageHub integration tests                                                                   |
+| `bun test:e2e:ethereum`   | Run full cross-chain Ethereum tests                                                                |
 | `bun test:e2e:parallel`   | Run tests with limited concurrency                                                                 |
 | `bun test <file>`         | Run specific test file                                                                             |
 | **Code Generation**       |                                                                                                    |
@@ -293,26 +301,30 @@ This script will:
 
 ```
 test/
-├── suites/                              # E2E test suites
-│   ├── contracts.test.ts               # Contract deployment & configuration
-│   ├── cross-chain.test.ts             # Cross-chain message passing
-│   ├── datahaven-substrate.test.ts     # Block production & finality
-│   ├── ethereum-basic.test.ts          # Ethereum network validation
-│   ├── native-token-transfer.test.ts   # Cross-chain token transfers
-│   ├── rewards-message.test.ts         # Validator rewards distribution
-│   └── validator-set-update.test.ts    # Dynamic validator set updates
-├── framework/                           # Test utilities & helpers
-│   ├── connectors.ts                   # Network connectors
-│   ├── manager.ts                      # Test environment manager
-│   ├── suite.ts                        # Test suite utilities
-│   └── index.ts                        # Framework exports
+├── e2e/                                 # E2E testing framework
+│   ├── framework/                       # Test utilities & helpers
+│   │   ├── connectors.ts               # Network connectors (typed per suite)
+│   │   ├── manager.ts                  # Test environment manager
+│   │   ├── suite.ts                    # BaseTestSuite with SuiteType support
+│   │   └── index.ts                    # Framework exports
+│   └── suites/                          # Test suites (grouped by type)
+│       ├── datahaven/                   # DataHaven-only tests (no Ethereum)
+│       │   └── basic.test.ts           # Multi-node consensus & P2P tests
+│       ├── storagehub/                  # StorageHub integration tests
+│       │   └── basic.test.ts           # MSP/BSP/Indexer integration tests
+│       └── ethereum/                    # Full cross-chain tests
+│           ├── native-token-transfer.test.ts
+│           ├── rewards-message.test.ts
+│           └── validator-set-update.test.ts
+├── moonwall/                            # Moonwall test suites (single-node)
+│   ├── contracts/                       # Test contracts for Moonwall
+│   ├── helpers/                         # Moonwall test helpers
+│   └── suites/                          # Moonwall test files
 ├── launcher/                            # Network deployment tools
-│   ├── kurtosis/                       # Ethereum network launcher
-│   ├── snowbridge/                     # Relayer management
-│   └── datahaven/                      # DataHaven node management
-├── generated/                           # Generated types
-│   ├── wagmi/                          # Contract bindings
-│   └── polkadot-api/                   # Runtime types
+│   ├── network/                         # Network launch orchestration
+│   ├── types/                           # SuiteType enum & launch result types
+│   └── utils/                           # Launch utilities
+├── contract-bindings/                   # Generated Wagmi contract bindings
 └── docs/                                # Testing documentation
     ├── E2E_TESTING_GUIDE.md
     └── E2E_FRAMEWORK_OVERVIEW.md
@@ -320,19 +332,42 @@ test/
 
 ## Test Suites
 
-- **contracts.test.ts**: Contract deployment and configuration validation
-- **cross-chain.test.ts**: Cross-chain message passing between Ethereum and DataHaven
-- **datahaven-substrate.test.ts**: Block production, finalization, and consensus
-- **ethereum-basic.test.ts**: Ethereum network health and basic functionality
+The E2E test suites are organized into three categories that can run in parallel on CI:
+
+### DataHaven Suite (`e2e/suites/datahaven/`)
+Tests that only require 2 DataHaven validator nodes (no Ethereum network):
+- **basic.test.ts**: Multi-node consensus, P2P networking, validator rotation
+
+### StorageHub Suite (`e2e/suites/storagehub/`)
+Tests that require DataHaven validators + StorageHub components (MSP, BSP, Indexer):
+- **basic.test.ts**: MSP/BSP connectivity, provider registration, storage operations
+
+### Ethereum Suite (`e2e/suites/ethereum/`)
+Full cross-chain tests requiring Ethereum + DataHaven + Snowbridge relayers:
 - **native-token-transfer.test.ts**: Cross-chain token transfers via Snowbridge
 - **rewards-message.test.ts**: Validator reward distribution from Ethereum to DataHaven
 - **validator-set-update.test.ts**: Dynamic validator registration/deregistration via EigenLayer
 
+### Moonwall Suite (`moonwall/suites/`)
+Single-node dev tests using Moonwall framework:
+- EVM compatibility tests
+- RPC method tests
+- Gas estimation tests
+
 Run individual suites:
 ```bash
-bun test suites/rewards-message.test.ts
-bun test suites/native-token-transfer.test.ts
-bun test suites/validator-set-update.test.ts
+# By suite type (run in parallel on CI)
+bun test:e2e:datahaven
+bun test:e2e:storagehub
+bun test:e2e:ethereum
+
+# Individual test files
+bun test e2e/suites/ethereum/rewards-message.test.ts
+bun test e2e/suites/ethereum/native-token-transfer.test.ts
+bun test e2e/suites/storagehub/basic.test.ts
+
+# Moonwall tests
+bun moonwall:test
 ```
 
 ## Further Information

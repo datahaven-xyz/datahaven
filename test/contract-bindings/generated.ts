@@ -2212,10 +2212,15 @@ export const dataHavenServiceManagerAbi = [
     inputs: [
       {
         name: 'slashings',
-        internalType: 'struct DataHavenServiceManager.SlashingRequest[]',
+        internalType: 'struct IDataHavenServiceManager.SlashingRequest[]',
         type: 'tuple[]',
         components: [
           { name: 'operator', internalType: 'address', type: 'address' },
+          {
+            name: 'strategies',
+            internalType: 'contract IStrategy[]',
+            type: 'address[]',
+          },
           { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
           { name: 'description', internalType: 'string', type: 'string' },
         ],

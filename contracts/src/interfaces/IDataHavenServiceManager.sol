@@ -66,6 +66,9 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldInitiator The previous rewards initiator address
     /// @param newInitiator The new rewards initiator address
     event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+
+    /// @notice Emitted when a batch of slashing request is being successfully slashed
+    event SlashingComplete();
 }
 
 /**
@@ -77,6 +80,14 @@ interface IDataHavenServiceManager is
     IDataHavenServiceManagerErrors,
     IDataHavenServiceManagerEvents
 {
+    /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
+    struct SlashingRequest {
+        address operator;
+        IStrategy[] strategies;
+        uint256[] wadsToSlash;
+        string description;
+    }
+
     /// @notice Checks if a validator address is in the allowlist
     /// @param validator Address to check
     /// @return True if the validator is in the allowlist, false otherwise

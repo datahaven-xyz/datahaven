@@ -2609,6 +2609,7 @@ dependencies = [
 name = "datahaven-mainnet-runtime"
 version = "0.13.0"
 dependencies = [
+ "alloy-core",
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
  "dhp-bridge",
@@ -2882,6 +2883,7 @@ dependencies = [
  "pallet-evm",
  "pallet-evm-chain-id",
  "pallet-evm-precompile-proxy",
+ "pallet-external-validator-slashes",
  "pallet-external-validators-rewards",
  "pallet-migrations",
  "pallet-safe-mode",
@@ -2905,6 +2907,7 @@ dependencies = [
 name = "datahaven-stagenet-runtime"
 version = "0.13.0"
 dependencies = [
+ "alloy-core",
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
  "dhp-bridge",
@@ -3057,6 +3060,7 @@ dependencies = [
 name = "datahaven-testnet-runtime"
 version = "0.13.0"
 dependencies = [
+ "alloy-core",
  "bridge-hub-common 0.13.1",
  "datahaven-runtime-common",
  "dhp-bridge",

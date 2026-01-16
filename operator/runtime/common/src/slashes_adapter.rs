@@ -100,7 +100,7 @@ fn encode_slashing_request(slashes_utils: &Vec<SlashData<AccountId>>, strategies
     let mut slashings: Vec<SlashingRequest> = vec![];
 
     // Extend with operator address to slash
-    for slash_operator in slashes_utils.into_iter() {
+    for slash_operator in slashes_utils {
         // slashing all the strategies
         let wads_to_slash = strategies.iter().map(|_| U256::from(slash_operator.wad_to_slash)).collect();
 

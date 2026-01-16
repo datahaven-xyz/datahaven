@@ -1691,7 +1691,11 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Stag
 
     fn strategies() -> Vec<H160> {
         // We only slash strategy that we reward
-        runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get().iter().map(|(strategy, _mult)| strategy.clone()).collect()
+        let mut strategies: Vec<H160> = runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get().iter().map(|(strategy, _mult)| strategy.clone()).collect();
+        // The array of strategies need to be in ascending order (see https://github.com/Layr-Labs/eigenlayer-contracts/blob/7ecc83c7b180850531bc5b8b953a7340adeecd43/src/contracts/core/AllocationManager.sol#L343-L347)
+        strategies.sort();
+
+        return strategies;
     }
 }
 

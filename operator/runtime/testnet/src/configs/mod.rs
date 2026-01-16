@@ -30,6 +30,7 @@ use super::{
     Signature, System, Timestamp, Treasury, TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
+use alloy_core::primitives::Address;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
@@ -1693,12 +1694,12 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Test
         // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 
-    fn strategies() -> Vec<H160> {
+    fn strategies() -> Vec<Address> {
         // We only slash strategy that we reward
-        let mut strategies: Vec<H160> =
+        let mut strategies: Vec<Address> =
             runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get()
                 .iter()
-                .map(|(strategy, _mult)| strategy.clone())
+                .map(|(strategy, _mult)| Address::from(strategy.as_fixed_bytes()))
                 .collect();
         // The array of strategies need to be in ascending order (see https://github.com/Layr-Labs/eigenlayer-contracts/blob/7ecc83c7b180850531bc5b8b953a7340adeecd43/src/contracts/core/AllocationManager.sol#L343-L347)
         strategies.sort();

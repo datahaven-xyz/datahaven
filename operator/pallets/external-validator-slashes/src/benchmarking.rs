@@ -102,7 +102,7 @@ mod benchmarks {
 
         #[block]
         {
-            processed = Pallet::<T>::process_slashes_queue(s);
+            processed = Pallet::<T>::process_slashes_queue(s).unwrap();
         }
 
         assert_eq!(UnreportedSlashesQueue::<T>::get().len(), 1);

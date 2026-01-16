@@ -45,7 +45,7 @@ pub trait SlashesSubmissionConfig {
     fn slashes_agent_origin() -> H256;
 
     /// Get the strategies to slash.
-    fn strategies() -> Vec<H160>;
+    fn strategies() -> Vec<Address>;
 }
 
 /// Generic slashes submission adapter.
@@ -98,24 +98,19 @@ impl<C: SlashesSubmissionConfig> pallet_external_validator_slashes::SendMessage<
 
 fn encode_slashing_request(
     slashes_utils: &Vec<SlashData<AccountId>>,
-    strategies: Vec<H160>,
+    strategies: Vec<Address>,
 ) -> Vec<u8> {
     let mut slashings: Vec<SlashingRequest> = vec![];
+    let strategies_len = strategies.len();
 
     // Extend with operator address to slash
     for slash_operator in slashes_utils {
         // slashing all the strategies
-        let wads_to_slash = strategies
-            .iter()
-            .map(|_| U256::from(slash_operator.wad_to_slash))
-            .collect();
+        let wads_to_slash = vec![U256::from(slash_operator.wad_to_slash); strategies_len];
 
         let slashing_request = SlashingRequest {
             operator: Address::from(slash_operator.validator.0),
-            strategies: strategies
-                .iter()
-                .map(|s| Address::from(s.as_fixed_bytes()))
-                .collect(),
+            strategies: strategies.clone(),
             wadsToSlash: wads_to_slash, // We only have one strategy deployed
             description: "Slashing validator".into(),
         };

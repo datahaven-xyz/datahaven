@@ -119,3 +119,15 @@
 
 # [etherscan]
 #     mainnet = { key = "${ETHERSCAN_API_KEY}" }
+
+[lint]
+# Global lint suppressions for naming conventions
+exclude_lints = [
+    "mixed-case-function",     # Keep AVS/EL/ERC naming conventions
+    "mixed-case-variable",     # Keep __GAP, ethPOSDeposit, _metadataURI naming
+]
+# Ignore scripts from linting (following EigenLayer's pattern)
+# Scripts intentionally use unsafe cheatcodes like vm.readFile/writeFile
+ignore = [
+    "script/**/*",
+]

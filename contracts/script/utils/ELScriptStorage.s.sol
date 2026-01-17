@@ -12,9 +12,7 @@ import {
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
-import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {EigenPod} from "eigenlayer-contracts/src/contracts/pods/EigenPod.sol";
 import {
     StrategyBaseTVLLimits

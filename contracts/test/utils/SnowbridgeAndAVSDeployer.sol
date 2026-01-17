@@ -16,10 +16,9 @@ import {TestUtils} from "./TestUtils.sol";
 import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
-import "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
 contract SnowbridgeAndAVSDeployer is AVSDeployer {
     // Snowbridge contracts
@@ -58,6 +57,7 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
     uint256 public constant MIN_NUM_REQUIRED_SIGNATURES = 2;
     uint64 public constant START_BLOCK = 1;
     bytes32 public constant REWARDS_MESSAGE_ORIGIN = bytes32(0);
+    // forge-lint: disable-next-line(unsafe-typecast)
     bytes32 public constant WRONG_MESSAGE_ORIGIN = bytes32("wrong origin");
 
     function _deployMockAllContracts() internal {

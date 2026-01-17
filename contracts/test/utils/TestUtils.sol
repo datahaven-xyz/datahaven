@@ -18,6 +18,7 @@ library TestUtils {
     ) internal pure returns (address[] memory) {
         address[] memory validators = new address[](count);
         for (uint256 i = 0; i < count; i++) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             validators[i] = address(uint160(uint256(bytes32(startIndex + i + 1))));
         }
         return validators;

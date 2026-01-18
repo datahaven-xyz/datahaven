@@ -47,6 +47,9 @@ frame_benchmarking::define_benchmarks!(
     // EVM pallets
     [pallet_evm, EVM]
 
+    // StorageHub pallets
+    [pallet_nfts, Nfts]
+
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]
     [pallet_collective_treasury_council, TreasuryCouncil]

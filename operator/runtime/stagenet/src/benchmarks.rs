@@ -44,6 +44,9 @@ frame_benchmarking::define_benchmarks!(
     [pallet_safe_mode, SafeMode]
     [pallet_tx_pause, TxPause]
 
+    // StorageHub pallets
+    [pallet_nfts, Nfts]
+
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]
     [pallet_collective_treasury_council, TreasuryCouncil]

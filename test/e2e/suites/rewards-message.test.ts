@@ -3,8 +3,8 @@ import { FixedSizeBinary } from "polkadot-api";
 import { CROSS_CHAIN_TIMEOUTS, getEvmEcdsaSigner, logger, SUBSTRATE_FUNDED_ACCOUNTS } from "utils";
 import type { Address } from "viem";
 import { BaseTestSuite } from "../framework";
-import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
-import { waitForDataHavenEvent } from "../utils/events";
+import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
+import { waitForDataHavenEvent } from "../../utils/events";
 
 /**
  * Temporary helper to set V2 rewards parameters via sudo.

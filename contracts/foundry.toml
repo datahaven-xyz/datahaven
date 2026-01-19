@@ -33,8 +33,6 @@
     ]
     # Specifies the exact version of Solidity to use, overriding auto-detection.
     solc_version = '0.8.28'
-    # If enabled, treats Solidity compiler warnings as errors, preventing artifact generation if warnings are present.
-    deny_warnings = false
     # If set to true, changes compilation pipeline to go through the new IR optimizer.
     via_ir = false
     # Whether or not to enable the Solidity optimizer.
@@ -125,9 +123,4 @@
 exclude_lints = [
     "mixed-case-function",     # Keep AVS/EL/ERC naming conventions
     "mixed-case-variable",     # Keep __GAP, ethPOSDeposit, _metadataURI naming
-]
-# Ignore scripts from linting (following EigenLayer's pattern)
-# Scripts intentionally use unsafe cheatcodes like vm.readFile/writeFile
-ignore = [
-    "script/**/*",
 ]

@@ -118,6 +118,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         __Ownable_init();
         _transferOwnership(initialOwner);
         rewardsInitiator = _rewardsInitiator;
+        emit RewardsInitiatorSet(address(0), _rewardsInitiator);
 
         // Register the DataHaven service in the AllocationManager.
         _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);

@@ -229,6 +229,9 @@ export const waitForContainerToStart = async (
   logger.debug(`Waiting for container ${containerName} to start...`);
   const seconds = options?.timeoutSeconds ?? 30;
 
+  // sleep 2 seconds to see if the started container didn't exist right away
+  await Bun.sleep(2000);
+
   for (let i = 0; i < seconds; i++) {
     const containers = await docker.listContainers();
     const container = containers.find((container) =>

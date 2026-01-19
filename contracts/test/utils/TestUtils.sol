@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+
 /**
  * @title TestUtils
  * @notice Utility functions for testing DataHaven contracts
  */
 library TestUtils {
+    using SafeCast for uint256;
     /**
      * @notice Generates mock validator addresses for testing
      * @param count Number of validators to generate
@@ -18,8 +21,7 @@ library TestUtils {
     ) internal pure returns (address[] memory) {
         address[] memory validators = new address[](count);
         for (uint256 i = 0; i < count; i++) {
-            // forge-lint: disable-next-line(unsafe-typecast)
-            validators[i] = address(uint160(uint256(bytes32(startIndex + i + 1))));
+            validators[i] = address((startIndex + i + 1).toUint160());
         }
         return validators;
     }

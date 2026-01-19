@@ -7,6 +7,7 @@ import {
     ITransparentUpgradeableProxy
 } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -33,6 +34,8 @@ import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/Delegat
 import {Test, console, Vm} from "forge-std/Test.sol";
 
 contract AVSDeployer is Test {
+    using SafeCast for uint256;
+
     Vm public cheats = Vm(VM_ADDRESS);
 
     ProxyAdmin public proxyAdmin;
@@ -45,7 +48,7 @@ contract AVSDeployer is Test {
     DataHavenServiceManager public serviceManagerImplementation;
 
     address public vetoCommitteeMember =
-        address(uint160(uint256(keccak256("vetoCommitteeMember"))));
+        address(uint256(keccak256("vetoCommitteeMember")).toUint160());
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
 
     // EigenLayer contracts
@@ -375,8 +378,7 @@ contract AVSDeployer is Test {
         address start,
         uint256 inc
     ) internal pure returns (address) {
-        // forge-lint: disable-next-line(unsafe-typecast)
-        return address(uint160(uint256(uint160(start) + inc)));
+        return address((uint256(uint160(start)) + inc).toUint160());
     }
 
     function _incrementBytes32(

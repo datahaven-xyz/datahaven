@@ -2216,6 +2216,29 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      {
+        name: 'slashings',
+        internalType: 'struct IDataHavenServiceManager.SlashingRequest[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'operator', internalType: 'address', type: 'address' },
+          {
+            name: 'strategies',
+            internalType: 'contract IStrategy[]',
+            type: 'address[]',
+          },
+          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
+    ],
+    name: 'slashValidatorsOperator',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'snowbridgeGateway',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
@@ -2420,6 +2443,7 @@ export const dataHavenServiceManagerAbi = [
     ],
     name: 'RewardsSubmitted',
   },
+  { type: 'event', anonymous: false, inputs: [], name: 'SlashingComplete' },
   {
     type: 'event',
     anonymous: false,
@@ -10810,6 +10834,15 @@ export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
+ */
+export const writeDataHavenServiceManagerSlashValidatorsOperator =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'slashValidatorsOperator',
+  })
+
+/**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
  */
 export const writeDataHavenServiceManagerSubmitRewards =
@@ -10960,6 +10993,15 @@ export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
+ */
+export const simulateDataHavenServiceManagerSlashValidatorsOperator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'slashValidatorsOperator',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"submitRewards"`
  */
 export const simulateDataHavenServiceManagerSubmitRewards =
@@ -11053,6 +11095,15 @@ export const watchDataHavenServiceManagerRewardsSubmittedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'RewardsSubmitted',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SlashingComplete"`
+ */
+export const watchDataHavenServiceManagerSlashingCompleteEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'SlashingComplete',
   })
 
 /**

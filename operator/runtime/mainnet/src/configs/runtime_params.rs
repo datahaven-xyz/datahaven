@@ -324,9 +324,8 @@ pub mod dynamic_params {
 
         #[codec(index = 35)]
         #[allow(non_upper_case_globals)]
-        /// The Selector is the first 4 bytes of the keccak256 hash of the function signature("slashValidatorsOperator(address[])")
-        pub static SlashOperatorSelector: BoundedVec<u8, ConstU32<4>> =
-            BoundedVec::truncate_from(vec![0xca, 0x48, 0x11, 0x9f]);
+        /// Temporary placeholder.
+        pub static Placeholder: H160 = H160::repeat_byte(0x0);
 
         #[codec(index = 36)]
         #[allow(non_upper_case_globals)]

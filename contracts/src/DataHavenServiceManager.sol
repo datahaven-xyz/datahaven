@@ -289,7 +289,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
     ) external onlyOwner {
-        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(address(this), VALIDATORS_SET_ID, _strategies);
+        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
+            address(this), VALIDATORS_SET_ID, _strategies
+        );
     }
 
     // ============ Rewards Functions ============

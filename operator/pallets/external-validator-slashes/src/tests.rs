@@ -438,6 +438,41 @@ fn test_on_offence_defer_period_0_messages_get_queued() {
 }
 
 #[test]
+fn slashes_queue_is_not_drained_if_deliver_fails() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        // Inject a few slashes which will be scheduled for era 2 (active_era + 1 when defer=0).
+        for i in 0..3 {
+            Pallet::<Test>::on_offence(
+                &[OffenceDetails {
+                    // 1 and 2 are invulnerables
+                    offender: (3 + i, ()),
+                    reporters: vec![],
+                }],
+                &[Perbill::from_percent(75)],
+                0,
+            );
+        }
+
+        start_era(2, 2, 2);
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 3);
+
+        // Force bridge delivery failure and ensure we don't lose slashes.
+        crate::mock::MockOkOutboundQueue::set_fail_deliver(true);
+        run_block();
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 3);
+
+        // Re-enable delivery and ensure the queue drains.
+        crate::mock::MockOkOutboundQueue::set_fail_deliver(false);
+        run_block();
+        assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
+    });
+}
+
+#[test]
 fn test_account_id_encoding() {
     new_test_ext().execute_with(|| {
         use fp_account::AccountId20;

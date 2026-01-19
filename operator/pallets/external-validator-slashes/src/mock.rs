@@ -132,6 +132,7 @@ thread_local! {
     pub static ERA_INDEX: RefCell<EraIndex> = const { RefCell::new(0) };
     pub static DEFER_PERIOD: RefCell<EraIndex> = const { RefCell::new(2) };
     pub static SENT_ETHEREUM_MESSAGE_NONCE: RefCell<u64> = const { RefCell::new(0) };
+    pub static FAIL_DELIVER: RefCell<bool> = const { RefCell::new(false) };
 
 }
 
@@ -225,7 +226,18 @@ impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
         Ok(())
     }
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
-        Ok(H256::zero())
+        let should_fail = FAIL_DELIVER.with(|f| *f.borrow());
+        if should_fail {
+            Err(SendError::Halted)
+        } else {
+            Ok(H256::zero())
+        }
+    }
+}
+
+impl MockOkOutboundQueue {
+    pub fn set_fail_deliver(fail: bool) {
+        FAIL_DELIVER.with(|f| *f.borrow_mut() = fail);
     }
 }
 

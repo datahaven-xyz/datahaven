@@ -584,61 +584,71 @@ impl<T: Config> Pallet<T> {
 
     /// Returns number of slashes that were sent to ethereum.
     fn process_slashes_queue(amount: u32) -> Option<u32> {
-        let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
         let era_index = T::EraIndexProvider::active_era().index;
 
-        UnreportedSlashesQueue::<T>::mutate(|queue| {
-            for _ in 0..amount {
-                let Some(slash) = queue.pop_front() else {
-                    // no more slashes to process in the queue
-                    break;
-                };
+        let res =
+            UnreportedSlashesQueue::<T>::try_mutate(|queue| -> Result<Option<(u32, H256)>, ()> {
+                let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
 
-                slashes_to_send.push(SlashData {
-                    validator: slash.validator,
-                    wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
-                });
+                for _ in 0..amount {
+                    let Some(slash) = queue.pop_front() else {
+                        // no more slashes to process in the queue
+                        break;
+                    };
+
+                    slashes_to_send.push(SlashData {
+                        validator: slash.validator,
+                        wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
+                    });
+                }
+
+                if slashes_to_send.is_empty() {
+                    return Ok(None);
+                }
+
+                let slashes_count = slashes_to_send.len() as u32;
+
+                let outbound = T::SendMessage::build(&slashes_to_send, era_index)
+                    .ok_or_else(|| {
+                        log::error!(
+                            target: "ext_validators_slashes",
+                            "Failed to build outbound message"
+                        );
+                    })
+                    .map_err(|_| ())?;
+
+                // Validate and deliver the message
+                let ticket = T::SendMessage::validate(outbound)
+                    .map_err(|e| {
+                        log::error!(
+                            target: "ext_validators_slashes",
+                            "Failed to validate outbound message: {:?}",
+                            e
+                        );
+                    })
+                    .map_err(|_| ())?;
+
+                let message_id = T::SendMessage::deliver(ticket)
+                    .map_err(|e| {
+                        log::error!(
+                            target: "ext_validators_slashes",
+                            "Failed to deliver outbound message: {:?}",
+                            e
+                        );
+                    })
+                    .map_err(|_| ())?;
+
+                Ok(Some((slashes_count, message_id)))
+            });
+
+        match res {
+            Ok(Some((slashes_count, message_id))) => {
+                Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
+                Some(slashes_count)
             }
-        });
-
-        if slashes_to_send.is_empty() {
-            return None;
+            Ok(None) => None,
+            Err(_) => None,
         }
-
-        let slashes_count = slashes_to_send.len() as u32;
-
-        let outbound = match T::SendMessage::build(&slashes_to_send, era_index) {
-            Some(send_msg) => send_msg,
-            None => {
-                log::error!(target: "ext_validators_slashes", "Failed to build outbound message");
-                return None;
-            }
-        };
-
-        // Validate and deliver the message
-        let ticket = T::SendMessage::validate(outbound)
-            .map_err(|e| {
-                log::error!(
-                    target: "ext_validators_slashes",
-                    "Failed to validate outbound message: {:?}",
-                    e
-                );
-            })
-            .ok()?;
-
-        let message_id = T::SendMessage::deliver(ticket)
-            .map_err(|e| {
-                log::error!(
-                    target: "ext_validators_slashes",
-                    "Failed to deliver outbound message: {:?}",
-                    e
-                );
-            })
-            .ok()?;
-
-        Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
-
-        Some(slashes_count)
     }
 }
 

@@ -30,6 +30,8 @@ interface IDataHavenServiceManagerErrors {
     error OnlyAllocationManager();
     /// @notice Thrown when a zero address is provided where a non-zero address is required
     error ZeroAddress();
+    /// @notice Thrown when the solochain address data length is not 20 bytes
+    error InvalidSolochainAddressLength();
 }
 
 /**

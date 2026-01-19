@@ -207,7 +207,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
-        require(data.length == 20, "Invalid solochain address length");
+        require(data.length == 20, InvalidSolochainAddressLength());
         address solochainAddress = address(bytes20(data));
         require(solochainAddress != address(0), ZeroAddress());
         validatorEthAddressToSolochainAddress[operator] = solochainAddress;

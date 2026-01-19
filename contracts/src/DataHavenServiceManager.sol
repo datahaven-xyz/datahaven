@@ -112,6 +112,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address _snowbridgeGatewayAddress
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
+        require(_rewardsInitiator != address(0), ZeroAddress());
+        require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
 
         __Ownable_init();
         _transferOwnership(initialOwner);

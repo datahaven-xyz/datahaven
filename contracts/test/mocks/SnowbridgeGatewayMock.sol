@@ -11,7 +11,9 @@ contract SnowbridgeGatewayMock is IGatewayV2 {
         return OperatingMode.Normal;
     }
 
-    function agentOf(bytes32) external pure returns (address) {
+    function agentOf(
+        bytes32
+    ) external pure returns (address) {
         return address(0);
     }
 
@@ -30,19 +32,30 @@ contract SnowbridgeGatewayMock is IGatewayV2 {
         uint128
     ) external payable {}
 
-    function v2_registerToken(address, uint8, uint128, uint128) external payable {}
+    function v2_registerToken(
+        address,
+        uint8,
+        uint128,
+        uint128
+    ) external payable {}
 
-    function v2_createAgent(bytes32) external {}
+    function v2_createAgent(
+        bytes32
+    ) external {}
 
     function v2_outboundNonce() external pure returns (uint64) {
         return 0;
     }
 
-    function v2_isDispatched(uint64) external pure returns (bool) {
+    function v2_isDispatched(
+        uint64
+    ) external pure returns (bool) {
         return false;
     }
 
-    function isTokenRegistered(address) external pure returns (bool) {
+    function isTokenRegistered(
+        address
+    ) external pure returns (bool) {
         return false;
     }
 }

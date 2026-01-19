@@ -30,6 +30,7 @@ use super::{
     Signature, System, Timestamp, Treasury, TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
+use alloy_core::primitives::Address;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
@@ -103,7 +104,7 @@ use frame_support::{
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
-use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
+use frame_system::{limits::BlockLength, EnsureRoot, EnsureRootWithSuccess};
 use governance::councils::*;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
@@ -123,7 +124,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter, Message as OutboundMessage, SendMessage as SendMessageV2},
+    v2::{Command, ConstantGasMeter},
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -1678,50 +1679,38 @@ impl pallet_tx_pause::Config for Runtime {
     type WeightInfo = mainnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 
-// Stub SendMessage implementation for slash pallet
-pub struct SlashesSendAdapter;
-impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
-    type Message = OutboundMessage;
-    type Ticket = OutboundMessage;
-    fn build(
-        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
-    ) -> Option<Self::Message> {
-        let calldata = Vec::new();
+/// Mainnet slashes configuration for EigenLayer submission.
+pub struct MainnetSlashesConfig;
 
-        let command = Command::CallContract {
-            target:
-                runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get(
-                ),
-            calldata,
-            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
-            value: 0,
-        };
-        let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
-            // TODO: Determine appropriate id value
-            id: unique(1).into(),
-            fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => {
-                    log::error!(
-                        target: "slashes_send_adapter",
-                        "Failed to convert commands: too many commands"
-                    );
-                    return None;
-                }
-            },
-        };
-        Some(message)
+impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for MainnetSlashesConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
+
+    fn service_manager_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
     }
 
-    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        EthereumOutboundQueueV2::validate(&message)
+    fn slashes_agent_origin() -> H256 {
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
-    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(message)
+
+    fn strategies() -> Vec<Address> {
+        // We only slash strategy that we reward
+        let mut strategies: Vec<Address> =
+            runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get()
+                .iter()
+                .map(|(strategy, _mult)| Address::from(strategy.as_fixed_bytes()))
+                .collect();
+        // The array of strategies need to be in ascending order (see https://github.com/Layr-Labs/eigenlayer-contracts/blob/7ecc83c7b180850531bc5b8b953a7340adeecd43/src/contracts/core/AllocationManager.sol#L343-L347)
+        strategies.sort();
+
+        return strategies;
     }
 }
+
+// Stub SendMessage implementation for slash pallet
+pub type SlashesSendAdapter =
+    datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<MainnetSlashesConfig>;
 
 impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;

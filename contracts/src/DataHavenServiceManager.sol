@@ -333,4 +333,58 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             });
         _allocationManager.deregisterFromOperatorSets(params);
     }
+
+    // ============ Slashing Submitter Functions ============
+
+    /**
+     * @notice Slash the operators of the validators set
+     * @param slashings array of request to slash operator containing the operator to slash, array of proportions to slash and the reason of the slashing.
+     */
+    function slashValidatorsOperator(
+        SlashingRequest[] calldata slashings
+    ) external onlyRewardsInitiator {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+
+        for (uint256 i = 0; i < slashings.length; i++) {
+            IAllocationManagerTypes.SlashingParams memory slashingParams =
+                IAllocationManagerTypes.SlashingParams({
+                    operator: slashings[i].operator,
+                    operatorSetId: VALIDATORS_SET_ID,
+                    strategies: slashings[i].strategies,
+                    wadsToSlash: slashings[i].wadsToSlash,
+                    description: slashings[i].description
+                });
+
+            _allocationManager.slashOperator(address(this), slashingParams);
+        }
+
+        emit SlashingComplete();
+    }
+
+    // ============ Internal Functions ============
+
+    /**
+     * @notice Creates the initial operator set for DataHaven in the AllocationManager.
+     * @dev This function should be called during initialisation to set up the required operator set.
+     */
+    function _createDataHavenOperatorSets(
+        IStrategy[] memory validatorsStrategies
+    ) internal {
+        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
+            new IAllocationManagerTypes.CreateSetParams[](1);
+        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
+            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
+        });
+        _allocationManager.createOperatorSets(address(this), operatorSets);
+    }
+
+    /**
+     * @notice Internal function to set the rewards initiator
+     * @param _rewardsInitiator The new rewards initiator address
+     */
+    function _setRewardsInitiator(
+        address _rewardsInitiator
+    ) internal {
+        rewardsInitiator = _rewardsInitiator;
+    }
 }

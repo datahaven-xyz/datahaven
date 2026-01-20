@@ -26,7 +26,7 @@ import {
   ZERO_ADDRESS
 } from "utils";
 import { decodeEventLog, encodeAbiParameters, erc20Abi, parseEther, parseEventLogs } from "viem";
-import { gatewayAbi } from "../contract-bindings";
+import { gatewayAbi } from "../../contract-bindings";
 import { BaseTestSuite } from "../framework";
 import type { TestConnectors } from "../framework/connectors";
 

@@ -29,6 +29,7 @@ use {
         weights::constants::RocksDbWeight,
     },
     frame_system as system,
+    parity_scale_codec::Encode,
     snowbridge_outbound_queue_primitives::{SendError, SendMessageFeeProvider},
     sp_core::H256,
     sp_runtime::{
@@ -133,6 +134,7 @@ thread_local! {
     pub static DEFER_PERIOD: RefCell<EraIndex> = const { RefCell::new(2) };
     pub static SENT_ETHEREUM_MESSAGE_NONCE: RefCell<u64> = const { RefCell::new(0) };
     pub static FAIL_DELIVER: RefCell<bool> = const { RefCell::new(false) };
+    pub static WRITE_DELIVER_SIDE_EFFECT: RefCell<bool> = const { RefCell::new(false) };
 
 }
 
@@ -227,6 +229,16 @@ impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
     }
     fn deliver(_: Self::Ticket) -> Result<H256, SendError> {
         let should_fail = FAIL_DELIVER.with(|f| *f.borrow());
+        let should_write = WRITE_DELIVER_SIDE_EFFECT.with(|w| *w.borrow());
+
+        if should_write {
+            // Test-only side effect: this must be rolled back by `with_transaction` if `deliver`
+            // returns an error.
+            sp_io::storage::set(
+                b"ext_validators_slashes::mock_deliver_side_effect",
+                &1u32.encode(),
+            );
+        }
         if should_fail {
             Err(SendError::Halted)
         } else {
@@ -238,6 +250,10 @@ impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
 impl MockOkOutboundQueue {
     pub fn set_fail_deliver(fail: bool) {
         FAIL_DELIVER.with(|f| *f.borrow_mut() = fail);
+    }
+
+    pub fn set_write_deliver_side_effect(write: bool) {
+        WRITE_DELIVER_SIDE_EFFECT.with(|w| *w.borrow_mut() = write);
     }
 }
 

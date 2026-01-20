@@ -82,6 +82,9 @@ pub struct ProviderOptions {
     pub msp_database_url: Option<String>,
     // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
     // pub maintenance_mode: bool,
+    /// Maximum number of forest storage instances to keep open simultaneously.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_open_forests: Option<usize>,
 }
 
 /// Role configuration enum that ensures mutual exclusivity between Provider and Fisherman roles.

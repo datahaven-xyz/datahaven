@@ -509,9 +509,7 @@ fn deliver_side_effects_are_rolled_back_when_delivery_fails() {
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 1);
 
         // Ensure the side effect key starts unset.
-        assert!(
-            sp_io::storage::get(b"ext_validators_slashes::mock_deliver_side_effect").is_none()
-        );
+        assert!(sp_io::storage::get(b"ext_validators_slashes::mock_deliver_side_effect").is_none());
 
         // When delivery fails, any storage writes performed inside `deliver` should be rolled back.
         crate::mock::MockOkOutboundQueue::set_fail_deliver(true);

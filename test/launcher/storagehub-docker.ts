@@ -152,7 +152,6 @@ export const launchMspNode = async (
     "docker",
     "run",
     "-d",
-    "--privileged", // TMP: to see if we can
     "--name",
     containerName,
     "--network",

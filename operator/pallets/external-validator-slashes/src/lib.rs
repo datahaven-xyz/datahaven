@@ -32,7 +32,11 @@ use pallet_external_validators::apply;
 use snowbridge_outbound_queue_primitives::SendError;
 use {
     alloc::{collections::vec_deque::VecDeque, vec, vec::Vec},
-    frame_support::{pallet_prelude::*, traits::DefensiveSaturating},
+    frame_support::{
+        pallet_prelude::*,
+        storage::{with_transaction, TransactionOutcome},
+        traits::DefensiveSaturating,
+    },
     frame_system::pallet_prelude::*,
     log::log,
     pallet_external_validators::{
@@ -43,7 +47,7 @@ use {
     sp_core::H256,
     sp_runtime::{
         traits::{Convert, Debug, One, Saturating, Zero},
-        DispatchResult, Perbill,
+        DispatchError, DispatchResult, Perbill,
     },
     sp_staking::{
         offence::{OffenceDetails, OnOffenceHandler},
@@ -582,67 +586,101 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// Returns number of slashes that were sent to ethereum.
+    /// Returns number of slashes that were attempted (popped) for processing.
     fn process_slashes_queue(amount: u32) -> Option<u32> {
         let era_index = T::EraIndexProvider::active_era().index;
 
-        let res =
-            UnreportedSlashesQueue::<T>::try_mutate(|queue| -> Result<Option<(u32, H256)>, ()> {
-                let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
+        // Pop (up to) `amount` slashes from the front of the queue.
+        // If sending fails, we will rotate the first popped element to the back so the queue
+        // can make progress even if one element fails repeatedly.
+        let mut popped: Vec<Slash<T::AccountId, T::SlashId>> = Vec::new();
+        UnreportedSlashesQueue::<T>::mutate(|queue| {
+            for _ in 0..amount {
+                let Some(slash) = queue.pop_front() else {
+                    break;
+                };
+                popped.push(slash);
+            }
+        });
 
-                for _ in 0..amount {
-                    let Some(slash) = queue.pop_front() else {
-                        // no more slashes to process in the queue
-                        break;
-                    };
+        if popped.is_empty() {
+            return None;
+        }
 
-                    slashes_to_send.push(SlashData {
-                        validator: slash.validator,
-                        wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
-                    });
+        let slashes_count = popped.len() as u32;
+        let slashes_to_send: Vec<SlashData<T::AccountId>> = popped
+            .iter()
+            .map(|slash| SlashData {
+                validator: slash.validator.clone(),
+                // TODO: need to compute how much we slash (for now it is 1e16)
+                wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(),
+            })
+            .collect();
+
+        // Wrap build/validate/deliver in a transaction so any storage writes performed there
+        // are reverted if sending fails.
+        let send_result: Result<Option<H256>, DispatchError> = with_transaction(|| {
+            let outbound = match T::SendMessage::build(&slashes_to_send, era_index) {
+                Some(msg) => msg,
+                None => {
+                    log::error!(
+                        target: "ext_validators_slashes",
+                        "Failed to build outbound message"
+                    );
+                    return TransactionOutcome::Rollback(Ok(None));
                 }
+            };
 
-                if slashes_to_send.is_empty() {
-                    return Ok(None);
-                }
-
-                let slashes_count = slashes_to_send.len() as u32;
-
-                let outbound =
-                    T::SendMessage::build(&slashes_to_send, era_index).ok_or_else(|| {
-                        log::error!(
-                            target: "ext_validators_slashes",
-                            "Failed to build outbound message"
-                        );
-                    })?;
-
-                // Validate and deliver the message
-                let ticket = T::SendMessage::validate(outbound).map_err(|e| {
+            let ticket = match T::SendMessage::validate(outbound) {
+                Ok(t) => t,
+                Err(e) => {
                     log::error!(
                         target: "ext_validators_slashes",
                         "Failed to validate outbound message: {:?}",
                         e
                     );
-                })?;
+                    return TransactionOutcome::Rollback(Ok(None));
+                }
+            };
 
-                let message_id = T::SendMessage::deliver(ticket).map_err(|e| {
+            let message_id = match T::SendMessage::deliver(ticket) {
+                Ok(id) => id,
+                Err(e) => {
                     log::error!(
                         target: "ext_validators_slashes",
                         "Failed to deliver outbound message: {:?}",
                         e
                     );
-                })?;
+                    return TransactionOutcome::Rollback(Ok(None));
+                }
+            };
 
-                Ok(Some((slashes_count, message_id)))
-            });
+            Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
+            TransactionOutcome::Commit(Ok(Some(message_id)))
+        });
 
-        match res {
-            Ok(Some((slashes_count, message_id))) => {
-                Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
+        match send_result {
+            Ok(Some(_message_id)) => {
+                // Success: keep popped items removed from the queue.
                 Some(slashes_count)
             }
-            Ok(None) => None,
-            Err(_) => None,
+            Ok(None) | Err(_) => {
+                // Failure: rotate the first popped slash to the back, and push the remaining ones
+                // back to the front (preserving order), so the queue can continue processing.
+                UnreportedSlashesQueue::<T>::mutate(|queue| {
+                    if let Some((first, rest)) = popped.split_first() {
+                        // Put the remaining slashes back at the front (in original order).
+                        for slash in rest.iter().rev() {
+                            queue.push_front(slash.clone());
+                        }
+                        // Move the first (failing) slash to the back.
+                        queue.push_back(first.clone());
+                    }
+                });
+
+                // Return the number of slashes that were attempted (for weight accounting).
+                Some(slashes_count)
+            }
         }
     }
 }

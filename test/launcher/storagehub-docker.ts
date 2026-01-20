@@ -175,7 +175,6 @@ export const launchMspNode = async (
     "docker",
     "run",
     "-d",
-    "--privileged", // TMP: to see if we can
     "--name",
     containerName,
     "--network",
@@ -187,6 +186,8 @@ export const launchMspNode = async (
     "dev",
     "--name",
     "msp-charlie",
+    "--storage-path",
+    "~/storagehub",
     "--rpc-port",
     `${DEFAULT_SUBSTRATE_WS_PORT}`,
     "--rpc-external",

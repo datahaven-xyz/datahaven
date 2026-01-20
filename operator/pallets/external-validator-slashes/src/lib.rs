@@ -608,35 +608,30 @@ impl<T: Config> Pallet<T> {
 
                 let slashes_count = slashes_to_send.len() as u32;
 
-                let outbound = T::SendMessage::build(&slashes_to_send, era_index)
-                    .ok_or_else(|| {
+                let outbound =
+                    T::SendMessage::build(&slashes_to_send, era_index).ok_or_else(|| {
                         log::error!(
                             target: "ext_validators_slashes",
                             "Failed to build outbound message"
                         );
-                    })
-                    .map_err(|_| ())?;
+                    })?;
 
                 // Validate and deliver the message
-                let ticket = T::SendMessage::validate(outbound)
-                    .map_err(|e| {
-                        log::error!(
-                            target: "ext_validators_slashes",
-                            "Failed to validate outbound message: {:?}",
-                            e
-                        );
-                    })
-                    .map_err(|_| ())?;
+                let ticket = T::SendMessage::validate(outbound).map_err(|e| {
+                    log::error!(
+                        target: "ext_validators_slashes",
+                        "Failed to validate outbound message: {:?}",
+                        e
+                    );
+                })?;
 
-                let message_id = T::SendMessage::deliver(ticket)
-                    .map_err(|e| {
-                        log::error!(
-                            target: "ext_validators_slashes",
-                            "Failed to deliver outbound message: {:?}",
-                            e
-                        );
-                    })
-                    .map_err(|_| ())?;
+                let message_id = T::SendMessage::deliver(ticket).map_err(|e| {
+                    log::error!(
+                        target: "ext_validators_slashes",
+                        "Failed to deliver outbound message: {:?}",
+                        e
+                    );
+                })?;
 
                 Ok(Some((slashes_count, message_id)))
             });

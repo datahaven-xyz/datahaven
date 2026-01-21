@@ -215,9 +215,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             revert OperatorNotInAllowlist();
         }
 
-        require(data.length == 20, "Invalid solochain address length");
-        // forge-lint: disable-next-line(unsafe-typecast)
-        validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
+        validatorEthAddressToSolochainAddress[operator] = _toAddress(data);
 
         emit OperatorRegistered(operator, operatorSetIds[0]);
     }
@@ -374,5 +372,19 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address _rewardsInitiator
     ) internal {
         rewardsInitiator = _rewardsInitiator;
+    }
+
+    /**
+     * @notice Safely converts a 20-byte array to an address
+     * @param data The bytes to convert (must be exactly 20 bytes)
+     * @return result The address representation of the bytes
+     */
+    function _toAddress(
+        bytes memory data
+    ) private pure returns (address result) {
+        require(data.length == 20, "Invalid address length");
+        assembly {
+            result := shr(96, mload(add(data, 32)))
+        }
     }
 }

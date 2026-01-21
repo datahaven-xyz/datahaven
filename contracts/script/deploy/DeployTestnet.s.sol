@@ -116,7 +116,7 @@ contract DeployTestnet is DeployBase {
 
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialise.selector,
+            DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,

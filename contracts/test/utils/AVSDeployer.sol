@@ -29,6 +29,7 @@ import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
 import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
+import {SnowbridgeGatewayMock} from "../mocks/SnowbridgeGatewayMock.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 
 import {Test, console, Vm} from "forge-std/Test.sol";
@@ -65,6 +66,7 @@ contract AVSDeployer is Test {
     RewardsCoordinator public rewardsCoordinatorImplementation;
     RewardsCoordinatorMock public rewardsCoordinatorMock;
     PermissionControllerMock public permissionControllerMock;
+    SnowbridgeGatewayMock public snowbridgeGatewayMock;
 
     // Addresses
     address public proxyAdminOwner = address(uint160(uint256(keccak256("proxyAdminOwner"))));
@@ -112,6 +114,7 @@ contract AVSDeployer is Test {
         eigenPodManagerMock = new EigenPodManagerMock(pauserRegistry);
         permissionControllerMock = new PermissionControllerMock();
         rewardsCoordinatorMock = new RewardsCoordinatorMock();
+        snowbridgeGatewayMock = new SnowbridgeGatewayMock();
         cheats.stopPrank();
 
         console.log("Mock EigenLayer contracts deployed");
@@ -254,11 +257,11 @@ contract AVSDeployer is Test {
                     address(serviceManagerImplementation),
                     address(proxyAdmin),
                     abi.encodeWithSelector(
-                        DataHavenServiceManager.initialise.selector,
+                        DataHavenServiceManager.initialize.selector,
                         avsOwner,
                         rewardsInitiator,
                         validatorsStrategies,
-                        address(0) // This deployment does not use Snowbridge
+                        address(snowbridgeGatewayMock)
                     )
                 )
             )

@@ -218,7 +218,7 @@ pub struct MockOkOutboundQueue;
 impl crate::SendMessage<AccountId> for MockOkOutboundQueue {
     type Ticket = ();
     type Message = ();
-    fn build(_: &crate::SlashDataUtils<AccountId>) -> Option<Self::Ticket> {
+    fn build(_: &Vec<crate::SlashData<AccountId>>, _: u32) -> Option<Self::Ticket> {
         Some(())
     }
     fn validate(_: Self::Ticket) -> Result<Self::Ticket, SendError> {

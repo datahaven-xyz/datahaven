@@ -14,14 +14,14 @@ import { Binary } from "polkadot-api";
 import { createPapiConnectors, logger } from "utils";
 import { SUBSTRATE_FUNDED_ACCOUNTS } from "utils/constants";
 import { getEvmEcdsaSigner } from "utils/papi";
-import { launchLocalDataHavenSolochain } from "../launcher/datahaven";
+import { launchLocalDataHavenSolochain } from "../../launcher/datahaven";
 import {
   launchBspNode,
   launchMspNode,
   launchStorageHubPostgres
-} from "../launcher/storagehub-docker";
-import { LaunchedNetwork } from "../launcher/types/launchedNetwork";
-import { registerProviders } from "../scripts/register-providers";
+} from "../../launcher/storagehub-docker";
+import { LaunchedNetwork } from "../../launcher/types/launchedNetwork";
+import { registerProviders } from "../../scripts/register-providers";
 
 const TEST_AUTHORITY_IDS = ["alice", "bob"] as const;
 const networkId = `storagehub-${Date.now()}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");

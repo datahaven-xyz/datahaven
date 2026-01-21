@@ -143,7 +143,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
             operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
         });
-        _allocationManager.createOperatorSets(address(this), operatorSets);
+        _ALLOCATION_MANAGER.createOperatorSets(address(this), operatorSets);
 
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
@@ -369,7 +369,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
                     description: slashings[i].description
                 });
 
-            _allocationManager.slashOperator(address(this), slashingParams);
+            _ALLOCATION_MANAGER.slashOperator(address(this), slashingParams);
         }
 
         emit SlashingComplete();

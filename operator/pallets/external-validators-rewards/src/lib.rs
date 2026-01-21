@@ -499,7 +499,10 @@ pub mod pallet {
                 base_weight.deconstruct() * 100 / Perbill::ACCURACY
             );
 
-            // Calculate and award points for each validator
+            // Collect rewards to batch into a single storage mutation (O(N) instead of O(N²))
+            let mut rewards = Vec::new();
+
+            // Calculate points for each validator
             for validator in validators.iter() {
                 // Skip whitelisted validators - they don't participate in performance rewards
                 if whitelisted_validators.contains(validator) {
@@ -596,8 +599,13 @@ pub mod pallet {
                         points
                     );
 
-                    Self::reward_by_ids([(validator.clone(), points)].into_iter());
+                    rewards.push((validator.clone(), points));
                 }
+            }
+
+            // Batch all rewards into a single storage mutation
+            if !rewards.is_empty() {
+                Self::reward_by_ids(rewards.into_iter());
             }
 
             // Clear session tracking storage

@@ -357,8 +357,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function slashValidatorsOperator(
         SlashingRequest[] calldata slashings
     ) external onlyRewardsInitiator {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-
         for (uint256 i = 0; i < slashings.length; i++) {
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({

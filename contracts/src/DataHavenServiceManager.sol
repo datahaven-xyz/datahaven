@@ -412,5 +412,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         assembly {
             result := shr(96, mload(add(data, 32)))
         }
+        require(result != address(0), ZeroAddress());
     }
 }

@@ -74,7 +74,7 @@ mod benchmarks {
         let era = T::EraIndexProvider::active_era().index;
         let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
         #[extrinsic_call]
-        _(RawOrigin::Root, era, dummy(), Perbill::from_percent(50), 1);
+        _(RawOrigin::Root, era, dummy(), Perbill::from_percent(50));
 
         assert_eq!(
             Slashes::<T>::get(
@@ -102,7 +102,7 @@ mod benchmarks {
 
         #[block]
         {
-            processed = Pallet::<T>::process_slashes_queue(s);
+            processed = Pallet::<T>::process_slashes_queue(s).unwrap();
         }
 
         assert_eq!(UnreportedSlashesQueue::<T>::get().len(), 1);

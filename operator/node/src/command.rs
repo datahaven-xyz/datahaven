@@ -47,6 +47,9 @@ pub struct ProviderOptions {
     pub storage_layer: StorageLayer,
     /// RocksDB Path.
     pub storage_path: Option<String>,
+    /// Maximum number of forest storage instances to keep open simultaneously.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_open_forests: Option<usize>,
     /// Maximum storage capacity of the Storage Provider (bytes).
     pub max_storage_capacity: Option<StorageDataUnit>,
     /// Jump capacity (bytes).

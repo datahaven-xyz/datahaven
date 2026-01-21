@@ -61,7 +61,7 @@ pub struct Cli {
     /// Provider configurations file path (allow to specify the provider configuration in a file instead of the cli)
     #[arg(long, conflicts_with_all = [
         "provider", "provider_type", "max_storage_capacity", "jump_capacity",
-        "storage_layer", "storage_path", "extrinsic_retry_timeout",
+        "storage_layer", "storage_path", "max_open_forests", "extrinsic_retry_timeout",
         "check_for_pending_proofs_period",
         "msp_charging_period", "msp_charge_fees_task", "msp_charge_fees_min_debt",
         "msp_move_bucket_task", "msp_move_bucket_max_try_count", "msp_move_bucket_max_tip",
@@ -228,6 +228,14 @@ pub struct ProviderConfigurations {
     /// Storage location in the file system
     #[arg(long, required_if_eq("storage_layer", "rocks-db"))]
     pub storage_path: Option<String>,
+
+    /// Maximum number of forest storage instances to keep open simultaneously.
+    /// MSPs have one forest per bucket; this controls how many can be open at once.
+    /// BSPs typically use a single forest, so this setting is effectively ignored for them.
+    /// Default: 512. With RocksDB's default of 512 open files per instance,
+    /// this results in a maximum of ~262K file descriptors.
+    #[arg(long, value_name = "COUNT", default_value = "512")]
+    pub max_open_forests: Option<usize>,
 
     /// Extrinsic retry timeout in seconds.
     #[arg(long, default_value = "60")]
@@ -617,6 +625,7 @@ impl ProviderConfigurations {
             trusted_file_transfer_server: self.trusted_file_transfer_server,
             trusted_file_transfer_server_host: self.trusted_file_transfer_server_host.clone(),
             trusted_file_transfer_server_port: self.trusted_file_transfer_server_port,
+            max_open_forests: self.max_open_forests,
             // We don't support maintenance mode for now.
             // maintenance_mode: self.maintenance_mode,
         }

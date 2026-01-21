@@ -16,7 +16,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
 import { socketClientCache } from "viem/utils";
-import type { LaunchNetworkResult } from "../launcher";
+import type { LaunchNetworkResult } from "../../launcher";
 
 export interface TestConnectors {
   // Ethereum connectors

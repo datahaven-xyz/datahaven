@@ -17,11 +17,8 @@ contract MessageEncodingTest is Test {
         DataHavenSnowbridgeMessages.NewValidatorSetPayload memory payload =
             DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: mockValidators});
 
-        DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
-            DataHavenSnowbridgeMessages.NewValidatorSet({payload: payload});
-
         bytes memory encodedMessage =
-            DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
+            DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(payload);
 
         console.logBytes(encodedMessage);
     }

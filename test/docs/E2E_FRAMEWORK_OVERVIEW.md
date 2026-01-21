@@ -10,8 +10,10 @@ The E2E testing framework creates isolated test environments for comprehensive i
 
 ```
 test/
-├── suites/          # Test files (*.test.ts)
-├── framework/       # Base classes and test utilities
+├── e2e/
+│   ├── suites/      # E2E test files (*.test.ts)
+│   └── framework/   # Base classes and test utilities
+├── moonwall/        # Moonwall single-node tests
 ├── launcher/        # Network orchestration code
 ├── utils/           # Common helpers and utilities
 ├── configs/         # Component configuration files
@@ -65,7 +67,7 @@ The `launchNetwork` function orchestrates the following steps:
 ### Basic Test Structure
 
 ```typescript
-import { BaseTestSuite } from "../framework/base-test-suite";
+import { BaseTestSuite } from "../e2e/framework";
 
 class MyTestSuite extends BaseTestSuite {
   constructor() {

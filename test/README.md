@@ -293,19 +293,21 @@ This script will:
 
 ```
 test/
-├── suites/                              # E2E test suites
-│   ├── contracts.test.ts               # Contract deployment & configuration
-│   ├── cross-chain.test.ts             # Cross-chain message passing
-│   ├── datahaven-substrate.test.ts     # Block production & finality
-│   ├── ethereum-basic.test.ts          # Ethereum network validation
-│   ├── native-token-transfer.test.ts   # Cross-chain token transfers
-│   ├── rewards-message.test.ts         # Validator rewards distribution
-│   └── validator-set-update.test.ts    # Dynamic validator set updates
-├── framework/                           # Test utilities & helpers
-│   ├── connectors.ts                   # Network connectors
-│   ├── manager.ts                      # Test environment manager
-│   ├── suite.ts                        # Test suite utilities
-│   └── index.ts                        # Framework exports
+├── e2e/
+│   ├── suites/                          # E2E test suites (Kurtosis-based)
+│   │   ├── native-token-transfer.test.ts
+│   │   ├── rewards-message.test.ts
+│   │   └── validator-set-update.test.ts
+│   └── framework/                       # Test utilities & helpers
+│       ├── connectors.ts               # Network connectors
+│       ├── manager.ts                  # Test environment manager
+│       ├── suite.ts                    # Test suite utilities
+│       ├── validators.ts               # Validator test helpers
+│       └── index.ts                    # Framework exports
+├── moonwall/                            # Moonwall single-node tests
+│   ├── contracts/                      # Test contracts for Moonwall
+│   ├── helpers/                        # Moonwall test helpers
+│   └── suites/                         # Moonwall test suites
 ├── launcher/                            # Network deployment tools
 │   ├── kurtosis/                       # Ethereum network launcher
 │   ├── snowbridge/                     # Relayer management

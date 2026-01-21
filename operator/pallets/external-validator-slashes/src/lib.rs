@@ -66,19 +66,15 @@ pub mod weights;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SlashData<AccountId> {
     pub validator: AccountId,
-    pub amount_to_slash: u128,
+    pub wad_to_slash: u128,
 }
-
-/// TODO: populate this with what we need
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct SlashDataUtils<AccountId>(pub Vec<SlashData<AccountId>>);
 
 // FIXME (nice to have): Merge with SendMessage trait from pallet external-validator-reward (similar trait)
 pub trait SendMessage<AccountId> {
     type Message;
     type Ticket;
 
-    fn build(utils: &SlashDataUtils<AccountId>) -> Option<Self::Message>;
+    fn build(utils: &Vec<SlashData<AccountId>>, era: u32) -> Option<Self::Message>;
 
     fn validate(message: Self::Message) -> Result<Self::Ticket, SendError>;
 
@@ -101,6 +97,10 @@ pub mod pallet {
         },
         /// The slashes message was sent correctly.
         SlashesMessageSent { message_id: H256 },
+        /// We injected a slash
+        SlashInjected { slash_id: T::SlashId, era: u32 },
+        /// Number of slashes processed
+        SlashAddedToQueue { number: u32, era: u32 },
     }
 
     #[pallet::config]
@@ -305,7 +305,6 @@ pub mod pallet {
             era: EraIndex,
             validator: T::AccountId,
             percentage: Perbill,
-            external_idx: u64,
         ) -> DispatchResult {
             ensure_root(origin)?;
             let active_era = T::EraIndexProvider::active_era().index;
@@ -325,7 +324,6 @@ pub mod pallet {
                 era,
                 validator,
                 slash_defer_duration,
-                external_idx,
             )
             .ok_or(Error::<T>::ErrorComputingSlash)?;
 
@@ -342,6 +340,12 @@ pub mod pallet {
             });
 
             NextSlashId::<T>::put(next_slash_id.saturating_add(One::one()));
+
+            Self::deposit_event(Event::<T>::SlashInjected {
+                slash_id: next_slash_id,
+                era: era_to_consider,
+            });
+
             Ok(())
         }
 
@@ -360,7 +364,12 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
             let processed = Self::process_slashes_queue(T::QueuedSlashesProcessedPerBlock::get());
-            T::WeightInfo::process_slashes_queue(processed)
+
+            if let Some(p) = processed {
+                T::WeightInfo::process_slashes_queue(p)
+            } else {
+                T::WeightInfo::process_slashes_queue(0)
+            }
         }
     }
 }
@@ -412,10 +421,10 @@ where
 
         // Fast path for active-era report - most likely.
         // `slash_session` cannot be in a future active era. It must be in `active_era` or before.
-        let (slash_era, external_idx) = if slash_session >= active_era_start_session_index {
-            // Account for get_external_index read.
+        let slash_era = if slash_session >= active_era_start_session_index {
             add_db_reads_writes(1, 0);
-            (active_era, T::ExternalIndexProvider::get_external_index())
+
+            active_era
         } else {
             let eras = BondedEras::<T>::get();
             add_db_reads_writes(1, 0);
@@ -426,7 +435,7 @@ where
                 .rev()
                 .find(|&(_, sesh, _)| sesh <= &slash_session)
             {
-                Some((slash_era, _, external_idx)) => (*slash_era, *external_idx),
+                Some((slash_era, _, _external_idx)) => *slash_era,
                 // Before bonding period. defensive - should be filtered out.
                 None => return consumed_weight,
             }
@@ -468,7 +477,6 @@ where
                 slash_era,
                 stash.clone(),
                 slash_defer_duration,
-                external_idx,
             );
 
             if let Some(mut slash) = slash {
@@ -562,13 +570,22 @@ impl<T: Config> Pallet<T> {
     fn add_era_slashes_to_queue(active_era: EraIndex) {
         let mut slashes: VecDeque<_> = Slashes::<T>::get(active_era).into();
 
+        let len = slashes.len();
+
         UnreportedSlashesQueue::<T>::mutate(|queue| queue.append(&mut slashes));
+
+        if len > 0 {
+            Self::deposit_event(Event::<T>::SlashAddedToQueue {
+                number: len as u32,
+                era: active_era,
+            });
+        }
     }
 
     /// Returns number of slashes that were sent to ethereum.
-    fn process_slashes_queue(amount: u32) -> u32 {
+    fn process_slashes_queue(amount: u32) -> Option<u32> {
         let mut slashes_to_send: Vec<SlashData<T::AccountId>> = vec![];
-        let _era_index = T::EraIndexProvider::active_era().index;
+        let era_index = T::EraIndexProvider::active_era().index;
 
         UnreportedSlashesQueue::<T>::mutate(|queue| {
             for _ in 0..amount {
@@ -579,22 +596,22 @@ impl<T: Config> Pallet<T> {
 
                 slashes_to_send.push(SlashData {
                     validator: slash.validator,
-                    amount_to_slash: 0, // TODO: need to compute how much we slash
+                    wad_to_slash: u128::from_str_radix("10000000000000000", 10).unwrap(), // TODO: need to compute how much we slash (for now it is 1e16)
                 });
             }
         });
 
         if slashes_to_send.is_empty() {
-            return 0;
+            return None;
         }
 
         let slashes_count = slashes_to_send.len() as u32;
 
-        let outbound = match T::SendMessage::build(&SlashDataUtils(slashes_to_send)) {
+        let outbound = match T::SendMessage::build(&slashes_to_send, era_index) {
             Some(send_msg) => send_msg,
             None => {
-                log::error!(target: "ext_validators_rewards", "Failed to build outbound message");
-                return 0;
+                log::error!(target: "ext_validators_slashes", "Failed to build outbound message");
+                return None;
             }
         };
 
@@ -602,28 +619,26 @@ impl<T: Config> Pallet<T> {
         let ticket = T::SendMessage::validate(outbound)
             .map_err(|e| {
                 log::error!(
-                    target: "ext_validators_rewards",
+                    target: "ext_validators_slashes",
                     "Failed to validate outbound message: {:?}",
                     e
                 );
-                return 0;
             })
-            .unwrap();
+            .ok()?;
 
         let message_id = T::SendMessage::deliver(ticket)
             .map_err(|e| {
                 log::error!(
-                    target: "ext_validators_rewards",
+                    target: "ext_validators_slashes",
                     "Failed to deliver outbound message: {:?}",
                     e
                 );
-                return 0;
             })
-            .unwrap();
+            .ok()?;
 
         Self::deposit_event(Event::<T>::SlashesMessageSent { message_id });
 
-        slashes_count
+        Some(slashes_count)
     }
 }
 
@@ -631,8 +646,6 @@ impl<T: Config> Pallet<T> {
 /// rather deferred for several eras.
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo, Clone, PartialEq)]
 pub struct Slash<AccountId, SlashId> {
-    /// external index identifying a given set of validators
-    pub external_idx: u64,
     /// The stash ID of the offending validator.
     pub validator: AccountId,
     /// Reporters of the offence; bounty payout recipients.
@@ -648,7 +661,6 @@ impl<AccountId, SlashId: One> Slash<AccountId, SlashId> {
     /// Initializes the default object using the given `validator`.
     pub fn default_from(validator: AccountId) -> Self {
         Self {
-            external_idx: 0,
             validator,
             reporters: vec![],
             slash_id: One::one(),
@@ -670,7 +682,6 @@ pub(crate) fn compute_slash<T: Config>(
     slash_era: EraIndex,
     stash: T::AccountId,
     slash_defer_duration: EraIndex,
-    external_idx: u64,
 ) -> Option<Slash<T::AccountId, T::SlashId>> {
     let prior_slash_p = ValidatorSlashInEra::<T>::get(slash_era, &stash).unwrap_or(Zero::zero());
 
@@ -691,7 +702,6 @@ pub(crate) fn compute_slash<T: Config>(
 
     let confirmed = slash_defer_duration.is_zero();
     Some(Slash {
-        external_idx,
         validator: stash.clone(),
         percentage: slash_fraction,
         slash_id,

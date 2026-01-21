@@ -1272,6 +1272,9 @@ impl_runtime_apis! {
         fn get_current_price_per_giga_unit_per_tick() -> Balance {
             PaymentStreams::get_current_price_per_giga_unit_per_tick()
         }
+        fn get_number_of_active_users_of_provider(provider_id: &ProviderIdFor<Runtime>) -> u32 {
+            PaymentStreams::get_number_of_active_users_of_provider(provider_id)
+        }
     }
 
     impl pallet_proofs_dealer_runtime_api::ProofsDealerApi<Block, ProofsDealerProviderIdFor<Runtime>, BlockNumber, KeyFor<Runtime>, RandomnessOutputFor<Runtime>, CustomChallenge<Runtime>> for Runtime {

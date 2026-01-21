@@ -24,6 +24,14 @@ interface IDataHavenServiceManagerErrors {
     error OperatorNotInAllowlist();
     /// @notice Thrown when the caller is not a Validator in the Validators operator set
     error CallerIsNotValidator();
+    /// @notice Thrown when a function is called by an address that is not the RewardsInitiator
+    error OnlyRewardsInitiator();
+    /// @notice Thrown when a function is called by an address that is not the AllocationManager
+    error OnlyAllocationManager();
+    /// @notice Thrown when a zero address is provided where a non-zero address is required
+    error ZeroAddress();
+    /// @notice Thrown when the solochain address data length is not 20 bytes
+    error InvalidSolochainAddressLength();
 }
 
 /**
@@ -62,6 +70,14 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldInitiator The previous rewards initiator address
     /// @param newInitiator The new rewards initiator address
     event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+
+    /// @notice Emitted when a validator updates their solochain address
+    /// @param validator Address of the validator
+    /// @param solochainAddress The new solochain address
+    event SolochainAddressUpdated(address indexed validator, address indexed solochainAddress);
+
+    /// @notice Emitted when a batch of slashing request is being successfully slashed
+    event SlashingComplete();
 }
 
 /**
@@ -73,6 +89,14 @@ interface IDataHavenServiceManager is
     IDataHavenServiceManagerErrors,
     IDataHavenServiceManagerEvents
 {
+    /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
+    struct SlashingRequest {
+        address operator;
+        IStrategy[] strategies;
+        uint256[] wadsToSlash;
+        string description;
+    }
+
     /// @notice Checks if a validator address is in the allowlist
     /// @param validator Address to check
     /// @return True if the validator is in the allowlist, false otherwise
@@ -99,7 +123,7 @@ interface IDataHavenServiceManager is
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
      */
-    function initialise(
+    function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
@@ -203,5 +227,27 @@ interface IDataHavenServiceManager is
      */
     function setRewardsInitiator(
         address initiator
+    ) external;
+
+    // ============ AVS Management Functions ============
+
+    /**
+     * @notice Updates the metadata URI for the AVS
+     * @param _metadataURI is the metadata URI for the AVS
+     * @dev Only callable by the owner
+     */
+    function updateAVSMetadataURI(
+        string memory _metadataURI
+    ) external;
+
+    /**
+     * @notice Force-deregisters an operator from specified operator sets
+     * @param operator The address of the operator to deregister
+     * @param operatorSetIds The IDs of the operator sets to deregister from
+     * @dev Only callable by the owner. Use for removing misbehaving operators.
+     */
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] calldata operatorSetIds
     ) external;
 }

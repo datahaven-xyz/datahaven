@@ -9,6 +9,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
  */
 library TestUtils {
     using SafeCast for uint256;
+
     /**
      * @notice Generates mock validator addresses for testing
      * @param count Number of validators to generate

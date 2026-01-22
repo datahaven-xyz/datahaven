@@ -114,6 +114,29 @@ jobs:
           kurtosis clean
           kurtosis engine start
           kurtosis engine status
+      - name: Verify Kurtosis engine can reach GitHub
+        run: |
+          # Get the Kurtosis engine container ID (using podman since cluster is set to podman)
+          ENGINE_CONTAINER=$(podman ps --filter "name=kurtosis-engine" --format "{{.ID}}" | head -n1)
+          if [ -z "$ENGINE_CONTAINER" ]; then
+            echo "ERROR: Kurtosis engine container not found"
+            podman ps -a
+            exit 1
+          fi
+          echo "Found Kurtosis engine container: $ENGINE_CONTAINER"
+          
+          # Test network connectivity from inside the engine container
+          echo "Testing DNS resolution..."
+          podman exec "$ENGINE_CONTAINER" nslookup github.com || echo "nslookup failed or not available"
+          
+          echo "Testing git ls-remote to ethereum-package repo..."
+          podman exec "$ENGINE_CONTAINER" git ls-remote https://github.com/ethpandaops/ethereum-package.git HEAD || {
+            echo "ERROR: git ls-remote failed from inside engine container"
+            echo "Testing curl to GitHub..."
+            podman exec "$ENGINE_CONTAINER" curl -I https://github.com || echo "curl also failed"
+            exit 1
+          }
+          echo "SUCCESS: Engine container can reach GitHub"
       - uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache

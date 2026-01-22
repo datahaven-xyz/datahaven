@@ -60,8 +60,7 @@ RUN if [ "$DEBUG_MODE" = "true" ]; then \
 USER datahaven
 
 # Copy pre-built binary
-# COPY --chown=datahaven:datahaven ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node /usr/local/bin/datahaven-node
-COPY --chown=datahaven:datahaven build/* /usr/local/bin
+COPY --chown=datahaven:datahaven ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node /usr/local/bin/datahaven-node
 RUN chmod uog+x /usr/local/bin/datahaven-node
 
 # Enable Rust backtraces for better debugging

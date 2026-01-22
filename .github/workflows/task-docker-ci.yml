@@ -72,7 +72,7 @@ jobs:
       - name: Build and push Docker image
         uses: ./.github/workflow-templates/publish-docker
         with:
-          dockerfile: ./docker/datahaven-dev.Dockerfile
+          dockerfile: ./operator/Dockerfile
           context: .
           registry: ghcr.io
           registry_username: ${{ github.actor }}

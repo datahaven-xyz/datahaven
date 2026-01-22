@@ -10,19 +10,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 
 // Logging import
 import {Logging} from "../utils/Logging.sol";
-import {Accounts} from "../utils/Accounts.sol";
-import {ValidatorsUtils} from "../utils/ValidatorsUtils.sol";
-
-// Snowbridge imports
-import {Gateway} from "snowbridge/src/Gateway.sol";
-import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
-import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
-import {AgentExecutor} from "snowbridge/src/AgentExecutor.sol";
-import {Agent} from "snowbridge/src/Agent.sol";
-import {Initializer} from "snowbridge/src/Initializer.sol";
-import {OperatingMode} from "snowbridge/src/types/Common.sol";
-import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
-import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // Additional imports specific to local deployment
 import {
@@ -49,12 +36,8 @@ import {
     PermissionController
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
-import {
-    IAllocationManagerTypes
-} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {
-    IRewardsCoordinator,
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";

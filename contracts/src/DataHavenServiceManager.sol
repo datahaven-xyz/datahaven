@@ -45,10 +45,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ Immutables ============
 
     /// @notice The EigenLayer AllocationManager contract
-    IAllocationManager internal immutable _allocationManager;
+    IAllocationManager internal immutable _ALLOCATION_MANAGER;
 
     /// @notice The EigenLayer RewardsCoordinator contract
-    IRewardsCoordinator internal immutable _rewardsCoordinator;
+    IRewardsCoordinator internal immutable _REWARDS_COORDINATOR;
 
     // ============ State Variables ============
 
@@ -72,35 +72,49 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Restricts function to the rewards initiator
     modifier onlyRewardsInitiator() {
-        require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
+        _checkRewardsInitiator();
         _;
     }
 
     /// @notice Restricts function to registered validators
     modifier onlyValidator() {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        require(
-            _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
-            CallerIsNotValidator()
-        );
+        _checkValidator();
         _;
     }
 
     /// @notice Restricts function to the EigenLayer AllocationManager
     modifier onlyAllocationManager() {
-        require(msg.sender == address(_allocationManager), OnlyAllocationManager());
+        _checkAllocationManager();
         _;
     }
 
+    function _checkRewardsInitiator() internal view {
+        require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
+    }
+
+    function _checkValidator() internal view {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        require(
+            _ALLOCATION_MANAGER.isMemberOfOperatorSet(msg.sender, operatorSet),
+            CallerIsNotValidator()
+        );
+    }
+
+    function _checkAllocationManager() internal view {
+        require(msg.sender == address(_ALLOCATION_MANAGER), OnlyAllocationManager());
+    }
+
+    // ============ Constructor ============
+
     /// @notice Sets the immutable EigenLayer contract references
-    /// @param __rewardsCoordinator The EigenLayer RewardsCoordinator contract
-    /// @param __allocationManager The EigenLayer AllocationManager contract
+    /// @param rewardsCoordinator_ The EigenLayer RewardsCoordinator contract
+    /// @param allocationManager_ The EigenLayer AllocationManager contract
     constructor(
-        IRewardsCoordinator __rewardsCoordinator,
-        IAllocationManager __allocationManager
+        IRewardsCoordinator rewardsCoordinator_,
+        IAllocationManager allocationManager_
     ) {
-        _rewardsCoordinator = __rewardsCoordinator;
-        _allocationManager = __allocationManager;
+        _REWARDS_COORDINATOR = rewardsCoordinator_;
+        _ALLOCATION_MANAGER = allocationManager_;
         _disableInitializers();
     }
 
@@ -121,7 +135,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         emit RewardsInitiatorSet(address(0), _rewardsInitiator);
 
         // Register the DataHaven service in the AllocationManager.
-        _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
+        _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
         // Create the operator set for the DataHaven service.
         IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
@@ -129,7 +143,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
             operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
         });
-        _allocationManager.createOperatorSets(address(this), operatorSets);
+        _ALLOCATION_MANAGER.createOperatorSets(address(this), operatorSets);
 
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
@@ -149,7 +163,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     function buildNewValidatorSetMessage() public view returns (bytes memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
+        address[] memory currentValidatorSet = _ALLOCATION_MANAGER.getMembers(operatorSet);
 
         // Allocate max size, then resize after filtering
         address[] memory newValidatorSet = new address[](currentValidatorSet.length);
@@ -207,10 +221,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
-        require(data.length == 20, InvalidSolochainAddressLength());
-        address solochainAddress = address(bytes20(data));
-        require(solochainAddress != address(0), ZeroAddress());
-        validatorEthAddressToSolochainAddress[operator] = solochainAddress;
+        validatorEthAddressToSolochainAddress[operator] = _toAddress(data);
 
         emit OperatorRegistered(operator, operatorSetIds[0]);
     }
@@ -259,14 +270,14 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     function validatorsSupportedStrategies() external view returns (IStrategy[] memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        return _allocationManager.getStrategiesInOperatorSet(operatorSet);
+        return _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function removeStrategiesFromValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
     ) external onlyOwner {
-        _allocationManager.removeStrategiesFromOperatorSet(
+        _ALLOCATION_MANAGER.removeStrategiesFromOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
     }
@@ -275,7 +286,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
     ) external onlyOwner {
-        _allocationManager.addStrategiesToOperatorSet(address(this), VALIDATORS_SET_ID, _strategies);
+        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
+            address(this), VALIDATORS_SET_ID, _strategies
+        );
     }
 
     // ============ Rewards Functions ============
@@ -289,14 +302,14 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             totalAmount += submission.operatorRewards[i].amount;
         }
 
-        submission.token.safeIncreaseAllowance(address(_rewardsCoordinator), totalAmount);
+        submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
             new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
         submissions[0] = submission;
 
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        _rewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission(
+        _REWARDS_COORDINATOR.createOperatorDirectedOperatorSetRewardsSubmission(
             operatorSet, submissions
         );
 
@@ -319,7 +332,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function updateAVSMetadataURI(
         string memory _metadataURI
     ) external onlyOwner {
-        _allocationManager.updateAVSMetadataURI(address(this), _metadataURI);
+        _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), _metadataURI);
     }
 
     /// @inheritdoc IDataHavenServiceManager
@@ -331,7 +344,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             IAllocationManagerTypes.DeregisterParams({
                 operator: operator, avs: address(this), operatorSetIds: operatorSetIds
             });
-        _allocationManager.deregisterFromOperatorSets(params);
+        _ALLOCATION_MANAGER.deregisterFromOperatorSets(params);
     }
 
     // ============ Slashing Submitter Functions ============
@@ -343,8 +356,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function slashValidatorsOperator(
         SlashingRequest[] calldata slashings
     ) external onlyRewardsInitiator {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-
         for (uint256 i = 0; i < slashings.length; i++) {
             IAllocationManagerTypes.SlashingParams memory slashingParams =
                 IAllocationManagerTypes.SlashingParams({
@@ -355,7 +366,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
                     description: slashings[i].description
                 });
 
-            _allocationManager.slashOperator(address(this), slashingParams);
+            _ALLOCATION_MANAGER.slashOperator(address(this), slashingParams);
         }
 
         emit SlashingComplete();
@@ -364,27 +375,17 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     // ============ Internal Functions ============
 
     /**
-     * @notice Creates the initial operator set for DataHaven in the AllocationManager.
-     * @dev This function should be called during initialisation to set up the required operator set.
+     * @notice Safely converts a 20-byte array to an address
+     * @param data The bytes to convert (must be exactly 20 bytes)
+     * @return result The address representation of the bytes
      */
-    function _createDataHavenOperatorSets(
-        IStrategy[] memory validatorsStrategies
-    ) internal {
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
-        });
-        _allocationManager.createOperatorSets(address(this), operatorSets);
-    }
-
-    /**
-     * @notice Internal function to set the rewards initiator
-     * @param _rewardsInitiator The new rewards initiator address
-     */
-    function _setRewardsInitiator(
-        address _rewardsInitiator
-    ) internal {
-        rewardsInitiator = _rewardsInitiator;
+    function _toAddress(
+        bytes memory data
+    ) private pure returns (address result) {
+        require(data.length == 20, "Invalid address length");
+        assembly {
+            result := shr(96, mload(add(data, 32)))
+        }
+        require(result != address(0), ZeroAddress());
     }
 }

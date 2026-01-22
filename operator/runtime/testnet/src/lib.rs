@@ -1254,6 +1254,12 @@ impl_runtime_apis! {
         fn list_incomplete_storage_request_keys(start_after: Option<H256>, limit: u32) -> Vec<H256> {
             FileSystem::list_incomplete_storage_request_keys(start_after, limit)
         }
+        fn query_pending_bsp_confirm_storage_requests(
+            bsp_id: BackupStorageProviderId<Runtime>,
+            file_keys: Vec<H256>,
+        ) -> Vec<H256> {
+            FileSystem::query_pending_bsp_confirm_storage_requests(bsp_id, file_keys)
+        }
     }
 
     impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {

@@ -221,7 +221,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
         require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
         require(validatorsAllowlist[operator], OperatorNotInAllowlist());
-        require(data.length == 20, InvalidSolochainAddressLength());
         validatorEthAddressToSolochainAddress[operator] = _toAddress(data);
 
         emit OperatorRegistered(operator, operatorSetIds[0]);
@@ -374,31 +373,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     // ============ Internal Functions ============
-
-    /**
-     * @notice Creates the initial operator set for DataHaven in the AllocationManager.
-     * @dev This function should be called during initialisation to set up the required operator set.
-     */
-    function _createDataHavenOperatorSets(
-        IStrategy[] memory validatorsStrategies
-    ) internal {
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
-        });
-        _ALLOCATION_MANAGER.createOperatorSets(address(this), operatorSets);
-    }
-
-    /**
-     * @notice Internal function to set the rewards initiator
-     * @param _rewardsInitiator The new rewards initiator address
-     */
-    function _setRewardsInitiator(
-        address _rewardsInitiator
-    ) internal {
-        rewardsInitiator = _rewardsInitiator;
-    }
 
     /**
      * @notice Safely converts a 20-byte array to an address

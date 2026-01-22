@@ -29,7 +29,6 @@ const DeploymentsSchema = z.object({
   Gateway: ethAddressCustom,
   ServiceManager: ethAddressCustom,
   ServiceManagerImplementation: ethAddressCustom,
-  RewardsRegistry: ethAddressCustom,
   RewardsAgent: ethAddressCustom,
   DelegationManager: ethAddressCustom,
   StrategyManager: ethAddressCustom,
@@ -111,14 +110,12 @@ export const parseRewardsInfoFile = async (network = "anvil"): Promise<RewardsIn
 };
 
 // Add to this if we add any new contracts
-// Note: RewardsRegistry has been removed but is kept in Deployments for backwards compatibility
 const abiMap = {
   BeefyClient: generated.beefyClientAbi,
   AgentExecutor: generated.agentExecutorAbi,
   Gateway: generated.gatewayAbi,
   ServiceManager: generated.dataHavenServiceManagerAbi,
   ServiceManagerImplementation: generated.dataHavenServiceManagerAbi,
-  RewardsRegistry: [] as Abi, // RewardsRegistry has been removed, using empty ABI for backwards compatibility
   RewardsAgent: generated.agentAbi,
   DelegationManager: generated.delegationManagerAbi,
   StrategyManager: generated.strategyManagerAbi,

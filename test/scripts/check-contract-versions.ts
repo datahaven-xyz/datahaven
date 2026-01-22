@@ -105,34 +105,6 @@ const main = async () => {
     }
   }
 
-  try {
-    const rewardsRegistry: any = await getContractInstance("RewardsRegistry", viemClient, chain);
-    const rrVersion: string = await rewardsRegistry.read.DATAHAVEN_VERSION();
-
-    if (rrVersion !== version) {
-      logger.error(
-        `❌ RewardsRegistry DATAHAVEN_VERSION=${rrVersion} does not match deployments version=${version} for chain='${chain}'.`
-      );
-      ok = false;
-    } else {
-      logger.info(
-        `✅ RewardsRegistry version matches deployments version (${version}) for chain='${chain}'.`
-      );
-    }
-  } catch (error) {
-    if (infraUnavailable || isInfraUnavailableError(error)) {
-      infraUnavailable = true;
-      logger.warn(
-        `⚠️ Skipping RewardsRegistry version check for chain='${chain}' because no node/containers are running.`
-      );
-    } else {
-      logger.warn(
-        `⚠️ Failed to read version from RewardsRegistry (check will continue and rely on other signals): ${error}`
-      );
-      // Do not mark the whole check as failed here; RewardsRegistry is becoming obsolete.
-    }
-  }
-
   if (infraUnavailable) {
     logger.warn(
       `⚠️ Skipped on-chain contract version checks for chain='${chain}' because no Ethereum node or containers are running.`

@@ -2028,12 +2028,12 @@ export const dataHavenServiceManagerAbi = [
     type: 'constructor',
     inputs: [
       {
-        name: '__rewardsCoordinator',
+        name: 'rewardsCoordinator_',
         internalType: 'contract IRewardsCoordinator',
         type: 'address',
       },
       {
-        name: '__allocationManager',
+        name: 'allocationManager_',
         internalType: 'contract IAllocationManager',
         type: 'address',
       },

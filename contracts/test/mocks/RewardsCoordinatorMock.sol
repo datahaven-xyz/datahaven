@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IPauserRegistry} from "eigenlayer-contracts/src/contracts/interfaces/IPauserRegistry.sol";
 import {
     IRewardsCoordinator
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";

@@ -126,11 +126,14 @@ jobs:
           echo "Found Kurtosis engine container: $ENGINE_CONTAINER"
           
           # Test DNS resolution from inside the engine container
+          # Note: nslookup exit codes can be unreliable in BusyBox, so we check output for an IP address
           echo "Testing DNS resolution for github.com..."
-          if podman exec "$ENGINE_CONTAINER" nslookup github.com; then
+          DNS_OUTPUT=$(podman exec "$ENGINE_CONTAINER" nslookup github.com 2>&1) || true
+          echo "$DNS_OUTPUT"
+          if echo "$DNS_OUTPUT" | grep -qE 'Address.*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
             echo "SUCCESS: DNS resolution works"
           else
-            echo "WARNING: DNS resolution failed - this may cause issues cloning ethereum-package"
+            echo "WARNING: DNS resolution may have failed - no IP address found in nslookup output"
           fi
           
           # Test TCP connectivity using wget (more commonly available than curl/git)

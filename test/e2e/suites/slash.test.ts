@@ -2,9 +2,9 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { FixedSizeBinary } from "polkadot-api";
 import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
 import type { Address } from "viem";
+import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
+import { waitForDataHavenEvent } from "../../utils/events";
 import { BaseTestSuite } from "../framework";
-import { getContractInstance, parseDeploymentsFile } from "../utils/contracts";
-import { waitForDataHavenEvent } from "../utils/events";
 
 class SlashTestSuite extends BaseTestSuite {
   constructor() {

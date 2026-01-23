@@ -1,22 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {
+    TransparentUpgradeableProxy,
+    ITransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {PauserRegistry} from "eigenlayer-contracts/src/contracts/permissions/PauserRegistry.sol";
-import {
-    IAllocationManagerTypes
-} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {IStrategyManager} from "eigenlayer-contracts/src/contracts/interfaces/IStrategyManager.sol";
-import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
-import {IAVSDirectory} from "eigenlayer-contracts/src/contracts/interfaces/IAVSDirectory.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
-import {
-    PermissionController
-} from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 import {
     IRewardsCoordinator,
@@ -33,11 +29,14 @@ import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
 // Mocks
 import {RewardsCoordinatorMock} from "../mocks/RewardsCoordinatorMock.sol";
 import {PermissionControllerMock} from "../mocks/PermissionControllerMock.sol";
+import {SnowbridgeGatewayMock} from "../mocks/SnowbridgeGatewayMock.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 
-import "forge-std/Test.sol";
+import {Test, console, Vm} from "forge-std/Test.sol";
 
 contract AVSDeployer is Test {
+    using SafeCast for uint256;
+
     Vm public cheats = Vm(VM_ADDRESS);
 
     ProxyAdmin public proxyAdmin;
@@ -49,6 +48,7 @@ contract AVSDeployer is Test {
     DataHavenServiceManager public serviceManager;
     DataHavenServiceManager public serviceManagerImplementation;
 
+    // Truncation is intentional - deriving a deterministic mock address from hash
     address public vetoCommitteeMember =
         address(uint160(uint256(keccak256("vetoCommitteeMember"))));
     uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
@@ -66,6 +66,7 @@ contract AVSDeployer is Test {
     RewardsCoordinator public rewardsCoordinatorImplementation;
     RewardsCoordinatorMock public rewardsCoordinatorMock;
     PermissionControllerMock public permissionControllerMock;
+    SnowbridgeGatewayMock public snowbridgeGatewayMock;
 
     // Addresses
     address public proxyAdminOwner = address(uint160(uint256(keccak256("proxyAdminOwner"))));
@@ -113,6 +114,7 @@ contract AVSDeployer is Test {
         eigenPodManagerMock = new EigenPodManagerMock(pauserRegistry);
         permissionControllerMock = new PermissionControllerMock();
         rewardsCoordinatorMock = new RewardsCoordinatorMock();
+        snowbridgeGatewayMock = new SnowbridgeGatewayMock();
         cheats.stopPrank();
 
         console.log("Mock EigenLayer contracts deployed");
@@ -255,11 +257,11 @@ contract AVSDeployer is Test {
                     address(serviceManagerImplementation),
                     address(proxyAdmin),
                     abi.encodeWithSelector(
-                        DataHavenServiceManager.initialise.selector,
+                        DataHavenServiceManager.initialize.selector,
                         avsOwner,
                         rewardsInitiator,
                         validatorsStrategies,
-                        address(0) // This deployment does not use Snowbridge
+                        address(snowbridgeGatewayMock)
                     )
                 )
             )
@@ -380,7 +382,7 @@ contract AVSDeployer is Test {
         address start,
         uint256 inc
     ) internal pure returns (address) {
-        return address(uint160(uint256(uint160(start) + inc)));
+        return address((uint256(uint160(start)) + inc).toUint160());
     }
 
     function _incrementBytes32(

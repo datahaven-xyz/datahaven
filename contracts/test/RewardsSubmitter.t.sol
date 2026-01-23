@@ -3,27 +3,19 @@ pragma solidity ^0.8.13;
 
 /* solhint-disable func-name-mixedcase */
 
-import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {
-    TransparentUpgradeableProxy
-} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {
-    IRewardsCoordinator,
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {ERC20FixedSupply} from "./utils/ERC20FixedSupply.sol";
-import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
-import {
-    IDataHavenServiceManager,
-    IDataHavenServiceManagerEvents,
-    IDataHavenServiceManagerErrors
-} from "../src/interfaces/IDataHavenServiceManager.sol";
+import {IDataHavenServiceManagerEvents} from "../src/interfaces/IDataHavenServiceManager.sol";
 
 contract RewardsSubmitterTest is AVSDeployer {
+    using SafeERC20 for IERC20;
+
     // Test addresses
     address public snowbridgeAgent = address(uint160(uint256(keccak256("snowbridgeAgent"))));
     address public operator1 = address(uint160(uint256(keccak256("operator1"))));
@@ -46,7 +38,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         serviceManager.setRewardsInitiator(snowbridgeAgent);
 
         // Fund the service manager with reward tokens
-        rewardToken.transfer(address(serviceManager), 100000e18);
+        IERC20(address(rewardToken)).safeTransfer(address(serviceManager), 100000e18);
     }
 
     // Helper function to build a submission
@@ -228,7 +220,7 @@ contract RewardsSubmitterTest is AVSDeployer {
         // Deploy a different token
         ERC20FixedSupply otherToken =
             new ERC20FixedSupply("Other", "OTHER", 1000000e18, address(this));
-        otherToken.transfer(address(serviceManager), 100000e18);
+        IERC20(address(otherToken)).safeTransfer(address(serviceManager), 100000e18);
 
         // Build submission with different token
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =

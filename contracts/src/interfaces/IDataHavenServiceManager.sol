@@ -28,6 +28,10 @@ interface IDataHavenServiceManagerErrors {
     error OnlyRewardsInitiator();
     /// @notice Thrown when a function is called by an address that is not the AllocationManager
     error OnlyAllocationManager();
+    /// @notice Thrown when a zero address is provided where a non-zero address is required
+    error ZeroAddress();
+    /// @notice Thrown when the solochain address data length is not 20 bytes
+    error InvalidSolochainAddressLength();
 }
 
 /**
@@ -66,6 +70,11 @@ interface IDataHavenServiceManagerEvents {
     /// @param oldInitiator The previous rewards initiator address
     /// @param newInitiator The new rewards initiator address
     event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+
+    /// @notice Emitted when a validator updates their solochain address
+    /// @param validator Address of the validator
+    /// @param solochainAddress The new solochain address
+    event SolochainAddressUpdated(address indexed validator, address indexed solochainAddress);
 
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
@@ -114,7 +123,7 @@ interface IDataHavenServiceManager is
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
      */
-    function initialise(
+    function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,

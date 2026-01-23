@@ -13,7 +13,6 @@ import {Gateway} from "snowbridge/src/Gateway.sol";
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
 import {AgentExecutor} from "snowbridge/src/AgentExecutor.sol";
-import {Agent} from "snowbridge/src/Agent.sol";
 import {Initializer} from "snowbridge/src/Initializer.sol";
 import {OperatingMode} from "snowbridge/src/types/Common.sol";
 import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
@@ -21,9 +20,6 @@ import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // OpenZeppelin imports
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {
-    TransparentUpgradeableProxy
-} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // EigenLayer imports
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";

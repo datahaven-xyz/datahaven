@@ -18,7 +18,6 @@ import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {
     PermissionController
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
@@ -61,7 +60,7 @@ contract DeployTestnet is DeployBase {
         return networkName;
     }
 
-    function _getDeploymentMode() internal view override returns (string memory) {
+    function _getDeploymentMode() internal pure override returns (string memory) {
         return "HOODI_TESTNET";
     }
 
@@ -117,7 +116,7 @@ contract DeployTestnet is DeployBase {
 
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialise.selector,
+            DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,

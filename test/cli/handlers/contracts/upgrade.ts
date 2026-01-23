@@ -13,18 +13,14 @@ interface ContractsUpgradeOptions {
 }
 
 /**
- * Reads private key from file securely
+ * Reads private key from file
  */
 const readPrivateKeyFromFile = (filePath: string): string => {
-  try {
-    const privateKey = readFileSync(filePath, "utf8").trim();
-    if (!privateKey) {
-      throw new Error("Private key file is empty");
-    }
-    return privateKey;
-  } catch (error) {
-    throw new Error(`Failed to read private key from file ${filePath}: ${error}`);
+  const privateKey = readFileSync(filePath, "utf8").trim();
+  if (!privateKey) {
+    throw new Error("Private key file is empty");
   }
+  return privateKey;
 };
 
 /**

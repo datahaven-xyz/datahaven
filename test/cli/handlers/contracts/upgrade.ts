@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { logger, printDivider, printHeader } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
 import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
+import { buildContracts } from "../../../scripts/deploy-contracts";
 import { verifyContracts } from "./verify";
 
 interface ContractsUpgradeOptions {
@@ -109,26 +110,6 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
 };
 
 /**
- * Builds smart contracts using forge
- */
-const buildContracts = async () => {
-  logger.info("🛳️ Building contracts...");
-  try {
-    const result = await executeCommand(
-      "forge",
-      ["build"],
-      process.env as Record<string, string>,
-      "../contracts"
-    );
-    logger.debug(result);
-    logger.success("Contracts built successfully");
-  } catch (error) {
-    logger.error("❌ Failed to build contracts");
-    throw error;
-  }
-};
-
-/**
  * Deploys only the implementation contracts
  */
 const deployImplementationContracts = async (options: ContractsUpgradeOptions) => {
@@ -159,14 +140,6 @@ const deployImplementationContracts = async (options: ContractsUpgradeOptions) =
     privateKey
   );
   logger.success(`ServiceManager Implementation deployed: ${serviceManagerImplAddress}`);
-
-  // Note: VetoableSlasher and RewardsRegistry contracts have been removed
-  // They are no longer part of the deployment process
-
-  // Update deployment file with new implementation addresses
-  await updateDeploymentFile(options.chain, {
-    ServiceManagerImplementation: serviceManagerImplAddress
-  });
 };
 
 /**
@@ -179,11 +152,6 @@ const deployServiceManagerImplementation = async (
 ): Promise<string> => {
   logger.info("📦 Deploying ServiceManager implementation...");
 
-  // Get existing deployment addresses for constructor parameters
-  const chainConfig = CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS];
-  if (!chainConfig) {
-    throw new Error(`Unsupported chain: ${chain}`);
-  }
   const actualDeployments = await parseDeploymentsFile(chain);
 
   // Use environment variables to avoid command injection
@@ -208,8 +176,6 @@ const deployServiceManagerImplementation = async (
     "--verify",
     "--verifier",
     "etherscan",
-    "--verifier-url",
-    chainConfig.BLOCK_EXPLORER,
     "--etherscan-api-key",
     process.env.ETHERSCAN_API_KEY || ""
   ];
@@ -309,27 +275,6 @@ const updateServiceManagerProxy = async (deployments: any, rpcUrl: string, priva
     logger.debug(result);
   } catch (error) {
     logger.error(`❌ Failed to update ServiceManager proxy: ${error}`);
-    throw error;
-  }
-};
-
-/**
- * Updates the deployment file with new contract addresses
- */
-const updateDeploymentFile = async (chain: string, newAddresses: Record<string, string>) => {
-  logger.info("📝 Updating deployment file...");
-
-  try {
-    const deployments = await parseDeploymentsFile(chain);
-    const updatedDeployments = { ...deployments, ...newAddresses };
-
-    const deploymentPath = `../contracts/deployments/${chain}.json`;
-    const jsonContent = JSON.stringify(updatedDeployments, null, 2);
-
-    writeFileSync(deploymentPath, jsonContent);
-    logger.success(`Deployment file updated: ${deploymentPath}`);
-  } catch (error) {
-    logger.error(`❌ Failed to update deployment file: ${error}`);
     throw error;
   }
 };

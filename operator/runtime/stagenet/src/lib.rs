@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 910,
+    spec_version: 1000,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1256,6 +1256,12 @@ impl_runtime_apis! {
         }
         fn list_incomplete_storage_request_keys(start_after: Option<H256>, limit: u32) -> Vec<H256> {
             FileSystem::list_incomplete_storage_request_keys(start_after, limit)
+        }
+        fn query_pending_bsp_confirm_storage_requests(
+            bsp_id: BackupStorageProviderId<Runtime>,
+            file_keys: Vec<H256>,
+        ) -> Vec<H256> {
+            FileSystem::query_pending_bsp_confirm_storage_requests(bsp_id, file_keys)
         }
     }
 

@@ -1521,7 +1521,7 @@ dependencies = [
  "pallet-message-queue",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -2607,7 +2607,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-mainnet-runtime"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "bridge-hub-common 0.13.1",
@@ -2716,8 +2716,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -2760,7 +2760,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-node"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "async-channel 1.9.0",
  "clap",
@@ -2871,7 +2871,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-runtime-common"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "fp-account",
@@ -2905,7 +2905,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-stagenet-runtime"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "bridge-hub-common 0.13.1",
@@ -3014,8 +3014,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -3058,7 +3058,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-testnet-runtime"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "bridge-hub-common 0.13.1",
@@ -3167,8 +3167,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -3360,7 +3360,7 @@ dependencies = [
 
 [[package]]
 name = "dhp-bridge"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -3368,7 +3368,7 @@ dependencies = [
  "pallet-datahaven-native-transfer",
  "pallet-external-validators",
  "parity-scale-codec",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -8695,7 +8695,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-datahaven-native-transfer"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8703,7 +8703,7 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -8807,7 +8807,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-balances-erc20"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -8830,7 +8830,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-batch"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8869,7 +8869,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-call-permit"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8935,7 +8935,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-datahaven-native-transfer"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8949,7 +8949,7 @@ dependencies = [
  "parity-scale-codec",
  "precompile-utils",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9028,7 +9028,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-proxy"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -9072,7 +9072,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-registry"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -9123,7 +9123,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9133,7 +9133,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9157,7 +9157,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators-rewards"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9170,7 +9170,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9394,7 +9394,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-outbound-commitment-store"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -14759,7 +14759,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-beacon-primitives"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "byte-slice-cast",
  "frame-support",
@@ -14804,7 +14804,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "bp-relayers",
  "ethabi-decode",
@@ -14881,8 +14881,8 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-verification-primitives",
  "sp-core",
  "sp-io",
@@ -14895,7 +14895,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-merkle-tree"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "array-bytes",
  "hex",
@@ -14936,7 +14936,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-primitives"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "ethabi-decode",
@@ -14948,7 +14948,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-verification-primitives",
  "sp-arithmetic",
  "sp-core",
@@ -14962,12 +14962,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-v2-runtime-api"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "sp-api",
@@ -14977,7 +14977,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -14990,8 +14990,8 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-ethereum 0.3.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client-fixtures",
@@ -15007,8 +15007,8 @@ name = "snowbridge-pallet-ethereum-client-fixtures"
 version = "0.9.0"
 dependencies = [
  "hex-literal 0.3.4",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -15016,7 +15016,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -15030,8 +15030,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2-fixtures",
@@ -15052,8 +15052,8 @@ name = "snowbridge-pallet-inbound-queue-v2-fixtures"
 version = "0.10.0"
 dependencies = [
  "hex-literal 0.3.4",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -15083,7 +15083,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-outbound-queue-v2"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -15097,8 +15097,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-beacon-primitives 0.13.0",
- "snowbridge-core 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -15129,7 +15129,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-outbound-queue",
  "sp-core",
@@ -15142,7 +15142,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-system-v2"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -15154,7 +15154,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-pallet-system",
@@ -15170,10 +15170,10 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-system-v2-runtime-api"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "parity-scale-codec",
- "snowbridge-core 0.13.0",
+ "snowbridge-core 0.20.0",
  "sp-api",
  "sp-std",
  "staging-xcm",
@@ -15181,7 +15181,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-test-utils"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -15201,12 +15201,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-verification-primitives"
-version = "0.13.0"
+version = "0.20.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-beacon-primitives 0.13.0",
+ "snowbridge-beacon-primitives 0.20.0",
  "sp-core",
  "sp-std",
 ]

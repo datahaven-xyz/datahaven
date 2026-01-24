@@ -6,7 +6,7 @@ import {
   BALTATHAR_ADDRESS,
   BALTATHAR_PRIVATE_KEY,
   CHARLETH_PRIVATE_KEY,
-  GERALD_PRIVATE_KEY,
+  FAITH_PRIVATE_KEY,
   GLMR,
   checkBalance,
   createViemTransaction,
@@ -157,29 +157,31 @@ describeSuite({
       },
     });
 
+    // NOTE: Uses FAITH_PRIVATE_KEY (aka Frank in DataHaven) instead of GERALD_PRIVATE_KEY
+    // because Gerald is not endowed at genesis in DataHaven (unlike Moonbeam).
     it({
       id: "T07",
       title: "multiple transfer should be successful",
       test: async function () {
         const { result } = await context.createBlock([
           await createRawTransfer(context, randomAddress, 10n * GLMR, {
-            privateKey: GERALD_PRIVATE_KEY,
+            privateKey: FAITH_PRIVATE_KEY,
             nonce: 0,
           }),
           await createRawTransfer(context, randomAddress, 10n * GLMR, {
-            privateKey: GERALD_PRIVATE_KEY,
+            privateKey: FAITH_PRIVATE_KEY,
             nonce: 1,
           }),
           await createRawTransfer(context, randomAddress, 10n * GLMR, {
-            privateKey: GERALD_PRIVATE_KEY,
+            privateKey: FAITH_PRIVATE_KEY,
             nonce: 2,
           }),
           await createRawTransfer(context, randomAddress, 10n * GLMR, {
-            privateKey: GERALD_PRIVATE_KEY,
+            privateKey: FAITH_PRIVATE_KEY,
             nonce: 3,
           }),
           await createRawTransfer(context, randomAddress, 10n * GLMR, {
-            privateKey: GERALD_PRIVATE_KEY,
+            privateKey: FAITH_PRIVATE_KEY,
             nonce: 4,
           }),
         ]);

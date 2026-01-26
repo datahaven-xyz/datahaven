@@ -2028,12 +2028,12 @@ export const dataHavenServiceManagerAbi = [
     type: 'constructor',
     inputs: [
       {
-        name: '__rewardsCoordinator',
+        name: 'rewardsCoordinator_',
         internalType: 'contract IRewardsCoordinator',
         type: 'address',
       },
       {
-        name: '__allocationManager',
+        name: 'allocationManager_',
         internalType: 'contract IAllocationManager',
         type: 'address',
       },
@@ -2118,7 +2118,7 @@ export const dataHavenServiceManagerAbi = [
         type: 'address',
       },
     ],
-    name: 'initialise',
+    name: 'initialize',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2204,6 +2204,29 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'setSnowbridgeGateway',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'slashings',
+        internalType: 'struct IDataHavenServiceManager.SlashingRequest[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'operator', internalType: 'address', type: 'address' },
+          {
+            name: 'strategies',
+            internalType: 'contract IStrategy[]',
+            type: 'address[]',
+          },
+          { name: 'wadsToSlash', internalType: 'uint256[]', type: 'uint256[]' },
+          { name: 'description', internalType: 'string', type: 'string' },
+        ],
+      },
+    ],
+    name: 'slashValidatorsOperator',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2413,6 +2436,7 @@ export const dataHavenServiceManagerAbi = [
     ],
     name: 'RewardsSubmitted',
   },
+  { type: 'event', anonymous: false, inputs: [], name: 'SlashingComplete' },
   {
     type: 'event',
     anonymous: false,
@@ -2425,6 +2449,25 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'SnowbridgeGatewaySet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'validator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'solochainAddress',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'SolochainAddressUpdated',
   },
   {
     type: 'event',
@@ -2457,9 +2500,11 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
+  { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
+  { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -10722,12 +10767,12 @@ export const writeDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialize"`
  */
-export const writeDataHavenServiceManagerInitialise =
+export const writeDataHavenServiceManagerInitialize =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'initialise',
+    functionName: 'initialize',
   })
 
 /**
@@ -10791,6 +10836,15 @@ export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
+ */
+export const writeDataHavenServiceManagerSlashValidatorsOperator =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'slashValidatorsOperator',
   })
 
 /**
@@ -10872,12 +10926,12 @@ export const simulateDataHavenServiceManagerDeregisterOperatorFromOperatorSets =
   })
 
 /**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialise"`
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"initialize"`
  */
-export const simulateDataHavenServiceManagerInitialise =
+export const simulateDataHavenServiceManagerInitialize =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
-    functionName: 'initialise',
+    functionName: 'initialize',
   })
 
 /**
@@ -10941,6 +10995,15 @@ export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createSimulateContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
+ */
+export const simulateDataHavenServiceManagerSlashValidatorsOperator =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'slashValidatorsOperator',
   })
 
 /**
@@ -11040,12 +11103,30 @@ export const watchDataHavenServiceManagerRewardsSubmittedEvent =
   })
 
 /**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SlashingComplete"`
+ */
+export const watchDataHavenServiceManagerSlashingCompleteEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'SlashingComplete',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SnowbridgeGatewaySet"`
  */
 export const watchDataHavenServiceManagerSnowbridgeGatewaySetEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'SnowbridgeGatewaySet',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"SolochainAddressUpdated"`
+ */
+export const watchDataHavenServiceManagerSolochainAddressUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'SolochainAddressUpdated',
   })
 
 /**

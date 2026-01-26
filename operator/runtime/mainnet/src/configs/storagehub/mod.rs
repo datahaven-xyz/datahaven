@@ -557,7 +557,7 @@ impl pallet_file_system::Config for Runtime {
     type CollectionInspector = BucketNfts;
     type BspStopStoringFilePenalty = runtime_config::BspStopStoringFilePenalty;
     type TreasuryAccount = TreasuryAccount;
-    type MaxBatchConfirmStorageRequests = ConstU32<10>;
+    type MaxBatchConfirmStorageRequests = ConstU32<100>;
     type MaxFilePathSize = ConstU32<512u32>;
     type MaxPeerIdSize = ConstU32<100>;
     type MaxNumberOfPeerIds = ConstU32<5>;

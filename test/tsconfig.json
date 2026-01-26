@@ -39,11 +39,10 @@
   "include": [
     "utils/*.ts",
     "scripts/*.ts",
-    "suites/**/*.ts",
+    "e2e/**/*.ts",
     "cli/**/*.ts",
     "wagmi.config.ts",
     "contract-bindings/*.ts",
-    "launcher/**/*.ts",
-    "framework/**/*.ts"
+    "launcher/**/*.ts"
   ]
 }

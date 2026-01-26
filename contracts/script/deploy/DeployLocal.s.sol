@@ -10,19 +10,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 
 // Logging import
 import {Logging} from "../utils/Logging.sol";
-import {Accounts} from "../utils/Accounts.sol";
-import {ValidatorsUtils} from "../utils/ValidatorsUtils.sol";
-
-// Snowbridge imports
-import {Gateway} from "snowbridge/src/Gateway.sol";
-import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
-import {GatewayProxy} from "snowbridge/src/GatewayProxy.sol";
-import {AgentExecutor} from "snowbridge/src/AgentExecutor.sol";
-import {Agent} from "snowbridge/src/Agent.sol";
-import {Initializer} from "snowbridge/src/Initializer.sol";
-import {OperatingMode} from "snowbridge/src/types/Common.sol";
-import {ud60x18} from "snowbridge/lib/prb-math/src/UD60x18.sol";
-import {BeefyClient} from "snowbridge/src/BeefyClient.sol";
 
 // Additional imports specific to local deployment
 import {
@@ -49,12 +36,8 @@ import {
     PermissionController
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 
-import {
-    IAllocationManagerTypes
-} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
 import {
-    IRewardsCoordinator,
     IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -189,7 +172,7 @@ contract DeployLocal is DeployBase {
         _deployImplementations(eigenLayerConfig, pauserRegistry);
         Logging.logStep("Implementation contracts deployed successfully");
 
-        // Upgrade proxies to point to implementations and initialise
+        // Upgrade proxies to point to implementations and initialize
         Logging.logSection("Initializing Contracts");
         _upgradeAndInitializeProxies(eigenLayerConfig, proxyAdmin);
         Logging.logStep("Proxies upgraded and initialized successfully");
@@ -220,7 +203,7 @@ contract DeployLocal is DeployBase {
 
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialise.selector,
+            DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,

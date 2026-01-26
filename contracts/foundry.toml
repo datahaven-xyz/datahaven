@@ -17,7 +17,6 @@
     # Defines paths for Solidity imports.
     remappings = [
         "forge-std/=lib/forge-std/src/",
-        "ds-test/=lib/ds-test/src/",
         "eigenlayer-contracts/=lib/eigenlayer-contracts/",
         "snowbridge/=lib/snowbridge/contracts/",
         "@openzeppelin/=lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
@@ -28,13 +27,9 @@
         "lib/snowbridge/contracts/:prb/math/=lib/snowbridge/contracts/lib/prb-math/",
         "openzeppelin/=lib/snowbridge/contracts/lib/openzeppelin-contracts/contracts/",
         "prb/math/=lib/snowbridge/contracts/lib/prb-math/",
-        "src/contracts/=lib/eigenlayer-contracts/src/contracts/",
-        "src/test/=lib/eigenlayer-contracts/src/test/",
     ]
     # Specifies the exact version of Solidity to use, overriding auto-detection.
     solc_version = '0.8.28'
-    # If enabled, treats Solidity compiler warnings as errors, preventing artifact generation if warnings are present.
-    deny_warnings = false
     # If set to true, changes compilation pipeline to go through the new IR optimizer.
     via_ir = false
     # Whether or not to enable the Solidity optimizer.
@@ -119,3 +114,10 @@
 
 # [etherscan]
 #     mainnet = { key = "${ETHERSCAN_API_KEY}" }
+
+[lint]
+# Global lint suppressions for naming conventions
+exclude_lints = [
+    "mixed-case-function",     # Keep AVS/EL/ERC naming conventions
+    "mixed-case-variable",     # Keep __GAP, ethPOSDeposit, _metadataURI naming
+]

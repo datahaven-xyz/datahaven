@@ -446,6 +446,9 @@ where
         let account_amount: U256 = {
             let owner: Runtime::AccountId =
                 Runtime::AddressMapping::into_account_id(handle.context().caller);
+            // frame_system::Account:
+            // Blake2128(16) + AccountId(20) + AccountInfo ((4 * 4) + AccountData(16 * 4))
+            handle.record_db_read::<Runtime>(116)?;
             pallet_balances::Pallet::<Runtime, Instance>::usable_balance(&owner).into()
         };
 

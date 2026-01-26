@@ -5,8 +5,11 @@ import {EmptyContract} from "eigenlayer-contracts/src/test/mocks/EmptyContract.s
 import {Config} from "./Config.sol";
 import {Script} from "forge-std/Script.sol";
 import {TestUtils} from "../../test/utils/TestUtils.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 contract DeployParams is Script, Config {
+    using SafeCast for uint256;
+
     function getSnowbridgeConfig() public view returns (SnowbridgeConfig memory) {
         SnowbridgeConfig memory config;
 
@@ -20,7 +23,7 @@ contract DeployParams is Script, Config {
             vm.parseJsonUint(configJson, ".snowbridge.randaoCommitExpiration");
         config.minNumRequiredSignatures =
             vm.parseJsonUint(configJson, ".snowbridge.minNumRequiredSignatures");
-        config.startBlock = uint64(vm.parseJsonUint(configJson, ".snowbridge.startBlock"));
+        config.startBlock = vm.parseJsonUint(configJson, ".snowbridge.startBlock").toUint64();
         config.rewardsMessageOrigin =
             vm.parseJsonBytes32(configJson, ".snowbridge.rewardsMessageOrigin");
 
@@ -56,7 +59,7 @@ contract DeployParams is Script, Config {
         }
         config.rewardsInitiator = vm.parseJsonAddress(configJson, ".avs.rewardsInitiator");
         config.vetoCommitteeMember = vm.parseJsonAddress(configJson, ".avs.vetoCommitteeMember");
-        config.vetoWindowBlocks = uint32(vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks"));
+        config.vetoWindowBlocks = vm.parseJsonUint(configJson, ".avs.vetoWindowBlocks").toUint32();
         config.validatorsStrategies =
             vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
 
@@ -76,15 +79,17 @@ contract DeployParams is Script, Config {
         config.unpauserAddress = vm.parseJsonAddress(configJson, ".eigenLayer.unpauser");
         config.rewardsUpdater = vm.parseJsonAddress(configJson, ".eigenLayer.rewardsUpdater");
         config.calculationIntervalSeconds =
-            uint32(vm.parseJsonUint(configJson, ".eigenLayer.calculationIntervalSeconds"));
+            vm.parseJsonUint(configJson, ".eigenLayer.calculationIntervalSeconds").toUint32();
         config.maxRewardsDuration =
-            uint32(vm.parseJsonUint(configJson, ".eigenLayer.maxRewardsDuration"));
+            vm.parseJsonUint(configJson, ".eigenLayer.maxRewardsDuration").toUint32();
         config.maxRetroactiveLength =
-            uint32(vm.parseJsonUint(configJson, ".eigenLayer.maxRetroactiveLength"));
-        config.maxFutureLength = uint32(vm.parseJsonUint(configJson, ".eigenLayer.maxFutureLength"));
+            vm.parseJsonUint(configJson, ".eigenLayer.maxRetroactiveLength").toUint32();
+        config.maxFutureLength =
+            vm.parseJsonUint(configJson, ".eigenLayer.maxFutureLength").toUint32();
         config.genesisRewardsTimestamp =
-            uint32(vm.parseJsonUint(configJson, ".eigenLayer.genesisRewardsTimestamp"));
-        config.activationDelay = uint32(vm.parseJsonUint(configJson, ".eigenLayer.activationDelay"));
+            vm.parseJsonUint(configJson, ".eigenLayer.genesisRewardsTimestamp").toUint32();
+        config.activationDelay =
+            vm.parseJsonUint(configJson, ".eigenLayer.activationDelay").toUint32();
         config.globalCommissionBips =
             uint16(vm.parseJsonUint(configJson, ".eigenLayer.globalCommissionBips"));
         config.executorMultisig = vm.parseJsonAddress(configJson, ".eigenLayer.executorMultisig");
@@ -95,7 +100,7 @@ contract DeployParams is Script, Config {
         try vm.parseJsonUint(configJson, ".eigenLayer.minWithdrawalDelayBlocks") returns (
             uint256 val
         ) {
-            config.minWithdrawalDelayBlocks = uint32(val);
+            config.minWithdrawalDelayBlocks = val.toUint32();
         } catch {
             config.minWithdrawalDelayBlocks = 7 days / 12 seconds; // Default: 1 week in blocks at 12s per block
         }
@@ -103,7 +108,7 @@ contract DeployParams is Script, Config {
         try vm.parseJsonUint(configJson, ".eigenLayer.delegationWithdrawalDelayBlocks") returns (
             uint256 val
         ) {
-            config.delegationWithdrawalDelayBlocks = uint32(val);
+            config.delegationWithdrawalDelayBlocks = val.toUint32();
         } catch {
             config.delegationWithdrawalDelayBlocks = 7 days / 12 seconds; // Default: 1 week
         }
@@ -149,7 +154,7 @@ contract DeployParams is Script, Config {
         }
 
         try vm.parseJsonUint(configJson, ".eigenLayer.deallocationDelay") returns (uint256 val) {
-            config.deallocationDelay = uint32(val);
+            config.deallocationDelay = val.toUint32();
         } catch {
             config.deallocationDelay = 7 days; // Default: 1 week
         }
@@ -157,7 +162,7 @@ contract DeployParams is Script, Config {
         try vm.parseJsonUint(configJson, ".eigenLayer.allocationConfigurationDelay") returns (
             uint256 val
         ) {
-            config.allocationConfigurationDelay = uint32(val);
+            config.allocationConfigurationDelay = val.toUint32();
         } catch {
             config.allocationConfigurationDelay = 1 days; // Default: 1 day
         }
@@ -165,7 +170,7 @@ contract DeployParams is Script, Config {
         try vm.parseJsonUint(configJson, ".eigenLayer.beaconChainGenesisTimestamp") returns (
             uint256 val
         ) {
-            config.beaconChainGenesisTimestamp = uint64(val);
+            config.beaconChainGenesisTimestamp = val.toUint64();
         } catch {
             config.beaconChainGenesisTimestamp = 1616508000; // Mainnet default
         }

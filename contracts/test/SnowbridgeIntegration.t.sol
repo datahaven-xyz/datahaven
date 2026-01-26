@@ -8,7 +8,6 @@ import {Payload, Message, MessageKind, Asset} from "snowbridge/src/v2/Types.sol"
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
-import "forge-std/Test.sol";
 
 contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
     function setUp() public {

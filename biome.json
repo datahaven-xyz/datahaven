@@ -8,6 +8,7 @@
       "**/*.yml",
       "**/*.md",
       "!node_modules/*",
+      "!**/moonwall/suites/**/*",
       "!target/*",
       "!**/tmp/*",
       "!**/*.spec.json",

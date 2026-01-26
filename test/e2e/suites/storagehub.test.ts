@@ -7,8 +7,12 @@
  * - DataHaven network with StoraheHub service running
  * - Storage hub MSP and BSP
  */
+import "@storagehub/api-augment";
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import fs from "node:fs";
+// import { ApiPromise, WsProvider } from "@polkadot/api";
+// import { types } from "@storagehub/types-bundle";
 import { $ } from "bun";
 import { Binary } from "polkadot-api";
 import { createPapiConnectors, logger } from "utils";
@@ -77,7 +81,7 @@ describe("test uploading file to storage hub", () => {
     await registerProviders({ launchedNetwork: run });
   });
 
-  it("works", async () => {
+  it("Create a bucket", async () => {
     const { typedApi: dhApi } = createPapiConnectors(aliceUrl);
 
     const mspCount = await dhApi.query.Providers.MspCount.getValue();
@@ -106,7 +110,70 @@ describe("test uploading file to storage hub", () => {
     const aliceSigner = getEvmEcdsaSigner(SUBSTRATE_FUNDED_ACCOUNTS.ALITH.privateKey);
     const mspResult = await call.signAndSubmit(aliceSigner);
     expect(mspResult.ok).toBeTrue();
+    console.log(mspResult);
   }, 30000);
+
+  it("Send a request ", async () => {
+    const { typedApi: dhApi } = createPapiConnectors(aliceUrl);
+
+    const msp_id = await dhApi.query.Providers.AccountIdToMainStorageProviderId.getValue(
+      SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.publicKey
+    );
+    expect(msp_id).toBeDefined();
+    if (!msp_id) {
+      throw new Error("mspId for Charleth not found");
+    }
+
+    const buckets = await dhApi.apis.StorageProvidersApi.query_buckets_for_msp(msp_id);
+    if (!buckets.success) {
+      throw new Error("Bucket not found for the register msp");
+    }
+    expect(buckets.value.length).toBe(1);
+
+    fs.writeFileSync("/tmp/bar.txt", "foo bar");
+
+    // copy the file into the node
+    const result = await $`docker cp /tmp/bar.txt datahaven-alice-${networkId}:/storage`;
+    console.log(result.text());
+
+    // const provider = new WsProvider(mspUrl);
+    // const api = await ApiPromise.create({
+    //   provider,
+    //   noInitWarn: true,
+    //   typesBundle: types
+    // });
+
+    // await api.rpc.storagehubclient.loadFileInStorage(
+    //   "/storage/bar.txt",
+    //   "/storage/foo/bar.txt",
+    //   SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey.toString(),
+    //   buckets.value[0].asText()
+    // );
+
+    // const resultRPC = await fetch(mspUrl.replace("ws", "http"), {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json"
+    //     },
+    //     body: JSON.stringify({
+    //       id: "1",
+    //       jsonrpc: "2.0",
+    //       method: "storagehubclient_loadFileInStorage",
+    //       params: ["/storage/bar.txt", "/storage/foo/bar.txt", SUBSTRATE_FUNDED_ACCOUNTS.ALITH.publicKey.toString(), buckets.value[0].asText()]
+    //     })
+    //   });
+    // console.log(await resultRPC.text());
+
+    // const call = await dhApi.tx.FileSystem.issue_storage_request({
+    //   msp_id,
+    //   bucket_id: buckets.value[0],
+    //   location: Binary.fromText("test/foo") ,
+    //   fingerprint: ,
+    //   size: BigInt(file.size),
+    //   peer_ids: [],
+    //   replication_target: null,
+    // });
+  });
 
   afterAll(async () => {
     // Delete all the containers started by this test suite

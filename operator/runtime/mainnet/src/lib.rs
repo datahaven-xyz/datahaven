@@ -951,6 +951,7 @@ impl_runtime_apis! {
             use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
             use frame_system_benchmarking::Pallet as SystemBench;
+            use pallet_session_benchmarking::Pallet as SessionBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -967,8 +968,10 @@ impl_runtime_apis! {
             use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
             use sp_storage::TrackedStorageKey;
             use frame_system_benchmarking::Pallet as SystemBench;
+            use pallet_session_benchmarking::Pallet as SessionBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
+            impl pallet_session_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
 
             use frame_support::traits::WhitelistedStorageKeys;

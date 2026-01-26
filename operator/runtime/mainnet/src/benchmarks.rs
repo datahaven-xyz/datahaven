@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
+use pallet_session_benchmarking::Pallet as SessionBench;
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
     [frame_system, SystemBench::<Runtime>]
@@ -27,6 +28,7 @@ frame_benchmarking::define_benchmarks!(
 
     // Substrate pallets
     [pallet_balances, Balances]
+    [pallet_session, SessionBench::<Runtime>]
     // FIXME: benchmarking identity fail
     // [pallet_identity, Identity]
     [pallet_im_online, ImOnline]

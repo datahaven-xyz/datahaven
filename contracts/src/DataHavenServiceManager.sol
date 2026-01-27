@@ -39,6 +39,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     string public constant DATAHAVEN_AVS_METADATA =
         "https://raw.githubusercontent.com/datahaven-xyz/datahaven/refs/heads/main/contracts/deployments/metadata.json";
 
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// This is informational and should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string public constant DATAHAVEN_VERSION = "1.0.0";
+
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
 

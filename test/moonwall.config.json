@@ -31,6 +31,8 @@
               "--reserved-only",
               "--no-grandpa",
               "--no-prometheus",
+              "--force-authoring",
+              "--alice",
               "--sealing=manual"
             ]
           }

@@ -37,6 +37,7 @@ pub mod pallet_beefy_mmr;
 pub mod pallet_evm;
 pub mod pallet_grandpa;
 pub mod pallet_nfts;
+pub mod pallet_payment_streams;
 pub mod pallet_randomness;
 // pub mod pallet_identity;
 pub mod pallet_im_online;

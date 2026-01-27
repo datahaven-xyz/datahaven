@@ -360,6 +360,7 @@ runtime-benchmarks = [
     "pallet-datahaven-native-transfer/runtime-benchmarks",
     # StorageHub pallets
     "pallet-nfts/runtime-benchmarks",
+    "pallet-payment-streams/runtime-benchmarks",
     "dep:k256",
 ]
 

@@ -214,6 +214,16 @@ parameter_types! {
     // TODO: If the next line is uncommented (which should be eventually, replacing the line above), compilation breaks (most likely because of mismatched dependency issues)
     // pub const MaxBlocksForRandomness: BlockNumber = prod_or_fast!(2 * runtime_constants::time::EPOCH_DURATION_IN_SLOTS, 2 * MINUTES);
 }
+#[cfg(feature = "runtime-benchmarks")]
+pub struct StorageHubTreasuryAccount;
+#[cfg(feature = "runtime-benchmarks")]
+impl Get<AccountId> for StorageHubTreasuryAccount {
+    fn get() -> AccountId {
+        let account = TreasuryAccount::get();
+        StorageHubBenchmarking::ensure_treasury_account::<AccountId, Balance, Balances>(account)
+    }
+}
+
 
 impl pallet_storage_providers::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -295,7 +305,7 @@ parameter_types! {
 
 impl pallet_payment_streams::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_payment_streams::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_payment_streams::WeightInfo<Runtime>;
     type NativeBalance = Balances;
     type ProvidersPallet = Providers;
     type RuntimeHoldReason = RuntimeHoldReason;
@@ -305,7 +315,10 @@ impl pallet_payment_streams::Config for Runtime {
     type BlockNumberToBalance = BlockNumberToBalance;
     type ProvidersProofSubmitters = ProofsDealer;
     type TreasuryCutCalculator = LinearThenPowerOfTwoTreasuryCutCalculator<Runtime, Perbill>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type TreasuryAccount = TreasuryAccount;
+    #[cfg(feature = "runtime-benchmarks")]
+    type TreasuryAccount = StorageHubTreasuryAccount;
     type MaxUsersToCharge = ConstU32<10>;
     type BaseDeposit = ConstU128<10>;
 }

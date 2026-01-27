@@ -48,6 +48,7 @@ frame_benchmarking::define_benchmarks!(
 
     // StorageHub pallets
     [pallet_nfts, Nfts]
+    [pallet_payment_streams, PaymentStreams]
 
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]

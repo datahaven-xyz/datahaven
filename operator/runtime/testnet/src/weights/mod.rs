@@ -44,6 +44,7 @@ pub mod pallet_mmr;
 pub mod pallet_multisig;
 pub mod pallet_nfts;
 pub mod pallet_payment_streams;
+pub mod pallet_storage_providers;
 pub mod pallet_parameters;
 pub mod pallet_preimage;
 pub mod pallet_proxy;

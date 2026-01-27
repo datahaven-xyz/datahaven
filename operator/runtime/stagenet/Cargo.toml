@@ -361,6 +361,7 @@ runtime-benchmarks = [
     # StorageHub pallets
     "pallet-nfts/runtime-benchmarks",
     "pallet-payment-streams/runtime-benchmarks",
+    "pallet-storage-providers/runtime-benchmarks",
     "dep:k256",
 ]
 

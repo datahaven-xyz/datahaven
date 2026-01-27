@@ -26,11 +26,14 @@
             "newRpcBehaviour": true,
             "options": [
               "--dev",
+              "--ethapi=txpool",
               "--no-telemetry",
               "--unsafe-force-node-key-generation",
               "--reserved-only",
               "--no-grandpa",
               "--no-prometheus",
+              "--force-authoring",
+              "--alice",
               "--sealing=manual"
             ]
           }

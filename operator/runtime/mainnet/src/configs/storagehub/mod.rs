@@ -16,8 +16,12 @@
 
 use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
-    TreasuryAccount, HAVE, MICROHAVE,
+    TreasuryAccount,
 };
+#[cfg(not(feature = "runtime-benchmarks"))]
+use super::HAVE;
+#[cfg(feature = "runtime-benchmarks")]
+use super::MICROHAVE;
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
     BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature, WeightToFee,

@@ -16,8 +16,12 @@
 
 use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
-    TreasuryAccount, HAVE, MICROHAVE,
+    TreasuryAccount,
 };
+#[cfg(not(feature = "runtime-benchmarks"))]
+use super::HAVE;
+#[cfg(feature = "runtime-benchmarks")]
+use super::MICROHAVE;
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
     BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature, WeightToFee,
@@ -35,7 +39,7 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use frame_system::{EnsureRoot, EnsureSigned};
+use frame_system::EnsureSigned;
 use num_bigint::BigUint;
 use pallet_nfts::PalletFeatures;
 use polkadot_runtime_common::prod_or_fast;
@@ -468,11 +472,11 @@ impl pallet_proofs_dealer::Config for Runtime {
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type ChallengeOrigin = EnsureRoot<AccountId>;
+    type ChallengeOrigin = frame_system::EnsureRoot<AccountId>;
     #[cfg(feature = "runtime-benchmarks")]
     type ChallengeOrigin = EnsureSigned<AccountId>;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type PriorityChallengeOrigin = EnsureRoot<AccountId>;
+    type PriorityChallengeOrigin = frame_system::EnsureRoot<AccountId>;
     #[cfg(feature = "runtime-benchmarks")]
     type PriorityChallengeOrigin = EnsureSigned<AccountId>;
 }

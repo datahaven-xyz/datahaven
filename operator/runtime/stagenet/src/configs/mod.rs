@@ -123,7 +123,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter},
+    v2::ConstantGasMeter,
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -1737,6 +1737,7 @@ mod tests {
     use snowbridge_inbound_queue_primitives::v2::{
         EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload,
     };
+    use snowbridge_outbound_queue_primitives::v2::Command;
     use sp_core::H160;
     use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;

@@ -14,9 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(not(feature = "runtime-benchmarks"))]
+use super::HAVE;
+#[cfg(feature = "runtime-benchmarks")]
+use super::MICROHAVE;
 use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
-    TreasuryAccount, HAVE, MICROHAVE,
+    TreasuryAccount,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
@@ -35,7 +39,9 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use frame_system::{EnsureRoot, EnsureSigned};
+#[cfg(not(feature = "runtime-benchmarks"))]
+use frame_system::EnsureRoot;
+use frame_system::EnsureSigned;
 use num_bigint::BigUint;
 use pallet_nfts::PalletFeatures;
 use polkadot_runtime_common::prod_or_fast;

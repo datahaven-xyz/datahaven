@@ -15,7 +15,9 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 use fp_account::AccountId20;
+use frame_support::traits::Currency;
 use pallet_treasury::ArgumentsFactory;
+use sp_runtime::traits::Zero;
 
 pub struct BenchmarkHelper;
 impl ArgumentsFactory<(), AccountId20> for BenchmarkHelper {
@@ -29,5 +31,26 @@ impl ArgumentsFactory<(), AccountId20> for BenchmarkHelper {
             return AccountId20::from([1; 32]);
         }
         AccountId20::from(seed)
+    }
+}
+
+pub struct StorageHubBenchmarking;
+impl StorageHubBenchmarking {
+    pub const SP_MIN_DEPOSIT: u128 = 100_000_000_000_000;
+    pub const BUCKET_DEPOSIT: u128 = 100_000_000_000_000;
+    // Keep the benchmark challenge period within u32 limits.
+    pub const STAKE_TO_CHALLENGE_PERIOD: u128 = 3_000_000_000_000_000;
+    // Derived from StakeToChallengePeriod / SP_MIN_DEPOSIT + tolerance + 1.
+    pub const CHECKPOINT_CHALLENGE_PERIOD: u32 = 81;
+
+    pub fn ensure_treasury_account<AccountId, Balance, CurrencyT>(account: AccountId) -> AccountId
+    where
+        Balance: From<u128> + Zero,
+        CurrencyT: Currency<AccountId, Balance = Balance>,
+    {
+        if CurrencyT::free_balance(&account).is_zero() {
+            let _ = CurrencyT::deposit_creating(&account, 1u128.into());
+        }
+        account
     }
 }

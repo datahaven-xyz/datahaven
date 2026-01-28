@@ -89,7 +89,6 @@ use datahaven_runtime_common::{
     },
     time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
-use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
     dispatch::DispatchClass,
@@ -124,7 +123,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter},
+    v2::ConstantGasMeter,
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -625,7 +624,7 @@ impl pallet_identity::Config for Runtime {
     type PendingUsernameExpiration = PendingUsernameExpiration;
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
-    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = testnet_weights::pallet_identity::WeightInfo<Runtime>;
     type UsernameDeposit = ();
     type UsernameGracePeriod = ();
 
@@ -1270,8 +1269,8 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = (
-        EigenLayerMessageProcessor<Runtime>,
-        NativeTokenTransferMessageProcessor<Runtime>,
+        dhp_bridge::EigenLayerMessageProcessor<Runtime>,
+        dhp_bridge::NativeTokenTransferMessageProcessor<Runtime>,
     );
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor = NoOpMessageProcessor;
@@ -1741,6 +1740,7 @@ mod tests {
     use snowbridge_inbound_queue_primitives::v2::{
         EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload,
     };
+    use snowbridge_outbound_queue_primitives::v2::Command;
     use sp_core::H160;
     use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;

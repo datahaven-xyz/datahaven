@@ -434,7 +434,13 @@ impl pallet_proofs_dealer::Config for Runtime {
         { shp_constants::FILE_SIZE_TO_CHALLENGES },
     >;
     type StakeToBlockNumber = SaturatingBalanceToBlockNumber;
+    #[cfg(feature = "runtime-benchmarks")]
+    type RandomChallengesPerBlock = ConstU32<0>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type RandomChallengesPerBlock = RandomChallengesPerBlock;
+    #[cfg(feature = "runtime-benchmarks")]
+    type MaxCustomChallengesPerBlock = TotalMaxChallengesPerBlock;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type MaxCustomChallengesPerBlock = MaxCustomChallengesPerBlock;
     type MaxSubmittersPerTick = MaxSubmittersPerTick;
     type TargetTicksStorageOfSubmitters = TargetTicksStorageOfSubmitters;
@@ -465,11 +471,11 @@ impl pallet_proofs_dealer::Config for Runtime {
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type ChallengeOrigin = EnsureRoot<AccountId>;
+    type ChallengeOrigin = frame_system::EnsureRoot<AccountId>;
     #[cfg(feature = "runtime-benchmarks")]
     type ChallengeOrigin = EnsureSigned<AccountId>;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type PriorityChallengeOrigin = EnsureRoot<AccountId>;
+    type PriorityChallengeOrigin = frame_system::EnsureRoot<AccountId>;
     #[cfg(feature = "runtime-benchmarks")]
     type PriorityChallengeOrigin = EnsureSigned<AccountId>;
 }

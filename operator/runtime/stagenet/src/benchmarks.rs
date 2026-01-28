@@ -15,6 +15,7 @@
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
 use pallet_session_benchmarking::Pallet as SessionBench;
+
 frame_benchmarking::define_benchmarks!(
     // System benchmarks
     [frame_system, SystemBench::<Runtime>]
@@ -49,6 +50,7 @@ frame_benchmarking::define_benchmarks!(
     // StorageHub pallets
     [pallet_nfts, Nfts]
     [pallet_file_system, FileSystem]
+    [pallet_proofs_dealer, ProofsDealer]
     [pallet_payment_streams, PaymentStreams]
     [pallet_storage_providers, Providers]
 

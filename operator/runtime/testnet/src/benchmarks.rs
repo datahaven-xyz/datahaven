@@ -53,6 +53,7 @@ frame_benchmarking::define_benchmarks!(
     [pallet_nfts, Nfts]
     [pallet_file_system, FileSystem]
     [pallet_payment_streams, PaymentStreams]
+    [pallet_storage_providers, Providers]
 
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]

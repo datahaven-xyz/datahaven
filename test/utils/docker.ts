@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { type Duplex, PassThrough, Transform } from "node:stream";
+import { $ } from "bun";
 import Docker from "dockerode";
 import invariant from "tiny-invariant";
 import { logger } from "./logger";
@@ -229,6 +230,9 @@ export const waitForContainerToStart = async (
   logger.debug(`Waiting for container ${containerName} to start...`);
   const seconds = options?.timeoutSeconds ?? 30;
 
+  // sleep 2 seconds to see if the started container didn't exit right away
+  await Bun.sleep(2000);
+
   for (let i = 0; i < seconds; i++) {
     const containers = await docker.listContainers();
     const container = containers.find((container) =>
@@ -236,10 +240,17 @@ export const waitForContainerToStart = async (
     );
     if (container) {
       logger.debug(`Container ${containerName} started after ${i} seconds`);
+      const result = await $`docker logs ${containerName}`.nothrow().quiet().text();
+      console.log(result);
+
       return;
     }
     await Bun.sleep(1000);
   }
+
+  const result = await $`docker logs ${containerName}`;
+  console.log(result);
+
   invariant(
     false,
     `❌ container ${containerName} cannot be found  in running container list after ${seconds} seconds`

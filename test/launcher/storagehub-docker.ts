@@ -124,7 +124,7 @@ export const injectStorageHubKey = async (
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --chain dev --key-type bcsv --scheme ecdsa --suri ${suri}`.nothrow();
+    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --chain dev --key-type bcsv --scheme ecdsa --suri ${suri}`;
     logger.success(`Key ${derivation} injected successfully`);
   } catch (error) {
     logger.error(`Failed to inject key ${derivation}: ${error}`);
@@ -160,7 +160,7 @@ export const getBootnodeAddress = async (containerName: string): Promise<string>
 export const launchMspNode = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
-): Promise<void> => {
+): Promise<string> => {
   logger.info("🚀 Launching StorageHub MSP node...");
 
   const containerName = `storagehub-msp-${options.networkId}`;
@@ -186,6 +186,10 @@ export const launchMspNode = async (
     "dev",
     "--name",
     "msp-charlie",
+    // "--storage-path",
+    // "/mnt/storagehub",
+    // "--base-path",
+    // "/mnt/data",
     "--rpc-port",
     `${DEFAULT_SUBSTRATE_WS_PORT}`,
     "--rpc-external",
@@ -246,6 +250,8 @@ export const launchMspNode = async (
   launchedNetwork.addContainer(containerName, { ws: wsPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
   logger.success(`MSP node started on port ${wsPort}`);
+
+  return `ws://127.0.0.1:${wsPort}`;
 };
 
 /**

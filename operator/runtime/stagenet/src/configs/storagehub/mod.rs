@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
-    TreasuryAccount,
-};
 #[cfg(not(feature = "runtime-benchmarks"))]
 use super::HAVE;
 #[cfg(feature = "runtime-benchmarks")]
 use super::MICROHAVE;
+use super::{
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
+    TreasuryAccount,
+};
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
     BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature, WeightToFee,

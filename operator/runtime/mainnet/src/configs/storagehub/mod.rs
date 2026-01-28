@@ -35,7 +35,7 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use frame_system::{EnsureRoot, EnsureSigned};
+use frame_system::{EnsureSigned};
 use num_bigint::BigUint;
 use pallet_nfts::PalletFeatures;
 use polkadot_runtime_common::prod_or_fast;
@@ -392,10 +392,7 @@ impl LinearThenPowerOfTwoTreasuryCutCalculatorConfig<Perbill> for Runtime {
 
 /****** Proofs Dealer pallet ******/
 const RANDOM_CHALLENGES_PER_BLOCK: u32 = 10;
-#[cfg(not(feature = "runtime-benchmarks"))]
 const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 10;
-#[cfg(feature = "runtime-benchmarks")]
-const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 20;
 const TOTAL_MAX_CHALLENGES_PER_BLOCK: u32 =
     RANDOM_CHALLENGES_PER_BLOCK + MAX_CUSTOM_CHALLENGES_PER_BLOCK;
 

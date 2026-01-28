@@ -18,14 +18,14 @@ use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
     TreasuryAccount, HAVE, MICROHAVE,
 };
-#[cfg(feature = "runtime-benchmarks")]
-use datahaven_runtime_common::benchmarking::StorageHubBenchmarking;
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
     BucketNfts, Nfts, PaymentStreams, ProofsDealer, Providers, Runtime, Signature, WeightToFee,
     HOURS,
 };
 use core::marker::PhantomData;
+#[cfg(feature = "runtime-benchmarks")]
+use datahaven_runtime_common::benchmarking::StorageHubBenchmarking;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
 use frame_support::pallet_prelude::DispatchClass;
 use frame_support::traits::AsEnsureOriginWithArg;
@@ -392,10 +392,7 @@ impl LinearThenPowerOfTwoTreasuryCutCalculatorConfig<Perbill> for Runtime {
 
 /****** Proofs Dealer pallet ******/
 const RANDOM_CHALLENGES_PER_BLOCK: u32 = 10;
-#[cfg(not(feature = "runtime-benchmarks"))]
 const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 10;
-#[cfg(feature = "runtime-benchmarks")]
-const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 20;
 const TOTAL_MAX_CHALLENGES_PER_BLOCK: u32 =
     RANDOM_CHALLENGES_PER_BLOCK + MAX_CUSTOM_CHALLENGES_PER_BLOCK;
 

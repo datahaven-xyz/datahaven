@@ -89,7 +89,6 @@ use datahaven_runtime_common::{
     },
     time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
-use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
     dispatch::DispatchClass,
@@ -1267,8 +1266,8 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = (
-        EigenLayerMessageProcessor<Runtime>,
-        NativeTokenTransferMessageProcessor<Runtime>,
+        dhp_bridge::EigenLayerMessageProcessor<Runtime>,
+        dhp_bridge::NativeTokenTransferMessageProcessor<Runtime>,
     );
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor = NoOpMessageProcessor;

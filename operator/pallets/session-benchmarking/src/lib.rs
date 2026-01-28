@@ -9,6 +9,3 @@ pub trait Config: pallet_session::Config {}
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-
-#[cfg(feature = "runtime-benchmarks")]
-pub use benchmarking::*;

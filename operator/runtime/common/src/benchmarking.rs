@@ -16,8 +16,8 @@
 
 use fp_account::AccountId20;
 use frame_support::traits::Currency;
-use sp_runtime::traits::Zero;
 use pallet_treasury::ArgumentsFactory;
+use sp_runtime::traits::Zero;
 
 pub struct BenchmarkHelper;
 impl ArgumentsFactory<(), AccountId20> for BenchmarkHelper {
@@ -49,7 +49,7 @@ impl StorageHubBenchmarking {
         CurrencyT: Currency<AccountId, Balance = Balance>,
     {
         if CurrencyT::free_balance(&account).is_zero() {
-            CurrencyT::deposit_creating(&account, 1u128.into());
+            let _ = CurrencyT::deposit_creating(&account, 1u128.into());
         }
         account
     }

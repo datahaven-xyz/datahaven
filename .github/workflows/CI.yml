@@ -1,4 +1,7 @@
 #! Main CI Specification for DataHaven Repository
+#!
+#! This workflow runs validation checks on pull requests.
+#! For main branch releases, see release.yml
 
 name: CI
 
@@ -6,7 +9,6 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - perm-*
   pull_request:
     branches: [main]
@@ -23,20 +25,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # First Tier - Build the binary first
+  # Tier 0 - Warm sccache for all Rust jobs
+  warm-sccache:
+    uses: ./.github/workflows/task-warm-sccache.yml
+
+  # First Tier - Build the binary (depends on warm cache)
   build-operator:
+    needs: [warm-sccache]
     uses: ./.github/workflows/task-build-operator.yml
-    
+
   # First Tier - Other parallel jobs
   ts-build:
     uses: ./.github/workflows/task-ts-build.yml
   ts-lint:
     uses: ./.github/workflows/task-ts-lint.yml
   unit-tests:
+    needs: [warm-sccache]
     uses: ./.github/workflows/task-rust-tests.yml
   contract-tests:
     uses: ./.github/workflows/task-foundry-tests.yml
   rust-lint:
+    needs: [warm-sccache]
     uses: ./.github/workflows/task-rust-lint.yml
     
   # Second Tier - Jobs that depend on operator build
@@ -53,13 +62,6 @@ jobs:
     with:
       binary-hash: ${{ needs.build-operator.outputs.binary-hash }}
 
-  docker-build-release:
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/task-docker-release.yml
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
   moonwall-tests:
     needs: [build-operator]
     uses: ./.github/workflows/task-moonwall-tests.yml
@@ -73,3 +75,6 @@ jobs:
     # Note: GITHUB_TOKEN is automatically available to reusable workflows
     with:
       image-tag: ${{ needs.docker-build-ci.outputs.image-tag }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

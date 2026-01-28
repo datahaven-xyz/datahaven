@@ -30,6 +30,7 @@ use super::{
     Signature, System, Timestamp, Treasury, TxPause, BLOCK_HASH_COUNT, EXTRINSIC_BASE_WEIGHT,
     MAXIMUM_BLOCK_WEIGHT, NORMAL_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
+use alloy_core::primitives::Address;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
@@ -103,7 +104,7 @@ use frame_support::{
     weights::{constants::RocksDbWeight, IdentityFee, RuntimeDbWeight, Weight},
     PalletId,
 };
-use frame_system::{limits::BlockLength, unique, EnsureRoot, EnsureRootWithSuccess};
+use frame_system::{limits::BlockLength, EnsureRoot, EnsureRootWithSuccess};
 use governance::councils::*;
 use pallet_ethereum::PostLogContent;
 use pallet_evm::{
@@ -123,7 +124,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter, Message as OutboundMessage, SendMessage as SendMessageV2},
+    v2::{Command, ConstantGasMeter},
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -1099,12 +1100,47 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type Helper = ();
 }
 
-// For tests, benchmarks and fast-runtime configurations we use the mocked fork versions
-#[cfg(any(
-    feature = "std",
-    feature = "fast-runtime",
-    feature = "runtime-benchmarks",
-    test
+// Fork versions for runtime benchmarks - must match the fixtures for BLS verification to work
+// The fixtures are generated with standard testnet fork versions
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const ChainForkVersions: ForkVersions = ForkVersions {
+        genesis: Fork {
+            version: hex_literal::hex!("00000000"),
+            epoch: 0,
+        },
+        altair: Fork {
+            version: hex_literal::hex!("01000000"),
+            epoch: 0,
+        },
+        bellatrix: Fork {
+            version: hex_literal::hex!("02000000"),
+            epoch: 0,
+        },
+        capella: Fork {
+            version: hex_literal::hex!("03000000"),
+            epoch: 0,
+        },
+        deneb: Fork {
+            version: hex_literal::hex!("04000000"),
+            epoch: 0,
+        },
+        electra: Fork {
+            version: hex_literal::hex!("05000000"),
+            epoch: 80000000000,
+        },
+        fulu: Fork {
+            version: hex_literal::hex!("06000000"),
+            epoch: 90000000000,
+        },
+    };
+}
+
+// For tests, fast-runtime and std configurations we use the mocked fork versions
+// These match the fork versions used by the local Ethereum network in E2E tests
+#[cfg(all(
+    any(feature = "std", feature = "fast-runtime", test),
+    not(feature = "runtime-benchmarks")
 ))]
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
@@ -1460,82 +1496,58 @@ impl pallet_external_validators_rewards::types::HandleInflation<AccountId>
     }
 }
 
-// Stub SendMessage implementation for rewards pallet
-pub struct RewardsSendAdapter;
-impl pallet_external_validators_rewards::types::SendMessage for RewardsSendAdapter {
-    type Message = OutboundMessage;
-    type Ticket = OutboundMessage;
-    fn build(
-        rewards_utils: &pallet_external_validators_rewards::types::EraRewardsUtils,
-    ) -> Option<Self::Message> {
-        let rewards_registry_address =
-            runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress::get();
+/// Testnet rewards configuration for EigenLayer submission.
+pub struct TestnetRewardsConfig;
 
-        // Skip sending message if RewardsRegistryAddress is zero (invalid)
-        if rewards_registry_address == H160::zero() {
-            log::warn!(
-                target: "rewards_send_adapter",
-                "Skipping rewards message: RewardsRegistryAddress is zero"
+impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for TestnetRewardsConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
+
+    fn rewards_duration() -> u32 {
+        runtime_params::dynamic_params::runtime_config::RewardsDuration::get()
+    }
+
+    fn whave_token_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::WHAVETokenAddress::get()
+    }
+
+    fn service_manager_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
+    }
+
+    fn rewards_agent_origin() -> H256 {
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+    }
+
+    fn strategies_and_multipliers() -> Vec<(H160, u128)> {
+        runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get()
+            .into_iter()
+            .filter(|(s, _)| *s != H160::zero())
+            .collect()
+    }
+
+    fn handle_remainder(remainder: u128) {
+        use frame_support::traits::{fungible::Mutate, tokens::Preservation};
+        let source = ExternalValidatorRewardsAccount::get();
+        let dest = TreasuryAccount::get();
+        if let Err(e) = Balances::transfer(&source, &dest, remainder, Preservation::Preserve) {
+            log::error!(
+                target: "rewards_adapter",
+                "Failed to transfer remainder to treasury: {:?}",
+                e
             );
-            return None;
-        }
-
-        let selector = runtime_params::dynamic_params::runtime_config::RewardsUpdateSelector::get();
-
-        let mut calldata = Vec::new();
-        calldata.extend_from_slice(&selector);
-        calldata.extend_from_slice(rewards_utils.rewards_merkle_root.as_bytes());
-
-        let command = Command::CallContract {
-            target: rewards_registry_address,
-            calldata,
-            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
-            value: 0,
-        };
-        let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(),
-            // TODO: Determine appropriate id value
-            id: unique(rewards_utils.rewards_merkle_root).into(),
-            fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => {
-                    log::error!(
-                        target: "rewards_send_adapter",
-                        "Failed to convert commands: too many commands"
-                    );
-                    return None;
-                }
-            },
-        };
-        Some(message)
-    }
-
-    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        EthereumOutboundQueueV2::validate(&message)
-    }
-    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(message)
-    }
-}
-
-/// Wrapper to check if a validator is online in the current session.
-/// Uses ImOnline's is_online() which considers a validator online if:
-/// - They sent a heartbeat in the current session, OR
-/// - They authored at least one block in the current session
-pub struct ValidatorIsOnline;
-impl frame_support::traits::Contains<AccountId> for ValidatorIsOnline {
-    fn contains(account: &AccountId) -> bool {
-        let validators = Session::validators();
-        if let Some(index) = validators.iter().position(|v| v == account) {
-            // Check if validator is online (heartbeat OR block authorship)
-            ImOnline::is_online(index as u32)
         } else {
-            // Not a validator in current session, consider offline
-            false
+            log::info!(
+                target: "rewards_adapter",
+                "Transferred {} remainder to treasury",
+                remainder
+            );
         }
     }
 }
+
+/// Type alias for the rewards submission adapter.
+pub type RewardsSendAdapter =
+    datahaven_runtime_common::rewards_adapter::RewardsSubmissionAdapter<TestnetRewardsConfig>;
 
 /// Wrapper to check if a validator has been slashed in a given era
 pub struct ValidatorSlashChecker;
@@ -1564,18 +1576,10 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type EraIndexProvider = ExternalValidators;
     type HistoryDepth = ConstU32<64>;
-
-    // NOT USED: DataHaven is a solochain with BABE+GRANDPA consensus, not a parachain.
-    // Backing and dispute points are only relevant for parachain validation.
-    // These are set to 0 to make it explicit they're unused.
-    type BackingPoints = ConstU32<0>;
-    type DisputeStatementPoints = ConstU32<0>;
-
     type EraInflationProvider = ExternalRewardsEraInflationProvider;
     type ExternalIndexProvider = ExternalValidators;
     type GetWhitelistedValidators = GetWhitelistedValidators;
     type ValidatorSet = Session;
-    type LivenessCheck = ValidatorIsOnline;
     type SlashingCheck = ValidatorSlashChecker;
     type BasePointsPerBlock = ConstU32<320>;
     type BlockAuthoringWeight =
@@ -1589,9 +1593,9 @@ impl pallet_external_validators_rewards::Config for Runtime {
     type Hashing = Keccak256;
     type Currency = Balances;
     type RewardsEthereumSovereignAccount = ExternalValidatorRewardsAccount;
-    type WeightInfo = testnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     type SendMessage = RewardsSendAdapter;
     type HandleInflation = ExternalRewardsInflationHandler;
+    type WeightInfo = testnet_weights::pallet_external_validators_rewards::WeightInfo<Runtime>;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
@@ -1675,51 +1679,38 @@ impl pallet_tx_pause::Config for Runtime {
     type WeightInfo = testnet_weights::pallet_tx_pause::WeightInfo<Runtime>;
 }
 
-// Stub SendMessage implementation for slash pallet
-pub struct SlashesSendAdapter;
-impl pallet_external_validator_slashes::SendMessage<AccountId> for SlashesSendAdapter {
-    type Message = OutboundMessage;
-    type Ticket = OutboundMessage;
-    fn build(
-        _slashes_utils: &pallet_external_validator_slashes::SlashDataUtils<AccountId>,
-    ) -> Option<Self::Message> {
-        let calldata = Vec::new();
+/// Testnet slashes configuration for EigenLayer submission.
+pub struct TestnetSlashesConfig;
 
-        let command = Command::CallContract {
-            target:
-                runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get(
-                ),
-            calldata,
-            gas: 1_000_000, // TODO: Determine appropriate gas value after testing
-            value: 0,
-        };
-        let message = OutboundMessage {
-            origin: runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get(), // TODO: get the slash agent address
-            // TODO: Determine appropriate id value
-            id: unique(1).into(),
-            fee: 0,
-            commands: match vec![command].try_into() {
-                Ok(cmds) => cmds,
-                Err(_) => {
-                    log::error!(
-                        target: "slashes_send_adapter",
-                        "Failed to convert commands: too many commands"
-                    );
-                    return None;
-                }
-            },
-        };
-        Some(message)
+impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for TestnetSlashesConfig {
+    type OutboundQueue = EthereumOutboundQueueV2;
+
+    fn service_manager_address() -> H160 {
+        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
     }
 
-    fn validate(message: Self::Message) -> Result<Self::Ticket, SendError> {
-        EthereumOutboundQueueV2::validate(&message)
+    fn slashes_agent_origin() -> H256 {
+        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
-    fn deliver(message: Self::Ticket) -> Result<H256, SendError> {
-        EthereumOutboundQueueV2::deliver(message)
+
+    fn strategies() -> Vec<Address> {
+        // We only slash strategy that we reward
+        let mut strategies: Vec<Address> =
+            runtime_params::dynamic_params::runtime_config::RewardsStrategiesAndMultipliers::get()
+                .iter()
+                .map(|(strategy, _mult)| Address::from(strategy.as_fixed_bytes()))
+                .collect();
+        // The array of strategies need to be in ascending order (see https://github.com/Layr-Labs/eigenlayer-contracts/blob/7ecc83c7b180850531bc5b8b953a7340adeecd43/src/contracts/core/AllocationManager.sol#L343-L347)
+        strategies.sort();
+
+        return strategies;
     }
 }
 
+// Stub SendMessage implementation for slash pallet
+pub type SlashesSendAdapter =
+    datahaven_runtime_common::slashes_adapter::SlashesSubmissionAdapter<TestnetSlashesConfig>;
 impl pallet_external_validator_slashes::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = AccountId;
@@ -1742,6 +1733,7 @@ parameter_types! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SnowbridgeSystemV2;
     use dhp_bridge::{
         InboundCommand, Message as BridgeMessage, Payload as BridgePayload, EL_MESSAGE_ID,
     };
@@ -1794,66 +1786,74 @@ mod tests {
         use sp_io::TestExternalities;
 
         TestExternalities::default().execute_with(|| {
-            // Create test rewards utils
             let rewards_utils = EraRewardsUtils {
-                rewards_merkle_root: H256::random(),
-                leaves: vec![H256::random()],
-                leaf_index: Some(1),
+                era_index: 1,
+                era_start_timestamp: 1_700_000_000,
                 total_points: 1000,
+                individual_points: vec![
+                    (H160::from_low_u64_be(1), 500),
+                    (H160::from_low_u64_be(2), 500),
+                ],
+                inflation_amount: 1000000,
             };
-
-            // By default, RewardsRegistryAddress is zero (H160::repeat_byte(0x0))
-            // So the adapter should return None
             let message = RewardsSendAdapter::build(&rewards_utils);
             assert!(
                 message.is_none(),
-                "Should return None when RewardsRegistryAddress is zero"
+                "Should return None when DatahavenServiceManagerAddress is zero"
             );
         });
     }
 
     #[test]
-    fn test_rewards_send_adapter_with_valid_address() {
+    fn test_rewards_send_adapter_with_valid_config() {
         use pallet_external_validators_rewards::types::{EraRewardsUtils, SendMessage};
 
         TestExternalities::default().execute_with(|| {
-            // Set a valid (non-zero) rewards registry address
-            let valid_address = H160::from_low_u64_be(0x1234567890abcdef);
+            let service_manager = H160::from_low_u64_be(0x1234567890abcdef);
+            let whave_token_address = H160::from_low_u64_be(0xabcdef);
+
             assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
                 RuntimeOrigin::root(),
                 RuntimeParameters::RuntimeConfig(
-                    runtime_params::dynamic_params::runtime_config::Parameters::RewardsRegistryAddress(
-                        runtime_params::dynamic_params::runtime_config::RewardsRegistryAddress,
-                        Some(valid_address),
+                    runtime_params::dynamic_params::runtime_config::Parameters::DatahavenServiceManagerAddress(
+                        runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress,
+                        Some(service_manager),
+                    ),
+                ),
+            ));
+            assert_ok!(pallet_parameters::Pallet::<Runtime>::set_parameter(
+                RuntimeOrigin::root(),
+                RuntimeParameters::RuntimeConfig(
+                    runtime_params::dynamic_params::runtime_config::Parameters::WHAVETokenAddress(
+                        runtime_params::dynamic_params::runtime_config::WHAVETokenAddress,
+                        Some(whave_token_address),
                     ),
                 ),
             ));
 
-            // Create test rewards utils
+            // Register native token in Snowbridge for DataHavenTokenId::get() to work
+            let native_location = Location::here();
+            let reanchored = SnowbridgeSystemV2::reanchor(native_location.clone()).unwrap();
+            let token_id = snowbridge_core::TokenIdOf::convert_location(&reanchored).unwrap();
+            snowbridge_pallet_system::NativeToForeignId::<Runtime>::insert(reanchored.clone(), token_id);
+            snowbridge_pallet_system::ForeignToNativeId::<Runtime>::insert(token_id, reanchored);
+
             let rewards_utils = EraRewardsUtils {
-                rewards_merkle_root: H256::random(),
-                leaves: vec![H256::random()],
-                leaf_index: Some(1),
+                era_index: 1,
+                era_start_timestamp: 1_700_000_000,
                 total_points: 1000,
+                individual_points: vec![(H160::from_low_u64_be(1), 600), (H160::from_low_u64_be(2), 400)],
+                inflation_amount: 1_000_000_000,
             };
 
-            // Now the adapter should return a valid message
             let message = RewardsSendAdapter::build(&rewards_utils);
-            assert!(
-                message.is_some(),
-                "Should return Some(message) when RewardsRegistryAddress is non-zero"
-            );
+            assert!(message.is_some(), "Should return Some(message) when all V2 params are configured");
 
-            // Verify the message contains the correct target address
             if let Some(msg) = message {
-                // Check that the first command has the correct target
-                let command = &msg.commands[0];
-                match command {
+                assert_eq!(msg.commands.len(), 1, "Should have 1 command");
+                match &msg.commands[0] {
                     Command::CallContract { target, .. } => {
-                        assert_eq!(
-                            *target, valid_address,
-                            "Message should target the configured address"
-                        );
+                        assert_eq!(*target, service_manager);
                     }
                     _ => panic!("Expected CallContract command"),
                 }

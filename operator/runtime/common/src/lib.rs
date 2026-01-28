@@ -25,8 +25,10 @@ pub mod impl_on_charge_evm_transaction;
 pub mod inflation;
 pub mod migrations;
 pub use migrations::*;
+pub mod rewards_adapter;
 pub mod safe_mode;
 pub use safe_mode::*;
+pub mod slashes_adapter;
 
 use fp_account::EthereumSignature;
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;

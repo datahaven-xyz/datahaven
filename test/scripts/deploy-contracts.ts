@@ -1,12 +1,7 @@
 import { $ } from "bun";
 import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
-import {
-  logger,
-  parseDeploymentsFile,
-  parseRewardsInfoFile,
-  runShellCommandWithLogger
-} from "utils";
+import { logger, parseDeploymentsFile, runShellCommandWithLogger } from "utils";
 import type { ParameterCollection } from "utils/parameters";
 import { encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -100,12 +95,7 @@ export const executeDeployment = async (
     env
   });
 
-  // After deployment, read the:
-  // - Gateway address
-  // - RewardsRegistry address
-  // - RewardsAgent address
-  // - RewardsAgentOrigin (bytes32)
-  // and add it to parameters if collection is provided
+  // After deployment, read the Gateway address and add it to parameters if collection is provided
   if (parameterCollection) {
     await updateParameters(parameterCollection, chain);
   }
@@ -122,11 +112,7 @@ export const updateParameters = async (
 ) => {
   try {
     const deployments = await parseDeploymentsFile(chain);
-    const rewardsInfo = await parseRewardsInfoFile(chain);
     const gatewayAddress = deployments.Gateway;
-    const rewardsRegistryAddress = deployments.RewardsRegistry;
-    const rewardsAgentOrigin = rewardsInfo.RewardsAgentOrigin;
-    const updateRewardsMerkleRootSelector = rewardsInfo.updateRewardsMerkleRootSelector;
     const serviceManagerAddress = deployments.ServiceManager;
 
     if (gatewayAddress) {
@@ -138,36 +124,6 @@ export const updateParameters = async (
       });
     } else {
       logger.warn("⚠️ Gateway address not found in deployments file");
-    }
-
-    if (rewardsRegistryAddress) {
-      logger.debug(`📝 Adding RewardsRegistryAddress parameter: ${rewardsRegistryAddress}`);
-      parameterCollection.addParameter({
-        name: "RewardsRegistryAddress",
-        value: rewardsRegistryAddress
-      });
-    } else {
-      logger.warn("⚠️ RewardsRegistry address not found in deployments file");
-    }
-
-    if (updateRewardsMerkleRootSelector) {
-      logger.debug(`📝 Adding RewardsUpdateSelector parameter: ${updateRewardsMerkleRootSelector}`);
-      parameterCollection.addParameter({
-        name: "RewardsUpdateSelector",
-        value: updateRewardsMerkleRootSelector
-      });
-    } else {
-      logger.warn("⚠️ updateRewardsMerkleRootSelector not found in rewards info file");
-    }
-
-    if (rewardsAgentOrigin) {
-      logger.debug(`📝 Adding RewardsAgentOrigin parameter: ${rewardsAgentOrigin}`);
-      parameterCollection.addParameter({
-        name: "RewardsAgentOrigin",
-        value: rewardsAgentOrigin
-      });
-    } else {
-      logger.warn("⚠️ RewardsAgentOrigin not found in deployments file");
     }
 
     if (serviceManagerAddress) {
@@ -294,14 +250,11 @@ const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
 const emitOwnerTransactionCalldata = async (chain?: string) => {
   try {
     const deployments = await parseDeploymentsFile(chain);
-    const rewardsInfo = await parseRewardsInfoFile(chain);
 
     const serviceManager = deployments.ServiceManager;
-    const rewardsRegistry = deployments.RewardsRegistry;
-    const rewardsAgent = rewardsInfo.RewardsAgent;
 
-    if (!serviceManager || !rewardsRegistry || !rewardsAgent) {
-      logger.warn("⚠️ Missing deployment artifacts; cannot produce multisig calldata.");
+    if (!serviceManager) {
+      logger.warn("⚠️ Missing ServiceManager address; cannot produce multisig calldata.");
       return;
     }
 
@@ -315,28 +268,6 @@ const emitOwnerTransactionCalldata = async (chain?: string) => {
           abi: dataHavenServiceManagerAbi,
           functionName: "updateAVSMetadataURI",
           args: [""]
-        })
-      },
-      {
-        label: "Attach RewardsRegistry",
-        description: "DataHavenServiceManager.setRewardsRegistry(VALIDATORS_SET_ID, address)",
-        to: serviceManager,
-        value: "0",
-        data: encodeFunctionData({
-          abi: dataHavenServiceManagerAbi,
-          functionName: "setRewardsRegistry",
-          args: [0, rewardsRegistry]
-        })
-      },
-      {
-        label: "Set Rewards Agent",
-        description: "DataHavenServiceManager.setRewardsAgent(VALIDATORS_SET_ID, address)",
-        to: serviceManager,
-        value: "0",
-        data: encodeFunctionData({
-          abi: dataHavenServiceManagerAbi,
-          functionName: "setRewardsAgent",
-          args: [0, rewardsAgent]
         })
       }
     ];

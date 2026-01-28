@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
+// OpenZeppelin imports
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 // EigenLayer imports
 import {
     IAllocationManager,
@@ -8,76 +13,139 @@ import {
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IAVSRegistrar} from "eigenlayer-contracts/src/contracts/interfaces/IAVSRegistrar.sol";
 import {
-    IPermissionController
-} from "eigenlayer-contracts/src/contracts/interfaces/IPermissionController.sol";
-import {
-    IRewardsCoordinator
+    IRewardsCoordinator,
+    IRewardsCoordinatorTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 
 // Snowbridge imports
 import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
-import {ScaleCodec} from "snowbridge/src/utils/ScaleCodec.sol";
 
 // DataHaven imports
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
-import {ServiceManagerBase} from "./middleware/ServiceManagerBase.sol";
 
 /**
  * @title DataHaven ServiceManager contract
- * @notice Manages validators in the DataHaven network
+ * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
  */
-contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager {
+contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
+    using SafeERC20 for IERC20;
+
+    // ============ Constants ============
+
     /// @notice The metadata for the DataHaven AVS.
-    string public constant DATAHAVEN_AVS_METADATA = "https://datahaven.network/";
+    string public constant DATAHAVEN_AVS_METADATA =
+        "https://raw.githubusercontent.com/datahaven-xyz/datahaven/refs/heads/main/contracts/deployments/metadata.json";
 
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
 
+    // ============ Immutables ============
+
+    /// @notice The EigenLayer AllocationManager contract
+    IAllocationManager internal immutable _ALLOCATION_MANAGER;
+
+    /// @notice The EigenLayer RewardsCoordinator contract
+    IRewardsCoordinator internal immutable _REWARDS_COORDINATOR;
+
+    // ============ State Variables ============
+
+    /// @notice The address authorized to initiate rewards submissions
+    address public rewardsInitiator;
+
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => bool) public validatorsAllowlist;
 
+    /// @notice The Snowbridge Gateway contract
     IGatewayV2 private _snowbridgeGateway;
 
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
-    /// @notice Sets the (immutable) `_registryCoordinator` address
-    constructor(
-        IRewardsCoordinator __rewardsCoordinator,
-        IPermissionController __permissionController,
-        IAllocationManager __allocationManager
-    ) ServiceManagerBase(__rewardsCoordinator, __permissionController, __allocationManager) {}
+    /// @notice Storage gap for upgradeability (must be at end of state variables)
+    // solhint-disable-next-line var-name-mixedcase
+    uint256[46] private __GAP;
 
-    /// @notice Modifier to ensure the caller is a registered Validator
-    modifier onlyValidator() {
-        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        require(
-            _allocationManager.isMemberOfOperatorSet(msg.sender, operatorSet),
-            CallerIsNotValidator()
-        );
+    // ============ Modifiers ============
+
+    /// @notice Restricts function to the rewards initiator
+    modifier onlyRewardsInitiator() {
+        _checkRewardsInitiator();
         _;
     }
 
+    /// @notice Restricts function to registered validators
+    modifier onlyValidator() {
+        _checkValidator();
+        _;
+    }
+
+    /// @notice Restricts function to the EigenLayer AllocationManager
+    modifier onlyAllocationManager() {
+        _checkAllocationManager();
+        _;
+    }
+
+    function _checkRewardsInitiator() internal view {
+        require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
+    }
+
+    function _checkValidator() internal view {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        require(
+            _ALLOCATION_MANAGER.isMemberOfOperatorSet(msg.sender, operatorSet),
+            CallerIsNotValidator()
+        );
+    }
+
+    function _checkAllocationManager() internal view {
+        require(msg.sender == address(_ALLOCATION_MANAGER), OnlyAllocationManager());
+    }
+
+    // ============ Constructor ============
+
+    /// @notice Sets the immutable EigenLayer contract references
+    /// @param rewardsCoordinator_ The EigenLayer RewardsCoordinator contract
+    /// @param allocationManager_ The EigenLayer AllocationManager contract
+    constructor(
+        IRewardsCoordinator rewardsCoordinator_,
+        IAllocationManager allocationManager_
+    ) {
+        _REWARDS_COORDINATOR = rewardsCoordinator_;
+        _ALLOCATION_MANAGER = allocationManager_;
+        _disableInitializers();
+    }
+
     /// @inheritdoc IDataHavenServiceManager
-    function initialise(
+    function initialize(
         address initialOwner,
-        address rewardsInitiator,
+        address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
         address _snowbridgeGatewayAddress
     ) public virtual initializer {
-        __ServiceManagerBase_init(initialOwner, rewardsInitiator);
+        require(initialOwner != address(0), ZeroAddress());
+        require(_rewardsInitiator != address(0), ZeroAddress());
+        require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
+
+        __Ownable_init();
+        _transferOwnership(initialOwner);
+        rewardsInitiator = _rewardsInitiator;
+        emit RewardsInitiatorSet(address(0), _rewardsInitiator);
 
         // Register the DataHaven service in the AllocationManager.
-        _allocationManager.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
+        _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
         // Create the operator set for the DataHaven service.
-        _createDataHavenOperatorSets(validatorsStrategies);
+        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
+            new IAllocationManagerTypes.CreateSetParams[](1);
+        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
+            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
+        });
+        _ALLOCATION_MANAGER.createOperatorSets(address(this), operatorSets);
 
         // Set the Snowbridge Gateway address.
-        // This is the contract to which messages are sent, to be relayed to the Solochain network.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
     }
 
@@ -86,81 +154,74 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
         uint128 executionFee,
         uint128 relayerFee
     ) external payable onlyOwner {
-        // Send the new validator set message to the Snowbridge Gateway
         bytes memory message = buildNewValidatorSetMessage();
         _snowbridgeGateway.v2_sendMessage{value: msg.value}(
-            message,
-            new bytes[](0), // No assets to send
-            bytes(""), // No claimer
-            executionFee,
-            relayerFee
+            message, new bytes[](0), bytes(""), executionFee, relayerFee
         );
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function buildNewValidatorSetMessage() public view returns (bytes memory) {
-        // Get the current validator set
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        address[] memory currentValidatorSet = _allocationManager.getMembers(operatorSet);
+        address[] memory currentValidatorSet = _ALLOCATION_MANAGER.getMembers(operatorSet);
 
-        // Build the new validator set message
+        // Allocate max size, then resize after filtering
         address[] memory newValidatorSet = new address[](currentValidatorSet.length);
+        uint256 validCount = 0;
         for (uint256 i = 0; i < currentValidatorSet.length; i++) {
-            newValidatorSet[i] = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
+            address solochainAddr = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
+            if (solochainAddr != address(0)) {
+                newValidatorSet[validCount] = solochainAddr;
+                ++validCount;
+            }
         }
-        DataHavenSnowbridgeMessages.NewValidatorSetPayload memory newValidatorSetPayload =
-            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet});
-        DataHavenSnowbridgeMessages.NewValidatorSet memory newValidatorSetMessage =
-            DataHavenSnowbridgeMessages.NewValidatorSet({payload: newValidatorSetPayload});
+        // Resize array to actual count
+        assembly {
+            mstore(newValidatorSet, validCount)
+        }
 
-        // Return the encoded message
-        return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessage(newValidatorSetMessage);
+        return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(
+            DataHavenSnowbridgeMessages.NewValidatorSetPayload({validators: newValidatorSet})
+        );
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function updateSolochainAddressForValidator(
         address solochainAddress
     ) external onlyValidator {
-        // Update the Solochain address for the Validator
+        require(solochainAddress != address(0), ZeroAddress());
         validatorEthAddressToSolochainAddress[msg.sender] = solochainAddress;
+        emit SolochainAddressUpdated(msg.sender, solochainAddress);
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function setSnowbridgeGateway(
         address _newSnowbridgeGateway
     ) external onlyOwner {
+        require(_newSnowbridgeGateway != address(0), ZeroAddress());
         _snowbridgeGateway = IGatewayV2(_newSnowbridgeGateway);
         emit SnowbridgeGatewaySet(_newSnowbridgeGateway);
     }
 
+    /// @inheritdoc IDataHavenServiceManager
+    function snowbridgeGateway() external view returns (address) {
+        return address(_snowbridgeGateway);
+    }
+
+    // ============ IAVSRegistrar Implementation ============
+
     /// @inheritdoc IAVSRegistrar
     function registerOperator(
         address operator,
-        address avs,
+        address avsAddress,
         uint32[] calldata operatorSetIds,
         bytes calldata data
-    ) external override {
-        if (avs != address(this)) {
-            revert IncorrectAVSAddress();
-        }
-
-        if (operatorSetIds.length != 1) {
-            revert CantRegisterToMultipleOperatorSets();
-        }
-
-        // Only validators are supported
-        if (operatorSetIds[0] != VALIDATORS_SET_ID) {
-            revert InvalidOperatorSetId();
-        }
-
-        if (!validatorsAllowlist[operator]) {
-            revert OperatorNotInAllowlist();
-        }
-
-        // In the case of the Validators operator set, expect the data to have the Solochain address of the operator.
-        // Require validators to provide 20 bytes addresses.
-        require(data.length == 20, "Invalid solochain address length");
-        validatorEthAddressToSolochainAddress[operator] = address(bytes20(data));
+    ) external override onlyAllocationManager {
+        require(avsAddress == address(this), IncorrectAVSAddress());
+        require(operatorSetIds.length == 1, CantRegisterToMultipleOperatorSets());
+        require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
+        require(validatorsAllowlist[operator], OperatorNotInAllowlist());
+        validatorEthAddressToSolochainAddress[operator] = _toAddress(data);
 
         emit OperatorRegistered(operator, operatorSetIds[0]);
     }
@@ -168,31 +229,32 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IAVSRegistrar
     function deregisterOperator(
         address operator,
-        address avs,
+        address avsAddress,
         uint32[] calldata operatorSetIds
-    ) external override {
-        if (avs != address(this)) {
-            revert IncorrectAVSAddress();
-        }
+    ) external override onlyAllocationManager {
+        require(avsAddress == address(this), IncorrectAVSAddress());
+        require(operatorSetIds.length == 1, CantDeregisterFromMultipleOperatorSets());
+        require(operatorSetIds[0] == VALIDATORS_SET_ID, InvalidOperatorSetId());
 
-        if (operatorSetIds.length != 1) {
-            revert CantDeregisterFromMultipleOperatorSets();
-        }
-
-        if (operatorSetIds[0] != VALIDATORS_SET_ID) {
-            revert InvalidOperatorSetId();
-        }
-
-        // Remove validator from the addresses mapping
         delete validatorEthAddressToSolochainAddress[operator];
 
         emit OperatorDeregistered(operator, operatorSetIds[0]);
     }
 
+    /// @inheritdoc IAVSRegistrar
+    function supportsAVS(
+        address avsAddress
+    ) external view override returns (bool) {
+        return avsAddress == address(this);
+    }
+
+    // ============ Validator Management ============
+
     /// @inheritdoc IDataHavenServiceManager
     function addValidatorToAllowlist(
         address validator
     ) external onlyOwner {
+        require(validator != address(0), ZeroAddress());
         validatorsAllowlist[validator] = true;
         emit ValidatorAddedToAllowlist(validator);
     }
@@ -208,14 +270,14 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     /// @inheritdoc IDataHavenServiceManager
     function validatorsSupportedStrategies() external view returns (IStrategy[] memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        return _allocationManager.getStrategiesInOperatorSet(operatorSet);
+        return _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function removeStrategiesFromValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
     ) external onlyOwner {
-        _allocationManager.removeStrategiesFromOperatorSet(
+        _ALLOCATION_MANAGER.removeStrategiesFromOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
     }
@@ -224,26 +286,106 @@ contract DataHavenServiceManager is ServiceManagerBase, IDataHavenServiceManager
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
     ) external onlyOwner {
-        _allocationManager.addStrategiesToOperatorSet(address(this), VALIDATORS_SET_ID, _strategies);
+        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
+            address(this), VALIDATORS_SET_ID, _strategies
+        );
+    }
+
+    // ============ Rewards Functions ============
+
+    /// @inheritdoc IDataHavenServiceManager
+    function submitRewards(
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
+    ) external override onlyRewardsInitiator {
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < submission.operatorRewards.length; i++) {
+            totalAmount += submission.operatorRewards[i].amount;
+        }
+
+        submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+        submissions[0] = submission;
+
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        _REWARDS_COORDINATOR.createOperatorDirectedOperatorSetRewardsSubmission(
+            operatorSet, submissions
+        );
+
+        emit RewardsSubmitted(totalAmount, submission.operatorRewards.length);
     }
 
     /// @inheritdoc IDataHavenServiceManager
-    function snowbridgeGateway() external view returns (address) {
-        return address(_snowbridgeGateway);
+    function setRewardsInitiator(
+        address newRewardsInitiator
+    ) external override onlyOwner {
+        require(newRewardsInitiator != address(0), ZeroAddress());
+        address oldInitiator = rewardsInitiator;
+        rewardsInitiator = newRewardsInitiator;
+        emit RewardsInitiatorSet(oldInitiator, newRewardsInitiator);
     }
 
+    // ============ AVS Management Functions ============
+
+    /// @inheritdoc IDataHavenServiceManager
+    function updateAVSMetadataURI(
+        string memory _metadataURI
+    ) external onlyOwner {
+        _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), _metadataURI);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] calldata operatorSetIds
+    ) external onlyOwner {
+        IAllocationManagerTypes.DeregisterParams memory params =
+            IAllocationManagerTypes.DeregisterParams({
+                operator: operator, avs: address(this), operatorSetIds: operatorSetIds
+            });
+        _ALLOCATION_MANAGER.deregisterFromOperatorSets(params);
+    }
+
+    // ============ Slashing Submitter Functions ============
+
     /**
-     * @notice Creates the initial operator set for DataHaven in the AllocationManager.
-     * @dev This function should be called during initialisation to set up the required operator set.
+     * @notice Slash the operators of the validators set
+     * @param slashings array of request to slash operator containing the operator to slash, array of proportions to slash and the reason of the slashing.
      */
-    function _createDataHavenOperatorSets(
-        IStrategy[] memory validatorsStrategies
-    ) internal {
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSets =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        operatorSets[0] = IAllocationManagerTypes.CreateSetParams({
-            operatorSetId: VALIDATORS_SET_ID, strategies: validatorsStrategies
-        });
-        _allocationManager.createOperatorSets(address(this), operatorSets);
+    function slashValidatorsOperator(
+        SlashingRequest[] calldata slashings
+    ) external onlyRewardsInitiator {
+        for (uint256 i = 0; i < slashings.length; i++) {
+            IAllocationManagerTypes.SlashingParams memory slashingParams =
+                IAllocationManagerTypes.SlashingParams({
+                    operator: slashings[i].operator,
+                    operatorSetId: VALIDATORS_SET_ID,
+                    strategies: slashings[i].strategies,
+                    wadsToSlash: slashings[i].wadsToSlash,
+                    description: slashings[i].description
+                });
+
+            _ALLOCATION_MANAGER.slashOperator(address(this), slashingParams);
+        }
+
+        emit SlashingComplete();
+    }
+
+    // ============ Internal Functions ============
+
+    /**
+     * @notice Safely converts a 20-byte array to an address
+     * @param data The bytes to convert (must be exactly 20 bytes)
+     * @return result The address representation of the bytes
+     */
+    function _toAddress(
+        bytes memory data
+    ) private pure returns (address result) {
+        require(data.length == 20, "Invalid address length");
+        assembly {
+            result := shr(96, mload(add(data, 32)))
+        }
+        require(result != address(0), ZeroAddress());
     }
 }

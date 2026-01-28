@@ -47,6 +47,9 @@ pub struct ProviderOptions {
     pub storage_layer: StorageLayer,
     /// RocksDB Path.
     pub storage_path: Option<String>,
+    /// Maximum number of forest storage instances to keep open simultaneously.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_open_forests: Option<usize>,
     /// Maximum storage capacity of the Storage Provider (bytes).
     pub max_storage_capacity: Option<StorageDataUnit>,
     /// Jump capacity (bytes).
@@ -80,6 +83,15 @@ pub struct ProviderOptions {
     pub blockchain_service: Option<BlockchainServiceOptions>,
     /// MSP database URL.
     pub msp_database_url: Option<String>,
+    /// Enable the trusted file transfer HTTP server.
+    #[serde(default)]
+    pub trusted_file_transfer_server: bool,
+    /// Host address for trusted file transfer HTTP server.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trusted_file_transfer_server_host: Option<String>,
+    /// Port for trusted file transfer HTTP server.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trusted_file_transfer_server_port: Option<u16>,
     // Whether the node is running in maintenance mode. We are not supporting maintenance mode.
     // pub maintenance_mode: bool,
 }
@@ -387,6 +399,13 @@ pub fn run() -> sc_cli::Result<()> {
                         .expect("Clap/TOML configurations should prevent this from ever failing"),
                 ));
             };
+
+            if let Some(logical_cpus) = std::thread::available_parallelism().map(|n| n.get()).ok() {
+                log::info!(
+                    "💻 DataHaven node starting with {} logical CPU(s) visible to the process",
+                    logical_cpus
+                );
+            }
 
             runner.run_node_until_exit(|config| async move {
                 let sealing_mode = match (cli.sealing, config.chain_spec.chain_type()) {

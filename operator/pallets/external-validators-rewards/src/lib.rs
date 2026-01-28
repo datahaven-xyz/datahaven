@@ -35,19 +35,16 @@ pub use pallet::*;
 
 use {
     crate::types::{EraRewardsUtils, HandleInflation, SendMessage},
-    frame_support::traits::{Contains, Defensive, Get, ValidatorSet},
+    frame_support::traits::{Get, ValidatorSet},
     pallet_external_validators::traits::{ExternalIndexProvider, OnEraEnd, OnEraStart},
-    parity_scale_codec::Encode,
-    polkadot_primitives::ValidatorIndex,
-    runtime_parachains::session_info,
-    snowbridge_merkle_tree::{merkle_proof, merkle_root, verify_proof, MerkleProof},
-    sp_core::H256,
+    parity_scale_codec::{Decode, Encode},
+    sp_core::{H160, H256},
     sp_runtime::{
         traits::{Hash, Zero},
         Perbill,
     },
     sp_staking::SessionIndex,
-    sp_std::{collections::btree_set::BTreeSet, vec::Vec},
+    sp_std::vec::Vec,
 };
 
 /// Trait for checking if a validator has been slashed in a given era
@@ -92,14 +89,6 @@ pub mod pallet {
         #[pallet::constant]
         type HistoryDepth: Get<EraIndex>;
 
-        /// The amount of era points given by backing a candidate that is included.
-        #[pallet::constant]
-        type BackingPoints: Get<u32>;
-
-        /// The amount of era points given by dispute voting on a candidate.
-        #[pallet::constant]
-        type DisputeStatementPoints: Get<u32>;
-
         /// Provider to know how may tokens were inflated (added) in a specific era.
         type EraInflationProvider: Get<u128>;
 
@@ -108,11 +97,12 @@ pub mod pallet {
 
         type GetWhitelistedValidators: Get<Vec<Self::AccountId>>;
 
-        /// Validator set provider for performance tracking
-        type ValidatorSet: frame_support::traits::ValidatorSet<Self::AccountId>;
-
-        /// Provider to check if validators are online (sent heartbeat this session)
-        type LivenessCheck: frame_support::traits::Contains<Self::AccountId>;
+        /// Validator set provider for performance tracking.
+        /// Requires ValidatorId = AccountId so we can use validators() directly.
+        type ValidatorSet: frame_support::traits::ValidatorSet<
+            Self::AccountId,
+            ValidatorId = Self::AccountId,
+        >;
 
         /// Check if a validator has been slashed in a given era
         type SlashingCheck: SlashingCheck<Self::AccountId>;
@@ -134,7 +124,7 @@ pub mod pallet {
         /// The remainder (100% - block - liveness) is the unconditional base reward.
         type BlockAuthoringWeight: Get<Perbill>;
 
-        /// Weight of liveness (heartbeat/block authorship) in the rewards formula.
+        /// Weight of liveness (block authorship) in the rewards formula.
         /// Combined with BlockAuthoringWeight, the sum should not exceed 100%.
         /// The remainder (100% - block - liveness) is the unconditional base reward.
         type LivenessWeight: Get<Perbill>;
@@ -194,7 +184,6 @@ pub mod pallet {
             era_index: EraIndex,
             total_points: u128,
             inflation_amount: u128,
-            rewards_merkle_root: H256,
         },
     }
 
@@ -206,53 +195,38 @@ pub mod pallet {
     }
 
     impl<AccountId: Ord + sp_runtime::traits::Debug + Parameter> EraRewardPoints<AccountId> {
-        // Helper function used to generate the following utils:
-        //  - rewards_merkle_root: merkle root corresponding [(validatorId, rewardPoints)]
-        //      for the era_index specified.
-        //  - leaves: that were used to generate the previous merkle root.
-        //  - leaf_index: index of the validatorId's leaf in the previous leaves array (if any).
-        //  - total_points: number of total points of the era_index specified.
-        pub fn generate_era_rewards_utils<Hasher: sp_runtime::traits::Hash<Output = H256>>(
+        /// Generate utils needed for EigenLayer rewards submission:
+        ///  - total_points: number of total points of the era_index specified.
+        ///  - individual_points: (address, points) tuples for each validator.
+        ///  - inflation_amount: total inflation tokens to distribute.
+        ///  - era_start_timestamp: timestamp when the era started (seconds since Unix epoch).
+        pub fn generate_era_rewards_utils(
             &self,
             era_index: EraIndex,
-            maybe_account_id_check: Option<AccountId>,
+            inflation_amount: u128,
+            era_start_timestamp: u32,
         ) -> Option<EraRewardsUtils> {
-            let total_points: u128 = self.total as u128;
-            let mut leaves = Vec::with_capacity(self.individual.len());
-            let mut leaf_index = None;
+            let mut individual_points = Vec::with_capacity(self.individual.len());
 
-            if let Some(account) = &maybe_account_id_check {
-                if !self.individual.contains_key(account) {
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "AccountId {:?} not found for era {:?}!",
-                        account,
-                        era_index
-                    );
-                    return None;
-                }
+            for (account_id, reward_points) in self.individual.iter() {
+                // Convert AccountId to H160 for EigenLayer rewards submission.
+                // In DataHaven, AccountId is H160, so encode() produces exactly 20 bytes.
+                individual_points
+                    .push((H160::from_slice(&account_id.encode()[..20]), *reward_points));
             }
 
-            for (index, (account_id, reward_points)) in self.individual.iter().enumerate() {
-                let encoded = (account_id, reward_points).encode();
-                let hashed = <Hasher as sp_runtime::traits::Hash>::hash(&encoded);
+            let total_points: u128 = individual_points.iter().map(|(_, pts)| *pts as u128).sum();
 
-                leaves.push(hashed);
-
-                if let Some(ref check_account_id) = maybe_account_id_check {
-                    if account_id == check_account_id {
-                        leaf_index = Some(index as u64);
-                    }
-                }
+            if total_points.is_zero() {
+                return None;
             }
-
-            let rewards_merkle_root = merkle_root::<Hasher, _>(leaves.iter().cloned());
 
             Some(EraRewardsUtils {
-                rewards_merkle_root,
-                leaves,
-                leaf_index,
+                era_index,
+                era_start_timestamp,
                 total_points,
+                individual_points,
+                inflation_amount,
             })
         }
     }
@@ -298,30 +272,6 @@ pub mod pallet {
                     era_rewards.total.saturating_accrue(points);
                 }
             })
-        }
-
-        pub fn generate_rewards_merkle_proof(
-            account_id: T::AccountId,
-            era_index: EraIndex,
-        ) -> Option<MerkleProof> {
-            let era_rewards = RewardPointsForEra::<T>::get(&era_index);
-            let utils = era_rewards.generate_era_rewards_utils::<<T as Config>::Hashing>(
-                era_index,
-                Some(account_id),
-            )?;
-            utils.leaf_index.map(|index| {
-                merkle_proof::<<T as Config>::Hashing, _>(utils.leaves.into_iter(), index)
-            })
-        }
-
-        pub fn verify_rewards_merkle_proof(merkle_proof: MerkleProof) -> bool {
-            verify_proof::<<T as Config>::Hashing, _, _>(
-                &merkle_proof.root,
-                merkle_proof.proof,
-                merkle_proof.number_of_leaves,
-                merkle_proof.leaf_index,
-                merkle_proof.leaf,
-            )
         }
 
         /// Helper to build, validate and deliver an outbound message.
@@ -445,9 +395,9 @@ pub mod pallet {
         ///
         /// # Liveness Scoring
         ///
-        /// Based on ImOnline's is_online() which considers a validator online if:
-        /// - They sent a heartbeat in the current session, OR
-        /// - They authored at least one block in the current session
+        /// Uses block authorship as proof of liveness. A validator is considered online if
+        /// they authored at least one block in the current session. This is simpler and more
+        /// reliable than ImOnline heartbeats, which have timing issues with session rotation.
         ///
         /// # Weight Validation
         ///
@@ -549,7 +499,9 @@ pub mod pallet {
                 base_weight.deconstruct() * 100 / Perbill::ACCURACY
             );
 
-            // Calculate and award points for each validator
+            let mut rewards = Vec::new();
+
+            // Calculate points for each validator
             for validator in validators.iter() {
                 // Skip whitelisted validators - they don't participate in performance rewards
                 if whitelisted_validators.contains(validator) {
@@ -579,9 +531,11 @@ pub mod pallet {
                 // credited_blocks = min(blocks_authored, max_credited_blocks)
                 let credited_blocks = blocks_authored.min(max_credited_blocks);
 
-                // Liveness score: based on ImOnline's is_online() which considers
-                // heartbeats OR block authorship
-                let is_online = T::LivenessCheck::contains(validator);
+                // Liveness score: Use block authorship as proof of liveness.
+                // A validator who authored at least one block is definitively online.
+                // This is simpler and more reliable than trying to cache ImOnline state
+                // which has timing issues with session rotation.
+                let is_online = blocks_authored > 0;
                 let liveness_score = if is_online {
                     Perbill::one()
                 } else {
@@ -644,8 +598,12 @@ pub mod pallet {
                         points
                     );
 
-                    Self::reward_by_ids([(validator.clone(), points)].into_iter());
+                    rewards.push((validator.clone(), points));
                 }
+            }
+
+            if !rewards.is_empty() {
+                Self::reward_by_ids(rewards.into_iter());
             }
 
             // Clear session tracking storage
@@ -666,30 +624,37 @@ pub mod pallet {
 
     impl<T: Config> OnEraEnd for Pallet<T> {
         fn on_era_end(era_index: EraIndex) {
-            let utils = match RewardPointsForEra::<T>::get(&era_index)
-                .generate_era_rewards_utils::<<T as Config>::Hashing>(era_index, None)
-            {
-                Some(utils) if !utils.total_points.is_zero() => utils,
-                Some(_) => {
-                    log::error!(
-                        target: "ext_validators_rewards",
-                        "Not sending message because total_points is 0"
-                    );
-                    return;
-                }
+            // Calculate performance-scaled inflation based on blocks produced.
+            // This must be done first since we use it for both minting and the rewards message.
+            let base_inflation = T::EraInflationProvider::get();
+            let scaled_inflation = Self::calculate_scaled_inflation(era_index, base_inflation);
+
+            // Get era start timestamp from the active era (still the ending era at this point).
+            // Convert from milliseconds to seconds for EigenLayer compatibility.
+            let era_start_timestamp = T::EraIndexProvider::active_era()
+                .start
+                .map(|ms| (ms / 1000) as u32)
+                .unwrap_or(0);
+
+            // Generate era rewards utils with the scaled inflation amount.
+            // This ensures the message to EigenLayer matches the actual minted amount.
+            let utils = match RewardPointsForEra::<T>::get(&era_index).generate_era_rewards_utils(
+                era_index,
+                scaled_inflation,
+                era_start_timestamp,
+            ) {
+                Some(utils) => utils,
                 None => {
+                    // Returns None when total_points is zero or no validators have rewards
                     log::error!(
                         target: "ext_validators_rewards",
-                        "Failed to generate era rewards utils"
+                        "Failed to generate era rewards utils (no rewards to distribute)"
                     );
                     return;
                 }
             };
 
-            // Calculate performance-scaled inflation based on blocks produced
             let ethereum_sovereign_account = T::RewardsEthereumSovereignAccount::get();
-            let base_inflation = T::EraInflationProvider::get();
-            let scaled_inflation = Self::calculate_scaled_inflation(era_index, base_inflation);
 
             // Mint scaled inflation tokens using the configurable handler
             if let Err(err) =
@@ -711,112 +676,17 @@ pub mod pallet {
                     era_index,
                     total_points: utils.total_points,
                     inflation_amount: scaled_inflation,
-                    rewards_merkle_root: utils.rewards_merkle_root,
                 });
             }
         }
     }
 }
 
-/// Rewards validators for participating in parachains with era points in pallet-staking.
-pub struct RewardValidatorsWithEraPoints<C>(core::marker::PhantomData<C>);
-
-impl<C> RewardValidatorsWithEraPoints<C>
-where
-    C: pallet::Config
-        + session_info::Config<
-            ValidatorSet: frame_support::traits::ValidatorSet<
-                C::AccountId,
-                ValidatorId = C::AccountId,
-            >,
-        >,
-    <C as pallet::Config>::ValidatorSet:
-        frame_support::traits::ValidatorSet<C::AccountId, ValidatorId = C::AccountId>,
-    C::AccountId: Ord,
-{
-    /// Reward validators in session with points, but only if they are in the active set.
-    fn reward_only_active(
-        session_index: SessionIndex,
-        indices: impl IntoIterator<Item = ValidatorIndex>,
-        points: u32,
-    ) {
-        let validators = session_info::AccountKeys::<C>::get(&session_index);
-        let validators = match validators
-            .defensive_proof("account_keys are present for dispute_period sessions")
-        {
-            Some(validators) => validators,
-            None => return,
-        };
-        // limit rewards to the active validator set
-        let mut active_set: BTreeSet<C::AccountId> =
-            <C as pallet::Config>::ValidatorSet::validators()
-                .into_iter()
-                .collect();
-
-        // Remove whitelisted validators, we don't want to reward them
-        let whitelisted_validators = C::GetWhitelistedValidators::get();
-        for validator in whitelisted_validators {
-            active_set.remove(&validator);
-        }
-
-        let rewards = indices
-            .into_iter()
-            .filter_map(|i| validators.get(i.0 as usize).cloned())
-            .filter(|v| active_set.contains(v))
-            .map(|v| (v, points));
-
-        pallet::Pallet::<C>::reward_by_ids(rewards);
-    }
-}
-
-impl<C> runtime_parachains::inclusion::RewardValidators for RewardValidatorsWithEraPoints<C>
-where
-    C: pallet::Config
-        + runtime_parachains::shared::Config
-        + session_info::Config<
-            ValidatorSet: frame_support::traits::ValidatorSet<
-                C::AccountId,
-                ValidatorId = C::AccountId,
-            >,
-        >,
-    <C as pallet::Config>::ValidatorSet:
-        frame_support::traits::ValidatorSet<C::AccountId, ValidatorId = C::AccountId>,
-    C::AccountId: Ord,
-{
-    fn reward_backing(indices: impl IntoIterator<Item = ValidatorIndex>) {
-        let session_index = runtime_parachains::shared::CurrentSessionIndex::<C>::get();
-        Self::reward_only_active(session_index, indices, C::BackingPoints::get());
-    }
-
-    fn reward_bitfields(_validators: impl IntoIterator<Item = ValidatorIndex>) {}
-}
-
-impl<C> runtime_parachains::disputes::RewardValidators for RewardValidatorsWithEraPoints<C>
-where
-    C: pallet::Config
-        + session_info::Config<
-            ValidatorSet: frame_support::traits::ValidatorSet<
-                C::AccountId,
-                ValidatorId = C::AccountId,
-            >,
-        >,
-    <C as pallet::Config>::ValidatorSet:
-        frame_support::traits::ValidatorSet<C::AccountId, ValidatorId = C::AccountId>,
-    C::AccountId: Ord,
-{
-    fn reward_dispute_statement(
-        session: SessionIndex,
-        validators: impl IntoIterator<Item = ValidatorIndex>,
-    ) {
-        Self::reward_only_active(session, validators, C::DisputeStatementPoints::get());
-    }
-}
-
 /// Wrapper for pallet_session::SessionManager that awards performance-based points at session end.
 ///
 /// This implements the 60/30/10 performance formula for solochain validators:
-/// - 60% weight: Block production (BABE participation)
-/// - 30% weight: Heartbeat/liveness (ImOnline participation)
+/// - 60% weight: Block production (credited blocks vs fair share)
+/// - 30% weight: Liveness (1.0 if authored at least one block, 0.0 otherwise)
 /// - 10% weight: Base guarantee (always awarded)
 ///
 /// Wraps an inner SessionManager (typically `NoteHistoricalRoot<ExternalValidators>`) and calls

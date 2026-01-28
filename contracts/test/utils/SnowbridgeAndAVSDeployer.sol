@@ -16,10 +16,9 @@ import {TestUtils} from "./TestUtils.sol";
 import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
-import "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
 contract SnowbridgeAndAVSDeployer is AVSDeployer {
     // Snowbridge contracts
@@ -58,32 +57,14 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
     uint256 public constant MIN_NUM_REQUIRED_SIGNATURES = 2;
     uint64 public constant START_BLOCK = 1;
     bytes32 public constant REWARDS_MESSAGE_ORIGIN = bytes32(0);
-    bytes32 public constant WRONG_MESSAGE_ORIGIN = bytes32("wrong origin");
+    // "wrong origin" as bytes32 (hex-encoded, right-padded with zeros)
+    bytes32 public constant WRONG_MESSAGE_ORIGIN =
+        0x77726f6e67206f726967696e0000000000000000000000000000000000000000;
 
     function _deployMockAllContracts() internal {
         _deployMockSnowbridge();
         _deployMockEigenLayerAndAVS();
         _connectSnowbridgeToAVS();
-    }
-
-    function _setupValidatorsAsOperators() internal {
-        // Register the DataHaven service in the AllocationManager
-        cheats.prank(avsOwner);
-        serviceManager.updateAVSMetadataURI("");
-
-        // Create an operator set in the DataHaven service
-        IAllocationManagerTypes.CreateSetParams[] memory operatorSetParams =
-            new IAllocationManagerTypes.CreateSetParams[](1);
-        IStrategy[] memory strategies = new IStrategy[](deployedStrategies.length);
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            strategies[i] = IStrategy(deployedStrategies[i]);
-        }
-        operatorSetParams[0] =
-            IAllocationManagerTypes.CreateSetParams({operatorSetId: 0, strategies: strategies});
-        cheats.prank(avsOwner);
-        serviceManager.createOperatorSets(operatorSetParams);
-
-        // TODO: Implement the rest
     }
 
     function _deployMockSnowbridge() internal {
@@ -149,11 +130,6 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
         rewardsAgent = Agent(agentAddress);
 
         console.log("Rewards agent deployed at", address(rewardsAgent));
-
-        cheats.prank(avsOwner);
-        serviceManager.setRewardsAgent(0, address(rewardsAgent));
-
-        console.log("Rewards agent set for operator set 0");
 
         cheats.prank(regularDeployer);
         gateway.v2_createAgent(WRONG_MESSAGE_ORIGIN);

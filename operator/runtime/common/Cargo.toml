@@ -6,6 +6,7 @@ name = "datahaven-runtime-common"
 version = { workspace = true }
 
 [dependencies]
+alloy-core = { workspace = true, features = ["sol-types"] }
 codec = { workspace = true }
 fp-account = { workspace = true, features = ["serde"] }
 frame-support = { workspace = true }
@@ -13,7 +14,9 @@ frame-system = { workspace = true }
 log = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-external-validators-rewards = { workspace = true }
 pallet-timestamp = { workspace = true }
+pallet-external-validator-slashes = { workspace = true }
 pallet-evm = { workspace = true }
 pallet-evm-chain-id = { workspace = true }
 pallet-evm-precompile-proxy = { workspace = true }
@@ -25,6 +28,7 @@ polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true }
+snowbridge-outbound-queue-primitives = { workspace = true }
 sp-core = { workspace = true, features = ["serde"] }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }
@@ -34,11 +38,13 @@ xcm = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "alloy-core/std",
     "codec/std",
     "frame-support/std",
     "log/std",
     "pallet-authorship/std",
     "pallet-balances/std",
+    "pallet-external-validators-rewards/std",
     "pallet-timestamp/std",
     "pallet-evm/std",
     "pallet-evm-chain-id/std",
@@ -51,6 +57,7 @@ std = [
     "polkadot-runtime-common/std",
     "precompile-utils/std",
     "scale-info/std",
+    "snowbridge-outbound-queue-primitives/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",

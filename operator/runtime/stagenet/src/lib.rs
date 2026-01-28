@@ -51,7 +51,6 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{Account as EVMAccount, FeeCalculator, GasWeightMapping, Runner};
-use pallet_external_validators::traits::EraIndex;
 use pallet_file_system::types::StorageRequestMetadata;
 use pallet_file_system_runtime_api::*;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
@@ -69,7 +68,6 @@ pub use pallet_timestamp::Call as TimestampCall;
 use shp_file_metadata::ChunkId;
 use smallvec::smallvec;
 use snowbridge_core::AgentId;
-use snowbridge_merkle_tree::MerkleProof;
 use sp_api::impl_runtime_apis;
 use sp_consensus_beefy::{
     ecdsa_crypto::{AuthorityId as BeefyId, Signature as BeefySignature},
@@ -147,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 900,
+    spec_version: 1000,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -247,7 +245,7 @@ pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 ///
 /// This can be a tuple of types, each implementing `OnRuntimeUpgrade`.
 #[allow(unused_parens)]
-type Migrations = ();
+type Migrations = (pallet_file_system::migrations::v1::MigrateV0ToV1<Runtime>,);
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -946,19 +944,6 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_external_validators_rewards_runtime_api::ExternalValidatorsRewardsApi<Block, AccountId, EraIndex> for Runtime
-        where
-        EraIndex: codec::Codec,
-    {
-        fn generate_rewards_merkle_proof(account_id: AccountId, era_index: EraIndex) -> Option<MerkleProof> {
-            ExternalValidatorsRewards::generate_rewards_merkle_proof(account_id, era_index)
-        }
-
-        fn verify_rewards_merkle_proof(merkle_proof: MerkleProof) -> bool {
-            ExternalValidatorsRewards::verify_rewards_merkle_proof(merkle_proof)
-        }
-    }
-
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (
@@ -1272,6 +1257,12 @@ impl_runtime_apis! {
         fn list_incomplete_storage_request_keys(start_after: Option<H256>, limit: u32) -> Vec<H256> {
             FileSystem::list_incomplete_storage_request_keys(start_after, limit)
         }
+        fn query_pending_bsp_confirm_storage_requests(
+            bsp_id: BackupStorageProviderId<Runtime>,
+            file_keys: Vec<H256>,
+        ) -> Vec<H256> {
+            FileSystem::query_pending_bsp_confirm_storage_requests(bsp_id, file_keys)
+        }
     }
 
     impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {
@@ -1286,6 +1277,9 @@ impl_runtime_apis! {
         }
         fn get_current_price_per_giga_unit_per_tick() -> Balance {
             PaymentStreams::get_current_price_per_giga_unit_per_tick()
+        }
+        fn get_number_of_active_users_of_provider(provider_id: &ProviderIdFor<Runtime>) -> u32 {
+            PaymentStreams::get_number_of_active_users_of_provider(provider_id)
         }
     }
 
@@ -1338,7 +1332,7 @@ impl_runtime_apis! {
     }
 
 
-    impl pallet_storage_providers_runtime_api::StorageProvidersApi<Block, BlockNumber, BackupStorageProviderId<Runtime>, BackupStorageProvider<Runtime>, MainStorageProviderId<Runtime>, AccountId, ProviderIdFor<Runtime>, StorageProviderId<Runtime>, StorageDataUnit<Runtime>, Balance, BucketId<Runtime>, Multiaddresses<Runtime>, ValuePropositionWithId<Runtime>> for Runtime {
+    impl pallet_storage_providers_runtime_api::StorageProvidersApi<Block, BlockNumber, BackupStorageProviderId<Runtime>, BackupStorageProvider<Runtime>, MainStorageProviderId<Runtime>, AccountId, ProviderIdFor<Runtime>, StorageProviderId<Runtime>, StorageDataUnit<Runtime>, Balance, BucketId<Runtime>, Multiaddresses<Runtime>, ValuePropositionWithId<Runtime>, H256> for Runtime {
         fn get_bsp_info(bsp_id: &BackupStorageProviderId<Runtime>) -> Result<BackupStorageProvider<Runtime>, GetBspInfoError> {
             Providers::get_bsp_info(bsp_id)
         }
@@ -1393,6 +1387,10 @@ impl_runtime_apis! {
 
         fn query_buckets_of_user_stored_by_msp(msp_id: &ProviderIdFor<Runtime>, user: &AccountId) -> Result<sp_runtime::Vec<BucketId<Runtime>>, QueryBucketsOfUserStoredByMspError> {
             Ok(sp_runtime::Vec::from_iter(Providers::query_buckets_of_user_stored_by_msp(msp_id, user)?))
+        }
+
+        fn query_bucket_root(bucket_id: &BucketId<Runtime>) -> Result<H256, QueryBucketRootError> {
+            Providers::query_bucket_root(bucket_id)
         }
     }
 

@@ -19,7 +19,7 @@
 // no_std Wasm runtime.
 use shc_common::{
     traits::{ExtensionOperations, StorageEnableRuntime, TransactionHashProvider},
-    types::{MinimalExtension, StorageEnableEvents, StorageHubEventsVec},
+    types::{MinimalExtension, StorageEnableErrors, StorageEnableEvents, StorageHubEventsVec},
 };
 use sp_core::H256;
 
@@ -30,6 +30,7 @@ impl StorageEnableRuntime for crate::Runtime {
     type Signature = crate::Signature;
     type Extension = crate::SignedExtra;
     type RuntimeApi = crate::RuntimeApi;
+    type RuntimeError = crate::RuntimeError;
 }
 
 // Implement the transaction extension helpers for the concrete runtime's SignedExtra.
@@ -101,5 +102,22 @@ impl TransactionHashProvider for crate::Runtime {
         }
 
         tx_map
+    }
+}
+
+impl Into<StorageEnableErrors<crate::Runtime>> for crate::RuntimeError {
+    fn into(self) -> StorageEnableErrors<crate::Runtime> {
+        match self {
+            crate::RuntimeError::System(error) => StorageEnableErrors::System(error),
+            crate::RuntimeError::Providers(error) => StorageEnableErrors::StorageProviders(error),
+            crate::RuntimeError::ProofsDealer(error) => StorageEnableErrors::ProofsDealer(error),
+            crate::RuntimeError::PaymentStreams(error) => {
+                StorageEnableErrors::PaymentStreams(error)
+            }
+            crate::RuntimeError::FileSystem(error) => StorageEnableErrors::FileSystem(error),
+            crate::RuntimeError::Balances(error) => StorageEnableErrors::Balances(error),
+            crate::RuntimeError::BucketNfts(error) => StorageEnableErrors::BucketNfts(error),
+            other => StorageEnableErrors::Other(format!("{:?}", other)),
+        }
     }
 }

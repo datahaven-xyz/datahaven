@@ -61,8 +61,8 @@ pub struct Cli {
     /// Provider configurations file path (allow to specify the provider configuration in a file instead of the cli)
     #[arg(long, conflicts_with_all = [
         "provider", "provider_type", "max_storage_capacity", "jump_capacity",
-        "storage_layer", "storage_path", "extrinsic_retry_timeout", "sync_mode_min_blocks_behind",
-        "check_for_pending_proofs_period", "max_blocks_behind_to_catch_up_root_changes",
+        "storage_layer", "storage_path", "max_open_forests", "extrinsic_retry_timeout",
+        "check_for_pending_proofs_period",
         "msp_charging_period", "msp_charge_fees_task", "msp_charge_fees_min_debt",
         "msp_move_bucket_task", "msp_move_bucket_max_try_count", "msp_move_bucket_max_tip",
         "bsp_upload_file_task", "bsp_upload_file_max_try_count", "bsp_upload_file_max_tip",
@@ -70,7 +70,8 @@ pub struct Cli {
         "bsp_charge_fees_task", "bsp_charge_fees_min_debt",
         "bsp_submit_proof_task", "bsp_submit_proof_max_attempts",
         "pending_db_url",
-        "fisherman", "fisherman_database_url",
+        "fisherman", "fisherman_database_url", 
+        "trusted_file_transfer_server", "trusted_file_transfer_server_host", "trusted_file_transfer_server_port",
     ])]
     pub provider_config_file: Option<String>,
 
@@ -228,21 +229,21 @@ pub struct ProviderConfigurations {
     #[arg(long, required_if_eq("storage_layer", "rocks-db"))]
     pub storage_path: Option<String>,
 
+    /// Maximum number of forest storage instances to keep open simultaneously.
+    /// MSPs have one forest per bucket; this controls how many can be open at once.
+    /// BSPs typically use a single forest, so this setting is effectively ignored for them.
+    /// Default: 512. With RocksDB's default of 512 open files per instance,
+    /// this results in a maximum of ~262K file descriptors.
+    #[arg(long, value_name = "COUNT", default_value = "512")]
+    pub max_open_forests: Option<usize>,
+
     /// Extrinsic retry timeout in seconds.
     #[arg(long, default_value = "60")]
     pub extrinsic_retry_timeout: Option<u64>,
 
-    /// The minimum number of blocks behind the current best block to consider the node out of sync.
-    #[arg(long, default_value = "5")]
-    pub sync_mode_min_blocks_behind: Option<u32>,
-
     /// On blocks that are multiples of this number, the blockchain service will trigger the catch of proofs.
     #[arg(long, default_value = "4")]
     pub check_for_pending_proofs_period: Option<u32>,
-
-    /// The maximum number of blocks from the past that will be processed for catching up the root changes.
-    #[arg(long, default_value = "10")]
-    pub max_blocks_behind_to_catch_up_root_changes: Option<u32>,
 
     /// Enable MSP file distribution to BSPs (disabled by default unless set via config/CLI).
     /// Only applicable when running as an MSP provider.
@@ -441,6 +442,32 @@ pub struct ProviderConfigurations {
         help_heading = "MSP Database Options"
     )]
     pub msp_database_url: Option<String>,
+
+    /// Enable the trusted file transfer HTTP server
+    #[arg(
+        long,
+        value_name = "BOOLEAN",
+        help_heading = "Trusted File Transfer Server Options"
+    )]
+    pub trusted_file_transfer_server: bool,
+
+    /// Host address for trusted file transfer HTTP server (default: 127.0.0.1).
+    #[arg(
+        long,
+        value_name = "HOST",
+        help_heading = "Trusted File Transfer Server Options",
+        default_value = "127.0.0.1"
+    )]
+    pub trusted_file_transfer_server_host: Option<String>,
+
+    /// Port for trusted file transfer HTTP server (default: 7070).
+    #[arg(
+        long,
+        value_name = "PORT",
+        help_heading = "Trusted File Transfer Server Options",
+        default_value = "7070"
+    )]
+    pub trusted_file_transfer_server_port: Option<u16>,
 }
 
 impl ProviderConfigurations {
@@ -561,21 +588,8 @@ impl ProviderConfigurations {
             bs_changed = true;
         }
 
-        if let Some(sync_mode_min_blocks_behind) = self.sync_mode_min_blocks_behind {
-            bs_options.sync_mode_min_blocks_behind = Some(sync_mode_min_blocks_behind);
-            bs_changed = true;
-        }
-
         if let Some(check_for_pending_proofs_period) = self.check_for_pending_proofs_period {
             bs_options.check_for_pending_proofs_period = Some(check_for_pending_proofs_period);
-            bs_changed = true;
-        }
-
-        if let Some(max_blocks_behind_to_catch_up_root_changes) =
-            self.max_blocks_behind_to_catch_up_root_changes
-        {
-            bs_options.max_blocks_behind_to_catch_up_root_changes =
-                Some(max_blocks_behind_to_catch_up_root_changes);
             bs_changed = true;
         }
 
@@ -608,6 +622,10 @@ impl ProviderConfigurations {
             bsp_submit_proof,
             blockchain_service,
             msp_database_url: self.msp_database_url.clone(),
+            trusted_file_transfer_server: self.trusted_file_transfer_server,
+            trusted_file_transfer_server_host: self.trusted_file_transfer_server_host.clone(),
+            trusted_file_transfer_server_port: self.trusted_file_transfer_server_port,
+            max_open_forests: self.max_open_forests,
             // We don't support maintenance mode for now.
             // maintenance_mode: self.maintenance_mode,
         }

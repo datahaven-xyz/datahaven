@@ -38,17 +38,6 @@ library DataHavenSnowbridgeMessages {
     }
 
     /**
-     * @notice Encodes a new validator set message into a bytes array.
-     * @param message The new validator set message to encode.
-     * @return The encoded message.
-     */
-    function scaleEncodeNewValidatorSetMessage(
-        NewValidatorSet memory message
-    ) public pure returns (bytes memory) {
-        return scaleEncodeNewValidatorSetMessagePayload(message.payload);
-    }
-
-    /**
      * @notice Encodes a new validator set message payload into a bytes array.
      * @param payload The new validator set message payload to encode.
      * @return The encoded payload.

@@ -13,6 +13,7 @@ version = { workspace = true }
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+alloy-core = { workspace = true, features = ["sol-types"] }
 bridge-hub-common = { workspace = true, optional = true }
 codec = { workspace = true, features = ["derive"] }
 datahaven-runtime-common = { workspace = true }
@@ -55,7 +56,6 @@ pallet-evm-precompile-simple = { workspace = true }
 pallet-external-validator-slashes = { workspace = true }
 pallet-external-validators = { workspace = true }
 pallet-external-validators-rewards = { workspace = true }
-pallet-external-validators-rewards-runtime-api = { workspace = true }
 pallet-grandpa = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-im-online = { workspace = true }
@@ -96,6 +96,7 @@ snowbridge-merkle-tree = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 snowbridge-outbound-queue-v2-runtime-api = { workspace = true }
 snowbridge-pallet-ethereum-client = { workspace = true }
+snowbridge-pallet-ethereum-client-fixtures = { workspace = true, optional = true }
 snowbridge-pallet-inbound-queue-v2 = { workspace = true }
 snowbridge-pallet-outbound-queue-v2 = { workspace = true }
 snowbridge-pallet-system = { workspace = true }
@@ -183,6 +184,7 @@ snowbridge-pallet-system-v2 = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "alloy-core/std",
     "codec/std",
     "datahaven-runtime-common/std",
     "fp-account/std",
@@ -279,7 +281,6 @@ std = [
     "pallet-outbound-commitment-store/std",
     "pallet-external-validators/std",
     "pallet-external-validators-rewards/std",
-    "pallet-external-validators-rewards-runtime-api/std",
     "pallet-external-validator-slashes/std",
     "pallet-datahaven-native-transfer/std",
     # StorageHub
@@ -344,6 +345,7 @@ runtime-benchmarks = [
     "polkadot-runtime-common/runtime-benchmarks",
     "snowbridge-inbound-queue-primitives/runtime-benchmarks",
     "snowbridge-pallet-ethereum-client/runtime-benchmarks",
+    "snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
     "snowbridge-pallet-inbound-queue-v2/runtime-benchmarks",
     "snowbridge-pallet-system-v2/runtime-benchmarks",
     "snowbridge-pallet-outbound-queue-v2/runtime-benchmarks",

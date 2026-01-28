@@ -12,16 +12,12 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 // Logging import
 import {Logging} from "../utils/Logging.sol";
 
-// DataHaven imports for function signatures
-import {RewardsRegistry} from "../../src/middleware/RewardsRegistry.sol";
-
 // EigenLayer core contract imports for type casting
 import {AllocationManager} from "eigenlayer-contracts/src/contracts/core/AllocationManager.sol";
 import {AVSDirectory} from "eigenlayer-contracts/src/contracts/core/AVSDirectory.sol";
 import {DelegationManager} from "eigenlayer-contracts/src/contracts/core/DelegationManager.sol";
 import {RewardsCoordinator} from "eigenlayer-contracts/src/contracts/core/RewardsCoordinator.sol";
 import {StrategyManager} from "eigenlayer-contracts/src/contracts/core/StrategyManager.sol";
-import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {
     PermissionController
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
@@ -64,7 +60,7 @@ contract DeployTestnet is DeployBase {
         return networkName;
     }
 
-    function _getDeploymentMode() internal view override returns (string memory) {
+    function _getDeploymentMode() internal pure override returns (string memory) {
         return "HOODI_TESTNET";
     }
 
@@ -120,7 +116,7 @@ contract DeployTestnet is DeployBase {
 
         vm.broadcast(_deployerPrivateKey);
         bytes memory initData = abi.encodeWithSelector(
-            DataHavenServiceManager.initialise.selector,
+            DataHavenServiceManager.initialize.selector,
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
@@ -139,7 +135,6 @@ contract DeployTestnet is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        RewardsRegistry rewardsRegistry,
         address rewardsAgent
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
@@ -152,7 +147,6 @@ contract DeployTestnet is DeployBase {
 
         Logging.logSection("DataHaven Contracts");
         Logging.logContractDeployed("ServiceManager", address(serviceManager));
-        Logging.logContractDeployed("RewardsRegistry", address(rewardsRegistry));
 
         Logging.logSection(
             string.concat("EigenLayer Core Contracts (Existing on ", _getDeploymentMode(), ")")
@@ -189,9 +183,6 @@ contract DeployTestnet is DeployBase {
             '"ServiceManagerImplementation": "',
             vm.toString(address(serviceManagerImplementation)),
             '",'
-        );
-        json = string.concat(
-            json, '"RewardsRegistry": "', vm.toString(address(rewardsRegistry)), '",'
         );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 

@@ -30,13 +30,9 @@ pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true, optional = true }
 pallet-external-validators = { workspace = true }
 pallet-session = { workspace = true, features = [ "historical" ] }
-runtime-parachains = { workspace = true }
 
 snowbridge-core = { workspace = true }
-snowbridge-merkle-tree = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
-cumulus-primitives-core = { workspace = true }
-polkadot-primitives = { workspace = true }
 
 [dev-dependencies]
 pallet-timestamp = { workspace = true }
@@ -45,7 +41,6 @@ sp-io = { workspace = true }
 [features]
 default = [ "std" ]
 std = [
-	"cumulus-primitives-core/std",
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"frame-system/std",
@@ -56,11 +51,9 @@ std = [
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"parity-scale-codec/std",
-	"polkadot-primitives/std",
-	"runtime-parachains/std",
 	"scale-info/std",
 	"snowbridge-core/std",
-	"snowbridge-merkle-tree/std",
+	"snowbridge-outbound-queue-primitives/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
@@ -68,15 +61,12 @@ std = [
 	"sp-std/std",
 ]
 runtime-benchmarks = [
-	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-external-validators/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks",
-	"runtime-parachains/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -90,6 +80,5 @@ try-runtime = [
 	"pallet-external-validators/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
-	"runtime-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]

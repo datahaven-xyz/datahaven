@@ -3,6 +3,9 @@ pragma solidity ^0.8.27;
 
 // EigenLayer imports
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 /**
  * @title DataHaven Service Manager Errors Interface
@@ -21,6 +24,14 @@ interface IDataHavenServiceManagerErrors {
     error OperatorNotInAllowlist();
     /// @notice Thrown when the caller is not a Validator in the Validators operator set
     error CallerIsNotValidator();
+    /// @notice Thrown when a function is called by an address that is not the RewardsInitiator
+    error OnlyRewardsInitiator();
+    /// @notice Thrown when a function is called by an address that is not the AllocationManager
+    error OnlyAllocationManager();
+    /// @notice Thrown when a zero address is provided where a non-zero address is required
+    error ZeroAddress();
+    /// @notice Thrown when the solochain address data length is not 20 bytes
+    error InvalidSolochainAddressLength();
 }
 
 /**
@@ -49,6 +60,24 @@ interface IDataHavenServiceManagerEvents {
     /// @notice Emitted when the Snowbridge Gateway address is set
     /// @param snowbridgeGateway Address of the Snowbridge Gateway
     event SnowbridgeGatewaySet(address indexed snowbridgeGateway);
+
+    /// @notice Emitted when rewards are successfully submitted to EigenLayer
+    /// @param totalAmount The total amount of rewards distributed
+    /// @param operatorCount The number of operators that received rewards
+    event RewardsSubmitted(uint256 totalAmount, uint256 operatorCount);
+
+    /// @notice Emitted when the rewards initiator address is updated
+    /// @param oldInitiator The previous rewards initiator address
+    /// @param newInitiator The new rewards initiator address
+    event RewardsInitiatorSet(address indexed oldInitiator, address indexed newInitiator);
+
+    /// @notice Emitted when a validator updates their solochain address
+    /// @param validator Address of the validator
+    /// @param solochainAddress The new solochain address
+    event SolochainAddressUpdated(address indexed validator, address indexed solochainAddress);
+
+    /// @notice Emitted when a batch of slashing request is being successfully slashed
+    event SlashingComplete();
 }
 
 /**
@@ -60,6 +89,14 @@ interface IDataHavenServiceManager is
     IDataHavenServiceManagerErrors,
     IDataHavenServiceManagerEvents
 {
+    /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
+    struct SlashingRequest {
+        address operator;
+        IStrategy[] strategies;
+        uint256[] wadsToSlash;
+        string description;
+    }
+
     /// @notice Checks if a validator address is in the allowlist
     /// @param validator Address to check
     /// @return True if the validator is in the allowlist, false otherwise
@@ -86,7 +123,7 @@ interface IDataHavenServiceManager is
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
      */
-    function initialise(
+    function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
@@ -167,5 +204,50 @@ interface IDataHavenServiceManager is
      */
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
+    ) external;
+
+    // ============ Rewards Submitter Functions ============
+
+    /**
+     * @notice Submit rewards to EigenLayer
+     * @param submission The operator-directed rewards submission containing all reward parameters
+     * @dev Only callable by the authorized Snowbridge Agent
+     * @dev Strategies must be sorted in ascending order by address
+     * @dev Operators must be sorted in ascending order by address
+     * @dev Token must be pre-approved or held by the ServiceManager
+     */
+    function submitRewards(
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
+    ) external;
+
+    /**
+     * @notice Set the rewards initiator address authorized to submit rewards
+     * @param initiator The address of the rewards initiator (Snowbridge Agent)
+     * @dev Only callable by the owner
+     */
+    function setRewardsInitiator(
+        address initiator
+    ) external;
+
+    // ============ AVS Management Functions ============
+
+    /**
+     * @notice Updates the metadata URI for the AVS
+     * @param _metadataURI is the metadata URI for the AVS
+     * @dev Only callable by the owner
+     */
+    function updateAVSMetadataURI(
+        string memory _metadataURI
+    ) external;
+
+    /**
+     * @notice Force-deregisters an operator from specified operator sets
+     * @param operator The address of the operator to deregister
+     * @param operatorSetIds The IDs of the operator sets to deregister from
+     * @dev Only callable by the owner. Use for removing misbehaving operators.
+     */
+    function deregisterOperatorFromOperatorSets(
+        address operator,
+        uint32[] calldata operatorSetIds
     ) external;
 }

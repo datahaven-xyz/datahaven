@@ -61,7 +61,7 @@ export const launchKurtosisNetwork = async (
     await pullMacOSImages();
   }
 
-  await runKurtosisEnclave(options, configFilePath);
+  await runKurtosisEnclave({ ...options }, configFilePath);
   await registerServices(launchedNetwork, options.kurtosisEnclaveName);
 
   logger.success("Kurtosis network launched successfully");
@@ -352,6 +352,7 @@ export const runKurtosisEnclave = async (
     blockscout?: boolean;
     slotTime?: number;
     kurtosisNetworkArgs?: string;
+    injectContracts?: boolean;
   },
   configFilePath: string
 ): Promise<void> => {
@@ -362,7 +363,7 @@ export const runKurtosisEnclave = async (
   logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
 
   await runShellCommandWithLogger(
-    `kurtosis run github.com/ethpandaops/ethereum-package@6ae24741119d429704d41251f47a7d0e0893bc39 --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
+    `kurtosis run github.com/ethpandaops/ethereum-package@6.0.0 --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
     {
       logLevel: "debug"
     }

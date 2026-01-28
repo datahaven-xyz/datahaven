@@ -30,6 +30,7 @@ LICENSES=(
     "BSD-3-Clause"
     "CC0-1.0"
     "CDLA-Permissive-2.0"
+    "GPL-3.0"
     "GPL-3.0-only"
     "GPL-3.0-or-later WITH Classpath-exception-2.0"
     "ISC"
@@ -40,6 +41,8 @@ LICENSES=(
     "Zlib"
     "Unicode-3.0"
     "(Apache-2.0 OR MIT) AND Unicode-3.0"
+    "(Apache-2.0 OR MIT) AND BSD-3-Clause"
+    "BSD-3-Clause AND MIT"
 )
 AUTHORS=(
     "PureStake"
@@ -52,6 +55,7 @@ AUTHORS=(
 NAMES=(
     "ring"  # v0.16.20 has null license metadata but contains Apache-2.0 AND ISC LICENSE file
     "shp-tx-implicits-runtime-api"
+    "pq-src" # License is the same as postgres
 )
 licenses_filter=$(printf ' .license != "%s" and' "${LICENSES[@]}")
 authors_filter=$(printf ' .authors != "%s" and' "${AUTHORS[@]}")

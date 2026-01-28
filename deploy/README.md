@@ -6,22 +6,22 @@ This directory contains Helm charts and configurations for deploying DataHaven n
 
 ```
 deploy/
-├── charts/                    # Helm charts
-│   ├── node/                 # Node chart
-│   │   └── datahaven/       # DataHaven-specific node configurations
+├── charts/                             # Helm charts
+│   ├── node/                           # Node chart
+│   │   └── datahaven/                  # DataHaven-specific node configurations
 │   │       ├── dh-bootnode.yaml
 │   │       └── dh-validator.yaml
-│   └── relay/               # Relay chart
-│       └── snowbridge/     # Snowbridge-specific relay configurations
+│   └── relay/                          # Relay chart
+│       └── snowbridge/                 # Snowbridge-specific relay configurations
 │           ├── dh-beacon-relay.yaml    # Beacon chain relay
 │           ├── dh-beefy-relay.yaml     # BEEFY consensus relay
 │           └── dh-execution-relay.yaml # Execution layer relay
-├── environments/             # Environment-specific configurations
-│   ├── local/               # Local development environment
+├── environments/                       # Environment-specific configurations
+│   ├── local/                          # Local development environment
 │   │   └── values.yaml
-│   ├── stagenet/           # Staging environment
+│   ├── stagenet/                       # Staging environment
 │       └── values.yaml
-└── scripts/                  # Deployment scripts
+└── scripts/                            # Deployment scripts
 ```
 
 ## Prerequisites

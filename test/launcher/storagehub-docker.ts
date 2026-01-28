@@ -1,10 +1,14 @@
 import { $ } from "bun";
 import { getPublicPort, killExistingContainers, logger, waitForContainerToStart } from "utils";
-import { DEFAULT_SUBSTRATE_WS_PORT } from "utils/constants";
+import { DEFAULT_SUBSTRATE_WS_PORT, SUBSTRATE_FUNDED_ACCOUNTS } from "utils/constants";
 import { waitFor } from "utils/waits";
 import type { DataHavenOptions } from "./datahaven";
 import { isNetworkReady } from "./datahaven";
 import type { LaunchedNetwork } from "./types/launchedNetwork";
+
+/**
+ * Important ! This is for local deployment only. We are using mDNS discovery when startinn node with the `--discover-local` flag
+ */
 
 /**
  * PostgreSQL configuration for StorageHub Indexer and Fisherman
@@ -109,46 +113,25 @@ export const getPostgresUrl = (networkId: string): string => {
  * Injects a BCSV ECDSA key into a StorageHub provider node's keystore.
  *
  * @param containerName - Name of the Docker container
- * @param seed - The seed phrase for key generation
- * @param derivation - Key derivation path (e.g., "//Charlie")
+ * @param secretKey - The secret key (or private key) we want to add to the node
  */
 export const injectStorageHubKey = async (
   containerName: string,
-  seed: string,
-  derivation: string
+  secretKey: string
 ): Promise<void> => {
-  logger.info(`🔑 Injecting key ${derivation} into ${containerName}...`);
+  logger.info(`🔑 Injecting key into ${containerName}...`);
 
-  const suri = `${seed}${derivation}`;
+  // const suri = `${seed}${derivation}`;
 
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --chain dev --key-type bcsv --scheme ecdsa --suri ${suri}`.nothrow();
-    logger.success(`Key ${derivation} injected successfully`);
+    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --key-type bcsv --scheme ecdsa --suri ${secretKey}`.nothrow();
+    logger.success("Key injected successfully");
   } catch (error) {
-    logger.error(`Failed to inject key ${derivation}: ${error}`);
+    logger.error(`Failed to inject key : ${error}`);
     throw error;
   }
-};
-
-/**
- * Gets the bootnode address from a running validator node.
- *
- * For local development with Docker, nodes on the same network can discover each other
- * via mDNS (--discover-local flag), so explicit bootnodes are optional.
- *
- * To use explicit bootnodes, we'd need to extract the peer ID from the validator node,
- * which requires querying the RPC endpoint. For simplicity in local dev, we skip this.
- *
- * @param containerName - Name of the validator container (e.g., datahaven-alice-cli-launch)
- * @returns Multiaddress string for bootnode, or empty string to skip bootnodes
- */
-export const getBootnodeAddress = async (containerName: string): Promise<string> => {
-  // For local Docker development, nodes discover each other via mDNS
-  // No explicit bootnode needed with --discover-local flag
-  logger.debug(`Skipping explicit bootnode for ${containerName} - using mDNS discovery`);
-  return "";
 };
 
 /**
@@ -166,10 +149,6 @@ export const launchMspNode = async (
   const containerName = `storagehub-msp-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
   const wsPort = 9945; // External port for MSP node
-  const aliceContainer = `datahaven-alice-${options.networkId}`;
-
-  // Get bootnode address (empty for local dev with mDNS discovery)
-  const bootnodeAddr = await getBootnodeAddress(aliceContainer);
 
   const command: string[] = [
     "docker",
@@ -182,8 +161,6 @@ export const launchMspNode = async (
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
-    "--chain",
-    "dev",
     "--name",
     "msp-charlie",
     "--rpc-port",
@@ -208,19 +185,13 @@ export const launchMspNode = async (
     "1073741824" // 1 GiB
   ];
 
-  // Only add bootnodes if we have a valid address
-  if (bootnodeAddr) {
-    command.push("--bootnodes", bootnodeAddr);
-  }
-
   logger.debug(`Executing: ${command.join(" ")}`);
   await $`sh -c "${command.join(" ")}"`.nothrow();
 
   await waitForContainerToStart(containerName);
 
   // Inject key
-  const seed = "bottom drive obey lake curtain smoke basket hold race lonely fit walk";
-  await injectStorageHubKey(containerName, seed, "//Charlie");
+  await injectStorageHubKey(containerName, SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.privateKey);
 
   // Restart container to load key
   logger.info("🔄 Restarting MSP node to load key...");
@@ -263,10 +234,6 @@ export const launchBspNode = async (
   const containerName = `storagehub-bsp-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
   const wsPort = 9946; // External port for BSP node
-  const aliceContainer = `datahaven-alice-${options.networkId}`;
-
-  // Get bootnode address (empty for local dev with mDNS discovery)
-  const bootnodeAddr = await getBootnodeAddress(aliceContainer);
 
   const command: string[] = [
     "docker",
@@ -279,8 +246,6 @@ export const launchBspNode = async (
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
-    "--chain",
-    "dev",
     "--name",
     "bsp-dave",
     "--rpc-port",
@@ -303,19 +268,13 @@ export const launchBspNode = async (
     "1073741824" // 1 GiB
   ];
 
-  // Only add bootnodes if we have a valid address
-  if (bootnodeAddr) {
-    command.push("--bootnodes", bootnodeAddr);
-  }
-
   logger.debug(`Executing: ${command.join(" ")}`);
   await $`sh -c "${command.join(" ")}"`.nothrow();
 
   await waitForContainerToStart(containerName);
 
   // Inject key (using Dave instead of Eve for BSP)
-  const seed = "bottom drive obey lake curtain smoke basket hold race lonely fit walk";
-  await injectStorageHubKey(containerName, seed, "//Dave");
+  await injectStorageHubKey(containerName, SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey);
 
   // Restart container to load key
   logger.info("🔄 Restarting BSP node to load key...");
@@ -358,10 +317,7 @@ export const launchIndexerNode = async (
   const containerName = `storagehub-indexer-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
   const wsPort = 9947; // External port for Indexer node
-  const aliceContainer = `datahaven-alice-${options.networkId}`;
 
-  // Get bootnode address (empty for local dev with mDNS discovery) and PostgreSQL URL
-  const bootnodeAddr = await getBootnodeAddress(aliceContainer);
   const postgresUrl = getPostgresUrl(options.networkId);
 
   const command: string[] = [
@@ -375,8 +331,6 @@ export const launchIndexerNode = async (
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
-    "--chain",
-    "dev",
     "--name",
     "indexer",
     "--rpc-port",
@@ -394,11 +348,6 @@ export const launchIndexerNode = async (
     "--indexer-database-url",
     postgresUrl
   ];
-
-  // Only add bootnodes if we have a valid address
-  if (bootnodeAddr) {
-    command.push("--bootnodes", bootnodeAddr);
-  }
 
   logger.debug(`Executing: ${command.join(" ")}`);
   await $`sh -c "${command.join(" ")}"`.nothrow();
@@ -441,10 +390,7 @@ export const launchFishermanNode = async (
   const containerName = `storagehub-fisherman-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
   const wsPort = 9948; // External port for Fisherman node
-  const aliceContainer = `datahaven-alice-${options.networkId}`;
 
-  // Get bootnode address (empty for local dev with mDNS discovery) and PostgreSQL URL
-  const bootnodeAddr = await getBootnodeAddress(aliceContainer);
   const postgresUrl = getPostgresUrl(options.networkId);
 
   const command: string[] = [
@@ -458,8 +404,6 @@ export const launchFishermanNode = async (
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
-    "--chain",
-    "dev",
     "--name",
     "fisherman",
     "--rpc-port",
@@ -475,11 +419,6 @@ export const launchFishermanNode = async (
     "--fisherman-database-url",
     postgresUrl
   ];
-
-  // Only add bootnodes if we have a valid address
-  if (bootnodeAddr) {
-    command.push("--bootnodes", bootnodeAddr);
-  }
 
   logger.debug(`Executing: ${command.join(" ")}`);
   await $`sh -c "${command.join(" ")}"`.nothrow();
@@ -505,6 +444,60 @@ export const launchFishermanNode = async (
   launchedNetwork.addContainer(containerName, { ws: wsPort }, { ws: DEFAULT_SUBSTRATE_WS_PORT });
 
   logger.success(`Fisherman node started on port ${wsPort}`);
+};
+
+/**
+ * Launches a StorageHub Backend MSP container.
+ *
+ * @param options - Configuration options for launching the network
+ * @param launchedNetwork - The launched network instance to track the node
+ */
+export const launchBackendMsp = async (
+  options: DataHavenOptions,
+  launchedNetwork: LaunchedNetwork
+): Promise<void> => {
+  logger.info("🚀 Launching StorageHub Backend MSP...");
+
+  const containerName = `storagehub-backend-msp-${options.networkId}`;
+  const dockerNetworkName = `datahaven-${options.networkId}`;
+  const containerNameMSP = `storagehub-msp-${options.networkId}`;
+  const postgresUrl = getPostgresUrl(options.networkId);
+  const apiPort = 8080;
+
+  const command: string[] = [
+    "docker",
+    "run",
+    "-d",
+    "--name",
+    containerName,
+    "--network",
+    dockerNetworkName,
+    "-p",
+    `${apiPort}:8080`,
+    "-e",
+    "RUST_LOG=debug",
+    "sh-msp-backend:local",
+    "--log-format",
+    "text",
+    "--database-url",
+    postgresUrl,
+    "--rpc-url",
+    `ws://${containerNameMSP}:9944`,
+    "--msp-callback-url",
+    `http://${containerName}:8080`,
+    "--msp-trusted-file-transfer-server-url",
+    `http://${containerNameMSP}:7070`
+  ];
+
+  logger.debug(`Executing: ${command.join(" ")}`);
+  await $`sh -c "${command.join(" ")}"`.nothrow();
+
+  await waitForContainerToStart(containerName);
+
+  // Register in launched network
+  launchedNetwork.addContainer(containerName, { http: apiPort }, { http: apiPort });
+
+  logger.success(`Backend MSP container started on port ${apiPort}`);
 };
 
 /**

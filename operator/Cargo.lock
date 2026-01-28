@@ -9208,6 +9208,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "num-bigint",
  "pallet-file-system-runtime-api",
@@ -9218,6 +9219,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "shp-constants",
+ "shp-file-key-verifier",
  "shp-file-metadata",
  "shp-traits",
  "sp-core",
@@ -9479,11 +9481,15 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
  "pallet-balances",
  "pallet-proofs-dealer-runtime-api",
  "pallet-storage-providers",
  "parity-scale-codec",
  "scale-info",
+ "shp-file-key-verifier",
+ "shp-file-metadata",
+ "shp-forest-verifier",
  "shp-traits",
  "sp-core",
  "sp-keyring",
@@ -9611,18 +9617,15 @@ dependencies = [
 
 [[package]]
 name = "pallet-session-benchmarking"
-version = "39.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+version = "0.20.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-session",
- "pallet-staking",
  "parity-scale-codec",
- "rand 0.8.5",
  "sp-runtime",
- "sp-session",
+ "sp-std",
 ]
 
 [[package]]

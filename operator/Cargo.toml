@@ -43,6 +43,7 @@ pallet-external-validator-slashes = { path = "./pallets/external-validator-slash
 pallet-external-validators = { path = "./pallets/external-validators", default-features = false }
 pallet-external-validators-rewards = { path = "./pallets/external-validators-rewards", default-features = false }
 pallet-outbound-commitment-store = { path = "./pallets/outbound-commitment-store", default-features = false }
+pallet-proxy-genesis-companion = { path = "./pallets/proxy-genesis-companion", default-features = false }
 
 # Crates.io (wasm)
 alloy-core = { version = "0.8.15", default-features = false }

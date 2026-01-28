@@ -2684,6 +2684,7 @@ dependencies = [
  "pallet-proofs-dealer",
  "pallet-proofs-dealer-runtime-api",
  "pallet-proxy",
+ "pallet-proxy-genesis-companion",
  "pallet-randomness",
  "pallet-referenda",
  "pallet-safe-mode",
@@ -2705,6 +2706,7 @@ dependencies = [
  "polkadot-runtime-common",
  "precompile-utils",
  "scale-info",
+ "serde",
  "serde_json",
  "shc-common",
  "shp-constants",
@@ -2982,6 +2984,7 @@ dependencies = [
  "pallet-proofs-dealer",
  "pallet-proofs-dealer-runtime-api",
  "pallet-proxy",
+ "pallet-proxy-genesis-companion",
  "pallet-randomness",
  "pallet-referenda",
  "pallet-safe-mode",
@@ -3003,6 +3006,7 @@ dependencies = [
  "polkadot-runtime-common",
  "precompile-utils",
  "scale-info",
+ "serde",
  "serde_json",
  "shc-common",
  "shp-constants",
@@ -3135,6 +3139,7 @@ dependencies = [
  "pallet-proofs-dealer",
  "pallet-proofs-dealer-runtime-api",
  "pallet-proxy",
+ "pallet-proxy-genesis-companion",
  "pallet-randomness",
  "pallet-referenda",
  "pallet-safe-mode",
@@ -3156,6 +3161,7 @@ dependencies = [
  "polkadot-runtime-common",
  "precompile-utils",
  "scale-info",
+ "serde",
  "serde_json",
  "shc-common",
  "shp-constants",
@@ -9510,6 +9516,23 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-sdk-frame",
  "scale-info",
+]
+
+[[package]]
+name = "pallet-proxy-genesis-companion"
+version = "0.20.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

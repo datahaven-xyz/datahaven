@@ -500,6 +500,9 @@ mod runtime {
 
     #[runtime::pallet_index(105)]
     pub type ExternalValidatorsSlashes = pallet_external_validator_slashes;
+
+    #[runtime::pallet_index(106)]
+    pub type ProxyGenesisCompanion = pallet_proxy_genesis_companion;
     // ╚═══════════════════ DataHaven-specific Pallets ══════════════════╝
 }
 

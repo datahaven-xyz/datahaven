@@ -23,15 +23,15 @@ operator/
 │   │   ├── command.rs            # Command handlers
 │   │   ├── rpc.rs                # RPC configuration
 │   │   └── service.rs            # Node service setup
-├── pallets/                       # Custom pallets
+├── pallets/                      # Custom pallets
 │   ├── external-validators/      # EigenLayer validator set management
 │   ├── native-transfer/          # Cross-chain token transfers
-│   └── rewards/                   # Validator rewards distribution
-├── runtime/                       # Runtime configurations
+│   └── rewards/                  # Validator rewards distribution
+├── runtime/                      # Runtime configurations
 │   ├── mainnet/                  # Mainnet runtime
 │   ├── stagenet/                 # Stagenet runtime
 │   └── testnet/                  # Testnet runtime (with fast-runtime feature)
-└── scripts/                       # Utility scripts
+└── scripts/                      # Utility scripts
     └── run-benchmarks.sh         # Runtime benchmarking automation
 ```
 

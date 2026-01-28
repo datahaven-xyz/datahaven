@@ -25,7 +25,7 @@ DataHaven is an EVM-compatible Substrate blockchain secured by EigenLayer. It br
 
 ```bash
 # Setup
-bun i                               # Install dependencies
+bun i                              # Install dependencies
 bun cli                            # Interactive CLI for test environment
 
 # Code Quality
@@ -58,7 +58,7 @@ bun test:e2e:parallel             # Run tests with limited
 
 ```bash
 cd operator
-cargo build --release --features fast-runtime    # Development build (faster)
+cargo build --release --features fast-runtime   # Development build (faster)
 cargo build --release                           # Production build
 cargo test                                      # Run all tests
 cargo fmt                                       # Format Rust code
@@ -80,8 +80,8 @@ forge fmt                          # Format Solidity code
 ### Repository Structure
 ```
 datahaven/
-├── contracts/      # EigenLayer AVS smart contracts
-├── operator/       # Substrate-based DataHaven node
+├── contracts/     # EigenLayer AVS smart contracts
+├── operator/      # Substrate-based DataHaven node
 │   ├── node/      # Node implementation
 │   ├── pallets/   # Custom pallets (validators, rewards, transfers)
 │   └── runtime/   # Runtime configurations (mainnet/stagenet/testnet)

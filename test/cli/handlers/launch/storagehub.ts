@@ -1,6 +1,7 @@
 import { logger, printHeader } from "utils";
 import type { DataHavenOptions } from "../../../launcher/datahaven";
 import {
+  launchBackendMsp,
   launchBspNode,
   launchFishermanNode,
   launchIndexerNode,
@@ -98,6 +99,10 @@ async function launchStorageHubDocker(
   // Register providers
   logger.info("📝 Registering providers...");
   await registerProviders({ launchedNetwork });
+
+  // Launch MSP Backend
+  logger.info("📦 Launching MSP Backend...");
+  await launchBackendMsp(datahavenOptions, launchedNetwork);
 
   logger.success("All StorageHub components launched and registered");
 }

@@ -21,8 +21,8 @@ interface Proxy {
         Staking,
         CancelProxy,
         Balances,
-        AuthorMapping,
-        IdentityJudgement
+        IdentityJudgement,
+        SudoOnly
     }
 
     /// @dev Register a proxy account for the sender that is able to make calls on its behalf

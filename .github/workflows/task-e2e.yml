@@ -35,9 +35,9 @@ env:
   FOUNDRY_PROFILE: ci
   LOG_LEVEL: debug
   DOCKER_HOST: unix:///run/user/1020/podman/podman.sock
-  KURTOSIS_CORE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-core
-  KURTOSIS_ENGINE_IMAGE: ghcr.io/stiiifff/kurtosis/kurtosis-engine
-  KURTOSIS_VERSION: 1.11.1
+  KURTOSIS_CORE_IMAGE: docker.io/kurtosistech/core
+  KURTOSIS_ENGINE_IMAGE: docker.io/kurtosistech/engine
+  KURTOSIS_VERSION: 1.15.2
   INJECT_CONTRACTS: false
 
 jobs:
@@ -67,17 +67,15 @@ jobs:
       - name: Install Kurtosis
         run: |
           # Install Kurtosis locally without sudo
-          # SHA256 checksum for patched kurtosis binary (stiiifff fork v1.11.99)
-          KURTOSIS_SHA256="5e88e98c1b255362268b4c385cdb6bbba7e82b333c4b2c05bc0bff7de0560b2a"
+          # SHA256 checksum for release kurtosis binary (v1.15.2)
+          KURTOSIS_SHA256="5da4731180f60021bbb1d313e1d2994b7d0fcdeae1a2f2081c620cf51a265463"
 
           if ! command -v kurtosis &> /dev/null; then
             echo "Installing Kurtosis $KURTOSIS_VERSION locally"
             mkdir -p ~/.local/bin
-            # wget -q -O kurtosis-cli.tar.gz "https://github.com/kurtosis-tech/kurtosis-cli-release-artifacts/releases/download/${KURTOSIS_VERSION}/kurtosis-cli_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
-            # tar -xzf kurtosis-cli.tar.gz -C ~/.local/bin
-            # rm kurtosis-cli.tar.gz
-            # For now, we use a patched version of Kurtosis CLI & Engine that supports Podman properly
-            wget -q -O ~/.local/bin/kurtosis https://github.com/stiiifff/kurtosis/releases/download/1.11.99/kurtosis
+            wget -q -O kurtosis-cli.tar.gz "https://github.com/kurtosis-tech/kurtosis-cli-release-artifacts/releases/download/${KURTOSIS_VERSION}/kurtosis-cli_${KURTOSIS_VERSION}_linux_amd64.tar.gz"
+            tar -xzf kurtosis-cli.tar.gz -C ~/.local/bin
+            rm kurtosis-cli.tar.gz
 
             # Verify checksum before making executable
             echo "Verifying kurtosis checksum..."

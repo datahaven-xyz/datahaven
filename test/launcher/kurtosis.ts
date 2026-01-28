@@ -363,7 +363,7 @@ export const runKurtosisEnclave = async (
   logger.info(`⚙️ Using Kurtosis config file: ${configFile}`);
 
   await runShellCommandWithLogger(
-    `kurtosis run github.com/ethpandaops/ethereum-package@6ae24741119d429704d41251f47a7d0e0893bc39 --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
+    `kurtosis run github.com/ethpandaops/ethereum-package@6.0.0 --args-file ${configFile} --enclave ${options.kurtosisEnclaveName}`,
     {
       logLevel: "debug"
     }

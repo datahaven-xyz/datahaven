@@ -16,7 +16,7 @@
 
 use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
-    TreasuryAccount, HAVE,
+    TreasuryAccount, HAVE, MICROHAVE,
 };
 #[cfg(feature = "runtime-benchmarks")]
 use datahaven_runtime_common::benchmarking::StorageHubBenchmarking;
@@ -70,11 +70,25 @@ pub type StorageProofsMerkleTrieLayout = LayoutV1<BlakeTwo256>;
 pub type Hashing = BlakeTwo256;
 
 /****** NFTs pallet ******/
+#[cfg(not(feature = "runtime-benchmarks"))]
 parameter_types! {
     pub const CollectionDeposit: Balance = 100 * HAVE;
     pub const ItemDeposit: Balance = 1 * HAVE;
     pub const MetadataDepositBase: Balance = 10 * HAVE;
     pub const MetadataDepositPerByte: Balance = 1 * HAVE;
+    pub const ApprovalsLimit: u32 = 20;
+    pub const ItemAttributesApprovalsLimit: u32 = 20;
+    pub const MaxTips: u32 = 10;
+    pub const MaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
+    pub const MaxAttributesPerCall: u32 = 10;
+    pub Features: PalletFeatures = PalletFeatures::all_enabled();
+}
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const CollectionDeposit: Balance = 100 * MICROHAVE;
+    pub const ItemDeposit: Balance = 1 * MICROHAVE;
+    pub const MetadataDepositBase: Balance = 10 * MICROHAVE;
+    pub const MetadataDepositPerByte: Balance = 1 * MICROHAVE;
     pub const ApprovalsLimit: u32 = 20;
     pub const ItemAttributesApprovalsLimit: u32 = 20;
     pub const MaxTips: u32 = 10;
@@ -581,9 +595,17 @@ impl Get<u32> for MaxSlashableProvidersPerTick {
 type ThresholdType = u32;
 pub type ReplicationTargetType = u32;
 
+#[cfg(not(feature = "runtime-benchmarks"))]
 parameter_types! {
     pub const BaseStorageRequestCreationDeposit: Balance = 1 * HAVE;
     pub const FileDeletionRequestCreationDeposit: Balance = 1 * HAVE;
+    pub const FileSystemStorageRequestCreationHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::StorageRequestCreationHold);
+    pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
+}
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const BaseStorageRequestCreationDeposit: Balance = 1 * MICROHAVE;
+    pub const FileDeletionRequestCreationDeposit: Balance = 1 * MICROHAVE;
     pub const FileSystemStorageRequestCreationHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::StorageRequestCreationHold);
     pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
 }

@@ -51,6 +51,7 @@ frame_benchmarking::define_benchmarks!(
 
     // StorageHub pallets
     [pallet_nfts, Nfts]
+    [pallet_file_system, FileSystem]
     [pallet_payment_streams, PaymentStreams]
     [pallet_storage_providers, Providers]
 

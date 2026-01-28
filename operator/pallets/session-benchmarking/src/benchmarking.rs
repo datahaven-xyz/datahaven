@@ -15,18 +15,18 @@ use crate::{Config, Pallet};
 use pallet_session::Call;
 
 benchmarks! {
-	set_keys {
-		let caller: T::AccountId = whitelisted_caller();
-		frame_system::Pallet::<T>::inc_providers(&caller);
-		let keys = T::Keys::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
-		let proof: Vec<u8> = vec![0, 1, 2, 3];
-	}: _(RawOrigin::Signed(caller), keys, proof)
+    set_keys {
+        let caller: T::AccountId = whitelisted_caller();
+        frame_system::Pallet::<T>::inc_providers(&caller);
+        let keys = T::Keys::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
+        let proof: Vec<u8> = vec![0, 1, 2, 3];
+    }: _(RawOrigin::Signed(caller), keys, proof)
 
-	purge_keys {
-		let caller: T::AccountId = whitelisted_caller();
-		frame_system::Pallet::<T>::inc_providers(&caller);
-		let keys = T::Keys::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
-		let proof: Vec<u8> = vec![0, 1, 2, 3];
-		let _ = pallet_session::Pallet::<T>::set_keys(RawOrigin::Signed(caller.clone()).into(), keys, proof);
-	}: _(RawOrigin::Signed(caller))
+    purge_keys {
+        let caller: T::AccountId = whitelisted_caller();
+        frame_system::Pallet::<T>::inc_providers(&caller);
+        let keys = T::Keys::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
+        let proof: Vec<u8> = vec![0, 1, 2, 3];
+        let _ = pallet_session::Pallet::<T>::set_keys(RawOrigin::Signed(caller.clone()).into(), keys, proof);
+    }: _(RawOrigin::Signed(caller))
 }

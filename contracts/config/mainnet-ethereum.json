@@ -33,7 +33,12 @@
     "rewardsInitiator": "0x0000000000000000000000000000000000000000",
     "vetoCommitteeMember": "0x0000000000000000000000000000000000000000",
     "vetoWindowBlocks": 7200,
-    "validatorsStrategies": []
+    "validatorsStrategies": [
+      "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
+      "0x93c4b944D05dfe6df7645A86cd2206016c51564D",
+      "0x1BeE69b7dFFfA4E2d53C2a2Df135C388AD25dCD2",
+      "0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc"
+    ]
   },
   "snowbridge": {
     "randaoCommitDelay": 4,

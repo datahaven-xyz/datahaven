@@ -13,6 +13,8 @@ interface UpdateBeefyCheckpointOptions {
 }
 
 interface BeefyCheckpointData {
+  startBlock: number;
+  minNumRequiredSignatures: number;
   initialValidatorSetId: number;
   initialValidatorHashes: string[];
   nextValidatorSetId: number;
@@ -57,11 +59,25 @@ const computeAuthorityHashes = (authorityPublicKeys: string[]): string[] => {
 };
 
 /**
+ * Calculates the minimum number of required signatures for BFT security.
+ * Uses ceil(n * 2/3) where n is the number of validators.
+ *
+ * @param validatorCount - The number of validators
+ * @returns The minimum number of required signatures
+ */
+const calculateMinRequiredSignatures = (validatorCount: number): number => {
+  // For BFT security, we need > 2/3 of validators to sign
+  // Using ceil(n * 2/3) ensures we have more than 2/3 threshold
+  return Math.ceil((validatorCount * 2) / 3);
+};
+
+/**
  * Fetches BEEFY checkpoint data from a DataHaven chain including both current and next
- * authority sets along with their validator set IDs.
+ * authority sets along with their validator set IDs, the latest finalized block,
+ * and calculates the minimum required signatures.
  *
  * @param rpcUrl - WebSocket RPC endpoint of the DataHaven chain
- * @returns BEEFY checkpoint data with validator set IDs and authority hashes
+ * @returns BEEFY checkpoint data with validator set IDs, authority hashes, startBlock, and minNumRequiredSignatures
  */
 const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpointData> => {
   logger.info(`📡 Connecting to DataHaven chain at ${rpcUrl}...`);
@@ -69,6 +85,12 @@ const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpoint
   const { client: papiClient, typedApi: dhApi } = createPapiConnectors(rpcUrl);
 
   try {
+    // Fetch the latest finalized block number for startBlock
+    logger.info("🔍 Fetching latest finalized block...");
+    const finalizedBlock = await papiClient.getFinalizedBlock();
+    const startBlock = finalizedBlock.number;
+    logger.success(`Latest finalized block: ${startBlock}`);
+
     // Fetch the current validator set ID
     logger.info("🔍 Fetching BEEFY ValidatorSetId...");
     const validatorSetId = await dhApi.query.Beefy.ValidatorSetId.getValue({
@@ -88,6 +110,12 @@ const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpoint
     );
     const currentAuthorityKeys = authoritiesRaw.map((key) => key.asHex());
     logger.success(`Found ${currentAuthorityKeys.length} current BEEFY authorities`);
+
+    // Calculate minimum required signatures based on validator count
+    const minNumRequiredSignatures = calculateMinRequiredSignatures(currentAuthorityKeys.length);
+    logger.info(
+      `📊 Minimum required signatures: ${minNumRequiredSignatures} (ceil(${currentAuthorityKeys.length} * 2/3))`
+    );
 
     // Fetch next authorities (NextAuthorities)
     logger.info("🔍 Fetching BEEFY NextAuthorities (next set)...");
@@ -118,6 +146,8 @@ const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpoint
     }
 
     return {
+      startBlock,
+      minNumRequiredSignatures,
       initialValidatorSetId: Number(validatorSetId),
       initialValidatorHashes,
       nextValidatorSetId: Number(validatorSetId) + 1,
@@ -132,7 +162,7 @@ const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpoint
  * Updates the config file with the fetched BEEFY checkpoint data.
  *
  * @param networkId - The network identifier (e.g., "hoodi", "stagenet-hoodi")
- * @param checkpointData - BEEFY checkpoint data including validator set IDs and hashes
+ * @param checkpointData - BEEFY checkpoint data including validator set IDs, hashes, startBlock, and minNumRequiredSignatures
  */
 const updateConfigFile = async (
   networkId: string,
@@ -154,12 +184,16 @@ const updateConfigFile = async (
   }
 
   // Store the old values for comparison
+  const oldStartBlock = configJson.snowbridge.startBlock;
+  const oldMinSigs = configJson.snowbridge.minNumRequiredSignatures;
   const oldInitialId = configJson.snowbridge.initialValidatorSetId;
   const oldNextId = configJson.snowbridge.nextValidatorSetId;
   const oldInitial = configJson.snowbridge.initialValidatorHashes || [];
   const oldNext = configJson.snowbridge.nextValidatorHashes || [];
 
   // Update with new values
+  configJson.snowbridge.startBlock = checkpointData.startBlock;
+  configJson.snowbridge.minNumRequiredSignatures = checkpointData.minNumRequiredSignatures;
   configJson.snowbridge.initialValidatorSetId = checkpointData.initialValidatorSetId;
   configJson.snowbridge.initialValidatorHashes = checkpointData.initialValidatorHashes;
   configJson.snowbridge.nextValidatorSetId = checkpointData.nextValidatorSetId;
@@ -170,6 +204,14 @@ const updateConfigFile = async (
   logger.success(`Config file updated: ${configFilePath}`);
 
   // Show what changed
+  if (oldStartBlock !== checkpointData.startBlock) {
+    logger.info(`  startBlock: ${oldStartBlock ?? "unset"} -> ${checkpointData.startBlock}`);
+  }
+  if (oldMinSigs !== checkpointData.minNumRequiredSignatures) {
+    logger.info(
+      `  minNumRequiredSignatures: ${oldMinSigs ?? "unset"} -> ${checkpointData.minNumRequiredSignatures}`
+    );
+  }
   if (oldInitialId !== checkpointData.initialValidatorSetId) {
     logger.info(
       `  initialValidatorSetId: ${oldInitialId ?? "unset"} -> ${checkpointData.initialValidatorSetId}`
@@ -221,6 +263,8 @@ export const updateBeefyCheckpoint = async (
 
     // Display the checkpoint data
     logger.info("📝 BEEFY Checkpoint Data:");
+    logger.info(`   Start Block: ${checkpointData.startBlock}`);
+    logger.info(`   Min Required Signatures: ${checkpointData.minNumRequiredSignatures}`);
     logger.info(`   Initial Validator Set ID: ${checkpointData.initialValidatorSetId}`);
     logger.info(`   Initial Validators (${checkpointData.initialValidatorHashes.length} total):`);
     for (let i = 0; i < checkpointData.initialValidatorHashes.length; i++) {

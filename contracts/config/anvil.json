@@ -37,10 +37,12 @@
     "minNumRequiredSignatures": 2,
     "startBlock": 1,
     "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "initialValidatorSetId": 0,
     "initialValidatorHashes": [
       "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
       "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
     ],
+    "nextValidatorSetId": 1,
     "nextValidatorHashes": [
       "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
       "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"

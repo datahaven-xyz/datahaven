@@ -27,7 +27,7 @@
     "eigenPodManager": "0xcd1442415Fc5C29Aa848A49d2e232720BE07976c",
     "avsDirectory": "0xD58f6844f79eB1fbd9f7091d05f7cb30d3363926",
     "rewardsCoordinator": "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
-    "allocationManager": "0x95a7431400F362F3647a69535C5666cA0133CAA0",  
+    "allocationManager": "0x95a7431400F362F3647a69535C5666cA0133CAA0",
     "permissionController": "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2"
   },
   "avs": {
@@ -43,15 +43,19 @@
     "minNumRequiredSignatures": 2,
     "startBlock": 1,
     "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "initialValidatorSetId": 0,
+    "initialValidatorSetId": 2085,
     "initialValidatorHashes": [
-      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
-      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
+      "0x07ce4f2cd558f4d4b529a3362b6ff7d616ca0893b53252dc62829b8218ea5c10",
+      "0xaea5344f086d3be7c94cf3a47436bcbb98de23cf1ee773a9180cfecab0453a50",
+      "0xcd3a33755b27fe810dfb780b3f1df1c25efa1bb826ca618e41022fa900876087",
+      "0x4f4ce8cad711a4b33d15095091f8a98eaf9bfd1b39a9159e605cf5d6783cc667"
     ],
-    "nextValidatorSetId": 1,
+    "nextValidatorSetId": 2086,
     "nextValidatorHashes": [
-      "0xaeb47a269393297f4b0a3c9c9cfd00c7a4195255274cf39d83dabc2fcc9ff3d7",
-      "0xf68aec7304bf37f340dae2ea20fb5271ee28a3128812b84a615da4789e458bde"
+      "0x07ce4f2cd558f4d4b529a3362b6ff7d616ca0893b53252dc62829b8218ea5c10",
+      "0xaea5344f086d3be7c94cf3a47436bcbb98de23cf1ee773a9180cfecab0453a50",
+      "0xcd3a33755b27fe810dfb780b3f1df1c25efa1bb826ca618e41022fa900876087",
+      "0x4f4ce8cad711a4b33d15095091f8a98eaf9bfd1b39a9159e605cf5d6783cc667"
     ]
   }
-} 
+}

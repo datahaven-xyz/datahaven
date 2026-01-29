@@ -13,19 +13,32 @@ export const contractsDeploy = async (options: any, command: any) => {
     chain = command.getOptionValue("chain");
   }
 
-  printHeader(`Deploying DataHaven Contracts to ${chain}`);
+  // Get environment option
+  let environment = options.environment;
+  if (!environment && command.parent) {
+    environment = command.parent.getOptionValue("environment");
+  }
+
+  // Build display name for logging
+  const displayName = environment ? `${environment}-${chain}` : chain;
+
+  printHeader(`Deploying DataHaven Contracts to ${displayName}`);
 
   const txExecutionOverride = options.executeOwnerTransactions ? true : undefined;
 
   try {
     logger.info("🚀 Starting deployment...");
     logger.info(`📡 Using chain: ${chain}`);
+    if (environment) {
+      logger.info(`📡 Using environment: ${environment}`);
+    }
     if (options.rpcUrl) {
       logger.info(`📡 Using RPC URL: ${options.rpcUrl}`);
     }
 
     await deployContracts({
       chain: chain,
+      environment: environment,
       rpcUrl: options.rpcUrl,
       privateKey: options.privateKey,
       avsOwnerKey: options.avsOwnerKey,
@@ -49,12 +62,21 @@ export const contractsCheck = async (options: any, command: any) => {
     chain = command.getOptionValue("chain");
   }
 
-  printHeader(`Checking DataHaven ${chain} Configuration and Status`);
+  // Get environment option
+  let environment = options.environment;
+  if (!environment && command.parent) {
+    environment = command.parent.getOptionValue("environment");
+  }
+
+  // Build network identifier with environment prefix if specified
+  const networkId = environment ? `${environment}-${chain}` : chain;
+
+  printHeader(`Checking DataHaven ${networkId} Configuration and Status`);
 
   logger.info("🔍 Showing deployment plan and status");
 
   // Use the status function from status.ts
-  await showDeploymentPlanAndStatus(chain);
+  await showDeploymentPlanAndStatus(chain, environment);
 };
 
 export const contractsVerify = async (options: any, command: any) => {
@@ -67,7 +89,16 @@ export const contractsVerify = async (options: any, command: any) => {
     chain = command.getOptionValue("chain");
   }
 
-  printHeader(`Verifying DataHaven Contracts on ${chain} Block Explorer`);
+  // Get environment option
+  let environment = options.environment;
+  if (!environment && command.parent) {
+    environment = command.parent.getOptionValue("environment");
+  }
+
+  // Build display name for logging
+  const displayName = environment ? `${environment}-${chain}` : chain;
+
+  printHeader(`Verifying DataHaven Contracts on ${displayName} Block Explorer`);
 
   if (options.skipVerification) {
     logger.info("⏭️ Skipping verification as requested");
@@ -77,7 +108,8 @@ export const contractsVerify = async (options: any, command: any) => {
   try {
     const verifyOptions = {
       ...options,
-      chain: chain
+      chain: chain,
+      environment: environment
     };
     await verifyContracts(verifyOptions);
     printDivider();
@@ -96,11 +128,11 @@ export const contractsPreActionHook = async (thisCommand: any) => {
   const privateKey = thisCommand.getOptionValue("privateKey");
 
   if (!chain) {
-    logger.error("❌ Chain is required. Use --chain option (hoodi, mainnet, anvil)");
+    logger.error("❌ Chain is required. Use --chain option (hoodi, ethereum, anvil)");
     process.exit(1);
   }
 
-  const supportedChains = ["hoodi", "mainnet", "anvil"];
+  const supportedChains = ["hoodi", "ethereum", "anvil"];
   if (!supportedChains.includes(chain)) {
     logger.error(`❌ Unsupported chain: ${chain}. Supported chains: ${supportedChains.join(", ")}`);
     process.exit(1);

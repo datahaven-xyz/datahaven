@@ -20,44 +20,44 @@ use pallet_proxy::ProxyDefinition;
 
 #[test]
 fn empty_genesis_works() {
-	ExtBuilder::default()
-		.build()
-		.execute_with(|| assert_eq!(pallet_proxy::Proxies::<Test>::iter().count(), 0))
+    ExtBuilder::default()
+        .build()
+        .execute_with(|| assert_eq!(pallet_proxy::Proxies::<Test>::iter().count(), 0))
 }
 
 #[test]
 fn non_empty_genesis_works() {
-	ExtBuilder::default()
-		// Account 1 delegates to account 2
-		.with_proxies(vec![(1, 2)])
-		// Account 1 is funded to pay the proxy deposit
-		.with_balances(vec![(1, 10)])
-		.build()
-		.execute_with(|| {
-			// Lookup info that we expect to be stored from genesis
-			let (proxy_defs, deposit) = Proxy::proxies(1);
+    ExtBuilder::default()
+        // Account 1 delegates to account 2
+        .with_proxies(vec![(1, 2)])
+        // Account 1 is funded to pay the proxy deposit
+        .with_balances(vec![(1, 10)])
+        .build()
+        .execute_with(|| {
+            // Lookup info that we expect to be stored from genesis
+            let (proxy_defs, deposit) = Proxy::proxies(1);
 
-			// Make sure that Account 1 delegates to Account 2 and nobody else
-			assert_eq!(proxy_defs.len(), 1);
-			assert_eq!(
-				proxy_defs[0],
-				ProxyDefinition {
-					delegate: 2,
-					proxy_type: ProxyType,
-					delay: 100
-				}
-			);
+            // Make sure that Account 1 delegates to Account 2 and nobody else
+            assert_eq!(proxy_defs.len(), 1);
+            assert_eq!(
+                proxy_defs[0],
+                ProxyDefinition {
+                    delegate: 2,
+                    proxy_type: ProxyType,
+                    delay: 100
+                }
+            );
 
-			// Make sure that Account 1 has the proper deposit amount reserved
-			assert_eq!(deposit, 2);
-		})
+            // Make sure that Account 1 has the proper deposit amount reserved
+            assert_eq!(deposit, 2);
+        })
 }
 
 #[test]
 #[should_panic(expected = "Genesis proxy could not be added")]
 fn genesis_fails_if_balance_insufficient() {
-	ExtBuilder::default()
-		.with_proxies(vec![(1, 2)])
-		.build()
-		.execute_with(|| ())
+    ExtBuilder::default()
+        .with_proxies(vec![(1, 2)])
+        .build()
+        .execute_with(|| ())
 }

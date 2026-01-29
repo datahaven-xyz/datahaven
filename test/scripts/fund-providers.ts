@@ -45,7 +45,7 @@ export async function fundProviders(options: FundProvidersOptions): Promise<void
     if (mspBalance < MIN_PROVIDER_BALANCE) {
       logger.warn(`MSP account has insufficient balance (${mspBalance} < ${MIN_PROVIDER_BALANCE})`);
       logger.info(
-        "Note: In dev chains, //Charlie should be pre-funded. If balance is low, ensure the chain is properly initialized."
+        "Note: In dev chains, Charleth account should be pre-funded. If balance is low, ensure the chain is properly initialized."
       );
     } else {
       logger.success(`MSP account has sufficient balance: ${mspBalance.toString()}`);
@@ -62,7 +62,7 @@ export async function fundProviders(options: FundProvidersOptions): Promise<void
     if (bspBalance < MIN_PROVIDER_BALANCE) {
       logger.warn(`BSP account has insufficient balance (${bspBalance} < ${MIN_PROVIDER_BALANCE})`);
       logger.info(
-        "Note: In dev chains, //Eve should be pre-funded. If balance is low, ensure the chain is properly initialized."
+        "Note: In dev chains, DOROTHY account should be pre-funded. If balance is low, ensure the chain is properly initialized."
       );
     } else {
       logger.success(`BSP account has sufficient balance: ${bspBalance.toString()}`);

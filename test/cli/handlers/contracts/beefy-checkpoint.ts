@@ -196,12 +196,14 @@ const updateConfigFile = async (
  * Main handler for the update-beefy-checkpoint command.
  * Fetches BEEFY authorities from a live DataHaven chain and updates the config file.
  */
-export const updateBeefyCheckpoint = async (options: UpdateBeefyCheckpointOptions): Promise<void> => {
+export const updateBeefyCheckpoint = async (
+  options: UpdateBeefyCheckpointOptions
+): Promise<void> => {
   const networkId = buildNetworkId(options.chain, options.environment);
 
   printHeader(`Updating BEEFY Checkpoint for ${networkId}`);
 
-  logger.info(`📋 Configuration:`);
+  logger.info("📋 Configuration:");
   logger.info(`   Chain: ${options.chain}`);
   if (options.environment) {
     logger.info(`   Environment: ${options.environment}`);
@@ -218,11 +220,9 @@ export const updateBeefyCheckpoint = async (options: UpdateBeefyCheckpointOption
     printDivider();
 
     // Display the checkpoint data
-    logger.info(`📝 BEEFY Checkpoint Data:`);
+    logger.info("📝 BEEFY Checkpoint Data:");
     logger.info(`   Initial Validator Set ID: ${checkpointData.initialValidatorSetId}`);
-    logger.info(
-      `   Initial Validators (${checkpointData.initialValidatorHashes.length} total):`
-    );
+    logger.info(`   Initial Validators (${checkpointData.initialValidatorHashes.length} total):`);
     for (let i = 0; i < checkpointData.initialValidatorHashes.length; i++) {
       logger.info(`     [${i}] ${checkpointData.initialValidatorHashes[i]}`);
     }

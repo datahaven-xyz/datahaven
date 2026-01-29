@@ -5,7 +5,7 @@ edition = "2021"
 homepage = "https://datahaven.xyz/"
 license = "GPL-3"
 repository = "https://github.com/datahavenxyz/datahaven"
-version = "0.20.0"
+version = "0.21.0"
 
 [workspace]
 members = [

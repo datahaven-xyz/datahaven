@@ -208,10 +208,12 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         SnowbridgeConfig memory config
     ) internal returns (BeefyClient) {
         // Create validator sets using the MerkleUtils library
-        BeefyClient.ValidatorSet memory validatorSet =
-            ValidatorsUtils._buildValidatorSet(config.initialValidatorSetId, config.initialValidatorHashes);
-        BeefyClient.ValidatorSet memory nextValidatorSet =
-            ValidatorsUtils._buildValidatorSet(config.nextValidatorSetId, config.nextValidatorHashes);
+        BeefyClient.ValidatorSet memory validatorSet = ValidatorsUtils._buildValidatorSet(
+            config.initialValidatorSetId, config.initialValidatorHashes
+        );
+        BeefyClient.ValidatorSet memory nextValidatorSet = ValidatorsUtils._buildValidatorSet(
+            config.nextValidatorSetId, config.nextValidatorHashes
+        );
 
         // Deploy BeefyClient
         vm.broadcast(_deployerPrivateKey);

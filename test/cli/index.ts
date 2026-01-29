@@ -6,6 +6,7 @@ import {
   contractsDeploy,
   contractsPreActionHook,
   contractsUpdateBeefyCheckpoint,
+  contractsUpdateRewardsOrigin,
   contractsVerify,
   deploy,
   deployPreActionHook,
@@ -206,6 +207,7 @@ const contractsCommand = program
     - deploy: Deploy contracts to specified chain
     - verify: Verify deployed contracts on block explorer
     - update-beefy-checkpoint: Fetch BEEFY authorities from a live chain and update config
+    - update-rewards-origin: Fetch or compute the RewardsAgentOrigin and update config
     - update-metadata: Update the metadata URI of an existing AVS contract
 
     Common options:
@@ -293,11 +295,35 @@ contractsCommand
     "--rpc-url <value>",
     "WebSocket RPC URL of the DataHaven chain to fetch BEEFY authorities from"
   )
-  .action(async (options: any, command: any) => {
+  .action(async (_options: any, command: any) => {
     // Options are captured by parent command due to shared option names
     // Use optsWithGlobals() to get all options including inherited ones
     const opts = command.optsWithGlobals();
     await contractsUpdateBeefyCheckpoint(opts, command);
+  });
+
+// Contracts Update Rewards Origin
+contractsCommand
+  .command("update-rewards-origin")
+  .description(
+    "Fetch or compute the RewardsAgentOrigin and update the config file with the rewards message origin"
+  )
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
+  .option(
+    "--rpc-url <value>",
+    "WebSocket RPC URL of the DataHaven chain to fetch RewardsAgentOrigin from"
+  )
+  .option(
+    "--genesis-hash <value>",
+    "Chain genesis hash (32 bytes hex). If not provided, will be fetched from the chain."
+  )
+  .action(async (_options: any, command: any) => {
+    const opts = command.optsWithGlobals();
+    await contractsUpdateRewardsOrigin(opts, command);
   });
 
 // Contracts Update Metadata

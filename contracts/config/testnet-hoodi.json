@@ -44,10 +44,10 @@
   "snowbridge": {
     "randaoCommitDelay": 4,
     "randaoCommitExpiration": 24,
-    "minNumRequiredSignatures": 2,
-    "startBlock": 1,
-    "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "initialValidatorSetId": 2209,
+    "minNumRequiredSignatures": 5,
+    "startBlock": 1326474,
+    "rewardsMessageOrigin": "0xd0d6dbd1ffb401ef613f00e93cd5061ecec03ae35d2f820cd6754a5b5f020215",
+    "initialValidatorSetId": 2212,
     "initialValidatorHashes": [
       "0x0ec3102f334aba804c18b843e45ec874005587122a1b49273b1b04d6fd98b1a2",
       "0xb277ac8a7aafc125d7da813a9b0fdae144922c165bfae194ebd94d6f3e4fe68e",
@@ -57,7 +57,7 @@
       "0x5f883131cf6667cb8c2279caa182298e174bbca35c7c8c5679df6bad73be85cf",
       "0x744ae85e99103a5ebcf9dd2fdcc18743012f0336f497fd3a05243a26a1a031b7"
     ],
-    "nextValidatorSetId": 2210,
+    "nextValidatorSetId": 2213,
     "nextValidatorHashes": [
       "0x0ec3102f334aba804c18b843e45ec874005587122a1b49273b1b04d6fd98b1a2",
       "0xb277ac8a7aafc125d7da813a9b0fdae144922c165bfae194ebd94d6f3e4fe68e",

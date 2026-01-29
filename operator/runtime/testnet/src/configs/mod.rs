@@ -1035,8 +1035,8 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    // Hoodi testnet genesis hash
-    pub const TestnetGenesisHash: [u8; 32] = hex_literal::hex!("bbe312868b376a3001692a646dd2d7d1e4406380dfd86b98aa8a34d1557c971b");
+    // DataHaven testnet genesis hash
+    pub const TestnetGenesisHash: [u8; 32] = hex_literal::hex!("dbf403d348916fb0694485bc7f9c0d8c53fdf86664ebac019af209c090c3df99");
     pub UniversalLocation: InteriorLocation = [
         GlobalConsensus(ByGenesis(TestnetGenesisHash::get()))
     ].into();
@@ -1943,5 +1943,96 @@ mod tests {
 
             assert!(result.is_ok(), "Message from authorized origin should be accepted");
         });
+    }
+
+    /// Test that the ExternalValidatorRewardsAccount is correctly derived from the pallet ID.
+    ///
+    /// This verifies that `PalletId(*b"dh/evrew").into_account_truncating()` produces the
+    /// expected AccountId20 value, which is used in the Rewards Agent ID computation.
+    #[test]
+    fn test_external_validator_rewards_account_derivation() {
+        // Expected account: "modl" (4 bytes) + "dh/evrew" (8 bytes) + zeros (8 bytes) = 20 bytes
+        // "modl" = 0x6d6f646c
+        // "dh/evrew" = 0x64682f6576726577
+        // Result = 0x6d6f646c64682f65767265770000000000000000
+        let expected_account = AccountId::from(hex_literal::hex!(
+            "6d6f646c64682f65767265770000000000000000"
+        ));
+
+        let actual_account = ExternalValidatorRewardsAccount::get();
+
+        assert_eq!(
+            actual_account, expected_account,
+            "ExternalValidatorRewardsAccount must be derived correctly from PalletId 'dh/evrew'"
+        );
+    }
+
+    /// Test that the Rewards Agent ID (used for Snowbridge outbound messages from the rewards pallet)
+    /// is correctly computed from the chain's genesis hash and the ExternalValidatorRewardsAccount.
+    ///
+    /// This test verifies the value that should be set as `RewardsAgentOrigin` in runtime parameters
+    /// and as `rewardsMessageOrigin` in the AVS contract configuration.
+    ///
+    /// The Agent ID is computed following Snowbridge's pattern for GlobalConsensus locations:
+    /// blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), compact_len, "AccountKey20", account_key))
+    ///
+    /// Note: Standard `AgentIdOf` doesn't support direct AccountKey20 without a Parachain junction,
+    /// so we compute the hash directly here.
+    #[test]
+    fn test_rewards_agent_id_computation() {
+        use codec::Encode;
+        use sp_core::H256;
+        use sp_io::hashing::blake2_256;
+        use xcm::prelude::NetworkId;
+
+        // Use the TestnetGenesisHash parameter
+        let genesis_hash: [u8; 32] = TestnetGenesisHash::get();
+
+        // Get the rewards pallet account (derived from PalletId "dh/evrew")
+        let rewards_account: [u8; 20] = ExternalValidatorRewardsAccount::get().into();
+
+        // Build the location description following Snowbridge's encoding pattern:
+        // ("GlobalConsensus", ByGenesis(genesis_hash), compact_len(interior), "AccountKey20", account_key)
+        //
+        // This matches the pattern in snowbridge_core::location::DescribeGlobalPrefix
+        // combined with DescribeTokenTerminal for AccountKey20.
+
+        // Interior description: "AccountKey20" + account_key (no length prefix for fixed arrays)
+        let interior: Vec<u8> = (b"AccountKey20", rewards_account).encode();
+
+        // Full encoding: "GlobalConsensus" + NetworkId::ByGenesis(genesis) + interior
+        let encoded: Vec<u8> = (
+            b"GlobalConsensus",
+            NetworkId::ByGenesis(genesis_hash),
+            interior,
+        )
+            .encode();
+
+        // Hash with blake2_256
+        let computed_agent_id = H256(blake2_256(&encoded));
+
+        // Expected Agent ID - this value must match RewardsAgentOrigin in runtime_params.rs
+        // If this test fails, update RewardsAgentOrigin to match the computed value.
+        let expected_agent_id = H256(hex_literal::hex!(
+            "d0d6dbd1ffb401ef613f00e93cd5061ecec03ae35d2f820cd6754a5b5f020215"
+        ));
+
+        assert_eq!(
+            computed_agent_id,
+            expected_agent_id,
+            "Computed Rewards Agent ID must match expected value.\n\
+             This value should be set as:\n\
+             - RewardsAgentOrigin in runtime_params.rs\n\
+             - rewardsMessageOrigin in AVS contract config\n\
+             \n\
+             Rewards account: 0x{}\n\
+             Genesis hash: 0x{}\n\
+             Computed: {:?}\n\
+             Expected: {:?}",
+            hex::encode(rewards_account),
+            hex::encode(genesis_hash),
+            computed_agent_id,
+            expected_agent_id
+        );
     }
 }

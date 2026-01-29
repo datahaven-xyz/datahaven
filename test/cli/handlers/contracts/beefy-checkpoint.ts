@@ -293,7 +293,10 @@ export const updateBeefyCheckpoint = async (
 /**
  * CLI action handler for the update-beefy-checkpoint command.
  */
-export const contractsUpdateBeefyCheckpoint = async (options: any, command: any): Promise<void> => {
+export const contractsUpdateBeefyCheckpoint = async (
+  options: any,
+  _command: any
+): Promise<void> => {
   // Options are passed from the CLI action which uses optsWithGlobals()
   const chain = options.chain;
   const environment = options.environment;

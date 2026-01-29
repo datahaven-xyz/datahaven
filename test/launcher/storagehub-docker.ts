@@ -121,8 +121,6 @@ export const injectStorageHubKey = async (
 ): Promise<void> => {
   logger.info(`🔑 Injecting key into ${containerName}...`);
 
-  // const suri = `${seed}${derivation}`;
-
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
@@ -163,6 +161,8 @@ export const launchMspNode = async (
     options.datahavenImageTag,
     "--name",
     "msp-charlie",
+    "--chain",
+    "local",
     "--rpc-port",
     `${DEFAULT_SUBSTRATE_WS_PORT}`,
     "--rpc-external",
@@ -248,6 +248,8 @@ export const launchBspNode = async (
     options.datahavenImageTag,
     "--name",
     "bsp-dave",
+    "--chain",
+    "local",
     "--rpc-port",
     `${DEFAULT_SUBSTRATE_WS_PORT}`,
     "--rpc-external",
@@ -333,6 +335,8 @@ export const launchIndexerNode = async (
     options.datahavenImageTag,
     "--name",
     "indexer",
+    "--chain",
+    "local",
     "--rpc-port",
     `${DEFAULT_SUBSTRATE_WS_PORT}`,
     "--rpc-external",
@@ -404,6 +408,8 @@ export const launchFishermanNode = async (
     "-p",
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
+    "--chain",
+    "local",
     "--name",
     "fisherman",
     "--rpc-port",
@@ -458,6 +464,7 @@ export const launchBackendMsp = async (
 ): Promise<void> => {
   logger.info("🚀 Launching StorageHub Backend MSP...");
 
+  const backendMSPImage = "moonsonglabs/storage-hub-msp-backend:latest";
   const containerName = `storagehub-backend-msp-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
   const containerNameMSP = `storagehub-msp-${options.networkId}`;
@@ -475,8 +482,10 @@ export const launchBackendMsp = async (
     "-p",
     `${apiPort}:8080`,
     "-e",
-    "RUST_LOG=debug",
-    "sh-msp-backend:local",
+    "RUST_LOG=info",
+    backendMSPImage,
+    "--chain",
+    "local",
     "--log-format",
     "text",
     "--database-url",

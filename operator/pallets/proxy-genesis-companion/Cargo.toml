@@ -1,0 +1,40 @@
+[package]
+name = "pallet-proxy-genesis-companion"
+authors = { workspace = true }
+description = "A simple pallet that expands pallet-proxy with a genesis configuration"
+edition = { workspace = true }
+version = { workspace = true }
+license = { workspace = true }
+
+[dependencies]
+codec = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-proxy = { workspace = true }
+scale-info = { workspace = true, features = ["derive"] }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+[dev-dependencies]
+pallet-balances = { workspace = true, features = ["insecure_zero_ed", "std"] }
+serde = { workspace = true, features = ["derive", "std"] }
+sp-core = { workspace = true, features = ["std"] }
+sp-io = { workspace = true, features = ["std"] }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "frame-support/std",
+    "frame-system/std",
+    "pallet-proxy/std",
+    "scale-info/std",
+    "sp-runtime/std",
+    "sp-std/std",
+]
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-proxy/try-runtime",
+    "sp-runtime/try-runtime",
+]

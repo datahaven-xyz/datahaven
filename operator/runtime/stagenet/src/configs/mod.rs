@@ -49,6 +49,8 @@ use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
     RuntimeDebug,
     MaxEncodedLen,
     TypeInfo,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub enum ProxyType {
     /// Allow any call to be made by the proxy account
@@ -824,6 +826,10 @@ impl pallet_proxy::Config for Runtime {
     type CallHasher = sp_runtime::traits::BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
+}
+
+impl pallet_proxy_genesis_companion::Config for Runtime {
+    type ProxyType = ProxyType;
 }
 
 impl pallet_parameters::Config for Runtime {

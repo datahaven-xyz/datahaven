@@ -8,32 +8,6 @@ export interface FundProvidersOptions {
 }
 
 /**
- * Provider account information for MSP and BSP nodes.
- *
- * DataHaven uses AccountId20 (Ethereum-style 20-byte addresses).
- * In dev chains, CHARLETH and DOROTHY are pre-funded development accounts
- * that correspond to //Charlie and //Dave derivations.
- *
- * For StorageHub providers, we use:
- * - CHARLETH (//Charlie equivalent) for MSP
- * - DOROTHY (//Dave equivalent) for BSP (as //Eve might not have pre-funded AccountId20)
- */
-const PROVIDER_ACCOUNTS = {
-  // MSP account (Charleth = Charlie in AccountId20 format)
-  msp: {
-    name: "Charleth",
-    address: SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.publicKey, // 20-byte address
-    derivation: "//Charlie"
-  },
-  // BSP account (Dorothy = Dave in AccountId20 format, using instead of Eve)
-  bsp: {
-    name: "Dorothy",
-    address: SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.publicKey, // 20-byte address
-    derivation: "//Dave" // Using Dave instead of Eve for BSP
-  }
-} as const;
-
-/**
  * Minimum balance required for provider operations.
  * This includes:
  * - Registration deposit (SpMinDeposit = 100 HAVE)
@@ -61,30 +35,34 @@ export async function fundProviders(options: FundProvidersOptions): Promise<void
 
   try {
     // Check MSP account balance
-    logger.info(`Checking MSP account (${PROVIDER_ACCOUNTS.msp.name})...`);
-    const mspAccount = await typedApi.query.System.Account.getValue(PROVIDER_ACCOUNTS.msp.address);
+    logger.info("Checking MSP account...");
+    const mspAccount = await typedApi.query.System.Account.getValue(
+      SUBSTRATE_FUNDED_ACCOUNTS.CHARLETH.publicKey
+    );
     const mspBalance = mspAccount?.data?.free ?? BigInt(0);
     logger.debug(`MSP balance: ${mspBalance.toString()}`);
 
     if (mspBalance < MIN_PROVIDER_BALANCE) {
       logger.warn(`MSP account has insufficient balance (${mspBalance} < ${MIN_PROVIDER_BALANCE})`);
       logger.info(
-        "Note: In dev chains, //Charlie should be pre-funded. If balance is low, ensure the chain is properly initialized."
+        "Note: In dev chains, Charleth account should be pre-funded. If balance is low, ensure the chain is properly initialized."
       );
     } else {
       logger.success(`MSP account has sufficient balance: ${mspBalance.toString()}`);
     }
 
     // Check BSP account balance
-    logger.info(`Checking BSP account (${PROVIDER_ACCOUNTS.bsp.name})...`);
-    const bspAccount = await typedApi.query.System.Account.getValue(PROVIDER_ACCOUNTS.bsp.address);
+    logger.info("Checking BSP account...");
+    const bspAccount = await typedApi.query.System.Account.getValue(
+      SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.publicKey
+    );
     const bspBalance = bspAccount?.data?.free ?? BigInt(0);
     logger.debug(`BSP balance: ${bspBalance.toString()}`);
 
     if (bspBalance < MIN_PROVIDER_BALANCE) {
       logger.warn(`BSP account has insufficient balance (${bspBalance} < ${MIN_PROVIDER_BALANCE})`);
       logger.info(
-        "Note: In dev chains, //Eve should be pre-funded. If balance is low, ensure the chain is properly initialized."
+        "Note: In dev chains, DOROTHY account should be pre-funded. If balance is low, ensure the chain is properly initialized."
       );
     } else {
       logger.success(`BSP account has sufficient balance: ${bspBalance.toString()}`);
@@ -97,13 +75,4 @@ export async function fundProviders(options: FundProvidersOptions): Promise<void
   } finally {
     client.destroy();
   }
-}
-
-/**
- * Gets the provider account addresses.
- *
- * @returns Object containing MSP and BSP account information
- */
-export function getProviderAccounts() {
-  return PROVIDER_ACCOUNTS;
 }

@@ -53,8 +53,10 @@ COPY --from=builder \
 
 # Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /datahaven/.local/share && \
-    chown -R datahaven:datahaven /datahaven/.local/share
+    mkdir -p /data /datahaven/.local/share && \
+    chown -R datahaven:datahaven /data /datahaven/.local/share && \
+    ln -s /data /datahaven/.local/share/datahaven-node
+
 
 USER datahaven
 
@@ -69,6 +71,6 @@ RUN chmod uog+x /usr/local/bin/datahaven*
 # 9615: Prometheus metrics
 EXPOSE 30333 9944 9615
 
-VOLUME ["/datahaven/.local/share/datahaven-node"]
+VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/local/bin/datahaven-node"]

@@ -42,8 +42,9 @@ RUN apt-get update && \
 
 # Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /datahaven/.local/share && \
-    chown -R datahaven:datahaven /datahaven/.local/share
+    mkdir -p /data /datahaven/.local/share && \
+    chown -R datahaven:datahaven /data /datahaven/.local/share && \
+    ln -s /data /datahaven/.local/share/datahaven-node
 
 USER datahaven
 
@@ -60,7 +61,7 @@ ENV RUST_BACKTRACE=1
 # 9615: Prometheus metrics
 EXPOSE 30333 9944 9615
 
-VOLUME ["/datahaven/.local/share/datahaven-node"]
+VOLUME ["/data"]
 
 ENTRYPOINT ["datahaven-node"]
 CMD ["--tmp"]

@@ -5,8 +5,6 @@
 #
 # DO NOT USE for CI or production builds - use operator/Dockerfile instead.
 #
-# Build Args:
-#   DEBUG_MODE - Set to "true" to include debugging tools (default: false)
 #
 # Expected Binary Location:
 #   ./operator/target/x86_64-unknown-linux-gnu/release/datahaven-node
@@ -16,15 +14,12 @@
 #   - librocksdb-dev for local development
 #   - Optional gdb, strace, vim for debugging
 #   - RUST_BACKTRACE enabled by default
-#   - Additional directories (/specs, /storage) for testing
 
 FROM ubuntu:noble
 
 LABEL version="0.3.0"
 LABEL description="DataHaven Node - Development/CI/E2E Testing Build"
 LABEL maintainer="steve@moonsonglabs.com"
-
-ARG DEBUG_MODE=false
 
 # Install runtime dependencies
 RUN apt-get update && \
@@ -47,15 +42,8 @@ RUN apt-get update && \
 
 # Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /data /datahaven/.local/share /specs /storage && \
-    chown -R datahaven:datahaven /data /storage && \
-    ln -s /data /datahaven/.local/share/datahaven-node
-
-# Grant sudo access if debug mode is enabled
-RUN if [ "$DEBUG_MODE" = "true" ]; then \
-        echo "datahaven ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-        chmod -R 777 /storage /data; \
-    fi
+    mkdir -p /datahaven/.local/share && \
+    chown -R datahaven:datahaven /datahaven/.local/share
 
 USER datahaven
 
@@ -71,8 +59,6 @@ ENV RUST_BACKTRACE=1
 # 9944: WebSocket/RPC
 # 9615: Prometheus metrics
 EXPOSE 30333 9944 9615
-
-VOLUME ["/data"]
 
 ENTRYPOINT ["datahaven-node"]
 CMD ["--tmp"]

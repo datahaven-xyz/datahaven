@@ -265,7 +265,7 @@ pub fn dorothy() -> AccountId {
 }
 
 pub fn ethan() -> AccountId {
-    AccountId::from(hex!("Ff64d3F6efE2317EE2807d2235B1ac2AA69d9E87"))
+    AccountId::from(hex!("Ff64d3F6efE2317EE2807d223a0Bdc4c0c49dfDB"))
 }
 
 pub fn frank() -> AccountId {

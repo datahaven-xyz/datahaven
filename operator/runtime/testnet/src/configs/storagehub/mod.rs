@@ -617,6 +617,10 @@ parameter_types! {
     pub const FileSystemStorageRequestCreationHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::StorageRequestCreationHold);
     pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
 }
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const BenchmarkBspStopStoringFilePenalty: Balance = 1 * MICROHAVE;
+}
 
 // Converts a given signed message in a EIP-191 compliant message bytes to verify.
 /// EIP-191: https://eips.ethereum.org/EIPS/eip-191
@@ -659,7 +663,10 @@ impl pallet_file_system::Config for Runtime {
     type RuntimeHoldReason = RuntimeHoldReason;
     type Nfts = Nfts;
     type CollectionInspector = BucketNfts;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type BspStopStoringFilePenalty = runtime_config::BspStopStoringFilePenalty;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BspStopStoringFilePenalty = BenchmarkBspStopStoringFilePenalty;
     #[cfg(not(feature = "runtime-benchmarks"))]
     type TreasuryAccount = TreasuryAccount;
     #[cfg(feature = "runtime-benchmarks")]

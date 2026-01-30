@@ -9,6 +9,7 @@ import { dataHavenServiceManagerAbi } from "../contract-bindings/generated";
 
 interface ContractDeploymentOptions {
   chain?: string;
+  environment?: string;
   rpcUrl?: string;
   privateKey?: string | undefined;
   verified?: boolean;
@@ -17,6 +18,15 @@ interface ContractDeploymentOptions {
   avsOwnerKey?: string;
   txExecution?: boolean;
 }
+
+/**
+ * Builds the network identifier from chain and optional environment
+ * When environment is specified: {environment}-{chain} (e.g., "stagenet-hoodi")
+ * When environment is not specified: {chain} (e.g., "hoodi")
+ */
+export const buildNetworkId = (chain: string, environment?: string): string => {
+  return environment ? `${environment}-${chain}` : chain;
+};
 
 /**
  * Validates deployment parameters
@@ -52,20 +62,23 @@ export const buildContracts = async () => {
  * Constructs the deployment command
  */
 export const constructDeployCommand = (options: ContractDeploymentOptions): string => {
-  const { chain, rpcUrl, verified, blockscoutBackendUrl } = options;
+  const { chain, environment, rpcUrl, verified, blockscoutBackendUrl } = options;
 
   const deploymentScript =
     !chain || chain === "anvil"
       ? "script/deploy/DeployLocal.s.sol"
-      : "script/deploy/DeployTestnet.s.sol";
+      : "script/deploy/DeployLive.s.sol";
 
-  logger.info(`🚀 Deploying contracts to ${chain} using ${deploymentScript}`);
+  // Build the network identifier for display and environment variable
+  const networkId = buildNetworkId(chain || "anvil", environment);
+
+  logger.info(`🚀 Deploying contracts to ${networkId} using ${deploymentScript}`);
 
   let deployCommand = `forge script ${deploymentScript} --rpc-url ${rpcUrl} --color never -vv --no-rpc-rate-limit --non-interactive --broadcast`;
 
-  // Add environment variable for chain if specified
+  // Add environment variables for network (used by Solidity scripts for config/output file naming)
   if (chain) {
-    deployCommand = `NETWORK=${chain} ${deployCommand}`;
+    deployCommand = `NETWORK=${networkId} ${deployCommand}`;
   }
 
   if (verified && blockscoutBackendUrl) {
@@ -146,6 +159,7 @@ export const updateParameters = async (
  */
 export const deployContracts = async (options: {
   chain: string;
+  environment?: string;
   rpcUrl?: string;
   privateKey?: string | undefined;
   verified?: boolean;
@@ -160,6 +174,9 @@ export const deployContracts = async (options: {
     throw new Error(`Unsupported chain: ${options.chain}`);
   }
 
+  // Build network identifier for config/deployment file naming
+  const networkId = buildNetworkId(options.chain, options.environment);
+
   const finalRpcUrl = options.rpcUrl || chainConfig.RPC_URL;
   const isLocalChain = options.chain === "anvil";
   const txExecutionEnabled = options.txExecution ?? isLocalChain;
@@ -173,7 +190,7 @@ export const deployContracts = async (options: {
   }
 
   if (!resolvedAvsOwnerAddress && isLocalChain) {
-    const config = await loadChainConfig(options.chain);
+    const config = await loadChainConfig(options.chain, options.environment);
     resolvedAvsOwnerAddress = config?.avs?.avsOwner;
   }
 
@@ -191,6 +208,7 @@ export const deployContracts = async (options: {
 
   const deploymentOptions: ContractDeploymentOptions = {
     chain: options.chain,
+    environment: options.environment,
     rpcUrl: finalRpcUrl,
     privateKey: options.privateKey,
     verified: options.verified,
@@ -209,13 +227,13 @@ export const deployContracts = async (options: {
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
   const env = buildDeploymentEnv(deploymentOptions);
-  await executeDeployment(deployCommand, undefined, options.chain, env);
+  await executeDeployment(deployCommand, undefined, networkId, env);
 
   if (!txExecutionEnabled) {
-    await emitOwnerTransactionCalldata(options.chain);
+    await emitOwnerTransactionCalldata(networkId);
   }
 
-  logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
+  logger.success(`DataHaven contracts deployed successfully to ${networkId}`);
 };
 
 const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {

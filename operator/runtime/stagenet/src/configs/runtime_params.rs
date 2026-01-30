@@ -51,10 +51,14 @@ pub mod dynamic_params {
 
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
-        /// The RewardsAgentOrigin is the origin of the rewards agent, which is its ID.
-        /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
+        /// The RewardsAgentOrigin is the Agent ID for the rewards pallet's outbound Snowbridge messages.
+        /// Computed as: blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), interior))
+        /// where interior = SCALE_ENCODE("AccountKey20", ExternalValidatorRewardsAccount)
+        ///
+        /// For stagenet with genesis hash 0x72d0856fd339e09cb21df7bac8ac3120bd871e327ec0e1658395df68acef9bee
+        /// and rewards account 0x6d6f646c64682f65767265770000000000000000 (from PalletId "dh/evrew"):
         pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
-            "0000000000000000000000000000000000000000000000000000000000000000"
+            "56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd"
         ));
 
         // Proportion of fees allocated to the Treasury (remainder are burned).

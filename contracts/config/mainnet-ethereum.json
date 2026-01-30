@@ -1,0 +1,54 @@
+{
+  "eigenLayer": {
+    "pausers": [],
+    "unpauser": "0x0000000000000000000000000000000000000000",
+    "rewardsUpdater": "0x0000000000000000000000000000000000000000",
+    "calculationIntervalSeconds": 86400,
+    "maxRewardsDuration": 6048000,
+    "maxRetroactiveLength": 7776000,
+    "maxFutureLength": 2592000,
+    "genesisRewardsTimestamp": 1710979200,
+    "activationDelay": 7200,
+    "globalCommissionBips": 1000,
+    "executorMultisig": "0x0000000000000000000000000000000000000000",
+    "operationsMultisig": "0x0000000000000000000000000000000000000000",
+    "minWithdrawalDelayBlocks": 50400,
+    "delegationInitPausedStatus": 0,
+    "eigenPodManagerInitPausedStatus": 0,
+    "rewardsCoordinatorInitPausedStatus": 0,
+    "allocationManagerInitPausedStatus": 0,
+    "deallocationDelay": 100800,
+    "allocationConfigurationDelay": 1200,
+    "beaconChainGenesisTimestamp": 1606824023,
+    "delegationManager": "0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A",
+    "strategyManager": "0x858646372CC42E1A627fcE94aa7A7033e7CF075A",
+    "eigenPodManager": "0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338",
+    "avsDirectory": "0x135dda560e946695d6f155dacafc6f1f25c1f5af",
+    "rewardsCoordinator": "0x7750d328b314EfFa365A0402CcfD489B80B0adda",
+    "allocationManager": "0x948a420b8CC1d6BFd0B6087C2E7c344a2CD0bc39",
+    "permissionController": "0x25E5F8B1E7aDf44518d35D5B2271f114e081f0E5"
+  },
+  "avs": {
+    "avsOwner": "0x0000000000000000000000000000000000000000",
+    "rewardsInitiator": "0x0000000000000000000000000000000000000000",
+    "vetoCommitteeMember": "0x0000000000000000000000000000000000000000",
+    "vetoWindowBlocks": 7200,
+    "validatorsStrategies": [
+      "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
+      "0x93c4b944D05dfe6df7645A86cd2206016c51564D",
+      "0x1BeE69b7dFFfA4E2d53C2a2Df135C388AD25dCD2",
+      "0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc"
+    ]
+  },
+  "snowbridge": {
+    "randaoCommitDelay": 4,
+    "randaoCommitExpiration": 24,
+    "minNumRequiredSignatures": 16,
+    "startBlock": 1,
+    "rewardsMessageOrigin": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "initialValidatorSetId": 0,
+    "initialValidatorHashes": [],
+    "nextValidatorSetId": 1,
+    "nextValidatorHashes": []
+  }
+}

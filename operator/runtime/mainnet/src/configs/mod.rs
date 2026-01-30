@@ -49,6 +49,8 @@ use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
     RuntimeDebug,
     MaxEncodedLen,
     TypeInfo,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub enum ProxyType {
     /// Allow any call to be made by the proxy account
@@ -595,6 +597,8 @@ parameter_types! {
     pub const MaxAdditionalFields: u32 = 100;
     pub const MaxRegistrars: u32 = 20;
     pub const PendingUsernameExpiration: u32 = 7 * DAYS;
+    pub const UsernameGracePeriod: u32 = 30 * DAYS;
+    pub const UsernameDeposit: Balance = deposit(0, MaxUsernameLength::get());
     pub const MaxSuffixLength: u32 = 7;
     pub const MaxUsernameLength: u32 = 32;
 }
@@ -626,8 +630,8 @@ impl pallet_identity::Config for Runtime {
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
-    type UsernameDeposit = ();
-    type UsernameGracePeriod = ();
+    type UsernameDeposit = UsernameDeposit;
+    type UsernameGracePeriod = UsernameGracePeriod;
 
     // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
     // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
@@ -825,6 +829,10 @@ impl pallet_proxy::Config for Runtime {
     type CallHasher = sp_runtime::traits::BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
+}
+
+impl pallet_proxy_genesis_companion::Config for Runtime {
+    type ProxyType = ProxyType;
 }
 
 impl pallet_parameters::Config for Runtime {

@@ -9520,7 +9520,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-proxy-genesis-companion"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "frame-support",
  "frame-system",

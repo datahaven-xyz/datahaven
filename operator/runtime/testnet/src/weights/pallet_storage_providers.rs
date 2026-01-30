@@ -54,7 +54,7 @@ use sp_std::marker::PhantomData;
 
 /// Weights for `pallet_storage_providers`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_storage_providers::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_storage_providers::weights::WeightInfo for WeightInfo<T> {
 	/// Storage: `Providers::SignUpRequests` (r:1 w:1)
 	/// Proof: `Providers::SignUpRequests` (`max_values`: None, `max_size`: Some(2163), added: 4638, mode: `MaxEncodedLen`)
 	/// Storage: `Providers::AccountIdToMainStorageProviderId` (r:1 w:0)

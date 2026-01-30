@@ -54,7 +54,7 @@ use sp_std::marker::PhantomData;
 
 /// Weights for `pallet_payment_streams`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_payment_streams::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_payment_streams::weights::WeightInfo for WeightInfo<T> {
 	/// Storage: `Providers::BackupStorageProviders` (r:1 w:0)
 	/// Proof: `Providers::BackupStorageProviders` (`max_values`: None, `max_size`: Some(1159), added: 3634, mode: `MaxEncodedLen`)
 	/// Storage: `Providers::InsolventProviders` (r:2 w:0)

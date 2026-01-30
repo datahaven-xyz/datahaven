@@ -54,7 +54,7 @@ use sp_std::marker::PhantomData;
 
 /// Weights for `pallet_proofs_dealer`.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_proofs_dealer::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> pallet_proofs_dealer::weights::WeightInfo for WeightInfo<T> {
 	/// Storage: `ProofsDealer::ChallengesQueue` (r:1 w:1)
 	/// Proof: `ProofsDealer::ChallengesQueue` (`max_values`: Some(1), `max_size`: Some(3202), added: 3697, mode: `MaxEncodedLen`)
 	fn challenge() -> Weight {

@@ -51,6 +51,7 @@ pub mod pallet_proxy;
 pub mod pallet_randomness;
 pub mod pallet_safe_mode;
 pub mod pallet_scheduler;
+pub mod pallet_session;
 pub mod pallet_storage_providers;
 pub mod pallet_sudo;
 pub mod pallet_timestamp;

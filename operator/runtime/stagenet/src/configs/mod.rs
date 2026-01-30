@@ -384,7 +384,7 @@ impl pallet_session::Config for Runtime {
     >;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
-    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = stagenet_weights::pallet_session::WeightInfo<Runtime>;
 }
 
 parameter_types! {

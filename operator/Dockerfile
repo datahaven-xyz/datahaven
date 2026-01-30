@@ -28,7 +28,7 @@ RUN apt-get update && \
 
 FROM debian:stable-slim
 
-LABEL version="0.3.0"
+LABEL version="0.4.0"
 LABEL description="DataHaven Node - Release Build"
 LABEL maintainer="steve@moonsonglabs.com"
 
@@ -53,9 +53,8 @@ COPY --from=builder \
 
 # Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /data /datahaven/.local/share /specs /storage && \
-    chown -R datahaven:datahaven /data /storage && \
-    ln -s /data /datahaven/.local/share/datahaven-node
+    mkdir -p /datahaven/.local/share && \
+    chown -R datahaven:datahaven /datahaven/.local/share
 
 USER datahaven
 
@@ -70,6 +69,6 @@ RUN chmod uog+x /usr/local/bin/datahaven*
 # 9615: Prometheus metrics
 EXPOSE 30333 9944 9615
 
-VOLUME ["/data"]
+VOLUME ["/datahaven/.local/share/datahaven-node"]
 
 ENTRYPOINT ["/usr/local/bin/datahaven-node"]

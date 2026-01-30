@@ -39,8 +39,6 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-#[cfg(not(feature = "runtime-benchmarks"))]
-use frame_system::EnsureRoot;
 use frame_system::EnsureSigned;
 use num_bigint::BigUint;
 use pallet_nfts::PalletFeatures;
@@ -475,11 +473,11 @@ impl pallet_proofs_dealer::Config for Runtime {
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type ChallengeOrigin = EnsureRoot<AccountId>;
+    type ChallengeOrigin = frame_system::EnsureRoot<AccountId>;
     #[cfg(feature = "runtime-benchmarks")]
     type ChallengeOrigin = EnsureSigned<AccountId>;
     #[cfg(not(feature = "runtime-benchmarks"))]
-    type PriorityChallengeOrigin = EnsureRoot<AccountId>;
+    type PriorityChallengeOrigin = frame_system::EnsureRoot<AccountId>;
     #[cfg(feature = "runtime-benchmarks")]
     type PriorityChallengeOrigin = EnsureSigned<AccountId>;
 }

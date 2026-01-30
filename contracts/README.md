@@ -61,6 +61,15 @@ NETWORK=hoodi forge script script/deploy/DeployTestnet.s.sol \
 ```
 Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/deployments/<network>.json`.
 
+### Contract versioning (version)
+
+- Each `contracts/deployments/<network>.json` file stores a single `version` field next to the deployed contract addresses.
+- `bun cli contracts deploy` performs a **MINOR** bump (`X.Y.0`) of `version` after a successful full deployment.
+- `bun cli contracts upgrade` performs a **PATCH** bump (`X.Y.Z → X.Y.(Z+1)`) after a successful upgrade.
+- There's no automatic way of changing a **MAJOR** version, we can change it mannually when we consider it necessary: a breaking API change, a big design change, etc.
+- `DATAHAVEN_VERSION` constants in core contracts (e.g. `DataHavenServiceManager`, `RewardsRegistry`) are informational mirrors of this `version` value for on-chain introspection.
+- You can run `bun check:contracts:version -- --chain <chain>` from the `test` directory to assert that the on-chain constants match the `contracts/deployments/<chain>.json` `version`.
+
 ## How It Works
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.
 2. **Performance Tracking**: DataHaven computes reward points and sends a Merkle root to `RewardsRegistry` on Ethereum via Snowbridge.

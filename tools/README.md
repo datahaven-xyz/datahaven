@@ -11,9 +11,9 @@ This directory contains Node.js/TypeScript tools for automating release workflow
 ```
 tools/
 ├── github/                        # GitHub automation utilities
-│   ├── github-utils.ts           # Common GitHub API utilities
-│   ├── generate-release-body.ts  # Client release notes generator
-│   └── generate-runtime-body.ts  # Runtime release notes generator
+│   ├── github-utils.ts            # Common GitHub API utilities
+│   ├── generate-release-body.ts   # Client release notes generator
+│   └── generate-runtime-body.ts   # Runtime release notes generator
 ├── package.json                   # Dependencies and scripts
 └── tsconfig.json                  # TypeScript configuration
 ```

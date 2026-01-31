@@ -71,7 +71,8 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
 
         // Get the deployed strategies and deposit some of the operator's balance into them.
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            IERC20 linkedToken = StrategyBase(deployedStrategies[i].strategy).underlyingToken();
+            address strategyAddr = deployedStrategies[i].strategy;
+            IERC20 linkedToken = IStrategy(strategyAddr).underlyingToken();
 
             // Check that the operator has a balance of the linked token.
             uint256 balance = linkedToken.balanceOf(_operator);
@@ -110,6 +111,7 @@ abstract contract SignUpOperatorBase is Script, ELScriptStorage, DHScriptStorage
 
         // Register the operator as an operator.
         // We don't set a delegation approver, so that there is no need to sign any messages.
+        if (!delegation.isOperator(_operator)) {
         address initDelegationApprover = address(0);
         uint32 allocationDelay = 0;
         string memory metadataURI = "";

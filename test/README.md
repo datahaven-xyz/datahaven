@@ -294,28 +294,28 @@ This script will:
 ```
 test/
 ├── e2e/
-│   ├── suites/                          # E2E test suites (Kurtosis-based)
+│   ├── suites/                         # E2E test suites (Kurtosis-based)
 │   │   ├── native-token-transfer.test.ts
 │   │   ├── rewards-message.test.ts
 │   │   └── validator-set-update.test.ts
-│   └── framework/                       # Test utilities & helpers
+│   └── framework/                      # Test utilities & helpers
 │       ├── connectors.ts               # Network connectors
 │       ├── manager.ts                  # Test environment manager
 │       ├── suite.ts                    # Test suite utilities
 │       ├── validators.ts               # Validator test helpers
 │       └── index.ts                    # Framework exports
-├── moonwall/                            # Moonwall single-node tests
+├── moonwall/                           # Moonwall single-node tests
 │   ├── contracts/                      # Test contracts for Moonwall
 │   ├── helpers/                        # Moonwall test helpers
 │   └── suites/                         # Moonwall test suites
-├── launcher/                            # Network deployment tools
+├── launcher/                           # Network deployment tools
 │   ├── kurtosis/                       # Ethereum network launcher
 │   ├── snowbridge/                     # Relayer management
 │   └── datahaven/                      # DataHaven node management
-├── generated/                           # Generated types
+├── generated/                          # Generated types
 │   ├── wagmi/                          # Contract bindings
 │   └── polkadot-api/                   # Runtime types
-└── docs/                                # Testing documentation
+└── docs/                               # Testing documentation
     ├── E2E_TESTING_GUIDE.md
     └── E2E_FRAMEWORK_OVERVIEW.md
 ```

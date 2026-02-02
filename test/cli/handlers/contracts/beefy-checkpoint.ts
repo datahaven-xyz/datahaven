@@ -1,10 +1,9 @@
-import { secp256k1 } from "@noble/curves/secp256k1";
 import invariant from "tiny-invariant";
 import { logger, printDivider, printHeader } from "utils";
 import { createPapiConnectors } from "utils/papi";
-import { type Hex, keccak256, toHex } from "viem";
-import { publicKeyToAddress } from "viem/accounts";
+import { type Hex, keccak256 } from "viem";
 import { buildNetworkId } from "../../../configs/contracts/config";
+import { compressedPubKeyToEthereumAddress } from "../../../launcher/datahaven";
 
 interface UpdateBeefyCheckpointOptions {
   chain: string;
@@ -20,24 +19,6 @@ interface BeefyCheckpointData {
   nextValidatorSetId: number;
   nextValidatorHashes: string[];
 }
-
-/**
- * Converts a compressed secp256k1 public key to its corresponding Ethereum address.
- *
- * @param compressedPubKey - The compressed public key as a hex string (with or without "0x" prefix)
- * @returns The corresponding Ethereum address (checksummed, with "0x" prefix)
- */
-const compressedPubKeyToEthereumAddress = (compressedPubKey: string): string => {
-  const compressedKeyHex = compressedPubKey.startsWith("0x")
-    ? compressedPubKey.substring(2)
-    : compressedPubKey;
-
-  const point = secp256k1.ProjectivePoint.fromHex(compressedKeyHex);
-  const uncompressedPubKeyBytes = point.toRawBytes(false);
-  const uncompressedPubKeyHex = toHex(uncompressedPubKeyBytes);
-
-  return publicKeyToAddress(uncompressedPubKeyHex);
-};
 
 /**
  * Converts an array of compressed public keys to authority hashes.
@@ -60,21 +41,35 @@ const computeAuthorityHashes = (authorityPublicKeys: string[]): string[] => {
 
 /**
  * Calculates the minimum number of required signatures for BFT security.
- * Uses ceil(n * 2/3) where n is the number of validators.
+ * Uses the same formula as Snowbridge's BeefyClient contract to ensure
+ * strictly more than 2/3 of validators must sign.
  *
+ * Formula: n - floor((n-1)/3)
+ *
+ * This ensures strictly > 2/3 majority. For example:
+ * - n=3: returns 3 (not 2, which would be exactly 2/3)
+ * - n=6: returns 5 (not 4, which would be exactly 2/3)
+ * - n=100: returns 67 (strictly > 66.67)
+ *
+ * @see https://github.com/datahaven-xyz/snowbridge/blob/main/contracts/src/BeefyClient.sol
  * @param validatorCount - The number of validators
  * @returns The minimum number of required signatures
  */
 const calculateMinRequiredSignatures = (validatorCount: number): number => {
-  // For BFT security, we need > 2/3 of validators to sign
-  // Using ceil(n * 2/3) ensures we have more than 2/3 threshold
-  return Math.ceil((validatorCount * 2) / 3);
+  // For BFT security, we need strictly > 2/3 of validators to sign
+  // This matches Snowbridge's computeQuorum function
+  if (validatorCount <= 3) {
+    return validatorCount;
+  }
+  return validatorCount - Math.floor((validatorCount - 1) / 3);
 };
 
 /**
  * Fetches BEEFY checkpoint data from a DataHaven chain including both current and next
  * authority sets along with their validator set IDs, the latest finalized block,
  * and calculates the minimum required signatures.
+ *
+ * All queries are performed at the same finalized block to ensure consistency.
  *
  * @param rpcUrl - WebSocket RPC endpoint of the DataHaven chain
  * @returns BEEFY checkpoint data with validator set IDs, authority hashes, startBlock, and minNumRequiredSignatures
@@ -85,25 +80,25 @@ const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpoint
   const { client: papiClient, typedApi: dhApi } = createPapiConnectors(rpcUrl);
 
   try {
-    // Fetch the latest finalized block number for startBlock
+    // First, get the finalized block hash to use for all subsequent queries
     logger.info("🔍 Fetching latest finalized block...");
     const finalizedBlock = await papiClient.getFinalizedBlock();
     const startBlock = finalizedBlock.number;
-    logger.success(`Latest finalized block: ${startBlock}`);
+    const blockHash = finalizedBlock.hash;
+    logger.success(`Latest finalized block: ${startBlock} (${blockHash})`);
 
-    // Fetch the current validator set ID
-    logger.info("🔍 Fetching BEEFY ValidatorSetId...");
-    const validatorSetId = await dhApi.query.Beefy.ValidatorSetId.getValue({
-      at: "best"
-    });
+    // Fetch all BEEFY data in parallel at the same finalized block
+    logger.info("🔍 Fetching BEEFY data (ValidatorSetId, Authorities, NextAuthorities)...");
+    const [validatorSetId, authoritiesRaw, nextAuthoritiesRaw] = await Promise.all([
+      dhApi.query.Beefy.ValidatorSetId.getValue({ at: blockHash }),
+      dhApi.query.Beefy.Authorities.getValue({ at: blockHash }),
+      dhApi.query.Beefy.NextAuthorities.getValue({ at: blockHash })
+    ]);
+
+    // Validate results
     invariant(validatorSetId !== undefined, "Failed to fetch BEEFY ValidatorSetId");
     logger.success(`Current ValidatorSetId: ${validatorSetId}`);
 
-    // Fetch current authorities (Authorities)
-    logger.info("🔍 Fetching BEEFY Authorities (current set)...");
-    const authoritiesRaw = await dhApi.query.Beefy.Authorities.getValue({
-      at: "best"
-    });
     invariant(
       authoritiesRaw && authoritiesRaw.length > 0,
       "No BEEFY Authorities found on the chain"
@@ -111,23 +106,19 @@ const fetchBeefyCheckpointData = async (rpcUrl: string): Promise<BeefyCheckpoint
     const currentAuthorityKeys = authoritiesRaw.map((key) => key.asHex());
     logger.success(`Found ${currentAuthorityKeys.length} current BEEFY authorities`);
 
-    // Calculate minimum required signatures based on validator count
-    const minNumRequiredSignatures = calculateMinRequiredSignatures(currentAuthorityKeys.length);
-    logger.info(
-      `📊 Minimum required signatures: ${minNumRequiredSignatures} (ceil(${currentAuthorityKeys.length} * 2/3))`
-    );
-
-    // Fetch next authorities (NextAuthorities)
-    logger.info("🔍 Fetching BEEFY NextAuthorities (next set)...");
-    const nextAuthoritiesRaw = await dhApi.query.Beefy.NextAuthorities.getValue({
-      at: "best"
-    });
     invariant(
       nextAuthoritiesRaw && nextAuthoritiesRaw.length > 0,
       "No BEEFY NextAuthorities found on the chain"
     );
     const nextAuthorityKeys = nextAuthoritiesRaw.map((key) => key.asHex());
     logger.success(`Found ${nextAuthorityKeys.length} next BEEFY authorities`);
+
+    // Calculate minimum required signatures based on validator count
+    // Uses Snowbridge's formula: n - floor((n-1)/3) for strictly > 2/3 majority
+    const minNumRequiredSignatures = calculateMinRequiredSignatures(currentAuthorityKeys.length);
+    logger.info(
+      `📊 Minimum required signatures: ${minNumRequiredSignatures} (${currentAuthorityKeys.length} - floor((${currentAuthorityKeys.length}-1)/3))`
+    );
 
     // Compute hashes for both sets
     logger.info("🔐 Computing authority hashes for current set...");
@@ -292,28 +283,15 @@ export const updateBeefyCheckpoint = async (
 
 /**
  * CLI action handler for the update-beefy-checkpoint command.
+ * Note: Chain and environment validation is handled by contractsPreActionHook.
  */
 export const contractsUpdateBeefyCheckpoint = async (
   options: any,
   _command: any
 ): Promise<void> => {
-  // Options are passed from the CLI action which uses optsWithGlobals()
-  const chain = options.chain;
-  const environment = options.environment;
-  const rpcUrl = options.rpcUrl;
+  const { chain, environment, rpcUrl } = options;
 
-  // Validate required options
-  if (!chain) {
-    logger.error("❌ --chain is required (hoodi, ethereum, anvil)");
-    process.exit(1);
-  }
-
-  const supportedChains = ["hoodi", "ethereum", "anvil"];
-  if (!supportedChains.includes(chain)) {
-    logger.error(`❌ Unsupported chain: ${chain}. Supported chains: ${supportedChains.join(", ")}`);
-    process.exit(1);
-  }
-
+  // Validate rpc-url (specific to this command, not validated by preAction hook)
   if (!rpcUrl) {
     logger.error("❌ --rpc-url is required (WebSocket URL to the DataHaven chain)");
     process.exit(1);

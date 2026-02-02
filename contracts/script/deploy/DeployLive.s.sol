@@ -213,18 +213,21 @@ contract DeployLive is DeployBase {
     // LIVE DEPLOYMENT FUNCTIONS
 
     /**
-     * @notice Validate that the network ends with a supported chain name
-     * @dev Networks can be prefixed with environment names like "stagenet-", "testnet-", "mainnet-", etc.
-     *      Supported chains:
-     *      - "hoodi" (Hoodi testnet): e.g., "hoodi", "stagenet-hoodi", "testnet-hoodi"
-     *      - "ethereum" (Ethereum mainnet): e.g., "ethereum", "mainnet-ethereum"
+     * @notice Validate that the network is in the supported allowlist
+     * @dev Supported networks:
+     *      - "hoodi", "stagenet-hoodi", "testnet-hoodi" (Hoodi testnet)
+     *      - "ethereum", "mainnet-ethereum" (Ethereum mainnet)
      */
     function _validateNetwork(
         string memory network
     ) internal pure {
-        // Check if network ends with a supported chain name
-        // This allows for environment prefixes like "stagenet-hoodi", "mainnet-ethereum", etc.
-        if (_endsWithChain(network, "hoodi") || _endsWithChain(network, "ethereum")) {
+        bytes32 h = keccak256(bytes(network));
+
+        if (
+            h == keccak256("hoodi") || h == keccak256("stagenet-hoodi")
+                || h == keccak256("testnet-hoodi") || h == keccak256("mainnet-ethereum")
+                || h == keccak256("ethereum")
+        ) {
             return;
         }
 
@@ -232,36 +235,9 @@ contract DeployLive is DeployBase {
             string.concat(
                 "Unsupported network: ",
                 network,
-                ". Network must end with 'hoodi' or 'ethereum' (e.g., 'hoodi', 'stagenet-hoodi', 'mainnet-ethereum')"
+                ". Supported: hoodi, stagenet-hoodi, testnet-hoodi, ethereum, mainnet-ethereum"
             )
         );
-    }
-
-    /**
-     * @notice Check if a network string ends with a specific chain name
-     * @param network The full network identifier (e.g., "stagenet-hoodi")
-     * @param chain The chain suffix to check for (e.g., "hoodi")
-     * @return True if network ends with the chain name
-     */
-    function _endsWithChain(
-        string memory network,
-        string memory chain
-    ) internal pure returns (bool) {
-        bytes memory networkBytes = bytes(network);
-        bytes memory chainBytes = bytes(chain);
-
-        if (networkBytes.length < chainBytes.length) {
-            return false;
-        }
-
-        uint256 offset = networkBytes.length - chainBytes.length;
-        for (uint256 i = 0; i < chainBytes.length; i++) {
-            if (networkBytes[offset + i] != chainBytes[i]) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**

@@ -45,16 +45,16 @@
     "randaoCommitDelay": 4,
     "randaoCommitExpiration": 24,
     "minNumRequiredSignatures": 3,
-    "startBlock": 1244522,
+    "startBlock": 1299215,
     "rewardsMessageOrigin": "0x56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd",
-    "initialValidatorSetId": 2088,
+    "initialValidatorSetId": 2179,
     "initialValidatorHashes": [
       "0x07ce4f2cd558f4d4b529a3362b6ff7d616ca0893b53252dc62829b8218ea5c10",
       "0xaea5344f086d3be7c94cf3a47436bcbb98de23cf1ee773a9180cfecab0453a50",
       "0xcd3a33755b27fe810dfb780b3f1df1c25efa1bb826ca618e41022fa900876087",
       "0x4f4ce8cad711a4b33d15095091f8a98eaf9bfd1b39a9159e605cf5d6783cc667"
     ],
-    "nextValidatorSetId": 2089,
+    "nextValidatorSetId": 2180,
     "nextValidatorHashes": [
       "0x07ce4f2cd558f4d4b529a3362b6ff7d616ca0893b53252dc62829b8218ea5c10",
       "0xaea5344f086d3be7c94cf3a47436bcbb98de23cf1ee773a9180cfecab0453a50",

@@ -295,6 +295,7 @@ contractsCommand
     "--rpc-url <value>",
     "WebSocket RPC URL of the DataHaven chain to fetch BEEFY authorities from"
   )
+  .hook("preAction", contractsPreActionHook)
   .action(async (_options: any, command: any) => {
     // Options are captured by parent command due to shared option names
     // Use optsWithGlobals() to get all options including inherited ones
@@ -321,6 +322,7 @@ contractsCommand
     "--genesis-hash <value>",
     "Chain genesis hash (32 bytes hex). If not provided, will be fetched from the chain."
   )
+  .hook("preAction", contractsPreActionHook)
   .action(async (_options: any, command: any) => {
     const opts = command.optsWithGlobals();
     await contractsUpdateRewardsOrigin(opts, command);
@@ -368,7 +370,7 @@ contractsCommand
   });
 
 // Default Contracts command (runs check when no subcommand is specified)
-// Note: We don't add preAction hook here as it would run for all subcommands
+// preAction hook on subcommands handles validation before the action runs
 contractsCommand
   .description("Show deployment plan, configuration, and status")
   .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
@@ -383,20 +385,8 @@ contractsCommand
     process.env.DEPLOYER_PRIVATE_KEY || ""
   )
   .option("--skip-verification", "Skip contract verification", false)
+  .hook("preAction", contractsPreActionHook)
   .action(async (options: any, command: any) => {
-    // Validate chain here instead of in preAction hook
-    const chain = options.chain;
-    if (!chain) {
-      console.error("❌ Chain is required. Use --chain option (hoodi, ethereum, anvil)");
-      process.exit(1);
-    }
-    const supportedChains = ["hoodi", "ethereum", "anvil"];
-    if (!supportedChains.includes(chain)) {
-      console.error(
-        `❌ Unsupported chain: ${chain}. Supported chains: ${supportedChains.join(", ")}`
-      );
-      process.exit(1);
-    }
     await contractsCheck(options, command);
   });
 

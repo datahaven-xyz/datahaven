@@ -299,25 +299,12 @@ export const updateRewardsOrigin = async (options: UpdateRewardsOriginOptions): 
 
 /**
  * CLI action handler for the update-rewards-origin command.
+ * Note: Chain and environment validation is handled by contractsPreActionHook.
  */
 export const contractsUpdateRewardsOrigin = async (options: any, _command: any): Promise<void> => {
-  const chain = options.chain;
-  const environment = options.environment;
-  const rpcUrl = options.rpcUrl;
-  const genesisHash = options.genesisHash;
+  const { chain, environment, rpcUrl, genesisHash } = options;
 
-  // Validate required options
-  if (!chain) {
-    logger.error("❌ --chain is required (hoodi, ethereum, anvil)");
-    process.exit(1);
-  }
-
-  const supportedChains = ["hoodi", "ethereum", "anvil"];
-  if (!supportedChains.includes(chain)) {
-    logger.error(`❌ Unsupported chain: ${chain}. Supported chains: ${supportedChains.join(", ")}`);
-    process.exit(1);
-  }
-
+  // Validate rpc-url (specific to this command, not validated by preAction hook)
   if (!rpcUrl) {
     logger.error("❌ --rpc-url is required (WebSocket URL to the DataHaven chain)");
     process.exit(1);

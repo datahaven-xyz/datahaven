@@ -11,6 +11,7 @@ import {
   CHARLETH_ADDRESS,
   CHARLETH_PRIVATE_KEY,
   createViemTransaction,
+  sendRawTransaction,
 } from "@moonwall/util";
 import { encodeFunctionData } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
@@ -297,8 +298,14 @@ describeSuite({
             args: [ALITH_ADDRESS, randomAccount, "0x00"],
           }),
         });
-        const { result: result2 } = await context.createBlock(proxyTx);
-        expectEVMResult(result2!.events, "Succeed");
+        const txHash = (await sendRawTransaction(context, proxyTx)) as `0x${string}`;
+
+        // Create two blocks to ensure the transaction is included
+        await context.createBlock();
+        await context.createBlock();
+
+        const receipt = await context.viem().getTransactionReceipt({ hash: txHash });
+        expect(receipt.status).toBe("success");
 
         // Verify transfer happened
         expect(await context.viem().getBalance({ address: randomAccount })).toBe(1000n);

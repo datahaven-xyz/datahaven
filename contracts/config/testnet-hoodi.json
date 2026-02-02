@@ -1,0 +1,71 @@
+{
+  "eigenLayer": {
+    "pausers": [
+      "0x64D78399B0fa32EA72959f33edCF313159F3c13D"
+    ],
+    "unpauser": "0xE3328cb5068924119d6170496c4AB2dD12c12d15",
+    "rewardsUpdater": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
+    "calculationIntervalSeconds": 86400,
+    "maxRewardsDuration": 6048000,
+    "maxRetroactiveLength": 7776000,
+    "maxFutureLength": 2592000,
+    "genesisRewardsTimestamp": 1710979200,
+    "activationDelay": 7200,
+    "globalCommissionBips": 1000,
+    "executorMultisig": "0xE3328cb5068924119d6170496c4AB2dD12c12d15",
+    "operationsMultisig": "0xE7f4E30D2619273468afe9EC0Acf805E55532257",
+    "minWithdrawalDelayBlocks": 50,
+    "delegationInitPausedStatus": 0,
+    "eigenPodManagerInitPausedStatus": 0,
+    "rewardsCoordinatorInitPausedStatus": 0,
+    "allocationManagerInitPausedStatus": 0,
+    "deallocationDelay": 50,
+    "allocationConfigurationDelay": 75,
+    "beaconChainGenesisTimestamp": 1710666600,
+    "delegationManager": "0x867837a9722C512e0862d8c2E15b8bE220E8b87d",
+    "strategyManager": "0xeE45e76ddbEDdA2918b8C7E3035cd37Eab3b5D41",
+    "eigenPodManager": "0xcd1442415Fc5C29Aa848A49d2e232720BE07976c",
+    "avsDirectory": "0xD58f6844f79eB1fbd9f7091d05f7cb30d3363926",
+    "rewardsCoordinator": "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
+    "allocationManager": "0x95a7431400F362F3647a69535C5666cA0133CAA0",
+    "permissionController": "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2"
+  },
+  "avs": {
+    "avsOwner": "0x0000000000000000000000000000000000000000",
+    "rewardsInitiator": "0x0000000000000000000000000000000000000000",
+    "vetoCommitteeMember": "0x0000000000000000000000000000000000000000",
+    "vetoWindowBlocks": 100,
+    "validatorsStrategies": [
+      "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
+      "0xf8a1a66130d614c7360e868576d5e59203475fe0",
+      "0x24579aD4fe83aC53546E5c2D3dF5F85D6383420d"
+    ]
+  },
+  "snowbridge": {
+    "randaoCommitDelay": 4,
+    "randaoCommitExpiration": 24,
+    "minNumRequiredSignatures": 5,
+    "startBlock": 1381173,
+    "rewardsMessageOrigin": "0xd0d6dbd1ffb401ef613f00e93cd5061ecec03ae35d2f820cd6754a5b5f020215",
+    "initialValidatorSetId": 2303,
+    "initialValidatorHashes": [
+      "0x0ec3102f334aba804c18b843e45ec874005587122a1b49273b1b04d6fd98b1a2",
+      "0xb277ac8a7aafc125d7da813a9b0fdae144922c165bfae194ebd94d6f3e4fe68e",
+      "0xcc6aefdce3f83d204893cb57388a72b4553b613f95b437ce548582470e62d1e7",
+      "0xcefa9940d25d21ac6d0a579727e8812283ed00d7ace9dfc9e30a0f95a0ea7bdd",
+      "0x8e720aed537cb30d204f1de9fb5aab6e0129acfc3f41a3c69259231c1f0f2685",
+      "0x5f883131cf6667cb8c2279caa182298e174bbca35c7c8c5679df6bad73be85cf",
+      "0x744ae85e99103a5ebcf9dd2fdcc18743012f0336f497fd3a05243a26a1a031b7"
+    ],
+    "nextValidatorSetId": 2304,
+    "nextValidatorHashes": [
+      "0x0ec3102f334aba804c18b843e45ec874005587122a1b49273b1b04d6fd98b1a2",
+      "0xb277ac8a7aafc125d7da813a9b0fdae144922c165bfae194ebd94d6f3e4fe68e",
+      "0xcc6aefdce3f83d204893cb57388a72b4553b613f95b437ce548582470e62d1e7",
+      "0xcefa9940d25d21ac6d0a579727e8812283ed00d7ace9dfc9e30a0f95a0ea7bdd",
+      "0x8e720aed537cb30d204f1de9fb5aab6e0129acfc3f41a3c69259231c1f0f2685",
+      "0x5f883131cf6667cb8c2279caa182298e174bbca35c7c8c5679df6bad73be85cf",
+      "0x744ae85e99103a5ebcf9dd2fdcc18743012f0336f497fd3a05243a26a1a031b7"
+    ]
+  }
+}

@@ -124,7 +124,7 @@ export const injectStorageHubKey = async (
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --key-type bcsv --scheme ecdsa --suri ${secretKey}`.nothrow();
+    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
     logger.success("Key injected successfully");
   } catch (error) {
     logger.error(`Failed to inject key : ${error}`);
@@ -247,7 +247,7 @@ export const launchBspNode = async (
     `${wsPort}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     options.datahavenImageTag,
     "--name",
-    "bsp-dave",
+    "bsp-dorothy",
     "--chain",
     "local",
     "--rpc-port",
@@ -275,7 +275,7 @@ export const launchBspNode = async (
 
   await waitForContainerToStart(containerName);
 
-  // Inject key (using Dave instead of Eve for BSP)
+  // Inject key
   await injectStorageHubKey(containerName, SUBSTRATE_FUNDED_ACCOUNTS.DOROTHY.privateKey);
 
   // Restart container to load key
@@ -491,7 +491,7 @@ export const launchBackendMsp = async (
     "--database-url",
     postgresUrl,
     "--rpc-url",
-    `ws://${containerNameMSP}:9944`,
+    `ws://${containerNameMSP}:${DEFAULT_SUBSTRATE_WS_PORT}`,
     "--msp-callback-url",
     `http://${containerName}:8080`,
     "--msp-trusted-file-transfer-server-url",

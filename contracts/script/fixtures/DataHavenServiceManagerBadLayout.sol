@@ -21,7 +21,10 @@ contract DataHavenServiceManagerBadLayout is OwnableUpgradeable {
     uint256[46] private __GAP;
 
     // Keep a compatible constructor signature for upgrade tests.
-    constructor(address, address) {
+    constructor(
+        address,
+        address
+    ) {
         _disableInitializers();
     }
 }

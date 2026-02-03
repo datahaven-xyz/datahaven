@@ -67,6 +67,7 @@ pallet-outbound-commitment-store = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-proxy-genesis-companion = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-safe-mode = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -84,6 +85,7 @@ polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
+serde = { workspace = true, features = ["derive"] }
 k256 = { workspace = true, optional = true }
 serde_json = { workspace = true, default-features = false, features = [
     "alloc",
@@ -236,6 +238,7 @@ std = [
     "pallet-tx-pause/std",
     "pallet-referenda/std",
     "pallet-proxy/std",
+    "pallet-proxy-genesis-companion/std",
     "pallet-scheduler/std",
     "pallet-session/std",
     "pallet-sudo/std",
@@ -249,6 +252,7 @@ std = [
     "polkadot-runtime-common/std",
     "precompile-utils/std",
     "scale-info/std",
+    "serde/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",
     "snowbridge-inbound-queue-primitives/std",
@@ -398,6 +402,7 @@ try-runtime = [
     "pallet-tx-pause/try-runtime",
     "pallet-referenda/try-runtime",
     "pallet-proxy/try-runtime",
+    "pallet-proxy-genesis-companion/try-runtime",
     "pallet-scheduler/try-runtime",
     "pallet-session/try-runtime",
     "pallet-sudo/try-runtime",

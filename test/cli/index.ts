@@ -5,6 +5,8 @@ import {
   contractsCheck,
   contractsDeploy,
   contractsPreActionHook,
+  contractsUpdateBeefyCheckpoint,
+  contractsUpdateRewardsOrigin,
   contractsVerify,
   deploy,
   deployPreActionHook,
@@ -199,15 +201,20 @@ const contractsCommand = program
   .addHelpText(
     "before",
     `🫎  DataHaven: Contracts Deployment CLI for deploying DataHaven AVS contracts to supported chains
-    
+
     Commands:
     - status: Show deployment plan, configuration, and status (default)
     - deploy: Deploy contracts to specified chain
     - verify: Verify deployed contracts on block explorer
+    - update-beefy-checkpoint: Fetch BEEFY authorities from a live chain and update config
+    - update-rewards-origin: Fetch or compute the RewardsAgentOrigin and update config
     - update-metadata: Update the metadata URI of an existing AVS contract
-    
+
     Common options:
-    --chain: Target chain (required: hoodi, mainnet, anvil)
+    --chain: Target chain (required: hoodi, ethereum, anvil)
+    --environment: Deployment environment (stagenet, testnet, mainnet)
+                   When specified, config files are read from {environment}-{chain}.json
+                   and deployments are written to {environment}-{chain}.json
     --rpc-url: Chain RPC URL (optional, defaults based on chain)
     --private-key: Private key for deployment
     --skip-verification: Skip contract verification
@@ -219,7 +226,11 @@ const contractsCommand = program
 contractsCommand
   .command("status")
   .description("Show deployment plan, configuration, and status")
-  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option(
     "--private-key <value>",
@@ -234,7 +245,11 @@ contractsCommand
 contractsCommand
   .command("deploy")
   .description("Deploy DataHaven AVS contracts to specified chain")
-  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option(
     "--private-key <value>",
@@ -255,17 +270,73 @@ contractsCommand
 contractsCommand
   .command("verify")
   .description("Verify deployed contracts on block explorer")
-  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsVerify);
 
+// Contracts Update BEEFY Checkpoint
+contractsCommand
+  .command("update-beefy-checkpoint")
+  .description(
+    "Fetch BEEFY authorities from a live DataHaven chain and update the config file with validator hashes"
+  )
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
+  .option(
+    "--rpc-url <value>",
+    "WebSocket RPC URL of the DataHaven chain to fetch BEEFY authorities from"
+  )
+  .hook("preAction", contractsPreActionHook)
+  .action(async (_options: any, command: any) => {
+    // Options are captured by parent command due to shared option names
+    // Use optsWithGlobals() to get all options including inherited ones
+    const opts = command.optsWithGlobals();
+    await contractsUpdateBeefyCheckpoint(opts, command);
+  });
+
+// Contracts Update Rewards Origin
+contractsCommand
+  .command("update-rewards-origin")
+  .description(
+    "Fetch or compute the RewardsAgentOrigin and update the config file with the rewards message origin"
+  )
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
+  .option(
+    "--rpc-url <value>",
+    "WebSocket RPC URL of the DataHaven chain to fetch RewardsAgentOrigin from"
+  )
+  .option(
+    "--genesis-hash <value>",
+    "Chain genesis hash (32 bytes hex). If not provided, will be fetched from the chain."
+  )
+  .hook("preAction", contractsPreActionHook)
+  .action(async (_options: any, command: any) => {
+    const opts = command.optsWithGlobals();
+    await contractsUpdateRewardsOrigin(opts, command);
+  });
+
 // Contracts Update Metadata
 contractsCommand
   .command("update-metadata")
   .description("Update AVS metadata URI for the DataHaven Service Manager")
-  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
   .option("--uri <value>", "New metadata URI (required)")
   .option("--reset", "Use if you want to reset the metadata URI")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
@@ -289,16 +360,24 @@ contractsCommand
     if (!chain) {
       throw new Error("--chain parameter is required");
     }
-    await updateAVSMetadataURI(chain, options.uri, {
+    // Build network identifier with environment prefix if specified
+    const environment = options.environment;
+    const networkId = environment ? `${environment}-${chain}` : chain;
+    await updateAVSMetadataURI(networkId, options.uri, {
       execute: options.execute,
       avsOwnerKey: options.avsOwnerKey
     });
   });
 
-// Default Contracts command (runs check)
+// Default Contracts command (runs check when no subcommand is specified)
+// preAction hook on subcommands handles validation before the action runs
 contractsCommand
   .description("Show deployment plan, configuration, and status")
-  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--chain <value>", "Target chain (hoodi, ethereum, anvil)")
+  .option(
+    "--environment <value>",
+    "Deployment environment (stagenet, testnet, mainnet). Config and deployment files will be prefixed with this value."
+  )
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option(
     "--private-key <value>",
@@ -307,7 +386,9 @@ contractsCommand
   )
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
-  .action(contractsCheck);
+  .action(async (options: any, command: any) => {
+    await contractsCheck(options, command);
+  });
 
 // ===== Exec ======
 // Disabled until need arises

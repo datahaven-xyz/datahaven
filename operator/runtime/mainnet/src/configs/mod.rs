@@ -1488,7 +1488,7 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Main
     }
 
     fn rewards_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies_and_multipliers() -> Vec<(H160, u128)> {
@@ -1662,9 +1662,9 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Main
         runtime_params::dynamic_params::runtime_config::DatahavenServiceManagerAddress::get()
     }
 
+    // TODO: remove `slashes_` prefix and just call it `agent_origin`
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
-        // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies() -> Vec<Address> {

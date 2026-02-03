@@ -72,6 +72,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_consensus_beefy::ecdsa_crypto::AuthorityId as BeefyId;
 use sp_keystore::KeystorePtr;
+use sp_mmr_primitives::INDEXING_PREFIX;
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::SaturatedConversion;
 use std::path::PathBuf;
@@ -452,6 +453,9 @@ where
     StorageHubBuilder<R, S, Runtime>: StorageLayerBuilder + Buildable<(R, S), Runtime>,
     StorageHubHandler<(R, S), Runtime>: RunnableTasks,
 {
+    let enable_offchain_worker = config.offchain_worker.enabled;
+    let is_offchain_indexing_enabled = config.offchain_worker.indexing_enabled;
+
     let role = config.role;
     let mut sealing = match sealing {
         Some(_) if !matches!(config.chain_spec.chain_type(), ChainType::Development) => {
@@ -582,7 +586,7 @@ where
             metrics,
         })?;
 
-    if config.offchain_worker.enabled {
+    if enable_offchain_worker {
         task_manager.spawn_handle().spawn(
             "offchain-workers-runner",
             "offchain-worker",
@@ -947,6 +951,22 @@ where
             task_manager
                 .spawn_essential_handle()
                 .spawn_blocking("beefy-gadget", None, gadget);
+        }
+
+        // Spawn MMR gadget for offchain MMR leaf indexing.
+        // This gadget monitors finality and canonicalizes MMR data in offchain storage,
+        // enabling efficient MMR proof queries by block number via the MMR RPC.
+        // Only run when offchain indexing is enabled, as the gadget writes to offchain storage.
+        if is_offchain_indexing_enabled {
+            task_manager.spawn_essential_handle().spawn_blocking(
+                "mmr-gadget",
+                None,
+                mmr_gadget::MmrGadget::start(
+                    client.clone(),
+                    backend.clone(),
+                    INDEXING_PREFIX.to_vec(),
+                ),
+            );
         }
     }
 

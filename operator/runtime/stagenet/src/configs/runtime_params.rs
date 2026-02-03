@@ -51,9 +51,9 @@ pub mod dynamic_params {
 
         #[codec(index = 3)]
         #[allow(non_upper_case_globals)]
-        /// The RewardsAgentOrigin is the origin of the rewards agent, which is its ID.
+        /// The AgentOrigin is the origin of the agent, which is its ID.
         /// TODO: Decide which agent origin we want to use. Currently for testing it's the zero hash
-        pub static RewardsAgentOrigin: H256 = H256::from_slice(&hex!(
+        pub static AgentOrigin: H256 = H256::from_slice(&hex!(
             "0000000000000000000000000000000000000000000000000000000000000000"
         ));
 

@@ -1517,7 +1517,7 @@ impl datahaven_runtime_common::rewards_adapter::RewardsSubmissionConfig for Test
     }
 
     fn rewards_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
     }
 
     fn strategies_and_multipliers() -> Vec<(H160, u128)> {
@@ -1692,7 +1692,7 @@ impl datahaven_runtime_common::slashes_adapter::SlashesSubmissionConfig for Test
     }
 
     fn slashes_agent_origin() -> H256 {
-        runtime_params::dynamic_params::runtime_config::RewardsAgentOrigin::get()
+        runtime_params::dynamic_params::runtime_config::AgentOrigin::get()
         // TODO: Can we use the same as reward and just rename the config to `AgentOrigin` ?
     }
 

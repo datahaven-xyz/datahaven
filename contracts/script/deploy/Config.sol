@@ -10,7 +10,7 @@ contract Config {
         uint64 startBlock;
         bytes32[] initialValidatorHashes;
         bytes32[] nextValidatorHashes;
-        bytes32 rewardsMessageOrigin;
+        bytes32 messageOrigin;
     }
 
     // AVS parameters

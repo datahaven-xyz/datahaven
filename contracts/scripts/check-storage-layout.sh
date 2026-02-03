@@ -29,7 +29,14 @@ forge inspect "$CONTRACT" storage --json > /tmp/current_layout.json
 # - Remove types section (contains unstable AST IDs)
 # - Sort by slot number
 normalize_json() {
-    jq 'del(.types) | .storage | map(del(.astId, .contract)) | sort_by(.slot | tonumber)' "$1"
+    jq 'del(.types)
+        | .storage
+        | map(
+            del(.astId, .contract)
+            # Remove unstable AST ID suffixes from type strings (e.g., t_contract(IGatewayV2)12345)
+            | .type |= sub("\\)[0-9]+$"; ")")
+          )
+        | sort_by(.slot | tonumber)' "$1"
 }
 
 echo "Comparing storage layouts..."

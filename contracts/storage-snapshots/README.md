@@ -53,6 +53,7 @@ The snapshot comparison normalizes both files to avoid false positives:
 - **Removes `astId`**: Changes with each compiler run
 - **Removes `contract`**: Contains full file path
 - **Removes `.types` section**: Contains unstable AST IDs that cause false diffs
+- **Normalizes type IDs**: Strips unstable numeric suffixes from `type` (e.g., `t_contract(IGatewayV2)12345`)
 - **Sorts by slot**: Ensures deterministic comparison
 
 This approach detects:

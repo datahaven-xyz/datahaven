@@ -453,19 +453,19 @@ export const launchFishermanNode = async (
 };
 
 /**
- * Launches a StorageHub Backend MSP container.
+ * Launches a StorageHub Backend container.
  *
  * @param options - Configuration options for launching the network
  * @param launchedNetwork - The launched network instance to track the node
  */
-export const launchBackendMsp = async (
+export const launchBackend = async (
   options: DataHavenOptions,
   launchedNetwork: LaunchedNetwork
 ): Promise<void> => {
-  logger.info("🚀 Launching StorageHub Backend MSP...");
+  logger.info("🚀 Launching StorageHub Backend...");
 
-  const backendMSPImage = "moonsonglabs/storage-hub-msp-backend:latest";
-  const containerName = `storagehub-backend-msp-${options.networkId}`;
+  const backendImage = "moonsonglabs/storage-hub-msp-backend:latest";
+  const containerName = `storagehub-backend-${options.networkId}`;
   const dockerNetworkName = `datahaven-${options.networkId}`;
   const containerNameMSP = `storagehub-msp-${options.networkId}`;
   const postgresUrl = getPostgresUrl(options.networkId);
@@ -483,7 +483,7 @@ export const launchBackendMsp = async (
     `${apiPort}:8080`,
     "-e",
     "RUST_LOG=info",
-    backendMSPImage,
+    backendImage,
     "--chain",
     "local",
     "--log-format",
@@ -506,7 +506,7 @@ export const launchBackendMsp = async (
   // Register in launched network
   launchedNetwork.addContainer(containerName, { http: apiPort }, { http: apiPort });
 
-  logger.success(`Backend MSP container started on port ${apiPort}`);
+  logger.success(`StorageHub Backend container started on port ${apiPort}`);
 };
 
 /**

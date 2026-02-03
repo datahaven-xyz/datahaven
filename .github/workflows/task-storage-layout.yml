@@ -47,6 +47,11 @@ jobs:
       - name: Build contracts
         run: forge build
 
+      - name: Negative check storage layout (should fail)
+        run: |
+          chmod +x scripts/check-storage-layout-negative.sh
+          ./scripts/check-storage-layout-negative.sh
+
       - name: Check storage layout
         run: |
           chmod +x scripts/check-storage-layout.sh

@@ -36,6 +36,9 @@ forge inspect DataHavenServiceManager storage --json > storage-snapshots/DataHav
 # Check storage layout (CI script)
 ./scripts/check-storage-layout.sh
 
+# Negative check (proves detector fails on broken layout)
+./scripts/check-storage-layout-negative.sh
+
 # Run upgrade simulation tests
 forge test --match-contract StorageLayoutTest -vvv
 

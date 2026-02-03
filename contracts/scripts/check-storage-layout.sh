@@ -4,9 +4,9 @@ set -e
 # Storage Layout Check Script
 # Compares current storage layout against committed snapshot to detect unintended changes.
 
-CONTRACT="DataHavenServiceManager"
-SNAPSHOT_DIR="storage-snapshots"
-SNAPSHOT="${SNAPSHOT_DIR}/${CONTRACT}.storage.json"
+CONTRACT="${CONTRACT:-DataHavenServiceManager}"
+SNAPSHOT_DIR="${SNAPSHOT_DIR:-storage-snapshots}"
+SNAPSHOT="${SNAPSHOT:-${SNAPSHOT_DIR}/${CONTRACT}.storage.json}"
 
 # Ensure we're in the contracts directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

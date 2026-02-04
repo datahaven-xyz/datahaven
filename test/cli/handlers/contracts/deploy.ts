@@ -1,5 +1,6 @@
 import { logger, printDivider, printHeader } from "utils";
 import { deployContracts } from "../../../scripts/deploy-contracts";
+import { versioningPostChecks, versioningPreChecks } from "./checks";
 import { showDeploymentPlanAndStatus } from "./status";
 import { verifyContracts } from "./verify";
 
@@ -24,6 +25,8 @@ export const contractsDeploy = async (options: any, command: any) => {
       logger.info(`📡 Using RPC URL: ${options.rpcUrl}`);
     }
 
+    await versioningPreChecks({ chain, rpcUrl: options.rpcUrl });
+
     await deployContracts({
       chain: chain,
       rpcUrl: options.rpcUrl,
@@ -32,6 +35,8 @@ export const contractsDeploy = async (options: any, command: any) => {
       avsOwnerAddress: options.avsOwnerAddress,
       txExecution: txExecutionOverride
     });
+
+    await versioningPostChecks({ chain, rpcUrl: options.rpcUrl });
 
     printDivider();
   } catch (error) {

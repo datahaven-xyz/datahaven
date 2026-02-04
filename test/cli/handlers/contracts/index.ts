@@ -1,3 +1,4 @@
+export * from "./checks";
 export * from "./deploy";
 export * from "./status";
 export * from "./update-metadata";

@@ -4,6 +4,7 @@ import type { DeployEnvironment } from "utils";
 import { logger, printHeader } from "utils";
 import {
   contractsCheck,
+  contractsChecks,
   contractsDeploy,
   contractsPreActionHook,
   contractsUpgrade,
@@ -14,7 +15,9 @@ import {
   launchPreActionHook,
   stop,
   stopPreActionHook,
-  updateAVSMetadataURI
+  updateAVSMetadataURI,
+  versioningPostChecks,
+  versioningPreChecks
 } from "./handlers";
 
 // Function to parse integer
@@ -282,11 +285,19 @@ contractsCommand
     printHeader(`Upgrading DataHaven Contracts on ${chain}`);
 
     try {
+      await versioningPreChecks({ chain, rpcUrl: options.rpcUrl });
+
       await contractsUpgrade({
         chain: chain,
         rpcUrl: options.rpcUrl,
         privateKeyFile: options.privateKeyFile,
         verify: options.verify
+      });
+
+      await versioningPostChecks({
+        chain,
+        rpcUrl: options.rpcUrl,
+        updateDeps: true
       });
     } catch (error) {
       logger.error(`❌ Upgrade failed: ${error}`);
@@ -302,6 +313,15 @@ contractsCommand
   .option("--skip-verification", "Skip contract verification", false)
   .hook("preAction", contractsPreActionHook)
   .action(contractsVerify);
+
+// Contracts Checks
+contractsCommand
+  .command("version-check")
+  .description("Run contract version and dependency checks")
+  .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
+  .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
+  .hook("preAction", contractsPreActionHook)
+  .action(contractsChecks);
 
 // Contracts Update Metadata
 contractsCommand

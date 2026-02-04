@@ -28,7 +28,7 @@ RUN apt-get update && \
 
 FROM debian:stable-slim
 
-LABEL version="0.3.0"
+LABEL version="0.4.0"
 LABEL description="DataHaven Node - Release Build"
 LABEL maintainer="steve@moonsonglabs.com"
 
@@ -53,9 +53,10 @@ COPY --from=builder \
 
 # Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /datahaven/.local/share /data && \
-    chown -R datahaven:datahaven /data && \
-    ln -s /data /datahaven/.local/share/datahaven
+    mkdir -p /data /datahaven/.local/share && \
+    chown -R datahaven:datahaven /data /datahaven/.local/share && \
+    ln -s /data /datahaven/.local/share/datahaven-node
+
 
 USER datahaven
 

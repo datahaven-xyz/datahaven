@@ -13,7 +13,7 @@ export interface ContractVersionCheckResult {
 }
 
 const assertValidChain = (chain: string) => {
-  const supportedChains = ["hoodi", "mainnet", "anvil"];
+  const supportedChains = ["hoodi", "ethereum", "anvil"];
   if (!supportedChains.includes(chain)) {
     throw new Error(`Unsupported chain: ${chain}. Supported chains: ${supportedChains.join(", ")}`);
   }
@@ -191,4 +191,41 @@ export const checkContractVersions = async (
     `✅ All checked contract versions match deployments version=${version} on '${chain}'.`
   );
   return { ok: true, skipped: false };
+};
+
+/**
+ * Validates that a version string follows semantic versioning (X.Y.Z)
+ */
+export const isValidSemver = (version: string): boolean => {
+  const semverRegex = /^\d+\.\d+\.\d+$/;
+  return semverRegex.test(version);
+};
+
+/**
+ * Validates version formats across all deployment files
+ */
+export const validateVersionFormats = async (): Promise<boolean> => {
+  const chains = ["anvil", "hoodi", "ethereum"];
+  let allValid = true;
+
+  for (const chain of chains) {
+    try {
+      const deployments = await parseDeploymentsFile(chain);
+      const version = (deployments as any).version;
+
+      if (!version) {
+        logger.warn(`⚠️ No version in ${chain}.json`);
+        continue;
+      }
+
+      if (!isValidSemver(version)) {
+        logger.error(`❌ Invalid version format in ${chain}.json: ${version}`);
+        allValid = false;
+      }
+    } catch (error) {
+      logger.warn(`⚠️ Could not validate ${chain}: ${error}`);
+    }
+  }
+
+  return allValid;
 };

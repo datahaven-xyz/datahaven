@@ -48,6 +48,12 @@ export const validateDeploymentParams = (options: ContractDeploymentOptions) => 
  */
 export const buildContracts = async () => {
   logger.info("🛳️ Building contracts...");
+
+  // Generate version file before compilation
+  logger.debug("📝 Generating version constants from deployment files...");
+  const { generateVersionFile } = await import("./generate-version.ts");
+  await generateVersionFile();
+
   const {
     exitCode: buildExitCode,
     stderr: buildStderr,

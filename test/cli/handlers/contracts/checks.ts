@@ -2,7 +2,8 @@ import { logger, printDivider, printHeader } from "utils";
 import {
   checkContractVersions,
   checkDependencyVersions,
-  updateDependencyVersions
+  updateDependencyVersions,
+  validateVersionFormats
 } from "utils/contracts/versioning";
 
 type ContractsFlightOptions = {
@@ -69,6 +70,14 @@ export const contractsChecks = async (options: any, command: any) => {
   printHeader(`Contracts Checks on ${chain}`);
 
   try {
+    // Validate version formats
+    logger.info("🔍 Validating version formats...");
+    const formatOk = await validateVersionFormats();
+    if (!formatOk) {
+      throw new Error("Version format validation failed");
+    }
+
+    // Run existing version checks
     await versioningPreChecks({ chain, rpcUrl: options.rpcUrl });
     printDivider();
     logger.success("Contract checks passed");

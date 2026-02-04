@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { logger } from "utils";
 import { getDependencyVersions } from "utils/dependencyVersions";
@@ -24,7 +24,7 @@ const main = async () => {
     const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
     const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
 
-    const raw = readFileSync(deploymentPath, "utf8");
+    const raw = await Bun.file(deploymentPath).text();
     const deploymentsJson = JSON.parse(raw) as {
       deps?: { eigenlayer?: any; snowbridge?: any };
       version?: string;

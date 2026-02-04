@@ -142,7 +142,7 @@ export const getCurrentVersion = async (chain: string | undefined): Promise<stri
     const deploymentsJson = JSON.parse(raw) as { version?: string };
 
     return deploymentsJson.version || "0.1.0";
-  } catch (error) {
+  } catch (_) {
     // File doesn't exist yet (new deployment), use default
     logger.debug(`No existing deployment file for ${chain}, using default version 0.1.0`);
     return "0.1.0";

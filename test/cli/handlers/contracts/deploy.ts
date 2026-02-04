@@ -50,7 +50,7 @@ export const contractsDeploy = async (options: any, command: any) => {
     }
 
     // Chain is guaranteed to be defined by preAction hook validation
-    await versioningPreChecks({ chain, rpcUrl: options.rpcUrl });
+    await versioningPreChecks({ chain: chain!, rpcUrl: options.rpcUrl });
 
     // Chain is guaranteed to be defined by preAction hook validation
     await deployContracts({
@@ -63,7 +63,7 @@ export const contractsDeploy = async (options: any, command: any) => {
       txExecution: txExecutionOverride
     });
 
-    await versioningPostChecks({ chain, rpcUrl: options.rpcUrl });
+    await versioningPostChecks({ chain: chain!, rpcUrl: options.rpcUrl });
 
     printDivider();
   } catch (error) {

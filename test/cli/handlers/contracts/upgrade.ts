@@ -117,8 +117,11 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
     // Update proxy contracts to point to new implementations
     await updateProxyContracts(options.chain, rpcUrl, privateKey, serviceManagerImplAddress);
 
-    // Bump version (patch) to reflect upgraded contracts
-    await bumpVersionForUpgrade(options.chain);
+    // Bump version (patch) to reflect upgraded contracts and get the new version
+    const newVersion = await bumpVersionForUpgrade(options.chain);
+
+    // Update on-chain version to match deployment file
+    await updateOnChainVersion(options.chain, rpcUrl, privateKey, newVersion);
 
     // Verify contracts if requested
     if (options.verify) {
@@ -294,7 +297,7 @@ const updateServiceManagerProxy = async (
   }
 };
 
-const bumpVersionForUpgrade = async (chain: string) => {
+const bumpVersionForUpgrade = async (chain: string): Promise<string> => {
   const deployments = await parseDeploymentsFile(chain);
   const anyDeployments = deployments as any;
 
@@ -320,4 +323,53 @@ const bumpVersionForUpgrade = async (chain: string) => {
   writeFileSync(deploymentPath, jsonContent);
 
   logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
+
+  return next;
+};
+
+/**
+ * Updates the on-chain version by calling updateVersion() on the ServiceManager
+ */
+const updateOnChainVersion = async (
+  chain: string,
+  rpcUrl: string,
+  privateKey: string,
+  version: string
+): Promise<void> => {
+  logger.info(`📝 Updating on-chain version to ${version}...`);
+
+  try {
+    const deployments = await parseDeploymentsFile(chain);
+    const serviceManagerAddress = (deployments as any).ServiceManager;
+
+    if (!serviceManagerAddress) {
+      throw new Error("ServiceManager address not found in deployment file");
+    }
+
+    // Use cast to call updateVersion on the ServiceManager
+    const args = [
+      "send",
+      serviceManagerAddress,
+      "updateVersion(string)",
+      version,
+      "--rpc-url",
+      rpcUrl,
+      "--private-key",
+      privateKey
+    ];
+
+    const env: Record<string, string> = {};
+    // Only copy defined env vars
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined) {
+        env[key] = value;
+      }
+    }
+    await executeCommand("cast", args, env, "../contracts");
+
+    logger.success(`✅ On-chain version updated to ${version}`);
+  } catch (error) {
+    logger.error(`❌ Failed to update on-chain version: ${error}`);
+    throw error;
+  }
 };

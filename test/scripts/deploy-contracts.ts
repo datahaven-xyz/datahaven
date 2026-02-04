@@ -125,6 +125,30 @@ export const executeDeployment = async (
   logger.success("Contracts deployed successfully");
 };
 
+/**
+ * Gets the current version from deployment file, or returns default for new deployments
+ */
+export const getCurrentVersion = async (chain: string | undefined): Promise<string> => {
+  if (!chain) {
+    return "0.1.0";
+  }
+
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
+
+    const raw = readFileSync(deploymentPath, "utf8");
+    const deploymentsJson = JSON.parse(raw) as { version?: string };
+
+    return deploymentsJson.version || "0.1.0";
+  } catch (error) {
+    // File doesn't exist yet (new deployment), use default
+    logger.debug(`No existing deployment file for ${chain}, using default version 0.1.0`);
+    return "0.1.0";
+  }
+};
+
 export const bumpVersionAndUpdateDepsForDeploy = async (chain: string | undefined) => {
   if (!chain) {
     return;
@@ -288,9 +312,13 @@ export const deployContracts = async (options: {
   // Build contracts
   await buildContracts();
 
+  // Get current version before deployment (will be used for initialization)
+  const currentVersion = await getCurrentVersion(options.chain);
+  logger.info(`📌 Deploying with version: ${currentVersion}`);
+
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  const env = buildDeploymentEnv(deploymentOptions);
+  const env = buildDeploymentEnv(deploymentOptions, currentVersion);
   await executeDeployment(deployCommand, undefined, networkId, env);
 
   if (!txExecutionEnabled) {
@@ -309,7 +337,7 @@ const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
   return (key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`;
 };
 
-const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
+const buildDeploymentEnv = (options: ContractDeploymentOptions, version: string) => {
   const env: Record<string, string> = {};
 
   if (options.privateKey) {
@@ -327,6 +355,9 @@ const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
   if (typeof options.txExecution === "boolean") {
     env.TX_EXECUTION = options.txExecution ? "true" : "false";
   }
+
+  // Pass version to Solidity scripts for contract initialization
+  env.DATAHAVEN_VERSION = version;
 
   return env;
 };

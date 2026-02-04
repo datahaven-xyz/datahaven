@@ -1,6 +1,7 @@
 export * from "./blockscout";
 export * from "./constants";
 export * from "./contracts";
+export * from "./contracts/versioning";
 export * from "./docker";
 export * from "./events";
 export * from "./input";

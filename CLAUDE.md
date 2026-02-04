@@ -34,8 +34,10 @@ bun typecheck                      # TypeScript type checking
 
 # Code Generation (run after contract/runtime changes)
 bun generate:wagmi                 # Generate TypeScript contract bindings
+bun generate:version               # Generate Solidity version constants from deployments
 bun generate:types                 # Generate Polkadot-API types from runtime
 bun generate:types:fast            # Generate types with fast-runtime feature
+bun validate:versions              # Validate version consistency across codebase
 
 # Local Development - Quick Start
 bun cli launch                     # Interactive launcher (recommended)
@@ -110,11 +112,32 @@ datahaven/
 - **Kurtosis**: Orchestrates multi-container test environments
 - **Parallel Testing**: Use `test:e2e:parallel` for faster CI runs
 
+### Version Management
+
+DataHaven uses automated version synchronization:
+
+- **Source of Truth**: `contracts/deployments/{chain}.json` version field (anvil, hoodi, ethereum)
+- **Generation**: `bun generate:version` creates `contracts/src/generated/Version.sol`
+- **On-Chain**: Contract reads version from generated constants based on deployment chain
+- **CI Validation**: Automated checks ensure consistency
+- **Multi-Environment**: Both `stagenet-hoodi` and `testnet-hoodi` share `hoodi.json` version
+
+#### Version Bump Flow
+- **Deploy**: MINOR bump (X.Y.0 → X.(Y+1).0) via `bun cli contracts deploy`
+- **Upgrade**: PATCH bump (X.Y.Z → X.Y.(Z+1)) via `bun cli contracts upgrade`
+- **Manual MAJOR**: Edit deployment JSON manually for breaking changes
+
+#### If Version Out of Sync
+1. Run `bun generate:version` to regenerate Version.sol
+2. Commit both deployment JSON and generated file
+3. Run `bun generate:wagmi` if contract ABI changed
+
 ### Development Workflow
 1. Make changes to relevant component
 2. Run component-specific tests and linters
 3. Regenerate bindings if contracts/runtime changed:
    - `bun generate:wagmi` for contract changes
+   - `bun generate:version` for deployment version changes (auto-runs during build)
    - `bun generate:types` for runtime changes
 4. Build Docker image for operator changes: `bun build:docker:operator`
 5. Run E2E tests to verify integration: `bun test:e2e`
@@ -124,6 +147,7 @@ datahaven/
 - **Types mismatch**: Regenerate with `bun generate:types` after runtime changes
 - **Kurtosis not running**: Ensure Docker is running and Kurtosis engine is started
 - **Contract changes not reflected**: Run `bun generate:wagmi` after modifications
+- **Version out of sync**: Run `bun generate:version` and commit the generated file
 - **Forge build errors**: Try `forge clean` then rebuild
 - **Slow development cycle**: Use `--features fast-runtime` for faster block times
 - **Network launch halts**: Check Blockscout - forge output can appear frozen

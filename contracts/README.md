@@ -63,12 +63,20 @@ Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/de
 
 ### Contract versioning (version)
 
-- Each `contracts/deployments/<network>.json` file stores a single `version` field next to the deployed contract addresses.
-- `bun cli contracts deploy` performs a **MINOR** bump (`X.Y.0`) of `version` after a successful full deployment.
-- `bun cli contracts upgrade` performs a **PATCH** bump (`X.Y.Z → X.Y.(Z+1)`) after a successful upgrade.
-- There's no automatic way of changing a **MAJOR** version; bump it manually when necessary (breaking API change, major design change, etc.).
-- `DATAHAVEN_VERSION` constants in core contracts (e.g. `DataHavenServiceManager`, `RewardsRegistry`) are informational mirrors of this `version` value for on-chain introspection.
-- From the `test/` directory, you can run `bun run check:contracts:version -- --chain <chain>` to assert that on-chain constants match `contracts/deployments/<chain>.json` `version`.
+DataHaven uses automated version synchronization between deployment files and Solidity contracts:
+
+- Each `contracts/deployments/<network>.json` stores a `version` field (semantic versioning: `X.Y.Z`).
+- `DATAHAVEN_VERSION` is auto-generated from deployment files via `bun generate:version` in the `test/` directory.
+- Version is set dynamically based on deployment chain during contract initialization:
+  - `anvil` (chainId: 31337) → uses `ANVIL_VERSION` constant
+  - `hoodi` (chainId: 17000) → uses `HOODI_VERSION` constant
+  - `ethereum` (chainId: 1) → uses `ETHEREUM_VERSION` constant
+- Multiple environments can share the same deployment file (e.g., `stagenet-hoodi` and `testnet-hoodi` both use `hoodi.json`).
+- `bun cli contracts deploy` performs a **MINOR** bump (`X.Y.0 → X.(Y+1).0`).
+- `bun cli contracts upgrade` performs a **PATCH** bump (`X.Y.Z → X.Y.(Z+1)`).
+- MAJOR version bumps must be done manually for breaking changes.
+- CI validates version consistency automatically via `.github/workflows/task-check-versions.yml`.
+- From the `test/` directory, run `bun cli contracts checks --chain <chain>` to validate versions.
 
 ## How It Works
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.

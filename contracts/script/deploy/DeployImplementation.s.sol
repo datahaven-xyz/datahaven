@@ -19,7 +19,7 @@ import {
 
 /**
  * @title DeployImplementation
- * @notice Script for deploying only implementation contracts for upgrades
+ * @notice Script for deploying implementation contracts and upgrading proxies
  */
 contract DeployImplementation is Script {
     function run() public {

@@ -5,7 +5,7 @@ edition = "2021"
 homepage = "https://datahaven.xyz/"
 license = "GPL-3"
 repository = "https://github.com/datahavenxyz/datahaven"
-version = "0.21.0"
+version = "0.22.0"
 
 [workspace]
 members = [
@@ -28,6 +28,7 @@ datahaven-stagenet-runtime = { path = "./runtime/stagenet", default-features = f
 datahaven-testnet-runtime = { path = "./runtime/testnet", default-features = false }
 dhp-bridge = { path = "./primitives/bridge", default-features = false }
 pallet-datahaven-native-transfer = { path = "./pallets/datahaven-native-transfer", default-features = false }
+pallet-session-benchmarking = { path = "./pallets/session-benchmarking", default-features = false }
 pallet-evm-precompile-balances-erc20 = { path = "./precompiles/erc20-balances", default-features = false }
 pallet-evm-precompile-batch = { path = "./precompiles/batch", default-features = false }
 pallet-evm-precompile-call-permit = { path = "./precompiles/call-permit", default-features = false }
@@ -67,6 +68,10 @@ impl-serde = { version = "0.5.0", default-features = false }
 impl-trait-for-tuples = { version = "0.2.2" }
 itoa = { version = "1.0" }
 jsonrpsee = { version = "0.24.3" }
+k256 = { version = "0.13.4", default-features = false, features = [
+    "ecdsa",
+    "alloc",
+] }
 libsecp256k1 = { version = "0.7", default-features = false }
 log = { version = "0.4.25" }
 macro_rules_attribute = { version = "0.2.0" }
@@ -113,6 +118,7 @@ frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polk
 frame-system-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+mmr-gadget = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 mmr-rpc = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-authorship = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
@@ -139,7 +145,6 @@ pallet-referenda = { git = "https://github.com/paritytech/polkadot-sdk", tag = "
 pallet-safe-mode = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
-pallet-session-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-staking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
@@ -191,6 +196,7 @@ sp-inherents = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polk
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-keystore = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
+sp-mmr-primitives = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }
 sp-runtime-interface = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2412-6", default-features = false }

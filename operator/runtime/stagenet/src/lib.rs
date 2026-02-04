@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 200 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 1000,
+    spec_version: 1100,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -203,7 +203,7 @@ parameter_types! {
 parameter_types! {
     // TODO: Change ED to 1 after upgrade to Polkadot SDK stable2503
     // cfr. https://github.com/paritytech/polkadot-sdk/pull/7379
-    pub const ExistentialDeposit: Balance = 100;
+    pub const ExistentialDeposit: Balance = 1;
 }
 
 /// The version information used to identify this runtime when compiled natively.
@@ -974,6 +974,7 @@ impl_runtime_apis! {
             use frame_system_benchmarking::Pallet as SystemBench;
 
             impl frame_system_benchmarking::Config for Runtime {}
+            impl pallet_session_benchmarking::Config for Runtime {}
             impl baseline::Config for Runtime {}
 
             use frame_support::traits::WhitelistedStorageKeys;

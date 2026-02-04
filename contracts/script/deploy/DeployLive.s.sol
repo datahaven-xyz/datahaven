@@ -29,10 +29,11 @@ import {
 } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
- * @title DeployTestnet
- * @notice Deployment script for testnets (hoodi) - references existing EigenLayer contracts
+ * @title DeployLive
+ * @notice Deployment script for live networks (hoodi testnet, ethereum mainnet)
+ * @dev References existing EigenLayer contracts on the target chain
  */
-contract DeployTestnet is DeployBase {
+contract DeployLive is DeployBase {
     string public networkName;
 
     function run() public {
@@ -40,7 +41,7 @@ contract DeployTestnet is DeployBase {
         networkName = vm.envString("NETWORK");
         require(
             bytes(networkName).length > 0,
-            "NETWORK environment variable required for testnet deployment"
+            "NETWORK environment variable required for live deployment"
         );
 
         _validateNetwork(networkName);
@@ -49,7 +50,7 @@ contract DeployTestnet is DeployBase {
         address avsOwnerEnv = vm.envOr("AVS_OWNER_ADDRESS", address(0));
         require(
             avsOwnerEnv != address(0),
-            "AVS_OWNER_ADDRESS env variable required for testnet deployments"
+            "AVS_OWNER_ADDRESS env variable required for live deployments"
         );
 
         _executeSharedDeployment();
@@ -60,8 +61,8 @@ contract DeployTestnet is DeployBase {
         return networkName;
     }
 
-    function _getDeploymentMode() internal pure override returns (string memory) {
-        return "HOODI_TESTNET";
+    function _getDeploymentMode() internal view override returns (string memory) {
+        return string.concat("LIVE_", networkName);
     }
 
     function _setupEigenLayerContracts(
@@ -100,16 +101,16 @@ contract DeployTestnet is DeployBase {
         Logging.logStep("All EigenLayer contracts referenced successfully");
         Logging.logFooter();
 
-        // Testnet deployments create their own ProxyAdmin (no existing one from EigenLayer deployment)
+        // Live deployments create their own ProxyAdmin (no existing one from EigenLayer deployment)
         return ProxyAdmin(address(0)); // Will be created in _createServiceManagerProxy
     }
 
     function _createServiceManagerProxy(
         DataHavenServiceManager implementation,
-        ProxyAdmin, // Ignored for testnet deployment
+        ProxyAdmin, // Ignored for live deployment
         ServiceManagerInitParams memory params
     ) internal override returns (DataHavenServiceManager) {
-        // Testnet deployment creates its own ProxyAdmin for the service manager
+        // Live deployment creates its own ProxyAdmin for the service manager
         vm.broadcast(_deployerPrivateKey);
         ProxyAdmin proxyAdmin = new ProxyAdmin();
         Logging.logContractDeployed("ProxyAdmin", address(proxyAdmin));
@@ -186,7 +187,7 @@ contract DeployTestnet is DeployBase {
         );
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
-        // EigenLayer contracts (existing on testnet)
+        // EigenLayer contracts (existing on live network)
         json = string.concat(json, '"DelegationManager": "', vm.toString(address(delegation)), '",');
         json = string.concat(
             json, '"StrategyManager": "', vm.toString(address(strategyManager)), '",'
@@ -209,23 +210,34 @@ contract DeployTestnet is DeployBase {
         Logging.logInfo(string.concat("Deployment info saved to: ", deploymentPath));
     }
 
-    // TESTNET-SPECIFIC FUNCTIONS
+    // LIVE DEPLOYMENT FUNCTIONS
 
     /**
-     * @notice Validate that the network is hoodi (the only supported testnet)
+     * @notice Validate that the network is in the supported allowlist
+     * @dev Supported networks:
+     *      - "hoodi", "stagenet-hoodi", "testnet-hoodi" (Hoodi testnet)
+     *      - "ethereum", "mainnet-ethereum" (Ethereum mainnet)
      */
     function _validateNetwork(
         string memory network
     ) internal pure {
-        bytes32 networkHash = keccak256(abi.encodePacked(network));
+        bytes32 h = keccak256(bytes(network));
 
-        if (networkHash != keccak256(abi.encodePacked("hoodi"))) {
-            revert(
-                string.concat(
-                    "Unsupported testnet network: ", network, ". Supported networks: hoodi"
-                )
-            );
+        if (
+            h == keccak256("hoodi") || h == keccak256("stagenet-hoodi")
+                || h == keccak256("testnet-hoodi") || h == keccak256("mainnet-ethereum")
+                || h == keccak256("ethereum")
+        ) {
+            return;
         }
+
+        revert(
+            string.concat(
+                "Unsupported network: ",
+                network,
+                ". Supported: hoodi, stagenet-hoodi, testnet-hoodi, ethereum, mainnet-ethereum"
+            )
+        );
     }
 
     /**

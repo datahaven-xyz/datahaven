@@ -27,6 +27,7 @@ frame_benchmarking::define_benchmarks!(
 
     // Substrate pallets
     [pallet_balances, Balances]
+    [pallet_session, pallet_session_benchmarking::Pallet::<Runtime>]
     // FIXME: benchmarking identity fail
     // [pallet_identity, Identity]
     [pallet_im_online, ImOnline]
@@ -43,6 +44,13 @@ frame_benchmarking::define_benchmarks!(
     [pallet_message_queue, MessageQueue]
     [pallet_safe_mode, SafeMode]
     [pallet_tx_pause, TxPause]
+
+    // StorageHub pallets
+    [pallet_nfts, Nfts]
+    [pallet_file_system, FileSystem]
+    [pallet_proofs_dealer, ProofsDealer]
+    [pallet_payment_streams, PaymentStreams]
+    [pallet_storage_providers, Providers]
 
     // Governance pallets
     [pallet_collective_technical_committee, TechnicalCommittee]

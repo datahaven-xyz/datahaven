@@ -1176,7 +1176,7 @@ dependencies = [
  "bitflags 2.9.4",
  "cexpr",
  "clang-sys",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -1521,7 +1521,7 @@ dependencies = [
  "pallet-message-queue",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -2607,7 +2607,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-mainnet-runtime"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "bridge-hub-common 0.13.1",
@@ -2629,6 +2629,7 @@ dependencies = [
  "hex",
  "hex-literal 0.3.4",
  "itoa",
+ "k256",
  "log",
  "num-bigint",
  "num_enum",
@@ -2718,8 +2719,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -2762,7 +2763,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-node"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "async-channel 1.9.0",
  "clap",
@@ -2790,6 +2791,7 @@ dependencies = [
  "hex-literal 0.3.4",
  "jsonrpsee 0.24.9",
  "log",
+ "mmr-gadget",
  "mmr-rpc",
  "openssl-sys",
  "pallet-beefy-mmr",
@@ -2859,6 +2861,7 @@ dependencies = [
  "sp-io",
  "sp-keyring",
  "sp-keystore",
+ "sp-mmr-primitives",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
@@ -2873,7 +2876,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-runtime-common"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "fp-account",
@@ -2907,7 +2910,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-stagenet-runtime"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "bridge-hub-common 0.13.1",
@@ -2929,6 +2932,7 @@ dependencies = [
  "hex",
  "hex-literal 0.3.4",
  "itoa",
+ "k256",
  "log",
  "num-bigint",
  "num_enum",
@@ -3018,8 +3022,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -3062,7 +3066,7 @@ dependencies = [
 
 [[package]]
 name = "datahaven-testnet-runtime"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "bridge-hub-common 0.13.1",
@@ -3084,6 +3088,7 @@ dependencies = [
  "hex",
  "hex-literal 0.3.4",
  "itoa",
+ "k256",
  "log",
  "num-bigint",
  "num_enum",
@@ -3173,8 +3178,8 @@ dependencies = [
  "shp-treasury-funding",
  "shp-tx-implicits-runtime-api",
  "smallvec",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -3366,7 +3371,7 @@ dependencies = [
 
 [[package]]
 name = "dhp-bridge"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -3374,7 +3379,7 @@ dependencies = [
  "pallet-datahaven-native-transfer",
  "pallet-external-validators",
  "parity-scale-codec",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -3864,7 +3869,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5766,7 +5771,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -6211,15 +6216,6 @@ name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -7723,6 +7719,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "mmr-gadget"
+version = "43.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+dependencies = [
+ "futures",
+ "log",
+ "parity-scale-codec",
+ "sc-client-api",
+ "sc-offchain",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-beefy",
+ "sp-core",
+ "sp-mmr-primitives",
+ "sp-runtime",
+]
+
+[[package]]
 name = "mmr-rpc"
 version = "39.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
@@ -8259,7 +8274,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e878c846a8abae00dd069496dbe8751b16ac1c3d6bd2a7283a938e8228f90d"
 dependencies = [
- "proc-macro-crate 1.1.3",
+ "proc-macro-crate 3.4.0",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -8701,7 +8716,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-datahaven-native-transfer"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8709,7 +8724,7 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -8813,7 +8828,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-balances-erc20"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -8836,7 +8851,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-batch"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8875,7 +8890,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-call-permit"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8941,7 +8956,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-datahaven-native-transfer"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -8955,7 +8970,7 @@ dependencies = [
  "parity-scale-codec",
  "precompile-utils",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9034,7 +9049,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-proxy"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "evm",
  "fp-evm",
@@ -9078,7 +9093,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-registry"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -9129,7 +9144,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9139,7 +9154,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9163,7 +9178,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-external-validators-rewards"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9176,7 +9191,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-outbound-queue-primitives",
  "sp-core",
  "sp-io",
@@ -9211,6 +9226,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "num-bigint",
  "pallet-file-system-runtime-api",
@@ -9221,6 +9237,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "shp-constants",
+ "shp-file-key-verifier",
  "shp-file-metadata",
  "shp-traits",
  "sp-core",
@@ -9400,7 +9417,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-outbound-commitment-store"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9482,11 +9499,15 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
  "pallet-balances",
  "pallet-proofs-dealer-runtime-api",
  "pallet-storage-providers",
  "parity-scale-codec",
  "scale-info",
+ "shp-file-key-verifier",
+ "shp-file-metadata",
+ "shp-forest-verifier",
  "shp-traits",
  "sp-core",
  "sp-keyring",
@@ -9520,7 +9541,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-proxy-genesis-companion"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9631,18 +9652,15 @@ dependencies = [
 
 [[package]]
 name = "pallet-session-benchmarking"
-version = "39.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2412-6#bbc435c7667d3283ba280a8fec44676357392753"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-session",
- "pallet-staking",
  "parity-scale-codec",
- "rand 0.8.5",
  "sp-runtime",
- "sp-session",
+ "sp-std",
 ]
 
 [[package]]
@@ -11104,7 +11122,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -11124,8 +11142,8 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.14.0",
+ "heck 0.5.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -11158,7 +11176,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -11918,7 +11936,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -14782,7 +14800,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-beacon-primitives"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "byte-slice-cast",
  "frame-support",
@@ -14827,7 +14845,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-core"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "bp-relayers",
  "ethabi-decode",
@@ -14904,8 +14922,8 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-verification-primitives",
  "sp-core",
  "sp-io",
@@ -14918,7 +14936,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-merkle-tree"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "array-bytes",
  "hex",
@@ -14959,7 +14977,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-primitives"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "ethabi-decode",
@@ -14971,7 +14989,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-verification-primitives",
  "sp-arithmetic",
  "sp-core",
@@ -14985,12 +15003,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-outbound-queue-v2-runtime-api"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
  "sp-api",
@@ -15000,7 +15018,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-ethereum-client"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -15013,8 +15031,8 @@ dependencies = [
  "scale-info",
  "serde",
  "serde_json",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-ethereum 0.3.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client-fixtures",
@@ -15030,8 +15048,8 @@ name = "snowbridge-pallet-ethereum-client-fixtures"
 version = "0.9.0"
 dependencies = [
  "hex-literal 0.3.4",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -15039,7 +15057,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-inbound-queue-v2"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -15053,8 +15071,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-pallet-ethereum-client",
  "snowbridge-pallet-inbound-queue-v2-fixtures",
@@ -15075,8 +15093,8 @@ name = "snowbridge-pallet-inbound-queue-v2-fixtures"
 version = "0.10.0"
 dependencies = [
  "hex-literal 0.3.4",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "sp-core",
  "sp-std",
@@ -15106,7 +15124,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-outbound-queue-v2"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "alloy-core",
  "bp-relayers",
@@ -15120,8 +15138,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "snowbridge-beacon-primitives 0.21.0",
- "snowbridge-core 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-inbound-queue-primitives",
  "snowbridge-merkle-tree",
  "snowbridge-outbound-queue-primitives",
@@ -15152,7 +15170,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-outbound-queue",
  "sp-core",
@@ -15165,7 +15183,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-pallet-system-v2"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -15177,7 +15195,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "snowbridge-outbound-queue-primitives",
  "snowbridge-pallet-outbound-queue-v2",
  "snowbridge-pallet-system",
@@ -15193,10 +15211,10 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-system-v2-runtime-api"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "parity-scale-codec",
- "snowbridge-core 0.21.0",
+ "snowbridge-core 0.22.0",
  "sp-api",
  "sp-std",
  "staging-xcm",
@@ -15204,7 +15222,7 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-test-utils"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -15224,12 +15242,12 @@ dependencies = [
 
 [[package]]
 name = "snowbridge-verification-primitives"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "snowbridge-beacon-primitives 0.21.0",
+ "snowbridge-beacon-primitives 0.22.0",
  "sp-core",
  "sp-std",
 ]
@@ -16810,7 +16828,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -18416,7 +18434,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -18477,20 +18495,7 @@ dependencies = [
  "windows-interface",
  "windows-link 0.1.3",
  "windows-result 0.3.4",
- "windows-strings 0.4.2",
-]
-
-[[package]]
-name = "windows-core"
-version = "0.62.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
-dependencies = [
- "windows-implement",
- "windows-interface",
- "windows-link 0.2.1",
- "windows-result 0.4.1",
- "windows-strings 0.5.1",
+ "windows-strings",
 ]
 
 [[package]]
@@ -18567,30 +18572,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows-result"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7781fa89eaf60850ac3d2da7af8e5242a5ea78d1a11c49bf2910bb5a73853eb5"
-dependencies = [
- "windows-link 0.2.1",
-]
-
-[[package]]
 name = "windows-strings"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56e6c93f3a0c3b36176cb1327a4958a0353d5d166c2a35cb268ace15e91d3b57"
 dependencies = [
  "windows-link 0.1.3",
-]
-
-[[package]]
-name = "windows-strings"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7837d08f69c77cf6b07689544538e017c1bfcf57e34b4c0ff58e6c2cd3b37091"
-dependencies = [
- "windows-link 0.2.1",
 ]
 
 [[package]]

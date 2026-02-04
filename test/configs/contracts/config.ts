@@ -14,8 +14,8 @@ export const CHAIN_CONFIGS = {
     EPOCHS_PER_SYNC_COMMITTEE_PERIOD: 256,
     SYNC_COMMITTEE_SIZE: 512
   },
-  mainnet: {
-    NETWORK_NAME: "mainnet",
+  ethereum: {
+    NETWORK_NAME: "ethereum",
     CHAIN_ID: 1,
     RPC_URL: "https://eth.llamarpc.com",
     BLOCK_EXPLORER: "https://etherscan.io/",
@@ -39,22 +39,39 @@ export const getChainConfig = (chain: string) => {
   return CHAIN_CONFIGS[chain as keyof ChainConfigType];
 };
 
-export const loadChainConfig = async (chain: string) => {
+/**
+ * Builds the network identifier from chain and optional environment
+ * When environment is specified: {environment}-{chain} (e.g., "stagenet-hoodi")
+ * When environment is not specified: {chain} (e.g., "hoodi")
+ */
+export const buildNetworkId = (chain: string, environment?: string): string => {
+  return environment ? `${environment}-${chain}` : chain;
+};
+
+/**
+ * Loads chain configuration from the config file
+ * @param chain - The target chain (hoodi, mainnet, anvil)
+ * @param environment - Optional deployment environment (stagenet, testnet, mainnet)
+ *                      When specified, loads from {environment}-{chain}.json
+ */
+export const loadChainConfig = async (chain: string, environment?: string) => {
+  const networkId = buildNetworkId(chain, environment);
+
   try {
-    const configPath = `../contracts/config/${chain}.json`;
+    const configPath = `../contracts/config/${networkId}.json`;
     const configFile = Bun.file(configPath);
 
     if (!(await configFile.exists())) {
-      throw new Error(`${chain} configuration file not found at ${configPath}`);
+      throw new Error(`${networkId} configuration file not found at ${configPath}`);
     }
 
     const configContent = await configFile.text();
     const config = JSON.parse(configContent);
 
-    logger.debug(`✅ ${chain} configuration loaded successfully`);
+    logger.debug(`✅ ${networkId} configuration loaded successfully`);
     return config;
   } catch (error) {
-    logger.error(`❌ Failed to load ${chain} configuration: ${error}`);
+    logger.error(`❌ Failed to load ${networkId} configuration: ${error}`);
     throw error;
   }
 };

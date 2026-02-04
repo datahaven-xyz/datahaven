@@ -91,7 +91,6 @@ use datahaven_runtime_common::{
     },
     time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
-use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
     dispatch::DispatchClass,
@@ -126,7 +125,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter},
+    v2::ConstantGasMeter,
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -387,7 +386,7 @@ impl pallet_session::Config for Runtime {
     >;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
-    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = stagenet_weights::pallet_session::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1038,8 +1037,8 @@ impl pallet_evm_chain_id::Config for Runtime {}
 
 // --- Snowbridge Config Constants & Parameter Types ---
 parameter_types! {
-    // Hoodi testnet genesis hash
-    pub const StagenetGenesisHash: [u8; 32] = hex_literal::hex!("bbe312868b376a3001692a646dd2d7d1e4406380dfd86b98aa8a34d1557c971b");
+    // DataHaven stagenet genesis hash
+    pub const StagenetGenesisHash: [u8; 32] = hex_literal::hex!("72d0856fd339e09cb21df7bac8ac3120bd871e327ec0e1658395df68acef9bee");
     pub UniversalLocation: InteriorLocation = [
         GlobalConsensus(ByGenesis(StagenetGenesisHash::get()))
     ].into();
@@ -1105,47 +1104,13 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type Helper = ();
 }
 
-// Fork versions for runtime benchmarks - must match the fixtures for BLS verification to work
-// The fixtures are generated with standard testnet fork versions
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-    pub const ChainForkVersions: ForkVersions = ForkVersions {
-        genesis: Fork {
-            version: hex_literal::hex!("00000000"),
-            epoch: 0,
-        },
-        altair: Fork {
-            version: hex_literal::hex!("01000000"),
-            epoch: 0,
-        },
-        bellatrix: Fork {
-            version: hex_literal::hex!("02000000"),
-            epoch: 0,
-        },
-        capella: Fork {
-            version: hex_literal::hex!("03000000"),
-            epoch: 0,
-        },
-        deneb: Fork {
-            version: hex_literal::hex!("04000000"),
-            epoch: 0,
-        },
-        electra: Fork {
-            version: hex_literal::hex!("05000000"),
-            epoch: 80000000000,
-        },
-        fulu: Fork {
-            version: hex_literal::hex!("06000000"),
-            epoch: 90000000000,
-        },
-    };
-}
-
 // For tests, fast-runtime and std configurations we use the mocked fork versions
 // These match the fork versions used by the local Ethereum network in E2E tests
-#[cfg(all(
-    any(feature = "std", feature = "fast-runtime", test),
-    not(feature = "runtime-benchmarks")
+#[cfg(any(
+    feature = "std",
+    feature = "fast-runtime",
+    feature = "runtime-benchmarks",
+    test
 ))]
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
@@ -1275,8 +1240,8 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = (
-        EigenLayerMessageProcessor<Runtime>,
-        NativeTokenTransferMessageProcessor<Runtime>,
+        dhp_bridge::EigenLayerMessageProcessor<Runtime>,
+        dhp_bridge::NativeTokenTransferMessageProcessor<Runtime>,
     );
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor = NoOpMessageProcessor;
@@ -1746,6 +1711,7 @@ mod tests {
     use snowbridge_inbound_queue_primitives::v2::{
         EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload,
     };
+    use snowbridge_outbound_queue_primitives::v2::Command;
     use sp_core::H160;
     use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;
@@ -1927,5 +1893,96 @@ mod tests {
 
             assert!(result.is_ok(), "Message from authorized origin should be accepted");
         });
+    }
+
+    /// Test that the ExternalValidatorRewardsAccount is correctly derived from the pallet ID.
+    ///
+    /// This verifies that `PalletId(*b"dh/evrew").into_account_truncating()` produces the
+    /// expected AccountId20 value, which is used in the Rewards Agent ID computation.
+    #[test]
+    fn test_external_validator_rewards_account_derivation() {
+        // Expected account: "modl" (4 bytes) + "dh/evrew" (8 bytes) + zeros (8 bytes) = 20 bytes
+        // "modl" = 0x6d6f646c
+        // "dh/evrew" = 0x64682f6576726577
+        // Result = 0x6d6f646c64682f65767265770000000000000000
+        let expected_account = AccountId::from(hex_literal::hex!(
+            "6d6f646c64682f65767265770000000000000000"
+        ));
+
+        let actual_account = ExternalValidatorRewardsAccount::get();
+
+        assert_eq!(
+            actual_account, expected_account,
+            "ExternalValidatorRewardsAccount must be derived correctly from PalletId 'dh/evrew'"
+        );
+    }
+
+    /// Test that the Rewards Agent ID (used for Snowbridge outbound messages from the rewards pallet)
+    /// is correctly computed from the chain's genesis hash and the ExternalValidatorRewardsAccount.
+    ///
+    /// This test verifies the value that should be set as `RewardsAgentOrigin` in runtime parameters
+    /// and as `rewardsMessageOrigin` in the AVS contract configuration.
+    ///
+    /// The Agent ID is computed following Snowbridge's pattern for GlobalConsensus locations:
+    /// blake2_256(SCALE_ENCODE("GlobalConsensus", ByGenesis(genesis_hash), compact_len, "AccountKey20", account_key))
+    ///
+    /// Note: Standard `AgentIdOf` doesn't support direct AccountKey20 without a Parachain junction,
+    /// so we compute the hash directly here.
+    #[test]
+    fn test_rewards_agent_id_computation() {
+        use codec::Encode;
+        use sp_core::H256;
+        use sp_io::hashing::blake2_256;
+        use xcm::prelude::NetworkId;
+
+        // Use the StagenetGenesisHash parameter
+        let genesis_hash: [u8; 32] = StagenetGenesisHash::get();
+
+        // Get the rewards pallet account (derived from PalletId "dh/evrew")
+        let rewards_account: [u8; 20] = ExternalValidatorRewardsAccount::get().into();
+
+        // Build the location description following Snowbridge's encoding pattern:
+        // ("GlobalConsensus", ByGenesis(genesis_hash), compact_len(interior), "AccountKey20", account_key)
+        //
+        // This matches the pattern in snowbridge_core::location::DescribeGlobalPrefix
+        // combined with DescribeTokenTerminal for AccountKey20.
+
+        // Interior description: "AccountKey20" + account_key (no length prefix for fixed arrays)
+        let interior: Vec<u8> = (b"AccountKey20", rewards_account).encode();
+
+        // Full encoding: "GlobalConsensus" + NetworkId::ByGenesis(genesis) + interior
+        let encoded: Vec<u8> = (
+            b"GlobalConsensus",
+            NetworkId::ByGenesis(genesis_hash),
+            interior,
+        )
+            .encode();
+
+        // Hash with blake2_256
+        let computed_agent_id = H256(blake2_256(&encoded));
+
+        // Expected Agent ID - this value must match RewardsAgentOrigin in runtime_params.rs
+        // If this test fails, update RewardsAgentOrigin to match the computed value.
+        let expected_agent_id = H256(hex_literal::hex!(
+            "56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd"
+        ));
+
+        assert_eq!(
+            computed_agent_id,
+            expected_agent_id,
+            "Computed Rewards Agent ID must match expected value.\n\
+             This value should be set as:\n\
+             - RewardsAgentOrigin in runtime_params.rs\n\
+             - rewardsMessageOrigin in AVS contract config\n\
+             \n\
+             Rewards account: 0x{}\n\
+             Genesis hash: 0x{}\n\
+             Computed: {:?}\n\
+             Expected: {:?}",
+            hex::encode(rewards_account),
+            hex::encode(genesis_hash),
+            computed_agent_id,
+            expected_agent_id
+        );
     }
 }

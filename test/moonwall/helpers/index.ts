@@ -8,6 +8,7 @@
 
 export * from "./block";
 export * from "./constants";
+export { PRECOMPILE_IDENTITY_ADDRESS, PRECOMPILE_PROXY_ADDRESS } from "./precompile-addresses";
 export * from "./contracts";
 // Export unique functions from eth-transactions that aren't in evm.ts
 export { extractRevertReason } from "./eth-transactions";
@@ -16,3 +17,5 @@ export * from "./expect";
 export * from "./fees";
 export * from "./parameters";
 export * from "./transactions";
+export * from "./modexp";
+export * from "./precompile-contract-calls";

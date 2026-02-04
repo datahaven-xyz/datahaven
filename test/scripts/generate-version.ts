@@ -6,33 +6,33 @@ import { parseDeploymentsFile } from "utils/contracts";
  * Following the pattern of generate-contracts.ts for consistency
  */
 export const generateVersionFile = async () => {
-	logger.info("📝 Generating Version.sol from deployment files...");
+  logger.info("📝 Generating Version.sol from deployment files...");
 
-	const chains = ["anvil", "hoodi", "ethereum"];
-	const versions: Record<string, string> = {};
+  const chains = ["anvil", "hoodi", "ethereum"];
+  const versions: Record<string, string> = {};
 
-	// Read versions from all deployment files
-	for (const chain of chains) {
-		try {
-			const deployments = await parseDeploymentsFile(chain);
-			const version = (deployments as any).version;
+  // Read versions from all deployment files
+  for (const chain of chains) {
+    try {
+      const deployments = await parseDeploymentsFile(chain);
+      const version = (deployments as any).version;
 
-			if (!version) {
-				logger.warn(`⚠️  No version field found in ${chain}.json, using "0.0.0"`);
-				versions[chain] = "0.0.0";
-			} else {
-				versions[chain] = version;
-				logger.debug(`  ${chain}: ${version}`);
-			}
-		} catch (error) {
-			logger.warn(`⚠️  Could not read ${chain}.json: ${error}`);
-			versions[chain] = "0.0.0";
-		}
-	}
+      if (!version) {
+        logger.warn(`⚠️  No version field found in ${chain}.json, using "0.0.0"`);
+        versions[chain] = "0.0.0";
+      } else {
+        versions[chain] = version;
+        logger.debug(`  ${chain}: ${version}`);
+      }
+    } catch (error) {
+      logger.warn(`⚠️  Could not read ${chain}.json: ${error}`);
+      versions[chain] = "0.0.0";
+    }
+  }
 
-	// Generate Solidity library
-	const timestamp = new Date().toISOString();
-	const solidityContent = `// SPDX-License-Identifier: GPL-3.0
+  // Generate Solidity library
+  const timestamp = new Date().toISOString();
+  const solidityContent = `// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
 /**
@@ -58,16 +58,16 @@ library DataHavenVersions {
 }
 `;
 
-	// Write to contracts/src/generated/Version.sol
-	const outputPath = "../contracts/src/generated/Version.sol";
-	await Bun.write(outputPath, solidityContent);
+  // Write to contracts/src/generated/Version.sol
+  const outputPath = "../contracts/src/generated/Version.sol";
+  await Bun.write(outputPath, solidityContent);
 
-	logger.success(
-		`✅ Generated Version.sol with anvil=${versions.anvil}, hoodi=${versions.hoodi}, ethereum=${versions.ethereum}`,
-	);
+  logger.success(
+    `✅ Generated Version.sol with anvil=${versions.anvil}, hoodi=${versions.hoodi}, ethereum=${versions.ethereum}`
+  );
 };
 
 // Allow direct execution
 if (import.meta.main) {
-	await generateVersionFile();
+  await generateVersionFile();
 }

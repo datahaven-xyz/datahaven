@@ -63,18 +63,19 @@ Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/de
 
 ### Contract versioning (version)
 
-DataHaven uses automated version synchronization between deployment files and Solidity contracts:
+DataHaven uses automated version synchronization with flexible per-deployment versioning:
 
 - Each `contracts/deployments/<network>.json` stores a `version` field (semantic versioning: `X.Y.Z`).
-- `DATAHAVEN_VERSION` is auto-generated from deployment files via `bun generate:version` in the `test/` directory.
-- Version is set dynamically based on deployment chain during contract initialization:
-  - `anvil` (chainId: 31337) → uses `ANVIL_VERSION` constant
-  - `hoodi` (chainId: 17000) → uses `HOODI_VERSION` constant
-  - `ethereum` (chainId: 1) → uses `ETHEREUM_VERSION` constant
-- Multiple environments can share the same deployment file (e.g., `stagenet-hoodi` and `testnet-hoodi` both use `hoodi.json`).
-- `bun cli contracts deploy` performs a **MINOR** bump (`X.Y.0 → X.(Y+1).0`).
-- `bun cli contracts upgrade` performs a **PATCH** bump (`X.Y.Z → X.Y.(Z+1)`).
-- MAJOR version bumps must be done manually for breaking changes.
+- Version is **passed as a parameter** during contract deployment (not hardcoded by chain ID).
+- Version management is **fully automated**:
+  - `bun cli contracts deploy` performs a **MINOR** bump (`X.Y.0 → X.(Y+1).0`) and sets initial version
+  - `bun cli contracts upgrade` performs a **PATCH** bump (`X.Y.Z → X.Y.(Z+1)`) and automatically calls `updateVersion()` on-chain
+  - No manual steps required!
+- Multiple environments can share the same deployment file:
+  - `stagenet-hoodi` and `testnet-hoodi` both write to `hoodi.json` (chainId: 560048)
+  - Separate contract instances can have different versions on the same chain
+- MAJOR version bumps must be done manually by editing the deployment file for breaking changes.
+- `bun generate:version` creates a reference file (`Version.sol`) for testing/tooling (not used by contracts).
 - CI validates version consistency automatically via `.github/workflows/task-check-versions.yml`.
 - From the `test/` directory, run `bun cli contracts checks --chain <chain>` to validate versions.
 

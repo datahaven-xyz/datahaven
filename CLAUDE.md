@@ -114,22 +114,26 @@ datahaven/
 
 ### Version Management
 
-DataHaven uses automated version synchronization:
+DataHaven uses automated version synchronization with flexible per-deployment versioning:
 
 - **Source of Truth**: `contracts/deployments/{chain}.json` version field (anvil, hoodi, ethereum)
-- **Generation**: `bun generate:version` creates `contracts/src/generated/Version.sol`
-- **On-Chain**: Contract reads version from generated constants based on deployment chain
+- **On-Chain Version**: Passed as initialization parameter during deployment (not hardcoded)
+- **Update Mechanism**: Call `updateVersion()` after contract upgrades to sync on-chain version
+- **Generated Reference**: `bun generate:version` creates `Version.sol` (for testing/tooling reference only)
 - **CI Validation**: Automated checks ensure consistency
-- **Multi-Environment**: Both `stagenet-hoodi` and `testnet-hoodi` share `hoodi.json` version
+- **Multi-Environment**: Environments can share deployment files (e.g., stagenet-hoodi and testnet-hoodi both use hoodi.json)
 
-#### Version Bump Flow
+#### Version Bump Flow (Fully Automated)
 - **Deploy**: MINOR bump (X.Y.0 → X.(Y+1).0) via `bun cli contracts deploy`
+  - Automatically sets initial version during contract initialization
 - **Upgrade**: PATCH bump (X.Y.Z → X.Y.(Z+1)) via `bun cli contracts upgrade`
-- **Manual MAJOR**: Edit deployment JSON manually for breaking changes
+  - Automatically updates deployment file AND calls `updateVersion()` on-chain
+  - No manual steps required!
+- **Manual MAJOR**: Edit deployment JSON manually for breaking changes, then run upgrade
 
-#### If Version Out of Sync
-1. Run `bun generate:version` to regenerate Version.sol
-2. Commit both deployment JSON and generated file
+#### If Version Out of Sync (Rare)
+1. For off-chain: Run `bun generate:version` to regenerate Version.sol reference
+2. For on-chain: `cast send $SERVICE_MANAGER "updateVersion(string)" "X.Y.Z" --private-key $OWNER_KEY`
 3. Run `bun generate:wagmi` if contract ABI changed
 
 ### Development Workflow

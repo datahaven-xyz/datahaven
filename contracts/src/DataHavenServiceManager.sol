@@ -25,6 +25,7 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 // DataHaven imports
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
+import {DataHavenVersions} from "./generated/Version.sol";
 
 /**
  * @title DataHaven ServiceManager contract
@@ -38,11 +39,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @notice The metadata for the DataHaven AVS.
     string public constant DATAHAVEN_AVS_METADATA =
         "https://raw.githubusercontent.com/datahaven-xyz/datahaven/refs/heads/main/contracts/deployments/metadata.json";
-
-    /// @notice Semantic version of the deployed DataHaven AVS stack.
-    /// This is informational and should match the `version` field in the corresponding
-    /// `contracts/deployments/<chain>.json`.
-    string public constant DATAHAVEN_VERSION = "1.0.0";
 
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
@@ -69,9 +65,15 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// Set during initialization based on deployment chain.
+    /// This should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string private _version;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[46] private __GAP;
+    uint256[45] private __GAP;
 
     // ============ Modifiers ============
 
@@ -139,6 +141,18 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         rewardsInitiator = _rewardsInitiator;
         emit RewardsInitiatorSet(address(0), _rewardsInitiator);
 
+        // Set version based on deployment chain
+        uint256 chainId = block.chainid;
+        if (chainId == 17000) { // Holesky testnet
+            _version = DataHavenVersions.HOODI_VERSION;
+        } else if (chainId == 31337) { // Anvil local testnet
+            _version = DataHavenVersions.ANVIL_VERSION;
+        } else if (chainId == 1) { // Ethereum mainnet
+            _version = DataHavenVersions.ETHEREUM_VERSION;
+        } else {
+            revert("Unsupported chain");
+        }
+
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
 
@@ -153,6 +167,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
     }
+
+    // ============ View Functions ============
+
+    /// @notice Returns the semantic version of the deployed DataHaven AVS stack
+    /// @return The version string (e.g., "1.0.0")
+    function DATAHAVEN_VERSION() external view returns (string memory) {
+        return _version;
+    }
+
+    // ============ External Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function sendNewValidatorSet(

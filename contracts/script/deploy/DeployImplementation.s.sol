@@ -61,6 +61,7 @@ contract DeployImplementation is Script {
 
         require(serviceManager != address(0), "SERVICE_MANAGER not set");
         require(newImplementation != address(0), "SERVICE_MANAGER_IMPL not set");
+        require(newImplementation.code.length > 0, "SERVICE_MANAGER_IMPL is not a contract");
         require(proxyAdmin != address(0), "PROXY_ADMIN not set");
 
         vm.broadcast();

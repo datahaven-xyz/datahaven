@@ -1,6 +1,5 @@
 import {
   buildContracts,
-  bumpVersionAndUpdateDepsForDeploy,
   constructDeployCommand,
   deployContracts as deployContractsCore,
   executeDeployment,
@@ -74,10 +73,6 @@ export const deployContracts = async (options: ContractsOptions): Promise<void> 
       txExecution: options.txExecution
     });
   }
-
-  // Ensure deployment metadata (version + deps) is updated regardless of path.
-  const chain = options.chain || "anvil";
-  await bumpVersionAndUpdateDepsForDeploy(chain);
 
   logger.success("Smart contracts deployed successfully");
 };

@@ -11,10 +11,6 @@ const ethAddressCustom = z.custom<`0x${string}`>(
   (val) => typeof val === "string" && ethAddressRegex.test(val),
   { message: "Invalid Ethereum address" }
 );
-const ethBytes32Regex = /^0x[a-fA-F0-9]{64}$/;
-const ethBytes32 = z.string().regex(ethBytes32Regex, "Invalid Ethereum bytes32");
-const ethBytes4Regex = /^0x[a-fA-F0-9]{8}$/;
-const ethBytes4 = z.string().regex(ethBytes4Regex, "Invalid Ethereum bytes4");
 
 const DeployedStrategySchema = z.object({
   address: ethAddress,
@@ -64,14 +60,6 @@ const DeploymentsSchema = z.object({
 
 export type Deployments = z.infer<typeof DeploymentsSchema>;
 
-const RewardsInfoSchema = z.object({
-  RewardsAgent: ethAddressCustom,
-  RewardsAgentOrigin: ethBytes32,
-  updateRewardsMerkleRootSelector: ethBytes4
-});
-
-export type RewardsInfo = z.infer<typeof RewardsInfoSchema>;
-
 export const parseDeploymentsFile = async (network = "anvil"): Promise<Deployments> => {
   const deploymentsPath = `../contracts/deployments/${network}.json`;
   const deploymentsFile = Bun.file(deploymentsPath);
@@ -88,24 +76,6 @@ export const parseDeploymentsFile = async (network = "anvil"): Promise<Deploymen
   } catch (error) {
     logger.error(`Failed to parse ${network} deployments file:`, error);
     throw new Error(`Invalid ${network} deployments file format`);
-  }
-};
-
-export const parseRewardsInfoFile = async (network = "anvil"): Promise<RewardsInfo> => {
-  const rewardsInfoPath = `../contracts/deployments/${network}-rewards-info.json`;
-  const rewardsInfoFile = Bun.file(rewardsInfoPath);
-  if (!(await rewardsInfoFile.exists())) {
-    logger.error(`File ${rewardsInfoPath} does not exist`);
-    throw new Error(`Error reading ${network} rewards info file`);
-  }
-  const rewardsInfoJson = await rewardsInfoFile.json();
-  try {
-    const parsedRewardsInfo = RewardsInfoSchema.parse(rewardsInfoJson);
-    logger.debug(`Successfully parsed ${network} rewards info file.`);
-    return parsedRewardsInfo;
-  } catch (error) {
-    logger.error(`Failed to parse ${network} rewards info file:`, error);
-    throw new Error(`Invalid ${network} rewards info file format`);
   }
 };
 

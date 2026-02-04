@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { logger, printDivider, printHeader } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
 import { CHAIN_CONFIGS } from "../../../configs/contracts/config";
@@ -12,6 +13,28 @@ interface ContractsUpgradeOptions {
   privateKeyFile?: string;
   verify?: boolean;
 }
+
+const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
+  const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${options.chain}`);
+  }
+
+  const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
+
+  let privateKey: string;
+  if (options.privateKeyFile) {
+    privateKey = readPrivateKeyFromFile(options.privateKeyFile);
+  } else if (process.env.PRIVATE_KEY) {
+    privateKey = process.env.PRIVATE_KEY;
+  } else {
+    throw new Error(
+      "Private key is required. Provide either --private-key-file or set PRIVATE_KEY environment variable"
+    );
+  }
+
+  return { chainConfig, rpcUrl, privateKey };
+};
 
 /**
  * Reads private key from file
@@ -79,14 +102,20 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
       logger.info(`📡 Using RPC URL: ${options.rpcUrl}`);
     }
 
+    const { rpcUrl, privateKey } = resolveUpgradeContext(options);
+
     // Build contracts first
     await buildContracts();
 
     // Deploy new implementation contracts
-    await deployImplementationContracts(options);
+    const serviceManagerImplAddress = await deployImplementationContracts(
+      options.chain,
+      rpcUrl,
+      privateKey
+    );
 
     // Update proxy contracts to point to new implementations
-    await updateProxyContracts(options);
+    await updateProxyContracts(options.chain, rpcUrl, privateKey, serviceManagerImplAddress);
 
     // Bump version (patch) to reflect upgraded contracts
     await bumpVersionForUpgrade(options.chain);
@@ -96,7 +125,7 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
       logger.info("🔍 Verifying upgraded contracts...");
       await verifyContracts({
         chain: options.chain,
-        rpcUrl: options.rpcUrl,
+        rpcUrl,
         skipVerification: false
       });
     }
@@ -112,34 +141,32 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
 /**
  * Deploys only the implementation contracts
  */
-const deployImplementationContracts = async (options: ContractsUpgradeOptions) => {
+const deployImplementationContracts = async (
+  chain: string,
+  rpcUrl: string,
+  privateKey: string
+): Promise<string> => {
   logger.info("🚀 Deploying new implementation contracts...");
-
-  const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
-  if (!chainConfig) {
-    throw new Error(`Unsupported chain: ${options.chain}`);
-  }
-
-  const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
-  let privateKey: string;
-
-  if (options.privateKeyFile) {
-    privateKey = readPrivateKeyFromFile(options.privateKeyFile);
-  } else if (process.env.PRIVATE_KEY) {
-    privateKey = process.env.PRIVATE_KEY;
-  } else {
-    throw new Error(
-      "Private key is required. Provide either --private-key-file or set PRIVATE_KEY environment variable"
-    );
-  }
 
   // Deploy new ServiceManager implementation
   const serviceManagerImplAddress = await deployServiceManagerImplementation(
-    options.chain,
+    chain,
     rpcUrl,
     privateKey
   );
   logger.success(`ServiceManager Implementation deployed: ${serviceManagerImplAddress}`);
+
+  // Persist the new implementation address so it becomes the source-of-truth for subsequent steps.
+  const deploymentPath = `../contracts/deployments/${chain}.json`;
+  const currentDeployments = await parseDeploymentsFile(chain);
+  const updatedDeployments = {
+    ...(currentDeployments as any),
+    ServiceManagerImplementation: serviceManagerImplAddress
+  };
+  writeFileSync(deploymentPath, JSON.stringify(updatedDeployments, null, 2));
+  logger.info(`📝 Updated ${deploymentPath} with new ServiceManagerImplementation`);
+
+  return serviceManagerImplAddress;
 };
 
 /**
@@ -172,12 +199,7 @@ const deployServiceManagerImplementation = async (
     "script/deploy/DeployImplementation.s.sol:DeployImplementation",
     "--sig",
     "deployServiceManagerImpl()",
-    "--broadcast",
-    "--verify",
-    "--verifier",
-    "etherscan",
-    "--etherscan-api-key",
-    process.env.ETHERSCAN_API_KEY || ""
+    "--broadcast"
   ];
 
   try {
@@ -208,30 +230,18 @@ const deployServiceManagerImplementation = async (
 /**
  * Updates proxy contracts to point to new implementations
  */
-const updateProxyContracts = async (options: ContractsUpgradeOptions) => {
+const updateProxyContracts = async (
+  chain: string,
+  rpcUrl: string,
+  privateKey: string,
+  serviceManagerImplAddress: string
+) => {
   logger.info("🔄 Updating proxy contracts...");
 
-  const deployments = await parseDeploymentsFile(options.chain);
-  const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
-  if (!chainConfig) {
-    throw new Error(`Unsupported chain: ${options.chain}`);
-  }
-  const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
-
-  // Get private key using the same logic as deployImplementationContracts
-  let privateKey: string;
-  if (options.privateKeyFile) {
-    privateKey = readPrivateKeyFromFile(options.privateKeyFile);
-  } else if (process.env.PRIVATE_KEY) {
-    privateKey = process.env.PRIVATE_KEY;
-  } else {
-    throw new Error(
-      "Private key is required for proxy updates. Provide either --private-key-file or set PRIVATE_KEY environment variable"
-    );
-  }
+  const deployments = await parseDeploymentsFile(chain);
 
   // Update ServiceManager proxy to point to new implementation
-  await updateServiceManagerProxy(deployments, rpcUrl, privateKey);
+  await updateServiceManagerProxy(deployments, rpcUrl, privateKey, serviceManagerImplAddress);
 
   logger.success("Proxy contracts updated successfully");
 };
@@ -239,7 +249,12 @@ const updateProxyContracts = async (options: ContractsUpgradeOptions) => {
 /**
  * Updates ServiceManager proxy to point to new implementation
  */
-const updateServiceManagerProxy = async (deployments: any, rpcUrl: string, privateKey: string) => {
+const updateServiceManagerProxy = async (
+  deployments: any,
+  rpcUrl: string,
+  privateKey: string,
+  serviceManagerImplAddress: string
+) => {
   logger.info("🔄 Updating ServiceManager proxy...");
 
   // Note: Private key is passed via environment variable as required by forge
@@ -256,7 +271,7 @@ const updateServiceManagerProxy = async (deployments: any, rpcUrl: string, priva
     PRIVATE_KEY: privateKey,
     RPC_URL: rpcUrl,
     SERVICE_MANAGER: deployments.ServiceManager,
-    SERVICE_MANAGER_IMPL: deployments.ServiceManagerImplementation,
+    SERVICE_MANAGER_IMPL: serviceManagerImplAddress,
     PROXY_ADMIN: proxyAdmin
   };
 
@@ -280,31 +295,29 @@ const updateServiceManagerProxy = async (deployments: any, rpcUrl: string, priva
 };
 
 const bumpVersionForUpgrade = async (chain: string) => {
-  try {
-    const deployments = await parseDeploymentsFile(chain);
-    const anyDeployments = deployments as any;
+  const deployments = await parseDeploymentsFile(chain);
+  const anyDeployments = deployments as any;
 
-    const current = anyDeployments.version as string | undefined;
-    let next = "0.0.1";
+  const current = anyDeployments.version as string | undefined;
+  let next = "0.0.1";
 
-    if (current) {
-      const [majorStr, minorStr, patchStr] = current.split(".");
-      const major = Number(majorStr);
-      const minor = Number(minorStr);
-      const patch = Number(patchStr);
+  if (current) {
+    const [majorStr, minorStr, patchStr] = current.split(".");
+    const major = Number(majorStr);
+    const minor = Number(minorStr);
+    const patch = Number(patchStr);
 
-      if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
-        next = `${major}.${minor}.${patch + 1}`;
-      }
+    if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
+      next = `${major}.${minor}.${patch + 1}`;
     }
-
-    const updated = { ...anyDeployments, version: next };
-    const deploymentPath = `../contracts/deployments/${chain}.json`;
-    const jsonContent = JSON.stringify(updated, null, 2);
-    writeFileSync(deploymentPath, jsonContent);
-
-    logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
-  } catch (error) {
-    logger.warn(`⚠️ Failed to bump deployment version for ${chain}: ${error}`);
   }
+
+  const updated = { ...anyDeployments, version: next };
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
+  const jsonContent = JSON.stringify(updated, null, 2);
+  writeFileSync(deploymentPath, jsonContent);
+
+  logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
 };

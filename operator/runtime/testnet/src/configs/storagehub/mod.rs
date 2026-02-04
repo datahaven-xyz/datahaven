@@ -14,9 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(not(feature = "runtime-benchmarks"))]
+use super::HAVE;
+#[cfg(feature = "runtime-benchmarks")]
+use super::MICROHAVE;
 use super::{
     AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
-    TreasuryAccount, HAVE,
+    TreasuryAccount,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
 use crate::{
@@ -24,6 +28,8 @@ use crate::{
     HOURS,
 };
 use core::marker::PhantomData;
+#[cfg(feature = "runtime-benchmarks")]
+use datahaven_runtime_common::benchmarking::StorageHubBenchmarking;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
 use frame_support::pallet_prelude::DispatchClass;
 use frame_support::traits::AsEnsureOriginWithArg;
@@ -33,7 +39,7 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use frame_system::{EnsureRoot, EnsureSigned};
+use frame_system::EnsureSigned;
 use num_bigint::BigUint;
 use pallet_nfts::PalletFeatures;
 use polkadot_runtime_common::prod_or_fast;
@@ -68,11 +74,25 @@ pub type StorageProofsMerkleTrieLayout = LayoutV1<BlakeTwo256>;
 pub type Hashing = BlakeTwo256;
 
 /****** NFTs pallet ******/
+#[cfg(not(feature = "runtime-benchmarks"))]
 parameter_types! {
     pub const CollectionDeposit: Balance = 100 * HAVE;
     pub const ItemDeposit: Balance = 1 * HAVE;
     pub const MetadataDepositBase: Balance = 10 * HAVE;
     pub const MetadataDepositPerByte: Balance = 1 * HAVE;
+    pub const ApprovalsLimit: u32 = 20;
+    pub const ItemAttributesApprovalsLimit: u32 = 20;
+    pub const MaxTips: u32 = 10;
+    pub const MaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
+    pub const MaxAttributesPerCall: u32 = 10;
+    pub Features: PalletFeatures = PalletFeatures::all_enabled();
+}
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const CollectionDeposit: Balance = 100 * MICROHAVE;
+    pub const ItemDeposit: Balance = 1 * MICROHAVE;
+    pub const MetadataDepositBase: Balance = 10 * MICROHAVE;
+    pub const MetadataDepositPerByte: Balance = 1 * MICROHAVE;
     pub const ApprovalsLimit: u32 = 20;
     pub const ItemAttributesApprovalsLimit: u32 = 20;
     pub const MaxTips: u32 = 10;
@@ -104,10 +124,66 @@ impl pallet_nfts::Config for Runtime {
     type Features = Features;
     type OffchainSignature = Signature;
     type OffchainPublic = <Signature as Verify>::Signer;
-    type WeightInfo = pallet_nfts::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_nfts::WeightInfo<Runtime>;
     type Locker = ();
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = benchmark_helpers::NftHelper;
 }
 /****** ****** ****** ******/
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmark_helpers {
+    use crate::{AccountId, Signature};
+    use k256::ecdsa::SigningKey;
+    use sp_runtime::traits::{IdentifyAccount, Verify};
+    use sp_runtime::MultiSignature;
+
+    const BENCH_SIGNING_KEY: [u8; 32] = [1u8; 32];
+
+    fn bench_signing_key() -> SigningKey {
+        SigningKey::from_bytes(&BENCH_SIGNING_KEY.into())
+            .expect("benchmark signing key is valid; qed")
+    }
+
+    /// Benchmark helper for NFTs pallet
+    pub struct NftHelper;
+
+    impl pallet_nfts::BenchmarkHelper<u32, u32, <Signature as Verify>::Signer, AccountId, Signature>
+        for NftHelper
+    {
+        fn collection(i: u16) -> u32 {
+            i.into()
+        }
+
+        fn item(i: u16) -> u32 {
+            i.into()
+        }
+
+        fn signer() -> (<Signature as Verify>::Signer, AccountId) {
+            let signing_key = bench_signing_key();
+            let verifying_key = signing_key.verifying_key();
+            let encoded = verifying_key.to_encoded_point(true);
+            let public = sp_core::ecdsa::Public::from_full(encoded.as_bytes())
+                .expect("encoded point is a valid compressed secp256k1 key; qed");
+            let public_key: <Signature as Verify>::Signer = public.into();
+            let account: AccountId = public_key.clone().into_account();
+            (public_key, account)
+        }
+
+        fn sign(_public: &<Signature as Verify>::Signer, message: &[u8]) -> Signature {
+            // Sign using Ethereum-style secp256k1 over keccak256(message).
+            let digest = sp_io::hashing::keccak_256(message);
+            let (sig, recovery_id) = bench_signing_key()
+                .sign_prehash_recoverable(&digest)
+                .expect("signing with fixed secret key never fails; qed");
+            let mut sig_bytes = [0u8; 65];
+            sig_bytes[..64].copy_from_slice(&sig.to_bytes());
+            sig_bytes[64] = recovery_id.to_byte();
+            let sig = sp_core::ecdsa::Signature::from_raw(sig_bytes);
+            Signature::from(MultiSignature::Ecdsa(sig))
+        }
+    }
+}
 
 /****** Relay Randomness pallet ******/
 impl pallet_randomness::Config for Runtime {
@@ -151,6 +227,7 @@ impl sp_runtime::traits::BlockNumberProvider for BlockNumberGetter {
 /****** ****** ****** ******/
 
 /****** Storage Providers pallet ******/
+#[cfg(not(feature = "runtime-benchmarks"))]
 parameter_types! {
     pub const SpMinDeposit: Balance = 100 * HAVE;
     pub const BucketDeposit: Balance = 100 * HAVE;
@@ -159,10 +236,47 @@ parameter_types! {
     // TODO: If the next line is uncommented (which should be eventually, replacing the line above), compilation breaks (most likely because of mismatched dependency issues)
     // pub const MaxBlocksForRandomness: BlockNumber = prod_or_fast!(2 * runtime_constants::time::EPOCH_DURATION_IN_SLOTS, 2 * MINUTES);
 }
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const SpMinDeposit: Balance = StorageHubBenchmarking::SP_MIN_DEPOSIT;
+    pub const BucketDeposit: Balance = StorageHubBenchmarking::BUCKET_DEPOSIT;
+    pub const BspSignUpLockPeriod: BlockNumber = 90 * DAYS; // ~3 months
+    pub const MaxBlocksForRandomness: BlockNumber = prod_or_fast!(2 * HOURS, 2 * MINUTES);
+    // TODO: If the next line is uncommented (which should be eventually, replacing the line above), compilation breaks (most likely because of mismatched dependency issues)
+    // pub const MaxBlocksForRandomness: BlockNumber = prod_or_fast!(2 * runtime_constants::time::EPOCH_DURATION_IN_SLOTS, 2 * MINUTES);
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct StorageHubTreasuryAccount;
+#[cfg(feature = "runtime-benchmarks")]
+impl Get<AccountId> for StorageHubTreasuryAccount {
+    fn get() -> AccountId {
+        let account = TreasuryAccount::get();
+        StorageHubBenchmarking::ensure_treasury_account::<AccountId, Balance, Balances>(account)
+    }
+}
+
+// Benchmark helpers for Storage Providers pallet.
+#[cfg(feature = "runtime-benchmarks")]
+pub struct ProvidersBenchmarkHelpers;
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_storage_providers::benchmarking::BenchmarkHelpers<Runtime>
+    for ProvidersBenchmarkHelpers
+{
+    type ProviderId = <Runtime as pallet_storage_providers::Config>::ProviderId;
+
+    fn set_accrued_failed_proofs(provider_id: Self::ProviderId, value: u32) {
+        pallet_proofs_dealer::SlashableProviders::<Runtime>::insert(provider_id, value);
+    }
+
+    fn get_accrued_failed_proofs(provider_id: Self::ProviderId) -> u32 {
+        pallet_proofs_dealer::SlashableProviders::<Runtime>::get(provider_id).unwrap_or(0)
+    }
+}
 
 impl pallet_storage_providers::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_storage_providers::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_storage_providers::WeightInfo<Runtime>;
     type ProvidersRandomness = pallet_randomness::RandomnessFromOneEpochAgo<Runtime>;
     type PaymentStreams = PaymentStreams;
     type ProofDealer = ProofsDealer;
@@ -188,7 +302,10 @@ impl pallet_storage_providers::Config for Runtime {
     type ProvidersProofSubmitters = ProofsDealer;
     type ReputationWeightType = u32;
     type StorageHubTickGetter = ProofsDealer;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type Treasury = TreasuryAccount;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Treasury = StorageHubTreasuryAccount;
     type SpMinDeposit = SpMinDeposit;
     type SpMinCapacity = ConstU64<2>;
     type DepositPerData = ConstU128<2>;
@@ -208,6 +325,8 @@ impl pallet_storage_providers::Config for Runtime {
     type ZeroSizeBucketFixedRate = runtime_config::ZeroSizeBucketFixedRate;
     type ProviderTopUpTtl = runtime_config::ProviderTopUpTtl;
     type MaxExpiredItemsInBlock = ConstU32<100>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelpers = ProvidersBenchmarkHelpers;
 }
 
 pub struct StorageDataUnitAndBalanceConverter;
@@ -240,7 +359,7 @@ parameter_types! {
 
 impl pallet_payment_streams::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_payment_streams::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_payment_streams::WeightInfo<Runtime>;
     type NativeBalance = Balances;
     type ProvidersPallet = Providers;
     type RuntimeHoldReason = RuntimeHoldReason;
@@ -250,7 +369,10 @@ impl pallet_payment_streams::Config for Runtime {
     type BlockNumberToBalance = BlockNumberToBalance;
     type ProvidersProofSubmitters = ProofsDealer;
     type TreasuryCutCalculator = LinearThenPowerOfTwoTreasuryCutCalculator<Runtime, Perbill>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type TreasuryAccount = TreasuryAccount;
+    #[cfg(feature = "runtime-benchmarks")]
+    type TreasuryAccount = StorageHubTreasuryAccount;
     type MaxUsersToCharge = ConstU32<10>;
     type BaseDeposit = ConstU128<10>;
 }
@@ -279,6 +401,14 @@ const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 10;
 const TOTAL_MAX_CHALLENGES_PER_BLOCK: u32 =
     RANDOM_CHALLENGES_PER_BLOCK + MAX_CUSTOM_CHALLENGES_PER_BLOCK;
 
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const BenchmarkStakeToChallengePeriod: Balance =
+        StorageHubBenchmarking::STAKE_TO_CHALLENGE_PERIOD;
+    pub const BenchmarkCheckpointChallengePeriod: BlockNumber =
+        StorageHubBenchmarking::CHECKPOINT_CHALLENGE_PERIOD;
+}
+
 parameter_types! {
     pub const RandomChallengesPerBlock: u32 = RANDOM_CHALLENGES_PER_BLOCK;
     pub const MaxCustomChallengesPerBlock: u32 = MAX_CUSTOM_CHALLENGES_PER_BLOCK;
@@ -293,7 +423,7 @@ parameter_types! {
 
 impl pallet_proofs_dealer::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_proofs_dealer::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_proofs_dealer::WeightInfo<Runtime>;
     type ProvidersPallet = Providers;
     type NativeBalance = Balances;
     type MerkleTrieHash = Hash;
@@ -306,29 +436,50 @@ impl pallet_proofs_dealer::Config for Runtime {
         { shp_constants::FILE_SIZE_TO_CHALLENGES },
     >;
     type StakeToBlockNumber = SaturatingBalanceToBlockNumber;
+    #[cfg(feature = "runtime-benchmarks")]
+    type RandomChallengesPerBlock = ConstU32<0>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type RandomChallengesPerBlock = RandomChallengesPerBlock;
+    #[cfg(feature = "runtime-benchmarks")]
+    type MaxCustomChallengesPerBlock = TotalMaxChallengesPerBlock;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type MaxCustomChallengesPerBlock = MaxCustomChallengesPerBlock;
     type MaxSubmittersPerTick = MaxSubmittersPerTick;
     type TargetTicksStorageOfSubmitters = TargetTicksStorageOfSubmitters;
     type ChallengeHistoryLength = ChallengeHistoryLength;
     type ChallengesQueueLength = ChallengesQueueLength;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type CheckpointChallengePeriod = runtime_config::CheckpointChallengePeriod;
+    #[cfg(feature = "runtime-benchmarks")]
+    type CheckpointChallengePeriod = BenchmarkCheckpointChallengePeriod;
     type ChallengesFee = ChallengesFee;
     type PriorityChallengesFee = PriorityChallengesFee;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type Treasury = TreasuryAccount;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Treasury = StorageHubTreasuryAccount;
     // TODO: Once the client logic to keep track of CR randomness deadlines and execute their submissions is implemented
     // AND after the chain has been live for enough time to have enough providers to avoid the commit-reveal randomness being
     // gameable, the randomness provider should be CrRandomness
     type RandomnessProvider = pallet_randomness::ParentBlockRandomness<Runtime>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type StakeToChallengePeriod = runtime_config::StakeToChallengePeriod;
+    #[cfg(feature = "runtime-benchmarks")]
+    type StakeToChallengePeriod = BenchmarkStakeToChallengePeriod;
     type MinChallengePeriod = runtime_config::MinChallengePeriod;
     type ChallengeTicksTolerance = ChallengeTicksTolerance;
     type BlockFullnessPeriod = ChallengeTicksTolerance; // We purposely set this to `ChallengeTicksTolerance` so that spamming of the chain is evaluated for the same blocks as the tolerance BSPs are given.
     type BlockFullnessHeadroom = BlockFullnessHeadroom;
     type MinNotFullBlocksRatio = MinNotFullBlocksRatio;
     type MaxSlashableProvidersPerTick = MaxSlashableProvidersPerTick;
-    type ChallengeOrigin = EnsureRoot<AccountId>;
-    type PriorityChallengeOrigin = EnsureRoot<AccountId>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type ChallengeOrigin = frame_system::EnsureRoot<AccountId>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ChallengeOrigin = EnsureSigned<AccountId>;
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    type PriorityChallengeOrigin = frame_system::EnsureRoot<AccountId>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type PriorityChallengeOrigin = EnsureSigned<AccountId>;
 }
 
 // Converter from the Balance type to the BlockNumber type for math.
@@ -452,11 +603,23 @@ impl Get<u32> for MaxSlashableProvidersPerTick {
 type ThresholdType = u32;
 pub type ReplicationTargetType = u32;
 
+#[cfg(not(feature = "runtime-benchmarks"))]
 parameter_types! {
     pub const BaseStorageRequestCreationDeposit: Balance = 1 * HAVE;
     pub const FileDeletionRequestCreationDeposit: Balance = 1 * HAVE;
     pub const FileSystemStorageRequestCreationHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::StorageRequestCreationHold);
     pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
+}
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const BaseStorageRequestCreationDeposit: Balance = 1 * MICROHAVE;
+    pub const FileDeletionRequestCreationDeposit: Balance = 1 * MICROHAVE;
+    pub const FileSystemStorageRequestCreationHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::StorageRequestCreationHold);
+    pub const FileSystemFileDeletionRequestHoldReason: RuntimeHoldReason = RuntimeHoldReason::FileSystem(pallet_file_system::HoldReason::FileDeletionRequestHold);
+}
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub const BenchmarkBspStopStoringFilePenalty: Balance = 1 * MICROHAVE;
 }
 
 // Converts a given signed message in a EIP-191 compliant message bytes to verify.
@@ -480,7 +643,7 @@ impl shp_traits::MessageAdapter for Eip191Adapter {
 
 impl pallet_file_system::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_file_system::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = crate::weights::pallet_file_system::WeightInfo<Runtime>;
     type Providers = Providers;
     type ProofDealer = ProofsDealer;
     type PaymentStreams = PaymentStreams;
@@ -500,8 +663,14 @@ impl pallet_file_system::Config for Runtime {
     type RuntimeHoldReason = RuntimeHoldReason;
     type Nfts = Nfts;
     type CollectionInspector = BucketNfts;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type BspStopStoringFilePenalty = runtime_config::BspStopStoringFilePenalty;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BspStopStoringFilePenalty = BenchmarkBspStopStoringFilePenalty;
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type TreasuryAccount = TreasuryAccount;
+    #[cfg(feature = "runtime-benchmarks")]
+    type TreasuryAccount = StorageHubTreasuryAccount;
     type MaxBatchConfirmStorageRequests = ConstU32<100>;
     type MaxFilePathSize = ConstU32<512u32>;
     type MaxPeerIdSize = ConstU32<100>;

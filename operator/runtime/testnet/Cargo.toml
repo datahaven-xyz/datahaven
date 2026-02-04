@@ -68,6 +68,7 @@ pallet-outbound-commitment-store = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-proxy-genesis-companion = { workspace = true }
 pallet-referenda = { workspace = true }
 pallet-safe-mode = { workspace = true }
 pallet-scheduler = { workspace = true }
@@ -83,8 +84,10 @@ pallet-utility = { workspace = true }
 pallet-whitelist = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
+k256 = { workspace = true, optional = true }
 precompile-utils = { workspace = true }
 scale-info = { workspace = true, features = ["derive", "serde"] }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, default-features = false, features = [
     "alloc",
 ] }
@@ -234,6 +237,7 @@ std = [
     "pallet-tx-pause/std",
     "pallet-referenda/std",
     "pallet-proxy/std",
+    "pallet-proxy-genesis-companion/std",
     "pallet-scheduler/std",
     "pallet-session/std",
     "pallet-sudo/std",
@@ -246,6 +250,7 @@ std = [
     "polkadot-primitives/std",
     "polkadot-runtime-common/std",
     "scale-info/std",
+    "serde/std",
     "serde_json/std",
     "snowbridge-beacon-primitives/std",
     "snowbridge-inbound-queue-primitives/std",
@@ -356,6 +361,13 @@ runtime-benchmarks = [
     "pallet-external-validators-rewards/runtime-benchmarks",
     "pallet-external-validator-slashes/runtime-benchmarks",
     "pallet-datahaven-native-transfer/runtime-benchmarks",
+    # StorageHub pallets
+    "pallet-nfts/runtime-benchmarks",
+    "pallet-file-system/runtime-benchmarks",
+    "pallet-proofs-dealer/runtime-benchmarks",
+    "pallet-payment-streams/runtime-benchmarks",
+    "pallet-storage-providers/runtime-benchmarks",
+    "dep:k256",
 ]
 
 try-runtime = [
@@ -387,6 +399,7 @@ try-runtime = [
     "pallet-tx-pause/try-runtime",
     "pallet-referenda/try-runtime",
     "pallet-proxy/try-runtime",
+    "pallet-proxy-genesis-companion/try-runtime",
     "pallet-scheduler/try-runtime",
     "pallet-session/try-runtime",
     "pallet-sudo/try-runtime",

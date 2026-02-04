@@ -49,6 +49,8 @@ use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
     RuntimeDebug,
     MaxEncodedLen,
     TypeInfo,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub enum ProxyType {
     /// Allow any call to be made by the proxy account
@@ -89,7 +91,6 @@ use datahaven_runtime_common::{
     },
     time::{EpochDurationInBlocks, SessionsPerEra, DAYS, MILLISECS_PER_BLOCK},
 };
-use dhp_bridge::{EigenLayerMessageProcessor, NativeTokenTransferMessageProcessor};
 use frame_support::{
     derive_impl,
     dispatch::DispatchClass,
@@ -124,7 +125,7 @@ use snowbridge_core::{gwei, meth, AgentIdOf, PricingParameters, Rewards, TokenId
 use snowbridge_inbound_queue_primitives::RewardLedger;
 use snowbridge_outbound_queue_primitives::{
     v1::{Fee, Message, SendMessage},
-    v2::{Command, ConstantGasMeter},
+    v2::ConstantGasMeter,
     SendError, SendMessageFeeProvider,
 };
 use snowbridge_pallet_outbound_queue_v2::OnNewCommitment;
@@ -386,7 +387,7 @@ impl pallet_session::Config for Runtime {
     >;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
-    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = mainnet_weights::pallet_session::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -595,6 +596,8 @@ parameter_types! {
     pub const MaxAdditionalFields: u32 = 100;
     pub const MaxRegistrars: u32 = 20;
     pub const PendingUsernameExpiration: u32 = 7 * DAYS;
+    pub const UsernameGracePeriod: u32 = 30 * DAYS;
+    pub const UsernameDeposit: Balance = deposit(0, MaxUsernameLength::get());
     pub const MaxSuffixLength: u32 = 7;
     pub const MaxUsernameLength: u32 = 32;
 }
@@ -626,8 +629,8 @@ impl pallet_identity::Config for Runtime {
     type MaxSuffixLength = MaxSuffixLength;
     type MaxUsernameLength = MaxUsernameLength;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
-    type UsernameDeposit = ();
-    type UsernameGracePeriod = ();
+    type UsernameDeposit = UsernameDeposit;
+    type UsernameGracePeriod = UsernameGracePeriod;
 
     // TODO: Re-enable after upgrade to Polkadot SDK stable2412-8
     // see https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-stable2412-8
@@ -825,6 +828,10 @@ impl pallet_proxy::Config for Runtime {
     type CallHasher = sp_runtime::traits::BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
+}
+
+impl pallet_proxy_genesis_companion::Config for Runtime {
+    type ProxyType = ProxyType;
 }
 
 impl pallet_parameters::Config for Runtime {
@@ -1100,47 +1107,13 @@ impl snowbridge_pallet_system_v2::Config for Runtime {
     type Helper = ();
 }
 
-// Fork versions for runtime benchmarks - must match the fixtures for BLS verification to work
-// The fixtures are generated with standard testnet fork versions
-#[cfg(feature = "runtime-benchmarks")]
-parameter_types! {
-    pub const ChainForkVersions: ForkVersions = ForkVersions {
-        genesis: Fork {
-            version: hex_literal::hex!("00000000"),
-            epoch: 0,
-        },
-        altair: Fork {
-            version: hex_literal::hex!("01000000"),
-            epoch: 0,
-        },
-        bellatrix: Fork {
-            version: hex_literal::hex!("02000000"),
-            epoch: 0,
-        },
-        capella: Fork {
-            version: hex_literal::hex!("03000000"),
-            epoch: 0,
-        },
-        deneb: Fork {
-            version: hex_literal::hex!("04000000"),
-            epoch: 0,
-        },
-        electra: Fork {
-            version: hex_literal::hex!("05000000"),
-            epoch: 80000000000,
-        },
-        fulu: Fork {
-            version: hex_literal::hex!("06000000"),
-            epoch: 90000000000,
-        },
-    };
-}
-
 // For tests, fast-runtime and std configurations we use the mocked fork versions
 // These match the fork versions used by the local Ethereum network in E2E tests
-#[cfg(all(
-    any(feature = "std", feature = "fast-runtime", test),
-    not(feature = "runtime-benchmarks")
+#[cfg(any(
+    feature = "std",
+    feature = "fast-runtime",
+    feature = "runtime-benchmarks",
+    test
 ))]
 parameter_types! {
     pub const ChainForkVersions: ForkVersions = ForkVersions {
@@ -1270,8 +1243,8 @@ impl snowbridge_pallet_inbound_queue_v2::Config for Runtime {
     type GatewayAddress = runtime_params::dynamic_params::runtime_config::EthereumGatewayAddress;
     #[cfg(not(feature = "runtime-benchmarks"))]
     type MessageProcessor = (
-        EigenLayerMessageProcessor<Runtime>,
-        NativeTokenTransferMessageProcessor<Runtime>,
+        dhp_bridge::EigenLayerMessageProcessor<Runtime>,
+        dhp_bridge::NativeTokenTransferMessageProcessor<Runtime>,
     );
     #[cfg(feature = "runtime-benchmarks")]
     type MessageProcessor = NoOpMessageProcessor;
@@ -1742,6 +1715,7 @@ mod tests {
     use snowbridge_inbound_queue_primitives::v2::{
         EthereumAsset, Message as SnowbridgeMessage, MessageProcessor, Payload as SnowPayload,
     };
+    use snowbridge_outbound_queue_primitives::v2::Command;
     use sp_core::H160;
     use sp_io::TestExternalities;
     use xcm_builder::GlobalConsensusConvertsFor;

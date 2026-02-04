@@ -8,7 +8,9 @@ contract Config {
         uint256 randaoCommitExpiration;
         uint256 minNumRequiredSignatures;
         uint64 startBlock;
+        uint128 initialValidatorSetId;
         bytes32[] initialValidatorHashes;
+        uint128 nextValidatorSetId;
         bytes32[] nextValidatorHashes;
         bytes32 rewardsMessageOrigin;
     }

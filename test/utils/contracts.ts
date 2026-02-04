@@ -60,22 +60,27 @@ const DeploymentsSchema = z.object({
 
 export type Deployments = z.infer<typeof DeploymentsSchema>;
 
-export const parseDeploymentsFile = async (network = "anvil"): Promise<Deployments> => {
-  const deploymentsPath = `../contracts/deployments/${network}.json`;
+/**
+ * Parses the deployments file for a given network
+ * @param networkId - The network identifier (e.g., "anvil", "hoodi", "stagenet-hoodi")
+ *                    This can include an environment prefix like "stagenet-" or "testnet-"
+ */
+export const parseDeploymentsFile = async (networkId = "anvil"): Promise<Deployments> => {
+  const deploymentsPath = `../contracts/deployments/${networkId}.json`;
   const deploymentsFile = Bun.file(deploymentsPath);
   if (!(await deploymentsFile.exists())) {
     logger.error(`File ${deploymentsPath} does not exist`);
-    throw new Error(`Error reading ${network} deployments file`);
+    throw new Error(`Error reading ${networkId} deployments file`);
   }
   const deploymentsJson = await deploymentsFile.json();
   logger.info(`Deployments: ${JSON.stringify(deploymentsJson, null, 2)}`);
   try {
     const parsedDeployments = DeploymentsSchema.parse(deploymentsJson);
-    logger.debug(`Successfully parsed ${network} deployments file.`);
+    logger.debug(`Successfully parsed ${networkId} deployments file.`);
     return parsedDeployments;
   } catch (error) {
-    logger.error(`Failed to parse ${network} deployments file:`, error);
-    throw new Error(`Invalid ${network} deployments file format`);
+    logger.error(`Failed to parse ${networkId} deployments file:`, error);
+    throw new Error(`Invalid ${networkId} deployments file format`);
   }
 };
 

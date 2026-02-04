@@ -1,10 +1,11 @@
 import { execSync } from "node:child_process";
 import { logger } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
-import { CHAIN_CONFIGS, getChainConfig } from "../../../configs/contracts/config";
+import { buildNetworkId, CHAIN_CONFIGS, getChainConfig } from "../../../configs/contracts/config";
 
 interface ContractsVerifyOptions {
   chain: string;
+  environment?: string;
   rpcUrl?: string;
   skipVerification: boolean;
 }
@@ -26,7 +27,10 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
     return;
   }
 
-  logger.info(`🔍 Verifying contracts on ${options.chain} block explorer using Foundry...`);
+  // Build network identifier for deployment file lookup
+  const networkId = buildNetworkId(options.chain, options.environment);
+
+  logger.info(`🔍 Verifying contracts on ${networkId} block explorer using Foundry...`);
 
   const etherscanApiKey = process.env.ETHERSCAN_API_KEY;
   if (!etherscanApiKey) {
@@ -35,7 +39,7 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
     return;
   }
 
-  const deployments = await parseDeploymentsFile(options.chain);
+  const deployments = await parseDeploymentsFile(networkId);
 
   const contractsToVerify: ContractToVerify[] = [
     {

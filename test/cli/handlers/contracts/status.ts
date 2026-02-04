@@ -1,14 +1,22 @@
 import { logger, printDivider } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
-import { getChainDeploymentParams, loadChainConfig } from "../../../configs/contracts/config";
+import {
+  buildNetworkId,
+  getChainDeploymentParams,
+  loadChainConfig
+} from "../../../configs/contracts/config";
 import { checkContractVerification } from "./verify";
 
 /**
  * Shows the status of chain deployment and verification
+ * @param chain - The target chain (hoodi, mainnet, anvil)
+ * @param environment - Optional deployment environment (stagenet, testnet, mainnet)
  */
-export const showDeploymentPlanAndStatus = async (chain: string) => {
+export const showDeploymentPlanAndStatus = async (chain: string, environment?: string) => {
+  const networkId = buildNetworkId(chain, environment);
+
   try {
-    const config = await loadChainConfig(chain);
+    const config = await loadChainConfig(chain, environment);
     const deploymentParams = getChainDeploymentParams(chain);
 
     const deployments = await parseDeploymentsFile(chain);
@@ -19,7 +27,7 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
         }
       | undefined;
 
-    const displayData = {
+    const displayData: Record<string, string> = {
       Network: `${deploymentParams.network} (Chain ID: ${deploymentParams.chainId})`,
       "RPC URL": deploymentParams.rpcUrl,
       "Block Explorer": deploymentParams.blockExplorer,
@@ -31,19 +39,24 @@ export const showDeploymentPlanAndStatus = async (chain: string) => {
       "EigenLayer Version": deps?.eigenlayer?.release ?? deps?.eigenlayer?.gitCommit ?? "(unset)",
       "Snowbridge Version": deps?.snowbridge?.release ?? deps?.snowbridge?.gitCommit ?? "(unset)"
     };
+
+    if (environment) {
+      displayData.Environment = environment;
+    }
+
     console.table(displayData);
 
-    await showDatahavenContractStatus(chain, deploymentParams.rpcUrl);
+    await showDatahavenContractStatus(networkId, deploymentParams.rpcUrl);
     await showEigenLayerContractStatus(
       config,
       deploymentParams.chainId.toString(),
       deploymentParams.rpcUrl,
-      chain
+      networkId
     );
 
     printDivider();
   } catch (error) {
-    logger.error(`❌ Failed to load ${chain} configuration: ${error}`);
+    logger.error(`❌ Failed to load ${networkId} configuration: ${error}`);
   }
 };
 
@@ -81,8 +94,10 @@ const printContractStatus = async (
 
 /**
  * Shows the status of all contracts (deployment + verification)
+ * @param networkId - The network identifier (e.g., "hoodi", "stagenet-hoodi")
+ * @param rpcUrl - The RPC URL for the chain
  */
-const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
+const showDatahavenContractStatus = async (networkId: string, rpcUrl: string) => {
   try {
     const contracts = [
       { name: "DataHavenServiceManager", key: "ServiceManagerImplementation" },
@@ -93,7 +108,7 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
 
     logger.info("DataHaven contracts");
 
-    const deploymentsPath = `../contracts/deployments/${chain}.json`;
+    const deploymentsPath = `../contracts/deployments/${networkId}.json`;
     const deploymentsFile = Bun.file(deploymentsPath);
     const exists = await deploymentsFile.exists();
 
@@ -109,7 +124,12 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
 
     for (const contract of contracts) {
       const address = deployments[contract.key];
-      await printContractStatus({ name: contract.name, address }, etherscanApiKey, chain, rpcUrl);
+      await printContractStatus(
+        { name: contract.name, address },
+        etherscanApiKey,
+        networkId,
+        rpcUrl
+      );
     }
   } catch (error) {
     logger.warn(`⚠️ Could not check contract status: ${error}`);
@@ -118,22 +138,26 @@ const showDatahavenContractStatus = async (chain: string, rpcUrl: string) => {
 
 /**
  * Shows the status of EigenLayer contracts (verification only)
+ * @param config - The chain configuration
+ * @param chainId - The chain ID
+ * @param rpcUrl - The RPC URL for the chain
+ * @param networkId - The network identifier (e.g., "hoodi", "stagenet-hoodi")
  */
 const showEigenLayerContractStatus = async (
   config: any,
   chainId: string,
   rpcUrl: string,
-  chain: string
+  networkId: string
 ) => {
   try {
     // For local/anvil deployments, read addresses from deployments file
     // For testnet/mainnet, use addresses from config file
     let eigenLayerAddresses: Record<string, string> = {};
-    const isLocal = chain === "anvil" || chain === "local";
+    const isLocal = networkId === "anvil" || networkId === "local";
 
     if (isLocal) {
       try {
-        const deploymentsPath = `../contracts/deployments/${chain === "local" ? "anvil" : chain}.json`;
+        const deploymentsPath = `../contracts/deployments/${networkId === "local" ? "anvil" : networkId}.json`;
         const deploymentsFile = Bun.file(deploymentsPath);
         if (await deploymentsFile.exists()) {
           const deployments = await deploymentsFile.json();

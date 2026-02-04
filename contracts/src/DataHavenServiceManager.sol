@@ -25,7 +25,6 @@ import {IGatewayV2} from "snowbridge/src/v2/IGateway.sol";
 // DataHaven imports
 import {DataHavenSnowbridgeMessages} from "./libraries/DataHavenSnowbridgeMessages.sol";
 import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.sol";
-import {DataHavenVersions} from "./generated/Version.sol";
 
 /**
  * @title DataHaven ServiceManager contract
@@ -130,28 +129,21 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address initialOwner,
         address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        string memory initialVersion
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
+        require(bytes(initialVersion).length > 0, "Version cannot be empty");
 
         __Ownable_init();
         _transferOwnership(initialOwner);
         rewardsInitiator = _rewardsInitiator;
         emit RewardsInitiatorSet(address(0), _rewardsInitiator);
 
-        // Set version based on deployment chain
-        uint256 chainId = block.chainid;
-        if (chainId == 17000) { // Holesky testnet
-            _version = DataHavenVersions.HOODI_VERSION;
-        } else if (chainId == 31337) { // Anvil local testnet
-            _version = DataHavenVersions.ANVIL_VERSION;
-        } else if (chainId == 1) { // Ethereum mainnet
-            _version = DataHavenVersions.ETHEREUM_VERSION;
-        } else {
-            revert("Unsupported chain");
-        }
+        // Set version from parameter (allows flexibility per deployment environment)
+        _version = initialVersion;
 
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -318,6 +310,18 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
+    }
+
+    // ============ Version Management ============
+
+    /// @notice Updates the contract version (typically called after upgrades)
+    /// @param newVersion The new semantic version string (e.g., "1.0.1")
+    /// @dev Only callable by owner. Used to keep on-chain version in sync after upgrades.
+    function updateVersion(string memory newVersion) external onlyOwner {
+        require(bytes(newVersion).length > 0, "Version cannot be empty");
+        string memory oldVersion = _version;
+        _version = newVersion;
+        emit VersionUpdated(oldVersion, newVersion);
     }
 
     // ============ Rewards Functions ============

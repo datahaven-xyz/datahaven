@@ -76,6 +76,11 @@ interface IDataHavenServiceManagerEvents {
     /// @param solochainAddress The new solochain address
     event SolochainAddressUpdated(address indexed validator, address indexed solochainAddress);
 
+    /// @notice Emitted when the contract version is updated
+    /// @param oldVersion The previous version string
+    /// @param newVersion The new version string
+    event VersionUpdated(string oldVersion, string newVersion);
+
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
 }
@@ -122,12 +127,15 @@ interface IDataHavenServiceManager is
      * @param initialOwner Address of the initial owner
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
+     * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
+     * @param initialVersion Initial semantic version string (e.g., "1.0.0")
      */
     function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        string memory initialVersion
     ) external;
 
     /**
@@ -204,6 +212,15 @@ interface IDataHavenServiceManager is
      */
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
+    ) external;
+
+    /**
+     * @notice Updates the contract version
+     * @param newVersion The new semantic version string (e.g., "1.0.1")
+     * @dev Only callable by owner. Typically called after contract upgrades.
+     */
+    function updateVersion(
+        string memory newVersion
     ) external;
 
     // ============ Rewards Submitter Functions ============

@@ -23,8 +23,7 @@ export const validateVersions = async () => {
   const chains = ["anvil", "hoodi", "ethereum"];
   let allOk = true;
 
-  const deploymentsPathFor = (chain: string) =>
-    `../contracts/deployments/${chain}.json`;
+  const deploymentsPathFor = (chain: string) => `../contracts/deployments/${chain}.json`;
   const deploymentsFileExists = async (chain: string) => {
     const deploymentsFile = Bun.file(deploymentsPathFor(chain));
     return deploymentsFile.exists();

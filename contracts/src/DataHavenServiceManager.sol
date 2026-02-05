@@ -317,7 +317,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @notice Updates the contract version (typically called after upgrades)
     /// @param newVersion The new semantic version string (e.g., "1.0.1")
     /// @dev Only callable by owner. Used to keep on-chain version in sync after upgrades.
-    function updateVersion(string memory newVersion) external onlyOwner {
+    function updateVersion(
+        string memory newVersion
+    ) external onlyOwner {
         require(bytes(newVersion).length > 0, "Version cannot be empty");
         string memory oldVersion = _version;
         _version = newVersion;

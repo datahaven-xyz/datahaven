@@ -1,0 +1,51 @@
+# Storage Layout Check: Validates storage layout for upgradeable contracts
+#
+# Overview:
+# 1. Compares current storage layout against committed snapshot
+# 2. Runs upgrade simulation tests to verify state preservation
+
+name: Storage Layout Check
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+# Explicit minimal permissions
+permissions:
+  contents: read
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    name: Storage Layout
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.3
+
+      - name: Build contracts
+        run: forge build --extra-output storageLayout
+
+      - name: Negative check storage layout (should fail)
+        run: |
+          chmod +x scripts/check-storage-layout-negative.sh
+          ./scripts/check-storage-layout-negative.sh
+
+      - name: Check storage layout
+        run: |
+          chmod +x scripts/check-storage-layout.sh
+          ./scripts/check-storage-layout.sh
+
+      - name: Run upgrade simulation tests
+        run: forge test --match-contract StorageLayoutTest -vvv

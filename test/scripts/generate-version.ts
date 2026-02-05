@@ -36,7 +36,6 @@ export const generateVersionFile = async () => {
   }
 
   // Generate Solidity library
-  const timestamp = new Date().toISOString();
   const solidityContent = `// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.27;
 
@@ -53,7 +52,6 @@ pragma solidity ^0.8.27;
  * Each constant represents the deployed version for a specific network.
  *
  * To update: Run 'bun generate:version' in the test/ directory
- * Last generated: ${timestamp}
  */
 library DataHavenVersions {
     /// @notice Version deployed on Anvil local testnet (chainId: 31337)

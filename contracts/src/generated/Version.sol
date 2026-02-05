@@ -14,7 +14,6 @@ pragma solidity ^0.8.27;
  * Each constant represents the deployed version for a specific network.
  *
  * To update: Run 'bun generate:version' in the test/ directory
- * Last generated: 2026-02-04T21:54:50.536Z
  */
 library DataHavenVersions {
     /// @notice Version deployed on Anvil local testnet (chainId: 31337)

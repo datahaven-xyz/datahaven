@@ -34,8 +34,10 @@ bun typecheck                      # TypeScript type checking
 
 # Code Generation (run after contract/runtime changes)
 bun generate:wagmi                 # Generate TypeScript contract bindings
+bun generate:version               # Generate Solidity version constants from deployments
 bun generate:types                 # Generate Polkadot-API types from runtime
 bun generate:types:fast            # Generate types with fast-runtime feature
+bun validate:versions              # Validate version consistency across codebase
 
 # Local Development - Quick Start
 bun cli launch                     # Interactive launcher (recommended)
@@ -110,11 +112,36 @@ datahaven/
 - **Kurtosis**: Orchestrates multi-container test environments
 - **Parallel Testing**: Use `test:e2e:parallel` for faster CI runs
 
+### Version Management
+
+DataHaven uses automated version synchronization with flexible per-deployment versioning:
+
+- **Source of Truth**: `contracts/deployments/{chain}.json` version field (anvil, hoodi, ethereum)
+- **On-Chain Version**: Passed as initialization parameter during deployment (not hardcoded)
+- **Update Mechanism**: Call `updateVersion()` after contract upgrades to sync on-chain version
+- **Generated Reference**: `bun generate:version` creates `Version.sol` (for testing/tooling reference only)
+- **Validation**: Use `bun run validate:versions` or `bun cli contracts checks --chain <chain>` to confirm on-chain version matches deployments
+- **Multi-Environment**: Environments can share deployment files (e.g., stagenet-hoodi and testnet-hoodi both use hoodi.json)
+
+#### Version Bump Flow (Fully Automated)
+- **Deploy**: MINOR bump (X.Y.0 → X.(Y+1).0) via `bun cli contracts deploy`
+  - Automatically sets initial version during contract initialization
+- **Upgrade**: PATCH bump (X.Y.Z → X.Y.(Z+1)) via `bun cli contracts upgrade`
+  - Automatically updates deployment file AND calls `updateVersion()` on-chain
+  - No manual steps required!
+- **Manual MAJOR**: Edit deployment JSON manually for breaking changes, then run upgrade
+
+#### If Version Out of Sync (Rare)
+1. For off-chain: Run `bun generate:version` to regenerate Version.sol reference
+2. For on-chain: `cast send $SERVICE_MANAGER "updateVersion(string)" "X.Y.Z" --private-key $OWNER_KEY`
+3. Run `bun generate:wagmi` if contract ABI changed
+
 ### Development Workflow
 1. Make changes to relevant component
 2. Run component-specific tests and linters
 3. Regenerate bindings if contracts/runtime changed:
    - `bun generate:wagmi` for contract changes
+   - `bun generate:version` for deployment version changes (auto-runs during build)
    - `bun generate:types` for runtime changes
 4. Build Docker image for operator changes: `bun build:docker:operator`
 5. Run E2E tests to verify integration: `bun test:e2e`
@@ -124,6 +151,7 @@ datahaven/
 - **Types mismatch**: Regenerate with `bun generate:types` after runtime changes
 - **Kurtosis not running**: Ensure Docker is running and Kurtosis engine is started
 - **Contract changes not reflected**: Run `bun generate:wagmi` after modifications
+- **Version out of sync**: Run `bun generate:version` and commit the generated file
 - **Forge build errors**: Try `forge clean` then rebuild
 - **Slow development cycle**: Use `--features fast-runtime` for faster block times
 - **Network launch halts**: Check Blockscout - forge output can appear frozen

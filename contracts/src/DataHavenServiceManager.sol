@@ -64,9 +64,15 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
+    /// @notice Semantic version of the deployed DataHaven AVS stack.
+    /// Set during initialization based on deployment chain.
+    /// This should match the `version` field in the corresponding
+    /// `contracts/deployments/<chain>.json`.
+    string private _version;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[46] private __GAP;
+    uint256[45] private __GAP;
 
     // ============ Modifiers ============
 
@@ -123,16 +129,21 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address initialOwner,
         address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        string memory initialVersion
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
+        require(bytes(initialVersion).length > 0, "Version cannot be empty");
 
         __Ownable_init();
         _transferOwnership(initialOwner);
         rewardsInitiator = _rewardsInitiator;
         emit RewardsInitiatorSet(address(0), _rewardsInitiator);
+
+        // Set version from parameter (allows flexibility per deployment environment)
+        _version = initialVersion;
 
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -148,6 +159,16 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
     }
+
+    // ============ View Functions ============
+
+    /// @notice Returns the semantic version of the deployed DataHaven AVS stack
+    /// @return The version string (e.g., "1.0.0")
+    function DATAHAVEN_VERSION() external view returns (string memory) {
+        return _version;
+    }
+
+    // ============ External Functions ============
 
     /// @inheritdoc IDataHavenServiceManager
     function sendNewValidatorSet(
@@ -289,6 +310,20 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
+    }
+
+    // ============ Version Management ============
+
+    /// @notice Updates the contract version (typically called after upgrades)
+    /// @param newVersion The new semantic version string (e.g., "1.0.1")
+    /// @dev Only callable by owner. Used to keep on-chain version in sync after upgrades.
+    function updateVersion(
+        string memory newVersion
+    ) external onlyOwner {
+        require(bytes(newVersion).length > 0, "Version cannot be empty");
+        string memory oldVersion = _version;
+        _version = newVersion;
+        emit VersionUpdated(oldVersion, newVersion);
     }
 
     // ============ Rewards Functions ============

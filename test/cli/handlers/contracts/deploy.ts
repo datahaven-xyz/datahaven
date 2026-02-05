@@ -1,5 +1,6 @@
 import { logger, printDivider, printHeader } from "utils";
 import { deployContracts } from "../../../scripts/deploy-contracts";
+import { versioningPostChecks, versioningPreChecks } from "./checks";
 import { showDeploymentPlanAndStatus } from "./status";
 import { verifyContracts } from "./verify";
 
@@ -49,6 +50,9 @@ export const contractsDeploy = async (options: any, command: any) => {
     }
 
     // Chain is guaranteed to be defined by preAction hook validation
+    await versioningPreChecks({ chain: chain!, rpcUrl: options.rpcUrl });
+
+    // Chain is guaranteed to be defined by preAction hook validation
     await deployContracts({
       chain: chain!,
       environment: environment,
@@ -58,6 +62,8 @@ export const contractsDeploy = async (options: any, command: any) => {
       avsOwnerAddress: options.avsOwnerAddress,
       txExecution: txExecutionOverride
     });
+
+    await versioningPostChecks({ chain: chain!, rpcUrl: options.rpcUrl });
 
     printDivider();
   } catch (error) {

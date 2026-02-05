@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { $ } from "bun";
 import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
@@ -6,6 +8,7 @@ import type { ParameterCollection } from "utils/parameters";
 import { encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { dataHavenServiceManagerAbi } from "../contract-bindings/generated";
+import { getDependencyVersions } from "../utils/dependencyVersions";
 
 interface ContractDeploymentOptions {
   chain?: string;
@@ -45,6 +48,12 @@ export const validateDeploymentParams = (options: ContractDeploymentOptions) => 
  */
 export const buildContracts = async () => {
   logger.info("🛳️ Building contracts...");
+
+  // Generate version file before compilation
+  logger.debug("📝 Generating version constants from deployment files...");
+  const { generateVersionFile } = await import("./generate-version.ts");
+  await generateVersionFile();
+
   const {
     exitCode: buildExitCode,
     stderr: buildStderr,
@@ -114,6 +123,85 @@ export const executeDeployment = async (
   }
 
   logger.success("Contracts deployed successfully");
+};
+
+/**
+ * Gets the current version from deployment file, or returns default for new deployments
+ */
+export const getCurrentVersion = async (chain: string | undefined): Promise<string> => {
+  if (!chain) {
+    return "0.1.0";
+  }
+
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
+
+    const raw = readFileSync(deploymentPath, "utf8");
+    const deploymentsJson = JSON.parse(raw) as { version?: string };
+
+    return deploymentsJson.version || "0.1.0";
+  } catch (_) {
+    // File doesn't exist yet (new deployment), use default
+    logger.debug(`No existing deployment file for ${chain}, using default version 0.1.0`);
+    return "0.1.0";
+  }
+};
+
+export const bumpVersionAndUpdateDepsForDeploy = async (chain: string | undefined) => {
+  if (!chain) {
+    return;
+  }
+
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
+
+    const raw = readFileSync(deploymentPath, "utf8");
+    const deploymentsJson = JSON.parse(raw) as {
+      version?: string;
+      deps?: { eigenlayer?: any; snowbridge?: any };
+    };
+
+    const current = deploymentsJson.version;
+    let next = "0.1.0";
+
+    if (current) {
+      const [majorStr, minorStr, patchStr] = current.split(".");
+      const major = Number(majorStr);
+      const minor = Number(minorStr);
+      const patch = Number(patchStr);
+
+      if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
+        next = `${major}.${minor + 1}.0`;
+      }
+    }
+
+    deploymentsJson.version = next;
+
+    const deps = await getDependencyVersions();
+    deploymentsJson.deps = {
+      ...(deploymentsJson.deps ?? {}),
+      eigenlayer: {
+        ...(deploymentsJson.deps?.eigenlayer ?? {}),
+        ...deps.eigenlayer
+      },
+      snowbridge: {
+        ...(deploymentsJson.deps?.snowbridge ?? {}),
+        ...deps.snowbridge
+      }
+    };
+
+    writeFileSync(deploymentPath, JSON.stringify(deploymentsJson, null, 2));
+    logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
+    logger.info(
+      `📝 Updated dependency versions for ${chain}: eigenlayer=${deps.eigenlayer.release ?? deps.eigenlayer.gitCommit}, snowbridge=${deps.snowbridge.release ?? deps.snowbridge.gitCommit}`
+    );
+  } catch (error) {
+    logger.warn(`⚠️ Failed to update deployment version/dependency metadata for ${chain}: ${error}`);
+  }
 };
 
 /**
@@ -224,16 +312,22 @@ export const deployContracts = async (options: {
   // Build contracts
   await buildContracts();
 
+  // Get current version before deployment (will be used for initialization)
+  const currentVersion = await getCurrentVersion(options.chain);
+  logger.info(`📌 Deploying with version: ${currentVersion}`);
+
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  const env = buildDeploymentEnv(deploymentOptions);
+  const env = buildDeploymentEnv(deploymentOptions, currentVersion);
   await executeDeployment(deployCommand, undefined, networkId, env);
 
   if (!txExecutionEnabled) {
     await emitOwnerTransactionCalldata(networkId);
   }
 
-  logger.success(`DataHaven contracts deployed successfully to ${networkId}`);
+  await bumpVersionAndUpdateDepsForDeploy(options.chain);
+
+  logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
 };
 
 const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
@@ -243,7 +337,7 @@ const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
   return (key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`;
 };
 
-const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
+const buildDeploymentEnv = (options: ContractDeploymentOptions, version: string) => {
   const env: Record<string, string> = {};
 
   if (options.privateKey) {
@@ -261,6 +355,9 @@ const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
   if (typeof options.txExecution === "boolean") {
     env.TX_EXECUTION = options.txExecution ? "true" : "false";
   }
+
+  // Pass version to Solidity scripts for contract initialization
+  env.DATAHAVEN_VERSION = version;
 
   return env;
 };

@@ -43,6 +43,7 @@ struct ServiceManagerInitParams {
     address rewardsInitiator;
     address[] validatorsStrategies;
     address gateway;
+    string initialVersion;
 }
 
 // Struct to store more detailed strategy information
@@ -245,12 +246,17 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             "ServiceManager Implementation", address(serviceManagerImplementation)
         );
 
+        // Read version from environment variable (passed by TypeScript wrapper)
+        string memory version = vm.envOr("DATAHAVEN_VERSION", string("0.1.0"));
+        console.log("|  Version: %s", version);
+
         // Create service manager initialisation parameters struct
         ServiceManagerInitParams memory initParams = ServiceManagerInitParams({
             avsOwner: avsConfig.avsOwner,
             rewardsInitiator: avsConfig.rewardsInitiator,
             validatorsStrategies: avsConfig.validatorsStrategies,
-            gateway: address(gateway)
+            gateway: address(gateway),
+            initialVersion: version
         });
 
         // Create the service manager proxy (different logic for local vs testnet)

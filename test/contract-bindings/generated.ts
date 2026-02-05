@@ -2050,6 +2050,13 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'DATAHAVEN_VERSION',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'VALIDATORS_SET_ID',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
@@ -2117,6 +2124,7 @@ export const dataHavenServiceManagerAbi = [
         internalType: 'address',
         type: 'address',
       },
+      { name: 'initialVersion', internalType: 'string', type: 'string' },
     ],
     name: 'initialize',
     outputs: [],
@@ -2312,6 +2320,13 @@ export const dataHavenServiceManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'newVersion', internalType: 'string', type: 'string' }],
+    name: 'updateVersion',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorEthAddressToSolochainAddress',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
@@ -2494,6 +2509,25 @@ export const dataHavenServiceManagerAbi = [
       },
     ],
     name: 'ValidatorRemovedFromAllowlist',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldVersion',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+      {
+        name: 'newVersion',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+    ],
+    name: 'VersionUpdated',
   },
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
@@ -10643,6 +10677,15 @@ export const readDataHavenServiceManagerDatahavenAvsMetadata =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"DATAHAVEN_VERSION"`
+ */
+export const readDataHavenServiceManagerDatahavenVersion =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'DATAHAVEN_VERSION',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"VALIDATORS_SET_ID"`
  */
 export const readDataHavenServiceManagerValidatorsSetId =
@@ -10884,6 +10927,15 @@ export const writeDataHavenServiceManagerUpdateSolochainAddressForValidator =
   })
 
 /**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateVersion"`
+ */
+export const writeDataHavenServiceManagerUpdateVersion =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'updateVersion',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
  */
 export const simulateDataHavenServiceManager =
@@ -11043,6 +11095,15 @@ export const simulateDataHavenServiceManagerUpdateSolochainAddressForValidator =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"updateVersion"`
+ */
+export const simulateDataHavenServiceManagerUpdateVersion =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'updateVersion',
+  })
+
+/**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__
  */
 export const watchDataHavenServiceManagerEvent =
@@ -11145,6 +11206,15 @@ export const watchDataHavenServiceManagerValidatorRemovedFromAllowlistEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'ValidatorRemovedFromAllowlist',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"VersionUpdated"`
+ */
+export const watchDataHavenServiceManagerVersionUpdatedEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'VersionUpdated',
   })
 
 /**

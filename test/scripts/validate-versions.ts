@@ -1,3 +1,4 @@
+import { CHAIN_CONFIGS } from "configs/contracts/config";
 import { logger } from "utils";
 import { parseDeploymentsFile } from "utils/contracts";
 
@@ -13,8 +14,8 @@ export const isValidSemver = (version: string): boolean => {
  * Comprehensive version validation across the DataHaven codebase
  * Checks:
  * 1. Version format (semantic versioning)
- * 2. Version field presence in deployment files
- * 3. Generated file consistency
+ * 2. Dependency version consistency
+ * 3. On-chain version matches deployments
  */
 export const validateVersions = async () => {
   logger.info("🔍 Validating version consistency across DataHaven codebase...");
@@ -22,10 +23,26 @@ export const validateVersions = async () => {
   const chains = ["anvil", "hoodi", "ethereum"];
   let allOk = true;
 
+  const deploymentsPathFor = (chain: string) =>
+    `../contracts/deployments/${chain}.json`;
+  const deploymentsFileExists = async (chain: string) => {
+    const deploymentsFile = Bun.file(deploymentsPathFor(chain));
+    return deploymentsFile.exists();
+  };
+  const getRpcUrl = (chain: string) => {
+    const envVar = `RPC_URL_${chain.toUpperCase()}`;
+    return process.env[envVar] ?? CHAIN_CONFIGS[chain as keyof typeof CHAIN_CONFIGS]?.RPC_URL;
+  };
+
   // 1. Format validation (semver)
   logger.info("\n📋 Checking version formats...");
   for (const chain of chains) {
     try {
+      if (!(await deploymentsFileExists(chain))) {
+        logger.info(`ℹ️  Skipping ${chain}.json (deployment file does not exist)`);
+        continue;
+      }
+
       const deployments = await parseDeploymentsFile(chain);
       const version = (deployments as any).version;
 
@@ -56,6 +73,11 @@ export const validateVersions = async () => {
   const { checkDependencyVersions } = await import("utils/contracts/versioning");
   for (const chain of chains) {
     try {
+      if (!(await deploymentsFileExists(chain))) {
+        logger.info(`ℹ️  Skipping ${chain} dependency check (deployment file does not exist)`);
+        continue;
+      }
+
       const depsOk = await checkDependencyVersions(chain);
       if (!depsOk) {
         logger.warn(`⚠️  Dependency version mismatch for ${chain}`);
@@ -72,42 +94,29 @@ export const validateVersions = async () => {
     }
   }
 
-  // 3. Generated file consistency check
-  logger.info("\n📄 Checking generated Version.sol...");
-  const generatedPath = "../contracts/src/generated/Version.sol";
-  const exists = await Bun.file(generatedPath).exists();
-
-  if (!exists) {
-    logger.error("❌ Generated Version.sol not found. Run 'bun generate:version' to create it.");
-    allOk = false;
-  } else {
-    logger.info("✅ Version.sol exists");
-
-    // Read and validate content matches current deployment files
-    const content = await Bun.file(generatedPath).text();
-    for (const chain of chains) {
-      try {
-        const deployments = await parseDeploymentsFile(chain);
-        const version = (deployments as any).version || "0.0.0";
-        const expectedConstant = `${chain.toUpperCase()}_VERSION = "${version}"`;
-
-        if (!content.includes(expectedConstant)) {
-          logger.error(
-            `❌ Version.sol out of sync for ${chain}: expected ${version} in generated file`
-          );
-          logger.error("   Run 'bun generate:version' and commit the updated file.");
-          allOk = false;
-        } else {
-          logger.info(`✅ ${chain} version in sync (${version})`);
-        }
-      } catch (error) {
-        const errorMsg = String(error);
-        if (errorMsg.includes("deployments file") || errorMsg.includes("does not exist")) {
-          logger.debug(`ℹ️  Skipping ${chain} sync check (file does not exist)`);
-          continue;
-        }
-        logger.warn(`⚠️  Could not validate ${chain} sync: ${error}`);
+  // 3. On-chain version consistency check
+  logger.info("\n⛓️ Checking on-chain contract versions...");
+  const { checkContractVersions } = await import("utils/contracts/versioning");
+  for (const chain of chains) {
+    try {
+      if (!(await deploymentsFileExists(chain))) {
+        logger.info(`ℹ️  Skipping ${chain} on-chain check (deployment file does not exist)`);
+        continue;
       }
+
+      const rpcUrl = getRpcUrl(chain);
+      const { ok } = await checkContractVersions(chain, rpcUrl);
+      if (!ok) {
+        allOk = false;
+      }
+    } catch (error) {
+      const errorMsg = String(error);
+      if (errorMsg.includes("deployments file") || errorMsg.includes("does not exist")) {
+        logger.info(`ℹ️  Skipping ${chain} on-chain check (deployment file does not exist)`);
+        continue;
+      }
+      logger.error(`❌ Failed on-chain version check for ${chain}: ${error}`);
+      allOk = false;
     }
   }
 

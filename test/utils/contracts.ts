@@ -73,7 +73,7 @@ export const parseDeploymentsFile = async (networkId = "anvil"): Promise<Deploym
     throw new Error(`Error reading ${networkId} deployments file`);
   }
   const deploymentsJson = await deploymentsFile.json();
-  logger.info(`Deployments: ${JSON.stringify(deploymentsJson, null, 2)}`);
+  logger.debug(`Deployments: ${JSON.stringify(deploymentsJson, null, 2)}`);
   try {
     const parsedDeployments = DeploymentsSchema.parse(deploymentsJson);
     logger.debug(`Successfully parsed ${networkId} deployments file.`);

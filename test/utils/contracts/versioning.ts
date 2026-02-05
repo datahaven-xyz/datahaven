@@ -180,6 +180,17 @@ export const checkContractVersions = async (
       );
       return { ok: true, skipped: true };
     }
+    const errorMsg = String(error);
+    if (
+      errorMsg.includes("DATAHAVEN_VERSION") &&
+      (errorMsg.includes("reverted") || errorMsg.includes("missing revert data"))
+    ) {
+      throw new Error(
+        `ServiceManager at ${chain} does not expose DATAHAVEN_VERSION() yet. ` +
+          "This usually means the on-chain implementation is older than the versioning update. " +
+          "Upgrade the ServiceManager implementation, then re-run the check."
+      );
+    }
     throw new Error(`Failed to read version from DataHavenServiceManager: ${error}`);
   }
 

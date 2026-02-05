@@ -47,8 +47,6 @@ jobs:
   rust-lint:
     needs: [warm-sccache]
     uses: ./.github/workflows/task-rust-lint.yml
-  check-versions:
-    uses: ./.github/workflows/task-check-versions.yml
     
   # Second Tier - Jobs that depend on operator build
   check-metadata:

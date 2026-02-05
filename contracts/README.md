@@ -76,8 +76,7 @@ DataHaven uses automated version synchronization with flexible per-deployment ve
   - Separate contract instances can have different versions on the same chain
 - MAJOR version bumps must be done manually by editing the deployment file for breaking changes.
 - `bun generate:version` creates a reference file (`Version.sol`) for testing/tooling (not used by contracts).
-- CI validates version consistency automatically via `.github/workflows/task-check-versions.yml`.
-- From the `test/` directory, run `bun cli contracts checks --chain <chain>` to validate versions.
+- From the `test/` directory, run `bun run validate:versions` or `bun cli contracts checks --chain <chain>` to validate versions.
 
 ## How It Works
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.

@@ -120,7 +120,7 @@ DataHaven uses automated version synchronization with flexible per-deployment ve
 - **On-Chain Version**: Passed as initialization parameter during deployment (not hardcoded)
 - **Update Mechanism**: Call `updateVersion()` after contract upgrades to sync on-chain version
 - **Generated Reference**: `bun generate:version` creates `Version.sol` (for testing/tooling reference only)
-- **CI Validation**: Automated checks ensure consistency
+- **Validation**: Use `bun run validate:versions` or `bun cli contracts checks --chain <chain>` to confirm on-chain version matches deployments
 - **Multi-Environment**: Environments can share deployment files (e.g., stagenet-hoodi and testnet-hoodi both use hoodi.json)
 
 #### Version Bump Flow (Fully Automated)

@@ -21,10 +21,12 @@ contract StorageLayoutTest is AVSDeployer {
         // 1. Populate state
         address testValidator = address(0x1234);
         address newRewardsInitiator = address(0x9999);
+        address testSubmitter = address(0x5678);
 
         vm.startPrank(avsOwner);
         serviceManager.addValidatorToAllowlist(testValidator);
         serviceManager.setRewardsInitiator(newRewardsInitiator);
+        serviceManager.setValidatorSetSubmitter(testSubmitter);
         vm.stopPrank();
 
         // 2. Record state before upgrade
@@ -32,6 +34,7 @@ contract StorageLayoutTest is AVSDeployer {
         address rewardsInitiatorBefore = serviceManager.rewardsInitiator();
         address ownerBefore = serviceManager.owner();
         address gatewayBefore = serviceManager.snowbridgeGateway();
+        address submitterBefore = serviceManager.validatorSetSubmitter();
 
         // 3. Deploy new implementation
         DataHavenServiceManager newImpl =
@@ -57,6 +60,11 @@ contract StorageLayoutTest is AVSDeployer {
             serviceManager.snowbridgeGateway(),
             gatewayBefore,
             "snowbridgeGateway should be preserved"
+        );
+        assertEq(
+            serviceManager.validatorSetSubmitter(),
+            submitterBefore,
+            "validatorSetSubmitter should be preserved"
         );
     }
 

@@ -35,6 +35,8 @@ library DataHavenSnowbridgeMessages {
     struct NewValidatorSetPayload {
         /// @notice The list of validators in the DataHaven network.
         address[] validators;
+        /// @notice The external index (target era) for the validator set.
+        uint64 externalIndex;
     }
 
     /**
@@ -47,8 +49,6 @@ library DataHavenSnowbridgeMessages {
     ) public pure returns (bytes memory) {
         uint32 validatorsLen = uint32(payload.validators.length);
         address[] memory validatorSet = payload.validators;
-
-        uint64 externalIndex = uint64(0);
 
         // Flatten the validator set into a single bytes array
         bytes memory validatorsFlattened;
@@ -63,7 +63,7 @@ library DataHavenSnowbridgeMessages {
             bytes1(uint8(OutboundCommandV1.ReceiveValidators)),
             ScaleCodec.encodeCompactU32(validatorsLen),
             validatorsFlattened,
-            ScaleCodec.encodeU64(externalIndex)
+            ScaleCodec.encodeU64(payload.externalIndex)
         );
     }
 }

@@ -10,8 +10,13 @@ import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/Operator
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
 
 contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
+    address public submitter = address(uint160(uint256(keccak256("submitter"))));
+
     function setUp() public {
         _deployMockAllContracts();
+        // Set up the validator set submitter
+        vm.prank(avsOwner);
+        serviceManager.setValidatorSetSubmitter(submitter);
     }
 
     function beforeTestSetup(
@@ -36,11 +41,13 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
             );
         }
 
-        // Mock balance for the AVS owner
-        vm.deal(avsOwner, 1000000 ether);
+        uint64 targetEra = 42;
+
+        // Mock balance for the submitter
+        vm.deal(submitter, 1000000 ether);
 
         // Send the new validator set message to the Snowbridge Gateway
-        bytes memory message = serviceManager.buildNewValidatorSetMessage();
+        bytes memory message = serviceManager.buildNewValidatorSetMessageForEra(targetEra);
         Payload memory payload = Payload({
             origin: address(serviceManager),
             assets: new Asset[](0),
@@ -52,7 +59,7 @@ contract SnowbridgeIntegrationTest is SnowbridgeAndAVSDeployer {
         });
         cheats.expectEmit();
         emit IGatewayV2.OutboundMessageAccepted(1, payload);
-        cheats.prank(avsOwner);
-        serviceManager.sendNewValidatorSet{value: 2 ether}(1 ether, 1 ether);
+        cheats.prank(submitter);
+        serviceManager.sendNewValidatorSetForEra{value: 2 ether}(targetEra, 1 ether, 1 ether);
     }
 }

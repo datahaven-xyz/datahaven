@@ -30,6 +30,8 @@
     "test:e2e:parallel": "bun scripts/test-parallel.ts",
     "moonwall:test": "moonwall test dev_datahaven",
     "moonwall:run": "moonwall run dev_datahaven",
+    "submitter": "bun run tools/validator-set-submitter/main.ts run",
+    "submitter:dry-run": "bun run tools/validator-set-submitter/main.ts run --dry-run",
     "typecheck": "tsc --noEmit",
     "tsgo": "tsgo tsc --noEmit --pretty --skipLibCheck",
     "postinstall": "papi"

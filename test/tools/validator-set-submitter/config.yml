@@ -1,0 +1,28 @@
+# Validator Set Submitter Configuration
+# Copy this file and update values for your environment.
+
+# Connections
+ethereum_rpc_url: "http://127.0.0.1:8545"
+datahaven_ws_url: "ws://127.0.0.1:9944"
+
+# Credentials
+# The private key of the account authorized as validatorSetSubmitter on the ServiceManager
+submitter_private_key: "0x..."
+
+# Contract
+# Optional — if omitted, falls back to contracts/deployments/{network_id}.json
+# service_manager_address: "0x..."
+network_id: "anvil"
+
+# Fees (in ETH, sent as msg.value to cover Snowbridge relay costs)
+execution_fee: "0.1"
+relayer_fee: "0.2"
+
+# Retry
+max_retries: 3
+fee_bump_percent: 20
+fee_cap_multiplier: 3
+
+# Timing
+poll_interval_ms: 30000
+inbound_timeout_ms: 360000

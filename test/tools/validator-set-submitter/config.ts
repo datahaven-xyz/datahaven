@@ -10,11 +10,7 @@ export interface SubmitterConfig {
   networkId: string;
   executionFee: bigint;
   relayerFee: bigint;
-  maxRetries: number;
-  feeBumpPercent: number;
-  feeCapMultiplier: number;
   pollIntervalMs: number;
-  inboundTimeoutMs: number;
   dryRun: boolean;
 }
 
@@ -42,11 +38,7 @@ export async function loadConfig(configPath: string, cli: CliOverrides = {}): Pr
 
   const executionFee = parseEther(optionalString(raw, "execution_fee") ?? "0.1");
   const relayerFee = parseEther(optionalString(raw, "relayer_fee") ?? "0.2");
-  const maxRetries = optionalInteger(raw, "max_retries") ?? 3;
-  const feeBumpPercent = optionalInteger(raw, "fee_bump_percent") ?? 20;
-  const feeCapMultiplier = optionalInteger(raw, "fee_cap_multiplier") ?? 3;
   const pollIntervalMs = optionalInteger(raw, "poll_interval_ms") ?? 30_000;
-  const inboundTimeoutMs = optionalInteger(raw, "inbound_timeout_ms") ?? 360_000;
 
   return {
     ethereumRpcUrl,
@@ -56,11 +48,7 @@ export async function loadConfig(configPath: string, cli: CliOverrides = {}): Pr
     networkId,
     executionFee,
     relayerFee,
-    maxRetries,
-    feeBumpPercent,
-    feeCapMultiplier,
     pollIntervalMs,
-    inboundTimeoutMs,
     dryRun: cli.dryRun ?? false,
   };
 }

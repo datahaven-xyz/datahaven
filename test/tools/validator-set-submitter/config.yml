@@ -18,11 +18,7 @@ network_id: "anvil"
 execution_fee: "0.1"
 relayer_fee: "0.2"
 
-# Retry
-max_retries: 3
-fee_bump_percent: 20
-fee_cap_multiplier: 3
-
 # Timing
+# One outbound submission attempt is made per poll cycle when eligible.
+# Inbound confirmation is tracked on subsequent polls via ExternalIndex.
 poll_interval_ms: 30000
-inbound_timeout_ms: 360000

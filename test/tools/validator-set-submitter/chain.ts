@@ -1,5 +1,4 @@
 import type { DataHavenApi } from "utils/papi";
-import { waitForDataHavenEvent } from "utils/events";
 import type { PublicClient } from "viem";
 import { dataHavenServiceManagerAbi } from "../../contract-bindings";
 
@@ -57,26 +56,4 @@ export async function isLastSessionOfEra(dhApi: DataHavenApi): Promise<boolean> 
 
   const currentSession = await dhApi.query.Session.CurrentIndex.getValue();
   return currentSession >= eraStartSession + sessionsPerEra - 1;
-}
-
-/**
- * Waits for the `ExternalValidators.ExternalValidatorsSet` event on DataHaven,
- * filtered to the expected target era.
- */
-export async function waitForInboundConfirmation(
-  dhApi: DataHavenApi,
-  targetEra: bigint,
-  timeoutMs: number,
-): Promise<void> {
-  await waitForDataHavenEvent({
-    api: dhApi,
-    pallet: "ExternalValidators",
-    event: "ExternalValidatorsSet",
-    filter: (event: any) => {
-      const index = event?.external_index ?? event?.externalIndex;
-      if (index === undefined) return false;
-      return BigInt(index) === targetEra;
-    },
-    timeout: timeoutMs,
-  });
 }

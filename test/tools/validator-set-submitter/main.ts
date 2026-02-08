@@ -1,8 +1,8 @@
 import { Command } from "@commander-js/extra-typings";
 import { logger } from "utils/logger";
 import { privateKeyToAccount } from "viem/accounts";
-import { loadConfig } from "./config";
 import { getOnChainSubmitter } from "./chain";
+import { loadConfig } from "./config";
 import { createClients, startSubmitter } from "./submitter";
 
 const program = new Command()
@@ -12,7 +12,11 @@ const program = new Command()
 program
   .command("run")
   .description("Start the submitter daemon")
-  .option("--config <path>", "Path to YAML config file", "./tools/validator-set-submitter/config.yml")
+  .option(
+    "--config <path>",
+    "Path to YAML config file",
+    "./tools/validator-set-submitter/config.yml"
+  )
   .option("--dry-run", "Log what would be submitted without sending transactions", false)
   .action(async (opts) => {
     const config = await loadConfig(opts.config, { dryRun: opts.dryRun });
@@ -47,11 +51,11 @@ program
       const account = privateKeyToAccount(config.submitterPrivateKey);
       const onChainSubmitter = await getOnChainSubmitter(
         clients.publicClient,
-        config.serviceManagerAddress,
+        config.serviceManagerAddress
       );
       if (onChainSubmitter.toLowerCase() !== account.address.toLowerCase()) {
         logger.error(
-          `Account ${account.address} is not the authorized submitter (on-chain: ${onChainSubmitter})`,
+          `Account ${account.address} is not the authorized submitter (on-chain: ${onChainSubmitter})`
         );
         process.exit(1);
       }

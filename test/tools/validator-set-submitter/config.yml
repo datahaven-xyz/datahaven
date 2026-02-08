@@ -17,8 +17,3 @@ network_id: "anvil"
 # Fees (in ETH, sent as msg.value to cover Snowbridge relay costs)
 execution_fee: "0.1"
 relayer_fee: "0.2"
-
-# Timing
-# One outbound submission attempt is made per poll cycle when eligible.
-# Inbound confirmation is tracked on subsequent polls via ExternalIndex.
-poll_interval_ms: 30000

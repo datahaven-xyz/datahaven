@@ -32,12 +32,12 @@ export function computeTargetEra(activeEraIndex: number): bigint {
  */
 export async function getOnChainSubmitter(
   publicClient: PublicClient,
-  serviceManagerAddress: `0x${string}`,
+  serviceManagerAddress: `0x${string}`
 ): Promise<`0x${string}`> {
   const submitter = await publicClient.readContract({
     address: serviceManagerAddress,
     abi: dataHavenServiceManagerAbi,
-    functionName: "validatorSetSubmitter",
+    functionName: "validatorSetSubmitter"
   });
   return submitter as `0x${string}`;
 }
@@ -50,8 +50,10 @@ export async function isLastSessionOfEra(dhApi: DataHavenApi): Promise<boolean> 
   const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
   if (!activeEra) return false;
 
-  const sessionsPerEra: number = dhApi.constants.ExternalValidators.SessionsPerEra;
-  const eraStartSession = await dhApi.query.ExternalValidators.ErasStartSessionIndex.getValue(activeEra.index);
+  const sessionsPerEra = await dhApi.constants.ExternalValidators.SessionsPerEra();
+  const eraStartSession = await dhApi.query.ExternalValidators.ErasStartSessionIndex.getValue(
+    activeEra.index
+  );
   if (eraStartSession === undefined) return false;
 
   const currentSession = await dhApi.query.Session.CurrentIndex.getValue();

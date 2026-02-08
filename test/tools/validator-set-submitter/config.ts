@@ -10,7 +10,6 @@ export interface SubmitterConfig {
   networkId: string;
   executionFee: bigint;
   relayerFee: bigint;
-  pollIntervalMs: number;
   dryRun: boolean;
 }
 
@@ -18,7 +17,10 @@ interface CliOverrides {
   dryRun?: boolean;
 }
 
-export async function loadConfig(configPath: string, cli: CliOverrides = {}): Promise<SubmitterConfig> {
+export async function loadConfig(
+  configPath: string,
+  cli: CliOverrides = {}
+): Promise<SubmitterConfig> {
   const file = Bun.file(configPath);
   if (!(await file.exists())) {
     throw new Error(`Config file not found: ${configPath}`);
@@ -38,7 +40,6 @@ export async function loadConfig(configPath: string, cli: CliOverrides = {}): Pr
 
   const executionFee = parseEther(optionalString(raw, "execution_fee") ?? "0.1");
   const relayerFee = parseEther(optionalString(raw, "relayer_fee") ?? "0.2");
-  const pollIntervalMs = optionalInteger(raw, "poll_interval_ms") ?? 30_000;
 
   return {
     ethereumRpcUrl,
@@ -48,8 +49,7 @@ export async function loadConfig(configPath: string, cli: CliOverrides = {}): Pr
     networkId,
     executionFee,
     relayerFee,
-    pollIntervalMs,
-    dryRun: cli.dryRun ?? false,
+    dryRun: cli.dryRun ?? false
   };
 }
 
@@ -83,14 +83,4 @@ function optionalHexString(raw: Record<string, unknown>, key: string): `0x${stri
     throw new Error(`Config field ${key} must start with 0x`);
   }
   return val as `0x${string}`;
-}
-
-function optionalInteger(raw: Record<string, unknown>, key: string): number | undefined {
-  const val = raw[key];
-  if (val === undefined || val === null) return undefined;
-  const num = Number(val);
-  if (Number.isNaN(num) || !Number.isInteger(num)) {
-    throw new Error(`Config field ${key} must be an integer`);
-  }
-  return num;
 }

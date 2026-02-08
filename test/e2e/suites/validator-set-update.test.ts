@@ -163,8 +163,8 @@ describe("Validator Set Update", () => {
       const hash = await walletClient.writeContract({
         address: deployments.ServiceManager as `0x${string}`,
         abi: dataHavenServiceManagerAbi,
-        functionName: "sendNewValidatorSet",
-        args: [parseEther("0.1"), parseEther("0.2")],
+        functionName: "sendNewValidatorSetForEra",
+        args: [1n, parseEther("0.1"), parseEther("0.2")],
         value: parseEther("0.3"),
         gas: 1000000n,
         account: getOwnerAccount(),

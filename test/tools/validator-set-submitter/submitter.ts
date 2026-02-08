@@ -1,42 +1,28 @@
+import { EMPTY, exhaustMap } from "rxjs";
 import { logger } from "utils/logger";
 import { createPapiConnectors, type DataHavenApi } from "utils/papi";
 import {
+  type Account,
   createPublicClient,
   createWalletClient,
   decodeEventLog,
   http,
   type PublicClient,
-  type WalletClient,
+  type WalletClient
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { dataHavenServiceManagerAbi, gatewayAbi } from "../../contract-bindings";
+import { computeTargetEra, getActiveEra, getExternalIndex, isLastSessionOfEra } from "./chain";
 import type { SubmitterConfig } from "./config";
-import {
-  computeTargetEra,
-  getActiveEra,
-  getExternalIndex,
-  isLastSessionOfEra,
-} from "./chain";
 
 interface SubmitterClients {
   publicClient: PublicClient;
-  walletClient: WalletClient;
+  walletClient: WalletClient<ReturnType<typeof http>, undefined, Account>;
   dhApi: DataHavenApi;
   papiClient: ReturnType<typeof createPapiConnectors>["client"];
 }
 
-type SubmitResult =
-  | { kind: "accepted"; txHash: `0x${string}` }
-  | { kind: "already_confirmed" }
-  | { kind: "failed" };
-
-interface PendingSubmission {
-  targetEra: bigint;
-  txHash: `0x${string}`;
-  submittedAtMs: number;
-}
-
-const DRY_RUN_TX_HASH = `0x${"0".repeat(64)}` as `0x${string}`;
+const RECEIPT_TIMEOUT_MS = 120_000;
 
 export function createClients(config: SubmitterConfig): SubmitterClients {
   const account = privateKeyToAccount(config.submitterPrivateKey);
@@ -50,147 +36,120 @@ export function createClients(config: SubmitterConfig): SubmitterClients {
 }
 
 /**
- * Sleeps for `ms` milliseconds, respecting an AbortSignal for graceful shutdown.
+ * Returns a promise that resolves when the signal is aborted.
  */
-export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(signal.reason);
-      return;
-    }
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        reject(signal.reason);
-      },
-      { once: true },
-    );
-  });
+function onAbort(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise((resolve) =>
+    signal.addEventListener("abort", () => resolve(), { once: true })
+  );
 }
 
 /**
- * Main polling loop. Runs until the signal is aborted.
+ * Waits for a transaction receipt with a hard timeout, and exits early on abort.
+ */
+async function waitForReceiptWithAbort(
+  publicClient: PublicClient,
+  hash: `0x${string}`,
+  signal: AbortSignal
+) {
+  return Promise.race([
+    publicClient.waitForTransactionReceipt({
+      hash,
+      timeout: RECEIPT_TIMEOUT_MS
+    }),
+    onAbort(signal).then(() => {
+      throw signal.reason ?? new Error("Aborted while waiting for transaction receipt");
+    })
+  ]);
+}
+
+/**
+ * Creates a tick handler that closes over submission state.
+ * Each call evaluates a session change and submits if eligible.
+ */
+function createTicker(clients: SubmitterClients, config: SubmitterConfig, signal: AbortSignal) {
+  let submittedEra: bigint | undefined;
+
+  return async (currentSession: number): Promise<void> => {
+    const { dhApi } = clients;
+
+    const activeEra = await getActiveEra(dhApi);
+    if (!activeEra) {
+      logger.warn("ActiveEra not set yet");
+      return;
+    }
+
+    const targetEra = computeTargetEra(activeEra.index);
+    if (submittedEra === targetEra) return;
+
+    const externalIndex = await getExternalIndex(dhApi);
+    if (externalIndex >= targetEra) {
+      submittedEra = targetEra;
+      return;
+    }
+
+    if (!(await isLastSessionOfEra(dhApi))) return;
+
+    logger.info(
+      `Session=${currentSession} ActiveEra=${activeEra.index} TargetEra=${targetEra} ExternalIndex=${externalIndex}`
+    );
+
+    await submitForEra(clients, config, targetEra, signal);
+    submittedEra = targetEra;
+  };
+}
+
+/**
+ * Watches finalized session changes and submits validator sets when eligible.
+ * Runs until the signal is aborted.
  */
 export async function startSubmitter(
   clients: SubmitterClients,
   config: SubmitterConfig,
-  signal: AbortSignal,
+  signal: AbortSignal
 ): Promise<void> {
   const { dhApi } = clients;
-  let pending: PendingSubmission | undefined;
+  const tick = createTicker(clients, config, signal);
 
-  logger.info("Submitter loop started — polling for era changes");
+  logger.info("Submitter started — watching session changes");
 
-  while (!signal.aborted) {
-    try {
-      const activeEra = await getActiveEra(dhApi);
-      if (!activeEra) {
-        logger.warn("ActiveEra not set yet, waiting...");
-        await sleep(config.pollIntervalMs, signal);
-        continue;
+  const sub = dhApi.query.Session.CurrentIndex.watchValue("finalized")
+    .pipe(
+      exhaustMap((currentSession) => {
+        if (signal.aborted) return EMPTY;
+        return tick(currentSession).catch((err) => {
+          if (!signal.aborted) logger.error(`Tick error: ${err}`);
+        });
+      })
+    )
+    .subscribe({
+      error: (err) => {
+        if (!signal.aborted) logger.error(`Session subscription error: ${err}`);
       }
+    });
 
-      const targetEra = computeTargetEra(activeEra.index);
-      const externalIndex = await getExternalIndex(dhApi);
+  await onAbort(signal);
+  sub.unsubscribe();
 
-      logger.info(
-        `ActiveEra=${activeEra.index} ExternalIndex=${externalIndex} TargetEra=${targetEra}`,
-      );
-
-      if (pending) {
-        if (externalIndex >= pending.targetEra) {
-          const latencyMs = Date.now() - pending.submittedAtMs;
-          logger.info(
-            `Pending era ${pending.targetEra} confirmed via ExternalIndex; clearing pending (latencyMs=${latencyMs})`,
-          );
-          pending = undefined;
-        } else if (activeEra.index >= Number(pending.targetEra)) {
-          const ageMs = Date.now() - pending.submittedAtMs;
-          logger.error(
-            `Pending era ${pending.targetEra} expired (activeEra=${activeEra.index}) without confirmation; clearing pending (tx=${pending.txHash} ageMs=${ageMs})`,
-          );
-          pending = undefined;
-        } else {
-          logger.debug(
-            `Waiting for pending era ${pending.targetEra} relay confirmation (tx=${pending.txHash})`,
-          );
-        }
-        await sleep(config.pollIntervalMs, signal);
-        continue;
-      }
-
-      if (externalIndex >= targetEra) {
-        logger.debug(`Era ${targetEra} already confirmed (ExternalIndex=${externalIndex}), skipping`);
-        await sleep(config.pollIntervalMs, signal);
-        continue;
-      }
-
-      if (!(await isLastSessionOfEra(dhApi))) {
-        logger.debug(`Era ${targetEra} needs submission but not in last session yet, waiting`);
-        await sleep(config.pollIntervalMs, signal);
-        continue;
-      }
-
-      const result = await submitForEra(clients, config, targetEra, signal);
-      if (result.kind === "accepted") {
-        pending = {
-          targetEra,
-          txHash: result.txHash,
-          submittedAtMs: Date.now(),
-        };
-        logger.info(
-          `Outbound accepted for era ${targetEra}; entering pending relay state (tx=${result.txHash})`,
-        );
-      } else if (result.kind === "already_confirmed") {
-        logger.info(`Era ${targetEra} already confirmed before submission attempt`);
-      } else {
-        logger.error(`Era ${targetEra} submission attempt failed; will retry next poll`);
-      }
-    } catch (err: unknown) {
-      if (signal.aborted) break;
-      logger.error(`Polling error: ${err}`);
-    }
-
-    if (!signal.aborted) {
-      await sleep(config.pollIntervalMs, signal).catch(() => {});
-    }
-  }
-
-  logger.info("Submitter loop stopped");
+  logger.info("Submitter stopped");
 }
 
 /**
- * Attempts to submit the validator set for a single target era.
- *
- * This performs a single outbound attempt per call. Confirmation is handled
- * by the outer polling loop via ExternalIndex checks.
+ * Submits the validator set for a single target era.
+ * Logs success or failure internally.
  */
 async function submitForEra(
   clients: SubmitterClients,
   config: SubmitterConfig,
   targetEra: bigint,
-  signal: AbortSignal,
-): Promise<SubmitResult> {
-  const { publicClient, walletClient, dhApi } = clients;
-  if (signal.aborted) return { kind: "failed" };
-
-  const activeEra = await getActiveEra(dhApi);
-  if (activeEra && activeEra.index >= Number(targetEra)) {
-    logger.info(`ActiveEra advanced past target ${targetEra}, abandoning`);
-    return { kind: "failed" };
-  }
-
-  const externalIndex = await getExternalIndex(dhApi);
-  if (externalIndex >= targetEra) {
-    logger.info(`ExternalIndex reached ${targetEra} (confirmed by another path)`);
-    return { kind: "already_confirmed" };
-  }
+  signal: AbortSignal
+): Promise<void> {
+  const { publicClient, walletClient } = clients;
 
   const totalFee = config.executionFee + config.relayerFee;
   logger.info(
-    `Submitting era ${targetEra} (execFee=${config.executionFee} relayerFee=${config.relayerFee})`,
+    `Submitting era ${targetEra} (execFee=${config.executionFee} relayerFee=${config.relayerFee})`
   );
 
   if (config.dryRun) {
@@ -198,10 +157,10 @@ async function submitForEra(
       address: config.serviceManagerAddress,
       abi: dataHavenServiceManagerAbi,
       functionName: "buildNewValidatorSetMessageForEra",
-      args: [targetEra],
+      args: [targetEra]
     });
     logger.info(`[DRY RUN] Would send message: ${message}`);
-    return { kind: "accepted", txHash: DRY_RUN_TX_HASH };
+    return;
   }
 
   try {
@@ -211,19 +170,23 @@ async function submitForEra(
       functionName: "sendNewValidatorSetForEra",
       args: [targetEra, config.executionFee, config.relayerFee],
       value: totalFee,
-      chain: null,
+      chain: null
     });
     logger.info(`Transaction sent: ${hash}`);
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await waitForReceiptWithAbort(publicClient, hash, signal);
     if (receipt.status !== "success") {
       logger.error(`Transaction reverted: ${hash}`);
-      return { kind: "failed" };
+      return;
     }
 
     const hasOutbound = receipt.logs.some((log) => {
       try {
-        const decoded = decodeEventLog({ abi: gatewayAbi, data: log.data, topics: log.topics });
+        const decoded = decodeEventLog({
+          abi: gatewayAbi,
+          data: log.data,
+          topics: log.topics
+        });
         return decoded.eventName === "OutboundMessageAccepted";
       } catch {
         return false;
@@ -232,14 +195,12 @@ async function submitForEra(
 
     if (!hasOutbound) {
       logger.warn("Transaction succeeded but no OutboundMessageAccepted event found");
-      return { kind: "failed" };
+      return;
     }
 
     logger.info("OutboundMessageAccepted confirmed");
-    return { kind: "accepted", txHash: hash };
   } catch (err: unknown) {
-    if (signal.aborted) return { kind: "failed" };
+    if (signal.aborted) return;
     logger.error(`Submission attempt failed: ${err}`);
-    return { kind: "failed" };
   }
 }

@@ -2,7 +2,7 @@
 
 **Status:** Draft  
 **Owner:** DataHaven Protocol / AVS Integration  
-**Last Updated:** 2026-02-06  
+**Last Updated:** 2026-02-07
 **Scope:** Ethereum -> Snowbridge -> DataHaven validator set synchronization
 
 ---
@@ -32,7 +32,7 @@ This enforces the invariant: **at most one canonical validator-set apply per tar
 - `sendNewValidatorSet(uint128 executionFee, uint128 relayerFee)` in `contracts/src/DataHavenServiceManager.sol` is owner-only.
 - Message building currently does not carry explicit era intent.
 - DataHaven inbound processing applies decoded `external_index` without era-target validation.
-- Operational flow relies on fixed fee constants and has no robust confirmation/retry pipeline.
+- Operational flow relies on fixed fee constants and has no automated submission pipeline.
 
 ---
 
@@ -51,7 +51,7 @@ This enforces the invariant: **at most one canonical validator-set apply per tar
 2. Ensure each message is explicitly bound to a specific target era.
 3. Accept a message only when it targets the immediate next era.
 4. Reject delayed (past-era), duplicate, and too-far-ahead messages deterministically.
-5. Maintain operational reliability under relayer delays with bounded retries.
+5. Accept that a failed submission for a given era is permanently missed (single submission window per era).
 6. Avoid skipping era advancement even when validator addresses are unchanged.
 
 ### Non-goals
@@ -86,14 +86,14 @@ Contract and runtime changes make the submitter service safe and deterministic:
 - payloads include explicit era intent (`targetEra`), and
 - DataHaven accepts only messages targeting `NextEra`.
 
-The submitter computes `targetEra = ActiveEra + 1`, submits the message, and confirms success only after outbound acceptance and inbound apply confirmation.
+The submitter subscribes to finalized session changes via PAPI's `watchValue("finalized")` on `Session.CurrentIndex`. On each session change it evaluates whether submission is needed, and acts during the last session of the active era. Each era gets a single submission attempt — if it fails, the era is missed and the submitter moves on.
 
 ```
 ┌───────────────────────────────┐      submit (for era)      ┌───────────────────────────────┐
 │ Validator-Set-Submitter       │ ──────────────────────────► │ ServiceManager (Ethereum)     │
-│ - reads ActiveEra             │                            │ - submitter-gated API         │
+│ - watches session changes     │                            │ - submitter-gated API         │
 │ - computes targetEra          │                            │ - builds payload with target  │
-│ - retries boundedly           │                            └───────────────┬───────────────┘
+│ - single attempt per era      │                            └───────────────┬───────────────┘
 └───────────────────────────────┘                                            │
                                                                              │ Snowbridge message
                                                                              ▼
@@ -201,13 +201,13 @@ Return deterministic dispatch errors, for example:
 
 - `targetEra = ActiveEra + 1`
 
-**Submission and retry model**
+**Submission model**
 
-- Submitter acts in a configurable pre-boundary window.
-- One normal submission attempt per era window; retries only when unconfirmed.
-- Retries for the same era reuse the same `targetEra`.
-- Fee bump strategy with configured cap.
-- Retries stop immediately after inbound confirmation.
+- Submitter subscribes to finalized `Session.CurrentIndex` via PAPI `watchValue("finalized")`.
+- On each session change, evaluates preconditions: `ActiveEra` set, `targetEra` not already processed, `ExternalIndex < targetEra`, and current session is the last session of the era.
+- One submission attempt per era window. If the attempt fails (revert, missing event, or error), the era is marked as processed and permanently missed.
+- Rationale: `validate_target_era` on the Substrate side rejects `targetEra <= activeEraIndex`, so once `ActiveEra` advances past the target, retries are impossible.
+- Overlapping session emissions are dropped via RxJS `exhaustMap`.
 
 **Delay/gap behavior (required)**
 
@@ -217,13 +217,13 @@ Return deterministic dispatch errors, for example:
 
 **Success criteria**
 
-- Outbound accepted on Ethereum.
-- Inbound `ExternalValidatorsSet` observed on DataHaven with expected `targetEra`.
+- Transaction receipt status is `success`.
+- `OutboundMessageAccepted` event emitted in receipt logs.
 
 **State model**
 
-- Submitter is recoverable from chain state.
-- Ephemeral in-memory retry state is allowed during a submission cycle.
+- Submitter is recoverable from chain state (reads `ActiveEra`, `ExternalIndex`, and session boundaries on each tick).
+- In-memory state is limited to `submittedEra` (the last processed target era), held in a closure.
 
 ---
 
@@ -243,7 +243,7 @@ Return deterministic dispatch errors, for example:
 ### Tooling
 
 - New daemon CLI entrypoint:
-  - `bun tools/validator-set-submitter/src/main.ts run`
+  - `bun tools/validator-set-submitter/main.ts run`
   - optional `--dry-run`
 
 ---
@@ -253,7 +253,7 @@ Return deterministic dispatch errors, for example:
 - Submitter key compromise risk is reduced by dedicated role separation (vs broad owner use).
 - Era-target checks prevent delayed-message replay into later eras.
 - Authorized-origin restriction remains required and unchanged.
-- Bounded retries prevent infinite fee burn loops.
+- Single-attempt model eliminates fee burn loops; a failed era is missed rather than retried.
 
 ---
 
@@ -262,20 +262,17 @@ Return deterministic dispatch errors, for example:
 Required metrics/log dimensions:
 
 - `targetEra`
-- current `ActiveEra`
-- outbound tx hash and nonce
-- retry count
+- current `ActiveEra` and `ExternalIndex`
+- current session index
+- outbound tx hash
 - fee pair used
-- outbound acceptance latency
-- inbound apply latency
-- rejection reason category (`too_old` / `too_new` / `duplicate_or_stale` / `unauthorized` / `decode_failure`)
+- submission outcome (success / revert / missing event / error)
 
 Alert conditions:
 
-- missed submission window
-- max retries exceeded
-- outbound accepted but inbound not confirmed before cutoff
-- repeated era-target rejections across eras
+- missed submission window (failed attempt logged as "era will be missed")
+- repeated era misses across consecutive eras
+- subscription errors on `Session.CurrentIndex`
 
 ---
 
@@ -328,6 +325,10 @@ Alert conditions:
 ## Possible improvements (future)
 
 - Keep this release simple: `external_index` carries `targetEra`, and runtime enforces next-era-only acceptance.
+- Add a generalized failure-handling strategy for the submitter, including retry behavior for transient issues while preserving safety and idempotency.
+- Add generalized resiliency for event watching and connectivity, including recovery after disconnects and missed updates.
+- Add production monitoring and operations dashboards (for example Prometheus/Grafana) covering service health, submission outcomes, retries, missed eras, and end-to-end latency.
+- Add alerting/SLO definitions for validator-set submission reliability and response runbooks for incidents.
 - Alternative direction: remove era dependency from payload and use an Ethereum-stamped freshness model:
   - `ServiceManager` assigns message metadata on-chain (e.g., `issuedAt` timestamp and monotonic message nonce/ID).
   - DataHaven accepts only fresh messages within a configured max relay delay and rejects expired ones.

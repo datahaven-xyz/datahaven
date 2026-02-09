@@ -34,10 +34,8 @@ bun typecheck                      # TypeScript type checking
 
 # Code Generation (run after contract/runtime changes)
 bun generate:wagmi                 # Generate TypeScript contract bindings
-bun generate:version               # Generate Solidity version constants from deployments
 bun generate:types                 # Generate Polkadot-API types from runtime
 bun generate:types:fast            # Generate types with fast-runtime feature
-bun validate:versions              # Validate version consistency across codebase
 
 # Local Development - Quick Start
 bun cli launch                     # Interactive launcher (recommended)
@@ -114,34 +112,98 @@ datahaven/
 
 ### Version Management
 
-DataHaven uses automated version synchronization with flexible per-deployment versioning:
+DataHaven uses a changeset-based versioning system for contracts with centralized tracking:
 
-- **Source of Truth**: `contracts/deployments/{chain}.json` version field (anvil, hoodi, ethereum)
-- **On-Chain Version**: Passed as initialization parameter during deployment (not hardcoded)
-- **Update Mechanism**: Call `updateVersion()` after contract upgrades to sync on-chain version
-- **Generated Reference**: `bun generate:version` creates `Version.sol` (for testing/tooling reference only)
-- **Validation**: Use `bun run validate:versions` or `bun cli contracts checks --chain <chain>` to confirm on-chain version matches deployments
-- **Multi-Environment**: Environments can share deployment files (e.g., stagenet-hoodi and testnet-hoodi both use hoodi.json)
+#### Key Files
+- **`contracts/VERSION`**: Single source of truth for code version (e.g., `1.0.0`)
+- **`contracts/versions-matrix.json`**: Tracks code version + deployed versions across chains
+- **`contracts/.changesets/`**: PR-based version bump declarations (processed by CI)
+- **`contracts/deployments/{chain}.json`**: Per-chain deployment info (addresses only)
 
-#### Version Bump Flow (Fully Automated)
-- **Deploy**: MINOR bump (X.Y.0 → X.(Y+1).0) via `bun cli contracts deploy`
-  - Automatically sets initial version during contract initialization
-- **Upgrade**: PATCH bump (X.Y.Z → X.Y.(Z+1)) via `bun cli contracts upgrade`
-  - Automatically updates deployment file AND calls `updateVersion()` on-chain
-  - No manual steps required!
-- **Manual MAJOR**: Edit deployment JSON manually for breaking changes, then run upgrade
+#### Developer Workflow
+
+1. **Make contract changes** in `contracts/src/`
+
+2. **Declare version bump** (required for CI to pass):
+   ```bash
+   bun cli contracts bump --type [major|minor|patch]
+   ```
+   - `major`: Breaking changes (X.0.0)
+   - `minor`: New features, backwards compatible (0.X.0)
+   - `patch`: Bug fixes, backwards compatible (0.0.X)
+
+   This creates a changeset file like `.changesets/pr-123.txt`
+
+3. **Commit changeset**:
+   ```bash
+   git add contracts/.changesets/
+   git commit -m "feat: your changes"
+   ```
+
+4. **On merge to main**: GitHub Actions automatically:
+   - Reads all changeset files
+   - Takes highest bump type (major > minor > patch)
+   - Updates `VERSION` file
+   - Updates `versions-matrix.json` with new checksum
+   - Deletes processed changesets
+   - Commits changes to main
+
+#### Upgrade/Deploy Commands
+
+- **Upgrade** (uses VERSION file):
+  ```bash
+  bun cli contracts upgrade --chain hoodi --version latest
+  ```
+  - Validates checksum matches `versions-matrix.json`
+  - Updates deployment file and on-chain version
+  - Updates `versions-matrix.json` deployment info
+
+- **Deploy** (MINOR bump):
+  ```bash
+  bun cli contracts deploy --chain anvil
+  ```
+  - Performs MINOR bump automatically
+  - Updates both deployment file and `versions-matrix.json`
+
+#### Validation Commands
+
+- **Check versions across deployments**:
+  ```bash
+  bun cli contracts version-check --chain hoodi
+  ```
+
+- **Validate changesets (CI use)**:
+  ```bash
+  bun cli contracts validate-changesets
+  ```
+  Fails if contracts changed but no changeset exists
+
+#### Version Matrix Structure
+
+```json
+{
+  "code": {
+    "version": "1.0.0",           // Current code version
+    "checksum": "abc123...",       // SHA1 of contracts/src/
+    "lastModified": "2026-02-05T..."
+  },
+  "deployments": {
+    "anvil": { "version": "0.1.0", "lastDeployed": "..." },
+    "hoodi": { "version": "1.0.0", "lastDeployed": "..." }
+  }
+}
+```
 
 #### If Version Out of Sync (Rare)
-1. For off-chain: Run `bun generate:version` to regenerate Version.sol reference
-2. For on-chain: `cast send $SERVICE_MANAGER "updateVersion(string)" "X.Y.Z" --private-key $OWNER_KEY`
-3. Run `bun generate:wagmi` if contract ABI changed
+1. **Checksum mismatch**: Run `bun cli contracts apply-changesets` or update VERSION manually
+2. **On-chain sync**: Upgrade command automatically calls `updateVersion()` on ServiceManager
+3. **Generated reference**: Not used (versions are tracked in `versions-matrix.json`)
 
 ### Development Workflow
 1. Make changes to relevant component
 2. Run component-specific tests and linters
 3. Regenerate bindings if contracts/runtime changed:
    - `bun generate:wagmi` for contract changes
-   - `bun generate:version` for deployment version changes (auto-runs during build)
    - `bun generate:types` for runtime changes
 4. Build Docker image for operator changes: `bun build:docker:operator`
 5. Run E2E tests to verify integration: `bun test:e2e`
@@ -151,7 +213,7 @@ DataHaven uses automated version synchronization with flexible per-deployment ve
 - **Types mismatch**: Regenerate with `bun generate:types` after runtime changes
 - **Kurtosis not running**: Ensure Docker is running and Kurtosis engine is started
 - **Contract changes not reflected**: Run `bun generate:wagmi` after modifications
-- **Version out of sync**: Run `bun generate:version` and commit the generated file
+- **Version out of sync**: Run `bun cli contracts apply-changesets` (CI) or update `VERSION` manually
 - **Forge build errors**: Try `forge clean` then rebuild
 - **Slow development cycle**: Use `--features fast-runtime` for faster block times
 - **Network launch halts**: Check Blockscout - forge output can appear frozen

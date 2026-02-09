@@ -81,12 +81,20 @@
       "type": "t_string_storage"
     },
     {
-      "astId": 23793,
+      "astId": 23791,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "versionUpdater",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_address"
+    },
+    {
+      "astId": 23796,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__GAP",
       "offset": 0,
-      "slot": "106",
-      "type": "t_array(t_uint256)45_storage"
+      "slot": "107",
+      "type": "t_array(t_uint256)44_storage"
     }
   ],
   "types": {
@@ -95,10 +103,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)45_storage": {
+    "t_array(t_uint256)44_storage": {
       "encoding": "inplace",
-      "label": "uint256[45]",
-      "numberOfBytes": "1440",
+      "label": "uint256[44]",
+      "numberOfBytes": "1408",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {

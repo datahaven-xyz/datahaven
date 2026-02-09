@@ -133,15 +133,17 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
       privateKey
     );
 
-    // Update proxy contracts to point to new implementations
-    await updateProxyContracts(options.chain, rpcUrl, privateKey, serviceManagerImplAddress);
+    // Update proxy contracts to point to new implementations AND update version in one transaction
+    await updateProxyContracts(
+      options.chain,
+      rpcUrl,
+      privateKey,
+      serviceManagerImplAddress,
+      targetVersion
+    );
 
     // Update versions-matrix.json with deployment info
     await updateVersionsMatrix(options.chain, targetVersion);
-
-    // Update on-chain version to match target version (uses deployer/version updater key)
-    const versionUpdaterKey = resolveVersionUpdaterKey();
-    await updateOnChainVersion(options.chain, rpcUrl, versionUpdaterKey, targetVersion);
 
     // Verify contracts if requested
     if (options.verify) {
@@ -256,34 +258,43 @@ const deployServiceManagerImplementation = async (
 };
 
 /**
- * Updates proxy contracts to point to new implementations
+ * Updates proxy contracts to point to new implementations and sets version
  */
 const updateProxyContracts = async (
   chain: string,
   rpcUrl: string,
   privateKey: string,
-  serviceManagerImplAddress: string
+  serviceManagerImplAddress: string,
+  version: string
 ) => {
-  logger.info("🔄 Updating proxy contracts...");
+  logger.info("🔄 Updating proxy contracts and version...");
 
   const deployments = await parseDeploymentsFile(chain);
 
-  // Update ServiceManager proxy to point to new implementation
-  await updateServiceManagerProxy(deployments, rpcUrl, privateKey, serviceManagerImplAddress);
+  // Update ServiceManager proxy to point to new implementation and update version in one transaction
+  await updateServiceManagerProxyWithVersion(
+    deployments,
+    rpcUrl,
+    privateKey,
+    serviceManagerImplAddress,
+    version
+  );
 
-  logger.success("Proxy contracts updated successfully");
+  logger.success("Proxy contracts updated and version set successfully");
 };
 
 /**
- * Updates ServiceManager proxy to point to new implementation
+ * Updates ServiceManager proxy to point to new implementation and updates version in one transaction
+ * This saves gas by combining upgrade and version update
  */
-const updateServiceManagerProxy = async (
+const updateServiceManagerProxyWithVersion = async (
   deployments: any,
   rpcUrl: string,
   privateKey: string,
-  serviceManagerImplAddress: string
+  serviceManagerImplAddress: string,
+  version: string
 ) => {
-  logger.info("🔄 Updating ServiceManager proxy...");
+  logger.info(`🔄 Updating ServiceManager proxy and setting version to ${version}...`);
 
   // Note: Private key is passed via environment variable as required by forge
   // This is a known limitation of the forge toolchain
@@ -300,14 +311,15 @@ const updateServiceManagerProxy = async (
     RPC_URL: rpcUrl,
     SERVICE_MANAGER: deployments.ServiceManager,
     SERVICE_MANAGER_IMPL: serviceManagerImplAddress,
-    PROXY_ADMIN: proxyAdmin
+    PROXY_ADMIN: proxyAdmin,
+    NEW_VERSION: version
   };
 
   const updateArgs = [
     "script",
     "script/deploy/DeployImplementation.s.sol:DeployImplementation",
     "--sig",
-    "updateServiceManagerProxy()",
+    "updateServiceManagerProxyWithVersion()",
     "--rpc-url",
     rpcUrl,
     "--private-key",
@@ -319,7 +331,7 @@ const updateServiceManagerProxy = async (
   try {
     const result = await executeCommand("forge", updateArgs, env, "../contracts");
 
-    logger.success("ServiceManager proxy updated successfully");
+    logger.success(`ServiceManager proxy updated and version set to ${version}`);
     logger.debug(result);
   } catch (error) {
     logger.error(`❌ Failed to update ServiceManager proxy: ${error}`);
@@ -410,65 +422,3 @@ const updateVersionsMatrix = async (chain: string, version: string): Promise<voi
   logger.info(`📝 Updated versions-matrix.json for chain ${chain}`);
 };
 
-/**
- * Resolves the private key for updating the on-chain version
- * Uses DEPLOYER_PRIVATE_KEY (version updater) or falls back to PRIVATE_KEY
- */
-const resolveVersionUpdaterKey = (): string => {
-  if (process.env.DEPLOYER_PRIVATE_KEY) {
-    return process.env.DEPLOYER_PRIVATE_KEY;
-  }
-  if (process.env.PRIVATE_KEY) {
-    return process.env.PRIVATE_KEY;
-  }
-  throw new Error(
-    "Private key is required for version update. Set DEPLOYER_PRIVATE_KEY or PRIVATE_KEY environment variable"
-  );
-};
-
-/**
- * Updates the on-chain version by calling updateVersion() on the ServiceManager
- */
-const updateOnChainVersion = async (
-  chain: string,
-  rpcUrl: string,
-  privateKey: string,
-  version: string
-): Promise<void> => {
-  logger.info(`📝 Updating on-chain version to ${version}...`);
-
-  try {
-    const deployments = await parseDeploymentsFile(chain);
-    const serviceManagerAddress = (deployments as any).ServiceManager;
-
-    if (!serviceManagerAddress) {
-      throw new Error("ServiceManager address not found in deployment file");
-    }
-
-    // Use cast to call updateVersion on the ServiceManager
-    const args = [
-      "send",
-      serviceManagerAddress,
-      "updateVersion(string)",
-      version,
-      "--rpc-url",
-      rpcUrl,
-      "--private-key",
-      privateKey
-    ];
-
-    const env: Record<string, string> = {};
-    // Only copy defined env vars
-    for (const [key, value] of Object.entries(process.env)) {
-      if (value !== undefined) {
-        env[key] = value;
-      }
-    }
-    await executeCommand("cast", args, env, "../contracts");
-
-    logger.success(`On-chain version updated to ${version}`);
-  } catch (error) {
-    logger.error(`❌ Failed to update on-chain version: ${error}`);
-    throw error;
-  }
-};

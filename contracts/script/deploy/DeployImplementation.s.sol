@@ -50,6 +50,7 @@ contract DeployImplementation is Script {
 
     /**
      * @notice Update ServiceManager proxy to point to new implementation
+     * @dev This is the legacy upgrade method without version update
      */
     function updateServiceManagerProxy() public {
         console.log("Updating ServiceManager proxy...");
@@ -69,5 +70,36 @@ contract DeployImplementation is Script {
             .upgrade(ITransparentUpgradeableProxy(payable(serviceManager)), newImplementation);
 
         console.log("ServiceManager proxy updated to new implementation:", newImplementation);
+    }
+
+    /**
+     * @notice Update ServiceManager proxy and set version in one transaction
+     * @dev Uses upgradeAndCall to combine upgrade and version update, saving gas
+     */
+    function updateServiceManagerProxyWithVersion() public {
+        console.log("Updating ServiceManager proxy with version...");
+
+        // Get addresses and version from environment variables
+        address serviceManager = vm.envAddress("SERVICE_MANAGER");
+        address newImplementation = vm.envAddress("SERVICE_MANAGER_IMPL");
+        address proxyAdmin = vm.envAddress("PROXY_ADMIN");
+        string memory newVersion = vm.envString("NEW_VERSION");
+
+        require(serviceManager != address(0), "SERVICE_MANAGER not set");
+        require(newImplementation != address(0), "SERVICE_MANAGER_IMPL not set");
+        require(newImplementation.code.length > 0, "SERVICE_MANAGER_IMPL is not a contract");
+        require(proxyAdmin != address(0), "PROXY_ADMIN not set");
+        require(bytes(newVersion).length > 0, "NEW_VERSION not set");
+
+        // Encode the updateVersion call
+        bytes memory data = abi.encodeWithSignature("updateVersion(string)", newVersion);
+
+        vm.broadcast();
+        ProxyAdmin(proxyAdmin).upgradeAndCall(
+            ITransparentUpgradeableProxy(payable(serviceManager)), newImplementation, data
+        );
+
+        console.log("ServiceManager proxy updated to:", newImplementation);
+        console.log("Version updated to:", newVersion);
     }
 }

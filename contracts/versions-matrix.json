@@ -1,0 +1,17 @@
+{
+  "code": {
+    "version": "1.1.1",
+    "checksum": "2b642ee7ac050226e05369845732014d8d7349ea",
+    "lastModified": "2026-02-06T19:54:59.232Z"
+  },
+  "deployments": {
+    "anvil": {
+      "version": "1.1.0",
+      "lastDeployed": "2026-02-06T19:49:51.230Z"
+    },
+    "hoodi": {
+      "version": "1.0.0",
+      "lastDeployed": "2026-02-05T18:06:00Z"
+    }
+  }
+}

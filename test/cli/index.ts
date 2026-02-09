@@ -226,10 +226,11 @@ const contractsCommand = program
     --skip-verification: Skip contract verification
 
     Versioning:
-    - Each deployments/<chain>.json carries a single version field alongside contract addresses.
-    - bun cli contracts deploy performs a MINOR bump (X.Y.0) after a successful full deployment.
-    - bun cli contracts upgrade performs a PATCH bump (X.Y.Z+1) after a successful upgrade.
-    - The meaning of a given version is defined by the current git branch and external docs, not by the CLI.
+    - contracts/VERSION is the single source of truth for code version.
+    - contracts/versions-matrix.json tracks code version and per-chain deployments.
+    - deployments/<chain>.json contains addresses only (no version field).
+    - bun cli contracts bump creates changesets; CI applies them to update VERSION + versions-matrix.json.
+    - bun cli contracts deploy/upgrade update versions-matrix.json deployment info.
     `
   )
   .description("Deploy and manage DataHaven AVS contracts on supported chains");
@@ -389,7 +390,7 @@ contractsCommand
 // Contracts Checks
 contractsCommand
   .command("version-check")
-  .description("Run contract version and dependency checks")
+  .description("Run contract version checks")
   .option("--chain <value>", "Target chain (hoodi, mainnet, anvil)")
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .hook("preAction", contractsPreActionHook)

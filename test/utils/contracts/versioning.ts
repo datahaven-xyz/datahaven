@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { CHAIN_CONFIGS } from "configs/contracts/config";
 import { logger } from "utils";
-import { getContractInstance, parseDeploymentsFile } from "utils/contracts";
+import { getContractInstance } from "utils/contracts";
 import type { ViemClientInterface } from "utils/viem";
 import { createWalletClient, defineChain, http, publicActions } from "viem";
 
@@ -165,26 +165,40 @@ export const isValidSemver = (version: string): boolean => {
  * Validates version formats across all deployment files
  */
 export const validateVersionFormats = async (): Promise<boolean> => {
-  const chains = ["anvil", "hoodi", "ethereum"];
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+
   let allValid = true;
 
-  for (const chain of chains) {
-    try {
-      const deployments = await parseDeploymentsFile(chain);
-      const version = (deployments as any).version;
+  try {
+    const matrixContent = readFileSync(matrixFile, "utf8");
+    const matrix = JSON.parse(matrixContent);
+    const codeVersion = matrix?.code?.version;
 
+    if (!codeVersion) {
+      logger.warn("⚠️ versions-matrix.json has no code.version");
+      allValid = false;
+    } else if (!isValidSemver(codeVersion)) {
+      logger.error(`❌ Invalid code.version format in versions-matrix.json: ${codeVersion}`);
+      allValid = false;
+    }
+
+    const deployments = matrix?.deployments ?? {};
+    for (const [chain, entry] of Object.entries(deployments)) {
+      const version = (entry as { version?: string }).version;
       if (!version) {
-        logger.warn(`⚠️ No version in ${chain}.json`);
+        logger.warn(`⚠️ No version for '${chain}' in versions-matrix.json deployments`);
         continue;
       }
-
       if (!isValidSemver(version)) {
-        logger.error(`❌ Invalid version format in ${chain}.json: ${version}`);
+        logger.error(`❌ Invalid deployment version format for '${chain}': ${version}`);
         allValid = false;
       }
-    } catch (error) {
-      logger.warn(`⚠️ Could not validate ${chain}: ${error}`);
     }
+  } catch (error) {
+    logger.warn(`⚠️ Could not read versions-matrix.json: ${error}`);
+    return false;
   }
 
   return allValid;

@@ -63,20 +63,18 @@ Supported networks: `hoodi` (no mainnet config yet). Artifacts → `contracts/de
 
 ### Contract versioning (version)
 
-DataHaven uses automated version synchronization with flexible per-deployment versioning:
+DataHaven uses a changeset-based versioning system with centralized tracking:
 
-- Each `contracts/deployments/<network>.json` stores a `version` field (semantic versioning: `X.Y.Z`).
+- `contracts/VERSION` is the single source of truth for the code version.
+- `contracts/versions-matrix.json` tracks the code version and per-chain deployments.
+- `contracts/deployments/<network>.json` contains addresses only (no version field).
 - Version is **passed as a parameter** during contract deployment (not hardcoded by chain ID).
-- Version management is **fully automated**:
-  - `bun cli contracts deploy` performs a **MINOR** bump (`X.Y.0 → X.(Y+1).0`) and sets initial version
-  - `bun cli contracts upgrade` performs a **PATCH** bump (`X.Y.Z → X.Y.(Z+1)`) and automatically calls `updateVersion()` on-chain
-  - No manual steps required!
+- Version management is **changeset-driven**:
+  - `bun cli contracts bump --type [major|minor|patch]` creates a changeset
+  - CI applies changesets and updates `VERSION` + `versions-matrix.json`
 - Multiple environments can share the same deployment file:
   - `stagenet-hoodi` and `testnet-hoodi` both write to `hoodi.json` (chainId: 560048)
-  - Separate contract instances can have different versions on the same chain
-- MAJOR version bumps must be done manually by editing the deployment file for breaking changes.
-- `bun generate:version` creates a reference file (`Version.sol`) for testing/tooling (not used by contracts).
-- From the `test/` directory, run `bun run validate:versions` or `bun cli contracts checks --chain <chain>` to validate versions.
+- For validation, run `bun cli contracts version-check --chain <chain>` and `bun cli contracts validate-changesets`.
 
 ## How It Works
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.

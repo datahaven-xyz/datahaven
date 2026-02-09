@@ -6,7 +6,7 @@ LABEL version="0.4.0"
 LABEL description="DataHaven Node - Release Build"
 LABEL maintainer="steve@moonsonglabs.com"
 
-# ENV BINARY_PATH=./target/x86_64-unknown-linux-gnu/release/datahaven-node
+ENV BINARY_PATH=./target/x86_64-unknown-linux-gnu/release/datahaven-node
 
 # Install CA certificates and libpq5 for the release build
 RUN apt-get update && \
@@ -27,10 +27,7 @@ RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
 USER datahaven
 
 # Copy pre-built binary
-COPY . .
-RUN cd target && ls
-RUN mv target/x86_64-unknown-linux-gnu/release/datahaven-node /usr/local/bin
-# COPY --chown=datahaven:datahaven ./target/x86_64-unknown-linux-gnu/release/datahaven-node /usr/local/bin
+COPY --chown=datahaven:datahaven $BINARY_PATH /usr/local/bin
 # Make binary executable
 RUN chmod uog+x /usr/local/bin/datahaven-node
 

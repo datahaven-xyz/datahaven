@@ -81,6 +81,11 @@ interface IDataHavenServiceManagerEvents {
     /// @param newVersion The new version string
     event VersionUpdated(string oldVersion, string newVersion);
 
+    /// @notice Emitted when the version updater address is changed
+    /// @param oldVersionUpdater The previous version updater address
+    /// @param newVersionUpdater The new version updater address
+    event VersionUpdaterSet(address indexed oldVersionUpdater, address indexed newVersionUpdater);
+
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
 }
@@ -129,13 +134,15 @@ interface IDataHavenServiceManager is
      * @param validatorsStrategies Array of strategies supported by validators
      * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
      * @param initialVersion Initial semantic version string (e.g., "1.0.0")
+     * @param _versionUpdater Address authorized to update the contract version
      */
     function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
         address _snowbridgeGatewayAddress,
-        string memory initialVersion
+        string memory initialVersion,
+        address _versionUpdater
     ) external;
 
     /**
@@ -217,10 +224,19 @@ interface IDataHavenServiceManager is
     /**
      * @notice Updates the contract version
      * @param newVersion The new semantic version string (e.g., "1.0.1")
-     * @dev Only callable by owner. Typically called after contract upgrades.
+     * @dev Only callable by version updater or owner. Typically called after contract upgrades.
      */
     function updateVersion(
         string memory newVersion
+    ) external;
+
+    /**
+     * @notice Sets the address authorized to update the contract version
+     * @param newVersionUpdater The new version updater address
+     * @dev Only callable by owner. Typically set to the deployer account.
+     */
+    function setVersionUpdater(
+        address newVersionUpdater
     ) external;
 
     // ============ Rewards Submitter Functions ============

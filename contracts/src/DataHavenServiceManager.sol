@@ -29,6 +29,7 @@ import {IDataHavenServiceManager} from "./interfaces/IDataHavenServiceManager.so
 /**
  * @title DataHaven ServiceManager contract
  * @notice Manages validators in the DataHaven network and submits rewards to EigenLayer
+ * @dev This contract is upgradeable and integrates with EigenLayer's AllocationManager
  */
 contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHavenServiceManager {
     using SafeERC20 for IERC20;
@@ -70,9 +71,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// `contracts/deployments/<chain>.json`.
     string private _version;
 
+    /// @notice The address authorized to update the contract version
+    /// Typically set to the deployer account to allow version updates during upgrades
+    address public versionUpdater;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[45] private __GAP;
+    uint256[44] private __GAP;
 
     // ============ Modifiers ============
 
@@ -94,6 +99,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _;
     }
 
+    /// @notice Restricts function to the version updater or owner
+    modifier onlyVersionUpdater() {
+        _checkVersionUpdater();
+        _;
+    }
+
     function _checkRewardsInitiator() internal view {
         require(msg.sender == rewardsInitiator, OnlyRewardsInitiator());
     }
@@ -108,6 +119,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     function _checkAllocationManager() internal view {
         require(msg.sender == address(_ALLOCATION_MANAGER), OnlyAllocationManager());
+    }
+
+    function _checkVersionUpdater() internal view {
+        require(
+            msg.sender == versionUpdater || msg.sender == owner(),
+            "Only version updater or owner"
+        );
     }
 
     // ============ Constructor ============
@@ -130,11 +148,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
         address _snowbridgeGatewayAddress,
-        string memory initialVersion
+        string memory initialVersion,
+        address _versionUpdater
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
         require(_snowbridgeGatewayAddress != address(0), ZeroAddress());
+        require(_versionUpdater != address(0), ZeroAddress());
         require(bytes(initialVersion).length > 0, "Version cannot be empty");
 
         __Ownable_init();
@@ -144,6 +164,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         // Set version from parameter (allows flexibility per deployment environment)
         _version = initialVersion;
+        versionUpdater = _versionUpdater;
+        emit VersionUpdaterSet(address(0), _versionUpdater);
 
         // Register the DataHaven service in the AllocationManager.
         _ALLOCATION_MANAGER.updateAVSMetadataURI(address(this), DATAHAVEN_AVS_METADATA);
@@ -316,14 +338,26 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Updates the contract version (typically called after upgrades)
     /// @param newVersion The new semantic version string (e.g., "1.0.1")
-    /// @dev Only callable by owner. Used to keep on-chain version in sync after upgrades.
+    /// @dev Only callable by version updater or owner. Used to keep on-chain version in sync after upgrades.
     function updateVersion(
         string memory newVersion
-    ) external onlyOwner {
+    ) external onlyVersionUpdater {
         require(bytes(newVersion).length > 0, "Version cannot be empty");
         string memory oldVersion = _version;
         _version = newVersion;
         emit VersionUpdated(oldVersion, newVersion);
+    }
+
+    /// @notice Sets the address authorized to update the contract version
+    /// @param newVersionUpdater The new version updater address
+    /// @dev Only callable by owner. Typically set to the deployer account.
+    function setVersionUpdater(
+        address newVersionUpdater
+    ) external onlyOwner {
+        require(newVersionUpdater != address(0), ZeroAddress());
+        address oldVersionUpdater = versionUpdater;
+        versionUpdater = newVersionUpdater;
+        emit VersionUpdaterSet(oldVersionUpdater, newVersionUpdater);
     }
 
     // ============ Rewards Functions ============
@@ -424,3 +458,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         require(result != address(0), ZeroAddress());
     }
 }
+// Test change for versioning system
+// Test change for versioning system
+// Test change for versioning system

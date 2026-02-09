@@ -1267,6 +1267,9 @@ impl_runtime_apis! {
         ) -> Vec<H256> {
             FileSystem::query_pending_bsp_confirm_storage_requests(bsp_id, file_keys)
         }
+        fn get_max_batch_confirm_storage_requests() -> BlockNumber {
+            FileSystem::get_max_batch_confirm_storage_requests()
+        }
     }
 
     impl pallet_payment_streams_runtime_api::PaymentStreamsApi<Block, ProviderIdFor<Runtime>, Balance, AccountId> for Runtime {

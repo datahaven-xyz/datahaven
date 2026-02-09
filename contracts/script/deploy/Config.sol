@@ -19,8 +19,6 @@ contract Config {
     struct AVSConfig {
         address avsOwner;
         address rewardsInitiator;
-        address vetoCommitteeMember;
-        uint32 vetoWindowBlocks;
         address[] validatorsStrategies;
     }
 

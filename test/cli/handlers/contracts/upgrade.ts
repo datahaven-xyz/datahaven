@@ -12,6 +12,7 @@ interface ContractsUpgradeOptions {
   rpcUrl?: string;
   privateKeyFile?: string;
   verify?: boolean;
+  version?: string; // Version to upgrade to ("latest" or specific semver)
 }
 
 const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
@@ -25,11 +26,14 @@ const resolveUpgradeContext = (options: ContractsUpgradeOptions) => {
   let privateKey: string;
   if (options.privateKeyFile) {
     privateKey = readPrivateKeyFromFile(options.privateKeyFile);
+  } else if (process.env.DEPLOYER_PRIVATE_KEY) {
+    // ProxyAdmin is owned by deployer, so use that key for proxy upgrades
+    privateKey = process.env.DEPLOYER_PRIVATE_KEY;
   } else if (process.env.PRIVATE_KEY) {
     privateKey = process.env.PRIVATE_KEY;
   } else {
     throw new Error(
-      "Private key is required. Provide either --private-key-file or set PRIVATE_KEY environment variable"
+      "Private key is required. Provide either --private-key-file or set DEPLOYER_PRIVATE_KEY/PRIVATE_KEY environment variable"
     );
   }
 
@@ -98,11 +102,26 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
   try {
     logger.info("🔄 Starting contract upgrade...");
     logger.info(`📡 Using chain: ${options.chain}`);
-    if (options.rpcUrl) {
-      logger.info(`📡 Using RPC URL: ${options.rpcUrl}`);
+
+    // For anvil, auto-detect RPC URL from Kurtosis if not provided
+    let resolvedRpcUrl = options.rpcUrl;
+    if (options.chain === "anvil" && !resolvedRpcUrl) {
+      const { getAnvilRpcUrl } = await import("../../../utils/anvil");
+      resolvedRpcUrl = await getAnvilRpcUrl();
+      logger.info(`📡 Auto-detected Anvil RPC URL: ${resolvedRpcUrl}`);
+    } else if (resolvedRpcUrl) {
+      logger.info(`📡 Using RPC URL: ${resolvedRpcUrl}`);
     }
 
-    const { rpcUrl, privateKey } = resolveUpgradeContext(options);
+    const upgradeOptions = { ...options, rpcUrl: resolvedRpcUrl };
+    const { rpcUrl, privateKey } = resolveUpgradeContext(upgradeOptions);
+
+    // Determine version FIRST (before any upgrade operations)
+    const targetVersion = await resolveTargetVersion(options.version || "latest");
+    logger.info(`🎯 Target version: ${targetVersion}`);
+
+    // Validate that contracts match the target version's checksum
+    await validateVersionChecksum(targetVersion);
 
     // Build contracts first
     await buildContracts();
@@ -117,11 +136,12 @@ export const contractsUpgrade = async (options: ContractsUpgradeOptions) => {
     // Update proxy contracts to point to new implementations
     await updateProxyContracts(options.chain, rpcUrl, privateKey, serviceManagerImplAddress);
 
-    // Bump version (patch) to reflect upgraded contracts and get the new version
-    const newVersion = await bumpVersionForUpgrade(options.chain);
+    // Update versions-matrix.json with deployment info
+    await updateVersionsMatrix(options.chain, targetVersion);
 
-    // Update on-chain version to match deployment file
-    await updateOnChainVersion(options.chain, rpcUrl, privateKey, newVersion);
+    // Update on-chain version to match target version (uses deployer/version updater key)
+    const versionUpdaterKey = resolveVersionUpdaterKey();
+    await updateOnChainVersion(options.chain, rpcUrl, versionUpdaterKey, targetVersion);
 
     // Verify contracts if requested
     if (options.verify) {
@@ -202,7 +222,12 @@ const deployServiceManagerImplementation = async (
     "script/deploy/DeployImplementation.s.sol:DeployImplementation",
     "--sig",
     "deployServiceManagerImpl()",
-    "--broadcast"
+    "--rpc-url",
+    rpcUrl,
+    "--private-key",
+    privateKey,
+    "--broadcast",
+    "--non-interactive"
   ];
 
   try {
@@ -283,7 +308,12 @@ const updateServiceManagerProxy = async (
     "script/deploy/DeployImplementation.s.sol:DeployImplementation",
     "--sig",
     "updateServiceManagerProxy()",
-    "--broadcast"
+    "--rpc-url",
+    rpcUrl,
+    "--private-key",
+    privateKey,
+    "--broadcast",
+    "--non-interactive"
   ];
 
   try {
@@ -297,34 +327,103 @@ const updateServiceManagerProxy = async (
   }
 };
 
-const bumpVersionForUpgrade = async (chain: string): Promise<string> => {
-  const deployments = await parseDeploymentsFile(chain);
-  const anyDeployments = deployments as any;
-
-  const current = anyDeployments.version as string | undefined;
-  let next = "0.0.1";
-
-  if (current) {
-    const [majorStr, minorStr, patchStr] = current.split(".");
-    const major = Number(majorStr);
-    const minor = Number(minorStr);
-    const patch = Number(patchStr);
-
-    if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
-      next = `${major}.${minor}.${patch + 1}`;
-    }
+/**
+ * Resolves the target version for upgrade
+ * "latest" reads from VERSION file, otherwise uses provided semver
+ */
+const resolveTargetVersion = async (versionSpec: string): Promise<string> => {
+  if (versionSpec === "latest") {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const versionFile = path.join(repoRoot, "contracts", "VERSION");
+    const version = readFileSync(versionFile, "utf8").trim();
+    logger.info(`📖 Reading version from VERSION file: ${version}`);
+    return version;
   }
 
-  const updated = { ...anyDeployments, version: next };
+  // Validate semver format
+  const semverRegex = /^\d+\.\d+\.\d+$/;
+  if (!semverRegex.test(versionSpec)) {
+    throw new Error(`Invalid version format: ${versionSpec}. Expected X.Y.Z`);
+  }
+
+  return versionSpec;
+};
+
+/**
+ * Validates that current contracts match the expected checksum for target version
+ */
+const validateVersionChecksum = async (version: string): Promise<void> => {
   const cwd = process.cwd();
   const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-  const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
-  const jsonContent = JSON.stringify(updated, null, 2);
-  writeFileSync(deploymentPath, jsonContent);
+  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+  const contractsPath = path.join(repoRoot, "contracts", "src");
 
-  logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
+  // Read versions matrix
+  const matrixContent = readFileSync(matrixFile, "utf8");
+  const matrix = JSON.parse(matrixContent);
 
-  return next;
+  // Calculate current checksum
+  const { generateContractsChecksum } = await import("../../../scripts/contracts-checksum");
+  const currentChecksum = generateContractsChecksum(contractsPath);
+
+  // Check if version matches code version in matrix
+  if (matrix.code.version !== version) {
+    throw new Error(
+      `Version mismatch: VERSION file says ${version} but versions-matrix.json code.version is ${matrix.code.version}. ` +
+        "Run 'bun cli contracts apply-changesets' or update VERSION file manually."
+    );
+  }
+
+  // Validate checksum matches
+  if (matrix.code.checksum !== currentChecksum) {
+    throw new Error(
+      `Checksum mismatch: versions-matrix.json says ${matrix.code.checksum} but current contracts checksum is ${currentChecksum}. ` +
+        "Either contracts changed without version bump, or versions-matrix.json is stale."
+    );
+  }
+
+  logger.success(`Contracts checksum validated for version ${version}`);
+};
+
+/**
+ * Updates versions-matrix.json with new deployment info
+ */
+const updateVersionsMatrix = async (chain: string, version: string): Promise<void> => {
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+
+  const matrixContent = readFileSync(matrixFile, "utf8");
+  const matrix = JSON.parse(matrixContent);
+
+  // Update deployment info
+  if (!matrix.deployments) {
+    matrix.deployments = {};
+  }
+  matrix.deployments[chain] = {
+    version,
+    lastDeployed: new Date().toISOString()
+  };
+
+  writeFileSync(matrixFile, JSON.stringify(matrix, null, 2));
+  logger.info(`📝 Updated versions-matrix.json for chain ${chain}`);
+};
+
+/**
+ * Resolves the private key for updating the on-chain version
+ * Uses DEPLOYER_PRIVATE_KEY (version updater) or falls back to PRIVATE_KEY
+ */
+const resolveVersionUpdaterKey = (): string => {
+  if (process.env.DEPLOYER_PRIVATE_KEY) {
+    return process.env.DEPLOYER_PRIVATE_KEY;
+  }
+  if (process.env.PRIVATE_KEY) {
+    return process.env.PRIVATE_KEY;
+  }
+  throw new Error(
+    "Private key is required for version update. Set DEPLOYER_PRIVATE_KEY or PRIVATE_KEY environment variable"
+  );
 };
 
 /**
@@ -367,7 +466,7 @@ const updateOnChainVersion = async (
     }
     await executeCommand("cast", args, env, "../contracts");
 
-    logger.success(`✅ On-chain version updated to ${version}`);
+    logger.success(`On-chain version updated to ${version}`);
   } catch (error) {
     logger.error(`❌ Failed to update on-chain version: ${error}`);
     throw error;

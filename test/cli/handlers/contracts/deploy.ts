@@ -45,25 +45,35 @@ export const contractsDeploy = async (options: any, command: any) => {
     if (environment) {
       logger.info(`📡 Using environment: ${environment}`);
     }
-    if (options.rpcUrl) {
-      logger.info(`📡 Using RPC URL: ${options.rpcUrl}`);
+
+    // For anvil, auto-detect RPC URL from Kurtosis if not provided
+    let rpcUrl = options.rpcUrl;
+    if (chain === "anvil" && !rpcUrl) {
+      const { getAnvilRpcUrl } = await import("../../../utils/anvil");
+      rpcUrl = await getAnvilRpcUrl();
+      logger.info(`📡 Auto-detected Anvil RPC URL: ${rpcUrl}`);
+    } else if (rpcUrl) {
+      logger.info(`📡 Using RPC URL: ${rpcUrl}`);
     }
 
+    // Override options with detected RPC URL
+    const deployOptions = { ...options, rpcUrl };
+
     // Chain is guaranteed to be defined by preAction hook validation
-    await versioningPreChecks({ chain: chain!, rpcUrl: options.rpcUrl });
+    await versioningPreChecks({ chain: chain!, rpcUrl: deployOptions.rpcUrl });
 
     // Chain is guaranteed to be defined by preAction hook validation
     await deployContracts({
       chain: chain!,
       environment: environment,
-      rpcUrl: options.rpcUrl,
-      privateKey: options.privateKey,
-      avsOwnerKey: options.avsOwnerKey,
-      avsOwnerAddress: options.avsOwnerAddress,
+      rpcUrl: deployOptions.rpcUrl,
+      privateKey: deployOptions.privateKey,
+      avsOwnerKey: deployOptions.avsOwnerKey,
+      avsOwnerAddress: deployOptions.avsOwnerAddress,
       txExecution: txExecutionOverride
     });
 
-    await versioningPostChecks({ chain: chain!, rpcUrl: options.rpcUrl });
+    await versioningPostChecks({ chain: chain!, rpcUrl: deployOptions.rpcUrl });
 
     printDivider();
   } catch (error) {
@@ -126,6 +136,19 @@ export const SUPPORTED_NETWORKS = [
 ] as const;
 
 export const contractsPreActionHook = async (thisCommand: any) => {
+  // Skip validation for commands that don't need chain
+  // Check if the command is one of the versioning commands by looking at args
+  const args = thisCommand.args || [];
+  const subcommand = args[0];
+
+  const skipChainValidation = ["bump", "apply-changesets", "validate-changesets"].includes(
+    subcommand
+  );
+
+  if (skipChainValidation) {
+    return; // Skip all validation for these commands
+  }
+
   let chain = thisCommand.getOptionValue("chain");
   let environment = thisCommand.getOptionValue("environment");
 
@@ -169,9 +192,25 @@ export const contractsPreActionHook = async (thisCommand: any) => {
     }
   }
 
-  if (!privateKey && !process.env.DEPLOYER_PRIVATE_KEY) {
-    logger.warn(
-      "⚠️ Private key not provided. Will use DEPLOYER_PRIVATE_KEY environment variable if set, or default Anvil key."
-    );
+  // Context-aware private key warnings
+  if (!privateKey) {
+    if (subcommand === "upgrade") {
+      // Upgrades require DEPLOYER_PRIVATE_KEY (ProxyAdmin owner + versionUpdater)
+      if (!process.env.DEPLOYER_PRIVATE_KEY) {
+        logger.warn(
+          "⚠️ DEPLOYER_PRIVATE_KEY not set. Upgrades require the deployer's private key (ProxyAdmin owner)."
+        );
+      }
+    } else if (subcommand === "deploy") {
+      // Deployments use DEPLOYER_PRIVATE_KEY for deployment, AVS_OWNER_PRIVATE_KEY for AVS ownership
+      if (!process.env.DEPLOYER_PRIVATE_KEY) {
+        logger.warn("⚠️ DEPLOYER_PRIVATE_KEY not set. Will use default Anvil key for deployment.");
+      }
+      if (!process.env.AVS_OWNER_PRIVATE_KEY) {
+        logger.warn(
+          "⚠️ AVS_OWNER_PRIVATE_KEY not set. ServiceManager will be owned by deployer account."
+        );
+      }
+    }
   }
 };

@@ -1,24 +1,13 @@
 import { logger, printDivider, printHeader } from "utils";
-import {
-  checkContractVersions,
-  checkDependencyVersions,
-  updateDependencyVersions,
-  validateVersionFormats
-} from "utils/contracts/versioning";
+import { checkContractVersions, validateVersionFormats } from "utils/contracts/versioning";
 
 type ContractsFlightOptions = {
   chain: string;
   rpcUrl?: string;
-  updateDeps?: boolean;
 };
 
 export const versioningPreChecks = async ({ chain, rpcUrl }: ContractsFlightOptions) => {
   logger.info("🧪 Running contracts version checks...");
-
-  const depsOk = await checkDependencyVersions(chain);
-  if (!depsOk) {
-    throw new Error(`Dependency version check failed for chain '${chain}'`);
-  }
 
   const contractResult = await checkContractVersions(chain, rpcUrl);
   if (contractResult.skipped) {
@@ -31,21 +20,8 @@ export const versioningPreChecks = async ({ chain, rpcUrl }: ContractsFlightOpti
   }
 };
 
-export const versioningPostChecks = async ({
-  chain,
-  rpcUrl,
-  updateDeps
-}: ContractsFlightOptions) => {
+export const versioningPostChecks = async ({ chain, rpcUrl }: ContractsFlightOptions) => {
   logger.info("🧪 Running contracts version checks after changes...");
-
-  if (updateDeps) {
-    await updateDependencyVersions(chain);
-  }
-
-  const depsOk = await checkDependencyVersions(chain);
-  if (!depsOk) {
-    throw new Error(`Dependency version check failed for chain '${chain}'`);
-  }
 
   const contractResult = await checkContractVersions(chain, rpcUrl);
   if (contractResult.skipped) {

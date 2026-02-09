@@ -123,8 +123,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     function _checkVersionUpdater() internal view {
         require(
-            msg.sender == versionUpdater || msg.sender == owner(),
-            "Only version updater or owner"
+            msg.sender == versionUpdater || msg.sender == owner(), "Only version updater or owner"
         );
     }
 

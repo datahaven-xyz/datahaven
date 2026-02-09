@@ -8,7 +8,6 @@ import type { ParameterCollection } from "utils/parameters";
 import { encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { dataHavenServiceManagerAbi } from "../contract-bindings/generated";
-import { getDependencyVersions } from "../utils/dependencyVersions";
 
 interface ContractDeploymentOptions {
   chain?: string;
@@ -48,11 +47,6 @@ export const validateDeploymentParams = (options: ContractDeploymentOptions) => 
  */
 export const buildContracts = async () => {
   logger.info("🛳️ Building contracts...");
-
-  // Generate version file before compilation
-  logger.debug("📝 Generating version constants from deployment files...");
-  const { generateVersionFile } = await import("./generate-version.ts");
-  await generateVersionFile();
 
   const {
     exitCode: buildExitCode,
@@ -126,30 +120,30 @@ export const executeDeployment = async (
 };
 
 /**
- * Gets the current version from deployment file, or returns default for new deployments
+ * Gets the current code version from contracts/VERSION file
+ * This is the single source of truth for the code version
  */
-export const getCurrentVersion = async (chain: string | undefined): Promise<string> => {
-  if (!chain) {
-    return "0.1.0";
-  }
+export const getCurrentVersion = async (): Promise<string> => {
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const versionFile = path.join(repoRoot, "contracts", "VERSION");
 
   try {
-    const cwd = process.cwd();
-    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-    const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
-
-    const raw = readFileSync(deploymentPath, "utf8");
-    const deploymentsJson = JSON.parse(raw) as { version?: string };
-
-    return deploymentsJson.version || "0.1.0";
-  } catch (_) {
-    // File doesn't exist yet (new deployment), use default
-    logger.debug(`No existing deployment file for ${chain}, using default version 0.1.0`);
-    return "0.1.0";
+    const version = readFileSync(versionFile, "utf8").trim();
+    if (!version) {
+      throw new Error("VERSION file is empty");
+    }
+    return version;
+  } catch (error) {
+    throw new Error(`Failed to read contracts/VERSION: ${error}`);
   }
 };
 
-export const bumpVersionAndUpdateDepsForDeploy = async (chain: string | undefined) => {
+/**
+ * Updates versions-matrix.json to track deployment
+ * Does NOT bump version - version comes from contracts/VERSION file
+ */
+export const updateDeploymentTracking = async (chain: string | undefined, version: string) => {
   if (!chain) {
     return;
   }
@@ -157,50 +151,24 @@ export const bumpVersionAndUpdateDepsForDeploy = async (chain: string | undefine
   try {
     const cwd = process.cwd();
     const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-    const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
+    const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
 
-    const raw = readFileSync(deploymentPath, "utf8");
-    const deploymentsJson = JSON.parse(raw) as {
-      version?: string;
-      deps?: { eigenlayer?: any; snowbridge?: any };
-    };
+    const matrixContent = readFileSync(matrixFile, "utf8");
+    const matrix = JSON.parse(matrixContent);
 
-    const current = deploymentsJson.version;
-    let next = "0.1.0";
-
-    if (current) {
-      const [majorStr, minorStr, patchStr] = current.split(".");
-      const major = Number(majorStr);
-      const minor = Number(minorStr);
-      const patch = Number(patchStr);
-
-      if (Number.isFinite(major) && Number.isFinite(minor) && Number.isFinite(patch)) {
-        next = `${major}.${minor + 1}.0`;
-      }
+    // Update deployment info
+    if (!matrix.deployments) {
+      matrix.deployments = {};
     }
-
-    deploymentsJson.version = next;
-
-    const deps = await getDependencyVersions();
-    deploymentsJson.deps = {
-      ...(deploymentsJson.deps ?? {}),
-      eigenlayer: {
-        ...(deploymentsJson.deps?.eigenlayer ?? {}),
-        ...deps.eigenlayer
-      },
-      snowbridge: {
-        ...(deploymentsJson.deps?.snowbridge ?? {}),
-        ...deps.snowbridge
-      }
+    matrix.deployments[chain] = {
+      version,
+      lastDeployed: new Date().toISOString()
     };
 
-    writeFileSync(deploymentPath, JSON.stringify(deploymentsJson, null, 2));
-    logger.info(`📝 Updated deployment version for ${chain} to ${next}`);
-    logger.info(
-      `📝 Updated dependency versions for ${chain}: eigenlayer=${deps.eigenlayer.release ?? deps.eigenlayer.gitCommit}, snowbridge=${deps.snowbridge.release ?? deps.snowbridge.gitCommit}`
-    );
+    writeFileSync(matrixFile, JSON.stringify(matrix, null, 2));
+    logger.info(`📝 Updated versions-matrix.json: ${chain} deployed at version ${version}`);
   } catch (error) {
-    logger.warn(`⚠️ Failed to update deployment version/dependency metadata for ${chain}: ${error}`);
+    logger.warn(`⚠️ Could not update versions-matrix.json: ${error}`);
   }
 };
 
@@ -312,9 +280,9 @@ export const deployContracts = async (options: {
   // Build contracts
   await buildContracts();
 
-  // Get current version before deployment (will be used for initialization)
-  const currentVersion = await getCurrentVersion(options.chain);
-  logger.info(`📌 Deploying with version: ${currentVersion}`);
+  // Get current code version from VERSION file (single source of truth)
+  const currentVersion = await getCurrentVersion();
+  logger.info(`📌 Deploying code version: ${currentVersion}`);
 
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
@@ -325,9 +293,12 @@ export const deployContracts = async (options: {
     await emitOwnerTransactionCalldata(networkId);
   }
 
-  await bumpVersionAndUpdateDepsForDeploy(options.chain);
+  // Update versions-matrix.json to track this deployment
+  await updateDeploymentTracking(options.chain, currentVersion);
 
-  logger.success(`DataHaven contracts deployed successfully to ${options.chain}`);
+  logger.success(
+    `DataHaven contracts deployed successfully to ${options.chain} at version ${currentVersion}`
+  );
 };
 
 const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
@@ -434,12 +405,12 @@ if (import.meta.main) {
   }
 
   if (!options.rpcUrl) {
-    console.error("Error: --rpc-url parameter is required");
+    logger.error("Error: --rpc-url parameter is required");
     process.exit(1);
   }
 
   if (options.verified && !options.blockscoutBackendUrl) {
-    console.error("Error: --blockscout-url parameter is required when using --verified");
+    logger.error("Error: --blockscout-url parameter is required when using --verified");
     process.exit(1);
   }
 

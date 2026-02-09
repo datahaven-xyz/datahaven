@@ -124,7 +124,7 @@ export const validateVersions = async () => {
     throw new Error("Version validation failed");
   }
 
-  logger.success("\n✅ All version checks passed");
+  logger.success("\nAll version checks passed");
 };
 
 // Allow direct execution

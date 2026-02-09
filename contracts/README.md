@@ -1,6 +1,6 @@
 # DataHaven AVS Smart Contracts
 
-Implements the Actively Validated Service (AVS) logic for DataHaven, secured by EigenLayer. These contracts manage operator registration, handle cross-chain rewards via Snowbridge, and enforce slashing with a veto period.
+Implements the Actively Validated Service (AVS) logic for DataHaven, secured by EigenLayer. These contracts manage operator registration, handle cross-chain rewards via Snowbridge, and enforce slashing.
 
 ## Project Structure
 
@@ -80,6 +80,6 @@ DataHaven uses a changeset-based versioning system with centralized tracking:
 1. **Registration**: Validators register with EigenLayer via `DataHavenServiceManager`.
 2. **Performance Tracking**: DataHaven computes reward points and sends a Merkle root to `RewardsRegistry` on Ethereum via Snowbridge.
 3. **Rewards Claims**: Validators claim rewards on Ethereum from `RewardsRegistry` using Merkle proofs.
-4. **Slashing**: Misbehavior triggers slashing (subject to veto period).
+4. **Slashing**: Misbehavior triggers slashing.
 
 See `test/README.md` for full network integration tests.

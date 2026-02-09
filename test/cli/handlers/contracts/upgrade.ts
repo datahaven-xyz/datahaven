@@ -421,4 +421,3 @@ const updateVersionsMatrix = async (chain: string, version: string): Promise<voi
   writeFileSync(matrixFile, JSON.stringify(matrix, null, 2));
   logger.info(`📝 Updated versions-matrix.json for chain ${chain}`);
 };
-

@@ -33,8 +33,6 @@
   "avs": {
     "avsOwner": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
     "rewardsInitiator": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
-    "vetoCommitteeMember": "0xe30a38ac89ffE5A86D5389Bfbf70C7EC766FbB6e",
-    "vetoWindowBlocks": 100,
     "validatorsStrategies": [
       "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
       "0xf8a1a66130d614c7360e868576d5e59203475fe0",

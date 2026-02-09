@@ -136,7 +136,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         address initialOwner,
         address _rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        address _validatorSetSubmitter
     ) public virtual initializer {
         require(initialOwner != address(0), ZeroAddress());
         require(_rewardsInitiator != address(0), ZeroAddress());
@@ -160,6 +161,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         // Set the Snowbridge Gateway address.
         _snowbridgeGateway = IGatewayV2(_snowbridgeGatewayAddress);
+
+        // Set the validator set submitter if provided.
+        if (_validatorSetSubmitter != address(0)) {
+            validatorSetSubmitter = _validatorSetSubmitter;
+            emit ValidatorSetSubmitterUpdated(address(0), _validatorSetSubmitter);
+        }
     }
 
     /// @inheritdoc IDataHavenServiceManager

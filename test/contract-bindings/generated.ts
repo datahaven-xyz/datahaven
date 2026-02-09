@@ -2117,6 +2117,11 @@ export const dataHavenServiceManagerAbi = [
         internalType: 'address',
         type: 'address',
       },
+      {
+        name: '_validatorSetSubmitter',
+        internalType: 'address',
+        type: 'address',
+      },
     ],
     name: 'initialize',
     outputs: [],

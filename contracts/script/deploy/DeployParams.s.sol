@@ -81,6 +81,12 @@ contract DeployParams is Script, Config {
         config.validatorsStrategies =
             vm.parseJsonAddressArray(configJson, ".avs.validatorsStrategies");
 
+        try vm.parseJsonAddress(configJson, ".avs.validatorSetSubmitter") returns (address addr) {
+            config.validatorSetSubmitter = addr;
+        } catch {
+            config.validatorSetSubmitter = address(0);
+        }
+
         return config;
     }
 

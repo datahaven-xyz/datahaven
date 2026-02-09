@@ -34,8 +34,15 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
     // ============ setValidatorSetSubmitter ============
 
     function test_setValidatorSetSubmitter() public {
+        // After initialization, validatorSetSubmitter is already set to avsOwner
+        assertEq(
+            serviceManager.validatorSetSubmitter(),
+            avsOwner,
+            "validatorSetSubmitter should be set to avsOwner after init"
+        );
+
         cheats.expectEmit();
-        emit IDataHavenServiceManagerEvents.ValidatorSetSubmitterUpdated(address(0), submitterA);
+        emit IDataHavenServiceManagerEvents.ValidatorSetSubmitterUpdated(avsOwner, submitterA);
         cheats.prank(avsOwner);
         serviceManager.setValidatorSetSubmitter(submitterA);
 
@@ -61,7 +68,7 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
     }
 
     function test_setValidatorSetSubmitter_rotation() public {
-        // Set submitter A
+        // Set submitter A (rotating from avsOwner set during init)
         cheats.prank(avsOwner);
         serviceManager.setValidatorSetSubmitter(submitterA);
         assertEq(serviceManager.validatorSetSubmitter(), submitterA);

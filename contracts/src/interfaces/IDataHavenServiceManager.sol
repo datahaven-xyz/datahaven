@@ -155,7 +155,8 @@ interface IDataHavenServiceManager is
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        address _validatorSetSubmitter
     ) external;
 
     /**

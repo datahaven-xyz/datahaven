@@ -1,0 +1,80 @@
+name: Contracts Versioning
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/src/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'contracts/.changesets/**'
+
+jobs:
+  # Validate changesets exist when contracts are modified (runs on PRs)
+  validate-changesets:
+    name: Validate Changesets
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to compare with main
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: test
+        run: bun install
+
+      - name: Validate changesets
+        working-directory: test
+        run: bun cli contracts validate-changesets
+        env:
+          SKIP_VERSION_CHECK: ${{ secrets.SKIP_VERSION_CHECK || 'false' }}
+
+  # Process changesets and bump version (runs on main after merge)
+  apply-changesets:
+    name: Apply Changesets
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write  # Need write permission to commit changes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: test
+        run: bun install
+
+      - name: Apply changesets
+        working-directory: test
+        run: bun cli contracts apply-changesets
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if [[ -n $(git status --porcelain) ]]; then
+            VERSION=$(cat contracts/VERSION)
+            git add contracts/VERSION contracts/versions-matrix.json contracts/.changesets/
+            git commit -m "chore: bump version to ${VERSION}"
+            git push
+            echo "✅ Version bumped to ${VERSION}"
+          else
+            echo "ℹ️  No version changes to commit"
+          fi

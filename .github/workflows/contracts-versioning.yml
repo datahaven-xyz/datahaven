@@ -1,0 +1,125 @@
+name: Contracts Versioning
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/src/**'
+  workflow_dispatch:  # Manual trigger before releases
+
+jobs:
+  # Validate changesets exist when contracts are modified (runs on PRs)
+  validate-changesets:
+    name: Validate Changesets
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to compare with main
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: test
+        run: bun install
+
+      - name: Validate changesets
+        working-directory: test
+        run: bun cli contracts validate-changesets
+        env:
+          SKIP_VERSION_CHECK: ${{ secrets.SKIP_VERSION_CHECK || 'false' }}
+
+  # Process changesets and create PR (manual trigger before release)
+  create-version-bump-pr:
+    name: Create Version Bump PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Need write permission to create branches
+      pull-requests: write  # Need permission to create PRs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: test
+        run: bun install
+
+      - name: Apply changesets
+        id: apply_changesets
+        working-directory: test
+        run: |
+          # Run apply-changesets and capture output
+          bun cli contracts apply-changesets
+
+          # Read the new version
+          VERSION=$(cat ../contracts/VERSION)
+          echo "new_version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Collect changeset descriptions
+        id: collect_descriptions
+        run: |
+          # Collect descriptions from changesets for PR body
+          DESCRIPTIONS=""
+          for file in contracts/.changesets/*.txt; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              # Read first line (type)
+              TYPE=$(head -n 1 "$file")
+              # Read remaining lines (description)
+              DESC=$(tail -n +2 "$file" | sed '/^$/d')
+
+              if [ -n "$DESC" ]; then
+                DESCRIPTIONS="${DESCRIPTIONS}### ${FILENAME} (${TYPE})\n${DESC}\n\n"
+              else
+                DESCRIPTIONS="${DESCRIPTIONS}### ${FILENAME} (${TYPE})\nNo description provided.\n\n"
+              fi
+            fi
+          done
+
+          # Save to output (handle multiline with heredoc)
+          echo "descriptions<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$DESCRIPTIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: bump version to ${{ steps.apply_changesets.outputs.new_version }}"
+          branch: release/version-${{ steps.apply_changesets.outputs.new_version }}
+          delete-branch: true
+          title: "chore: Release version ${{ steps.apply_changesets.outputs.new_version }}"
+          body: |
+            ## Version Bump: ${{ steps.apply_changesets.outputs.new_version }}
+
+            This PR bumps the contracts version to **${{ steps.apply_changesets.outputs.new_version }}**.
+
+            ### Changes Included
+
+            ${{ steps.collect_descriptions.outputs.descriptions }}
+
+            ### Next Steps
+
+            1. Review the changes in this PR
+            2. Checkout this PR branch locally
+            3. Run `bun cli contracts upgrade --chain <target-chain>` to upgrade contracts
+            4. Merge this PR to main
+
+            ---
+
+            Generated automatically by the contracts versioning workflow.
+          labels: |
+            release
+            contracts
+            automated

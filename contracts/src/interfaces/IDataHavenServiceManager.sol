@@ -76,6 +76,16 @@ interface IDataHavenServiceManagerEvents {
     /// @param solochainAddress The new solochain address
     event SolochainAddressUpdated(address indexed validator, address indexed solochainAddress);
 
+    /// @notice Emitted when the contract version is updated
+    /// @param oldVersion The previous version string
+    /// @param newVersion The new version string
+    event VersionUpdated(string oldVersion, string newVersion);
+
+    /// @notice Emitted when the version updater address is changed
+    /// @param oldVersionUpdater The previous version updater address
+    /// @param newVersionUpdater The new version updater address
+    event VersionUpdaterSet(address indexed oldVersionUpdater, address indexed newVersionUpdater);
+
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
 }
@@ -122,12 +132,17 @@ interface IDataHavenServiceManager is
      * @param initialOwner Address of the initial owner
      * @param rewardsInitiator Address authorized to initiate rewards
      * @param validatorsStrategies Array of strategies supported by validators
+     * @param _snowbridgeGatewayAddress Address of the Snowbridge Gateway
+     * @param initialVersion Initial semantic version string (e.g., "1.0.0")
+     * @param _versionUpdater Address authorized to update the contract version
      */
     function initialize(
         address initialOwner,
         address rewardsInitiator,
         IStrategy[] memory validatorsStrategies,
-        address _snowbridgeGatewayAddress
+        address _snowbridgeGatewayAddress,
+        string memory initialVersion,
+        address _versionUpdater
     ) external;
 
     /**
@@ -204,6 +219,24 @@ interface IDataHavenServiceManager is
      */
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies
+    ) external;
+
+    /**
+     * @notice Updates the contract version
+     * @param newVersion The new semantic version string (e.g., "1.0.1")
+     * @dev Only callable by version updater or owner. Typically called after contract upgrades.
+     */
+    function updateVersion(
+        string memory newVersion
+    ) external;
+
+    /**
+     * @notice Sets the address authorized to update the contract version
+     * @param newVersionUpdater The new version updater address
+     * @dev Only callable by owner. Typically set to the deployer account.
+     */
+    function setVersionUpdater(
+        address newVersionUpdater
     ) external;
 
     // ============ Rewards Submitter Functions ============

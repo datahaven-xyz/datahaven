@@ -73,12 +73,28 @@
       "type": "t_mapping(t_address,t_address)"
     },
     {
-      "astId": 23790,
+      "astId": 23788,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "_version",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_string_storage"
+    },
+    {
+      "astId": 23791,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "versionUpdater",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_address"
+    },
+    {
+      "astId": 23796,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__GAP",
       "offset": 0,
-      "slot": "105",
-      "type": "t_array(t_uint256)46_storage"
+      "slot": "107",
+      "type": "t_array(t_uint256)44_storage"
     }
   ],
   "types": {
@@ -87,10 +103,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)46_storage": {
+    "t_array(t_uint256)44_storage": {
       "encoding": "inplace",
-      "label": "uint256[46]",
-      "numberOfBytes": "1472",
+      "label": "uint256[44]",
+      "numberOfBytes": "1408",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {
@@ -128,6 +144,11 @@
       "label": "mapping(address => bool)",
       "numberOfBytes": "32",
       "value": "t_bool"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
     },
     "t_uint256": {
       "encoding": "inplace",

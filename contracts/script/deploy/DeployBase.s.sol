@@ -44,6 +44,7 @@ struct ServiceManagerInitParams {
     address[] validatorsStrategies;
     address gateway;
     string initialVersion;
+    address versionUpdater;
 }
 
 // Struct to store more detailed strategy information
@@ -145,7 +146,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             gateway,
             serviceManager,
             serviceManagerImplementation,
-            rewardsAgentAddress
+            rewardsAgentAddress,
+            proxyAdmin
         );
 
         _outputRewardsAgentInfo(rewardsAgentAddress, snowbridgeConfig.rewardsMessageOrigin);
@@ -256,7 +258,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             rewardsInitiator: avsConfig.rewardsInitiator,
             validatorsStrategies: avsConfig.validatorsStrategies,
             gateway: address(gateway),
-            initialVersion: version
+            initialVersion: version,
+            versionUpdater: _deployer
         });
 
         // Create the service manager proxy (different logic for local vs testnet)
@@ -296,7 +299,8 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address rewardsAgent,
+        ProxyAdmin proxyAdmin
     ) internal virtual;
 
     /**

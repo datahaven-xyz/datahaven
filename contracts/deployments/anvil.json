@@ -1,37 +1,27 @@
 {
-  "network": "anvil",
-  "BeefyClient": "0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf",
-  "AgentExecutor": "0x0E801D84Fa97b50751Dbf25036d067dCf18858bF",
-  "Gateway": "0x9d4454B023096f34B160D6B654540c56A1F81688",
-  "ServiceManager": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D",
-  "ServiceManagerImplementation": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570",
-  "RewardsAgent": "0xac06641381166cf085281c45292147f833C622d7",
-  "DelegationManager": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-  "StrategyManager": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-  "AVSDirectory": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
-  "EigenPodManager": "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
-  "EigenPodBeacon": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
-  "RewardsCoordinator": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
-  "AllocationManager": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
-  "PermissionController": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
-  "ETHPOSDeposit": "0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141",
-  "BaseStrategyImplementation": "0xf5059a5D33d5853360D16C683c16e67980206f36",
-  "DeployedStrategies": [
-    {
-      "address": "0x998abeb3E57409262aE5b751f60747921B33613E",
-      "underlyingToken": "0x95401dc811bb5740090279Ba06cfA8fcF6113778",
-      "tokenCreator": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
-    }
-  ],
-  "version": "0.1.0",
-  "deps": {
-    "eigenlayer": {
-      "gitCommit": "7ecc83c7b180850531bc5b8b953a7340adeecd43",
-      "release": "v1.8.0-testnet-final"
-    },
-    "snowbridge": {
-      "gitCommit": "13263fefa29a3f4af50e5650dcd93fe3afac44db",
-      "release": "v0.2.0"
-    }
-  }
+    "network": "anvil",
+    "BeefyClient": "0x92fFf0B2116e50d99baEA6A4Ee020b6877ABEEe5",
+    "AgentExecutor": "0xF5D4b40ae0e76aC407A5fe35b18e7e8a514b6b14",
+    "Gateway": "0xc46BAe6D59bF660885d00708e3A3c975A0451D4d",
+    "ServiceManager": "0x73df7f51785653E77d6aB0d1bA311D6DF9999b71",
+    "ServiceManagerImplementation": "0x19f92311cA3afCF521Cd35B9a309C31b178fcE56",
+    "ProxyAdmin": "0x8721edC85d8e0706bEA6AA965067531cf84629e4",
+    "RewardsAgent": "0x1c40a8C544de8306eC351c22124cE1d33EDd52D1",
+    "DelegationManager": "0x83F00B6578Ba7b3f39223A0e2Fe0d5dbF415E737",
+    "StrategyManager": "0xB65C61E60b2081B44adF3a73FD84eBB08b28F0cA",
+    "AVSDirectory": "0x406c2b3599da0b3a35044dDb99a4cfe0FA5F6B62",
+    "EigenPodManager": "0x0635605d7cd6d565Ab8088cC15e45A927c139d3E",
+    "EigenPodBeacon": "0x6705Dc3c8Add1EF084953B58246BA1D2eDd40bB7",
+    "RewardsCoordinator": "0x909296a852aBc3f3235a485479e266Ea24E85418",
+    "AllocationManager": "0x88dD21924FbEeccC4dC8Ae3a0e207ecCA03c5b92",
+    "PermissionController": "0x306CF0ca8F289e13985587a3303De0Fa765b5B6f",
+    "ETHPOSDeposit": "0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141",
+    "BaseStrategyImplementation": "0xac9BF8120e173525a0C7779b96466f5455Ca9280",
+    "DeployedStrategies": [
+        {
+            "address": "0x7348E6e9521b577470f88eE81552306AdA367644",
+            "underlyingToken": "0xbbf13f6e19c3fd22a32710D02766F292B1c04162",
+            "tokenCreator": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        }
+    ]
 }

@@ -401,10 +401,12 @@ contractsCommand
   .command("bump")
   .description("Create a changeset to declare a version bump for contract changes")
   .requiredOption("--type <value>", "Bump type: major, minor, or patch")
+  .option("--description <value>", "Optional description of the changes (added after first line)")
   .action(async (options: any) => {
     const { contractsBump } = await import("./handlers");
     await contractsBump({
-      type: options.type as "major" | "minor" | "patch"
+      type: options.type as "major" | "minor" | "patch",
+      description: options.description
     });
   });
 

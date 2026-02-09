@@ -4,6 +4,7 @@ import { logger, printDivider, printHeader } from "utils";
 
 interface ContractsBumpOptions {
   type: "major" | "minor" | "patch";
+  description?: string;
 }
 
 /**
@@ -47,17 +48,24 @@ export const contractsBump = async (options: ContractsBumpOptions) => {
     const changesetsDir = path.join(repoRoot, "contracts", ".changesets");
     const changesetPath = path.join(changesetsDir, changesetName);
 
-    // Write changeset file
-    writeFileSync(changesetPath, bumpType);
+    // Write changeset file (bump type on first line, optional description on subsequent lines)
+    let changesetContent = bumpType;
+    if (options.description) {
+      changesetContent += `\n${options.description}`;
+    }
+    writeFileSync(changesetPath, changesetContent);
 
     logger.success(`Created changeset: ${changesetName}`);
     logger.info(`   Type: ${bumpType.toUpperCase()}`);
+    if (options.description) {
+      logger.info(`   Description: ${options.description}`);
+    }
     logger.info(`   Path: ${changesetPath}`);
     logger.info("");
     logger.info("📋 Next steps:");
     logger.info("   1. Commit this changeset file: git add contracts/.changesets/");
     logger.info("   2. Push your changes");
-    logger.info("   3. On merge to main, CI will process the changeset");
+    logger.info("   3. Before release, manually run the version bump GitHub Action to create a PR");
 
     printDivider();
   } catch (error) {

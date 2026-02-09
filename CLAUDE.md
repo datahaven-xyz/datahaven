@@ -117,7 +117,7 @@ DataHaven uses a changeset-based versioning system for contracts with centralize
 #### Key Files
 - **`contracts/VERSION`**: Single source of truth for code version (e.g., `1.0.0`)
 - **`contracts/versions-matrix.json`**: Tracks code version + deployed versions across chains
-- **`contracts/.changesets/`**: PR-based version bump declarations (processed by CI)
+- **`contracts/.changesets/`**: PR-based version bump declarations with descriptions
 - **`contracts/deployments/{chain}.json`**: Per-chain deployment info (addresses only)
 
 #### Developer Workflow
@@ -126,13 +126,16 @@ DataHaven uses a changeset-based versioning system for contracts with centralize
 
 2. **Declare version bump** (required for CI to pass):
    ```bash
-   bun cli contracts bump --type [major|minor|patch]
+   bun cli contracts bump --type [major|minor|patch] --description "Brief change description"
    ```
    - `major`: Breaking changes (X.0.0)
    - `minor`: New features, backwards compatible (0.X.0)
    - `patch`: Bug fixes, backwards compatible (0.0.X)
+   - `--description`: Optional but recommended for clarity in release notes
 
-   This creates a changeset file like `.changesets/pr-123.txt`
+   This creates a changeset file like `.changesets/pr-123.txt` containing:
+   - Line 1: Bump type
+   - Lines 2+: Description (optional)
 
 3. **Commit changeset**:
    ```bash
@@ -140,13 +143,15 @@ DataHaven uses a changeset-based versioning system for contracts with centralize
    git commit -m "feat: your changes"
    ```
 
-4. **On merge to main**: GitHub Actions automatically:
-   - Reads all changeset files
-   - Takes highest bump type (major > minor > patch)
-   - Updates `VERSION` file
-   - Updates `versions-matrix.json` with new checksum
-   - Deletes processed changesets
-   - Commits changes to main
+4. **Before release** (manual process):
+   - Trigger the "Contracts Versioning" GitHub Action manually
+   - Action processes all accumulated changesets:
+     - Aggregates multiple major bumps into single major version bump
+     - Takes highest bump type across all changesets (major > minor > patch)
+     - Updates `VERSION` file
+     - Updates `versions-matrix.json` with new checksum
+     - Creates a PR with version bump and all changeset descriptions
+     - Deletes processed changesets in the PR
 
 #### Upgrade/Deploy Commands
 
@@ -155,8 +160,10 @@ DataHaven uses a changeset-based versioning system for contracts with centralize
   bun cli contracts upgrade --chain hoodi --version latest
   ```
   - Validates checksum matches `versions-matrix.json`
-  - Updates deployment file and on-chain version
+  - Deploys new implementation contracts
+  - Updates proxy via `upgradeToAndCall` with version update (saves gas)
   - Updates `versions-matrix.json` deployment info
+  - Version is set on-chain during the upgrade transaction (no separate call)
 
 - **Deploy** (MINOR bump):
   ```bash
@@ -194,9 +201,20 @@ DataHaven uses a changeset-based versioning system for contracts with centralize
 }
 ```
 
+#### Release Process
+
+1. **Accumulate changesets**: Multiple PRs with contract changes create changeset files
+2. **Trigger version bump**: Manually run "Contracts Versioning" GitHub Action
+3. **Review PR**: Action creates PR with:
+   - Updated VERSION and versions-matrix.json
+   - All changeset descriptions in PR body
+   - Deleted changeset files
+4. **Upgrade contracts**: Checkout PR branch and run `bun cli contracts upgrade`
+5. **Merge PR**: Complete the release by merging to main
+
 #### If Version Out of Sync (Rare)
-1. **Checksum mismatch**: Run `bun cli contracts apply-changesets` or update VERSION manually
-2. **On-chain sync**: Upgrade command automatically calls `updateVersion()` on ServiceManager
+1. **Checksum mismatch**: Run `bun cli contracts apply-changesets` locally or update VERSION manually
+2. **On-chain sync**: Upgrade command automatically sets version via `upgradeToAndCall`
 3. **Generated reference**: Not used (versions are tracked in `versions-matrix.json`)
 
 ### Development Workflow

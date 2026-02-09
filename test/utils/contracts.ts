@@ -11,6 +11,7 @@ const ethAddressCustom = z.custom<`0x${string}`>(
   (val) => typeof val === "string" && ethAddressRegex.test(val),
   { message: "Invalid Ethereum address" }
 );
+
 const DeployedStrategySchema = z.object({
   address: ethAddress,
   underlyingToken: ethAddress,
@@ -24,6 +25,7 @@ const DeploymentsSchema = z.object({
   Gateway: ethAddressCustom,
   ServiceManager: ethAddressCustom,
   ServiceManagerImplementation: ethAddressCustom,
+  RewardsAgent: ethAddressCustom,
   DelegationManager: ethAddressCustom,
   StrategyManager: ethAddressCustom,
   AVSDirectory: ethAddressCustom,
@@ -34,6 +36,25 @@ const DeploymentsSchema = z.object({
   PermissionController: ethAddressCustom,
   ETHPOSDeposit: ethAddressCustom.optional(),
   BaseStrategyImplementation: ethAddressCustom.optional(),
+  ProxyAdmin: ethAddressCustom.optional(),
+  // Version tag for this set of deployed contracts (optional for backwards compatibility)
+  version: z.string().optional(),
+  deps: z
+    .object({
+      eigenlayer: z
+        .object({
+          release: z.string().optional(),
+          gitCommit: z.string().optional()
+        })
+        .optional(),
+      snowbridge: z
+        .object({
+          release: z.string().optional(),
+          gitCommit: z.string().optional()
+        })
+        .optional()
+    })
+    .optional(),
   DeployedStrategies: z.array(DeployedStrategySchema).optional()
 });
 
@@ -52,7 +73,7 @@ export const parseDeploymentsFile = async (networkId = "anvil"): Promise<Deploym
     throw new Error(`Error reading ${networkId} deployments file`);
   }
   const deploymentsJson = await deploymentsFile.json();
-  logger.info(`Deployments: ${JSON.stringify(deploymentsJson, null, 2)}`);
+  logger.debug(`Deployments: ${JSON.stringify(deploymentsJson, null, 2)}`);
   try {
     const parsedDeployments = DeploymentsSchema.parse(deploymentsJson);
     logger.debug(`Successfully parsed ${networkId} deployments file.`);
@@ -70,6 +91,7 @@ const abiMap = {
   Gateway: generated.gatewayAbi,
   ServiceManager: generated.dataHavenServiceManagerAbi,
   ServiceManagerImplementation: generated.dataHavenServiceManagerAbi,
+  RewardsAgent: generated.agentAbi,
   DelegationManager: generated.delegationManagerAbi,
   StrategyManager: generated.strategyManagerAbi,
   AVSDirectory: generated.avsDirectoryAbi,
@@ -81,7 +103,10 @@ const abiMap = {
   ETHPOSDeposit: generated.iethposDepositAbi,
   BaseStrategyImplementation: generated.strategyBaseTvlLimitsAbi,
   DeployedStrategies: erc20Abi
-} as const satisfies Record<keyof Omit<Deployments, "network">, Abi>;
+} as const satisfies Record<
+  keyof Omit<Deployments, "network" | "ProxyAdmin" | "version" | "deps">,
+  Abi
+>;
 
 type ContractName = keyof typeof abiMap;
 type AbiFor<C extends ContractName> = (typeof abiMap)[C];
@@ -95,6 +120,10 @@ export const getContractInstance = async <C extends ContractName>(
   viemClient?: ViemClientInterface,
   network = "anvil"
 ) => {
+  invariant(
+    contract !== "DeployedStrategies",
+    "getContractInstance does not support 'DeployedStrategies' as it is an array. Use a different method to access deployed strategies."
+  );
   const deployments = await parseDeploymentsFile(network);
   const contractAddress = deployments[contract];
   logger.debug(`Contract ${contract} deployed to ${contractAddress}`);

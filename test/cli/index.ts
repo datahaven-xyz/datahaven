@@ -286,6 +286,11 @@ contractsCommand
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .option("--private-key-file <value>", "Path to file containing private key for deployment")
   .option("--verify", "Verify upgraded contracts on block explorer", false)
+  .option(
+    "--target-version <value>",
+    "Version to upgrade to (default: 'latest' from VERSION file)",
+    "latest"
+  )
   .hook("preAction", contractsPreActionHook)
   .action(async (options: any, command: any) => {
     // Try to get chain from options or command
@@ -306,13 +311,13 @@ contractsCommand
         chain: chain,
         rpcUrl: options.rpcUrl,
         privateKeyFile: options.privateKeyFile,
-        verify: options.verify
+        verify: options.verify,
+        version: options.targetVersion
       });
 
       await versioningPostChecks({
         chain,
-        rpcUrl: options.rpcUrl,
-        updateDeps: true
+        rpcUrl: options.rpcUrl
       });
     } catch (error) {
       logger.error(`❌ Upgrade failed: ${error}`);
@@ -389,6 +394,36 @@ contractsCommand
   .option("--rpc-url <value>", "Chain RPC URL (optional, defaults based on chain)")
   .hook("preAction", contractsPreActionHook)
   .action(contractsChecks);
+
+// Contracts Bump Version
+contractsCommand
+  .command("bump")
+  .description("Create a changeset to declare a version bump for contract changes")
+  .requiredOption("--type <value>", "Bump type: major, minor, or patch")
+  .action(async (options: any) => {
+    const { contractsBump } = await import("./handlers");
+    await contractsBump({
+      type: options.type as "major" | "minor" | "patch"
+    });
+  });
+
+// Contracts Apply Changesets (CI only)
+contractsCommand
+  .command("apply-changesets")
+  .description("Apply all changesets and update VERSION file (CI use only)")
+  .action(async () => {
+    const { contractsApplyChangesets } = await import("./handlers");
+    await contractsApplyChangesets();
+  });
+
+// Contracts Validate Changesets (CI only)
+contractsCommand
+  .command("validate-changesets")
+  .description("Validate that changesets exist when contracts changed (CI use only)")
+  .action(async () => {
+    const { contractsValidateChangesets } = await import("./handlers");
+    await contractsValidateChangesets();
+  });
 
 // Contracts Update Metadata
 contractsCommand

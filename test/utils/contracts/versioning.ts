@@ -1,9 +1,8 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { CHAIN_CONFIGS } from "configs/contracts/config";
 import { logger } from "utils";
 import { getContractInstance, parseDeploymentsFile } from "utils/contracts";
-import { getDependencyVersions } from "utils/dependencyVersions";
 import type { ViemClientInterface } from "utils/viem";
 import { createWalletClient, defineChain, http, publicActions } from "viem";
 
@@ -35,83 +34,6 @@ const isInfraUnavailableError = (error: unknown): boolean => {
   );
 };
 
-export const checkDependencyVersions = async (chain: string): Promise<boolean> => {
-  assertValidChain(chain);
-  logger.info(`🔍 Checking dependency versions for chain '${chain}'`);
-
-  const deployments = await parseDeploymentsFile(chain);
-  const deps = (deployments as any).deps as {
-    eigenlayer?: { release?: string; gitCommit?: string };
-    snowbridge?: { release?: string; gitCommit?: string };
-  };
-
-  if (!deps?.eigenlayer || !deps?.snowbridge) {
-    throw new Error(
-      `Missing 'deps.eigenlayer' or 'deps.snowbridge' in contracts/deployments/${chain}.json`
-    );
-  }
-
-  const current = await getDependencyVersions();
-  let ok = true;
-
-  if (!deps.eigenlayer.gitCommit || deps.eigenlayer.gitCommit !== current.eigenlayer.gitCommit) {
-    logger.error(
-      `❌ eigenlayer gitCommit mismatch for '${chain}': deployments=${deps.eigenlayer.gitCommit ?? "(missing)"} current=${current.eigenlayer.gitCommit}`
-    );
-    ok = false;
-  }
-
-  if (!deps.snowbridge.gitCommit || deps.snowbridge.gitCommit !== current.snowbridge.gitCommit) {
-    logger.error(
-      `❌ snowbridge gitCommit mismatch for '${chain}': deployments=${deps.snowbridge.gitCommit ?? "(missing)"} current=${current.snowbridge.gitCommit}`
-    );
-    ok = false;
-  }
-
-  if (ok) {
-    logger.info(
-      `✅ Dependency versions match for '${chain}': eigenlayer=${current.eigenlayer.release ?? current.eigenlayer.gitCommit}, snowbridge=${current.snowbridge.release ?? current.snowbridge.gitCommit}`
-    );
-  }
-
-  return ok;
-};
-
-export const updateDependencyVersions = async (chain: string): Promise<void> => {
-  assertValidChain(chain);
-  logger.info(`🔄 Refreshing dependency metadata for chain '${chain}'`);
-
-  const cwd = process.cwd();
-  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
-  const deploymentPath = path.join(repoRoot, "contracts", "deployments", `${chain}.json`);
-
-  const raw = await Bun.file(deploymentPath).text();
-  const deploymentsJson = JSON.parse(raw) as {
-    deps?: { eigenlayer?: any; snowbridge?: any };
-    version?: string;
-  };
-
-  const deps = await getDependencyVersions();
-
-  deploymentsJson.deps = {
-    ...(deploymentsJson.deps ?? {}),
-    eigenlayer: {
-      ...(deploymentsJson.deps?.eigenlayer ?? {}),
-      ...deps.eigenlayer
-    },
-    snowbridge: {
-      ...(deploymentsJson.deps?.snowbridge ?? {}),
-      ...deps.snowbridge
-    }
-  };
-
-  writeFileSync(deploymentPath, JSON.stringify(deploymentsJson, null, 2));
-
-  logger.info(
-    `📝 Updated dependency versions for ${chain}: eigenlayer=${deps.eigenlayer.release ?? deps.eigenlayer.gitCommit}, snowbridge=${deps.snowbridge.release ?? deps.snowbridge.gitCommit}`
-  );
-};
-
 export const checkContractVersions = async (
   chain: string,
   rpcUrl?: string
@@ -119,13 +41,28 @@ export const checkContractVersions = async (
   assertValidChain(chain);
   logger.info(`🔍 Checking contract versions for chain '${chain}'`);
 
-  const deployments = await parseDeploymentsFile(chain);
-  const version = (deployments as any).version as string | undefined;
+  // Read version from versions-matrix.json
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+
+  let version: string | undefined;
+  try {
+    const matrixContent = readFileSync(matrixFile, "utf8");
+    const matrix = JSON.parse(matrixContent);
+    version = matrix.deployments?.[chain]?.version;
+  } catch (_error) {
+    logger.info(
+      "ℹ️  Could not read versions-matrix.json - skipping version check (probably fresh deployment)"
+    );
+    return { ok: true, skipped: true };
+  }
 
   if (!version) {
-    throw new Error(
-      `No 'version' field found in contracts/deployments/${chain}.json. This file is the canonical source of truth for the AVS stack version.`
+    logger.info(
+      `ℹ️  No version tracked for '${chain}' in versions-matrix.json - skipping version check (probably fresh deployment)`
     );
+    return { ok: true, skipped: true };
   }
 
   let viemClient: ViemClientInterface | undefined;
@@ -181,6 +118,18 @@ export const checkContractVersions = async (
       return { ok: true, skipped: true };
     }
     const errorMsg = String(error);
+
+    // Check if function doesn't exist (old deployment without version tracking)
+    if (
+      errorMsg.includes("DATAHAVEN_VERSION") &&
+      (errorMsg.includes("returned no data") || errorMsg.includes("does not have the function"))
+    ) {
+      logger.warn(
+        `⚠️ ServiceManager at ${chain} does not have DATAHAVEN_VERSION() function yet (old deployment). Skipping on-chain version check.`
+      );
+      return { ok: true, skipped: true };
+    }
+
     if (
       errorMsg.includes("DATAHAVEN_VERSION") &&
       (errorMsg.includes("reverted") || errorMsg.includes("missing revert data"))

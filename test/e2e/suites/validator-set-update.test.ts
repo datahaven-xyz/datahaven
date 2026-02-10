@@ -5,7 +5,8 @@
  * - Start network and ensure 4 validator nodes are running (Alice, Bob, Charlie, Dave).
  * - Confirm initial mapping exists only for Alice/Bob on `ServiceManager`.
  * - Allowlist and register Charlie/Dave as operators on Ethereum.
- * - Send updated validator set via `ServiceManager.sendNewValidatorSet`, assert Gateway `OutboundMessageAccepted`.
+ * - Send updated validator set via `ServiceManager.sendNewValidatorSetForEra`,
+ *   assert Gateway `OutboundMessageAccepted`.
  * - Observe `ExternalValidators.ExternalValidatorsSet` on DataHaven (substrate), confirming propagation.
  */
 import { beforeAll, describe, expect, it } from "bun:test";
@@ -158,13 +159,15 @@ describe("Validator Set Update", () => {
     "should send updated validator set and verify on DataHaven",
     async () => {
       const { publicClient, walletClient, dhApi } = connectors;
+      const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
+      const targetEra = BigInt((activeEra?.index ?? 0) + 1);
 
       // Send the updated validator set via Snowbridge
       const hash = await walletClient.writeContract({
         address: deployments.ServiceManager as `0x${string}`,
         abi: dataHavenServiceManagerAbi,
         functionName: "sendNewValidatorSetForEra",
-        args: [1n, parseEther("0.1"), parseEther("0.2")],
+        args: [targetEra, parseEther("0.1"), parseEther("0.2")],
         value: parseEther("0.3"),
         gas: 1000000n,
         account: getOwnerAccount(),
@@ -190,6 +193,8 @@ describe("Validator Set Update", () => {
         api: dhApi,
         pallet: "ExternalValidators",
         event: "ExternalValidatorsSet",
+        filter: (event: { external_index: number | bigint }) =>
+          BigInt(event.external_index) === targetEra,
         timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
       });
 

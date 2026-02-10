@@ -141,7 +141,6 @@ toml = { workspace = true }
 #### Needed to build static binaries ####
 pq-sys = { workspace = true, optional = true }
 
-
 [build-dependencies]
 substrate-build-script-utils = { workspace = true, default-features = true }
 

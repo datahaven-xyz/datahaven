@@ -95,9 +95,10 @@ contract DeployImplementation is Script {
         bytes memory data = abi.encodeWithSignature("updateVersion(string)", newVersion);
 
         vm.broadcast();
-        ProxyAdmin(proxyAdmin).upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(serviceManager)), newImplementation, data
-        );
+        ProxyAdmin(proxyAdmin)
+            .upgradeAndCall(
+                ITransparentUpgradeableProxy(payable(serviceManager)), newImplementation, data
+            );
 
         console.log("ServiceManager proxy updated to:", newImplementation);
         console.log("Version updated to:", newVersion);

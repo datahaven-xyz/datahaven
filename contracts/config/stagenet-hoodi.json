@@ -44,7 +44,7 @@
     "randaoCommitExpiration": 24,
     "minNumRequiredSignatures": 3,
     "startBlock": 1299215,
-    "rewardsMessageOrigin": "0x56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd",
+    "messageOrigin": "0x56490bd3f367447bfaf57bb18e7a45e1b2db7d538fe42098e87d2aa106c6afdd",
     "initialValidatorSetId": 2179,
     "initialValidatorHashes": [
       "0x07ce4f2cd558f4d4b529a3362b6ff7d616ca0893b53252dc62829b8218ea5c10",

@@ -75,6 +75,7 @@ jobs:
           dockerfile: ./operator/Dockerfile
           context: .
           registry: ghcr.io
+          build_args: ./build/datahaven-node
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
           image_tags: ${{ steps.meta.outputs.tags }}

@@ -17,8 +17,8 @@
 
 FROM ubuntu:noble
 
-LABEL version="0.3.0"
-LABEL description="DataHaven Node - Development/CI/E2E Testing Build"
+LABEL version="0.4.0"
+LABEL description="DataHaven Node - Development Testing Build"
 LABEL maintainer="steve@moonsonglabs.com"
 
 # Install runtime dependencies

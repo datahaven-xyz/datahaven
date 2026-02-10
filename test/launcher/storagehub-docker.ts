@@ -124,7 +124,7 @@ export const injectStorageHubKey = async (
   // Use Bun's $ directly with docker exec (no sh -c wrapper needed)
   // This properly handles the spaces in the seed phrase
   try {
-    await $`docker exec ${containerName} datahaven-node key insert --base-path /data --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
+    await $`docker exec ${containerName} datahaven-node key insert --chain local --key-type bcsv --scheme ecdsa --suri ${secretKey}`;
     logger.success("Key injected successfully");
   } catch (error) {
     logger.error(`Failed to inject key : ${error}`);

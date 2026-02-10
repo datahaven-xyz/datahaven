@@ -7,8 +7,6 @@
  * - DataHaven network with StoraheHub service running
  * - Storage hub MSP and BSP
  */
-import "@storagehub/api-augment";
-
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import fs from "node:fs";
 // import { ApiPromise, WsProvider } from "@polkadot/api";

@@ -206,9 +206,9 @@ const deployServiceManagerImplementation = async (
 
   const actualDeployments = await parseDeploymentsFile(chain);
 
-  // Use environment variables to avoid command injection
-  // Note: Private key is passed via environment variable as required by forge
-  // This is a known limitation of the forge toolchain
+  // Use environment variables to avoid command injection and process list exposure
+  // Note: Private key is passed via PRIVATE_KEY environment variable (not command-line)
+  // to prevent it from appearing in system process lists (security best practice)
   const env = {
     ...process.env,
     PRIVATE_KEY: privateKey,
@@ -226,8 +226,6 @@ const deployServiceManagerImplementation = async (
     "deployServiceManagerImpl()",
     "--rpc-url",
     rpcUrl,
-    "--private-key",
-    privateKey,
     "--broadcast",
     "--non-interactive"
   ];
@@ -296,8 +294,8 @@ const updateServiceManagerProxyWithVersion = async (
 ) => {
   logger.info(`🔄 Updating ServiceManager proxy and setting version to ${version}...`);
 
-  // Note: Private key is passed via environment variable as required by forge
-  // This is a known limitation of the forge toolchain
+  // Note: Private key is passed via PRIVATE_KEY environment variable (not command-line)
+  // to prevent it from appearing in system process lists (security best practice)
   const proxyAdmin = (deployments as any).ProxyAdmin ?? process.env.PROXY_ADMIN;
   if (!proxyAdmin) {
     throw new Error(
@@ -322,8 +320,6 @@ const updateServiceManagerProxyWithVersion = async (
     "updateServiceManagerProxyWithVersion()",
     "--rpc-url",
     rpcUrl,
-    "--private-key",
-    privateKey,
     "--broadcast",
     "--non-interactive"
   ];

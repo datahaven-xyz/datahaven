@@ -37,6 +37,7 @@ jobs:
   create-version-bump-pr:
     name: Create Version Bump PR
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write  # Need write permission to create branches
       pull-requests: write  # Need permission to create PRs

@@ -6,7 +6,7 @@ LABEL version="0.4.0"
 LABEL description="DataHaven Node - Release Build"
 LABEL maintainer="steve@moonsonglabs.com"
 
-ENV BINARY_PATH=./target/x86_64-unknown-linux-gnu/release/datahaven-node
+ARG BINARY_PATH=./target/x86_64-unknown-linux-gnu/release/datahaven-node
 
 # Install CA certificates and libpq5 for the release build
 RUN apt-get update && \

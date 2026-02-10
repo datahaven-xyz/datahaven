@@ -439,7 +439,7 @@ pub async fn new_full_impl<
     RuntimeApi,
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
-    config: Configuration,
+    mut config: Configuration,
     mut eth_config: EthConfiguration,
     role_options: Option<RoleOptions>,
     indexer_options: Option<IndexerOptions>,
@@ -673,7 +673,7 @@ where
             },
             storage_override,
             sync: sync_service.clone(),
-            pubsub_notification_sinks,
+            pubsub_notification_sinks: pubsub_notification_sinks.clone(),
         },
     )
     .await;
@@ -693,37 +693,51 @@ where
         let fee_history_limit = eth_config.fee_history_limit;
         let sync = sync_service.clone();
 
-        Box::new(move |subscription_executor| {
-            let deps = crate::rpc::FullDeps {
-                client: client.clone(),
-                pool: pool.clone(),
-                graph: pool.pool().clone(),
-                beefy: BeefyDeps::<BeefyId> {
-                    beefy_finality_proof_stream: beefy_rpc_links.from_voter_justif_stream.clone(),
-                    beefy_best_block_stream: beefy_rpc_links.from_voter_best_beefy_stream.clone(),
+        Box::new(
+            move |subscription_executor: sc_rpc::SubscriptionTaskExecutor| {
+                let deps = crate::rpc::FullDeps {
+                    client: client.clone(),
+                    pool: pool.clone(),
+                    graph: pool.pool().clone(),
+                    beefy: BeefyDeps::<BeefyId> {
+                        beefy_finality_proof_stream: beefy_rpc_links
+                            .from_voter_justif_stream
+                            .clone(),
+                        beefy_best_block_stream: beefy_rpc_links
+                            .from_voter_best_beefy_stream
+                            .clone(),
+                        subscription_executor: subscription_executor.clone(),
+                    },
+                    max_past_logs,
+                    fee_history_limit,
+                    fee_history_cache: fee_history_cache.clone(),
+                    network: Arc::new(network.clone()),
+                    sync: sync.clone(),
+                    filter_pool: filter_pool.clone(),
+                    block_data_cache: block_data_cache.clone(),
+                    overrides: overrides.clone(),
+                    is_authority: is_authority.clone(),
+                    command_sink: command_sink.clone(),
+                    backend: backend.clone(),
+                    frontier_backend: match &*frontier_backend {
+                        fc_db::Backend::KeyValue(b) => b.clone(),
+                        fc_db::Backend::Sql(b) => b.clone(),
+                    },
+                    forced_parent_hashes: None,
+                    maybe_storage_hub_client_config: maybe_storage_hub_client_rpc_config.clone(),
+                };
+                crate::rpc::create_full(
+                    deps,
                     subscription_executor,
-                },
-                max_past_logs,
-                fee_history_limit,
-                fee_history_cache: fee_history_cache.clone(),
-                network: Arc::new(network.clone()),
-                sync: sync.clone(),
-                filter_pool: filter_pool.clone(),
-                block_data_cache: block_data_cache.clone(),
-                overrides: overrides.clone(),
-                is_authority: is_authority.clone(),
-                command_sink: command_sink.clone(),
-                backend: backend.clone(),
-                frontier_backend: match &*frontier_backend {
-                    fc_db::Backend::KeyValue(b) => b.clone(),
-                    fc_db::Backend::Sql(b) => b.clone(),
-                },
-                forced_parent_hashes: None,
-                maybe_storage_hub_client_config: maybe_storage_hub_client_rpc_config.clone(),
-            };
-            crate::rpc::create_full(deps).map_err(Into::into)
-        })
+                    pubsub_notification_sinks.clone(),
+                )
+                .map_err(Into::into)
+            },
+        )
     };
+
+    // Use Ethereum-style hex subscription IDs (0x-prefixed) instead of jsonrpsee defaults.
+    config.rpc.id_provider = Some(Box::new(fc_rpc::EthereumSubIdProvider));
 
     let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         network: Arc::new(network.clone()),

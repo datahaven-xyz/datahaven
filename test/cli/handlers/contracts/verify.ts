@@ -14,8 +14,12 @@ interface ContractToVerify {
   name: string;
   address: string;
   artifactName: string;
+  /** Path to the contract source file relative to the contracts directory (e.g. "src/Foo.sol" or "lib/snowbridge/contracts/src/Bar.sol") */
+  contractPath: string;
   constructorArgs: string[];
   constructorArgTypes: string[];
+  /** When true, uses forge's --guess-constructor-args instead of explicit args (useful for proxies with complex init data) */
+  guessConstructorArgs?: boolean;
 }
 
 /**
@@ -41,11 +45,17 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
 
   const deployments = await parseDeploymentsFile(networkId);
 
+  // Resolve the Gateway implementation address from the ERC1967 proxy storage slot
+  const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
+  const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
+  const gatewayImplAddress = await getProxyImplementation(deployments.Gateway, rpcUrl);
+
   const contractsToVerify: ContractToVerify[] = [
     {
       name: "ServiceManager Implementation",
       address: deployments.ServiceManagerImplementation,
       artifactName: "DataHavenServiceManager",
+      contractPath: "src/DataHavenServiceManager.sol",
       constructorArgs: [
         deployments.RewardsCoordinator,
         deployments.PermissionController,
@@ -54,16 +64,41 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
       constructorArgTypes: ["address", "address", "address"]
     },
     {
-      name: "Gateway",
-      address: deployments.Gateway,
-      artifactName: "Gateway",
+      name: "ServiceManager Proxy",
+      address: deployments.ServiceManager,
+      artifactName: "TransparentUpgradeableProxy",
+      contractPath:
+        "lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
       constructorArgs: [],
-      constructorArgTypes: []
+      constructorArgTypes: [],
+      guessConstructorArgs: true
+    },
+    ...(gatewayImplAddress
+      ? [
+          {
+            name: "Gateway Implementation",
+            address: gatewayImplAddress,
+            artifactName: "Gateway",
+            contractPath: "lib/snowbridge/contracts/src/Gateway.sol",
+            constructorArgs: [deployments.BeefyClient, deployments.AgentExecutor],
+            constructorArgTypes: ["address", "address"]
+          }
+        ]
+      : []),
+    {
+      name: "Gateway Proxy",
+      address: deployments.Gateway,
+      artifactName: "GatewayProxy",
+      contractPath: "lib/snowbridge/contracts/src/GatewayProxy.sol",
+      constructorArgs: [],
+      constructorArgTypes: [],
+      guessConstructorArgs: true
     },
     {
       name: "BeefyClient",
       address: deployments.BeefyClient,
       artifactName: "BeefyClient",
+      contractPath: "lib/snowbridge/contracts/src/BeefyClient.sol",
       constructorArgs: [],
       constructorArgTypes: []
     },
@@ -71,10 +106,17 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
       name: "AgentExecutor",
       address: deployments.AgentExecutor,
       artifactName: "AgentExecutor",
+      contractPath: "lib/snowbridge/contracts/src/AgentExecutor.sol",
       constructorArgs: [],
       constructorArgTypes: []
     }
   ];
+
+  if (!gatewayImplAddress) {
+    logger.warn(
+      "⚠️ Could not resolve Gateway implementation address from proxy, skipping Gateway implementation verification"
+    );
+  }
 
   try {
     logger.info("📋 Contracts to verify:");
@@ -109,17 +151,29 @@ export const verifyContracts = async (options: ContractsVerifyOptions) => {
 async function verifySingleContract(contract: ContractToVerify, options: ContractsVerifyOptions) {
   logger.info(`\n🔍 Verifying ${contract.name} (${contract.address})...`);
 
-  const { address, artifactName, constructorArgs: args, constructorArgTypes: types } = contract;
+  const {
+    address,
+    artifactName,
+    contractPath,
+    constructorArgs: args,
+    constructorArgTypes: types,
+    guessConstructorArgs
+  } = contract;
 
-  const abiEncodedArgs = getEncodedConstructorArgs(args, types);
-  const constructorArgsStr = abiEncodedArgs ? `--constructor-args ${abiEncodedArgs}` : "";
+  let constructorArgsStr: string;
+  if (guessConstructorArgs) {
+    constructorArgsStr = "--guess-constructor-args";
+  } else {
+    const abiEncodedArgs = getEncodedConstructorArgs(args, types);
+    constructorArgsStr = abiEncodedArgs ? `--constructor-args ${abiEncodedArgs}` : "";
+  }
 
   try {
     const chainConfig = CHAIN_CONFIGS[options.chain as keyof typeof CHAIN_CONFIGS];
     const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
     const chainParameter =
       options.chain === "hoodi" ? "--chain-id 560048" : `--chain ${options.chain}`;
-    const verifyCommand = `forge verify-contract ${address} src/${artifactName}.sol:${artifactName} --rpc-url ${rpcUrl} ${chainParameter} ${constructorArgsStr} --watch`;
+    const verifyCommand = `forge verify-contract ${address} ${contractPath}:${artifactName} --rpc-url ${rpcUrl} ${chainParameter} ${constructorArgsStr} --watch`;
 
     logger.info(`Running: ${verifyCommand}`);
 
@@ -142,7 +196,7 @@ async function verifySingleContract(contract: ContractToVerify, options: Contrac
     logger.info(`Check manually at: ${chainConfig.BLOCK_EXPLORER}address/${contract.address}`);
     logger.info("You can also try running the command manually from the contracts directory:");
     const rpcUrl = options.rpcUrl || chainConfig.RPC_URL;
-    const manualCommand = `forge verify-contract ${contract.address} src/${contract.artifactName}.sol:${contract.artifactName} --rpc-url ${rpcUrl} --chain ${options.chain} ${constructorArgsStr}`;
+    const manualCommand = `forge verify-contract ${contract.address} ${contract.contractPath}:${contract.artifactName} --rpc-url ${rpcUrl} --chain ${options.chain} ${constructorArgsStr}`;
     logger.info(`cd ../contracts && ${manualCommand}`);
   }
 }

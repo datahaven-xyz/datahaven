@@ -19,10 +19,8 @@ RUN apt-get update && \
 
 # Create datahaven user and directories
 RUN useradd -m -u 1001 -U -s /bin/sh -d /datahaven datahaven && \
-    mkdir -p /data /datahaven/.local/share && \
-    chown -R datahaven:datahaven /data /datahaven/.local/share && \
-    ln -s /data /datahaven/.local/share/datahaven-node
-
+    mkdir -p /datahaven/.local/share && \
+    chown -R datahaven:datahaven /datahaven/.local/share
 
 USER datahaven
 

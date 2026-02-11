@@ -2320,6 +2320,13 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'validatorSolochainAddressToEthAddress',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
     name: 'validatorsAllowlist',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
@@ -2504,6 +2511,8 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'OnlyAllocationManager' },
   { type: 'error', inputs: [], name: 'OnlyRewardsInitiator' },
   { type: 'error', inputs: [], name: 'OperatorNotInAllowlist' },
+  { type: 'error', inputs: [], name: 'SolochainAddressAlreadyAssigned' },
+  { type: 'error', inputs: [], name: 'UnknownSolochainAddress' },
   { type: 'error', inputs: [], name: 'ZeroAddress' },
 ] as const
 
@@ -10703,6 +10712,15 @@ export const readDataHavenServiceManagerValidatorEthAddressToSolochainAddress =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'validatorEthAddressToSolochainAddress',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorSolochainAddressToEthAddress"`
+ */
+export const readDataHavenServiceManagerValidatorSolochainAddressToEthAddress =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'validatorSolochainAddressToEthAddress',
   })
 
 /**

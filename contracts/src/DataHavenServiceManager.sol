@@ -339,11 +339,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
-            submission;
+        submission;
         for (uint256 i = 0; i < translatedSubmission.operatorRewards.length; i++) {
-            translatedSubmission.operatorRewards[i].operator = _ethOperatorFromSolochain(
-                translatedSubmission.operatorRewards[i].operator
-            );
+            translatedSubmission.operatorRewards[i].operator =
+                _ethOperatorFromSolochain(translatedSubmission.operatorRewards[i].operator);
         }
 
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =

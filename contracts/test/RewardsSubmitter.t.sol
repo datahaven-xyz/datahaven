@@ -46,7 +46,10 @@ contract RewardsSubmitterTest is AVSDeployer {
         IERC20(address(rewardToken)).safeTransfer(address(serviceManager), 100000e18);
     }
 
-    function _registerOperator(address ethOperator, address solochainOperator) internal {
+    function _registerOperator(
+        address ethOperator,
+        address solochainOperator
+    ) internal {
         // Allow our operator to register
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(ethOperator);

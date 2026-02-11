@@ -3,7 +3,9 @@ pragma solidity ^0.8.27;
 
 import {AVSDeployer} from "./utils/AVSDeployer.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
-import {IAllocationManagerTypes} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
+import {
+    IAllocationManagerTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract OperatorAddressMappingsTest is AVSDeployer {
@@ -21,7 +23,10 @@ contract OperatorAddressMappingsTest is AVSDeployer {
         serviceManager.setRewardsInitiator(snowbridgeAgent);
     }
 
-    function _registerOperator(address ethOperator, address solochainOperator) internal {
+    function _registerOperator(
+        address ethOperator,
+        address solochainOperator
+    ) internal {
         vm.prank(avsOwner);
         serviceManager.addValidatorToAllowlist(ethOperator);
 
@@ -130,10 +135,7 @@ contract OperatorAddressMappingsTest is AVSDeployer {
 
         vm.prank(address(allocationManager));
         serviceManager.registerOperator(
-            operator1,
-            address(serviceManager),
-            operatorSetIds,
-            abi.encodePacked(soloNew)
+            operator1, address(serviceManager), operatorSetIds, abi.encodePacked(soloNew)
         );
 
         assertEq(

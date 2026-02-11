@@ -741,8 +741,22 @@ pub struct FishermanConfigurations {
     pub fisherman_database_url: Option<String>,
 
     /// Duration between batch deletion processing cycles (in seconds).
-    #[arg(long, default_value = "60", value_parser = clap::value_parser!(u64).range(1..))]
+    #[arg(long, default_value = "30", value_parser = clap::value_parser!(u64).range(1..))]
     pub fisherman_batch_interval_seconds: u64,
+
+    /// Cooldown between batch deletion attempts (in seconds).
+    ///
+    /// Set to `0` to disable cooldown.
+    #[arg(long, default_value = "1", value_parser = clap::value_parser!(u64).range(0..))]
+    pub fisherman_batch_cooldown_seconds: u64,
+
+    /// Number of consecutive no-work batches required before switching to the slower idle polling interval.
+    ///
+    /// The minimum value is 2 because there are two kinds of work: User and Incomplete.
+    /// If we set the value to 1, a non-work batch in one kind of work will trigger the idle poll interval
+    /// on the other kind of work.
+    #[arg(long, default_value = "4", value_parser = clap::value_parser!(u8).range(1..))]
+    pub fisherman_consecutive_no_work_batches_threshold: u8,
 
     /// Maximum number of files to process per batch deletion cycle.
     #[arg(long, default_value = "1000", value_parser = clap::value_parser!(u64).range(1..))]
@@ -803,6 +817,9 @@ impl FishermanConfigurations {
                     .expect("Fisherman database URL is required"),
                 batch_interval_seconds: self.fisherman_batch_interval_seconds,
                 batch_deletion_limit: self.fisherman_batch_deletion_limit,
+                batch_cooldown_seconds: self.fisherman_batch_cooldown_seconds,
+                consecutive_no_work_batches_threshold: self
+                    .fisherman_consecutive_no_work_batches_threshold,
                 maintenance_mode: false, // Skipping maintenance mode for now
                 filtering,
                 ordering,

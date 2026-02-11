@@ -48,11 +48,6 @@ contract AVSDeployer is Test {
     DataHavenServiceManager public serviceManager;
     DataHavenServiceManager public serviceManagerImplementation;
 
-    // Truncation is intentional - deriving a deterministic mock address from hash
-    address public vetoCommitteeMember =
-        address(uint160(uint256(keccak256("vetoCommitteeMember"))));
-    uint32 public vetoWindowBlocks = 100; // 100 blocks veto window for tests
-
     // EigenLayer contracts
     StrategyManager public strategyManager;
     StrategyManager public strategyManagerImplementation;

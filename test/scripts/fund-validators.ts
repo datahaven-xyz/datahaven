@@ -18,7 +18,7 @@ interface FundValidatorsOptions {
 interface ValidatorConfig {
   validators: {
     publicKey: string;
-    privateKey: string;
+    privateKey?: string;
     solochainAddress?: string; // Optional substrate address
   }[];
   notes?: string;
@@ -87,13 +87,10 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     if (!validator.publicKey) {
       throw new Error(`Validator at index ${index} is missing 'publicKey'`);
     }
-    if (!validator.privateKey) {
-      throw new Error(`Validator at index ${index} is missing 'privateKey'`);
-    }
     if (!validator.publicKey.startsWith("0x")) {
       throw new Error(`Validator publicKey at index ${index} must start with '0x'`);
     }
-    if (!validator.privateKey.startsWith("0x")) {
+    if (validator.privateKey && !validator.privateKey.startsWith("0x")) {
       throw new Error(`Validator privateKey at index ${index} must start with '0x'`);
     }
   }
@@ -142,9 +139,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
       logger.warn("Will try to continue with other strategies...");
       continue;
     }
-
-    const creatorPrivateKey = creatorValidator.privateKey;
-    logger.debug(`Found token creator's private key for address ${tokenCreator}`);
+    logger.debug(`Found token creator address ${tokenCreator} in validators list`);
 
     // Get the ERC20 balance of the token creator and its ETH balance as well
     const getErc20BalanceCmd = `${castExecutable} call ${underlyingTokenAddress} "balanceOf(address)(uint256)" ${tokenCreator} --rpc-url ${rpcUrl}`;
@@ -160,13 +155,12 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     const ethTransferAmount = BigInt(creatorEthBalance) / BigInt(100); // 1% of the balance
     logger.debug(`Transferring ${erc20TransferAmount} tokens to each validator`);
 
-    // Security Note: Private keys are passed via stdin with --interactive flag
-    // using printf (not echo) to avoid command-line exposure in process lists
+    // We use unlocked anvil accounts for local/CI test networks.
+    // This avoids passing private keys (interactive prompt/CLI args) and works in CI (no TTY).
     for (const validator of validators) {
       if (validator.publicKey !== tokenCreator) {
-        const transferCmd = `printf '%s\\n' "\${PRIVATE_KEY}" | ${castExecutable} send --interactive ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
+        const transferCmd = `${castExecutable} send --unlocked --from ${tokenCreator} ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
         const { exitCode: transferExitCode, stderr: transferStderr } = await $`sh -c ${transferCmd}`
-          .env({ ...process.env, PRIVATE_KEY: creatorPrivateKey })
           .nothrow()
           .quiet();
         if (transferExitCode !== 0) {
@@ -199,12 +193,9 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
         // Transfer ETH only if the validator has no ETH
         if (BigInt(validatorEthBalance) === BigInt(0)) {
-          const ethTransferCmd = `printf '%s\\n' "\${PRIVATE_KEY}" | ${castExecutable} send --interactive ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
+          const ethTransferCmd = `${castExecutable} send --unlocked --from ${tokenCreator} ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
           const { exitCode: ethTransferExitCode, stderr: ethTransferStderr } =
-            await $`sh -c ${ethTransferCmd}`
-              .env({ ...process.env, PRIVATE_KEY: creatorPrivateKey })
-              .nothrow()
-              .quiet();
+            await $`sh -c ${ethTransferCmd}`.nothrow().quiet();
           if (ethTransferExitCode !== 0) {
             logger.error(
               `Failed to transfer ETH to validator ${validator.publicKey}: ${ethTransferStderr.toString()}`

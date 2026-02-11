@@ -18,7 +18,7 @@ interface FundValidatorsOptions {
 interface ValidatorConfig {
   validators: {
     publicKey: string;
-    privateKey?: string;
+    privateKey: string;
     solochainAddress?: string; // Optional substrate address
   }[];
   notes?: string;
@@ -87,10 +87,13 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     if (!validator.publicKey) {
       throw new Error(`Validator at index ${index} is missing 'publicKey'`);
     }
+    if (!validator.privateKey) {
+      throw new Error(`Validator at index ${index} is missing 'privateKey'`);
+    }
     if (!validator.publicKey.startsWith("0x")) {
       throw new Error(`Validator publicKey at index ${index} must start with '0x'`);
     }
-    if (validator.privateKey && !validator.privateKey.startsWith("0x")) {
+    if (!validator.privateKey.startsWith("0x")) {
       throw new Error(`Validator privateKey at index ${index} must start with '0x'`);
     }
   }
@@ -140,6 +143,7 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
       continue;
     }
     logger.debug(`Found token creator address ${tokenCreator} in validators list`);
+    const creatorPrivateKey = creatorValidator.privateKey;
 
     // Get the ERC20 balance of the token creator and its ETH balance as well
     const getErc20BalanceCmd = `${castExecutable} call ${underlyingTokenAddress} "balanceOf(address)(uint256)" ${tokenCreator} --rpc-url ${rpcUrl}`;
@@ -155,17 +159,18 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
     const ethTransferAmount = BigInt(creatorEthBalance) / BigInt(100); // 1% of the balance
     logger.debug(`Transferring ${erc20TransferAmount} tokens to each validator`);
 
-    // We use unlocked anvil accounts for local/CI test networks.
-    // This avoids passing private keys (interactive prompt/CLI args) and works in CI (no TTY).
+    // Tests use locally-signed transactions so funding works in CI (no TTY, no unlocked accounts).
     for (const validator of validators) {
       if (validator.publicKey !== tokenCreator) {
-        const transferCmd = `${castExecutable} send --unlocked --from ${tokenCreator} ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
-        const { exitCode: transferExitCode, stderr: transferStderr } = await $`sh -c ${transferCmd}`
-          .nothrow()
-          .quiet();
-        if (transferExitCode !== 0) {
+        const transferCmdSigned = `${castExecutable} send --private-key "\${PRIVATE_KEY}" ${underlyingTokenAddress} "transfer(address,uint256)" ${validator.publicKey} ${erc20TransferAmount} --rpc-url ${rpcUrl}`;
+        const { exitCode: transferExitCodeSigned, stderr: transferStderrSigned } =
+          await $`sh -c ${transferCmdSigned}`
+            .env({ ...process.env, PRIVATE_KEY: creatorPrivateKey })
+            .nothrow()
+            .quiet();
+        if (transferExitCodeSigned !== 0) {
           logger.error(
-            `Failed to transfer tokens to validator ${validator.publicKey}: ${transferStderr.toString()}`
+            `Failed to transfer tokens to validator ${validator.publicKey}: ${transferStderrSigned.toString()}`
           );
           continue;
         }
@@ -193,12 +198,15 @@ export const fundValidators = async (options: FundValidatorsOptions): Promise<bo
 
         // Transfer ETH only if the validator has no ETH
         if (BigInt(validatorEthBalance) === BigInt(0)) {
-          const ethTransferCmd = `${castExecutable} send --unlocked --from ${tokenCreator} ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
-          const { exitCode: ethTransferExitCode, stderr: ethTransferStderr } =
-            await $`sh -c ${ethTransferCmd}`.nothrow().quiet();
-          if (ethTransferExitCode !== 0) {
+          const ethTransferCmdSigned = `${castExecutable} send --private-key "\${PRIVATE_KEY}" ${validator.publicKey} --value ${ethTransferAmount} --rpc-url ${rpcUrl}`;
+          const { exitCode: ethExitCodeSigned, stderr: ethStderrSigned } =
+            await $`sh -c ${ethTransferCmdSigned}`
+              .env({ ...process.env, PRIVATE_KEY: creatorPrivateKey })
+              .nothrow()
+              .quiet();
+          if (ethExitCodeSigned !== 0) {
             logger.error(
-              `Failed to transfer ETH to validator ${validator.publicKey}: ${ethTransferStderr.toString()}`
+              `Failed to transfer ETH to validator ${validator.publicKey}: ${ethStderrSigned.toString()}`
             );
             continue;
           }

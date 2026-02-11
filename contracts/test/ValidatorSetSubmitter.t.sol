@@ -125,6 +125,18 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
         serviceManager.sendNewValidatorSetForEra{value: 2 ether}(targetEra, 1 ether, 1 ether);
     }
 
+    function test_sendNewValidatorSetForEra_revertsOnEmptyValidatorSet() public {
+        cheats.prank(avsOwner);
+        serviceManager.setValidatorSetSubmitter(submitterA);
+
+        vm.deal(submitterA, 10 ether);
+        cheats.prank(submitterA);
+        cheats.expectRevert(
+            abi.encodeWithSelector(IDataHavenServiceManagerErrors.EmptyValidatorSet.selector)
+        );
+        serviceManager.sendNewValidatorSetForEra{value: 2 ether}(1, 1 ether, 1 ether);
+    }
+
     function test_ownerCannotCallSendNewValidatorSetForEra() public {
         cheats.prank(avsOwner);
         serviceManager.setValidatorSetSubmitter(submitterA);

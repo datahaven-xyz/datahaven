@@ -34,6 +34,8 @@ interface IDataHavenServiceManagerErrors {
     error InvalidSolochainAddressLength();
     /// @notice Thrown when the caller is not the authorized validator set submitter
     error OnlyValidatorSetSubmitter();
+    /// @notice Thrown when trying to submit a validator set message with zero validators
+    error EmptyValidatorSet();
 }
 
 /**

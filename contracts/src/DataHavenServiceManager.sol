@@ -209,6 +209,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
                 ++validCount;
             }
         }
+        require(validCount != 0, EmptyValidatorSet());
         // Resize array to actual count
         assembly {
             mstore(newValidatorSet, validCount)

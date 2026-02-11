@@ -75,10 +75,18 @@
     {
       "astId": 23790,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
-      "label": "__GAP",
+      "label": "validatorSolochainAddressToEthAddress",
       "offset": 0,
       "slot": "105",
-      "type": "t_array(t_uint256)46_storage"
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "astId": 23795,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "__GAP",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_array(t_uint256)45_storage"
     }
   ],
   "types": {
@@ -87,10 +95,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)46_storage": {
+    "t_array(t_uint256)45_storage": {
       "encoding": "inplace",
-      "label": "uint256[46]",
-      "numberOfBytes": "1472",
+      "label": "uint256[45]",
+      "numberOfBytes": "1440",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {

@@ -119,7 +119,6 @@ sp-offchain = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }
 sp-session = { workspace = true }
 sp-staking = { workspace = true }
-sp-std = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true, features = ["serde"] }
@@ -281,7 +280,6 @@ std = [
     "sp-runtime/std",
     "sp-session/std",
     "sp-staking/std",
-    "sp-std/std",
     "sp-storage/std",
     "sp-transaction-pool/std",
     "sp-version/std",

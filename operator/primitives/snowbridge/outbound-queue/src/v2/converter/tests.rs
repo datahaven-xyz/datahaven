@@ -6,10 +6,10 @@ use crate::{
     v2::{convert::XcmConverterError, Command, Message},
     SendError, SendMessageFeeProvider,
 };
+use core::default::Default;
 use frame_support::{parameter_types, BoundedVec};
 use hex_literal::hex;
 use snowbridge_core::{AgentIdOf, TokenIdOf};
-use sp_std::default::Default;
 use xcm::{latest::WESTEND_GENESIS_HASH, prelude::SendError as XcmSendError};
 
 parameter_types! {

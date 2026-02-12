@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Converts messages from Ethereum to XCM messages
+extern crate alloc;
 
 use crate::{v2::IGatewayV2::Payload as GatewayV2Payload, Log};
+use alloc::vec;
+use alloc::vec::Vec;
 use alloy_core::{
     primitives::B256,
     sol,
@@ -11,7 +14,6 @@ use alloy_core::{
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_core::{RuntimeDebug, H160, H256};
-use sp_std::prelude::*;
 
 sol! {
     interface IGatewayV2 {

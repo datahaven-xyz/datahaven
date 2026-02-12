@@ -30,7 +30,6 @@ pallet-balances = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 xcm = { workspace = true }
 xcm-builder = { workspace = true }
@@ -87,7 +86,6 @@ std = [
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
-    "sp-std/std",
     "tracing/std",
     "xcm-builder/std",
     "xcm-executor/std",

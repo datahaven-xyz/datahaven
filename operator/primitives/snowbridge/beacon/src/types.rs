@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use core::iter::repeat;
 use frame_support::{CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
 use sp_core::{H160, H256, U256};
 use sp_runtime::RuntimeDebug;
-use sp_std::{boxed::Box, iter::repeat, prelude::*};
 
 use crate::config::{PUBKEY_SIZE, SIGNATURE_SIZE};
 
@@ -89,7 +91,7 @@ impl Serialize for PublicKey {
     }
 }
 
-#[derive(Copy, Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Copy, Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, DecodeWithMemTracking)]
 pub struct Signature(pub [u8; SIGNATURE_SIZE]);
 
 impl Default for Signature {
@@ -238,7 +240,16 @@ impl<const COMMITTEE_SIZE: usize> TryFrom<&SyncCommittee<COMMITTEE_SIZE>>
 /// Beacon block header as it is stored in the runtime storage. The block root is the
 /// Merkleization of a BeaconHeader.
 #[derive(
-    Copy, Clone, Default, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen,
+    Copy,
+    Clone,
+    Default,
+    Encode,
+    Decode,
+    PartialEq,
+    RuntimeDebug,
+    TypeInfo,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct BeaconHeader {
@@ -261,7 +272,15 @@ impl BeaconHeader {
     }
 }
 
-#[derive(Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
+)]
 #[cfg_attr(
     feature = "std",
     derive(Deserialize),
@@ -329,7 +348,14 @@ impl<const COMMITTEE_SIZE: usize, const COMMITTEE_BITS_SIZE: usize>
 /// ExecutionPayloadHeader
 /// <https://github.com/ethereum/annotated-spec/blob/master/capella/beacon-chain.md#executionpayloadheader>
 #[derive(
-    Default, Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
+    Default,
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
 )]
 #[cfg_attr(
     feature = "std",
@@ -391,7 +417,15 @@ pub struct CompactBeaconState {
 }
 
 /// VersionedExecutionPayloadHeader
-#[derive(Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
+)]
 #[cfg_attr(
     feature = "std",
     derive(Serialize, Deserialize),
@@ -453,7 +487,15 @@ impl VersionedExecutionPayloadHeader {
     }
 }
 
-#[derive(Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
+)]
 #[cfg_attr(
     feature = "std",
     derive(serde::Deserialize),
@@ -470,7 +512,15 @@ pub struct ExecutionProof {
     pub execution_branch: Vec<H256>,
 }
 
-#[derive(Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    CloneNoBound,
+    PartialEqNoBound,
+    RuntimeDebugNoBound,
+    TypeInfo,
+    DecodeWithMemTracking,
+)]
 #[cfg_attr(
     feature = "std",
     derive(serde::Deserialize),
@@ -609,18 +659,25 @@ pub enum Mode {
 }
 
 pub mod deneb {
-    use codec::{Decode, Encode};
+    use alloc::vec::Vec;
+    use codec::{Decode, DecodeWithMemTracking, Encode};
     use frame_support::{CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound};
     use scale_info::TypeInfo;
     #[cfg(feature = "std")]
     use serde::{Deserialize, Serialize};
     use sp_core::{H160, H256, U256};
-    use sp_std::prelude::*;
 
     /// ExecutionPayloadHeader
     /// <https://github.com/ethereum/consensus-specs/blob/dev/specs/deneb/beacon-chain.md#executionpayloadheader>
     #[derive(
-        Default, Encode, Decode, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
+        Default,
+        Encode,
+        Decode,
+        CloneNoBound,
+        PartialEqNoBound,
+        RuntimeDebugNoBound,
+        TypeInfo,
+        DecodeWithMemTracking,
     )]
     #[cfg_attr(
         feature = "std",

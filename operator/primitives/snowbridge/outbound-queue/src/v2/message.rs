@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! # Outbound V2 primitives
+extern crate alloc;
 
+use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use frame_support::{pallet_prelude::ConstU32, BoundedVec};
 use scale_info::TypeInfo;
 use sp_core::{RuntimeDebug, H160, H256};
-use sp_std::vec::Vec;
 
 use crate::{OperatingMode, SendError};
 use abi::{
@@ -121,7 +122,7 @@ pub struct OutboundMessage {
 pub const MAX_COMMANDS: u32 = 8;
 
 /// A message which can be accepted by implementations of `/[`SendMessage`\]`
-#[derive(Encode, Decode, TypeInfo, PartialEq, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, TypeInfo, PartialEq, Clone, RuntimeDebug, DecodeWithMemTracking)]
 pub struct Message {
     /// Origin
     pub origin: H256,
@@ -134,7 +135,7 @@ pub struct Message {
 }
 
 /// A command which is executable by the Gateway contract on Ethereum
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, DecodeWithMemTracking)]
 pub enum Command {
     /// Upgrade the Gateway contract
     Upgrade {

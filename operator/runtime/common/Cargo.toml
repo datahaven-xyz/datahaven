@@ -32,7 +32,6 @@ snowbridge-outbound-queue-primitives = { workspace = true }
 sp-core = { workspace = true, features = ["serde"] }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true, features = ["serde"] }
-sp-std = { workspace = true }
 xcm = { workspace = true }
 
 [features]
@@ -61,7 +60,6 @@ std = [
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
-    "sp-std/std",
     "xcm/std",
 ]
 

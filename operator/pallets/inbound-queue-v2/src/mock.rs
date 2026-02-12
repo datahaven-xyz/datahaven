@@ -4,6 +4,7 @@ use super::*;
 
 use crate::{self as inbound_queue_v2, message_processors::XcmMessageProcessor};
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use core::{convert::From, default::Default, marker::PhantomData};
 use frame_support::{derive_impl, parameter_types, traits::ConstU32};
 use hex_literal::hex;
 use scale_info::TypeInfo;
@@ -17,7 +18,6 @@ use sp_runtime::{
     traits::{IdentityLookup, MaybeEquivalence, TryConvert},
     BuildStorage, DispatchError,
 };
-use sp_std::{convert::From, default::Default, marker::PhantomData};
 use xcm::{opaque::latest::WESTEND_GENESIS_HASH, prelude::*};
 type Block = frame_system::mocking::MockBlock<Test>;
 pub use snowbridge_test_utils::mock_xcm::{MockXcmExecutor, MockXcmSender};

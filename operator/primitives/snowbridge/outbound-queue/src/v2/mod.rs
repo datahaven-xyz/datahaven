@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+extern crate alloc;
+
 pub mod converter;
 pub mod delivery_receipt;
 pub mod exporter;
@@ -9,10 +11,10 @@ pub use converter::*;
 pub use delivery_receipt::*;
 pub use message::*;
 
+use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
-use sp_std::prelude::*;
 
 /// The `XCM::Transact` payload for calling arbitrary smart contracts on Ethereum.
 /// On Ethereum, this call will be dispatched by the agent contract acting as a proxy

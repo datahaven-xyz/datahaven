@@ -16,6 +16,7 @@
 
 //! Test utilities
 use super::*;
+use alloc::collections::btree_map::BTreeMap;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{Everything, PollStatus, Polling, TotalIssuanceOf},
@@ -29,7 +30,6 @@ use sp_runtime::{
     traits::{BlakeTwo256, ConstU32, ConstU64, IdentityLookup},
     BuildStorage, DispatchError, Perbill,
 };
-use sp_std::collections::btree_map::BTreeMap;
 
 #[cfg(feature = "runtime-benchmarks")]
 use frame_support::traits::VoteTally;

@@ -29,6 +29,7 @@ pub mod api;
 pub mod weights;
 pub use weights::*;
 
+use core::prelude::*;
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use snowbridge_core::{AgentIdOf as LocationHashOf, AssetMetadata, TokenId, TokenIdOf};
@@ -40,7 +41,6 @@ use snowbridge_pallet_system::{ForeignToNativeId, NativeToForeignId};
 use sp_core::{H160, H256};
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::MaybeEquivalence;
-use sp_std::prelude::*;
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 

@@ -92,7 +92,7 @@ where
         // AccountCodes: Blake2128(16) + H160(20) + Vec(5)
         // We asume an existing precompile can hold at most 5 bytes worth of dummy code.
         handle.record_db_read::<Runtime>(41)?;
-        pallet_evm::Pallet::<Runtime>::create_account(address.0, DUMMY_CODE.to_vec());
+        pallet_evm::Pallet::<Runtime>::create_account(address.0, DUMMY_CODE.to_vec(), None);
 
         Ok(())
     }

@@ -25,7 +25,7 @@ use sp_runtime::Perbill;
 
 /// Deal with substrate based fees and tip. This should be used with pallet_transaction_payment.
 pub struct DealWithSubstrateFeesAndTip<R, FeesTreasuryProportion>(
-    sp_std::marker::PhantomData<(R, FeesTreasuryProportion)>,
+    core::marker::PhantomData<(R, FeesTreasuryProportion)>,
 );
 impl<R, FeesTreasuryProportion> DealWithSubstrateFeesAndTip<R, FeesTreasuryProportion>
 where
@@ -74,7 +74,7 @@ where
 
 /// Deal with ethereum based fees. To handle tips/priority fees, use DealWithEthereumPriorityFees.
 pub struct DealWithEthereumBaseFees<R, FeesTreasuryProportion>(
-    sp_std::marker::PhantomData<(R, FeesTreasuryProportion)>,
+    core::marker::PhantomData<(R, FeesTreasuryProportion)>,
 );
 impl<R, FeesTreasuryProportion> OnUnbalanced<Credit<R::AccountId, pallet_balances::Pallet<R>>>
     for DealWithEthereumBaseFees<R, FeesTreasuryProportion>
@@ -93,7 +93,7 @@ where
     }
 }
 
-pub struct BlockAuthorAccountId<R>(sp_std::marker::PhantomData<R>);
+pub struct BlockAuthorAccountId<R>(core::marker::PhantomData<R>);
 impl<R> TypedGet for BlockAuthorAccountId<R>
 where
     R: frame_system::Config + pallet_authorship::Config,
@@ -106,7 +106,7 @@ where
 }
 
 /// Deal with ethereum based priority fees/tips. See DealWithEthereumBaseFees for base fees.
-pub struct DealWithEthereumPriorityFees<R>(sp_std::marker::PhantomData<R>);
+pub struct DealWithEthereumPriorityFees<R>(core::marker::PhantomData<R>);
 impl<R> OnUnbalanced<Credit<R::AccountId, pallet_balances::Pallet<R>>>
     for DealWithEthereumPriorityFees<R>
 where

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 use crate::{PublicKey, Signature};
+use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use frame_support::{ensure, PalletError};
 pub use milagro_bls::{
@@ -10,7 +11,6 @@ pub use milagro_bls::{
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::RuntimeDebug;
-use sp_std::prelude::*;
 
 #[derive(
     Copy,

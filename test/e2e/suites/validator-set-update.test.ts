@@ -14,6 +14,7 @@ import { getOwnerAccount } from "launcher/validators";
 import {
   CROSS_CHAIN_TIMEOUTS,
   type Deployments,
+  getPapiSigner,
   logger,
   parseDeploymentsFile,
   ZERO_ADDRESS
@@ -159,8 +160,38 @@ describe("Validator Set Update", () => {
     "should send updated validator set and verify on DataHaven",
     async () => {
       const { publicClient, walletClient, dhApi } = connectors;
-      const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
-      const targetEra = BigInt((activeEra?.index ?? 0) + 1);
+
+      // Pause era rotation so the active era doesn't advance while
+      // Snowbridge relays the message (relay latency > era duration with fast-runtime).
+      // DatahavenServiceManagerAddress is set during infrastructure setup by set-datahaven-parameters.
+      const setupTx = dhApi.tx.Sudo.sudo({
+        call: dhApi.tx.ExternalValidators.force_era({
+          mode: { type: "ForceNone", value: undefined }
+        }).decodedCall
+      });
+      const setupResult = await setupTx.signAndSubmit(getPapiSigner("ALITH"));
+      if (!setupResult.ok) {
+        throw new Error("Failed to pause era rotation");
+      }
+      // Wait for the active era to stabilize: ForceNone prevents new eras but
+      // an already-triggered era may still be pending activation at the next session boundary.
+      // Poll until ActiveEra is stable across two consecutive reads.
+      let stableEraIndex: number;
+      {
+        let prev = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          await new Promise((r) => setTimeout(r, 12_000)); // ~2 substrate blocks
+          const cur = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
+          if (cur === prev) {
+            stableEraIndex = cur;
+            break;
+          }
+          prev = cur;
+        }
+      }
+
+      const targetEra = BigInt(stableEraIndex + 1);
 
       // Send the updated validator set via Snowbridge
       const hash = await walletClient.writeContract({
@@ -169,11 +200,9 @@ describe("Validator Set Update", () => {
         functionName: "sendNewValidatorSetForEra",
         args: [targetEra, parseEther("0.1"), parseEther("0.2")],
         value: parseEther("0.3"),
-        gas: 1000000n,
         account: getOwnerAccount(),
         chain: null
       });
-
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       expect(receipt.status).toBe("success");
 
@@ -197,6 +226,14 @@ describe("Validator Set Update", () => {
           BigInt(event.external_index) === targetEra,
         timeout: CROSS_CHAIN_TIMEOUTS.ETH_TO_DH_MS
       });
+
+      // Resume era rotation
+      const resumeTx = dhApi.tx.Sudo.sudo({
+        call: dhApi.tx.ExternalValidators.force_era({
+          mode: { type: "NotForcing", value: undefined }
+        }).decodedCall
+      });
+      await resumeTx.signAndSubmit(getPapiSigner("ALITH"));
 
       // Verify new validators are in storage
       const validators = await dhApi.query.ExternalValidators.ExternalValidators.getValue();

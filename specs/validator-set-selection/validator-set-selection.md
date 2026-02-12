@@ -159,7 +159,7 @@ Validation requirements:
 4. Resolve multiplier from `strategiesAndMultipliers` for each strategy used.
 5. Revert if any strategy is missing a multiplier entry.
 6. Filter out operators with zero weighted stake.
-7. Select top candidates by weighted stake desc + address asc tie-break.
+7. Select at most `MAX_ACTIVE_VALIDATORS` (32) candidates by weighted stake desc + address asc tie-break (if fewer than 32 eligible candidates exist, include all).
 8. Encode using existing payload shape with `externalIndex = targetEra`.
 
 For any EigenLayer call that consumes `StrategyAndMultiplier[]`, materialize the list in ascending strategy-address order.

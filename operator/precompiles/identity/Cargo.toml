@@ -14,7 +14,6 @@ parity-scale-codec = { workspace = true, features = [ "max-encoded-len" ] }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 pallet-identity = { workspace = true }
 
 # Frontier
@@ -47,7 +46,6 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
-	"sp-std/std",
 ]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",

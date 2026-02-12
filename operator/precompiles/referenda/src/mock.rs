@@ -36,7 +36,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     BuildStorage, Perbill,
 };
-use sp_std::{str::FromStr, vec::Vec};
+use std::{str::FromStr, vec::Vec};
 
 pub type AccountId = MockAccount;
 pub type Balance = u128;

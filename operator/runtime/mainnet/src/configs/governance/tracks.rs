@@ -21,9 +21,10 @@
 
 use super::*;
 use crate::currency::{HAVE, KILOHAVE, SUPPLY_FACTOR};
+use core::str::FromStr;
 use datahaven_runtime_common::time::*;
 use pallet_referenda::Curve;
-use sp_std::str::FromStr;
+use sp_runtime::str_array;
 
 const fn percent(x: i32) -> sp_runtime::FixedI64 {
     sp_runtime::FixedI64::from_rational(x as u128, 100)
@@ -37,7 +38,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
         0,
         pallet_referenda::TrackInfo {
             // Name of this track.
-            name: "root",
+            name: str_array("root"),
             // A limit for the number of referenda on this track that can be being decided at once.
             // For Root origin this should generally be just one.
             max_deciding: 5,
@@ -62,7 +63,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
     (
         1,
         pallet_referenda::TrackInfo {
-            name: "whitelisted_caller",
+            name: str_array("whitelisted_caller"),
             max_deciding: 100,
             decision_deposit: 2 * KILOHAVE * SUPPLY_FACTOR,
             prepare_period: 10 * MINUTES,
@@ -76,7 +77,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
     (
         2,
         pallet_referenda::TrackInfo {
-            name: "general_admin",
+            name: str_array("general_admin"),
             max_deciding: 10,
             decision_deposit: 100 * HAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
@@ -90,7 +91,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
     (
         3,
         pallet_referenda::TrackInfo {
-            name: "referendum_canceller",
+            name: str_array("referendum_canceller"),
             max_deciding: 20,
             decision_deposit: 2 * KILOHAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
@@ -104,7 +105,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
     (
         4,
         pallet_referenda::TrackInfo {
-            name: "referendum_killer",
+            name: str_array("referendum_killer"),
             max_deciding: 100,
             decision_deposit: 4 * KILOHAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
@@ -118,7 +119,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
     (
         5,
         pallet_referenda::TrackInfo {
-            name: "fast_general_admin",
+            name: str_array("fast_general_admin"),
             max_deciding: 10,
             decision_deposit: 100 * HAVE * SUPPLY_FACTOR,
             prepare_period: 1 * HOURS,
@@ -135,16 +136,17 @@ pub struct TracksInfo;
 impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
     type Id = u16;
     type RuntimeOrigin = <RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
-    fn tracks() -> &'static [(Self::Id, pallet_referenda::TrackInfo<Balance, BlockNumber>)] {
-        &TRACKS_DATA[..]
+
+    fn tracks() -> impl Iterator<Item = Cow<'static, Track<Self::Id, Balance, BlockNumber>>> {
+        TRACKS_DATA.iter().map(Cow::Borrowed)
     }
     fn track_for(id: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
         if let Ok(system_origin) = frame_system::RawOrigin::try_from(id.clone()) {
             match system_origin {
                 frame_system::RawOrigin::Root => {
-                    if let Some((track_id, _)) = Self::tracks()
+                    if let Some(track) = Self::tracks()
                         .into_iter()
-                        .find(|(_, track)| track.name == "root")
+                        .find(|track| track.name == str_array("root"))
                     {
                         Ok(*track_id)
                     } else {
@@ -154,14 +156,14 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
                 _ => Err(()),
             }
         } else if let Ok(custom_origin) = custom_origins::Origin::try_from(id.clone()) {
-            if let Some((track_id, _)) = Self::tracks().into_iter().find(|(_, track)| {
+            if let Some(track_id) = Self::tracks().into_iter().find(|track| {
                 if let Ok(track_custom_origin) = custom_origins::Origin::from_str(track.name) {
                     track_custom_origin == custom_origin
                 } else {
                     false
                 }
             }) {
-                Ok(*track_id)
+                Ok(track.id)
             } else {
                 Err(())
             }

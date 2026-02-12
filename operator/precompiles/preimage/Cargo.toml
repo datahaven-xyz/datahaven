@@ -14,7 +14,6 @@ pallet-preimage = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 
 # Frontier
 fp-evm = { workspace = true }
@@ -41,8 +40,6 @@ std = [
 	"pallet-evm/std",
 	"pallet-preimage/std",
 	"parity-scale-codec/std",
-	"parity-scale-codec/std",
 	"precompile-utils/std",
 	"sp-runtime/std",
-	"sp-std/std",
 ]

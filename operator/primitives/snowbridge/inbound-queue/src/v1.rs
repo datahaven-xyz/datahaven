@@ -3,6 +3,7 @@
 //! Converts messages from Ethereum to XCM messages
 
 use crate::{CallIndex, EthereumLocationsConverterFor};
+use alloc::vec;
 use codec::{Decode, DecodeWithMemTracking, Encode};
 use core::marker::PhantomData;
 use frame_support::{traits::tokens::Balance as BalanceT, PalletError};
@@ -10,7 +11,6 @@ use scale_info::TypeInfo;
 use snowbridge_core::TokenId;
 use sp_core::{Get, RuntimeDebug, H160, H256};
 use sp_runtime::{traits::MaybeEquivalence, MultiAddress};
-use sp_std::prelude::*;
 use xcm::prelude::{Junction::AccountKey20, *};
 
 const MINIMUM_DEPOSIT: u128 = 1;

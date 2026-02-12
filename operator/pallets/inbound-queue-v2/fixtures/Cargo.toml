@@ -20,7 +20,6 @@ snowbridge-beacon-primitives = { workspace = true }
 snowbridge-core = { workspace = true }
 snowbridge-inbound-queue-primitives = { workspace = true }
 sp-core = { workspace = true }
-sp-std = { workspace = true }
 
 [features]
 default = ["std"]
@@ -33,5 +32,4 @@ std = [
     "snowbridge-core/std",
     "snowbridge-inbound-queue-primitives/std",
     "sp-core/std",
-    "sp-std/std",
 ]

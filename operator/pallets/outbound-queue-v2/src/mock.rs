@@ -10,6 +10,7 @@ use frame_support::{
 };
 
 use codec::{DecodeWithMemTracking, Encode, MaxEncodedLen};
+use core::marker::PhantomData;
 use hex_literal::hex;
 use scale_info::TypeInfo;
 use snowbridge_core::{
@@ -23,7 +24,6 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup, Keccak256},
     AccountId32, BuildStorage, FixedU128,
 };
-use sp_std::marker::PhantomData;
 use xcm::prelude::Here;
 use xcm_executor::traits::ConvertLocation;
 

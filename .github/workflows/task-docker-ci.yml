@@ -70,7 +70,7 @@ jobs:
           echo "image-name=ghcr.io/datahaven-xyz/datahaven/datahaven:$TAG_ONLY" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
-        uses: ./.github/workflow-templates/publish-docker
+        uses: ./.github/workflow/publish-docker
         with:
           dockerfile: ./operator/Dockerfile
           context: .

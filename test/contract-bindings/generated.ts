@@ -2564,6 +2564,7 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
+  { type: 'error', inputs: [], name: 'EmptyValidatorSet' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
   { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },

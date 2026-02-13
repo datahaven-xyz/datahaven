@@ -301,7 +301,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     };
     pallet_balances::GenesisConfig::<Test> {
         balances,
-        ..Default::default()
+        dev_accounts: Default::default(),
     }
     .assimilate_storage(&mut t)
     .unwrap();

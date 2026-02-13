@@ -258,6 +258,9 @@ pallet-evm-precompile-simple = { git = "https://github.com/polkadot-evm/frontier
 pallet-hotfix-sufficients = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }
 precompile-utils = { git = "https://github.com/polkadot-evm/frontier/", branch = "stable2503", default-features = false }
 precompile-utils-macro = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }
+ethereum = { version = "0.18.2", default-features = false, features = [
+    "with-scale",
+] }
 
 # Frontier (client)
 fc-api = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }

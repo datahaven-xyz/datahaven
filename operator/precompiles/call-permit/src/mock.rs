@@ -180,6 +180,7 @@ impl ExtBuilder {
 
         pallet_balances::GenesisConfig::<Runtime> {
             balances: self.balances,
+            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .expect("Pallet balances storage can be assimilated");
@@ -190,6 +191,7 @@ impl ExtBuilder {
             pallet_evm::Pallet::<Runtime>::create_account(
                 Revert.into(),
                 hex_literal::hex!("1460006000fd").to_vec(),
+                None,
             );
         });
         ext

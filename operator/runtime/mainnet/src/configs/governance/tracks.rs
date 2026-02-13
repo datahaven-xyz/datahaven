@@ -21,9 +21,12 @@
 
 use super::*;
 use crate::currency::{HAVE, KILOHAVE, SUPPLY_FACTOR};
+use alloc::borrow::Cow;
+use core::str::from_utf8;
 use core::str::FromStr;
 use datahaven_runtime_common::time::*;
 use pallet_referenda::Curve;
+use pallet_referenda::Track;
 use sp_runtime::str_array;
 
 const fn percent(x: i32) -> sp_runtime::FixedI64 {
@@ -33,10 +36,10 @@ const fn permill(x: i32) -> sp_runtime::FixedI64 {
     sp_runtime::FixedI64::from_rational(x as u128, 1000)
 }
 
-const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6] = [
-    (
-        0,
-        pallet_referenda::TrackInfo {
+const TRACKS_DATA: [Track<u16, Balance, BlockNumber>; 6] = [
+    Track {
+        id: 0,
+        info: pallet_referenda::TrackInfo {
             // Name of this track.
             name: str_array("root"),
             // A limit for the number of referenda on this track that can be being decided at once.
@@ -59,10 +62,10 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             // is needed for approval as a function of time into decision period.
             min_support: Curve::make_linear(14, 14, permill(5), percent(25)),
         },
-    ),
-    (
-        1,
-        pallet_referenda::TrackInfo {
+    },
+    Track {
+        id: 1,
+        info: pallet_referenda::TrackInfo {
             name: str_array("whitelisted_caller"),
             max_deciding: 100,
             decision_deposit: 2 * KILOHAVE * SUPPLY_FACTOR,
@@ -73,10 +76,10 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             min_approval: Curve::make_reciprocal(1, 14, percent(96), percent(50), percent(100)),
             min_support: Curve::make_reciprocal(1, 14 * 24, percent(1), percent(0), percent(2)),
         },
-    ),
-    (
-        2,
-        pallet_referenda::TrackInfo {
+    },
+    Track {
+        id: 2,
+        info: pallet_referenda::TrackInfo {
             name: str_array("general_admin"),
             max_deciding: 10,
             decision_deposit: 100 * HAVE * SUPPLY_FACTOR,
@@ -87,10 +90,10 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             min_approval: Curve::make_reciprocal(4, 14, percent(80), percent(50), percent(100)),
             min_support: Curve::make_reciprocal(7, 14, percent(10), percent(0), percent(50)),
         },
-    ),
-    (
-        3,
-        pallet_referenda::TrackInfo {
+    },
+    Track {
+        id: 3,
+        info: pallet_referenda::TrackInfo {
             name: str_array("referendum_canceller"),
             max_deciding: 20,
             decision_deposit: 2 * KILOHAVE * SUPPLY_FACTOR,
@@ -101,10 +104,10 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             min_approval: Curve::make_reciprocal(1, 14, percent(96), percent(50), percent(100)),
             min_support: Curve::make_reciprocal(1, 14, percent(1), percent(0), percent(10)),
         },
-    ),
-    (
-        4,
-        pallet_referenda::TrackInfo {
+    },
+    Track {
+        id: 4,
+        info: pallet_referenda::TrackInfo {
             name: str_array("referendum_killer"),
             max_deciding: 100,
             decision_deposit: 4 * KILOHAVE * SUPPLY_FACTOR,
@@ -115,10 +118,10 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             min_approval: Curve::make_reciprocal(1, 14, percent(96), percent(50), percent(100)),
             min_support: Curve::make_reciprocal(1, 14, percent(1), percent(0), percent(10)),
         },
-    ),
-    (
-        5,
-        pallet_referenda::TrackInfo {
+    },
+    Track {
+        id: 5,
+        info: pallet_referenda::TrackInfo {
             name: str_array("fast_general_admin"),
             max_deciding: 10,
             decision_deposit: 100 * HAVE * SUPPLY_FACTOR,
@@ -129,7 +132,7 @@ const TRACKS_DATA: [(u16, pallet_referenda::TrackInfo<Balance, BlockNumber>); 6]
             min_approval: Curve::make_reciprocal(4, 14, percent(80), percent(50), percent(100)),
             min_support: Curve::make_reciprocal(5, 14, percent(1), percent(0), percent(50)),
         },
-    ),
+    },
 ];
 
 pub struct TracksInfo;
@@ -146,9 +149,9 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
                 frame_system::RawOrigin::Root => {
                     if let Some(track) = Self::tracks()
                         .into_iter()
-                        .find(|track| track.name == str_array("root"))
+                        .find(|track| track.info.name == str_array("root"))
                     {
-                        Ok(*track_id)
+                        Ok(track.id)
                     } else {
                         Err(())
                     }
@@ -156,8 +159,12 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
                 _ => Err(()),
             }
         } else if let Ok(custom_origin) = custom_origins::Origin::try_from(id.clone()) {
-            if let Some(track_id) = Self::tracks().into_iter().find(|track| {
-                if let Ok(track_custom_origin) = custom_origins::Origin::from_str(track.name) {
+            if let Some(track) = Self::tracks().into_iter().find(|track| {
+                let Ok(track_name) = from_utf8(&track.info.name) else {
+                    return false;
+                };
+                let track_name = track_name.trim_end_matches('\0');
+                if let Ok(track_custom_origin) = custom_origins::Origin::from_str(track_name) {
                     track_custom_origin == custom_origin
                 } else {
                     false
@@ -176,7 +183,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 #[test]
 /// To ensure voters are always locked into their vote
 fn vote_locking_always_longer_than_enactment_period() {
-    for (_, track) in TRACKS_DATA {
+    for track in TRACKS_DATA {
         assert!(
             <Runtime as pallet_conviction_voting::Config>::VoteLockingPeriod::get()
                 >= track.min_enactment_period,
@@ -190,7 +197,7 @@ fn vote_locking_always_longer_than_enactment_period() {
 
 #[test]
 fn all_tracks_have_origins() {
-    for (_, track) in TRACKS_DATA {
+    for track in TRACKS_DATA {
         // check name.into() is successful either converts into "root" or custom origin
         let track_is_root = track.name == "root";
         let track_has_custom_origin = custom_origins::Origin::from_str(track.name).is_ok();

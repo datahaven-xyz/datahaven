@@ -56,6 +56,7 @@ fn testnet_genesis(
                 .cloned()
                 .map(|k| (k, 1u128 << 110))
                 .collect::<Vec<_>>(),
+            dev_accounts: Default::default(),
         },
         babe: pallet_babe::GenesisConfig {
             epoch_config: BABE_GENESIS_EPOCH_CONFIG,

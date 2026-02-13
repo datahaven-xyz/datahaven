@@ -273,6 +273,7 @@ impl HandleInflation<H160> for InflationMinter {
 // Pallet to provide some mock data, used to test
 #[frame_support::pallet]
 pub mod mock_data {
+    use alloc::vec::Vec;
     use {
         frame_support::pallet_prelude::*,
         pallet_external_validators::traits::{ActiveEraInfo, EraIndex, EraIndexProvider},
@@ -283,9 +284,9 @@ pub mod mock_data {
         pub active_era: Option<ActiveEraInfo>,
         pub era_inflation: Option<u128>,
         /// Set of validators that are considered offline (for liveness testing)
-        pub offline_validators: sp_std::vec::Vec<sp_core::H160>,
+        pub offline_validators: Vec<sp_core::H160>,
         /// Set of (era_index, validator_id) pairs that are slashed
-        pub slashed_validators: sp_std::vec::Vec<(u32, sp_core::H160)>,
+        pub slashed_validators: Vec<(u32, sp_core::H160)>,
     }
 
     #[pallet::config]
@@ -345,9 +346,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             ExistentialDeposit::get(),
         ), // Rewards account needs existential deposit
     ];
-    pallet_balances::GenesisConfig::<Test> { balances }
-        .assimilate_storage(&mut t)
-        .unwrap();
+    pallet_balances::GenesisConfig::<Test> {
+        balances,
+        dev_accounts: Default::default(),
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
     let ext: sp_io::TestExternalities = t.into();
 

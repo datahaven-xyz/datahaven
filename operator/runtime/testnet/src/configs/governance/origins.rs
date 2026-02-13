@@ -34,7 +34,16 @@ pub mod custom_origins {
     pub struct Pallet<T>(_);
 
     #[derive(
-        PartialEq, Eq, Clone, MaxEncodedLen, Encode, Decode, TypeInfo, RuntimeDebug, EnumString,
+        PartialEq,
+        Eq,
+        Clone,
+        MaxEncodedLen,
+        Encode,
+        Decode,
+        TypeInfo,
+        RuntimeDebug,
+        EnumString,
+        DecodeWithMemTracking,
     )]
     #[strum(serialize_all = "snake_case")]
     #[pallet::origin]

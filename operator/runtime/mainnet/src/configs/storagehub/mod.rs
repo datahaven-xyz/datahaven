@@ -19,7 +19,7 @@ use super::HAVE;
 #[cfg(feature = "runtime-benchmarks")]
 use super::MICROHAVE;
 use super::{
-    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason,
+    AccountId, Balance, Balances, BlockNumber, Hash, RuntimeEvent, RuntimeHoldReason, System,
     TreasuryAccount,
 };
 use crate::configs::runtime_params::dynamic_params::runtime_config;
@@ -30,6 +30,7 @@ use crate::{
 use alloc::{vec, vec::Vec};
 use core::convert::{From, Into};
 use core::marker::PhantomData;
+
 #[cfg(feature = "runtime-benchmarks")]
 use datahaven_runtime_common::benchmarking::StorageHubBenchmarking;
 use datahaven_runtime_common::time::{DAYS, MINUTES};
@@ -126,6 +127,7 @@ impl pallet_nfts::Config for Runtime {
     type OffchainPublic = <Signature as Verify>::Signer;
     type WeightInfo = crate::weights::pallet_nfts::WeightInfo<Runtime>;
     type Locker = ();
+    type BlockNumberProvider = System;
     #[cfg(feature = "runtime-benchmarks")]
     type Helper = benchmark_helpers::NftHelper;
 }

@@ -18,10 +18,11 @@ bridge-hub-common = { workspace = true, optional = true }
 codec = { workspace = true, features = ["derive"] }
 datahaven-runtime-common = { workspace = true }
 dhp-bridge = { workspace = true }
+ethereum = { workspace = true }
 fp-account = { workspace = true, features = ["serde"] }
 fp-evm = { workspace = true, features = ["serde"] }
 fp-rpc = { workspace = true }
-fp-self-contained = { workspace = true, features = ["serde", "try-runtime"] }
+fp-self-contained = { workspace = true, features = ["serde"] }
 frame-benchmarking = { workspace = true, optional = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
@@ -188,6 +189,7 @@ default = ["std"]
 std = [
     "codec/std",
     "datahaven-runtime-common/std",
+    "ethereum/std",
     "fp-account/std",
     "fp-evm/std",
     "frame-benchmarking?/std",

@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_arithmetic::traits::{BaseArithmetic, Unsigned, Zero};
 use sp_core::U256;
 use sp_runtime::{FixedU128, RuntimeDebug};
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+#[derive(
+    Clone, Encode, Decode, PartialEq, RuntimeDebug, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
 pub struct PricingParameters<Balance> {
     /// ETH/DOT exchange rate
     pub exchange_rate: FixedU128,
@@ -19,7 +21,9 @@ pub struct PricingParameters<Balance> {
     pub multiplier: FixedU128,
 }
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+#[derive(
+    Clone, Encode, Decode, PartialEq, RuntimeDebug, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
 pub struct Rewards<Balance> {
     /// Local reward in DOT
     pub local: Balance,

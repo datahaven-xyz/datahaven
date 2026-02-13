@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //! Runtime configuration for MessageQueue pallet
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
 use cumulus_primitives_core::{AggregateMessageOrigin as CumulusAggregateMessageOrigin, ParaId};
 use frame_support::{
@@ -29,7 +29,18 @@ use xcm::latest::prelude::{Junction, Location};
 /// The aggregate origin of an inbound message.
 /// This is specialized for BridgeHub, as the snowbridge-outbound-queue-pallet is also using
 /// the shared MessageQueue pallet.
-#[derive(Encode, Decode, Copy, MaxEncodedLen, Clone, Eq, PartialEq, TypeInfo, Debug)]
+#[derive(
+    Encode,
+    Decode,
+    Copy,
+    MaxEncodedLen,
+    Clone,
+    Eq,
+    PartialEq,
+    TypeInfo,
+    DecodeWithMemTracking,
+    Debug,
+)]
 pub enum AggregateMessageOrigin {
     /// The message came from the para-chain itself.
     Here,

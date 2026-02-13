@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use sp_core::H256;
 use sp_io::hashing::keccak_256;
-use sp_std::prelude::*;
 
 use snowbridge_ethereum::{mpt, Receipt};
 

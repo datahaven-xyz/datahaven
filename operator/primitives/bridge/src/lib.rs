@@ -15,14 +15,15 @@
 // along with DataHaven.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
+use alloc::vec::Vec;
 use frame_support::pallet_prelude::*;
 use parity_scale_codec::DecodeAll;
 use snowbridge_inbound_queue_primitives::v2::{
     EthereumAsset, Message as SnowbridgeMessage, MessageProcessor,
 };
 use sp_core::H160;
-use sp_std::vec::Vec;
 
 // Message ID. This is not expected to change and its arbitrary bytes defined here.
 // It should match the EL_MESSAGE_ID in DataHavenSnowbridgeMessages.sol

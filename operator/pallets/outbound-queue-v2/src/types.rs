@@ -7,7 +7,6 @@ use scale_info::TypeInfo;
 pub use snowbridge_merkle_tree::MerkleProof;
 use sp_core::H256;
 use sp_runtime::RuntimeDebug;
-use sp_std::prelude::*;
 
 pub type ProcessMessageOriginOf<T> = <Pallet<T> as ProcessMessage>::Origin;
 

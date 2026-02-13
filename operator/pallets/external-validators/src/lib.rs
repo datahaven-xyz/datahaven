@@ -31,16 +31,17 @@
 //! The structure of this pallet and the concept of eras is inspired by `pallet_staking` from Polkadot.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
 pub use pallet::*;
 use {
+    alloc::{collections::btree_set::BTreeSet, vec::Vec},
     frame_support::pallet_prelude::Weight,
     log::log,
-    parity_scale_codec::{Decode, Encode, MaxEncodedLen},
+    parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen},
     scale_info::TypeInfo,
     sp_runtime::{traits::Get, RuntimeDebug},
     sp_staking::SessionIndex,
-    sp_std::{collections::btree_set::BTreeSet, vec::Vec},
     traits::{
         ActiveEraInfo, EraIndex, EraIndexProvider, ExternalIndexProvider, InvulnerablesProvider,
         OnEraEnd, OnEraStart, ValidatorProvider,
@@ -92,6 +93,7 @@ pub mod pallet {
     use frame_support::traits::Currency;
     use {
         super::*,
+        alloc::vec::Vec,
         frame_support::{
             dispatch::DispatchResultWithPostInfo,
             pallet_prelude::*,
@@ -101,7 +103,6 @@ pub mod pallet {
         frame_system::pallet_prelude::*,
         sp_core::H160,
         sp_runtime::{traits::Convert, SaturatedConversion},
-        sp_std::vec::Vec,
     };
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
@@ -255,7 +256,7 @@ pub mod pallet {
                 // T::ValidatorId does not impl Ord or Hash so we cannot collect into set directly,
                 // but we can check for duplicates if we encode them first.
                 .map(|x| x.encode())
-                .collect::<sp_std::collections::btree_set::BTreeSet<_>>();
+                .collect::<alloc::collections::btree_set::BTreeSet<_>>();
             assert!(
                 duplicate_validators.len() == self.whitelisted_validators.len(),
                 "duplicate validators in genesis."
@@ -733,7 +734,17 @@ impl<T: Config> InvulnerablesProvider<T::ValidatorId> for Pallet<T> {
 
 /// Mode of era-forcing.
 #[derive(
-    Copy, Clone, PartialEq, Eq, Default, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Default,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    TypeInfo,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
 )]
 pub enum Forcing {
     /// Not forcing anything - just let whatever happen.

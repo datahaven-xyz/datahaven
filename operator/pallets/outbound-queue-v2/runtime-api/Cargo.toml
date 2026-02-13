@@ -22,7 +22,6 @@ snowbridge-core = { workspace = true }
 snowbridge-merkle-tree = { workspace = true }
 snowbridge-outbound-queue-primitives = { workspace = true }
 sp-api = { workspace = true }
-sp-std = { workspace = true }
 xcm = { workspace = true }
 
 [features]
@@ -35,6 +34,5 @@ std = [
     "snowbridge-merkle-tree/std",
     "snowbridge-outbound-queue-primitives/std",
     "sp-api/std",
-    "sp-std/std",
     "xcm/std",
 ]

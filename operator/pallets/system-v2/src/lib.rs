@@ -16,6 +16,8 @@
 //!
 //! * [`Call::register_token`]: Register a token location as a wrapped ERC20 contract on Ethereum.
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
+
 #[cfg(test)]
 mod mock;
 
@@ -29,6 +31,8 @@ pub mod api;
 pub mod weights;
 pub use weights::*;
 
+use alloc::boxed::Box;
+use alloc::vec;
 use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use snowbridge_core::{AgentIdOf as LocationHashOf, AssetMetadata, TokenId, TokenIdOf};
@@ -40,7 +44,6 @@ use snowbridge_pallet_system::{ForeignToNativeId, NativeToForeignId};
 use sp_core::{H160, H256};
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::MaybeEquivalence;
-use sp_std::prelude::*;
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 

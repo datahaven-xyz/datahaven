@@ -50,7 +50,7 @@
 #![allow(unused_imports)]
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
-use sp_std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Weights for `pallet_proxy`.
 pub struct WeightInfo<T>(PhantomData<T>);
@@ -223,5 +223,9 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(32_233, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+
+	fn poke_deposit() -> Weight {
+		todo!()
 	}
 }

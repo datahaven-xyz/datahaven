@@ -18,7 +18,7 @@
 macro_rules! impl_on_charge_evm_transaction {
 	{} => {
 		pub struct OnChargeEVMTransaction<BaseFeesOU, PriorityFeesOU>(
-			sp_std::marker::PhantomData<(BaseFeesOU, PriorityFeesOU)>
+			core::marker::PhantomData<(BaseFeesOU, PriorityFeesOU)>
 		);
 
 		impl<T, BaseFeesOU, PriorityFeesOU> OnChargeEVMTransactionT<T>

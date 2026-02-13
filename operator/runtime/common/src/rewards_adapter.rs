@@ -20,6 +20,8 @@
 //! via Snowbridge. The adapter is configurable through the [`RewardsSubmissionConfig`]
 //! trait, allowing runtimes to provide environment-specific values.
 
+use alloc::vec;
+use alloc::vec::Vec;
 use alloy_core::{
     primitives::{Address, Uint, U256},
     sol,
@@ -31,8 +33,6 @@ use snowbridge_outbound_queue_primitives::v2::{
 };
 use snowbridge_outbound_queue_primitives::SendError;
 use sp_core::{H160, H256};
-use sp_std::vec;
-use sp_std::vec::Vec;
 
 /// Default description for rewards submissions.
 pub const REWARDS_DESCRIPTION: &str = "DataHaven validator rewards";

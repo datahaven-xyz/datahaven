@@ -20,7 +20,17 @@ pub mod pallet_xcm_origin {
 
     // Insert this custom Origin into the aggregate RuntimeOrigin
     #[pallet::origin]
-    #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+    #[derive(
+        PartialEq,
+        Eq,
+        Clone,
+        Encode,
+        Decode,
+        RuntimeDebug,
+        TypeInfo,
+        DecodeWithMemTracking,
+        MaxEncodedLen,
+    )]
     pub struct Origin(pub Location);
 
     impl From<Location> for Origin {

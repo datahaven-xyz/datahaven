@@ -16,10 +16,10 @@
 
 use {
     crate::{self as pallet_external_validators_rewards, mock::*},
+    alloc::collections::btree_map::BTreeMap,
     frame_support::traits::fungible::Mutate,
     pallet_external_validators::traits::{ActiveEraInfo, OnEraEnd, OnEraStart},
     sp_core::H160,
-    sp_std::collections::btree_map::BTreeMap,
 };
 
 #[test]

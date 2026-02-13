@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2023 Snowfork <hello@snowfork.com>
 //! Converts XCM messages into simpler commands that can be processed by the Gateway contract
+extern crate alloc;
 
 #[cfg(test)]
 mod tests;
@@ -9,7 +10,9 @@ pub mod convert;
 pub use convert::XcmConverter;
 
 use super::message::SendMessage;
+use alloc::vec::Vec;
 use codec::{Decode, Encode};
+use core::{marker::PhantomData, ops::ControlFlow};
 use frame_support::{
     ensure,
     traits::{Contains, Get, ProcessMessageError},
@@ -17,7 +20,6 @@ use frame_support::{
 use snowbridge_core::{ParaId, TokenId};
 use sp_core::H256;
 use sp_runtime::traits::MaybeEquivalence;
-use sp_std::{marker::PhantomData, ops::ControlFlow, prelude::*};
 use xcm::prelude::*;
 use xcm_builder::{CreateMatcher, ExporterFor, MatchXcm};
 use xcm_executor::traits::{ConvertLocation, ExportXcm};

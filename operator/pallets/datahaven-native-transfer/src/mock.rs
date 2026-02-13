@@ -166,9 +166,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         (BOB, INITIAL_BALANCE),
         (CHARLIE, INITIAL_BALANCE),
     ];
-    pallet_balances::GenesisConfig::<Test> { balances }
-        .assimilate_storage(&mut t)
-        .unwrap();
+    pallet_balances::GenesisConfig::<Test> {
+        balances,
+        dev_accounts: Default::default(),
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
     let mut ext: sp_io::TestExternalities = t.into();
     ext.execute_with(|| {

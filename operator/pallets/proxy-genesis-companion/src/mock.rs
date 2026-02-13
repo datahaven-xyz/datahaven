@@ -17,7 +17,7 @@
 //! A minimal runtime including the proxy-genesis-companion pallet
 use super::*;
 use crate as proxy_companion;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
     construct_runtime, derive_impl, parameter_types,
     traits::{ConstU32, InstanceFilter},
@@ -79,6 +79,7 @@ parameter_types! {
     Debug,
     MaxEncodedLen,
     scale_info::TypeInfo,
+    DecodeWithMemTracking,
     serde::Serialize,
     serde::Deserialize,
     Default,
@@ -108,6 +109,7 @@ impl pallet_proxy::Config for Test {
     type CallHasher = BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
+    type BlockNumberProvider = ();
 }
 
 impl Config for Test {
@@ -147,7 +149,7 @@ impl ExtBuilder {
 
         pallet_balances::GenesisConfig::<Test> {
             balances: self.balances,
-            ..Default::default()
+            dev_accounts: Default::default(),
         }
         .assimilate_storage(&mut t)
         .expect("Pallet balances storage can be assimilated");

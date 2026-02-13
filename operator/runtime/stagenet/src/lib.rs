@@ -37,8 +37,10 @@ use pallet_collective as pallet_collective_treasury_council;
 #[allow(unused_imports)]
 use pallet_collective as pallet_collective_technical_committee;
 
+use alloc::collections::btree_map::BTreeMap;
 use alloc::{borrow::Cow, vec::Vec};
 use codec::Encode;
+use ethereum::AuthorizationList;
 use fp_rpc::TransactionStatus;
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
@@ -82,7 +84,6 @@ use sp_runtime::{
     transaction_validity::{InvalidTransaction, TransactionSource},
     ApplyExtrinsicResult, Perbill, Permill,
 };
-use sp_std::collections::btree_map::BTreeMap;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -1075,6 +1076,7 @@ impl_runtime_apis! {
             nonce: Option<U256>,
             estimate: bool,
             access_list: Option<Vec<(H160, Vec<H256>)>>,
+            authorization_list: Option<AuthorizationList>,
         ) -> Result<pallet_evm::CallInfo, sp_runtime::DispatchError> {
             let config = if estimate {
                 let mut config = <Runtime as pallet_evm::Config>::config().clone();
@@ -1104,6 +1106,7 @@ impl_runtime_apis! {
                 max_priority_fee_per_gas,
                 nonce,
                 access_list.unwrap_or_default(),
+                authorization_list.unwrap_or_default(),
                 is_transactional,
                 validate,
                 Some(weight_limit),
@@ -1122,6 +1125,7 @@ impl_runtime_apis! {
             nonce: Option<U256>,
             estimate: bool,
             access_list: Option<Vec<(H160, Vec<H256>)>>,
+            authorization_list: Option<AuthorizationList>,
         ) -> Result<pallet_evm::CreateInfo, sp_runtime::DispatchError> {
             let config = if estimate {
                 let mut config = <Runtime as pallet_evm::Config>::config().clone();
@@ -1155,6 +1159,7 @@ impl_runtime_apis! {
                 max_priority_fee_per_gas,
                 nonce,
                 access_list.unwrap_or_default(),
+                authorization_list.unwrap_or_default(),
                 is_transactional,
                 validate,
                 Some(weight_limit),
@@ -1417,7 +1422,7 @@ impl_runtime_apis! {
         fn compute_signed_extra_implicit(
             era: sp_runtime::generic::Era,
             enable_metadata: bool,
-        ) -> Result<sp_std::vec::Vec<u8>, sp_runtime::transaction_validity::TransactionValidityError> {
+        ) -> Result<Vec<u8>, sp_runtime::transaction_validity::TransactionValidityError> {
             // Build the SignedExtra tuple with minimal values; only `era` and `enable_metadata`
             // influence the implicit. Other extensions have `()` implicit.
             let extra: SignedExtra = (

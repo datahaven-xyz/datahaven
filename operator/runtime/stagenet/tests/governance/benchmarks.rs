@@ -23,6 +23,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use crate::common::*;
+use alloc::vec::Vec;
 use datahaven_stagenet_runtime::{
     configs::governance::council::{TechnicalMaxMembers, TechnicalMaxProposals},
     governance::TracksInfo,
@@ -36,7 +37,6 @@ use frame_support::{
     traits::{Get, StorePreimage},
 };
 use pallet_conviction_voting::{AccountVote, Conviction, Vote};
-use sp_std::vec::Vec;
 
 /// Benchmark council proposal creation with varying member counts
 #[test]

@@ -576,6 +576,7 @@ fn deposit(data: Vec<u8>) {
                 None,            // max priority
                 None,            // nonce
                 vec![],          // access list
+                vec![],          // authorization list
             )
             .expect("it works");
 
@@ -692,6 +693,7 @@ fn deposit_zero() {
                 None,          // max priority
                 None,          // nonce
                 vec![],        // access list
+                vec![],        // authorization list
             )
             .expect("it works");
 

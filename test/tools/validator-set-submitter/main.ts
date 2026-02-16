@@ -17,9 +17,16 @@ program
     "Path to YAML config file",
     "./tools/validator-set-submitter/config.yml"
   )
+  .option(
+    "--submitter-private-key <key>",
+    "Override submitter private key (or use SUBMITTER_PRIVATE_KEY env var)"
+  )
   .option("--dry-run", "Log what would be submitted without sending transactions", false)
   .action(async (opts) => {
-    const config = await loadConfig(opts.config, { dryRun: opts.dryRun });
+    const config = await loadConfig(opts.config, {
+      dryRun: opts.dryRun,
+      submitterPrivateKey: opts.submitterPrivateKey
+    });
 
     logger.info("Validator Set Submitter starting...");
     logger.info(`Ethereum RPC: ${config.ethereumRpcUrl}`);

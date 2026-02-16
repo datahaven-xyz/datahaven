@@ -15,6 +15,7 @@ export interface SubmitterConfig {
 
 interface CliOverrides {
   dryRun?: boolean;
+  submitterPrivateKey?: string;
 }
 
 export async function loadConfig(
@@ -29,7 +30,7 @@ export async function loadConfig(
 
   const ethereumRpcUrl = requireString(raw, "ethereum_rpc_url");
   const datahavenWsUrl = requireString(raw, "datahaven_ws_url");
-  const submitterPrivateKey = requireHexString(raw, "submitter_private_key");
+  const submitterPrivateKey = resolveSubmitterPrivateKey(raw, cli.submitterPrivateKey);
   const networkId = optionalString(raw, "network_id") ?? "anvil";
 
   let serviceManagerAddress = optionalHexString(raw, "service_manager_address");
@@ -53,20 +54,32 @@ export async function loadConfig(
   };
 }
 
+function resolveSubmitterPrivateKey(
+  raw: Record<string, unknown>,
+  cliPrivateKey?: string
+): `0x${string}` {
+  const submitterPrivateKey =
+    cliPrivateKey ?? process.env.SUBMITTER_PRIVATE_KEY ?? optionalString(raw, "submitter_private_key");
+
+  if (!submitterPrivateKey || submitterPrivateKey.length === 0) {
+    throw new Error(
+      "Missing submitter private key. Provide --submitter-private-key, SUBMITTER_PRIVATE_KEY, or submitter_private_key in config."
+    );
+  }
+
+  if (!submitterPrivateKey.startsWith("0x")) {
+    throw new Error("Submitter private key must start with 0x");
+  }
+
+  return submitterPrivateKey as `0x${string}`;
+}
+
 function requireString(raw: Record<string, unknown>, key: string): string {
   const val = raw[key];
   if (typeof val !== "string" || val.length === 0) {
     throw new Error(`Missing required config field: ${key}`);
   }
   return val;
-}
-
-function requireHexString(raw: Record<string, unknown>, key: string): `0x${string}` {
-  const val = requireString(raw, key);
-  if (!val.startsWith("0x")) {
-    throw new Error(`Config field ${key} must start with 0x`);
-  }
-  return val as `0x${string}`;
 }
 
 function optionalString(raw: Record<string, unknown>, key: string): string | undefined {

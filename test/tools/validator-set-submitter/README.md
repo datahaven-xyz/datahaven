@@ -28,6 +28,7 @@ Copy `config.yml` and fill in your values:
 ethereum_rpc_url: "http://127.0.0.1:8545"
 datahaven_ws_url: "ws://127.0.0.1:9944"
 
+# Optional if provided via --submitter-private-key or SUBMITTER_PRIVATE_KEY env var
 # The private key of the account authorized as validatorSetSubmitter
 submitter_private_key: "0x..."
 
@@ -51,9 +52,17 @@ bun tools/validator-set-submitter/main.ts run
 # With a custom config path
 bun tools/validator-set-submitter/main.ts run --config ./path/to/config.yml
 
+# Provide private key via environment variable
+SUBMITTER_PRIVATE_KEY=0x... bun tools/validator-set-submitter/main.ts run
+
+# Provide private key via CLI argument
+bun tools/validator-set-submitter/main.ts run --submitter-private-key 0x...
+
 # Dry run — logs what would be submitted without sending transactions
 bun tools/validator-set-submitter/main.ts run --dry-run
 ```
+
+Private key precedence is: `--submitter-private-key` > `SUBMITTER_PRIVATE_KEY` > `submitter_private_key` in config file.
 
 ## Startup checks
 

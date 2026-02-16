@@ -6,6 +6,7 @@ ethereum_rpc_url: "http://127.0.0.1:8545"
 datahaven_ws_url: "ws://127.0.0.1:9944"
 
 # Credentials
+# Optional if provided via --submitter-private-key or SUBMITTER_PRIVATE_KEY env var
 # The private key of the account authorized as validatorSetSubmitter on the ServiceManager
 submitter_private_key: "0x..."
 

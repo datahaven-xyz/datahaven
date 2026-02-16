@@ -42,6 +42,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @notice The EigenLayer operator set ID for the Validators securing the DataHaven network.
     uint32 public constant VALIDATORS_SET_ID = 0;
 
+    /// @notice Maximum number of active validators in the set
+    uint32 public constant MAX_ACTIVE_VALIDATORS = 32;
+
     // ============ Immutables ============
 
     /// @notice The EigenLayer AllocationManager contract
@@ -64,9 +67,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
+    /// @inheritdoc IDataHavenServiceManager
+    mapping(IStrategy => uint16) public strategiesAndMultipliers;
+
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[46] private __GAP;
+    uint256[45] private __GAP;
 
     // ============ Modifiers ============
 
@@ -163,21 +169,75 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     /// @inheritdoc IDataHavenServiceManager
     function buildNewValidatorSetMessage() public view returns (bytes memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
-        address[] memory currentValidatorSet = _ALLOCATION_MANAGER.getMembers(operatorSet);
+        address[] memory operators = _ALLOCATION_MANAGER.getMembers(operatorSet);
+        IStrategy[] memory strategies =
+            _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
 
-        // Allocate max size, then resize after filtering
-        address[] memory newValidatorSet = new address[](currentValidatorSet.length);
-        uint256 validCount = 0;
-        for (uint256 i = 0; i < currentValidatorSet.length; i++) {
-            address solochainAddr = validatorEthAddressToSolochainAddress[currentValidatorSet[i]];
-            if (solochainAddr != address(0)) {
-                newValidatorSet[validCount] = solochainAddr;
-                ++validCount;
+        // Get allocated stake for all operators across all strategies
+        uint256[][] memory allocatedStake =
+            _ALLOCATION_MANAGER.getAllocatedStake(operatorSet, operators, strategies);
+
+        // Collect candidates: operators with solochain mapping and non-zero weighted stake
+        address[] memory candidateSolochain = new address[](operators.length);
+        uint256[] memory candidateStake = new uint256[](operators.length);
+        address[] memory candidateOperator = new address[](operators.length);
+        uint256 candidateCount = 0;
+
+        for (uint256 i = 0; i < operators.length; i++) {
+            address solochainAddr = validatorEthAddressToSolochainAddress[operators[i]];
+            if (solochainAddr == address(0)) continue;
+
+            // Compute weighted stake: sum(allocatedStake[i][j] * multiplierBps[j]) / 10_000
+            uint256 weightedStake = 0;
+            for (uint256 j = 0; j < strategies.length; j++) {
+                weightedStake +=
+                    allocatedStake[i][j] * uint256(strategiesAndMultipliers[strategies[j]]);
+            }
+            weightedStake /= 10_000;
+
+            if (weightedStake == 0) continue;
+
+            candidateSolochain[candidateCount] = solochainAddr;
+            candidateStake[candidateCount] = weightedStake;
+            candidateOperator[candidateCount] = operators[i];
+            candidateCount++;
+        }
+
+        require(candidateCount != 0, EmptyValidatorSet());
+
+        // Partial selection sort: pick top min(MAX_ACTIVE_VALIDATORS, candidateCount)
+        uint256 selectCount =
+            candidateCount < MAX_ACTIVE_VALIDATORS ? candidateCount : MAX_ACTIVE_VALIDATORS;
+
+        for (uint256 i = 0; i < selectCount; i++) {
+            uint256 bestIdx = i;
+            for (uint256 j = i + 1; j < candidateCount; j++) {
+                if (
+                    _isBetterCandidate(
+                        candidateStake[j],
+                        candidateOperator[j],
+                        candidateStake[bestIdx],
+                        candidateOperator[bestIdx]
+                    )
+                ) {
+                    bestIdx = j;
+                }
+            }
+            if (bestIdx != i) {
+                // Swap all parallel arrays
+                (candidateSolochain[i], candidateSolochain[bestIdx]) =
+                    (candidateSolochain[bestIdx], candidateSolochain[i]);
+                (candidateStake[i], candidateStake[bestIdx]) =
+                    (candidateStake[bestIdx], candidateStake[i]);
+                (candidateOperator[i], candidateOperator[bestIdx]) =
+                    (candidateOperator[bestIdx], candidateOperator[i]);
             }
         }
-        // Resize array to actual count
-        assembly {
-            mstore(newValidatorSet, validCount)
+
+        // Build the final validator set from sorted solochain addresses
+        address[] memory newValidatorSet = new address[](selectCount);
+        for (uint256 i = 0; i < selectCount; i++) {
+            newValidatorSet[i] = candidateSolochain[i];
         }
 
         return DataHavenSnowbridgeMessages.scaleEncodeNewValidatorSetMessagePayload(
@@ -280,15 +340,66 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         _ALLOCATION_MANAGER.removeStrategiesFromOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
+
+        for (uint256 i = 0; i < _strategies.length; i++) {
+            delete strategiesAndMultipliers[_strategies[i]];
+        }
     }
 
     /// @inheritdoc IDataHavenServiceManager
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies
+        IStrategy[] calldata _strategies,
+        uint16[] calldata _multipliersBps
     ) external onlyOwner {
+        require(_strategies.length == _multipliersBps.length, StrategyMultiplierLengthMismatch());
+        _validateStrategiesStrictlyAscending(_strategies);
+
         _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
             address(this), VALIDATORS_SET_ID, _strategies
         );
+
+        for (uint256 i = 0; i < _strategies.length; i++) {
+            strategiesAndMultipliers[_strategies[i]] = _multipliersBps[i];
+        }
+
+        emit StrategiesAndMultipliersSet(_strategies, _multipliersBps);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function setStrategiesAndMultipliers(
+        IStrategy[] calldata _strategies,
+        uint16[] calldata _multipliersBps
+    ) external onlyOwner {
+        require(_strategies.length == _multipliersBps.length, StrategyMultiplierLengthMismatch());
+        _validateStrategiesStrictlyAscending(_strategies);
+
+        for (uint256 i = 0; i < _strategies.length; i++) {
+            strategiesAndMultipliers[_strategies[i]] = _multipliersBps[i];
+        }
+
+        emit StrategiesAndMultipliersSet(_strategies, _multipliersBps);
+    }
+
+    /// @inheritdoc IDataHavenServiceManager
+    function getStrategiesAndMultipliers()
+        external
+        view
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory)
+    {
+        OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
+        IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
+
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory result =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategies.length);
+
+        for (uint256 i = 0; i < strategies.length; i++) {
+            result[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: strategies[i],
+                multiplier: uint96(strategiesAndMultipliers[strategies[i]])
+            });
+        }
+
+        return result;
     }
 
     // ============ Rewards Functions ============
@@ -387,5 +498,41 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             result := shr(96, mload(add(data, 32)))
         }
         require(result != address(0), ZeroAddress());
+    }
+
+    /**
+     * @notice Validates that a strategy array is strictly ascending by address
+     * @param _strategies The array of strategies to validate
+     */
+    function _validateStrategiesStrictlyAscending(
+        IStrategy[] calldata _strategies
+    ) private pure {
+        for (uint256 i = 1; i < _strategies.length; i++) {
+            require(
+                address(_strategies[i]) > address(_strategies[i - 1]),
+                StrategiesNotSortedAscending()
+            );
+        }
+    }
+
+    /**
+     * @notice Determines if candidate A ranks higher than candidate B
+     * @dev Higher stake wins; on tie, lower operator address wins
+     * @param stakeA Weighted stake of candidate A
+     * @param opA Operator address of candidate A
+     * @param stakeB Weighted stake of candidate B
+     * @param opB Operator address of candidate B
+     * @return True if candidate A ranks higher than candidate B
+     */
+    function _isBetterCandidate(
+        uint256 stakeA,
+        address opA,
+        uint256 stakeB,
+        address opB
+    ) private pure returns (bool) {
+        if (stakeA != stakeB) {
+            return stakeA > stakeB;
+        }
+        return opA < opB;
     }
 }

@@ -32,6 +32,12 @@ interface IDataHavenServiceManagerErrors {
     error ZeroAddress();
     /// @notice Thrown when the solochain address data length is not 20 bytes
     error InvalidSolochainAddressLength();
+    /// @notice Thrown when strategies and multipliers arrays have different lengths
+    error StrategyMultiplierLengthMismatch();
+    /// @notice Thrown when the input strategy array is not strictly ascending by address
+    error StrategiesNotSortedAscending();
+    /// @notice Thrown when the validator set to be sent is empty
+    error EmptyValidatorSet();
 }
 
 /**
@@ -78,6 +84,11 @@ interface IDataHavenServiceManagerEvents {
 
     /// @notice Emitted when a batch of slashing request is being successfully slashed
     event SlashingComplete();
+
+    /// @notice Emitted when strategy multipliers are set or updated
+    /// @param strategies Array of strategies whose multipliers were set
+    /// @param multipliersBps Array of multipliers in basis points
+    event StrategiesAndMultipliersSet(IStrategy[] strategies, uint16[] multipliersBps);
 }
 
 /**
@@ -200,11 +211,47 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
-     * @param _strategies Array of strategy contracts to add to validators operator set
+     * @param _strategies Array of strategy contracts to add to validators operator set (must be strictly ascending by address)
+     * @param _multipliersBps Array of multipliers in basis points for each strategy
      */
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies
+        IStrategy[] calldata _strategies,
+        uint16[] calldata _multipliersBps
     ) external;
+
+    /**
+     * @notice Returns the maximum number of active validators in the set
+     * @return The maximum active validators constant
+     */
+    function MAX_ACTIVE_VALIDATORS() external pure returns (uint32);
+
+    /**
+     * @notice Returns the multiplier in basis points for a given strategy
+     * @param strategy The strategy to look up
+     * @return The multiplier in basis points
+     */
+    function strategiesAndMultipliers(
+        IStrategy strategy
+    ) external view returns (uint16);
+
+    /**
+     * @notice Updates multipliers for strategies already in the operator set
+     * @param _strategies Array of strategy contracts (must be strictly ascending by address)
+     * @param _multipliersBps Array of new multipliers in basis points
+     */
+    function setStrategiesAndMultipliers(
+        IStrategy[] calldata _strategies,
+        uint16[] calldata _multipliersBps
+    ) external;
+
+    /**
+     * @notice Returns all strategies with their multipliers
+     * @return Array of StrategyAndMultiplier structs with strategy addresses and multipliers
+     */
+    function getStrategiesAndMultipliers()
+        external
+        view
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 
     // ============ Rewards Submitter Functions ============
 

@@ -187,7 +187,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             address solochainAddr = validatorEthAddressToSolochainAddress[operators[i]];
             if (solochainAddr == address(0)) continue;
 
-            // Compute weighted stake: sum(allocatedStake[i][j] * multiplierBps[j]) / 10_000
+            // Compute weighted stake across all strategies using bps multipliers:
+            // weightedStake = sum(allocatedStake[i][j] * multiplierBps[j]) / 10_000
+            // where 10_000 bps = 100% weight
             uint256 weightedStake = 0;
             for (uint256 j = 0; j < strategies.length; j++) {
                 weightedStake +=

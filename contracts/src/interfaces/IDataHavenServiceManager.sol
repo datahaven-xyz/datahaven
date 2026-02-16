@@ -156,8 +156,12 @@ interface IDataHavenServiceManager is
     ) external payable;
 
     /**
-     * @notice Builds a new validator set message to be sent to the Snowbridge Gateway
-     * @return The encoded message bytes to be sent to the Snowbridge Gateway
+     * @notice Builds a SCALE-encoded message containing the top validators by weighted stake
+     * @dev Selects up to MAX_ACTIVE_VALIDATORS from registered operators. Each operator's
+     *      weighted stake is computed as: sum(allocatedStake[j] * multiplierBps[j]) / 10_000
+     *      across all strategies. Operators without a solochain address mapping or with zero
+     *      weighted stake are excluded. Ties are broken by lower operator address.
+     * @return The SCALE-encoded message bytes to be sent to the Snowbridge Gateway
      */
     function buildNewValidatorSetMessage() external view returns (bytes memory);
 
@@ -211,8 +215,10 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
+     * @dev Each strategy's multiplier (in bps) determines its weight in the validator selection
+     *      formula: weightedStake = sum(allocatedStake[j] * multiplierBps[j]) / 10_000
      * @param _strategies Array of strategy contracts to add to validators operator set (must be strictly ascending by address)
-     * @param _multipliersBps Array of multipliers in basis points for each strategy
+     * @param _multipliersBps Array of multipliers in basis points (10_000 = 100%) for each strategy
      */
     function addStrategiesToValidatorsSupportedStrategies(
         IStrategy[] calldata _strategies,
@@ -226,9 +232,12 @@ interface IDataHavenServiceManager is
     function MAX_ACTIVE_VALIDATORS() external pure returns (uint32);
 
     /**
-     * @notice Returns the multiplier in basis points for a given strategy
+     * @notice Returns the multiplier in basis points (bps) for a given strategy
+     * @dev The multiplier determines how much an operator's allocated stake in this strategy
+     *      contributes to their weighted stake during validator set selection.
+     *      10_000 bps = 100% (full weight), 5_000 bps = 50% (half weight), etc.
      * @param strategy The strategy to look up
-     * @return The multiplier in basis points
+     * @return The multiplier in basis points (0–10_000)
      */
     function strategiesAndMultipliers(
         IStrategy strategy
@@ -236,8 +245,10 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Updates multipliers for strategies already in the operator set
+     * @dev Does not add or remove strategies from EigenLayer; only updates the bps weights
+     *      used in the validator selection weighted stake formula
      * @param _strategies Array of strategy contracts (must be strictly ascending by address)
-     * @param _multipliersBps Array of new multipliers in basis points
+     * @param _multipliersBps Array of new multipliers in basis points (10_000 = 100%)
      */
     function setStrategiesAndMultipliers(
         IStrategy[] calldata _strategies,

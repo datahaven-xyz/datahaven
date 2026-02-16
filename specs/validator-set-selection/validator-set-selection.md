@@ -83,9 +83,9 @@ Final active validator set must satisfy:
 
 `final_active = take_32(dedupe(whitelisted ++ external_sorted_limited))`
 
-### D5. Strategy multipliers are explicit and mandatory
+### D5. Strategy multipliers are explicit and default to zero if unset
 
-No default multiplier is used. Every strategy in the validators operator set must have an explicit multiplier in `strategiesAndMultipliers`.
+Multipliers are owner-managed in `strategiesAndMultipliers`. If an entry is unset for a strategy, its effective multiplier is `0` (no weighted contribution).
 
 ### D6. Keep strategy list and multipliers in sync
 
@@ -114,8 +114,8 @@ Where:
 
 ### 7.1 Strategy Weight Semantics
 
-1. Every supported strategy must have an explicit multiplier entry.
-2. Missing multiplier entry is invalid configuration and must fail fast.
+1. Every supported strategy should have an explicit multiplier entry for operational clarity.
+2. Missing multiplier entry is treated as `0` multiplier.
 3. Multiplier values are managed explicitly by owner/governance.
 4. Any list representation must be strictly ascending by strategy address and duplicate-free.
 
@@ -157,7 +157,7 @@ Validation requirements:
 2. Compute weighted stake per operator.
 3. Filter out operators with no solochain mapping.
 4. Resolve multiplier from `strategiesAndMultipliers` for each strategy used.
-5. Revert if any strategy is missing a multiplier entry.
+5. If any strategy is missing a multiplier entry, treat it as `0` multiplier.
 6. Filter out operators with zero weighted stake.
 7. Select at most `MAX_ACTIVE_VALIDATORS` (32) candidates by weighted stake desc + address asc tie-break (if fewer than 32 eligible candidates exist, include all).
 8. Encode using existing payload shape with `externalIndex = targetEra`.
@@ -222,7 +222,7 @@ At validator composition time:
 3. Top-32 selection when candidate count exceeds 32.
 4. Behavior when candidate count is below 32.
 5. Zero-stake filtering.
-6. Revert when a supported strategy has no multiplier entry.
+6. Missing multiplier entries are treated as zero contribution.
 7. `addStrategies...` sets multipliers atomically and rejects length mismatch.
 8. `removeStrategies...` removes multiplier entries for removed strategies.
 9. `set/add/remove` reject non-ascending or duplicate strategy inputs.

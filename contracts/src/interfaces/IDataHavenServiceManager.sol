@@ -32,8 +32,6 @@ interface IDataHavenServiceManagerErrors {
     error ZeroAddress();
     /// @notice Thrown when the solochain address data length is not 20 bytes
     error InvalidSolochainAddressLength();
-    /// @notice Thrown when the input strategy array is not strictly ascending by address
-    error StrategiesNotSortedAscending();
     /// @notice Thrown when the validator set to be sent is empty
     error EmptyValidatorSet();
 }
@@ -220,7 +218,7 @@ interface IDataHavenServiceManager is
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
      * @dev Each strategy's multiplier (in bps) determines its weight in the validator selection
      *      formula: weightedStake = sum(allocatedStake[j] * multiplierBps[j]) / 10_000
-     * @param _strategyMultipliers Array of strategy-multiplier pairs (must be strictly ascending by strategy address)
+     * @param _strategyMultipliers Array of strategy-multiplier pairs to add
      */
     function addStrategiesToValidatorsSupportedStrategies(
         StrategyMultiplier[] calldata _strategyMultipliers
@@ -248,7 +246,7 @@ interface IDataHavenServiceManager is
      * @notice Updates multipliers for strategies already in the operator set
      * @dev Does not add or remove strategies from EigenLayer; only updates the bps weights
      *      used in the validator selection weighted stake formula
-     * @param _strategyMultipliers Array of strategy-multiplier pairs (must be strictly ascending by strategy address)
+     * @param _strategyMultipliers Array of strategy-multiplier pairs to update
      */
     function setStrategiesAndMultipliers(
         StrategyMultiplier[] calldata _strategyMultipliers

@@ -94,13 +94,6 @@ Multiplier lifecycle is tied to strategy lifecycle:
 1. Add strategy -> add multiplier in the same call via `StrategyMultiplier` struct.
 2. Remove strategy -> delete multiplier in the same call.
 
-### D7. `strategiesAndMultipliers` list form must be sorted
-
-Whenever `strategiesAndMultipliers` is represented as an array (for config APIs or EigenLayer-facing payloads), entries must be:
-
-1. Strictly ascending by strategy address.
-2. Duplicate-free.
-
 ## 7. Weighted Stake Model
 
 For each operator `o`:
@@ -117,7 +110,6 @@ Where:
 1. Every supported strategy should have an explicit multiplier entry for operational clarity.
 2. Missing multiplier entry is treated as `0` multiplier.
 3. Multiplier values are managed explicitly by owner/governance.
-4. Any list representation must be strictly ascending by strategy address and duplicate-free.
 
 ### 7.2 Unit Assumption
 
@@ -148,12 +140,7 @@ function removeStrategiesFromValidatorsSupportedStrategies(IStrategy[] calldata 
 function getStrategiesAndMultipliers() external view returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 ```
 
-The `StrategyMultiplier` struct pairs each strategy with its multiplier, eliminating the possibility of length mismatches between parallel arrays.
-
-Validation requirements:
-
-1. Input `StrategyMultiplier` arrays must be strictly ascending by strategy address.
-2. Input strategy lists must not contain duplicates.
+The `StrategyMultiplier` struct pairs each strategy with its multiplier, eliminating the possibility of length mismatches between parallel arrays. Duplicate strategies in `addStrategies` are rejected by EigenLayer's `StrategyAlreadyInOperatorSet` check; duplicates in `setStrategiesAndMultipliers` are harmless (last-write-wins on the mapping).
 
 ### 8.3 Updated Selection Flow
 
@@ -231,8 +218,7 @@ At validator composition time:
 6. Missing multiplier entries are treated as zero contribution.
 7. `addStrategies...` sets multipliers atomically via `StrategyMultiplier` struct.
 8. `removeStrategies...` removes multiplier entries for removed strategies.
-9. `set/add/remove` reject non-ascending or duplicate strategy inputs.
-10. `getStrategiesAndMultipliers()` returns an ascending, duplicate-free list.
+9. `getStrategiesAndMultipliers()` returns a list matching EigenLayer's operator set strategies.
 11. Integration with `buildNewValidatorSetMessageForEra(targetEra)` and correct target era encoding.
 
 ### 12.2 Runtime

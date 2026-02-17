@@ -182,37 +182,6 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         assertEq(serviceManager.strategiesAndMultipliers(strategies[2]), 0);
     }
 
-    // Test #10: Non-ascending input → revert StrategiesNotSortedAscending
-    function test_revert_nonAscendingStrategies() public {
-        IStrategy[] memory strategies = _getStrategies();
-
-        cheats.startPrank(avsOwner);
-        serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-
-        // Reversed strategy-multiplier pairs (non-ascending)
-        IDataHavenServiceManager.StrategyMultiplier[] memory reversedSm =
-            new IDataHavenServiceManager.StrategyMultiplier[](3);
-        reversedSm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 5000});
-        reversedSm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
-        reversedSm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 2000});
-
-        vm.expectRevert(IDataHavenServiceManagerErrors.StrategiesNotSortedAscending.selector);
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(reversedSm);
-
-        // Also test setStrategiesAndMultipliers with non-ascending
-        // First add them in correct order
-        IDataHavenServiceManager.StrategyMultiplier[] memory correctSm =
-            new IDataHavenServiceManager.StrategyMultiplier[](3);
-        correctSm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 5000});
-        correctSm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
-        correctSm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 2000});
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(correctSm);
-
-        vm.expectRevert(IDataHavenServiceManagerErrors.StrategiesNotSortedAscending.selector);
-        serviceManager.setStrategiesAndMultipliers(reversedSm);
-        cheats.stopPrank();
-    }
-
     // Test #11: Returns correct StrategyAndMultiplier structs
     function test_getStrategiesAndMultipliers_returnsCorrect() public {
         IStrategy[] memory strategies = _getStrategies();

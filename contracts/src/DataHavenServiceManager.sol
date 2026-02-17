@@ -352,8 +352,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function addStrategiesToValidatorsSupportedStrategies(
         StrategyMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
-        _validateStrategiesStrictlyAscending(_strategyMultipliers);
-
         IStrategy[] memory strategies = new IStrategy[](_strategyMultipliers.length);
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
             strategies[i] = _strategyMultipliers[i].strategy;
@@ -372,8 +370,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function setStrategiesAndMultipliers(
         StrategyMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
-        _validateStrategiesStrictlyAscending(_strategyMultipliers);
-
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
             strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
                 _strategyMultipliers[i].multiplierBps;
@@ -500,22 +496,6 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             result := shr(96, mload(add(data, 32)))
         }
         require(result != address(0), ZeroAddress());
-    }
-
-    /**
-     * @notice Validates that a strategy-multiplier array is strictly ascending by strategy address
-     * @param _strategyMultipliers The array of strategy-multiplier pairs to validate
-     */
-    function _validateStrategiesStrictlyAscending(
-        StrategyMultiplier[] calldata _strategyMultipliers
-    ) private pure {
-        for (uint256 i = 1; i < _strategyMultipliers.length; i++) {
-            require(
-                address(_strategyMultipliers[i].strategy)
-                    > address(_strategyMultipliers[i - 1].strategy),
-                StrategiesNotSortedAscending()
-            );
-        }
     }
 
     /**

@@ -18,12 +18,14 @@ use {
     super::*,
     crate::{
         mock::{
-            new_test_ext, run_block, DeferPeriodGetter, ExternalValidatorSlashes,
-            MockEraIndexProvider, RuntimeEvent, RuntimeOrigin, System, Test,
+            new_test_ext, run_block, DeferPeriodGetter, ExternalValidatorSlashes, MockBabeWrapper,
+            MockEraIndexProvider, MockGrandpaWrapper, MockInnerReporter, MockOffence,
+            MockOkOutboundQueue, RuntimeEvent, RuntimeOrigin, System, Test,
         },
-        Slash,
+        OffenceKind, Slash,
     },
-    frame_support::{assert_noop, assert_ok},
+    frame_support::{assert_noop, assert_ok, BoundedVec},
+    sp_staking::offence::ReportOffence,
 };
 
 #[test]
@@ -35,6 +37,7 @@ fn root_can_inject_manual_offence() {
             0,
             1u64,
             Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(0)),
@@ -43,7 +46,10 @@ fn root_can_inject_manual_offence() {
                 percentage: Perbill::from_percent(75),
                 confirmed: false,
                 reporters: vec![],
-                slash_id: 0
+                slash_id: 0,
+                offence_kind: OffenceKind::Custom(BoundedVec::truncate_from(
+                    b"Test slash".to_vec()
+                )),
             }]
         );
         assert_eq!(NextSlashId::<Test>::get(), 1);
@@ -59,7 +65,8 @@ fn cannot_inject_future_era_offence() {
                 RuntimeOrigin::root(),
                 1,
                 1u64,
-                Perbill::from_percent(75)
+                Perbill::from_percent(75),
+                OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
             ),
             Error::<Test>::ProvidedFutureEra
         );
@@ -76,7 +83,8 @@ fn cannot_inject_era_offence_too_far_in_the_past() {
                 RuntimeOrigin::root(),
                 1,
                 4u64,
-                Perbill::from_percent(75)
+                Perbill::from_percent(75),
+                OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
             ),
             Error::<Test>::ProvidedNonSlashableEra
         );
@@ -91,7 +99,8 @@ fn root_can_cancel_deferred_slash() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_ok!(ExternalValidatorSlashes::cancel_deferred_slash(
             RuntimeOrigin::root(),
@@ -111,7 +120,8 @@ fn root_cannot_cancel_deferred_slash_if_outside_deferring_period() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
 
         start_era(4, 0, 4);
@@ -131,7 +141,8 @@ fn root_cannot_cancel_out_of_bounds() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(
@@ -152,7 +163,8 @@ fn root_cannot_cancel_duplicates() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(RuntimeOrigin::root(), 3, vec![0, 0]),
@@ -169,13 +181,15 @@ fn root_cannot_cancel_if_not_sorted() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_ok!(ExternalValidatorSlashes::force_inject_slash(
             RuntimeOrigin::root(),
             0,
             2u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(RuntimeOrigin::root(), 3, vec![1, 0]),
@@ -196,7 +210,8 @@ fn test_after_bonding_period_we_can_remove_slashes() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
 
         assert_eq!(
@@ -206,7 +221,10 @@ fn test_after_bonding_period_we_can_remove_slashes() {
                 percentage: Perbill::from_percent(75),
                 confirmed: false,
                 reporters: vec![],
-                slash_id: 0
+                slash_id: 0,
+                offence_kind: OffenceKind::Custom(BoundedVec::truncate_from(
+                    b"Test slash".to_vec()
+                )),
             }]
         );
 
@@ -242,7 +260,8 @@ fn test_on_offence_injects_offences() {
                 percentage: Perbill::from_percent(75),
                 confirmed: false,
                 reporters: vec![],
-                slash_id: 0
+                slash_id: 0,
+                offence_kind: OffenceKind::default(),
             }]
         );
     });
@@ -303,7 +322,8 @@ fn defer_period_of_zero_confirms_immediately_slashes() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_eq!(
             Slashes::<Test>::get(get_slashing_era(0)),
@@ -312,7 +332,10 @@ fn defer_period_of_zero_confirms_immediately_slashes() {
                 percentage: Perbill::from_percent(75),
                 confirmed: true,
                 reporters: vec![],
-                slash_id: 0
+                slash_id: 0,
+                offence_kind: OffenceKind::Custom(BoundedVec::truncate_from(
+                    b"Test slash".to_vec()
+                )),
             }]
         );
     });
@@ -327,7 +350,8 @@ fn we_cannot_cancel_anything_with_defer_period_zero() {
             RuntimeOrigin::root(),
             0,
             1u64,
-            Perbill::from_percent(75)
+            Perbill::from_percent(75),
+            OffenceKind::Custom(BoundedVec::truncate_from(b"Test slash".to_vec())),
         ));
         assert_noop!(
             ExternalValidatorSlashes::cancel_deferred_slash(RuntimeOrigin::root(), 0, vec![0]),
@@ -359,7 +383,8 @@ fn test_on_offence_defer_period_0() {
                 percentage: Perbill::from_percent(75),
                 confirmed: true,
                 reporters: vec![],
-                slash_id: 0
+                slash_id: 0,
+                offence_kind: OffenceKind::default(),
             }]
         );
         start_era(2, 2, 2);
@@ -391,7 +416,8 @@ fn test_slashes_command_matches_event() {
                 percentage: Perbill::from_percent(75),
                 confirmed: true,
                 reporters: vec![],
-                slash_id: 0
+                slash_id: 0,
+                offence_kind: OffenceKind::default(),
             }]
         );
         start_era(2, 2, 2);
@@ -402,6 +428,119 @@ fn test_slashes_command_matches_event() {
                 message_id: Default::default(),
             },
         ));
+    });
+}
+
+// ── WAD conversion tests ──
+// MaxSlashWad in mock = 50_000_000_000_000_000 (5e16 = 5% in WAD format).
+// Perbill(100%) = 1_000_000_000 inner.
+// Formula: wad = perbill_inner * MaxSlashWad / 1e9
+
+#[test]
+fn wad_conversion_100_percent_slash_maps_to_max_slash_wad() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(100)],
+            0,
+        );
+
+        start_era(2, 2, 2);
+        run_block();
+
+        let sent = MockOkOutboundQueue::last_sent_slashes();
+        assert_eq!(sent.len(), 1);
+        // 100% → full MaxSlashWad = 5e16
+        assert_eq!(sent[0].wad_to_slash, 50_000_000_000_000_000u128);
+        assert_eq!(sent[0].validator, 3);
+    });
+}
+
+#[test]
+fn wad_conversion_50_percent_slash_maps_to_half_max_slash_wad() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(50)],
+            0,
+        );
+
+        start_era(2, 2, 2);
+        run_block();
+
+        let sent = MockOkOutboundQueue::last_sent_slashes();
+        assert_eq!(sent.len(), 1);
+        // 50% → MaxSlashWad / 2 = 2.5e16
+        assert_eq!(sent[0].wad_to_slash, 25_000_000_000_000_000u128);
+    });
+}
+
+#[test]
+fn wad_conversion_zero_percent_slash_maps_to_zero() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(0)],
+            0,
+        );
+
+        start_era(2, 2, 2);
+        run_block();
+
+        // 0% slash → no slash recorded (compute_slash returns None for 0%)
+        let sent = MockOkOutboundQueue::last_sent_slashes();
+        assert_eq!(sent.len(), 0);
+    });
+}
+
+#[test]
+fn wad_conversion_carries_offence_kind_description() {
+    new_test_ext().execute_with(|| {
+        crate::mock::DeferPeriodGetter::with_defer_period(0);
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        // Pre-populate a BabeEquivocation kind for session 0, validator 3.
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::BabeEquivocation);
+
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(75)],
+            0,
+        );
+
+        start_era(2, 2, 2);
+        run_block();
+
+        let sent = MockOkOutboundQueue::last_sent_slashes();
+        assert_eq!(sent.len(), 1);
+        // 75% → 75% of MaxSlashWad = 3.75e16
+        assert_eq!(sent[0].wad_to_slash, 37_500_000_000_000_000u128);
+        assert_eq!(sent[0].description, "BABE equivocation");
     });
 }
 
@@ -450,6 +589,7 @@ fn test_account_id_encoding() {
             slash_id: 1,
             percentage: Perbill::default(),
             confirmed: true,
+            offence_kind: OffenceKind::default(),
         };
 
         let encoded_account = slash.validator.encode();
@@ -509,6 +649,213 @@ fn test_on_offence_defer_period_0_messages_get_queued_across_eras() {
         // this triggers on_initialize
         run_block();
         assert_eq!(UnreportedSlashesQueue::<Test>::get().len(), 0);
+    });
+}
+
+// ── PendingOffenceKind & EquivocationReportWrapper tests ──
+
+#[test]
+fn on_offence_reads_pending_offence_kind_from_double_map() {
+    new_test_ext().execute_with(|| {
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        // Pre-populate PendingOffenceKind for validator 3 at session 0.
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::BabeEquivocation);
+
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(75)],
+            0,
+        );
+
+        assert_eq!(
+            Slashes::<Test>::get(get_slashing_era(0)),
+            vec![Slash {
+                validator: 3,
+                percentage: Perbill::from_percent(75),
+                confirmed: false,
+                reporters: vec![],
+                slash_id: 0,
+                offence_kind: OffenceKind::BabeEquivocation,
+            }]
+        );
+
+        // Entry should have been consumed.
+        assert_eq!(PendingOffenceKind::<Test>::get(0, 3u64), None);
+    });
+}
+
+#[test]
+fn pending_offence_kind_is_session_isolated() {
+    new_test_ext().execute_with(|| {
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+
+        // Same validator, different kinds in different sessions.
+        PendingOffenceKind::<Test>::insert(0, 3u64, OffenceKind::BabeEquivocation);
+        PendingOffenceKind::<Test>::insert(1, 3u64, OffenceKind::GrandpaEquivocation);
+
+        // Report at session 0 — should use BabeEquivocation.
+        Pallet::<Test>::on_offence(
+            &[OffenceDetails {
+                offender: (3, ()),
+                reporters: vec![],
+            }],
+            &[Perbill::from_percent(50)],
+            0,
+        );
+
+        // Session 0 consumed, session 1 untouched.
+        assert_eq!(PendingOffenceKind::<Test>::get(0, 3u64), None);
+        assert_eq!(
+            PendingOffenceKind::<Test>::get(1, 3u64),
+            Some(OffenceKind::GrandpaEquivocation),
+        );
+    });
+}
+
+#[test]
+fn wrapper_filters_historical_offence_before_bonding_period() {
+    new_test_ext().execute_with(|| {
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+        MockInnerReporter::reset();
+
+        // BondedEras now contains [(0,0,0), (1,1,1)].
+        // An offence at session 0 is within the bonding period — should pass.
+        let result = MockBabeWrapper::report_offence(
+            Vec::<u64>::new(),
+            MockOffence {
+                session_index: 0,
+                offenders: vec![(3, ())],
+            },
+        );
+        assert!(result.is_ok());
+        assert!(MockInnerReporter::was_called());
+
+        // The mock reporter doesn't trigger on_offence, so manually consume the entry.
+        assert_eq!(
+            PendingOffenceKind::<Test>::take(0, 3u64),
+            Some(OffenceKind::BabeEquivocation),
+        );
+
+        // Advance eras until era 0 drops out of BondedEras.
+        // BondingDuration = 5, so after era 6 starts, era 0 is pruned.
+        for i in 2..=7 {
+            start_era(i, i, i as u64);
+        }
+
+        MockInnerReporter::reset();
+
+        // Session 0 now predates the bonding period — should be silently discarded.
+        let result = MockBabeWrapper::report_offence(
+            Vec::<u64>::new(),
+            MockOffence {
+                session_index: 0,
+                offenders: vec![(3, ())],
+            },
+        );
+        assert!(result.is_ok());
+        assert!(!MockInnerReporter::was_called());
+
+        // No PendingOffenceKind should have been written.
+        assert_eq!(PendingOffenceKind::<Test>::get(0, 3u64), None);
+    });
+}
+
+#[test]
+fn wrapper_sets_pending_offence_kind_per_session_and_offender() {
+    new_test_ext().execute_with(|| {
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+        MockInnerReporter::reset();
+
+        let _ = MockBabeWrapper::report_offence(
+            Vec::<u64>::new(),
+            MockOffence {
+                session_index: 0,
+                offenders: vec![(3, ()), (4, ())],
+            },
+        );
+
+        // Both offenders should have entries at session 0.
+        assert_eq!(
+            PendingOffenceKind::<Test>::get(0, 3u64),
+            Some(OffenceKind::BabeEquivocation),
+        );
+        assert_eq!(
+            PendingOffenceKind::<Test>::get(0, 4u64),
+            Some(OffenceKind::BabeEquivocation),
+        );
+        // No entry at a different session.
+        assert_eq!(PendingOffenceKind::<Test>::get(1, 3u64), None);
+    });
+}
+
+#[test]
+fn wrapper_cleans_up_pending_offence_kind_on_error() {
+    new_test_ext().execute_with(|| {
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+        MockInnerReporter::reset();
+        MockInnerReporter::set_should_fail(true);
+
+        let result = MockBabeWrapper::report_offence(
+            Vec::<u64>::new(),
+            MockOffence {
+                session_index: 0,
+                offenders: vec![(3, ()), (4, ())],
+            },
+        );
+
+        assert!(result.is_err());
+        // Entries should have been cleaned up.
+        assert_eq!(PendingOffenceKind::<Test>::get(0, 3u64), None);
+        assert_eq!(PendingOffenceKind::<Test>::get(0, 4u64), None);
+    });
+}
+
+#[test]
+fn wrapper_error_cleanup_does_not_affect_other_sessions() {
+    new_test_ext().execute_with(|| {
+        start_era(0, 0, 0);
+        start_era(1, 1, 1);
+        MockInnerReporter::reset();
+
+        // Successfully report at session 0.
+        let _ = MockGrandpaWrapper::report_offence(
+            Vec::<u64>::new(),
+            MockOffence {
+                session_index: 0,
+                offenders: vec![(3, ())],
+            },
+        );
+        assert_eq!(
+            PendingOffenceKind::<Test>::get(0, 3u64),
+            Some(OffenceKind::GrandpaEquivocation),
+        );
+
+        // Now fail a report at session 1 for the same validator.
+        MockInnerReporter::set_should_fail(true);
+        let result = MockBabeWrapper::report_offence(
+            Vec::<u64>::new(),
+            MockOffence {
+                session_index: 1,
+                offenders: vec![(3, ())],
+            },
+        );
+        assert!(result.is_err());
+
+        // Session 1 cleaned up, session 0 untouched.
+        assert_eq!(PendingOffenceKind::<Test>::get(1, 3u64), None);
+        assert_eq!(
+            PendingOffenceKind::<Test>::get(0, 3u64),
+            Some(OffenceKind::GrandpaEquivocation),
+        );
     });
 }
 

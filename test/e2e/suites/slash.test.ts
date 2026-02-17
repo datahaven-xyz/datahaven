@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { FixedSizeBinary } from "polkadot-api";
+import { Binary, FixedSizeBinary } from "polkadot-api";
 import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
 import type { Address } from "viem";
 import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
@@ -129,7 +129,11 @@ describe("Should slash an operator", () => {
     const sudoSlashCall = dhApi.tx.ExternalValidatorsSlashes.force_inject_slash({
       validator,
       era: activeEra?.index || 0, // Will fail if active era is 0. !! Important !! Sometimes for the inject to work (because of some latency) we need to inject in the `activeEra.index + 1`
-      percentage: 20
+      percentage: 20,
+      offence_kind: {
+        type: "Custom",
+        value: Binary.fromText("Manual slash: E2E test")
+      }
     });
     const sudoTx = dhApi.tx.Sudo.sudo({
       call: sudoSlashCall.decodedCall

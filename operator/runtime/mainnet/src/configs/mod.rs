@@ -321,8 +321,16 @@ impl pallet_babe::Config for Runtime {
     type KeyOwnerProof =
         <Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
 
-    type EquivocationReportSystem =
-        pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_babe::EquivocationReportSystem<
+        Self,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::BabeEquivocation,
+        >,
+        Historical,
+        ReportLongevity,
+    >;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -401,7 +409,11 @@ impl pallet_im_online::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorSet = Historical;
     type NextSessionRotation = Babe;
-    type ReportUnresponsiveness = Offences;
+    type ReportUnresponsiveness = pallet_external_validator_slashes::EquivocationReportWrapper<
+        Runtime,
+        Offences,
+        pallet_external_validator_slashes::ImOnlineUnresponsive,
+    >;
     type UnsignedPriority = ImOnlineUnsignedPriority;
     type WeightInfo = crate::weights::pallet_im_online::WeightInfo<Runtime>;
 }
@@ -424,7 +436,11 @@ impl pallet_grandpa::Config for Runtime {
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
     type EquivocationReportSystem = pallet_grandpa::EquivocationReportSystem<
         Self,
-        Offences,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::GrandpaEquivocation,
+        >,
         Historical,
         EquivocationReportPeriodInBlocks,
     >;
@@ -501,8 +517,16 @@ impl pallet_beefy::Config for Runtime {
     type AncestryHelper = BeefyMmrLeaf;
     type WeightInfo = ();
     type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
-    type EquivocationReportSystem =
-        pallet_beefy::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
+    type EquivocationReportSystem = pallet_beefy::EquivocationReportSystem<
+        Self,
+        pallet_external_validator_slashes::EquivocationReportWrapper<
+            Runtime,
+            Offences,
+            pallet_external_validator_slashes::BeefyEquivocation,
+        >,
+        Historical,
+        ReportLongevity,
+    >;
 }
 
 parameter_types! {
@@ -1695,6 +1719,7 @@ impl pallet_external_validator_slashes::Config for Runtime {
     type EraIndexProvider = ExternalValidators;
     type InvulnerablesProvider = ExternalValidators;
     type ExternalIndexProvider = ExternalValidators;
+    type MaxSlashWad = runtime_params::dynamic_params::runtime_config::MaxSlashWad;
     type QueuedSlashesProcessedPerBlock = ConstU32<10>;
     type WeightInfo = mainnet_weights::pallet_external_validator_slashes::WeightInfo<Runtime>;
     type SendMessage = SlashesSendAdapter;

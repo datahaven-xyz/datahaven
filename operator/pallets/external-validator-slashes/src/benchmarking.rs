@@ -74,7 +74,13 @@ mod benchmarks {
         let era = T::EraIndexProvider::active_era().index;
         let dummy = || T::AccountId::decode(&mut TrailingZeroInput::zeroes()).unwrap();
         #[extrinsic_call]
-        _(RawOrigin::Root, era, dummy(), Perbill::from_percent(50));
+        _(
+            RawOrigin::Root,
+            era,
+            dummy(),
+            Perbill::from_percent(50),
+            OffenceKind::default(),
+        );
 
         assert_eq!(
             Slashes::<T>::get(

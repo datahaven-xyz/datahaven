@@ -17,6 +17,7 @@ import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {IDataHavenServiceManager} from "../../src/interfaces/IDataHavenServiceManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
@@ -157,14 +158,18 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
             strategies[i] = deployedStrategies[i];
         }
 
+        IDataHavenServiceManager.StrategyMultiplier[] memory sm =
+            new IDataHavenServiceManager.StrategyMultiplier[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            sm[i] = IDataHavenServiceManager.StrategyMultiplier({
+                strategy: strategies[i],
+                multiplierBps: 10_000 // 1x multiplier for all strategies
+            });
+        }
+
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-
-        uint16[] memory multipliersBps = new uint16[](deployedStrategies.length);
-        for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            multipliersBps[i] = 10_000; // 1x multiplier for all strategies
-        }
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliersBps);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
         cheats.stopPrank();
 
         // Advance past ALLOCATION_CONFIGURATION_DELAY (1 day = 86400 blocks in test setup)

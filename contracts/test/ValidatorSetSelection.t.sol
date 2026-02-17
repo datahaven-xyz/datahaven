@@ -6,6 +6,7 @@ pragma solidity ^0.8.27;
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
 import {DataHavenSnowbridgeMessages} from "../src/libraries/DataHavenSnowbridgeMessages.sol";
 import {
+    IDataHavenServiceManager,
     IDataHavenServiceManagerErrors
 } from "../src/interfaces/IDataHavenServiceManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
@@ -36,9 +37,18 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
     function _setupMultipliers(uint16[] memory multipliersBps) internal {
         IStrategy[] memory strategies = _getStrategies();
 
+        IDataHavenServiceManager.StrategyMultiplier[] memory sm =
+            new IDataHavenServiceManager.StrategyMultiplier[](strategies.length);
+        for (uint256 i = 0; i < strategies.length; i++) {
+            sm[i] = IDataHavenServiceManager.StrategyMultiplier({
+                strategy: strategies[i],
+                multiplierBps: multipliersBps[i]
+            });
+        }
+
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliersBps);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
         cheats.stopPrank();
     }
 
@@ -132,14 +142,15 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
     function test_addStrategies_setsMultiplierAtomically() public {
         IStrategy[] memory strategies = _getStrategies();
 
+        IDataHavenServiceManager.StrategyMultiplier[] memory sm =
+            new IDataHavenServiceManager.StrategyMultiplier[](3);
+        sm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 5000});
+        sm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
+        sm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 2000});
+
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-
-        uint16[] memory multipliers = new uint16[](3);
-        multipliers[0] = 5000;
-        multipliers[1] = 10_000;
-        multipliers[2] = 2000;
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliers);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
         cheats.stopPrank();
 
         assertEq(serviceManager.strategiesAndMultipliers(strategies[0]), 5000);
@@ -147,34 +158,19 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         assertEq(serviceManager.strategiesAndMultipliers(strategies[2]), 2000);
     }
 
-    // Test #8: Mismatched array lengths → revert
-    function test_addStrategies_revertsOnLengthMismatch() public {
-        IStrategy[] memory strategies = _getStrategies();
-
-        cheats.startPrank(avsOwner);
-        serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-
-        uint16[] memory multipliers = new uint16[](2);
-        multipliers[0] = 5000;
-        multipliers[1] = 10_000;
-
-        vm.expectRevert(IDataHavenServiceManagerErrors.StrategyMultiplierLengthMismatch.selector);
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliers);
-        cheats.stopPrank();
-    }
-
     // Test #9: Remove strategy → multiplier and tracking bool deleted
     function test_removeStrategies_cleansUpMultiplier() public {
         IStrategy[] memory strategies = _getStrategies();
 
+        IDataHavenServiceManager.StrategyMultiplier[] memory sm =
+            new IDataHavenServiceManager.StrategyMultiplier[](3);
+        sm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 5000});
+        sm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
+        sm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 2000});
+
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-
-        uint16[] memory multipliers = new uint16[](3);
-        multipliers[0] = 5000;
-        multipliers[1] = 10_000;
-        multipliers[2] = 2000;
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliers);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
 
         assertEq(serviceManager.strategiesAndMultipliers(strategies[1]), 10_000);
 
@@ -193,26 +189,27 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
 
-        // Reverse the order to make non-ascending
-        IStrategy[] memory reversed = new IStrategy[](3);
-        reversed[0] = strategies[2];
-        reversed[1] = strategies[1];
-        reversed[2] = strategies[0];
-
-        uint16[] memory multipliers = new uint16[](3);
-        multipliers[0] = 5000;
-        multipliers[1] = 10_000;
-        multipliers[2] = 2000;
+        // Reversed strategy-multiplier pairs (non-ascending)
+        IDataHavenServiceManager.StrategyMultiplier[] memory reversedSm =
+            new IDataHavenServiceManager.StrategyMultiplier[](3);
+        reversedSm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 5000});
+        reversedSm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
+        reversedSm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 2000});
 
         vm.expectRevert(IDataHavenServiceManagerErrors.StrategiesNotSortedAscending.selector);
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(reversed, multipliers);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(reversedSm);
 
         // Also test setStrategiesAndMultipliers with non-ascending
         // First add them in correct order
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliers);
+        IDataHavenServiceManager.StrategyMultiplier[] memory correctSm =
+            new IDataHavenServiceManager.StrategyMultiplier[](3);
+        correctSm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 5000});
+        correctSm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
+        correctSm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 2000});
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(correctSm);
 
         vm.expectRevert(IDataHavenServiceManagerErrors.StrategiesNotSortedAscending.selector);
-        serviceManager.setStrategiesAndMultipliers(reversed, multipliers);
+        serviceManager.setStrategiesAndMultipliers(reversedSm);
         cheats.stopPrank();
     }
 
@@ -220,14 +217,15 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
     function test_getStrategiesAndMultipliers_returnsCorrect() public {
         IStrategy[] memory strategies = _getStrategies();
 
+        IDataHavenServiceManager.StrategyMultiplier[] memory sm =
+            new IDataHavenServiceManager.StrategyMultiplier[](3);
+        sm[0] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[0], multiplierBps: 5000});
+        sm[1] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[1], multiplierBps: 10_000});
+        sm[2] = IDataHavenServiceManager.StrategyMultiplier({strategy: strategies[2], multiplierBps: 2000});
+
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
-
-        uint16[] memory multipliers = new uint16[](3);
-        multipliers[0] = 5000;
-        multipliers[1] = 10_000;
-        multipliers[2] = 2000;
-        serviceManager.addStrategiesToValidatorsSupportedStrategies(strategies, multipliers);
+        serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
         cheats.stopPrank();
 
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory result =

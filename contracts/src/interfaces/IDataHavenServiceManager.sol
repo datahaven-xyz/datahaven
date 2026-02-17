@@ -32,8 +32,6 @@ interface IDataHavenServiceManagerErrors {
     error ZeroAddress();
     /// @notice Thrown when the solochain address data length is not 20 bytes
     error InvalidSolochainAddressLength();
-    /// @notice Thrown when strategies and multipliers arrays have different lengths
-    error StrategyMultiplierLengthMismatch();
     /// @notice Thrown when the input strategy array is not strictly ascending by address
     error StrategiesNotSortedAscending();
     /// @notice Thrown when the validator set to be sent is empty
@@ -86,9 +84,8 @@ interface IDataHavenServiceManagerEvents {
     event SlashingComplete();
 
     /// @notice Emitted when strategy multipliers are set or updated
-    /// @param strategies Array of strategies whose multipliers were set
-    /// @param multipliersBps Array of multipliers in basis points
-    event StrategiesAndMultipliersSet(IStrategy[] strategies, uint16[] multipliersBps);
+    /// @param strategyMultipliers Array of strategy-multiplier pairs that were set
+    event StrategiesAndMultipliersSet(IDataHavenServiceManager.StrategyMultiplier[] strategyMultipliers);
 }
 
 /**
@@ -100,6 +97,12 @@ interface IDataHavenServiceManager is
     IDataHavenServiceManagerErrors,
     IDataHavenServiceManagerEvents
 {
+    /// @notice Pairs a strategy with its multiplier in basis points (bps)
+    struct StrategyMultiplier {
+        IStrategy strategy;
+        uint16 multiplierBps;
+    }
+
     /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
     struct SlashingRequest {
         address operator;
@@ -217,12 +220,10 @@ interface IDataHavenServiceManager is
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
      * @dev Each strategy's multiplier (in bps) determines its weight in the validator selection
      *      formula: weightedStake = sum(allocatedStake[j] * multiplierBps[j]) / 10_000
-     * @param _strategies Array of strategy contracts to add to validators operator set (must be strictly ascending by address)
-     * @param _multipliersBps Array of multipliers in basis points (10_000 = 100%) for each strategy
+     * @param _strategyMultipliers Array of strategy-multiplier pairs (must be strictly ascending by strategy address)
      */
     function addStrategiesToValidatorsSupportedStrategies(
-        IStrategy[] calldata _strategies,
-        uint16[] calldata _multipliersBps
+        StrategyMultiplier[] calldata _strategyMultipliers
     ) external;
 
     /**
@@ -247,12 +248,10 @@ interface IDataHavenServiceManager is
      * @notice Updates multipliers for strategies already in the operator set
      * @dev Does not add or remove strategies from EigenLayer; only updates the bps weights
      *      used in the validator selection weighted stake formula
-     * @param _strategies Array of strategy contracts (must be strictly ascending by address)
-     * @param _multipliersBps Array of new multipliers in basis points (10_000 = 100%)
+     * @param _strategyMultipliers Array of strategy-multiplier pairs (must be strictly ascending by strategy address)
      */
     function setStrategiesAndMultipliers(
-        IStrategy[] calldata _strategies,
-        uint16[] calldata _multipliersBps
+        StrategyMultiplier[] calldata _strategyMultipliers
     ) external;
 
     /**

@@ -91,7 +91,7 @@ Multipliers are owner-managed in `strategiesAndMultipliers`. If an entry is unse
 
 Multiplier lifecycle is tied to strategy lifecycle:
 
-1. Add strategy -> add multiplier in the same call.
+1. Add strategy -> add multiplier in the same call via `StrategyMultiplier` struct.
 2. Remove strategy -> delete multiplier in the same call.
 
 ### D7. `strategiesAndMultipliers` list form must be sorted
@@ -137,17 +137,23 @@ mapping(IStrategy => uint16) public strategiesAndMultipliers;
 ### 8.2 New/Updated Admin APIs
 
 ```solidity
-function setStrategiesAndMultipliers(IStrategy[] calldata strategies, uint16[] calldata multipliersBps) external onlyOwner;
-function addStrategiesToValidatorsSupportedStrategies(IStrategy[] calldata strategies, uint16[] calldata multipliersBps) external onlyOwner;
+struct StrategyMultiplier {
+    IStrategy strategy;
+    uint16 multiplierBps;
+}
+
+function setStrategiesAndMultipliers(StrategyMultiplier[] calldata strategyMultipliers) external onlyOwner;
+function addStrategiesToValidatorsSupportedStrategies(StrategyMultiplier[] calldata strategyMultipliers) external onlyOwner;
 function removeStrategiesFromValidatorsSupportedStrategies(IStrategy[] calldata strategies) external onlyOwner;
 function getStrategiesAndMultipliers() external view returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 ```
 
+The `StrategyMultiplier` struct pairs each strategy with its multiplier, eliminating the possibility of length mismatches between parallel arrays.
+
 Validation requirements:
 
-1. `strategies.length == multipliersBps.length` where applicable.
-2. Input strategy lists must be strictly ascending by address.
-3. Input strategy lists must not contain duplicates.
+1. Input `StrategyMultiplier` arrays must be strictly ascending by strategy address.
+2. Input strategy lists must not contain duplicates.
 
 ### 8.3 Updated Selection Flow
 
@@ -223,7 +229,7 @@ At validator composition time:
 4. Behavior when candidate count is below 32.
 5. Zero-stake filtering.
 6. Missing multiplier entries are treated as zero contribution.
-7. `addStrategies...` sets multipliers atomically and rejects length mismatch.
+7. `addStrategies...` sets multipliers atomically via `StrategyMultiplier` struct.
 8. `removeStrategies...` removes multiplier entries for removed strategies.
 9. `set/add/remove` reject non-ascending or duplicate strategy inputs.
 10. `getStrategiesAndMultipliers()` returns an ascending, duplicate-free list.

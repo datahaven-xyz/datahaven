@@ -11,9 +11,6 @@ import {
 } from "../src/interfaces/IDataHavenServiceManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {
-    IRewardsCoordinatorTypes
-} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
-import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
@@ -197,14 +194,14 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
         cheats.stopPrank();
 
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory result =
+        IDataHavenServiceManager.StrategyMultiplier[] memory result =
             serviceManager.getStrategiesAndMultipliers();
 
         assertEq(result.length, 3);
         for (uint256 i = 0; i < result.length; i++) {
             uint16 expectedMultiplier =
                 serviceManager.strategiesAndMultipliers(result[i].strategy);
-            assertEq(result[i].multiplier, uint96(expectedMultiplier));
+            assertEq(result[i].multiplierBps, expectedMultiplier);
         }
     }
 

@@ -254,12 +254,12 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Returns all strategies with their multipliers
-     * @return Array of StrategyAndMultiplier structs with strategy addresses and multipliers
+     * @return Array of StrategyMultiplier structs with strategy addresses and multipliers in bps
      */
     function getStrategiesAndMultipliers()
         external
         view
-        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
+        returns (StrategyMultiplier[] memory);
 
     // ============ Rewards Submitter Functions ============
 

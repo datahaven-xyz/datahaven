@@ -137,7 +137,7 @@ struct StrategyMultiplier {
 function setStrategiesAndMultipliers(StrategyMultiplier[] calldata strategyMultipliers) external onlyOwner;
 function addStrategiesToValidatorsSupportedStrategies(StrategyMultiplier[] calldata strategyMultipliers) external onlyOwner;
 function removeStrategiesFromValidatorsSupportedStrategies(IStrategy[] calldata strategies) external onlyOwner;
-function getStrategiesAndMultipliers() external view returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
+function getStrategiesAndMultipliers() external view returns (StrategyMultiplier[] memory);
 ```
 
 The `StrategyMultiplier` struct pairs each strategy with its multiplier, eliminating the possibility of length mismatches between parallel arrays. Duplicate strategies in `addStrategies` are rejected by EigenLayer's `StrategyAlreadyInOperatorSet` check; duplicates in `setStrategiesAndMultipliers` are harmless (last-write-wins on the mapping).

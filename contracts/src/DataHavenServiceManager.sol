@@ -382,18 +382,17 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function getStrategiesAndMultipliers()
         external
         view
-        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory)
+        returns (StrategyMultiplier[] memory)
     {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
 
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory result =
-            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategies.length);
+        StrategyMultiplier[] memory result = new StrategyMultiplier[](strategies.length);
 
         for (uint256 i = 0; i < strategies.length; i++) {
-            result[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            result[i] = StrategyMultiplier({
                 strategy: strategies[i],
-                multiplier: uint96(strategiesAndMultipliers[strategies[i]])
+                multiplierBps: strategiesAndMultipliers[strategies[i]]
             });
         }
 

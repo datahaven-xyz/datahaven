@@ -12,6 +12,7 @@ submitter_private_key: "0x..."
 
 # Contract
 # Optional — if omitted, falls back to contracts/deployments/{network_id}.json
+# Note: Docker image does not include contracts/deployments; set this explicitly when running in Docker.
 # service_manager_address: "0x..."
 network_id: "anvil"
 

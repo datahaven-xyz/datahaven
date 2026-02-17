@@ -64,6 +64,35 @@ bun tools/validator-set-submitter/main.ts run --dry-run
 
 Private key precedence is: `--submitter-private-key` > `SUBMITTER_PRIVATE_KEY` > `submitter_private_key` in config file.
 
+## Docker
+
+Build the image from the repository root:
+
+```bash
+docker build -f test/tools/validator-set-submitter/Dockerfile \
+  -t datahavenxyz/validator-set-submitter:local .
+```
+
+Run the submitter with mounted config and env private key:
+
+```bash
+docker run --rm \
+  -v "$(pwd)/test/tools/validator-set-submitter/config.yml:/config/config.yml:ro" \
+  -e SUBMITTER_PRIVATE_KEY=0x... \
+  datahavenxyz/validator-set-submitter:local
+```
+
+Dry run:
+
+```bash
+docker run --rm \
+  -v "$(pwd)/test/tools/validator-set-submitter/config.yml:/config/config.yml:ro" \
+  -e SUBMITTER_PRIVATE_KEY=0x... \
+  datahavenxyz/validator-set-submitter:local --dry-run
+```
+
+The Docker image does not include `contracts/deployments/*.json`. In containerized runs, set `service_manager_address` in your config.
+
 ## Startup checks
 
 On launch the submitter verifies:

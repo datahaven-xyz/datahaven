@@ -47,6 +47,8 @@ describeSuite({
           skipEstimation: true,
         });
 
+        await sendRawTransaction(context, tx);
+
         // we expect that the node hasn't crashed by here. without a fix, the previous web3 request
         // would have been sufficient to crash our node. now it fails with "ExhaustsResources". if
         // we can create a block, we must not have crashed.

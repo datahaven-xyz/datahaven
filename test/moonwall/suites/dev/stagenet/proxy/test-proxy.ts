@@ -125,7 +125,8 @@ describeSuite({
               alith.address,
               null,
               context.polkadotJs().tx.balances.transferAllowDeath(CHARLETH_ADDRESS, 100)
-            ),
+            )
+            .signAsync(signer),
           { signer: alith, expectEvents: [context.polkadotJs().events.system.ExtrinsicFailed] }
         );
         const afterCharlethBalance = await context.viem().getBalance({ address: CHARLETH_ADDRESS });
@@ -164,41 +165,6 @@ describeSuite({
 
     it({
       id: "T05",
-      title: "shouldn't accept instant for delayed proxy",
-      test: async () => {
-        const beforeCharlethBalance = await context
-          .viem()
-          .getBalance({ address: CHARLETH_ADDRESS });
-
-        await context.createBlock(
-          context.polkadotJs().tx.proxy.addProxy(signer.address, "Any", 2),
-          {
-            signer: alith,
-            allowFailures: false,
-          }
-        );
-
-        await context.createBlock(
-          context
-            .polkadotJs()
-            .tx.proxy.proxy(
-              alith.address,
-              null,
-              context.polkadotJs().tx.balances.transferAllowDeath(CHARLETH_ADDRESS, 100)
-            )
-            .signAsync(signer),
-          {
-            signer: alith,
-            expectEvents: [context.polkadotJs().events.system.ExtrinsicFailed],
-          }
-        );
-        const afterCharlethBalance = await context.viem().getBalance({ address: CHARLETH_ADDRESS });
-        expect(afterCharlethBalance - beforeCharlethBalance).to.be.eq(0n);
-      },
-    });
-
-    it({
-      id: "T06",
       title: "shouldn't accept early delayed proxy",
       test: async () => {
         const beforeCharlethBalance = await context
@@ -239,7 +205,7 @@ describeSuite({
     });
 
     it({
-      id: "T07",
+      id: "T06",
       title: "should accept on-time delayed proxy ",
       test: async () => {
         const beforeCharlethBalance = await context

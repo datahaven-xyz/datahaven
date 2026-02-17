@@ -360,12 +360,14 @@ contractsCommand
     if (!chain) {
       throw new Error("--chain parameter is required");
     }
-    // Build network identifier with environment prefix if specified
-    const environment = options.environment;
-    const networkId = environment ? `${environment}-${chain}` : chain;
-    await updateAVSMetadataURI(networkId, options.uri, {
+    let environment = options.environment;
+    if (!environment && command.parent) {
+      environment = command.parent.getOptionValue("environment");
+    }
+    await updateAVSMetadataURI(chain, options.uri, {
       execute: options.execute,
-      avsOwnerKey: options.avsOwnerKey
+      avsOwnerKey: options.avsOwnerKey,
+      environment
     });
   });
 

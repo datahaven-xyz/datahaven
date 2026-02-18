@@ -68,7 +68,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
     /// @inheritdoc IDataHavenServiceManager
-    mapping(IStrategy => uint16) public strategiesAndMultipliers;
+    mapping(IStrategy => uint96) public strategiesAndMultipliers;
 
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
@@ -187,15 +187,13 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             address solochainAddr = validatorEthAddressToSolochainAddress[operators[i]];
             if (solochainAddr == address(0)) continue;
 
-            // Compute weighted stake across all strategies using bps multipliers:
-            // weightedStake = sum(allocatedStake[i][j] * multiplierBps[j]) / 10_000
-            // where 10_000 bps = 100% weight
+            // Compute weighted stake across all strategies:
+            // weightedStake = sum(allocatedStake[i][j] * multiplier[j])
             uint256 weightedStake = 0;
             for (uint256 j = 0; j < strategies.length; j++) {
                 weightedStake +=
                     allocatedStake[i][j] * uint256(strategiesAndMultipliers[strategies[j]]);
             }
-            weightedStake /= 10_000;
 
             if (weightedStake == 0) continue;
 
@@ -350,13 +348,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @inheritdoc IDataHavenServiceManager
     function addStrategiesToValidatorsSupportedStrategies(
-        StrategyMultiplier[] calldata _strategyMultipliers
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
         IStrategy[] memory strategies = new IStrategy[](_strategyMultipliers.length);
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
             strategies[i] = _strategyMultipliers[i].strategy;
-            strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
-                _strategyMultipliers[i].multiplierBps;
+            strategiesAndMultipliers[_strategyMultipliers[i].strategy] = _strategyMultipliers[i].multiplier;
         }
 
         _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
@@ -368,11 +365,10 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @inheritdoc IDataHavenServiceManager
     function setStrategiesAndMultipliers(
-        StrategyMultiplier[] calldata _strategyMultipliers
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
-            strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
-                _strategyMultipliers[i].multiplierBps;
+            strategiesAndMultipliers[_strategyMultipliers[i].strategy] = _strategyMultipliers[i].multiplier;
         }
 
         emit StrategiesAndMultipliersSet(_strategyMultipliers);
@@ -382,17 +378,18 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function getStrategiesAndMultipliers()
         external
         view
-        returns (StrategyMultiplier[] memory)
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory)
     {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
 
-        StrategyMultiplier[] memory result = new StrategyMultiplier[](strategies.length);
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory result =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategies.length);
 
         for (uint256 i = 0; i < strategies.length; i++) {
-            result[i] = StrategyMultiplier({
+            result[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
                 strategy: strategies[i],
-                multiplierBps: strategiesAndMultipliers[strategies[i]]
+                multiplier: strategiesAndMultipliers[strategies[i]]
             });
         }
 

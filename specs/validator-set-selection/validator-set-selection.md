@@ -91,19 +91,19 @@ Multipliers are owner-managed in `strategiesAndMultipliers`. If an entry is unse
 
 Multiplier lifecycle is tied to strategy lifecycle:
 
-1. Add strategy -> add multiplier in the same call via `StrategyMultiplier` struct.
+1. Add strategy -> add multiplier in the same call via `IRewardsCoordinatorTypes.StrategyAndMultiplier` struct.
 2. Remove strategy -> delete multiplier in the same call.
 
 ## 7. Weighted Stake Model
 
 For each operator `o`:
 
-`weightedStake(o) = sum_i( allocatedStake(o, strategy_i) * weightBps(strategy_i) / 10_000 )`
+`weightedStake(o) = sum_i( allocatedStake(o, strategy_i) * multiplier(strategy_i) )`
 
 Where:
 
 1. `allocatedStake` comes from EigenLayer allocation data.
-2. `weightBps` is a per-strategy multiplier in basis points.
+2. `multiplier` is a per-strategy weight (no normalization divisor is applied during ranking).
 
 ### 7.1 Strategy Weight Semantics
 
@@ -123,24 +123,19 @@ File: `contracts/src/DataHavenServiceManager.sol`
 
 ```solidity
 uint32 public constant MAX_ACTIVE_VALIDATORS = 32;
-mapping(IStrategy => uint16) public strategiesAndMultipliers;
+mapping(IStrategy => uint96) public strategiesAndMultipliers;
 ```
 
 ### 8.2 New/Updated Admin APIs
 
 ```solidity
-struct StrategyMultiplier {
-    IStrategy strategy;
-    uint16 multiplierBps;
-}
-
-function setStrategiesAndMultipliers(StrategyMultiplier[] calldata strategyMultipliers) external onlyOwner;
-function addStrategiesToValidatorsSupportedStrategies(StrategyMultiplier[] calldata strategyMultipliers) external onlyOwner;
+function setStrategiesAndMultipliers(IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata strategyMultipliers) external onlyOwner;
+function addStrategiesToValidatorsSupportedStrategies(IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata strategyMultipliers) external onlyOwner;
 function removeStrategiesFromValidatorsSupportedStrategies(IStrategy[] calldata strategies) external onlyOwner;
-function getStrategiesAndMultipliers() external view returns (StrategyMultiplier[] memory);
+function getStrategiesAndMultipliers() external view returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 ```
 
-The `StrategyMultiplier` struct pairs each strategy with its multiplier, eliminating the possibility of length mismatches between parallel arrays. Duplicate strategies in `addStrategies` are rejected by EigenLayer's `StrategyAlreadyInOperatorSet` check; duplicates in `setStrategiesAndMultipliers` are harmless (last-write-wins on the mapping).
+Using EigenLayer's `StrategyAndMultiplier` struct pairs each strategy with its multiplier, eliminating the possibility of length mismatches between parallel arrays. Duplicate strategies in `addStrategies` are rejected by EigenLayer's `StrategyAlreadyInOperatorSet` check; duplicates in `setStrategiesAndMultipliers` are harmless (last-write-wins on the mapping).
 
 ### 8.3 Updated Selection Flow
 
@@ -216,7 +211,7 @@ At validator composition time:
 4. Behavior when candidate count is below 32.
 5. Zero-stake filtering.
 6. Missing multiplier entries are treated as zero contribution.
-7. `addStrategies...` sets multipliers atomically via `StrategyMultiplier` struct.
+7. `addStrategies...` sets multipliers atomically via `StrategyAndMultiplier` struct.
 8. `removeStrategies...` removes multiplier entries for removed strategies.
 9. `getStrategiesAndMultipliers()` returns a list matching EigenLayer's operator set strategies.
 11. Integration with `buildNewValidatorSetMessageForEra(targetEra)` and correct target era encoding.

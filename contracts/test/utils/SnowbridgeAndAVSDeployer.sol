@@ -17,7 +17,9 @@ import {
     IAllocationManagerTypes
 } from "eigenlayer-contracts/src/contracts/interfaces/IAllocationManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
-import {IDataHavenServiceManager} from "../../src/interfaces/IDataHavenServiceManager.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 import {OperatorSet} from "eigenlayer-contracts/src/contracts/libraries/OperatorSetLib.sol";
 import {ValidatorsUtils} from "../../script/utils/ValidatorsUtils.sol";
 
@@ -158,12 +160,12 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
             strategies[i] = deployedStrategies[i];
         }
 
-        IDataHavenServiceManager.StrategyMultiplier[] memory sm =
-            new IDataHavenServiceManager.StrategyMultiplier[](deployedStrategies.length);
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
         for (uint256 i = 0; i < deployedStrategies.length; i++) {
-            sm[i] = IDataHavenServiceManager.StrategyMultiplier({
+            sm[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
                 strategy: strategies[i],
-                multiplierBps: 10_000 // 1x multiplier for all strategies
+                multiplier: 1 // 1x multiplier for all strategies
             });
         }
 

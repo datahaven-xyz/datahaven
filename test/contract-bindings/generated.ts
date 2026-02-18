@@ -2050,6 +2050,13 @@ export const dataHavenServiceManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'MAX_ACTIVE_VALIDATORS',
+    outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'VALIDATORS_SET_ID',
     outputs: [{ name: '', internalType: 'uint32', type: 'uint32' }],
     stateMutability: 'view',
@@ -2058,9 +2065,17 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       {
-        name: '_strategies',
-        internalType: 'contract IStrategy[]',
-        type: 'address[]',
+        name: '_strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
       },
     ],
     name: 'addStrategiesToValidatorsSupportedStrategies',
@@ -2101,6 +2116,27 @@ export const dataHavenServiceManagerAbi = [
     name: 'deregisterOperatorFromOperatorSets',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getStrategiesAndMultipliers',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -2211,6 +2247,27 @@ export const dataHavenServiceManagerAbi = [
     type: 'function',
     inputs: [
       {
+        name: '_strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+      },
+    ],
+    name: 'setStrategiesAndMultipliers',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
         name: 'slashings',
         internalType: 'struct IDataHavenServiceManager.SlashingRequest[]',
         type: 'tuple[]',
@@ -2235,6 +2292,13 @@ export const dataHavenServiceManagerAbi = [
     inputs: [],
     name: 'snowbridgeGateway',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'contract IStrategy', type: 'address' }],
+    name: 'strategiesAndMultipliers',
+    outputs: [{ name: '', internalType: 'uint96', type: 'uint96' }],
     stateMutability: 'view',
   },
   {
@@ -2474,6 +2538,27 @@ export const dataHavenServiceManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'strategyMultipliers',
+        internalType: 'struct IRewardsCoordinatorTypes.StrategyAndMultiplier[]',
+        type: 'tuple[]',
+        components: [
+          {
+            name: 'strategy',
+            internalType: 'contract IStrategy',
+            type: 'address',
+          },
+          { name: 'multiplier', internalType: 'uint96', type: 'uint96' },
+        ],
+        indexed: false,
+      },
+    ],
+    name: 'StrategiesAndMultipliersSet',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'validator',
         internalType: 'address',
         type: 'address',
@@ -2498,6 +2583,7 @@ export const dataHavenServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'CallerIsNotValidator' },
   { type: 'error', inputs: [], name: 'CantDeregisterFromMultipleOperatorSets' },
   { type: 'error', inputs: [], name: 'CantRegisterToMultipleOperatorSets' },
+  { type: 'error', inputs: [], name: 'EmptyValidatorSet' },
   { type: 'error', inputs: [], name: 'IncorrectAVSAddress' },
   { type: 'error', inputs: [], name: 'InvalidOperatorSetId' },
   { type: 'error', inputs: [], name: 'InvalidSolochainAddressLength' },
@@ -10643,6 +10729,15 @@ export const readDataHavenServiceManagerDatahavenAvsMetadata =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"MAX_ACTIVE_VALIDATORS"`
+ */
+export const readDataHavenServiceManagerMaxActiveValidators =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'MAX_ACTIVE_VALIDATORS',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"VALIDATORS_SET_ID"`
  */
 export const readDataHavenServiceManagerValidatorsSetId =
@@ -10658,6 +10753,15 @@ export const readDataHavenServiceManagerBuildNewValidatorSetMessage =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'buildNewValidatorSetMessage',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"getStrategiesAndMultipliers"`
+ */
+export const readDataHavenServiceManagerGetStrategiesAndMultipliers =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'getStrategiesAndMultipliers',
   })
 
 /**
@@ -10685,6 +10789,15 @@ export const readDataHavenServiceManagerSnowbridgeGateway =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'snowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"strategiesAndMultipliers"`
+ */
+export const readDataHavenServiceManagerStrategiesAndMultipliers =
+  /*#__PURE__*/ createReadContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'strategiesAndMultipliers',
   })
 
 /**
@@ -10836,6 +10949,15 @@ export const writeDataHavenServiceManagerSetSnowbridgeGateway =
   /*#__PURE__*/ createWriteContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'setSnowbridgeGateway',
+  })
+
+/**
+ * Wraps __{@link writeContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
+ */
+export const writeDataHavenServiceManagerSetStrategiesAndMultipliers =
+  /*#__PURE__*/ createWriteContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setStrategiesAndMultipliers',
   })
 
 /**
@@ -10998,6 +11120,15 @@ export const simulateDataHavenServiceManagerSetSnowbridgeGateway =
   })
 
 /**
+ * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"setStrategiesAndMultipliers"`
+ */
+export const simulateDataHavenServiceManagerSetStrategiesAndMultipliers =
+  /*#__PURE__*/ createSimulateContract({
+    abi: dataHavenServiceManagerAbi,
+    functionName: 'setStrategiesAndMultipliers',
+  })
+
+/**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"slashValidatorsOperator"`
  */
 export const simulateDataHavenServiceManagerSlashValidatorsOperator =
@@ -11127,6 +11258,15 @@ export const watchDataHavenServiceManagerSolochainAddressUpdatedEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: dataHavenServiceManagerAbi,
     eventName: 'SolochainAddressUpdated',
+  })
+
+/**
+ * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `eventName` set to `"StrategiesAndMultipliersSet"`
+ */
+export const watchDataHavenServiceManagerStrategiesAndMultipliersSetEvent =
+  /*#__PURE__*/ createWatchContractEvent({
+    abi: dataHavenServiceManagerAbi,
+    eventName: 'StrategiesAndMultipliersSet',
   })
 
 /**

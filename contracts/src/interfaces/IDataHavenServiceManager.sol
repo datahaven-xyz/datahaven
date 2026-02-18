@@ -83,7 +83,9 @@ interface IDataHavenServiceManagerEvents {
 
     /// @notice Emitted when strategy multipliers are set or updated
     /// @param strategyMultipliers Array of strategy-multiplier pairs that were set
-    event StrategiesAndMultipliersSet(IDataHavenServiceManager.StrategyMultiplier[] strategyMultipliers);
+    event StrategiesAndMultipliersSet(
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] strategyMultipliers
+    );
 }
 
 /**
@@ -91,16 +93,7 @@ interface IDataHavenServiceManagerEvents {
  * @notice Defines the interface for the DataHaven Service Manager, which manages validators
  *         in the DataHaven network
  */
-interface IDataHavenServiceManager is
-    IDataHavenServiceManagerErrors,
-    IDataHavenServiceManagerEvents
-{
-    /// @notice Pairs a strategy with its multiplier in basis points (bps)
-    struct StrategyMultiplier {
-        IStrategy strategy;
-        uint16 multiplierBps;
-    }
-
+interface IDataHavenServiceManager is IDataHavenServiceManagerErrors, IDataHavenServiceManagerEvents {
     /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
     struct SlashingRequest {
         address operator;
@@ -159,7 +152,7 @@ interface IDataHavenServiceManager is
     /**
      * @notice Builds a SCALE-encoded message containing the top validators by weighted stake
      * @dev Selects up to MAX_ACTIVE_VALIDATORS from registered operators. Each operator's
-     *      weighted stake is computed as: sum(allocatedStake[j] * multiplierBps[j]) / 10_000
+     *      weighted stake is computed as: sum(allocatedStake[j] * multiplier[j])
      *      across all strategies. Operators without a solochain address mapping or with zero
      *      weighted stake are excluded. Ties are broken by lower operator address.
      * @return The SCALE-encoded message bytes to be sent to the Snowbridge Gateway
@@ -216,12 +209,12 @@ interface IDataHavenServiceManager is
 
     /**
      * @notice Adds strategies to the list of supported strategies for DataHaven Validators
-     * @dev Each strategy's multiplier (in bps) determines its weight in the validator selection
-     *      formula: weightedStake = sum(allocatedStake[j] * multiplierBps[j]) / 10_000
+     * @dev Each strategy's multiplier determines its weight in the validator selection
+     *      formula: weightedStake = sum(allocatedStake[j] * multiplier[j])
      * @param _strategyMultipliers Array of strategy-multiplier pairs to add
      */
     function addStrategiesToValidatorsSupportedStrategies(
-        StrategyMultiplier[] calldata _strategyMultipliers
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external;
 
     /**
@@ -231,35 +224,34 @@ interface IDataHavenServiceManager is
     function MAX_ACTIVE_VALIDATORS() external pure returns (uint32);
 
     /**
-     * @notice Returns the multiplier in basis points (bps) for a given strategy
+     * @notice Returns the multiplier for a given strategy
      * @dev The multiplier determines how much an operator's allocated stake in this strategy
      *      contributes to their weighted stake during validator set selection.
-     *      10_000 bps = 100% (full weight), 5_000 bps = 50% (half weight), etc.
      * @param strategy The strategy to look up
-     * @return The multiplier in basis points (0–10_000)
+     * @return The multiplier weight
      */
     function strategiesAndMultipliers(
         IStrategy strategy
-    ) external view returns (uint16);
+    ) external view returns (uint96);
 
     /**
      * @notice Updates multipliers for strategies already in the operator set
-     * @dev Does not add or remove strategies from EigenLayer; only updates the bps weights
+     * @dev Does not add or remove strategies from EigenLayer; only updates multiplier weights
      *      used in the validator selection weighted stake formula
      * @param _strategyMultipliers Array of strategy-multiplier pairs to update
      */
     function setStrategiesAndMultipliers(
-        StrategyMultiplier[] calldata _strategyMultipliers
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external;
 
     /**
      * @notice Returns all strategies with their multipliers
-     * @return Array of StrategyMultiplier structs with strategy addresses and multipliers in bps
+     * @return Array of StrategyAndMultiplier structs with strategy addresses and multiplier weights
      */
     function getStrategiesAndMultipliers()
         external
         view
-        returns (StrategyMultiplier[] memory);
+        returns (IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory);
 
     // ============ Rewards Submitter Functions ============
 

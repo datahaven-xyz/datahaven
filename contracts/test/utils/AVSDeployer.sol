@@ -72,6 +72,7 @@ contract AVSDeployer is Test {
     address public unpauser = address(uint160(uint256(keccak256("unpauser"))));
     address public rewardsUpdater = address(uint160(uint256(keccak256("rewardsUpdater"))));
     address public strategyOwner = address(uint160(uint256(keccak256("strategyOwner"))));
+    address public versionUpdater = address(uint160(uint256(keccak256("versionUpdater"))));
 
     // RewardsCoordinator constants
     uint32 public constant CALCULATION_INTERVAL_SECONDS = 7 days;
@@ -256,7 +257,9 @@ contract AVSDeployer is Test {
                         avsOwner,
                         rewardsInitiator,
                         validatorsStrategies,
-                        address(snowbridgeGatewayMock)
+                        address(snowbridgeGatewayMock),
+                        "v-mock",
+                        versionUpdater
                     )
                 )
             )

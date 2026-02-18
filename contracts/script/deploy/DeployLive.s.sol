@@ -121,7 +121,9 @@ contract DeployLive is DeployBase {
             params.avsOwner,
             params.rewardsInitiator,
             params.validatorsStrategies,
-            params.gateway
+            params.gateway,
+            params.initialVersion,
+            params.versionUpdater
         );
 
         TransparentUpgradeableProxy proxy =
@@ -136,7 +138,8 @@ contract DeployLive is DeployBase {
         IGatewayV2 gateway,
         DataHavenServiceManager serviceManager,
         DataHavenServiceManager serviceManagerImplementation,
-        address rewardsAgent
+        address rewardsAgent,
+        ProxyAdmin proxyAdmin
     ) internal override {
         Logging.logHeader("DEPLOYMENT SUMMARY");
 
@@ -185,6 +188,7 @@ contract DeployLive is DeployBase {
             vm.toString(address(serviceManagerImplementation)),
             '",'
         );
+        json = string.concat(json, '"ProxyAdmin": "', vm.toString(address(proxyAdmin)), '",');
         json = string.concat(json, '"RewardsAgent": "', vm.toString(rewardsAgent), '",');
 
         // EigenLayer contracts (existing on live network)

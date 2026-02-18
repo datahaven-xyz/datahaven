@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { $ } from "bun";
 import { CHAIN_CONFIGS, loadChainConfig } from "configs/contracts/config";
 import invariant from "tiny-invariant";
@@ -45,6 +47,7 @@ export const validateDeploymentParams = (options: ContractDeploymentOptions) => 
  */
 export const buildContracts = async () => {
   logger.info("🛳️ Building contracts...");
+
   const {
     exitCode: buildExitCode,
     stderr: buildStderr,
@@ -114,6 +117,59 @@ export const executeDeployment = async (
   }
 
   logger.success("Contracts deployed successfully");
+};
+
+/**
+ * Gets the current code version from contracts/VERSION file
+ * This is the single source of truth for the code version
+ */
+export const getCurrentVersion = async (): Promise<string> => {
+  const cwd = process.cwd();
+  const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+  const versionFile = path.join(repoRoot, "contracts", "VERSION");
+
+  try {
+    const version = readFileSync(versionFile, "utf8").trim();
+    if (!version) {
+      throw new Error("VERSION file is empty");
+    }
+    return version;
+  } catch (error) {
+    throw new Error(`Failed to read contracts/VERSION: ${error}`);
+  }
+};
+
+/**
+ * Updates versions-matrix.json to track deployment
+ * Does NOT bump version - version comes from contracts/VERSION file
+ */
+export const updateDeploymentTracking = async (chain: string | undefined, version: string) => {
+  if (!chain) {
+    return;
+  }
+
+  try {
+    const cwd = process.cwd();
+    const repoRoot = path.basename(cwd) === "test" ? path.join(cwd, "..") : cwd;
+    const matrixFile = path.join(repoRoot, "contracts", "versions-matrix.json");
+
+    const matrixContent = readFileSync(matrixFile, "utf8");
+    const matrix = JSON.parse(matrixContent);
+
+    // Update deployment info
+    if (!matrix.deployments) {
+      matrix.deployments = {};
+    }
+    matrix.deployments[chain] = {
+      version,
+      lastDeployed: new Date().toISOString()
+    };
+
+    writeFileSync(matrixFile, JSON.stringify(matrix, null, 2));
+    logger.info(`📝 Updated versions-matrix.json: ${chain} deployed at version ${version}`);
+  } catch (error) {
+    logger.warn(`⚠️ Could not update versions-matrix.json: ${error}`);
+  }
 };
 
 /**
@@ -224,16 +280,25 @@ export const deployContracts = async (options: {
   // Build contracts
   await buildContracts();
 
+  // Get current code version from VERSION file (single source of truth)
+  const currentVersion = await getCurrentVersion();
+  logger.info(`📌 Deploying code version: ${currentVersion}`);
+
   // Construct and execute deployment
   const deployCommand = constructDeployCommand(deploymentOptions);
-  const env = buildDeploymentEnv(deploymentOptions);
+  const env = buildDeploymentEnv(deploymentOptions, currentVersion);
   await executeDeployment(deployCommand, undefined, networkId, env);
 
   if (!txExecutionEnabled) {
     await emitOwnerTransactionCalldata(networkId);
   }
 
-  logger.success(`DataHaven contracts deployed successfully to ${networkId}`);
+  // Update versions-matrix.json to track this deployment
+  await updateDeploymentTracking(options.chain, currentVersion);
+
+  logger.success(
+    `DataHaven contracts deployed successfully to ${options.chain} at version ${currentVersion}`
+  );
 };
 
 const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
@@ -243,7 +308,7 @@ const normalizePrivateKey = (key?: string): `0x${string}` | undefined => {
   return (key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`;
 };
 
-const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
+const buildDeploymentEnv = (options: ContractDeploymentOptions, version: string) => {
   const env: Record<string, string> = {};
 
   if (options.privateKey) {
@@ -261,6 +326,9 @@ const buildDeploymentEnv = (options: ContractDeploymentOptions) => {
   if (typeof options.txExecution === "boolean") {
     env.TX_EXECUTION = options.txExecution ? "true" : "false";
   }
+
+  // Pass version to Solidity scripts for contract initialization
+  env.DATAHAVEN_VERSION = version;
 
   return env;
 };
@@ -337,12 +405,12 @@ if (import.meta.main) {
   }
 
   if (!options.rpcUrl) {
-    console.error("Error: --rpc-url parameter is required");
+    logger.error("Error: --rpc-url parameter is required");
     process.exit(1);
   }
 
   if (options.verified && !options.blockscoutBackendUrl) {
-    console.error("Error: --blockscout-url parameter is required when using --verified");
+    logger.error("Error: --blockscout-url parameter is required when using --verified");
     process.exit(1);
   }
 

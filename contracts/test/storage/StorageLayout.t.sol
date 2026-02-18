@@ -85,9 +85,12 @@ contract StorageLayoutTest is AVSDeployer {
         bool inAllowlistBefore = serviceManager.validatorsAllowlist(testValidator);
         address solochainAddressBefore =
             serviceManager.validatorEthAddressToSolochainAddress(testValidator);
+        address ethOperatorBefore =
+            serviceManager.validatorSolochainAddressToEthAddress(testSolochainAddress);
 
         // Verify the mapping was set correctly before upgrade
         assertEq(solochainAddressBefore, testSolochainAddress, "Solochain address should be set");
+        assertEq(ethOperatorBefore, testValidator, "Eth operator should be set");
 
         // Deploy new implementation and upgrade
         DataHavenServiceManager newImpl =
@@ -111,6 +114,16 @@ contract StorageLayoutTest is AVSDeployer {
             serviceManager.validatorEthAddressToSolochainAddress(testValidator),
             testSolochainAddress,
             "validatorEthAddressToSolochainAddress should have correct value after upgrade"
+        );
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(testSolochainAddress),
+            ethOperatorBefore,
+            "validatorSolochainAddressToEthAddress mapping should be preserved after upgrade"
+        );
+        assertEq(
+            serviceManager.validatorSolochainAddressToEthAddress(testSolochainAddress),
+            testValidator,
+            "validatorSolochainAddressToEthAddress should have correct value after upgrade"
         );
     }
 

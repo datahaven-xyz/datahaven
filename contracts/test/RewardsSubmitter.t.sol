@@ -357,4 +357,84 @@ contract RewardsSubmitterTest is AVSDeployer {
         vm.expectRevert(abi.encodeWithSignature("UnknownSolochainAddress()"));
         serviceManager.submitRewards(submission);
     }
+
+    function test_submitRewards_sortsTranslatedOperatorsByAddress() public {
+        (address ethLow, address ethHigh) =
+            operator1 < operator2 ? (operator1, operator2) : (operator2, operator1);
+
+        address solochainLow = address(0x1000);
+        address solochainHigh = address(0x2000);
+
+        _registerOperator(ethLow, solochainHigh);
+        _registerOperator(ethHigh, solochainLow);
+
+        IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategiesAndMultipliers =
+            new IRewardsCoordinatorTypes.StrategyAndMultiplier[](deployedStrategies.length);
+        for (uint256 i = 0; i < deployedStrategies.length; i++) {
+            strategiesAndMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                strategy: deployedStrategies[i], multiplier: uint96((i + 1) * 1e18)
+            });
+        }
+
+        uint256 amountForEthLow = 600e18;
+        uint256 amountForEthHigh = 400e18;
+        uint256 totalAmount = amountForEthLow + amountForEthHigh;
+
+        IRewardsCoordinatorTypes.OperatorReward[] memory inputOperatorRewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](2);
+        inputOperatorRewards[0] = IRewardsCoordinatorTypes.OperatorReward({
+            operator: solochainLow, amount: amountForEthHigh
+        });
+        inputOperatorRewards[1] = IRewardsCoordinatorTypes.OperatorReward({
+            operator: solochainHigh, amount: amountForEthLow
+        });
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory submission =
+            IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+                strategiesAndMultipliers: strategiesAndMultipliers,
+                token: IERC20(address(rewardToken)),
+                operatorRewards: inputOperatorRewards,
+                startTimestamp: GENESIS_REWARDS_TIMESTAMP,
+                duration: TEST_CALCULATION_INTERVAL,
+                description: "DataHaven rewards"
+            });
+
+        vm.warp(submission.startTimestamp + submission.duration + 1);
+
+        IRewardsCoordinatorTypes.OperatorReward[] memory expectedOperatorRewards =
+            new IRewardsCoordinatorTypes.OperatorReward[](2);
+        expectedOperatorRewards[0] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: ethLow, amount: amountForEthLow});
+        expectedOperatorRewards[1] =
+            IRewardsCoordinatorTypes.OperatorReward({operator: ethHigh, amount: amountForEthHigh});
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory expectedSubmission =
+            IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission({
+                strategiesAndMultipliers: strategiesAndMultipliers,
+                token: submission.token,
+                operatorRewards: expectedOperatorRewards,
+                startTimestamp: submission.startTimestamp,
+                duration: submission.duration,
+                description: submission.description
+            });
+
+        IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
+            new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
+        submissions[0] = expectedSubmission;
+
+        OperatorSet memory operatorSet =
+            OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()});
+        vm.expectCall(
+            address(rewardsCoordinator),
+            abi.encodeCall(
+                IRewardsCoordinator.createOperatorDirectedOperatorSetRewardsSubmission,
+                (operatorSet, submissions)
+            )
+        );
+
+        vm.prank(snowbridgeAgent);
+        vm.expectEmit(false, false, false, true);
+        emit IDataHavenServiceManagerEvents.RewardsSubmitted(totalAmount, 2);
+        serviceManager.submitRewards(submission);
+    }
 }

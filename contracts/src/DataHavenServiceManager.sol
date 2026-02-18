@@ -331,19 +331,18 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function submitRewards(
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission calldata submission
     ) external override onlyRewardsInitiator {
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < submission.operatorRewards.length; i++) {
-            totalAmount += submission.operatorRewards[i].amount;
-        }
-
-        submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
-
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission memory translatedSubmission =
         submission;
+        uint256 totalAmount = 0;
         for (uint256 i = 0; i < translatedSubmission.operatorRewards.length; i++) {
             translatedSubmission.operatorRewards[i].operator =
                 _ethOperatorFromSolochain(translatedSubmission.operatorRewards[i].operator);
+            totalAmount += translatedSubmission.operatorRewards[i].amount;
         }
+
+        _sortOperatorRewards(translatedSubmission.operatorRewards);
+
+        submission.token.safeIncreaseAllowance(address(_REWARDS_COORDINATOR), totalAmount);
 
         IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[] memory submissions =
             new IRewardsCoordinatorTypes.OperatorDirectedRewardsSubmission[](1);
@@ -415,6 +414,26 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     }
 
     // ============ Internal Functions ============
+
+    /**
+     * @notice Sorts operator rewards array by operator address in ascending order using insertion sort
+     * @dev Insertion sort is optimal for small arrays (validator set capped at 32)
+     * @param rewards The operator rewards array to sort in-place
+     */
+    function _sortOperatorRewards(
+        IRewardsCoordinatorTypes.OperatorReward[] memory rewards
+    ) private pure {
+        uint256 len = rewards.length;
+        for (uint256 i = 1; i < len; i++) {
+            IRewardsCoordinatorTypes.OperatorReward memory key = rewards[i];
+            uint256 j = i;
+            while (j > 0 && rewards[j - 1].operator > key.operator) {
+                rewards[j] = rewards[j - 1];
+                j--;
+            }
+            rewards[j] = key;
+        }
+    }
 
     /**
      * @notice Safely converts a 20-byte array to an address

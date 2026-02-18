@@ -59,7 +59,9 @@ function resolveSubmitterPrivateKey(
   cliPrivateKey?: string
 ): `0x${string}` {
   const submitterPrivateKey =
-    cliPrivateKey ?? process.env.SUBMITTER_PRIVATE_KEY ?? optionalString(raw, "submitter_private_key");
+    cliPrivateKey ??
+    process.env.SUBMITTER_PRIVATE_KEY ??
+    optionalString(raw, "submitter_private_key");
 
   if (!submitterPrivateKey || submitterPrivateKey.length === 0) {
     throw new Error(

@@ -190,7 +190,9 @@ contract SnowbridgeAndAVSDeployer is AVSDeployer {
             }
 
             allocParams[0] = IAllocationManagerTypes.AllocateParams({
-                operatorSet: OperatorSet({avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()}),
+                operatorSet: OperatorSet({
+                    avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()
+                }),
                 strategies: strategies,
                 newMagnitudes: newMagnitudes
             });

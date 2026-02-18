@@ -83,9 +83,8 @@ interface IDataHavenServiceManagerEvents {
 
     /// @notice Emitted when strategy multipliers are set or updated
     /// @param strategyMultipliers Array of strategy-multiplier pairs that were set
-    event StrategiesAndMultipliersSet(
-        IRewardsCoordinatorTypes.StrategyAndMultiplier[] strategyMultipliers
-    );
+    event StrategiesAndMultipliersSet(IRewardsCoordinatorTypes
+                .StrategyAndMultiplier[] strategyMultipliers);
 }
 
 /**
@@ -93,7 +92,10 @@ interface IDataHavenServiceManagerEvents {
  * @notice Defines the interface for the DataHaven Service Manager, which manages validators
  *         in the DataHaven network
  */
-interface IDataHavenServiceManager is IDataHavenServiceManagerErrors, IDataHavenServiceManagerEvents {
+interface IDataHavenServiceManager is
+    IDataHavenServiceManagerErrors,
+    IDataHavenServiceManagerEvents
+{
     /// @notice Slashing request sent from the datahaven slashing pallet via snowbridge to slash operators in the validators set in EL.
     struct SlashingRequest {
         address operator;

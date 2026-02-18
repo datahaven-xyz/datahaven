@@ -5,9 +5,7 @@ pragma solidity ^0.8.27;
 
 import {SnowbridgeAndAVSDeployer} from "./utils/SnowbridgeAndAVSDeployer.sol";
 import {DataHavenSnowbridgeMessages} from "../src/libraries/DataHavenSnowbridgeMessages.sol";
-import {
-    IDataHavenServiceManagerErrors
-} from "../src/interfaces/IDataHavenServiceManager.sol";
+import {IDataHavenServiceManagerErrors} from "../src/interfaces/IDataHavenServiceManager.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 import {
     IRewardsCoordinatorTypes
@@ -33,15 +31,16 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         return strategies;
     }
 
-    function _setupMultipliers(uint96[] memory multipliers) internal {
+    function _setupMultipliers(
+        uint96[] memory multipliers
+    ) internal {
         IStrategy[] memory strategies = _getStrategies();
 
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](strategies.length);
         for (uint256 i = 0; i < strategies.length; i++) {
             sm[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-                strategy: strategies[i],
-                multiplier: multipliers[i]
+                strategy: strategies[i], multiplier: multipliers[i]
             });
         }
 
@@ -88,7 +87,9 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         cheats.stopPrank();
     }
 
-    function _uniformStakes(uint256 amount) internal view returns (uint256[] memory) {
+    function _uniformStakes(
+        uint256 amount
+    ) internal view returns (uint256[] memory) {
         uint256[] memory stakes = new uint256[](deployedStrategies.length);
         for (uint256 j = 0; j < stakes.length; j++) {
             stakes[j] = amount;
@@ -96,7 +97,9 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         return stakes;
     }
 
-    function _allocateForOperator(address op) internal {
+    function _allocateForOperator(
+        address op
+    ) internal {
         IStrategy[] memory strategies = _getStrategies();
         uint64[] memory newMagnitudes = new uint64[](strategies.length);
         for (uint256 j = 0; j < strategies.length; j++) {
@@ -107,8 +110,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
             new IAllocationManagerTypes.AllocateParams[](1);
         allocParams[0] = IAllocationManagerTypes.AllocateParams({
             operatorSet: OperatorSet({
-                avs: address(serviceManager),
-                id: serviceManager.VALIDATORS_SET_ID()
+                avs: address(serviceManager), id: serviceManager.VALIDATORS_SET_ID()
             }),
             strategies: strategies,
             newMagnitudes: newMagnitudes
@@ -143,12 +145,15 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
 
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](3);
-        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[0], multiplier: 5000});
-        sm[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-            strategy: strategies[1],
-            multiplier: 10_000
+        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[0], multiplier: 5000
         });
-        sm[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[2], multiplier: 2000});
+        sm[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[1], multiplier: 10000
+        });
+        sm[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[2], multiplier: 2000
+        });
 
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
@@ -156,7 +161,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         cheats.stopPrank();
 
         assertEq(serviceManager.strategiesAndMultipliers(strategies[0]), 5000);
-        assertEq(serviceManager.strategiesAndMultipliers(strategies[1]), 10_000);
+        assertEq(serviceManager.strategiesAndMultipliers(strategies[1]), 10000);
         assertEq(serviceManager.strategiesAndMultipliers(strategies[2]), 2000);
     }
 
@@ -166,18 +171,21 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
 
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](3);
-        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[0], multiplier: 5000});
-        sm[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-            strategy: strategies[1],
-            multiplier: 10_000
+        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[0], multiplier: 5000
         });
-        sm[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[2], multiplier: 2000});
+        sm[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[1], multiplier: 10000
+        });
+        sm[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[2], multiplier: 2000
+        });
 
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
         serviceManager.addStrategiesToValidatorsSupportedStrategies(sm);
 
-        assertEq(serviceManager.strategiesAndMultipliers(strategies[1]), 10_000);
+        assertEq(serviceManager.strategiesAndMultipliers(strategies[1]), 10000);
 
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
         cheats.stopPrank();
@@ -193,12 +201,15 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
 
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory sm =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](3);
-        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[0], multiplier: 5000});
-        sm[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-            strategy: strategies[1],
-            multiplier: 10_000
+        sm[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[0], multiplier: 5000
         });
-        sm[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[2], multiplier: 2000});
+        sm[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[1], multiplier: 10000
+        });
+        sm[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[2], multiplier: 2000
+        });
 
         cheats.startPrank(avsOwner);
         serviceManager.removeStrategiesFromValidatorsSupportedStrategies(strategies);
@@ -210,8 +221,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
 
         assertEq(result.length, 3);
         for (uint256 i = 0; i < result.length; i++) {
-            uint96 expectedMultiplier =
-                serviceManager.strategiesAndMultipliers(result[i].strategy);
+            uint96 expectedMultiplier = serviceManager.strategiesAndMultipliers(result[i].strategy);
             assertEq(result[i].multiplier, expectedMultiplier);
         }
     }
@@ -223,16 +233,22 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         // Set initial multipliers via _setupMultipliers
         uint96[] memory initial = new uint96[](3);
         initial[0] = 5000;
-        initial[1] = 10_000;
+        initial[1] = 10000;
         initial[2] = 2000;
         _setupMultipliers(initial);
 
         // Update multipliers
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory updated =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](3);
-        updated[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[0], multiplier: 1});
-        updated[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[1], multiplier: 1});
-        updated[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[2], multiplier: 9999});
+        updated[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[0], multiplier: 1
+        });
+        updated[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[1], multiplier: 1
+        });
+        updated[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[2], multiplier: 9999
+        });
 
         cheats.prank(avsOwner);
         serviceManager.setStrategiesAndMultipliers(updated);
@@ -245,7 +261,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
     // Test: setStrategiesAndMultipliers changes validator ranking
     function test_setStrategiesAndMultipliers_affectsRanking() public {
         uint96[] memory mults = new uint96[](3);
-        mults[0] = 10_000;
+        mults[0] = 10000;
         mults[1] = 1;
         mults[2] = 1;
         _setupMultipliers(mults);
@@ -285,9 +301,15 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         IStrategy[] memory strategies = _getStrategies();
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory flipped =
             new IRewardsCoordinatorTypes.StrategyAndMultiplier[](3);
-        flipped[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[0], multiplier: 1});
-        flipped[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[1], multiplier: 10_000});
-        flipped[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({strategy: strategies[2], multiplier: 1});
+        flipped[0] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[0], multiplier: 1
+        });
+        flipped[1] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[1], multiplier: 10000
+        });
+        flipped[2] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+            strategy: strategies[2], multiplier: 1
+        });
 
         cheats.prank(avsOwner);
         serviceManager.setStrategiesAndMultipliers(flipped);
@@ -296,9 +318,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         address[] memory expectedAfter = new address[](2);
         expectedAfter[0] = solochainB;
         expectedAfter[1] = solochainA;
-        assertEq(
-            serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expectedAfter)
-        );
+        assertEq(serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expectedAfter));
     }
 
     // ============ Selection Tests ============
@@ -307,7 +327,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
     function test_weightedStake_multipleStrategies() public {
         uint96[] memory mults = new uint96[](3);
         mults[0] = 5000;
-        mults[1] = 10_000;
+        mults[1] = 10000;
         mults[2] = 2000;
         _setupMultipliers(mults);
 
@@ -352,9 +372,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expected[1] = solochainA;
         expected[2] = solochainC;
 
-        assertEq(
-            serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected)
-        );
+        assertEq(serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected));
     }
 
     // Test #2: 2 operators with identical weighted stake; lower Eth address ranks first
@@ -386,9 +404,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expected[0] = solochainLow;
         expected[1] = solochainHigh;
 
-        assertEq(
-            serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected)
-        );
+        assertEq(serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected));
     }
 
     // Test #3: Register 35 operators; verify only top 32 selected
@@ -435,9 +451,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         for (uint256 i = 0; i < totalOps; i++) {
             operators[i] = vm.addr(400 + i);
             solochainAddrs[i] = address(uint160(0x2000 + i));
-            _registerOperator(
-                operators[i], solochainAddrs[i], _uniformStakes((i + 1) * 100 ether)
-            );
+            _registerOperator(operators[i], solochainAddrs[i], _uniformStakes((i + 1) * 100 ether));
         }
 
         _advancePastAllocationConfigDelay();
@@ -454,9 +468,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
             expected[i] = solochainAddrs[totalOps - 1 - i];
         }
 
-        assertEq(
-            serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected)
-        );
+        assertEq(serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected));
     }
 
     // Test #5: Operator with zero allocation excluded
@@ -489,9 +501,7 @@ contract ValidatorSetSelectionTest is SnowbridgeAndAVSDeployer {
         expected[0] = solochain2;
         expected[1] = solochain1;
 
-        assertEq(
-            serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected)
-        );
+        assertEq(serviceManager.buildNewValidatorSetMessage(), _buildExpectedMessage(expected));
     }
 
     // Test #6: Strategy without multiplier is treated as zero and filtered out

@@ -41,7 +41,7 @@
       "type": "t_array(t_uint256)49_storage"
     },
     {
-      "astId": 23771,
+      "astId": 23775,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "rewardsInitiator",
       "offset": 0,
@@ -49,7 +49,7 @@
       "type": "t_address"
     },
     {
-      "astId": 23776,
+      "astId": 23780,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorsAllowlist",
       "offset": 0,
@@ -57,7 +57,7 @@
       "type": "t_mapping(t_address,t_bool)"
     },
     {
-      "astId": 23780,
+      "astId": 23784,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "_snowbridgeGateway",
       "offset": 0,
@@ -65,7 +65,7 @@
       "type": "t_contract(IGatewayV2)23481"
     },
     {
-      "astId": 23785,
+      "astId": 23789,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "validatorEthAddressToSolochainAddress",
       "offset": 0,
@@ -73,12 +73,20 @@
       "type": "t_mapping(t_address,t_address)"
     },
     {
-      "astId": 23790,
+      "astId": 23795,
+      "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
+      "label": "strategiesAndMultipliers",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_mapping(t_contract(IStrategy)7361,t_uint96)"
+    },
+    {
+      "astId": 23800,
       "contract": "src/DataHavenServiceManager.sol:DataHavenServiceManager",
       "label": "__GAP",
       "offset": 0,
-      "slot": "105",
-      "type": "t_array(t_uint256)46_storage"
+      "slot": "106",
+      "type": "t_array(t_uint256)45_storage"
     }
   ],
   "types": {
@@ -87,10 +95,10 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)46_storage": {
+    "t_array(t_uint256)45_storage": {
       "encoding": "inplace",
-      "label": "uint256[46]",
-      "numberOfBytes": "1472",
+      "label": "uint256[45]",
+      "numberOfBytes": "1440",
       "base": "t_uint256"
     },
     "t_array(t_uint256)49_storage": {
@@ -115,6 +123,11 @@
       "label": "contract IGatewayV2",
       "numberOfBytes": "20"
     },
+    "t_contract(IStrategy)7361": {
+      "encoding": "inplace",
+      "label": "contract IStrategy",
+      "numberOfBytes": "20"
+    },
     "t_mapping(t_address,t_address)": {
       "encoding": "mapping",
       "key": "t_address",
@@ -129,6 +142,13 @@
       "numberOfBytes": "32",
       "value": "t_bool"
     },
+    "t_mapping(t_contract(IStrategy)7361,t_uint96)": {
+      "encoding": "mapping",
+      "key": "t_contract(IStrategy)7361",
+      "label": "mapping(contract IStrategy => uint96)",
+      "numberOfBytes": "32",
+      "value": "t_uint96"
+    },
     "t_uint256": {
       "encoding": "inplace",
       "label": "uint256",
@@ -138,6 +158,11 @@
       "encoding": "inplace",
       "label": "uint8",
       "numberOfBytes": "1"
+    },
+    "t_uint96": {
+      "encoding": "inplace",
+      "label": "uint96",
+      "numberOfBytes": "12"
     }
   }
 }

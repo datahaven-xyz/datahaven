@@ -170,8 +170,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     function buildNewValidatorSetMessage() public view returns (bytes memory) {
         OperatorSet memory operatorSet = OperatorSet({avs: address(this), id: VALIDATORS_SET_ID});
         address[] memory operators = _ALLOCATION_MANAGER.getMembers(operatorSet);
-        IStrategy[] memory strategies =
-            _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
+        IStrategy[] memory strategies = _ALLOCATION_MANAGER.getStrategiesInOperatorSet(operatorSet);
 
         // Get allocated stake for all operators across all strategies
         uint256[][] memory allocatedStake =
@@ -191,8 +190,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             // weightedStake = sum(allocatedStake[i][j] * multiplier[j])
             uint256 weightedStake = 0;
             for (uint256 j = 0; j < strategies.length; j++) {
-                weightedStake +=
-                    allocatedStake[i][j] * uint256(strategiesAndMultipliers[strategies[j]]);
+                weightedStake += allocatedStake[i][j]
+                * uint256(strategiesAndMultipliers[strategies[j]]);
             }
 
             if (weightedStake == 0) continue;
@@ -212,14 +211,12 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         for (uint256 i = 0; i < selectCount; i++) {
             uint256 bestIdx = i;
             for (uint256 j = i + 1; j < candidateCount; j++) {
-                if (
-                    _isBetterCandidate(
+                if (_isBetterCandidate(
                         candidateStake[j],
                         candidateOperator[j],
                         candidateStake[bestIdx],
                         candidateOperator[bestIdx]
-                    )
-                ) {
+                    )) {
                     bestIdx = j;
                 }
             }
@@ -353,12 +350,11 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         IStrategy[] memory strategies = new IStrategy[](_strategyMultipliers.length);
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
             strategies[i] = _strategyMultipliers[i].strategy;
-            strategiesAndMultipliers[_strategyMultipliers[i].strategy] = _strategyMultipliers[i].multiplier;
+            strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
+            _strategyMultipliers[i].multiplier;
         }
 
-        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(
-            address(this), VALIDATORS_SET_ID, strategies
-        );
+        _ALLOCATION_MANAGER.addStrategiesToOperatorSet(address(this), VALIDATORS_SET_ID, strategies);
 
         emit StrategiesAndMultipliersSet(_strategyMultipliers);
     }
@@ -368,7 +364,8 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
         IRewardsCoordinatorTypes.StrategyAndMultiplier[] calldata _strategyMultipliers
     ) external onlyOwner {
         for (uint256 i = 0; i < _strategyMultipliers.length; i++) {
-            strategiesAndMultipliers[_strategyMultipliers[i].strategy] = _strategyMultipliers[i].multiplier;
+            strategiesAndMultipliers[_strategyMultipliers[i].strategy] =
+            _strategyMultipliers[i].multiplier;
         }
 
         emit StrategiesAndMultipliersSet(_strategyMultipliers);
@@ -388,8 +385,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
         for (uint256 i = 0; i < strategies.length; i++) {
             result[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
-                strategy: strategies[i],
-                multiplier: strategiesAndMultipliers[strategies[i]]
+                strategy: strategies[i], multiplier: strategiesAndMultipliers[strategies[i]]
             });
         }
 

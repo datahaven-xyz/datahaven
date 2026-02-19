@@ -73,7 +73,7 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
 
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[45] private __GAP;
+    uint256[44] private __GAP;
 
     // ============ Modifiers ============
 
@@ -568,6 +568,9 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
             return stakeA > stakeB;
         }
         return opA < opB;
+    }
+
+    /**
      * @notice Returns the EigenLayer operator address for a Solochain validator address
      * @dev Reverts if the Solochain address has not been mapped to an operator
      */

@@ -175,19 +175,16 @@ describe("Validator Set Update", () => {
       }
       // Wait for the active era to stabilize: ForceNone prevents new eras but
       // an already-triggered era may still be pending activation at the next session boundary.
-      // Poll until ActiveEra is stable across two consecutive reads.
+      // Poll until CurrentEra == ActiveEra, meaning no pending era transition remains.
       let stableEraIndex: number;
-      {
-        let prev = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          await new Promise((r) => setTimeout(r, 12_000)); // ~2 substrate blocks
-          const cur = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
-          if (cur === prev) {
-            stableEraIndex = cur;
-            break;
-          }
-          prev = cur;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        await new Promise((r) => setTimeout(r, 12_000)); // ~2 substrate blocks
+        const activeEra = (await dhApi.query.ExternalValidators.ActiveEra.getValue())?.index ?? 0;
+        const currentEra = (await dhApi.query.ExternalValidators.CurrentEra.getValue()) ?? 0;
+        if (currentEra === activeEra) {
+          stableEraIndex = activeEra;
+          break;
         }
       }
 

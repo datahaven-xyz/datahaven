@@ -95,8 +95,8 @@ function createTicker(clients: SubmitterClients, config: SubmitterConfig, signal
       `Session=${currentSession} ActiveEra=${activeEra.index} TargetEra=${targetEra} ExternalIndex=${externalIndex}`
     );
 
-    await submitForEra(clients, config, targetEra, signal);
-    submittedEra = targetEra;
+    const succeeded = await submitForEra(clients, config, targetEra, signal);
+    if (succeeded) submittedEra = targetEra;
   };
 }
 
@@ -129,7 +129,8 @@ export async function startSubmitter(
       }
     });
 
-  await onAbort(signal);
+  const done = new Promise<void>((resolve) => sub.add(() => resolve()));
+  await Promise.race([onAbort(signal), done]);
   sub.unsubscribe();
 
   logger.info("Submitter stopped");
@@ -144,7 +145,7 @@ async function submitForEra(
   config: SubmitterConfig,
   targetEra: bigint,
   signal: AbortSignal
-): Promise<void> {
+): Promise<boolean> {
   const { publicClient, walletClient } = clients;
 
   const totalFee = config.executionFee + config.relayerFee;
@@ -160,7 +161,7 @@ async function submitForEra(
       args: [targetEra]
     });
     logger.info(`[DRY RUN] Would send message: ${message}`);
-    return;
+    return true;
   }
 
   try {
@@ -177,7 +178,7 @@ async function submitForEra(
     const receipt = await waitForReceiptWithAbort(publicClient, hash, signal);
     if (receipt.status !== "success") {
       logger.error(`Transaction reverted: ${hash}`);
-      return;
+      return false;
     }
 
     const hasOutbound = receipt.logs.some((log) => {
@@ -195,12 +196,14 @@ async function submitForEra(
 
     if (!hasOutbound) {
       logger.warn("Transaction succeeded but no OutboundMessageAccepted event found");
-      return;
+      return false;
     }
 
     logger.info("OutboundMessageAccepted confirmed");
+    return true;
   } catch (err: unknown) {
-    if (signal.aborted) return;
+    if (signal.aborted) return false;
     logger.error(`Submission attempt failed: ${err}`);
+    return false;
   }
 }

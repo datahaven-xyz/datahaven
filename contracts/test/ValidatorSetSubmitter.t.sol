@@ -9,8 +9,9 @@ import {
     IDataHavenServiceManagerEvents
 } from "../src/interfaces/IDataHavenServiceManager.sol";
 import {DataHavenServiceManager} from "../src/DataHavenServiceManager.sol";
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    TransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
 
 contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
@@ -215,7 +216,9 @@ contract ValidatorSetSubmitterTest is SnowbridgeAndAVSDeployer {
         zeroSubmitterSM.sendNewValidatorSetForEra{value: 2 ether}(1, 1 ether, 1 ether);
     }
 
-    function test_fuzz_sendNewValidatorSetForEra(uint64 targetEra) public {
+    function test_fuzz_sendNewValidatorSetForEra(
+        uint64 targetEra
+    ) public {
         cheats.prank(avsOwner);
         serviceManager.setValidatorSetSubmitter(submitterA);
 

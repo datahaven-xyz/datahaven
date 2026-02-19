@@ -1,9 +1,11 @@
+import { $ } from "bun";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { Binary, FixedSizeBinary } from "polkadot-api";
-import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger } from "utils";
+import { CROSS_CHAIN_TIMEOUTS, getPapiSigner, logger, waitForContainerToStart } from "utils";
 import type { Address } from "viem";
 import { getContractInstance, parseDeploymentsFile } from "../../utils/contracts";
 import { waitForDataHavenEvent } from "../../utils/events";
+import { waitFor } from "../../utils/waits";
 import { BaseTestSuite } from "../framework";
 
 class SlashTestSuite extends BaseTestSuite {
@@ -14,6 +16,10 @@ class SlashTestSuite extends BaseTestSuite {
 
     // Set up hooks in constructor
     this.setupHooks();
+  }
+
+  getNetworkId(): string {
+    return this.networkId;
   }
 }
 
@@ -163,4 +169,60 @@ describe("Should slash an operator", () => {
     }
     logger.info("Slashes message sent");
   }, 560000);
+
+  it("should detect and slash an unresponsive validator (liveness)", async () => {
+    const networkId = suite.getNetworkId();
+    const bobContainer = `datahaven-bob-${networkId}`;
+
+    // Record the current era to know where to look for the slash
+    const activeEra = await dhApi.query.ExternalValidators.ActiveEra.getValue();
+    const eraAtStart = activeEra?.index ?? 0;
+    logger.info(`Current era at start of liveness test: ${eraAtStart}`);
+
+    // Stop bob to simulate a liveness failure (missed heartbeats)
+    logger.info(`Stopping bob container: ${bobContainer}`);
+    await $`docker stop ${bobContainer}`.quiet();
+    logger.info("Bob container stopped. Waiting for session to end...");
+
+    // Wait for at least one full session so pallet_im_online detects bob's
+    // missing heartbeats at the session boundary.
+    // Fast-runtime: 10 blocks/session × 6s/block = 60s per session.
+    await Bun.sleep(80_000);
+
+    // Restart bob to restore GRANDPA finality (needs 2/2 validators).
+    // Once bob syncs alice's blocks, GRANDPA will finalize the pending chain
+    // including the session-boundary block where the slash was created.
+    logger.info("Restarting bob container...");
+    await $`docker start ${bobContainer}`.quiet();
+    await waitForContainerToStart(bobContainer, { timeoutSeconds: 60 });
+    logger.info("Bob restarted. Waiting for finality and slash detection...");
+
+    // Poll for a LivenessOffence slash to appear.
+    // The slash may land in the current era or a subsequent one depending
+    // on exactly when the session boundary was crossed.
+    let livenessSlash: { slash: any; era: number } | undefined;
+    await waitFor({
+      lambda: async () => {
+        for (let era = eraAtStart; era <= eraAtStart + 3; era++) {
+          const slashes = await dhApi.query.ExternalValidatorsSlashes.Slashes.getValue(era);
+          const found = slashes?.find((s: any) => s.offence_kind?.type === "LivenessOffence");
+          if (found) {
+            livenessSlash = { slash: found, era };
+            return true;
+          }
+        }
+        return false;
+      },
+      iterations: 60,
+      delay: 5000,
+      errorMessage: "LivenessOffence slash not found after stopping bob"
+    });
+
+    expect(livenessSlash).toBeDefined();
+    logger.info(
+      `Liveness slash confirmed in era ${livenessSlash!.era}: ` +
+        `validator=${livenessSlash!.slash.validator}, ` +
+        `percentage=${livenessSlash!.slash.percentage}`
+    );
+  }, 420_000);
 });

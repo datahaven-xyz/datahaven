@@ -36,6 +36,12 @@ interface IDataHavenServiceManagerErrors {
     error OnlyValidatorSetSubmitter();
     /// @notice Thrown when trying to submit a validator set message with zero validators
     error EmptyValidatorSet();
+
+    /// @notice Thrown when a Solochain address has not been mapped to an EigenLayer operator
+    error UnknownSolochainAddress();
+
+    /// @notice Thrown when a Solochain address is already assigned to a different operator
+    error SolochainAddressAlreadyAssigned();
 }
 
 /**
@@ -146,6 +152,15 @@ interface IDataHavenServiceManager is
     function setValidatorSetSubmitter(
         address newSubmitter
     ) external;
+
+    /**
+     * @notice Converts a Solochain validator address to the corresponding EigenLayer operator address
+     * @param solochainAddress The Solochain validator address to convert
+     * @return The corresponding EigenLayer operator address
+     */
+    function validatorSolochainAddressToEthAddress(
+        address solochainAddress
+    ) external view returns (address);
 
     /**
      * @notice Initializes the DataHaven Service Manager

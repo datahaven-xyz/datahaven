@@ -10789,6 +10789,9 @@ export const readDataHavenServiceManagerValidatorSetSubmitter =
   /*#__PURE__*/ createReadContract({
     abi: dataHavenServiceManagerAbi,
     functionName: 'validatorSetSubmitter',
+  })
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link dataHavenServiceManagerAbi}__ and `functionName` set to `"validatorSolochainAddressToEthAddress"`
  */
 export const readDataHavenServiceManagerValidatorSolochainAddressToEthAddress =

@@ -24,7 +24,10 @@ WORKDIR /app/test
 RUN useradd -m -u 1001 -U -s /bin/sh -d /submitter submitter
 
 COPY --from=deps /app/test/node_modules ./node_modules
-COPY test/ ./
+COPY test/tsconfig.json test/bunfig.toml ./
+COPY test/tools/validator-set-submitter/ ./tools/validator-set-submitter/
+COPY test/contract-bindings/ ./contract-bindings/
+COPY test/utils/ ./utils/
 
 ENV NODE_ENV=production
 

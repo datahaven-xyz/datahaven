@@ -11,7 +11,7 @@
 
 FROM oven/bun:1.3.3-slim AS deps
 
-WORKDIR /app/test
+WORKDIR /app
 
 COPY test/package.json test/bun.lock test/tsconfig.json ./
 COPY test/.papi ./.papi
@@ -19,11 +19,11 @@ RUN bun install --frozen-lockfile --production
 
 FROM oven/bun:1.3.3-slim
 
-WORKDIR /app/test
+WORKDIR /app
 
 RUN useradd -m -u 1001 -U -s /bin/sh -d /submitter submitter
 
-COPY --from=deps /app/test/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY test/tsconfig.json test/bunfig.toml ./
 COPY test/tools/validator-set-submitter/ ./tools/validator-set-submitter/
 COPY test/contract-bindings/ ./contract-bindings/

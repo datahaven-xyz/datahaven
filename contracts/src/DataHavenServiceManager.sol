@@ -65,12 +65,14 @@ contract DataHavenServiceManager is OwnableUpgradeable, IAVSRegistrar, IDataHave
     mapping(address => address) public validatorEthAddressToSolochainAddress;
 
     /// @inheritdoc IDataHavenServiceManager
-    address public validatorSetSubmitter;
     mapping(address => address) public validatorSolochainAddressToEthAddress;
+
+    /// @inheritdoc IDataHavenServiceManager
+    address public validatorSetSubmitter;
 
     /// @notice Storage gap for upgradeability (must be at end of state variables)
     // solhint-disable-next-line var-name-mixedcase
-    uint256[45] private __GAP;
+    uint256[44] private __GAP;
 
     // ============ Modifiers ============
 

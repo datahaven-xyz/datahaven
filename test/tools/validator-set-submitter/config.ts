@@ -69,8 +69,8 @@ function resolveSubmitterPrivateKey(
     );
   }
 
-  if (!submitterPrivateKey.startsWith("0x")) {
-    throw new Error("Submitter private key must start with 0x");
+  if (!/^0x[0-9a-fA-F]{64}$/.test(submitterPrivateKey)) {
+    throw new Error("Submitter private key must be a 66-character hex string (0x + 64 hex chars)");
   }
 
   return submitterPrivateKey as `0x${string}`;

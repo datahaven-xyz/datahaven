@@ -34,6 +34,12 @@ interface IDataHavenServiceManagerErrors {
     error InvalidSolochainAddressLength();
     /// @notice Thrown when the validator set to be sent is empty
     error EmptyValidatorSet();
+
+    /// @notice Thrown when a Solochain address has not been mapped to an EigenLayer operator
+    error UnknownSolochainAddress();
+
+    /// @notice Thrown when a Solochain address is already assigned to a different operator
+    error SolochainAddressAlreadyAssigned();
 }
 
 /**
@@ -122,6 +128,15 @@ interface IDataHavenServiceManager is
      */
     function validatorEthAddressToSolochainAddress(
         address validatorAddress
+    ) external view returns (address);
+
+    /**
+     * @notice Converts a Solochain validator address to the corresponding EigenLayer operator address
+     * @param solochainAddress The Solochain validator address to convert
+     * @return The corresponding EigenLayer operator address
+     */
+    function validatorSolochainAddressToEthAddress(
+        address solochainAddress
     ) external view returns (address);
 
     /**

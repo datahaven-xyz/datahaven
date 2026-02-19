@@ -32,6 +32,10 @@ import {
 } from "eigenlayer-contracts/src/contracts/permissions/PermissionController.sol";
 import {EigenPodManager} from "eigenlayer-contracts/src/contracts/pods/EigenPodManager.sol";
 import {IETHPOSDeposit} from "eigenlayer-contracts/src/contracts/interfaces/IETHPOSDeposit.sol";
+import {IStrategy} from "eigenlayer-contracts/src/contracts/interfaces/IStrategy.sol";
+import {
+    IRewardsCoordinatorTypes
+} from "eigenlayer-contracts/src/contracts/interfaces/IRewardsCoordinator.sol";
 
 // DataHaven imports
 import {DataHavenServiceManager} from "../../src/DataHavenServiceManager.sol";
@@ -265,6 +269,19 @@ abstract contract DeployBase is Script, DeployParams, Accounts {
             vm.broadcast(_avsOwnerPrivateKey);
             serviceManager.updateAVSMetadataURI("");
             Logging.logStep("DataHaven service registered in AllocationManager");
+
+            // Set default multipliers (1) for all validator strategies
+            // Use initParams (may have been updated by _createServiceManagerProxy for local deployments)
+            IRewardsCoordinatorTypes.StrategyAndMultiplier[] memory strategyMultipliers = new IRewardsCoordinatorTypes
+                .StrategyAndMultiplier[](initParams.validatorsStrategies.length);
+            for (uint256 i = 0; i < initParams.validatorsStrategies.length; i++) {
+                strategyMultipliers[i] = IRewardsCoordinatorTypes.StrategyAndMultiplier({
+                    strategy: IStrategy(initParams.validatorsStrategies[i]), multiplier: 1
+                });
+            }
+            vm.broadcast(_avsOwnerPrivateKey);
+            serviceManager.setStrategiesAndMultipliers(strategyMultipliers);
+            Logging.logStep("Strategy multipliers set for validator strategies");
         } else {
             Logging.logInfo("TX EXECUTION DISABLED: call updateAVSMetadataURI via multisig");
         }

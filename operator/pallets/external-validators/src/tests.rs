@@ -481,31 +481,19 @@ fn set_external_validators_extrinsic_rejects_bad_origin() {
     new_test_ext().execute_with(|| {
         // signed by an arbitrary non-root account → BadOrigin
         assert_noop!(
-            ExternalValidators::set_external_validators(
-                RuntimeOrigin::signed(1),
-                vec![50, 51],
-                1
-            ),
+            ExternalValidators::set_external_validators(RuntimeOrigin::signed(1), vec![50, 51], 1),
             BadOrigin
         );
 
         // unsigned → BadOrigin
         assert_noop!(
-            ExternalValidators::set_external_validators(
-                RuntimeOrigin::none(),
-                vec![50, 51],
-                1
-            ),
+            ExternalValidators::set_external_validators(RuntimeOrigin::none(), vec![50, 51], 1),
             BadOrigin
         );
 
         // root origin (requires signed(777) specifically, not sudo root) → BadOrigin
         assert_noop!(
-            ExternalValidators::set_external_validators(
-                RuntimeOrigin::root(),
-                vec![50, 51],
-                1
-            ),
+            ExternalValidators::set_external_validators(RuntimeOrigin::root(), vec![50, 51], 1),
             BadOrigin
         );
 

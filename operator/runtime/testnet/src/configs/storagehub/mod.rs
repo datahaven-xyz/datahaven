@@ -401,6 +401,18 @@ const MAX_CUSTOM_CHALLENGES_PER_BLOCK: u32 = 10;
 const TOTAL_MAX_CHALLENGES_PER_BLOCK: u32 =
     RANDOM_CHALLENGES_PER_BLOCK + MAX_CUSTOM_CHALLENGES_PER_BLOCK;
 
+// Challenge fees are used to prevent spam. Keep them non-zero in production runtimes.
+// For benchmarking builds we intentionally keep the absolute amounts tiny.
+#[cfg(not(feature = "runtime-benchmarks"))]
+const CHALLENGES_FEE_VALUE: Balance = HAVE / 1_000; // 0.001 HAVE
+#[cfg(feature = "runtime-benchmarks")]
+const CHALLENGES_FEE_VALUE: Balance = MICROHAVE / 1_000;
+
+#[cfg(not(feature = "runtime-benchmarks"))]
+const PRIORITY_CHALLENGES_FEE_VALUE: Balance = HAVE / 100; // 0.01 HAVE
+#[cfg(feature = "runtime-benchmarks")]
+const PRIORITY_CHALLENGES_FEE_VALUE: Balance = MICROHAVE / 100;
+
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
     pub const BenchmarkStakeToChallengePeriod: Balance =
@@ -416,9 +428,9 @@ parameter_types! {
     pub const TargetTicksStorageOfSubmitters: u32 = 3;
     pub const ChallengeHistoryLength: BlockNumber = 100;
     pub const ChallengesQueueLength: u32 = 100;
-    pub const ChallengesFee: Balance = 0;
+    pub const ChallengesFee: Balance = CHALLENGES_FEE_VALUE;
     pub const ChallengeTicksTolerance: u32 = 50;
-    pub const PriorityChallengesFee: Balance = 0;
+    pub const PriorityChallengesFee: Balance = PRIORITY_CHALLENGES_FEE_VALUE;
 }
 
 impl pallet_proofs_dealer::Config for Runtime {
